@@ -19,7 +19,7 @@ body {
  *******************************************************/
 .outer-container {
   width: 1400px;
-  height: 669px;
+  height: auto;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -571,8 +571,8 @@ input[type="time"] {
  ************************************************/
 .container {
   width: 1400px;
-  height: 650px;
-  margin: 20px auto;
+  height: auto;
+  margin: 10px auto;
   background-color: #ffffff;
   border-radius: 12px; /* Apple-like corners */
   display: flex;
@@ -589,7 +589,7 @@ input[type="time"] {
   flex-direction: column; /* vertical stack => map-container + footer */
   background-color: #F9F9FB;
   border-right: 1px solid #E6E6E6;
-  padding: 20px;
+  padding: 10px;
 }
 .map-container {
   /* take all remaining vertical space except the footer */
