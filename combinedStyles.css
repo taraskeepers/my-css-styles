@@ -882,6 +882,9 @@ input.md-input::placeholder {
   font-weight: 700;
   text-anchor: middle;
 }
+.state {
+  cursor: pointer;
+}
 
 /* The second embed also has an .error-message, 
    but the first embed does as well. They happen to share 
