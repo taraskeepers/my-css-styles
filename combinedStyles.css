@@ -571,7 +571,7 @@ input[type="time"] {
  ************************************************/
 .container {
   width: 1400px;
-  height: auto;
+  height: 650px;
   margin: 10px auto;
   background-color: #ffffff;
   border-radius: 12px; /* Apple-like corners */
