@@ -1,0 +1,836 @@
+/***********************************************
+    0) RESET & BASE
+***********************************************/
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1C1C1E;
+  background-color: #F9F9FB;
+  margin: 0;
+  padding: 0;
+}
+
+/***********************************************
+    1) APPLE-STYLE TOP CONTAINER
+***********************************************/
+/* The container that replaces the old dark grey box */
+.top-apple-container {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  height: 200px;
+  background-color: #f5f5f7; 
+  margin: 0 auto;         
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;   
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 12px 16px; /* some left-right padding */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* White “card” style boxes in the top container */
+.apple-box {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
+  align-items: center;     
+  box-sizing: border-box;
+  padding: 12px;
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Sub-containers (for small textual stats) */
+.apple-subcontainer {
+  color: #555;
+  gap: 8px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+.apple-label {
+  font-size: 14px; 
+  font-weight: 500;
+  color: #555;
+}
+.apple-value {
+  font-size: 24px; 
+  font-weight: 700;
+  color: #333;
+}
+
+/***********************************************
+    2) SEARCHES BLOCK (top container)
+***********************************************/
+.searches-block {
+  width: 8%;
+  min-width: 0;
+  position: relative;
+}
+.searches-label-row {
+  padding: 6px 0; 
+  box-sizing: border-box;
+}
+.searches-title {
+  font-size: 14px; 
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+.searches-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;     
+  justify-content: center;
+  padding-bottom: 8px;    
+  gap: 6px;
+  box-sizing: border-box;
+}
+.status-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.status-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px; 
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+.status-active {
+  background-color: #7ed07e;
+}
+.status-paused {
+  background-color: #ff4d4d;
+}
+.big-num {
+  font-size: 28px; 
+  font-weight: 700;
+  line-height: 1.2;
+  color: #333;
+}
+
+/***********************************************
+    3) PROJECTED COST BLOCK (top container)
+***********************************************/
+.projected-cost-block {
+  width: 32%;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+}
+.projected-cost-label-row {
+  padding: 6px 0;
+  box-sizing: border-box;
+}
+.projected-cost-title {
+  font-size: 14px; 
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+.projected-cost-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;  
+  justify-content: center; 
+  gap: 20px;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.chart-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start; 
+  justify-content: center;
+}
+.chart-container {
+  width: 300px;  
+  height: 120px; 
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  position: relative;
+  overflow: hidden;
+}
+.day-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center; 
+  justify-content: center;
+  min-width: 70px;
+}
+.day-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.day-item-label {
+  font-size: 14px; 
+  font-weight: 500;
+  color: #666;
+}
+.day-item-value {
+  font-size: 28px; 
+  font-weight: 700;
+  color: #333;
+}
+
+/***********************************************
+    4) “SETTINGS” CONTAINER (top container)
+***********************************************/
+.settings-container {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  background: transparent; /* no background */
+  border: none;           /* no border */
+  border-radius: 0;       /* no corners */
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 12px;          
+  margin-left: 12px;      
+}
+.settings-container .settings-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin: 0; 
+}
+
+/***********************************************
+    5) PROJECT LISTING + SEARCH CARDS
+***********************************************/
+.container-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px; 
+  min-height: 500px;
+  background-color: #F9F9FB;
+}
+.project-item {
+  border: 1px solid #EAEAEA;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  background-color: #FFFFFF;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.project-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  cursor: pointer;
+}
+.project-title-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.project-title {
+  font-size: 20px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.project-title:hover {
+  background-color: #F2F2F7;
+}
+.project-title-edit {
+  display: none;
+  font-size: 18px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  width: 70%;
+}
+.project-info-right {
+  display: flex;
+  justify-content: flex-end; 
+  flex: 1;
+}
+.project-info-wrapper {
+  display: flex;
+  gap: 24px;
+  padding: 8px 16px;
+  border: 1px solid #EAEAEA;
+  border-radius: 8px;
+  background-color: #FAFAFB;
+  align-items: center;
+}
+.project-info-icon-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.project-info-icon-block img {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+}
+.toggle-icon {
+  width: 24px;
+  height: 24px;
+  fill: #787880;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  margin-left: 16px;
+  cursor: pointer;
+}
+.toggle-icon.open {
+  transform: rotate(90deg);
+}
+.project-body {
+  display: none; 
+}
+.project-body.open {
+  display: block;
+  padding: 0 24px 24px;
+}
+.searches-container {
+  padding: 0 24px 24px;
+}
+.searches-container.open {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to   {opacity: 1;}
+}
+
+/***********************************************
+    6) SEARCH CARDS
+***********************************************/
+.search-card {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #F9F9FB;
+  border: 1px solid #ECECEC;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s;
+}
+.search-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.search-card.paused {
+  filter: grayscale(80%);
+  opacity: 0.7;
+}
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; 
+  flex-wrap: wrap;
+  gap: 10px;
+  cursor: pointer;
+}
+.top-left-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.top-right-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; 
+  gap: 16px;
+  flex: 1;
+}
+.search-term {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111;
+  margin-right: 30px; 
+}
+.inline-icons-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.inline-icon-block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.inline-icon-block img {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+}
+.domain-badge {
+  display: inline-block;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background-color: #DDD;
+  font-weight: 600;
+  font-size: 14px;
+}
+.mini-day-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background-color: #D0D0D0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 3px;
+}
+.mini-day-box.active {
+  background-color: #6366f1;
+}
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+.status-active {
+  background-color: #7ed07e;
+}
+.status-paused {
+  background-color: #ff4d4d;
+}
+.status-other {
+  background-color: #a4a4a4;
+}
+.search-toggle-icon {
+  width: 24px;
+  height: 24px;
+  fill: #787880;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+.search-toggle-icon.open {
+  transform: rotate(90deg);
+}
+.search-details {
+  display: none; 
+}
+.search-details.open {
+  display: flex; 
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeIn 0.3s ease;
+}
+.card-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.card-button {
+  width: 28px;
+  height: 28px;
+  background-color: #E5E5EA;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+.card-button:hover {
+  background-color: #D8D8DD;
+}
+
+/* Info blocks inside the search details */
+.engine-block,
+.freq-cost-block,
+.schedule-block,
+.locations-block {
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.engine-block { background-color: #FFF9DE; flex: 0 0 30%; }
+.freq-cost-block { background-color: #E8F8FF; flex: 0 0 20%; }
+.schedule-block { background-color: #EAF6EA; flex: 0 0 20%; }
+.locations-block { background-color: #FDF2F2; flex: 0 0 25%; }
+.blocks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 1 1 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.info-block-title {
+  background-color: #444; 
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-block-body {
+  padding: 10px;
+  font-size: 14px;
+  color: #333;
+}
+.tag-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #E8ECE3; 
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #333;
+}
+.freq-cost-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  padding: 10px;
+  flex-wrap: wrap;
+}
+.freq-col, .cost-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px; 
+  min-width: 80px;
+}
+.freq-col img, .cost-col img {
+  width: 50px; 
+  height: 50px;
+  object-fit: cover;
+}
+.cost-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: #111;
+}
+.days-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.day-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: #D0D0D0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.day-icon.active {
+  background-color: #6366f1;
+}
+.time-window {
+  font-size: 16px; 
+  font-weight: 600;
+  color: #333;
+  margin-top: 8px;
+}
+
+/***********************************************
+    7) PROJECT DASHBOARD (the lower part within each project)
+***********************************************/
+.pd-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 460px;
+  overflow: visible;
+  box-sizing: border-box;
+  margin-top: 16px;
+}
+.pd-map-container,
+.pd-loc-block,
+.pd-cost-block {
+  background-color: #fff;                  
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06); 
+}
+.pd-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.pd-row {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  overflow: visible; 
+  box-sizing: border-box;
+}
+.pd-map-container {
+  flex: 0 0 50%;
+  height: 345px;
+  background-color: #F9F9F9;
+  border: 1px solid #EAEAEA;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;  
+  justify-content: center; 
+  overflow: visible;
+  box-sizing: border-box;
+  position: relative;
+}
+.pd-map-container svg {
+  transform: scale(0.7);
+  transform-origin: center center;
+  display: block;
+}
+.pd-right-block {
+  flex: 0 0 48%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; 
+  overflow: visible;
+  box-sizing: border-box;
+}
+.pd-loc-block {
+  background-color: #F9F9FB;
+  border: 1px solid #EAEAEA;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.pd-loc-inner-row {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px; 
+  gap: 16px;
+  box-sizing: border-box;
+}
+.pd-states-locations-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  box-sizing: border-box;
+}
+.pd-loc-item-block {
+  display: flex; 
+  flex-direction: column;
+}
+.pd-loc-item-label {
+  font-size: 13px; 
+  font-weight: 500;
+  color: #666;
+}
+.pd-loc-item-value {
+  font-size: 24px; 
+  font-weight: 700;
+  color: #333;
+}
+.pd-cost-block {
+  background-color: #F9F9FB;
+  border: 1px solid #EAEAEA;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.pd-cost-inner-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+/* (A) SEARCHES block */
+.pd-searches-block {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 20%; 
+  min-width: 0; 
+  position: relative;
+}
+.pd-searches-label-row {
+  padding: 8px;
+  box-sizing: border-box;
+}
+.pd-searches-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.pd-searches-content {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;     
+  justify-content: center; 
+  padding-bottom: 12px;    
+  gap: 8px;
+  box-sizing: border-box;
+}
+.pd-status-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pd-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+.pd-status-active {
+  background-color: #7ed07e;
+}
+.pd-status-paused {
+  background-color: #ff4d4d;
+}
+.pd-big-num {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #333;
+}
+/* (B) PROJECTED COST block */
+.pd-projected-cost-block {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column; 
+  box-sizing: border-box;
+  width: 80%;
+  min-width: 0; 
+  padding: 0;
+  overflow: visible;
+}
+.pd-projected-cost-label-row {
+  padding: 8px;
+  box-sizing: border-box;
+}
+.pd-projected-cost-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.pd-projected-cost-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;  
+  justify-content: center; 
+  gap: 20px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.pd-chart-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start; 
+  justify-content: center;
+}
+.pd-chart-container {
+  width: 300px;  
+  height: 180px; 
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  position: relative;
+  overflow: hidden;
+}
+.pd-day-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center; 
+  justify-content: center;
+  min-width: 70px;
+}
+.pd-day-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pd-day-item-label {
+  font-size: 18px; 
+  font-weight: 500;
+  color: #666;
+}
+.pd-day-item-value {
+  font-size: 36px; 
+  font-weight: 700;
+  color: #333;
+}
+
+/***********************************************
+    8) MISC
+***********************************************/
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to   {opacity: 1;}
+}
