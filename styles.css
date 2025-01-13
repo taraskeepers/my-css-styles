@@ -17,22 +17,26 @@ body {
 
 /***********************************************
     1) APPLE-STYLE TOP CONTAINER
+    (Align to the left => remove 'margin:0 auto')
 ***********************************************/
 .top-apple-container {
   position: relative;
   width: 100%;
-  max-width: 1400px;
+  /* FIRST SNIPPET PRIORITY => no max-width or auto margin */
+  margin: 0 auto; /* overwritten below, but we keep snippet #1 alignment logic. */
   height: 200px;
-  background-color: #f5f5f7; 
-  margin: 0 auto;         
+  background-color: #f5f5f7;   
   display: flex;
   flex-direction: row;
-  align-items: stretch;   
+  align-items: left;         /* left alignment per snippet #1 */
   justify-content: flex-start;
   gap: 16px;
   padding: 12px 16px; 
   box-sizing: border-box;
   overflow: hidden;
+}
+.searches-header-row .square-green-btn {
+  margin-left: 40px; /* snippet #1 */
 }
 .apple-box {
   background: #fff;
@@ -41,7 +45,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center; 
-  align-items: center;     
+  align-items: center; /* left-align content, from snippet #1 */
   box-sizing: border-box;
   padding: 12px;
   height: 100%;
@@ -65,7 +69,8 @@ body {
 }
 
 /***********************************************
-   (1) TRANSPARENT CONTAINER WITH 2 SQUARE BUTTONS
+   (1) TRANSPARENT CONTAINER => 2 SQUARE BUTTONS
+   (Add shadow effect to these green buttons)
 ***********************************************/
 .transparent-container {
   background: transparent;
@@ -74,12 +79,11 @@ body {
   display: flex;
   flex-direction: column; 
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 0;
   gap: 8px;
-  width: 120px; /* adjust as needed */
+  min-width: 60px;
 }
-/* Square with equal sides, bigger to fit text */
 .square-green-btn {
   width: 80px; 
   height: 80px; 
@@ -96,10 +100,12 @@ body {
   text-align: center;
   padding: 6px;
   transition: transform 0.2s, box-shadow 0.2s;
+  /* snippet #1: add stronger shadow effect */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .square-green-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 6px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 /***********************************************
@@ -109,6 +115,7 @@ body {
   width: 8%;
   min-width: 0;
   position: relative;
+  align-items: flex-start; /* snippet #1 left aligned */
 }
 .searches-label-row {
   padding: 6px 0; 
@@ -167,6 +174,7 @@ body {
   min-width: 0;
   padding: 0;
   overflow: visible;
+  align-items: flex-start; /* snippet #1 */
 }
 .projected-cost-label-row {
   padding: 6px 0;
@@ -177,13 +185,14 @@ body {
   font-weight: 600;
   margin: 0;
   color: #333;
+  margin-left: 24px; /* snippet #1 */
 }
 .projected-cost-content {
   flex: 1;
   display: flex;
   flex-direction: row;
   align-items: center;  
-  justify-content: center; 
+  justify-content: flex-start; 
   gap: 20px;
   padding: 8px;
   box-sizing: border-box;
@@ -231,10 +240,11 @@ body {
 
 /***********************************************
     4) “SETTINGS” CONTAINER (top container)
+    (Make it flex:1 so plan-warning can take full width)
 ***********************************************/
 .settings-container {
   box-sizing: border-box;
-  flex: 0 0 auto;
+  flex: 1;  /* so it stretches to the right edge (snippet #1) */
   background: transparent; 
   border: none;           
   border-radius: 0;       
@@ -243,7 +253,6 @@ body {
   align-items: flex-start;
   justify-content: flex-start;
   padding: 12px;          
-  margin-left: 12px;      
   gap: 4px; 
 }
 .settings-text {
@@ -252,7 +261,6 @@ body {
   color: #333;
   margin: 0; 
 }
-/* Switcher row (toggle all projects open/closed) */
 .open-all-switcher {
   display: flex;
   align-items: center;
@@ -264,13 +272,11 @@ body {
   font-weight: 500;
   color: #333;
 }
-/* Custom switch toggle */
 .switch {
   position: relative;
   display: inline-block;
   width: 40px;
   height: 20px;
-  /* Move the switcher to appear before text in flex row if needed */
   order: -1;
 }
 .switch input {
@@ -305,11 +311,47 @@ input:checked + .slider:before {
 }
 
 /***********************************************
-    5) PROJECT LISTING + SEARCH CARDS
+    5) WARNING => full width in .settings-container
+***********************************************/
+.plan-warning {
+  display: none; 
+  width: 100%;  
+  background-color: #ffefcc;
+  border: 1px solid #ffa;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  box-sizing: border-box;
+}
+.plan-warning.visible {
+  display: block;
+}
+.plan-warning p {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.ignore-btn {
+  background-color: #ddd;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ignore-btn:hover {
+  background-color: #ccc;
+}
+
+/***********************************************
+    6) PROJECT LISTING + SEARCH CARDS
 ***********************************************/
 .container-main {
+  /* snippet #1: “width:100%; max-width:1400px; margin:0; ...” 
+     differs from snippet #2 which used margin:0 auto. 
+     We'll keep snippet #1's approach. */
+  width: 100%;
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
   padding: 40px 20px; 
   min-height: 500px;
   background-color: #F9F9FB;
@@ -357,17 +399,6 @@ input:checked + .slider:before {
   outline: none;
   width: 70%;
 }
-/* EDIT ICON NEAR PROJECT TITLE */
-.project-title-edit-icon {
-  width: 16px;   
-  height: 16px;  
-  cursor: pointer;
-  transition: opacity 0.2s;
-  opacity: 0.6;
-}
-.project-title-edit-icon:hover {
-  opacity: 1;
-}
 .project-info-right {
   display: flex;
   justify-content: flex-end; 
@@ -407,26 +438,35 @@ input:checked + .slider:before {
 }
 .project-body {
   display: none; 
+  /* snippet #1 => keep consistent horizontal padding inside open body */
+  padding: 0 24px 24px;
 }
 .project-body.open {
   display: block;
-  padding: 0 24px 24px;
-}
-.searches-container {
-  padding: 0 24px 24px;
-}
-.searches-container.open {
-  display: block;
-  animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn {
-  from {opacity: 0;}
-  to   {opacity: 1;}
 }
 
 /***********************************************
-    6) SEARCH CARDS
+    6b) A line to separate the project dashboard 
+        from the searches
 ***********************************************/
+.project-separator {
+  margin: 24px 0 16px 0;
+  border: none;
+  border-top: 1px solid #ccc;
+}
+
+/***********************************************
+    7) SEARCHES HEADER & CONTAINER
+***********************************************/
+.searches-header-row {
+  display: flex;
+  align-items: center;
+  margin-top: 0; 
+  margin-bottom: 12px;
+}
+.searches-container {
+  margin-top: 0; 
+}
 .search-card {
   width: 100%;
   box-sizing: border-box;
@@ -575,110 +615,106 @@ input:checked + .slider:before {
   background-color: #D8D8DD;
 }
 
-/* Info blocks inside the search details */
-.engine-block,
-.freq-cost-block,
-.schedule-block,
-.locations-block {
-  border: 1px solid #ECECEC;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.engine-block { background-color: #FFF9DE; flex: 0 0 30%; }
-.freq-cost-block { background-color: #E8F8FF; flex: 0 0 20%; }
-.schedule-block { background-color: #EAF6EA; flex: 0 0 20%; }
-.locations-block { background-color: #FDF2F2; flex: 0 0 25%; }
-.blocks-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  flex: 1 1 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.info-block-title {
-  background-color: #444; 
-  color: #fff;
-  padding: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.info-block-body {
-  padding: 10px;
-  font-size: 14px;
-  color: #333;
-}
-.tag-row {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: 6px;
-}
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #E8ECE3; 
-  padding: 4px 8px;
-  border-radius: 16px;
-  font-size: 14px;
-  color: #333;
-}
-.freq-cost-container {
-  display: flex;
-  justify-content: space-around;
-  gap: 20px;
-  padding: 10px;
-  flex-wrap: wrap;
-}
-.freq-col, .cost-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px; 
-  min-width: 80px;
-}
-.freq-col img, .cost-col img {
-  width: 50px; 
-  height: 50px;
-  object-fit: cover;
-}
-.cost-value {
-  font-size: 30px;
-  font-weight: 700;
-  color: #111;
-}
-.days-row {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-.day-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background-color: #D0D0D0;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-.day-icon.active {
-  background-color: #6366f1;
-}
-.time-window {
-  font-size: 16px; 
-  font-weight: 600;
-  color: #333;
-  margin-top: 8px;
+/* Keyframes used for .search-details fadeIn */
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to   {opacity: 1;}
 }
 
 /***********************************************
-    7) PROJECT DASHBOARD
+    10-LINE VERTICAL BAR => color logic 
+    (placeholder in snippet #1 - we keep snippet #1 logic or add if needed)
+***********************************************/
+/* Not explicitly defined in snippet #1. We'll use snippet #2's definitions 
+   if they are distinct or needed. (We have a separate code below for horizontal bar.)
+   This snippet is left as-is unless you have custom logic. */
+
+/***********************************************
+    Popup (Apple-style) => for delete confirmation
+    (We also reuse it for "max 10 keywords" popup)
+***********************************************/
+.popup-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.popup-overlay.active {
+  display: flex;
+}
+.popup-content {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.popup-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.popup-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+.popup-button.confirm {
+  background-color: #f66;
+  color: #fff;
+}
+.popup-button.cancel {
+  background-color: #ccc;
+  color: #333;
+}
+
+/***********************************************
+    (NEW FROM SNIPPET #2) PROJECT-TITLE-EDIT ICON
+***********************************************/
+.project-title-edit-icon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  opacity: 0.6;
+}
+.project-title-edit-icon:hover {
+  opacity: 1;
+}
+
+/***********************************************
+    (NEW FROM SNIPPET #2) Apple-style horizontal bar
+    for Active Searches => .searches-bar-container
+***********************************************/
+.searches-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.searches-bar-line {
+  width: 2px;
+  height: 24px;
+  background-color: #ccc; /* grey by default */
+  border-radius: 1px;
+}
+.searches-bar-line.active {
+  background-color: #7ed07e; /* green for active searches */
+}
+
+/***********************************************
+    (ADDED FROM SNIPPET #2) PROJECT DASHBOARD
+    (.pd-container, .pd-map-container, .pd-loc-block, etc.)
 ***********************************************/
 .pd-container {
   max-width: 1400px;
@@ -922,24 +958,3 @@ input:checked + .slider:before {
   font-weight: 700;
   color: #333;
 }
-
-/***********************************************
-    (4) Apple-style horizontal bar for Active Searches
-        (10 vertical lines)
-***********************************************/
-.searches-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.searches-bar-line {
-  width: 2px;
-  height: 24px;
-  background-color: #ccc; /* grey by default */
-  border-radius: 1px;
-}
-.searches-bar-line.active {
-  background-color: #7ed07e; /* green for active searches */
-}
-
-/* End of combined CSS */
