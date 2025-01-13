@@ -22,14 +22,14 @@ body {
 .top-apple-container {
   position: relative;
   width: 100%;
-  /* FIRST SNIPPET PRIORITY => no max-width or auto margin */
-  margin: 0 auto; /* overwritten below, but we keep snippet #1 alignment logic. */
+  /* from snippet #1 => no max-width or margin auto used for left alignment */
+  margin: 0 auto; /* as snippet #1 states, but alignment is to the left */
   height: 200px;
   background-color: #f5f5f7;   
   display: flex;
   flex-direction: row;
-  align-items: left;         /* left alignment per snippet #1 */
-  justify-content: flex-start;
+  align-items: left;   
+  justify-content: flex-start;  
   gap: 16px;
   padding: 12px 16px; 
   box-sizing: border-box;
@@ -45,7 +45,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center; 
-  align-items: center; /* left-align content, from snippet #1 */
+  align-items: center; /* snippet #1 => left-align content inside box, if needed */
   box-sizing: border-box;
   padding: 12px;
   height: 100%;
@@ -100,7 +100,7 @@ body {
   text-align: center;
   padding: 6px;
   transition: transform 0.2s, box-shadow 0.2s;
-  /* snippet #1: add stronger shadow effect */
+  /* stronger shadow from snippet #1 */
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .square-green-btn:hover {
@@ -115,7 +115,7 @@ body {
   width: 8%;
   min-width: 0;
   position: relative;
-  align-items: flex-start; /* snippet #1 left aligned */
+  align-items: flex-start; /* snippet #1 => left aligned */
 }
 .searches-label-row {
   padding: 6px 0; 
@@ -244,7 +244,7 @@ body {
 ***********************************************/
 .settings-container {
   box-sizing: border-box;
-  flex: 1;  /* so it stretches to the right edge (snippet #1) */
+  flex: 1;  /* so it stretches to the right edge */
   background: transparent; 
   border: none;           
   border-radius: 0;       
@@ -346,9 +346,7 @@ input:checked + .slider:before {
     6) PROJECT LISTING + SEARCH CARDS
 ***********************************************/
 .container-main {
-  /* snippet #1: “width:100%; max-width:1400px; margin:0; ...” 
-     differs from snippet #2 which used margin:0 auto. 
-     We'll keep snippet #1's approach. */
+  /* snippet #1 => full width, no auto margin */
   width: 100%;
   max-width: 1400px;
   margin: 0;
@@ -438,7 +436,7 @@ input:checked + .slider:before {
 }
 .project-body {
   display: none; 
-  /* snippet #1 => keep consistent horizontal padding inside open body */
+  /* keep consistent horizontal padding for snippet #1 */
   padding: 0 24px 24px;
 }
 .project-body.open {
@@ -615,23 +613,128 @@ input:checked + .slider:before {
   background-color: #D8D8DD;
 }
 
-/* Keyframes used for .search-details fadeIn */
+/***********************************************
+    6) INFO BLOCKS INSIDE THE SEARCH DETAILS
+       (Missing from final snippet => now added)
+***********************************************/
+.engine-block,
+.freq-cost-block,
+.schedule-block,
+.locations-block {
+  border: 1px solid #ECECEC;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.engine-block { background-color: #FFF9DE; flex: 0 0 30%; }
+.freq-cost-block { background-color: #E8F8FF; flex: 0 0 20%; }
+.schedule-block { background-color: #EAF6EA; flex: 0 0 20%; }
+.locations-block { background-color: #FDF2F2; flex: 0 0 25%; }
+.blocks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 1 1 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.info-block-title {
+  background-color: #444; 
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-block-body {
+  padding: 10px;
+  font-size: 14px;
+  color: #333;
+}
+.tag-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #E8ECE3; 
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #333;
+}
+.freq-cost-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  padding: 10px;
+  flex-wrap: wrap;
+}
+.freq-col, .cost-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px; 
+  min-width: 80px;
+}
+.freq-col img, .cost-col img {
+  width: 50px; 
+  height: 50px;
+  object-fit: cover;
+}
+.cost-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: #111;
+}
+.days-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.day-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: #D0D0D0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.day-icon.active {
+  background-color: #6366f1;
+}
+.time-window {
+  font-size: 16px; 
+  font-weight: 600;
+  color: #333;
+  margin-top: 8px;
+}
+
+/***********************************************
+    Keyframes used for .search-details fadeIn
+***********************************************/
 @keyframes fadeIn {
   from {opacity: 0;}
   to   {opacity: 1;}
 }
 
 /***********************************************
-    10-LINE VERTICAL BAR => color logic 
-    (placeholder in snippet #1 - we keep snippet #1 logic or add if needed)
+    10-LINE VERTICAL BAR => color logic
+    (placeholder if needed)
 ***********************************************/
-/* Not explicitly defined in snippet #1. We'll use snippet #2's definitions 
-   if they are distinct or needed. (We have a separate code below for horizontal bar.)
-   This snippet is left as-is unless you have custom logic. */
+/* Not explicitly defined in snippet #1 or #2 
+   except for the horizontal bar logic below. */
 
 /***********************************************
-    Popup (Apple-style) => for delete confirmation
-    (We also reuse it for "max 10 keywords" popup)
+    POPUP OVERLAY (Apple-style delete confirmation)
 ***********************************************/
 .popup-overlay {
   position: fixed;
@@ -680,11 +783,11 @@ input:checked + .slider:before {
 }
 
 /***********************************************
-    (NEW FROM SNIPPET #2) PROJECT-TITLE-EDIT ICON
+    PROJECT-TITLE-EDIT ICON (Snippet #2)
 ***********************************************/
 .project-title-edit-icon {
-  width: 16px;
-  height: 16px;
+  width: 16px;   
+  height: 16px;  
   cursor: pointer;
   transition: opacity 0.2s;
   opacity: 0.6;
@@ -694,8 +797,8 @@ input:checked + .slider:before {
 }
 
 /***********************************************
-    (NEW FROM SNIPPET #2) Apple-style horizontal bar
-    for Active Searches => .searches-bar-container
+    Apple-style horizontal bar for Active Searches
+    => .searches-bar-container
 ***********************************************/
 .searches-bar-container {
   display: flex;
@@ -713,8 +816,7 @@ input:checked + .slider:before {
 }
 
 /***********************************************
-    (ADDED FROM SNIPPET #2) PROJECT DASHBOARD
-    (.pd-container, .pd-map-container, .pd-loc-block, etc.)
+    PROJECT DASHBOARD (Snippet #2, appended)
 ***********************************************/
 .pd-container {
   max-width: 1400px;
