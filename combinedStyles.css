@@ -200,7 +200,7 @@ body {
   position: relative;
 }
 .engine-block {
-  flex: 0 0 40%;
+  flex: 0 0 32% !important;
   background-color: #f2f2f2;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -276,7 +276,7 @@ body {
   display: flex;
   align-items: center;
   min-height: 44px;
-  width: 200px;
+  width: 160px !important;
   position: relative;
 }
 .domain-field {
@@ -370,7 +370,7 @@ body {
 }
 
 .schedule-block {
-  flex: 0 0 27%;
+  flex: 0 0 24% !important;
   background-color: #f2f2f2;
   border: 1px solid #ccc;
   border-radius: 8px;
