@@ -608,6 +608,10 @@ input:checked + .slider:before {
   justify-content: center;
   font-size: 14px;
   transition: background-color 0.2s;
+  position: relative;
+  background-size: 24px 24px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 .card-button:hover {
   background-color: #D8D8DD;
