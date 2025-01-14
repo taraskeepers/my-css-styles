@@ -19,39 +19,6 @@ html, body {
   box-sizing: border-box;
 }
 
-#newProjectPopupOverlay {
-      position: fixed;
-      top: 0; 
-      left: 0;
-      width: 100%; 
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      display: none; /* hidden by default */
-      z-index: 9999;  /* on top of everything */
-    }
-    #newProjectPopupContent {
-      background: #fff;
-      width: 400px;
-      padding: 20px;
-      margin: 100px auto;
-      border-radius: 8px;
-      position: relative;
-    }
-    #newProjectPopupContent h2 {
-      margin-top: 0;
-    }
-    #newProjectPopupContent label {
-      display: block;
-      margin-top: 12px;
-      font-weight: 600;
-    }
-    #newProjectPopupContent input[type="text"],
-    #newProjectPopupContent select {
-      width: 100%;
-      margin-top: 4px;
-      margin-bottom: 8px;
-      box-sizing: border-box;
-
 /* Make the second-embed overlay fill the screen (modal style) */
 #secondEmbedContainer {
   margin: 0 !important;
