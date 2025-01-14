@@ -1,4 +1,4 @@
-/*******************************************************
+flow/*******************************************************
  * GLOBAL RESETS used by the first embed
  *******************************************************/
 * {
@@ -12,7 +12,8 @@ body {
   margin: 0;
   padding: 0;
   min-height: 1200px;
-  height: auto; 
+  height: auto;
+  overflow: visible !important;
 }
 .project-dropdown * {
     color: #111 !important; 
