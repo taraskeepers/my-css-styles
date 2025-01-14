@@ -1130,6 +1130,8 @@ input:checked + .slider:before {
   color: #fff;
 }
 .left-white-box {
+  min-height: 50px;
+  line-height: normal;
   background-color: #fff;
   border-radius: 8px;
   padding: 10px;
@@ -1140,6 +1142,11 @@ input:checked + .slider:before {
   width: 100%;
   position: relative;
   cursor: pointer;
+}
+.project-dropdown-field {
+  min-height: 48px; 
+  /* Keep font-size at 14px or 16px if you prefer, 
+     so the text does not scale up. */
 }
 .left-white-box * {
   color: #000 !important;
