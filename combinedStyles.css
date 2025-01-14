@@ -14,6 +14,7 @@ body {
   min-height: 1200px;
   height: auto;
 }
+.project-dropdown,
 .project-dropdown * {
     color: #111 !important; 
 }
