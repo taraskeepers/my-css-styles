@@ -21,6 +21,8 @@ html, body {
 
 /* Make the second-embed overlay fill the screen (modal style) */
 #secondEmbedContainer {
+  margin: 0 !important;
+  padding: 0 !important;
   position: fixed; 
   top: 0;
   left: 0 !important;
