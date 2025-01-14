@@ -1883,7 +1883,7 @@ input.md-input::placeholder {
   height:100%;
   background: rgba(0,0,0,0.4);
   z-index: 9999;
-  display: flex; 
+  display: none; 
   align-items: center; 
   justify-content: center;
 }
