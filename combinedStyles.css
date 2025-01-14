@@ -11,7 +11,8 @@ body {
   background-color: #F9F9FB;
   margin: 0;
   padding: 0;
-  overflow: auto; 
+  min-height: 1200px;
+  height: auto; 
 }
 .project-dropdown * {
     color: #111 !important; 
