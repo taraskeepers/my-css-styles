@@ -1887,6 +1887,11 @@ input.md-input::placeholder {
   align-items: center; 
   justify-content: center;
 }
+.popup-overlay-new-project.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .popup-content {
   background: #fff;
   border-radius: 16px;
