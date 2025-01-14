@@ -58,7 +58,7 @@ html, body {
   margin: 0 !important;
   max-width: none !important;
   width: 100% !important;
-  min-height: 600px;
+  /*min-height: 600px;*/
   /*max-width: 1400px; /* or any suitable width */
   /*max-height: 100vh;  */
   overflow: visible;
