@@ -30,7 +30,7 @@ html, body {
   height: 100%;
   z-index: 9999;
   background: rgba(0, 0, 0, 0.4);
-  display: none;      /* hidden by default */
+  /*display: none;      /* hidden by default */
   overflow-y: auto;   /* vertical scroll if content is tall */
   overflow-x: hidden; /* avoid horizontal scroll */
    /* 1) Center the content */
@@ -45,10 +45,11 @@ html, body {
   background: #fff;
   border-radius: 8px;
   margin: 0 !important;
+  width: 90%;
   max-width: 760px; /* or any suitable width */
-  max-width: 90%;
   padding: 0 !important;
   position: relative;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   /*z-index: 1;  above the backdrop */
 }
 
