@@ -1888,13 +1888,13 @@ input.md-input::placeholder {
   background: rgba(0,0,0,0.4);
   z-index: 9999;
   display: none; 
-  align-items: center; 
-  justify-content: center;
+  align-items: center !important; 
+  justify-content: center !important;
 }
 .popup-overlay-new-project.visible {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center !important;
+  justify-content: center !important;
 }
 .popup-content {
   position: relative;
