@@ -49,7 +49,7 @@ html, body {
   max-width: 90%;
   padding: 0 !important;
   position: relative;
-  z-index: 1; /* above the backdrop */
+  /*z-index: 1;  above the backdrop */
 }
 
 /* Ensure the text color in certain fields is not white */
