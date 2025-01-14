@@ -1875,7 +1875,7 @@ input.md-input::placeholder {
 }
 
 /* Popup => Apple style => overlay + white box */
-.popup-overlay {
+.popup-overlay-new-project {
   position: fixed; 
   top:0; 
   left:0; 
