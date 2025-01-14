@@ -43,7 +43,7 @@ html, body {
   margin: 0 !important;
   padding: 0 !important;
   /* Force the embed to not shrink below 1200px, but otherwise expand. */
-  min-height: 1200px; 
+  min-height: 800px; 
   box-sizing: border-box;
   height: 100%;
 }
