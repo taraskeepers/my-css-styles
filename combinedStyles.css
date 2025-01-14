@@ -13,9 +13,9 @@ html, body {
                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #1C1C1E;
   background-color: #F9F9FB;
-  min-height: 1200px; /* Adjust as needed */
+  min-height: 0 !important; /* Adjust as needed */
   height: auto;
-  overflow: hidden;    /* Adjust if you don't want to hide overflow */
+  overflow: visible !important;    /* Adjust if you don't want to hide overflow */
   box-sizing: border-box;
 }
 
@@ -38,10 +38,10 @@ html, body {
 #root2 {
   background: #fff;
   border-radius: 8px;
-  margin: 50px auto;
+  margin: 0 !important;
   max-width: 760px; /* or any suitable width */
   max-width: 90%;
-  padding: 20px;
+  padding: 0 !important;
   position: relative;
   z-index: 1; /* above the backdrop */
 }
@@ -1134,6 +1134,9 @@ input:checked + .slider:before {
   width: 100%;
   position: relative;
   cursor: pointer;
+}
+.left-white-box * {
+  color: #000 !important;
 }
 .left-white-box::after {
   content: "▼";
