@@ -13,6 +13,9 @@ body {
   padding: 0;
   overflow: auto; 
 }
+.project-dropdown * {
+    color: #111 !important; 
+}
 
 /*******************************************************
  * FIRST EMBED => AddNewSearchTerm styles
