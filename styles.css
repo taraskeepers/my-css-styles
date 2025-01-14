@@ -48,6 +48,14 @@ html, body {
   /*height: auto; */
 }
 
+.popup-select,
+.lan-select,
+.read-only-box,
+.time-zone-whitebox,
+.domain-field,
+.search-term-input {
+  color: #333 !important;  /* or #000, etc. */
+}
 
 /***********************************************
     1) APPLE-STYLE TOP CONTAINER
