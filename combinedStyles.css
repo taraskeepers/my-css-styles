@@ -1873,3 +1873,91 @@ input.md-input::placeholder {
 .buttons-col .btn:hover {
   opacity: 0.9;
 }
+
+/* Popup => Apple style => overlay + white box */
+.popup-overlay {
+  position: fixed; 
+  top:0; 
+  left:0; 
+  width:100%; 
+  height:100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 9999;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+.popup-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.popup-row {
+  display: flex; 
+  align-items: flex-start; 
+  gap: 16px; 
+  flex-wrap: wrap;
+}
+.popup-col {
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px; 
+}
+.popup-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+.popup-input, .popup-select {
+  width: 100%; 
+  padding: 8px; 
+  font-size: 14px; 
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+}
+.popup-notice {
+  background: #f9f9f9;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+}
+.popup-button-row {
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 16px; 
+  margin-top: 8px;
+}
+.popup-button {
+  padding: 8px 16px; 
+  border: none;
+  border-radius: 8px; 
+  font-weight: 600; 
+  cursor: pointer;
+}
+.popup-button.cancel {
+  background: #999; 
+  color: #fff;
+}
+.popup-button.create {
+  background: #444; 
+  color: #fff;
+}
+.popup-button:hover {
+  opacity: 0.9;
+}
+
