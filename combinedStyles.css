@@ -1883,7 +1883,7 @@ input.md-input::placeholder {
   height:100%;
   background: rgba(0,0,0,0.4);
   z-index: 9999;
-  display: block; 
+  display: none; 
   align-items: center; 
   justify-content: center;
 }
@@ -1893,6 +1893,8 @@ input.md-input::placeholder {
   justify-content: center;
 }
 .popup-content {
+  position: relative;
+  z-index: 999999;
   background: #fff;
   border-radius: 16px;
   width: 600px;
