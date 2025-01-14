@@ -24,6 +24,7 @@ body {
   background: #fff;     /* Or #fff with opacity if you want some transparency */
   display: none;        /* Start hidden; we'll show it on "Add" or "Edit" */
   overflow-y: auto;     /* So you can scroll if the form is tall */
+  overflow-x: hidden; 
 }
 
 #root,
@@ -31,7 +32,7 @@ body {
   background: #fff;
   border-radius: 8px;
   margin: 50px auto;
-  width: 760px;  /* or any suitable width */
+  max-width: 760px;  /* or any suitable width */
   max-width: 90%;
   padding: 20px;
   position: relative;
@@ -43,7 +44,8 @@ html, body {
   padding: 0;
   /* Force the embed to not shrink below 1200px, but otherwise expand. */
   min-height: 1200px; 
-  height: auto; 
+  box-sizing: border-box;
+  /*height: auto; */
 }
 
 
