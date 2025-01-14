@@ -29,28 +29,42 @@ html, body {
   z-index: 9999;
   background: rgba(0, 0, 0, 0.4);
   /*display: none;      /* hidden by default */
-  overflow: hidden; /* avoid horizontal scroll */
+  overflow: auto; /* avoid horizontal scroll */
    /* 1) Center the content */
-  display: flex;
-  align-items: center;
+  display: none;
+  /*align-items: center;
   justify-content: center;
   overflow-x: hidden; 
-  overflow-y: auto;
+  overflow-y: auto;*/
+}
+
+.second-embed-modal-inner {
+  width: 1400px;      /* Rigid 1400px width, as requested */
+  margin: 40px auto;  /* Center horizontally & add some top space */
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  position: relative;
+  /* no max-height needed if you want all content to show, 
+     with the entire overlay scrolling 
+  */
 }
 
 /* The second embed's root containers (React apps) */
 #root,
 #root2 {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 0;
   margin: 0 !important;
-  width: 90%;
-  max-width: 1400px; /* or any suitable width */
-  max-height: 100vh;  
-  overflow-y: auto;
+  width: 100%;
+  /*max-width: 1400px; /* or any suitable width */
+  /*max-height: 100vh;  */
+  overflow: visible;
   padding: 0 !important;
-  position: relative;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  /*position: relative;*/
+  box-shadow: none;
+  margin: 0 !important;
+  padding: 0 !important;
   /*z-index: 1;  above the backdrop */
 }
 
