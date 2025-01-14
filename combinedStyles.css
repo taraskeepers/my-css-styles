@@ -21,18 +21,15 @@ html, body {
 
 /* Make the second-embed overlay fill the screen (modal style) */
 #secondEmbedContainer {
-  margin: 0 !important;
-  padding: 0 !important;
   position: fixed; 
   top: 0;
-  left: 0 !important;
+  left: 0;
   width: 100%;
   height: 100%;
   z-index: 9999;
   background: rgba(0, 0, 0, 0.4);
   /*display: none;      /* hidden by default */
-  overflow-y: auto;   /* vertical scroll if content is tall */
-  overflow-x: hidden; /* avoid horizontal scroll */
+  overflow: hidden; /* avoid horizontal scroll */
    /* 1) Center the content */
   display: flex;
   align-items: center;
@@ -47,6 +44,8 @@ html, body {
   margin: 0 !important;
   width: 90%;
   max-width: 760px; /* or any suitable width */
+  max-height: 90vh;  
+  overflow-y: auto;
   padding: 0 !important;
   position: relative;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
@@ -61,6 +60,10 @@ html, body {
 .domain-field,
 .search-term-input {
   color: #333 !important;
+}
+
+body.modal-open {
+  overflow: hidden !important;
 }
 
 /* Fix the project dropdown text color if needed */
