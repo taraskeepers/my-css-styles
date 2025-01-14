@@ -56,7 +56,8 @@ html, body {
   background: #fff;
   border-radius: 0;
   margin: 0 !important;
-  width: 100%;
+  max-width: none !important;
+  width: 100% !important;
   min-height: 600px;
   /*max-width: 1400px; /* or any suitable width */
   /*max-height: 100vh;  */
