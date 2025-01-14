@@ -1892,7 +1892,7 @@ input.md-input::placeholder {
   justify-content: center !important;
 }
 .popup-overlay-new-project.visible {
-  display: flex;
+  display: block;
   align-items: center !important;
   justify-content: center !important;
 }
