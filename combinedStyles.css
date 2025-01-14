@@ -33,13 +33,13 @@ html, body {
    /* 1) Center the content */
   display: none;
   /*align-items: center;
-  justify-content: center;
-  overflow-x: hidden; 
-  overflow-y: auto;*/
+  justify-content: center;*/
+  overflow-x: auto; 
+  overflow-y: auto;
 }
 
 .second-embed-modal-inner {
-  width: 1400px;      /* Rigid 1400px width, as requested */
+  width: 1400px !important;      /* Rigid 1400px width, as requested */
   margin: 40px auto;  /* Center horizontally & add some top space */
   background: #fff;
   border-radius: 8px;
@@ -57,6 +57,7 @@ html, body {
   border-radius: 0;
   margin: 0 !important;
   width: 100%;
+  min-height: 600px;
   /*max-width: 1400px; /* or any suitable width */
   /*max-height: 100vh;  */
   overflow: visible;
