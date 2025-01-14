@@ -33,6 +33,10 @@ html, body {
   display: none;      /* hidden by default */
   overflow-y: auto;   /* vertical scroll if content is tall */
   overflow-x: hidden; /* avoid horizontal scroll */
+   /* 1) Center the content */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* The second embed's root containers (React apps) */
