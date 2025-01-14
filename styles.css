@@ -38,6 +38,14 @@ body {
   z-index: 1;  /* above the backdrop */
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  /* Force the embed to not shrink below 1200px, but otherwise expand. */
+  min-height: 1200px; 
+  height: auto; 
+}
+
 
 /***********************************************
     1) APPLE-STYLE TOP CONTAINER
