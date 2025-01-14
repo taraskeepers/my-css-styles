@@ -23,7 +23,7 @@ html, body {
 #secondEmbedContainer {
   margin: 0 !important;
   padding: 0 !important;
-  position: relative; 
+  position: fixed; 
   top: 0;
   left: 0 !important;
   width: 100%;
