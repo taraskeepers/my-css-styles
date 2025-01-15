@@ -699,7 +699,6 @@ input:checked + .slider:before {
   padding: 10px;
   font-size: 14px;
   color: #333;
-  width: 100px;
 }
 .tag-row {
   display: inline-flex;
@@ -1299,7 +1298,7 @@ input:checked + .slider:before {
   position: relative;
 }
 .engine-block {
-  flex: 0 0 38% !important;
+  flex: 0 0 30% !important;
   background-color: #f2f2f2;
   border: 1px solid #ccc;
   border-radius: 8px;
