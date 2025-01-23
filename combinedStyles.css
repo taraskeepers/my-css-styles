@@ -706,14 +706,14 @@ input:checked + .slider:before {
 }
 
 /* Info blocks inside search details */
-/*.engine-block,
+.engine-block,
 .freq-cost-block,
 .schedule-block,
 .locations-block {
-  border: 1px solid #ECECEC;
-  border-radius: 8px;
-  overflow: hidden;
-}*/
+  border: 1px solid #ECECEC !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
 .engine-block { background-color: #FFF9DE; flex: 0 0 20%; }
 .freq-cost-block { background-color: #E8F8FF; flex: 0 0 20%; }
 .schedule-block { background-color: #EAF6EA; flex: 0 0 20%; }
