@@ -442,9 +442,18 @@ input:checked + .slider:before {
 .project-header {
   display: flex;
   align-items: center;
-  /*justify-content: space-between;*/
+  justify-content: space-between;
   padding: 16px 24px;
   cursor: pointer;
+}
+.header-left-block {
+  display: flex;
+  align-items: center;
+}
+
+.header-right-block {
+  display: flex;
+  align-items: center;
 }
 .project-title-line {
   display: flex;
