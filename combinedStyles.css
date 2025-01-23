@@ -714,7 +714,7 @@ input:checked + .slider:before {
   border-radius: 8px;
   overflow: hidden;
 }*/
-.engine-block { background-color: #FFF9DE; flex: 0 0 30%; }
+.engine-block { background-color: #FFF9DE; flex: 0 0 20%; }
 .freq-cost-block { background-color: #E8F8FF; flex: 0 0 20%; }
 .schedule-block { background-color: #EAF6EA; flex: 0 0 20%; }
 .locations-block { background-color: #FDF2F2; flex: 0 0 25%; }
@@ -2065,3 +2065,20 @@ input.md-input::placeholder {
       border-radius: 8px;
       position: relative;
     }
+
+.engine-block {
+  background-color: #FFF9DE;
+  flex: 0 0 20%;
+}
+.freq-cost-block {
+  background-color: #E8F8FF;
+  flex: 0 0 20%;
+}
+.schedule-block {
+  background-color: #EAF6EA;
+  flex: 0 0 20%;
+}
+.locations-block {
+  background-color: #FDF2F2;
+  flex: 0 0 25%;
+}
