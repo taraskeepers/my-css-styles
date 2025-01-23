@@ -2066,3 +2066,10 @@ input.md-input::placeholder {
       border-radius: 8px;
       position: relative;
     }
+.switch.bigger-switch .slider {
+  width: 60px;
+  height: 34px;
+}
+.switch.bigger-switch input:checked + .slider:before {
+  transform: translateX(26px);
+}
