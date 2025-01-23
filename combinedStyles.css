@@ -554,6 +554,8 @@ input:checked + .slider:before {
   flex-wrap: wrap;
   gap: 10px;
   cursor: pointer;
+  padding: 6px 10px;
+  line-height: 1.2;
 }
 .top-left-group {
   display: flex;
