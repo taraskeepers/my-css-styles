@@ -674,7 +674,7 @@ input:checked + .slider:before {
 .search-details.open {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
   animation: fadeIn 0.3s ease;
