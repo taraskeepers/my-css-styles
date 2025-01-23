@@ -442,13 +442,14 @@ input:checked + .slider:before {
 .project-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /*justify-content: space-between;*/
   padding: 16px 24px;
   cursor: pointer;
 }
 .project-title-line {
   display: flex;
   align-items: center;
+  margin-right: auto;
   gap: 12px;
 }
 .project-title {
