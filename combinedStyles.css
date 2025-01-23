@@ -572,7 +572,7 @@ input:checked + .slider:before {
   border: 1px solid #ECECEC;
   border-radius: 12px;
   padding: 16px;
-  margin-top: 16px;
+  margin-top: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
