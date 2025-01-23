@@ -179,6 +179,13 @@ body.modal-open {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+.square-green-btn-2 {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /*******************************************************
  * 3) SEARCHES BLOCK (top container)
  *******************************************************/
