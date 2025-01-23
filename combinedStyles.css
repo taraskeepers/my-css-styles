@@ -478,6 +478,15 @@ input:checked + .slider:before {
   background-color: #FAFAFB;
   align-items: center;
 }
+.project-info-wrapper .square-green-btn {
+  /* The container is aligned center, so to match exact height, 
+     you can remove the button's default padding or set a min-height: */
+  padding: 8px 16px;  /* or your desired vertical/horizontal padding */
+  font-size: 14px;    /* match whatever you want */
+  /* If you want it EXACTly the container’s full height, you can do: */
+  /* height: 100%;  (But then the container needs a fixed height or flex rule) */
+}
+
 .project-info-icon-block {
   display: flex;
   align-items: center;
