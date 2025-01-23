@@ -838,12 +838,11 @@ input:checked + .slider:before {
   background-color: #fff;
   border-radius: 12px;
   padding: 24px;
-  width: 480px;
-  max-width: 90%;
+  max-width: 480px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  display: flex;
-  flex-direction: column;
+  /*display: flex;
+  flex-direction: column;*/
   gap: 16px;
 }
 .popup-buttons {
