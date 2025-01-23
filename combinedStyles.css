@@ -1343,8 +1343,8 @@ input:checked + .slider:before {
   position: relative;
 }
 .engine-block {
-  flex: 0 0 38% !important;
-  background-color: #f2f2f2;
+  flex: 0 0 30% !important;
+  background-color: #FFF9DE;
   border: 1px solid #ccc;
   border-radius: 8px;
   overflow: hidden;
@@ -1430,7 +1430,7 @@ input:checked + .slider:before {
 }
 .freqcost-block {
   flex: 0 0 25%;
-  background-color: #f2f2f2;
+  background-color: #E8F8FF;
   border: 1px solid #ccc;
   border-radius: 8px;
   overflow: hidden;
@@ -1509,8 +1509,8 @@ input:checked + .slider:before {
   margin-top: -4px;
 }
 .schedule-block {
-  flex: 0 0 24% !important;
-  background-color: #f2f2f2;
+  flex: 0 0 20% !important;
+  background-color: #EAF6EA;
   border: 1px solid #ccc;
   border-radius: 8px;
   display: flex;
@@ -2065,20 +2065,3 @@ input.md-input::placeholder {
       border-radius: 8px;
       position: relative;
     }
-
-.engine-block {
-  background-color: #FFF9DE;
-  flex: 0 0 20%;
-}
-.freq-cost-block {
-  background-color: #E8F8FF;
-  flex: 0 0 20%;
-}
-.schedule-block {
-  background-color: #EAF6EA;
-  flex: 0 0 20%;
-}
-.locations-block {
-  background-color: #FDF2F2;
-  flex: 0 0 25%;
-}
