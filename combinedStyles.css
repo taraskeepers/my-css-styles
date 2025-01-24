@@ -157,10 +157,10 @@ body.modal-open {
   min-width: 60px;
 }
 .square-green-btn {
-  width: 80px;
-  height: 80px;
+  width: 85px;
+  height: 85px;
   border-radius: 8px;
-  background-color: #2ecc71;
+  background-color: #888;
   color: #fff;
   border: none;
   font-size: 14px;
@@ -176,6 +176,7 @@ body.modal-open {
 }
 .square-green-btn:hover {
   transform: scale(1.05);
+  background-color: #999;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
