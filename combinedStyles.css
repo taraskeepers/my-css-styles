@@ -2073,3 +2073,42 @@ input.md-input::placeholder {
 .switch.bigger-switch input:checked + .slider:before {
   transform: translateX(26px);
 }
+.engine-block-2 {
+  flex: 0 0 30% !important;
+  background-color: #FFF9DE;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.freqcost-block-2 {
+  flex: 0 0 25%;
+  background-color: #E8F8FF;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.schedule-block-2 {
+  flex: 0 0 20% !important;
+  background-color: #EAF6EA;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible !important;
+  position: relative;
+}
+.sub-block-title-2 {
+  background-color: #444;
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
