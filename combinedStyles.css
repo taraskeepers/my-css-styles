@@ -838,12 +838,16 @@ input:checked + .slider:before {
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: #fff;
+  margin: auto;
   border-radius: 12px;
   padding: 24px;
   max-width: 480px;
+  max-height: 80vh;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  /*display: flex;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   flex-direction: column;*/
   gap: 16px;
 }
