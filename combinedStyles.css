@@ -50,6 +50,16 @@ html, body {
   */
 }
 
+/* main embed's CSS remains the same */
+
+#secondEmbedContainer .engine-block {
+  /* new or overridden styles for the second embed's engine block */
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+    font-size: 14px;
+  color: #333;
+}
+
 /* The second embed's root containers (React apps) */
 #root,
 #root2 {
@@ -1968,12 +1978,13 @@ input.md-input::placeholder {
   height:100%;
   background: rgba(0,0,0,0.4);
   z-index: 9999;
-  display: none; 
+  display: flex; 
   align-items: center !important; 
   justify-content: center !important;
 }
 .popup-overlay-new-project.visible {
-  display: block;
+  display: flex !important;
+  justify-content: center !important;
   align-items: center !important;
   justify-content: center !important;
 }
