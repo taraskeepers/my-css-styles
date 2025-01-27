@@ -2122,7 +2122,7 @@ input.md-input::placeholder {
 
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .engine-block {
   /* new or overridden styles for the second embed's engine block */
-  width: 400px !important;
+  width: 500px !important;
   height: 200px !important;
   background-color: #FFF9DE !important;
   border: 1px solid #ccc !important;
