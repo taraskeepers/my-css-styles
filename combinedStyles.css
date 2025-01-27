@@ -1348,6 +1348,7 @@ input:checked + .slider:before {
   padding: 16px;
   gap: 12px;
   position: relative;
+  width: 1200px;
 }
 .engine-block {
   flex: 0 0 30% !important;
@@ -2122,8 +2123,12 @@ input.md-input::placeholder {
 
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .engine-block {
   /* new or overridden styles for the second embed's engine block */
-  width: 500px !important;
+  flex: 0 0 auto !important;
+  width: 600px !important;
+  min-width: 600px !important;
+  max-width: none !important;
   height: 200px !important;
+  max-width: none !important;
   background-color: #FFF9DE !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
