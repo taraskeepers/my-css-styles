@@ -2122,8 +2122,35 @@ input.md-input::placeholder {
 
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .engine-block {
   /* new or overridden styles for the second embed's engine block */
-  background-color: #f0f0f0 !important;
-  border: 1px solid #ddd !important;
-    font-size: 14px;
-  color: #333;
+  background-color: #FFF9DE;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
 }
+/* For the second embed's freqcost-block: */
+#secondEmbedContainer .second-embed-modal-inner #root .outer-container .freqcost-block {
+  background-color: #E8F8FF !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  /* Add any other overrides you want here */
+}
+
+/* For the second embed's schedule-block: */
+#secondEmbedContainer .second-embed-modal-inner #root .outer-container .schedule-block {
+  background-color: #EAF6EA !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+  position: relative !important;
+  /* Add any other overrides you want here */
+}
+
