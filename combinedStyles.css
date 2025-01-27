@@ -2122,6 +2122,8 @@ input.md-input::placeholder {
 
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .engine-block {
   /* new or overridden styles for the second embed's engine block */
+  width: 30% !important;
+  height: auto !important;
   background-color: #FFF9DE !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
@@ -2132,6 +2134,8 @@ input.md-input::placeholder {
 }
 /* For the second embed's freqcost-block: */
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .freqcost-block {
+    width: 20% !important;
+  height: auto !important;
   background-color: #E8F8FF !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
@@ -2144,6 +2148,8 @@ input.md-input::placeholder {
 
 /* For the second embed's schedule-block: */
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .schedule-block {
+    width: 20% !important;
+  height: auto !important;
   background-color: #EAF6EA !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
