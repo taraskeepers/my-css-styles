@@ -2124,8 +2124,8 @@ input.md-input::placeholder {
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .engine-block {
   /* new or overridden styles for the second embed's engine block */
   flex: 0 0 auto !important;
-  width: 600px !important;
-  min-width: 600px !important;
+  width: 550px !important;
+  min-width: 550px !important;
   max-width: none !important;
   height: 200px !important;
   max-width: none !important;
