@@ -41,7 +41,7 @@ html, body {
 
 .second-embed-modal-inner {
   width: 1400px;      /* Rigid 1400px width, as requested */
-  max-height: 90vh;
+  max-height: 100vh;
   overflow-y: auto;   /* scroll inside the white modal box */
   margin: 5vh auto;   /* add some top spacing so it’s centered */
   background: #fff;
