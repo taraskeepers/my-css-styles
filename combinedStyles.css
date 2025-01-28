@@ -1214,8 +1214,8 @@ input:checked + .slider:before {
   position: relative;
 }
 .left-sub-block {
-  display: inline-block;
-  vertical-align: top;
+  display: block;
+  width: 100%;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
