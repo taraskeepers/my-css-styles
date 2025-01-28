@@ -2367,3 +2367,39 @@ input.md-input::placeholder {
   width: 24px;  /* override if needed */
   height: 24px;
 }
+
+/* Example new classes for the popup’s 2 buttons: */
+.popup-button.cancel {
+  /* match the style of “Add Project” if that is a lighter style */
+  background: #ececec;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  color: #333;
+  font-weight: 600;
+  width: 140px;      /* make them same width */
+  height: 50px;      /* and same height if you want */
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.2s;
+}
+.popup-button.cancel:hover {
+  background: #ddd;
+}
+
+.popup-button.create {
+  /* match the style of “Add Search” if that is a dark grey Apple style */
+  background: #444;  /* your dark color */
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  width: 140px;
+  height: 50px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.popup-button.create:hover {
+  background: #222;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
