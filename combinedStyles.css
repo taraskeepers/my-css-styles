@@ -256,7 +256,7 @@ body.modal-open {
   background-color: #7ed07e;
 }
 .status-paused {
-  background-color: #ff4d4d;
+  background-color: #333;
 }
 .big-num {
   font-size: 28px;
@@ -517,6 +517,8 @@ input:checked + .slider:before {
   border-radius: 8px;
   background-color: #FAFAFB;
   align-items: center;
+}
+.project-info-right .project-info-wrapper:first-child {
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
 }
 
@@ -2273,8 +2275,8 @@ input.md-input::placeholder {
   color: #333 !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
-  width: 85px !important;  /* same size you had */
-  height: 85px !important;
+  width: 95px !important;  /* same size you had */
+  height: 95px !important;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -2322,3 +2324,46 @@ input.md-input::placeholder {
   box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
 }
 
+/* Dark grey gradient, same style as your top "Add search" 
+   but for the project row button */
+.add-search-row-btn {
+  background: linear-gradient(to bottom, #555 0%, #333 100%) !important;
+  color: #fff !important;
+  border: 1px solid #222 !important;
+  border-radius: 8px !important;
+
+  width: 48px; /* or pick a suitable size */
+  height: 48px; 
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-search-row-btn:hover {
+  background: linear-gradient(to bottom, #666 0%, #444 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.25) !important;
+}
+
+.add-search-row-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+}
+
+/* Force the icon to be white if the original image is black (or tinted) 
+   We'll invert and saturate it to white:
+   (If your icon is already white, you can remove this filter.)
+*/
+.add-search-row-btn img {
+  filter: invert(100%) brightness(200%);
+  /* Explanation:
+     invert(100%) => flips black to white
+     brightness(200%) => brightens it for good contrast
+     Tweak if needed
+  */
+  width: 24px;  /* override if needed */
+  height: 24px;
+}
