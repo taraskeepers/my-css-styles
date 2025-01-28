@@ -211,7 +211,7 @@ body.modal-open {
  * 3) SEARCHES BLOCK (top container)
  *******************************************************/
 .searches-block {
-  width: 6%;
+  width: 8%;
   min-width: 0;
   position: relative;
   align-items: flex-start;
