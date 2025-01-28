@@ -15,7 +15,7 @@ html, body {
   background-color: #F9F9FB;
   min-height: 0 !important; /* Adjust as needed */
   height: auto;
-  overflow: visible !important;    /* Adjust if you don't want to hide overflow */
+  overflow: visible;    /* Adjust if you don't want to hide overflow */
   box-sizing: border-box;
 }
 
@@ -29,18 +29,21 @@ html, body {
   z-index: 9999;
   background: rgba(0, 0, 0, 0.4);
   /*display: none;      /* hidden by default */
-  overflow: auto; /* avoid horizontal scroll */
+  /*overflow: auto; /* avoid horizontal scroll */
    /* 1) Center the content */
   display: none;
   /*align-items: center;
   justify-content: center;*/
-  overflow-x: auto; 
+  /*overflow-x: auto; */
   overflow-y: auto;
+  padding: 50px 0;
 }
 
 .second-embed-modal-inner {
-  width: 1400px !important;      /* Rigid 1400px width, as requested */
-  margin: 40px auto;  /* Center horizontally & add some top space */
+  width: 1400px;      /* Rigid 1400px width, as requested */
+  max-height: 90vh;
+  overflow-y: auto;   /* scroll inside the white modal box */
+  margin: 5vh auto;   /* add some top spacing so it’s centered */
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
@@ -427,10 +430,11 @@ input:checked + .slider:before {
 .container-main {
   width: 100%;
   max-width: 1400px;
-  margin: 0;
+  max-height: 1050px;
+  margin: 0 auto;
   padding: 40px 20px;
-  min-height: 500px;
   background-color: #F9F9FB;
+  overflow-y: auto;
 }
 .project-item {
   border: 1px solid #EAEAEA;
@@ -1523,7 +1527,7 @@ input:checked + .slider:before {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  overflow: visible !important;
+  /*overflow: visible !important;*/
   position: relative;
 }
 .schedule-buttons {
@@ -2110,7 +2114,7 @@ input.md-input::placeholder {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  overflow: visible !important;
+  /*overflow: visible !important;*/
   position: relative;
 }
 .sub-block-title-2 {
