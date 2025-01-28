@@ -2228,7 +2228,7 @@ input.md-input::placeholder {
 
 /* Make them match the .status-apple-box style => light grey w/ border */
 .buttons-row .btn {
-  width: 120px;               /* same width for both buttons */
+  width: 140px;               /* same width for both buttons */
   background-color: #f5f5f7;  /* same light gray as the toggle box */
   color: #333;
   border: 1px solid #ddd;
