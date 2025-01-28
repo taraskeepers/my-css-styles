@@ -100,12 +100,12 @@ body.modal-open {
  * 1) APPLE-STYLE TOP CONTAINER
  *******************************************************/
 .top-apple-container {
-  position: sticky;
+  position: relative;
   top: 0;
   width: 100%;
   margin: 0 auto;
-  height: 200px;
-  background-color: #f5f5f7;
+  /*height: 200px;*/
+  background-color: #1b1b1c;
   z-index: 999;
   display: flex;
   flex-direction: row;
@@ -114,7 +114,18 @@ body.modal-open {
   gap: 16px;
   padding: 12px 16px;
   box-sizing: border-box;
-  overflow: visible;
+  /*overflow: visible;*/
+}
+.top-bar-wrapper {
+  /* If you want the bar to remain at the top during scroll: */
+  position: sticky; 
+  top: 0;
+  z-index: 999; 
+  /* No fixed height here. 
+     The .top-apple-container inside it can auto-size. */
+}
+.page-main-content {
+  padding-top: 220px;  /* or whatever ensures the content starts below the top bar */
 }
 .searches-header-row .square-green-btn {
   margin-left: 40px;
@@ -432,11 +443,11 @@ input:checked + .slider:before {
 .container-main {
   width: 100%;
   max-width: 1400px;
-  max-height: 1050px;
+  /*max-height: 1050px;*/
   margin: 0 auto;
   padding: 40px 20px;
   background-color: #F9F9FB;
-  overflow-y: auto;
+  /*overflow-y: auto;*/
 }
 .project-item {
   border: 1px solid #EAEAEA;
@@ -2170,4 +2181,49 @@ input.md-input::placeholder {
   position: relative !important;
   /* Add any other overrides you want here */
 }
+
+/* Right column that holds the toggle box + buttons */
+.right-col-with-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* space between the toggle box and the buttons row */
+  align-items: stretch; /* or flex-start, depending on your preference */
+  justify-content: flex-start;
+}
+
+/* The “apple-style” box for the toggle (like the other apple-boxes) */
+.status-apple-box {
+  background-color: #f5f5f7;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* or flex-start if you want it left aligned */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* The row for the toggle + label */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The label text for "Active"/"Paused" */
+.switch-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* The row with the two buttons */
+.buttons-row {
+  display: flex;
+  gap: 12px;
+  /* align them how you want: */
+  justify-content: flex-start;
+  align-items: center;
+}
+
 
