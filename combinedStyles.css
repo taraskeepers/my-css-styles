@@ -2403,3 +2403,9 @@ input.md-input::placeholder {
   background: #222;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
+
+.add-search-row-btn img.full-icon {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  /* No other color transformations */
+}
