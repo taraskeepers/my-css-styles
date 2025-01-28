@@ -2275,8 +2275,8 @@ input.md-input::placeholder {
   color: #333 !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
-  width: 95px !important;  /* same size you had */
-  height: 95px !important;
+  width: 90px !important;  /* same size you had */
+  height: 90px !important;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -2304,8 +2304,8 @@ input.md-input::placeholder {
   color: #fff !important;
   border: 1px solid #222 !important;
   border-radius: 8px !important;
-  width: 85px !important;
-  height: 85px !important;
+  width: 90px !important;
+  height: 90px !important;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
