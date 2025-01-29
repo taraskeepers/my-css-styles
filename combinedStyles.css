@@ -2437,7 +2437,7 @@ input.md-input::placeholder {
 /* The row that holds multiple clickable options */
 .apple-options-row {
   display: flex;
-  gap: 12px;
+  gap: 4px;
 }
 
 /* Each clickable item => Apple-style pill or button */
@@ -2467,6 +2467,7 @@ input.md-input::placeholder {
 }
 
 .apple-option img {
+  margin: 0 !important;
   width: 16px;
   height: 16px;
   object-fit: contain;
