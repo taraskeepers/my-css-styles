@@ -1281,7 +1281,7 @@ input:checked + .slider:before {
   flex-direction: column;
   gap: 6px;
   flex: 1;
-  max-width: 420px !important;
+  max-width: 450px !important;
   position: relative;
 }
 .search-term-label {
