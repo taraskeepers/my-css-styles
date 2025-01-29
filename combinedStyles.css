@@ -2472,3 +2472,28 @@ input.md-input::placeholder {
   height: 16px;
   object-fit: contain;
 }
+
+.apple-option-gradient {
+  background: linear-gradient(to bottom, #f8f8f8 0%, #e5e5e5 100%);
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+  /* If you want the same text style: */
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.apple-option-gradient:hover {
+  background: linear-gradient(to bottom, #fafafa 0%, #ededed 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2) !important;
+}
+
+.apple-option-gradient.active {
+  /* If you want the active state to remain the same or highlight differently, do it here */
+  background: linear-gradient(to bottom, #e5e5e5 0%, #ccc 100%) !important;
+  border-color: #999 !important;
+  color: #111 !important;
+}
