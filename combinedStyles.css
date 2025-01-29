@@ -2495,5 +2495,5 @@ input.md-input::placeholder {
   /* If you want the active state to remain the same or highlight differently, do it here */
   background: linear-gradient(to bottom, #007aff 0%, #004cff 100%) !important;
   border-color: #999 !important;
-  color: #111 !important;
+  color: #ffffff !important;
 }
