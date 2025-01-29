@@ -2180,7 +2180,7 @@ input.md-input::placeholder {
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .schedule-block {
   width: 350px !important;
   height: 200px !important;
-  background-color: #EAF6EA !important;
+  background-color: #fff !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
   display: flex !important;
@@ -2188,6 +2188,11 @@ input.md-input::placeholder {
   overflow: visible !important;
   position: relative !important;
   /* Add any other overrides you want here */
+}
+
+/* Only affects schedule-block within the second embed container */
+#secondEmbedContainer .schedule-block {
+  background-color: #fff !important;
 }
 
 /* Right column that holds the toggle box + buttons */
