@@ -2505,57 +2505,58 @@ input.md-input::placeholder {
   color: #ffffff !important;
 }
 
-/*******************************************************
- * A) NEW SECOND-EMBED BUTTON CLASSES
- *******************************************************/
-/* 1) Base style for all second-embed buttons */
-.second-embed-btn {
-  /* Basic layout & reset */
-  display: inline-block;
-  font-family: sans-serif;
+/************************************************************
+ *  [NEW] EXACT STYLE FOR THE SECOND EMBED BUTTONS 
+ *        - matching "Add Project" & "Add Search"
+ ************************************************************/
+
+/* (1) Use the "Add Project" style for the second embed "Close" button */
+.second-embed-btn-close {
+  background: linear-gradient(to bottom, #f8f8f8 0%, #e5e5e5 100%) !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  width: 90px !important;
+  height: 90px !important;
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.4;
-  padding: 8px 16px;
-  border: 2px solid transparent;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-
-  /* Default color (calm green) */
-  background-color: #28a745;
-  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
-/* Base hover/focus/active states */
-.second-embed-btn:hover {
-  background-color: #218838;
+.second-embed-btn-close:hover {
+  background: linear-gradient(to bottom, #fafafa 0%, #ededed 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2) !important;
 }
-.second-embed-btn:focus {
-  outline: none;
-  border-color: #1e7e34;
-}
-.second-embed-btn:active {
-  background-color: #1e7e34;
+.second-embed-btn-close:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
 }
 
-/* 2) Modifier for the “Add” button */
-.second-embed-btn.btn-add {
-  /* Example: a bluish variant */
-  background-color: #007bff;
+/* (2) Use the "Add Search" style for the second embed "Add" (Save) button */
+.second-embed-btn-add {
+  background: linear-gradient(to bottom, #555 0%, #333 100%) !important;
+  color: #fff !important;
+  border: 1px solid #222 !important;
+  border-radius: 8px !important;
+  width: 90px !important;
+  height: 90px !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
-.second-embed-btn.btn-add:hover {
-  background-color: #0069d9;
+.second-embed-btn-add:hover {
+  background: linear-gradient(to bottom, #666 0%, #444 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.25) !important;
 }
-
-/* 3) Modifier for the “Close” button */
-.second-embed-btn.btn-close {
-  /* Example: a red variant */
-  background-color: #dc3545;
+.second-embed-btn-add:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
 }
-.second-embed-btn.btn-close:hover {
-  background-color: #c82333;
-}
-
 /*******************************************************
  * B) MATCH THE SHADOW EFFECT OF "search-term-whitebox"
  *    ON FREQUENCY-BLOCK, SCHEDULE-BLOCK & COST-BLOCK
@@ -2567,4 +2568,14 @@ input.md-input::placeholder {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
   border-radius: 8px !important;
   background-color: #fff !important;
+}
+
+/************************************************************
+ *  [NEW] CENTER ELEMENTS INSIDE .apple-box.searches-block
+ ************************************************************/
+.apple-box.searches-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
