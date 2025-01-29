@@ -2178,10 +2178,10 @@ input.md-input::placeholder {
 
 /* For the second embed's schedule-block: */
 #secondEmbedContainer .second-embed-modal-inner #root .outer-container .schedule-block {
-  width: 350px !important;
+  width: 370px !important;
   height: 200px !important;
   background-color: #fff !important;
-  border: 1px solid #ccc !important;
+  /*border: 1px solid #ccc !important;*/
   border-radius: 8px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -2193,6 +2193,7 @@ input.md-input::placeholder {
 /* Only affects schedule-block within the second embed container */
 #secondEmbedContainer .schedule-block {
   background-color: #fff !important;
+  width: 370px !important;
 }
 
 /* Right column that holds the toggle box + buttons */
@@ -2502,4 +2503,53 @@ input.md-input::placeholder {
   background: linear-gradient(to bottom, #007aff 0%, #004cff 100%) !important;
   border-color: #999 !important;
   color: #ffffff !important;
+}
+
+/* Base style for all second-embed buttons */
+.second-embed-btn {
+  /* Basic resets & layout */
+  display: inline-block;
+  font-family: sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  /* Default look: a calm green background */
+  background-color: #28a745; 
+  color: #ffffff; 
+}
+
+/* Hover/focus states for the base button */
+.second-embed-btn:hover {
+  background-color: #218838;
+}
+.second-embed-btn:focus {
+  outline: none; 
+  border-color: #1e7e34; 
+}
+.second-embed-btn:active {
+  background-color: #1e7e34;
+}
+
+/* Modifier class for the “Add” button */
+.second-embed-btn.btn-add {
+  /* You can choose a different color if you like */
+  background-color: #007bff;  /* A bluish color, for example */
+}
+.second-embed-btn.btn-add:hover {
+  background-color: #0069d9;
+}
+
+/* Modifier class for the “Close” button */
+.second-embed-btn.btn-close {
+  /* For example, a red variant */
+  background-color: #dc3545; 
+}
+.second-embed-btn.btn-close:hover {
+  background-color: #c82333;
 }
