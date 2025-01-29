@@ -2194,7 +2194,6 @@ input.md-input::placeholder {
 /* Only affects schedule-block within the second embed container */
 #secondEmbedContainer .schedule-block {
   background-color: #fff !important;
-  width: 390px;
 }
 
 /* Right column that holds the toggle box + buttons */
@@ -2570,6 +2569,11 @@ input.md-input::placeholder {
   border-radius: 8px !important;
   background-color: #fff !important;
 }
+
+#secondEmbedContainer .second-embed-modal-inner #root .freqcost-block {
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2) !important;
+}
+
 
 /************************************************************
  *  [NEW] CENTER ELEMENTS INSIDE .apple-box.searches-block
