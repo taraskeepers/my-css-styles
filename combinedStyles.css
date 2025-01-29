@@ -1704,6 +1704,7 @@ input[type="time"] {
   padding: 16px;
 }
 .typeahead-container {
+  margin-top: 20px;
   position: relative;
   margin-bottom: 12px;
   width: 100%;
@@ -2193,7 +2194,7 @@ input.md-input::placeholder {
 /* Only affects schedule-block within the second embed container */
 #secondEmbedContainer .schedule-block {
   background-color: #fff !important;
-  width: 370px !important;
+  width: 390px;
 }
 
 /* Right column that holds the toggle box + buttons */
@@ -2565,7 +2566,7 @@ input.md-input::placeholder {
 #secondEmbedContainer .schedule-block,
 #secondEmbedContainer .cost-block {
   /* Same box-shadow as .search-term-whitebox => 0 2px 4px rgba(0,0,0,0.15) */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2) !important;
   border-radius: 8px !important;
   background-color: #fff !important;
 }
