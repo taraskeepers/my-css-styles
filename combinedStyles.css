@@ -2505,9 +2505,12 @@ input.md-input::placeholder {
   color: #ffffff !important;
 }
 
-/* Base style for all second-embed buttons */
+/*******************************************************
+ * A) NEW SECOND-EMBED BUTTON CLASSES
+ *******************************************************/
+/* 1) Base style for all second-embed buttons */
 .second-embed-btn {
-  /* Basic resets & layout */
+  /* Basic layout & reset */
   display: inline-block;
   font-family: sans-serif;
   font-size: 14px;
@@ -2519,37 +2522,49 @@ input.md-input::placeholder {
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
 
-  /* Default look: a calm green background */
-  background-color: #28a745; 
-  color: #ffffff; 
+  /* Default color (calm green) */
+  background-color: #28a745;
+  color: #ffffff;
 }
-
-/* Hover/focus states for the base button */
+/* Base hover/focus/active states */
 .second-embed-btn:hover {
   background-color: #218838;
 }
 .second-embed-btn:focus {
-  outline: none; 
-  border-color: #1e7e34; 
+  outline: none;
+  border-color: #1e7e34;
 }
 .second-embed-btn:active {
   background-color: #1e7e34;
 }
 
-/* Modifier class for the “Add” button */
+/* 2) Modifier for the “Add” button */
 .second-embed-btn.btn-add {
-  /* You can choose a different color if you like */
-  background-color: #007bff;  /* A bluish color, for example */
+  /* Example: a bluish variant */
+  background-color: #007bff;
 }
 .second-embed-btn.btn-add:hover {
   background-color: #0069d9;
 }
 
-/* Modifier class for the “Close” button */
+/* 3) Modifier for the “Close” button */
 .second-embed-btn.btn-close {
-  /* For example, a red variant */
-  background-color: #dc3545; 
+  /* Example: a red variant */
+  background-color: #dc3545;
 }
 .second-embed-btn.btn-close:hover {
   background-color: #c82333;
+}
+
+/*******************************************************
+ * B) MATCH THE SHADOW EFFECT OF "search-term-whitebox"
+ *    ON FREQUENCY-BLOCK, SCHEDULE-BLOCK & COST-BLOCK
+ *******************************************************/
+#secondEmbedContainer .freqcost-block,
+#secondEmbedContainer .schedule-block,
+#secondEmbedContainer .cost-block {
+  /* Same box-shadow as .search-term-whitebox => 0 2px 4px rgba(0,0,0,0.15) */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  background-color: #fff !important;
 }
