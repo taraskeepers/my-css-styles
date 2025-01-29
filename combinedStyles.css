@@ -2442,6 +2442,8 @@ input.md-input::placeholder {
 
 /* Each clickable item => Apple-style pill or button */
 .apple-option {
+  width: 100px;
+  color: #333 !important;
   display: inline-flex;
   align-items: center;
   gap: 4px;
