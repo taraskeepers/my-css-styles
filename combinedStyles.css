@@ -2478,7 +2478,7 @@ input.md-input::placeholder {
   color: #333 !important;
   border: 1px solid #ccc !important;
   border-radius: 8px !important;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+  /*box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;*/
   transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
   /* If you want the same text style: */
   font-size: 14px;
@@ -2493,7 +2493,7 @@ input.md-input::placeholder {
 
 .apple-option-gradient.active {
   /* If you want the active state to remain the same or highlight differently, do it here */
-  background: linear-gradient(to bottom, #e5e5e5 0%, #ccc 100%) !important;
+  background: linear-gradient(to bottom, #007aff 0%, #004cff 100%) !important;
   border-color: #999 !important;
   color: #111 !important;
 }
