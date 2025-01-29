@@ -1026,7 +1026,7 @@ input:checked + .slider:before {
 }
 .pd-cost-block {
   background-color: #F9F9FB;
-  border: 1px solid #EAEAEA;
+  /*border: 1px solid #EAEAEA;*/
   border-radius: 6px;
   padding: 12px;
   display: flex;
@@ -2155,7 +2155,7 @@ input.md-input::placeholder {
   height: 200px !important;
   max-width: none !important;
   background-color: #FFF9DE !important;
-  border: 1px solid #ccc !important;
+  /*border: 1px solid #ccc !important;*/
   border-radius: 8px !important;
   overflow: hidden !important;
   display: flex !important;
@@ -2167,7 +2167,7 @@ input.md-input::placeholder {
   width: 350px !important;
   height: 200px !important;
   background-color: #E8F8FF !important;
-  border: 1px solid #ccc !important;
+  /*border: 1px solid #ccc !important;*/
   border-radius: 8px !important;
   overflow: hidden !important;
   display: flex !important;
