@@ -601,15 +601,6 @@
         width: 100% !important;
         height: 120px;          /* Fixed row height (instead of max-height) */
         display: grid;
-        grid-template-columns: 
-            80px
-            180px
-            300px
-            100px
-            100px
-            140px
-            100px
-            120px;
         gap: 8px;
         align-items: center;    /* Ensures child columns stretch vertically */
         padding: 0px;
