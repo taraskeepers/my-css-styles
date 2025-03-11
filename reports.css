@@ -1105,13 +1105,14 @@
         overflow: visible;
         overflow-y: hidden;
       }
-      #filteredResults.list-mode .column-position {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 100%;
-      }
+#filteredResults.list-mode .column-position {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;       /* center horizontally */
+  justify-content: center;   /* center vertically */
+  height: 100% !important;
+  text-align: center;
+}
       
       #filteredResults.list-mode .column-position .pos-content {
         flex: 1;
@@ -1121,16 +1122,14 @@
         align-items: center;
       }
       
-      #filteredResults.list-mode .column-position .pos-label {
-        position: absolute;
-        bottom: 4px;  /* adjust as needed */
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 12px;
-        color: #333;
-        padding-bottom: 4px;
-      }
+#filteredResults.list-mode .column-position .pos-label {
+  position: static !important;
+  margin-top: 4px;            /* If you want spacing below the number */
+  text-align: center;         /* keep it centered horizontally */
+  font-size: 12px;
+  color: #333;
+  padding-bottom: 0;          /* no extra padding needed */
+}
 
       #filteredResults.list-mode .column-price {
         flex-direction: column;
