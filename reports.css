@@ -736,18 +736,18 @@
 
     /* Column 5 – Visibility */
     .column-visibility {
-      grid-column: 5;
+      grid-column: 4;
       text-align: center;
     }
 
     /* Column 6 – Price & promotions */
     .column-price {
-      grid-column: 6;
+      grid-column: 5;
     }
 
     /* Column 7 – Rating & reviews */
     .column-rating {
-      grid-column: 7;
+      grid-column: 6;
       text-align: center;
     }
 
