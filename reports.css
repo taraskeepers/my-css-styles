@@ -729,7 +729,7 @@
 
     /* Column 4 – Position */
     .column-position {
-      grid-column: 4;
+      grid-column: 1;
       text-align: center;
       font-weight: 600;
     }
