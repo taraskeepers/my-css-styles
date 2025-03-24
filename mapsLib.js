@@ -479,7 +479,6 @@ locationGroups.each(function(d) {
     renderDeviceRow(mobileObj, rowPositions.mobile);
   }
 });
-  }
 
   // ---------- (F) Canada, UK, Australia (unchanged “bubble” logic) ----------
 
