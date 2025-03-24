@@ -144,11 +144,10 @@
     const d = (deviceName || "").toLowerCase();
     if (d.includes("desktop")) return "#007aff"; // blue
     if (d.includes("mobile"))  return "#f44336"; // red
-    // fallback
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal } ----------
+  // ---------- (D) Build an array: each item => { locName, device, shareVal, trendVal } ----------
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
@@ -159,7 +158,8 @@
       arr.push({
         locName: locKey,
         device:  s.device,
-        shareVal: parseFloat(s.shareVal) || 0
+        shareVal: parseFloat(s.shareVal) || 0,
+        trendVal: s.trendVal // include trend value if available
       });
     });
     console.log("[DEBUG] buildLocationDeviceData - final dataRows:", arr);
@@ -223,7 +223,7 @@
         if (stPostal && usedStates.has(stPostal)) {
           return "#ADD8E6"; // light blue for active locations
         }
-        return "#FFFFFF";   // white if not used
+        return "#FFFFFF";
       })
       .attr("stroke", "#999");
 
@@ -249,13 +249,12 @@
         locName: locKey,
         x: coords[0],
         y: coords[1],
-        devices: devicesArr // array of { device, shareVal }
+        devices: devicesArr // array of { device, shareVal, trendVal }
       });
     });
 
     // 8) Create a <g> for all location groups
     const locationLayer = svg.append("g").attr("class", "location-layer");
-
     const locationGroups = locationLayer.selectAll("g.loc-group")
       .data(locationData)
       .enter()
@@ -270,29 +269,28 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each device, render a 2-row, 4-column layout.
-    //     The desktop row is always rendered first.
+    // 8B) For each device, render a 2-row, 4‑column layout.
+    //      The desktop row is rendered first.
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
-      // Ensure group width is auto
       parentG.attr("width", "auto");
 
-      // Define arc and pie generators once per group.
+      // Define arc and pie generators
       const arcGen = d3.arc().outerRadius(10).innerRadius(0);
       const pieGen = d3.pie().sort(null).value(v => v);
-      
-      // Find desktop and mobile devices from the array.
+
+      // Order devices: desktop row always comes first.
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
-      const rowHeight = 40;  // adjust row height as needed
+
+      const rowHeight = 40;  // adjust as needed
+      const colPositions = [0, 30, 70, 120];
 
       // ----- DESKTOP ROW (first row) -----
       if (desktop) {
         const rowDesktop = parentG.append("g")
           .attr("class", "device-row desktop")
           .attr("transform", "translate(0,0)");
-
-        const colPositions = [0, 30, 70, 120];
 
         // Column 1: Device icon (desktop)
         rowDesktop.append("image")
@@ -345,8 +343,7 @@
           .attr("class", "device-row mobile")
           .attr("transform", "translate(0," + mobileOffsetY + ")");
 
-        const colPositions = [0, 30, 70, 120];
-
+        // Column positions same as desktop
         // Column 1: Device icon (mobile)
         rowMobile.append("image")
           .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
