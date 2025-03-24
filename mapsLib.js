@@ -185,7 +185,7 @@
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
     // 4) Build the location+device data
-    const dataRows = buildLocationDeviceData(project);
+    const dataRows = buildHomeDataForMap(project);
     if (!dataRows.length) {
       console.warn("[mapsLib] No location/device data found; drawing plain US map.");
     }
@@ -276,15 +276,15 @@
       parentG.attr("width", "auto");
 
       // Define arc and pie generators
-      const arcGen = d3.arc().outerRadius(10).innerRadius(0);
+      const arcGen = d3.arc().outerRadius(15).innerRadius(0);
       const pieGen = d3.pie().sort(null).value(v => v);
 
       // Order devices: desktop row always comes first.
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      const rowHeight = 40;  // adjust as needed
-      const colPositions = [0, 30, 70, 120];
+      const rowHeight = 50;  // adjust as needed
+      const colPositions = [0, 35, 70, 120];
 
       // ----- DESKTOP ROW (first row) -----
       if (desktop) {
@@ -297,8 +297,8 @@
           .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
           .attr("x", colPositions[0])
           .attr("y", 0)
-          .attr("width", 20)
-          .attr("height", 20);
+          .attr("width", 25)
+          .attr("height", 25);
 
         // Column 2: Pie chart
         const pieDesktop = rowDesktop.append("g")
@@ -333,6 +333,16 @@
             let trend = Number(desktop.trendVal) || 0;
             const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
             return arrow + " " + Math.abs(trend).toFixed(1);
+
+              const bbox = this.getBBox();
+  parentG.insert("rect", ":first-child")
+    .attr("x", bbox.x - 4)
+    .attr("y", bbox.y - 4)
+    .attr("width", bbox.width + 8)
+    .attr("height", bbox.height + 8)
+    .attr("rx", 8)
+    .attr("fill", "white")
+    .attr("fill-opacity", 0.7);
           });
       }
 
