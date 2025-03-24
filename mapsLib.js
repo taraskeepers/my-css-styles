@@ -278,21 +278,132 @@
     // 8B) For each device, draw a mini pie => side-by-side
 // New layout: each loc-group will have 2 rows and 4 columns.
 // We first separate out the desktop and mobile devices and then render each row.
+// NEW: Instead of drawing side‐by‐side pies, create a 2‐row, 4‑column layout per location
+// NEW: Instead of drawing side‐by‐side pies, create a 2‐row, 4‑column layout per location.
+// Each loc-group now has two rows (one for desktop, one for mobile).
 locationGroups.each(function(d) {
   const parentG = d3.select(this);
-  const devArr = d.devices;
+  // Set the group width to auto so it doesn’t extend unnecessarily.
+  parentG.attr("width", "auto");
 
-  // Find the desktop and mobile objects. (Make sure to compare lower-cased device names.)
-  const desktopObj = devArr.find(obj => obj.device.toLowerCase().includes("desktop"));
-  const mobileObj  = devArr.find(obj => obj.device.toLowerCase().includes("mobile"));
+  // Order devices: find desktop and mobile.
+  const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
+  const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-  // Define the column x positions (you can adjust these numbers as needed)
-  const colPositions = [0, 50, 150, 250];
-  // Define row y positions (desktop row and mobile row). Adjust vertical spacing as desired.
-  const rowPositions = {
-    desktop: 0,
-    mobile: 30
-  };
+  // Set the row height (increase this value if you want taller rows)
+  const rowHeight = 40;  // you can change to 50 if you prefer a taller row
+
+  // ----- DESKTOP ROW (first row) -----
+  if (desktop) {
+    const rowDesktop = parentG.append("g")
+      .attr("class", "device-row desktop")
+      .attr("transform", "translate(0,0)");
+
+    // Column positions (adjust as needed)
+    const colPositions = [0, 30, 70, 120];
+
+    // Column 1: Device icon (desktop)
+    rowDesktop.append("image")
+      .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
+      .attr("x", colPositions[0])
+      .attr("y", 0)
+      .attr("width", 20)
+      .attr("height", 20);
+
+    // Column 2: Pie chart at x=colPositions[1], vertically centered
+    const pieDesktop = rowDesktop.append("g")
+      .attr("class", "mini-pie")
+      .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+    const pieData = [ desktop.shareVal, 100 - desktop.shareVal ];
+    const arcGen = d3.arc().outerRadius(10).innerRadius(0);
+    const pieGen = d3.pie().sort(null).value(v => v);
+    const arcs = pieGen(pieData);
+    pieDesktop.selectAll("path")
+      .data(arcs)
+      .enter()
+      .append("path")
+      .attr("d", arcGen)
+      .attr("fill", (d, i) => i === 0 ? colorForDevice(desktop.device) : "#ccc")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5);
+
+    // Column 3: % value (rounded to 1 decimal) at x=colPositions[2]
+    rowDesktop.append("text")
+      .attr("x", colPositions[2])
+      .attr("y", rowHeight / 2 + 5)
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(desktop.shareVal.toFixed(1) + "%");
+
+    // Column 4: Trend value at x=colPositions[3]
+    rowDesktop.append("text")
+      .attr("x", colPositions[3])
+      .attr("y", rowHeight / 2 + 5)
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(function() {
+         // Use Number() to coerce to a number and default to 0 if NaN.
+         let trend = Number(desktop.trendVal) || 0;
+         const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
+         return arrow + " " + Math.abs(trend).toFixed(1);
+      });
+  }
+
+  // ----- MOBILE ROW (second row) -----
+  if (mobile) {
+    // Offset mobile row below desktop row (if desktop exists, add some extra padding)
+    const mobileOffsetY = desktop ? rowHeight + 10 : 0;
+    const rowMobile = parentG.append("g")
+      .attr("class", "device-row mobile")
+      .attr("transform", "translate(0," + mobileOffsetY + ")");
+
+    // Use same column positions as desktop
+    const colPositions = [0, 30, 70, 120];
+
+    // Column 1: Device icon (mobile)
+    rowMobile.append("image")
+      .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
+      .attr("x", colPositions[0])
+      .attr("y", 0)
+      .attr("width", 20)
+      .attr("height", 20);
+
+    // Column 2: Pie chart
+    const pieMobile = rowMobile.append("g")
+      .attr("class", "mini-pie")
+      .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+    const pieDataM = [ mobile.shareVal, 100 - mobile.shareVal ];
+    const arcsM = pieGen(pieDataM);
+    pieMobile.selectAll("path")
+      .data(arcsM)
+      .enter()
+      .append("path")
+      .attr("d", arcGen)
+      .attr("fill", (d, i) => i === 0 ? colorForDevice(mobile.device) : "#ccc")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5);
+
+    // Column 3: % value
+    rowMobile.append("text")
+      .attr("x", colPositions[2])
+      .attr("y", rowHeight / 2 + 5)
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(mobile.shareVal.toFixed(1) + "%");
+
+    // Column 4: Trend value
+    rowMobile.append("text")
+      .attr("x", colPositions[3])
+      .attr("y", rowHeight / 2 + 5)
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(function() {
+         let trend = Number(mobile.trendVal) || 0;
+         const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
+         return arrow + " " + Math.abs(trend).toFixed(1);
+      });
+  }
+});
 
   // A helper function that renders one row given a device object and a vertical offset.
   function renderDeviceRow(devObj, rowY) {
