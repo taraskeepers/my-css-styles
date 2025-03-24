@@ -3,8 +3,9 @@
   ----------------------------------------------------------
   A reusable library for:
     - Fetching and caching TopoJSON for US, Canada, UK, Australia
-    - Drawing color-coded maps with active-search counts
-    - Optionally placing “city dots” for active locations
+    - Drawing color-coded maps with city-level pies or dots
+    - If multiple devices exist at the same location, 
+      each location shows multiple mini pies side by side.
 
   DEPENDS ON:
     1) <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -12,9 +13,9 @@
   
   USAGE:
     1) Load D3 + TopoJSON
-    2) <script src="https://your-host/mapsLib.js"></script>
+    2) <script src="mapsLib.js"></script>
     3) Then call, e.g.:
-       mapHelpers.drawUsMapWithLocations(myProject, "#myContainer");
+       mapHelpers.drawUsMapWithLocations(myProject, "#locMap");
 ***********************************************************/
 (function() {
   // Make sure D3 + topojson are available
@@ -26,7 +27,7 @@
     return;
   }
 
-  // ----- (A) Data / Caches / Constants -----
+  // ---------- (A) Data / Caches / Constants ----------
 
   // URLs to your hosted TopoJSON
   const US_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_e242dae5156b4d5991a475cd815a9992.json";
@@ -67,8 +68,6 @@
     "CA12": "YT",
     "CA13": "NU"
   };
-
-  // Helper to convert e.g. "CA02" => "BC"
   function mapProvinceCode(code) {
     return PROVINCE_CODE_MAP[code] || code;
   }
@@ -85,7 +84,7 @@
     7: "Australian Capital Territory"
   };
 
-  // ----- (B) Helper: fetchers for each country’s TopoJSON -----
+  // ---------- (B) Helper fetchers for each country’s TopoJSON ----------
 
   async function getUSMapData() {
     if (usTopoCache) return usTopoCache;
@@ -139,81 +138,74 @@
     }
   }
 
-  // ----- (C) “Collect active cities” from your project searches -----
-  // This uses a global “cityLookup” map:  cityLookup.get(cityNameLower) => { lat, lng, state_id, regionId, etc. }
-  // If you prefer a different approach, adapt or remove.
+  // ---------- (C) A utility “colorForDevice” function ----------
 
-  function collectActiveCitiesForProject(project) {
-    if (!project || !Array.isArray(project.searches)) return [];
-    if (typeof window.cityLookup !== "object") {
-      // If you don't have cityLookup, you can adapt or skip
-      console.warn("[mapsLib] cityLookup not found on window; city dots won't appear.");
-      return [];
-    }
-
-    const out = [];
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locArr = Array.isArray(search.location)
-        ? search.location
-        : search.location ? [search.location] : [];
-      locArr.forEach((locStr) => {
-        const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup.has(canon)) {
-          out.push(window.cityLookup.get(canon));
-        }
-      });
-    });
-    return out;
+  function colorForDevice(deviceName) {
+    const d = (deviceName || "").toLowerCase();
+    if (d.includes("desktop")) return "#007aff"; // blue
+    if (d.includes("mobile"))  return "#f44336"; // red
+    // fallback
+    return "#888";
   }
 
-  // ----- (D) Drawing functions for each country -----
+  // ---------- (D) Build an array: each item => { locName, device, shareVal } ----------
 
-  /****************************************************
-   * drawUsMapWithLocations(project, containerSelector)
-   ****************************************************/
+  // By default, you might store these in project.searches, e.g.:
+  // { location: "Chicago,IL,USA", device: "desktop", shareVal: 12.3, status: "active" }
+  // If your structure differs, adapt here.
+  function buildLocationDeviceData(project) {
+    if (!project || !Array.isArray(project.searches)) return [];
+    const arr = [];
+    project.searches.forEach(s => {
+      if ((s.status || "").toLowerCase() !== "active") return;
+      if (!s.location || !s.device || s.shareVal == null) return;
+      const locKey = s.location.trim().toLowerCase();
+      arr.push({
+        locName: locKey,
+        device:  s.device,
+        shareVal: parseFloat(s.shareVal) || 0
+      });
+    });
+    return arr;
+  }
+
+  // ---------- (E) The core US drawing function, with multi-pie logic ----------
+
   async function drawUsMapWithLocations(project, containerSelector) {
-    // 1) Clear old
+    // 1) Clear old contents
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // 2) Load the US topo
+    // 2) Load US topo
     let usTopo;
     try {
       usTopo = await getUSMapData();
     } catch (err) {
-      console.error("[mapsLib] drawUsMap: US topo load error:", err);
+      console.error("[mapsLib] drawUsMapWithLocations: US topo load error:", err);
       return;
     }
 
     // 3) Convert topo => GeoJSON
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-    // 4) Build a stateCounts object
-    const stateCounts = {};
-    (project.searches || []).forEach((s) => {
-      if ((s.status || "").toLowerCase() !== "active") return;
-      const locs = Array.isArray(s.location) ? s.location : s.location ? [s.location] : [];
-      locs.forEach((locStr) => {
-        const canon = locStr.trim().toLowerCase();
-        // If cityLookup is present:
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const st = cityObj.state_id || "";
-          if (!stateCounts[st]) stateCounts[st] = 0;
-          stateCounts[st]++;
+    // 4) Build the location+device data
+    const dataRows = buildLocationDeviceData(project);
+    if (!dataRows.length) {
+      console.warn("[mapsLib] No location/device data found; drawing plain US map.");
+    }
+
+    // 4A) Which states are used:
+    const usedStates = new Set();
+    if (window.cityLookup) {
+      dataRows.forEach(row => {
+        const cityObj = window.cityLookup.get(row.locName);
+        if (cityObj && cityObj.state_id) {
+          usedStates.add(cityObj.state_id);
         }
       });
-    });
+    }
 
-    // 5) color scale
-    let maxCount = 0;
-    Object.values(stateCounts).forEach((val) => { if (val > maxCount) maxCount = val; });
-    const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
-      .interpolator(d3.interpolateBlues);
-
-    // 6) Create an <svg>
+    // 5) Create an <svg>
     const width = 975, height = 610;
     const svg = container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
@@ -223,7 +215,7 @@
 
     const path = d3.geoPath();
 
-    // 7) draw states
+    // 6) Draw each state: lightly fill if used
     svg.selectAll("path.state")
       .data(statesGeo.features)
       .enter()
@@ -231,73 +223,129 @@
       .attr("class", "state")
       .attr("d", path)
       .attr("fill", (d) => {
-        const fips = d.id; // e.g. "01"
-        const stPostal = FIPS_TO_POSTAL[fips] || null;
-        const c = stPostal ? (stateCounts[stPostal] || 0) : 0;
-        return colorScale(c);
+        const stPostal = FIPS_TO_POSTAL[d.id] || null;
+        if (stPostal && usedStates.has(stPostal)) {
+          return "#EAEAEA"; // slightly colored
+        }
+        return "#FFFFFF";   // or #fafafa for no-locations
       })
       .attr("stroke", "#999");
 
-    // 8) Optionally place “bubbles” by state centroid
-    svg.selectAll("circle.state-bubble")
-      .data(statesGeo.features)
-      .enter()
-      .append("circle")
-      .attr("class", "state-bubble")
-      .attr("cx", (d) => path.centroid(d)[0])
-      .attr("cy", (d) => path.centroid(d)[1])
-      .attr("r", (d) => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        const c = stPostal ? (stateCounts[stPostal] || 0) : 0;
-        return c > 0 ? 20 : 0;
-      })
-      .attr("fill", "#2962FF")
-      .attr("fill-opacity", 0.5);
+    // 7) Group dataRows by location => array of { locName, x, y, devices[] }
+    const locMap = new Map();
+    dataRows.forEach(row => {
+      if (!locMap.has(row.locName)) {
+        locMap.set(row.locName, []);
+      }
+      locMap.get(row.locName).push(row);
+    });
 
-    // 9) bubble label
-    svg.selectAll("text.state-bubble-label")
-      .data(statesGeo.features)
-      .enter()
-      .append("text")
-      .attr("class", "state-bubble-label")
-      .attr("x", (d) => path.centroid(d)[0])
-      .attr("y", (d) => path.centroid(d)[1] + 5)
-      .attr("text-anchor", "middle")
-      .attr("font-size", 14)
-      .attr("fill", "#fff")
-      .text((d) => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        const c = stPostal ? (stateCounts[stPostal] || 0) : 0;
-        return c > 0 ? c : "";
-      });
-
-    // 10) city “dots”
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    const projection = d3.geoAlbersUsa().scale(1300).translate([487.5,305]);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
+    // Convert to an array of geometry
+    const projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
+    const locationData = [];
+    locMap.forEach((devicesArr, locKey) => {
+      if (!window.cityLookup) return;
+      const cityObj = window.cityLookup.get(locKey);
+      if (!cityObj) return;
+      const coords = projection([cityObj.lng, cityObj.lat]);
       if (!coords) return;
-      const [x, y] = coords;
-      svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+      locationData.push({
+        locName: locKey,
+        x: coords[0],
+        y: coords[1],
+        devices: devicesArr // array of { device, shareVal }
+      });
+    });
+
+    // 8) Create a <g> for all location groups
+    const locationLayer = svg.append("g").attr("class", "location-layer");
+
+    const locationGroups = locationLayer.selectAll("g.loc-group")
+      .data(locationData)
+      .enter()
+      .append("g")
+      .attr("class", "loc-group")
+      .attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+    // 8A) The main dot
+    locationGroups.append("circle")
+      .attr("r", 4)
+      .attr("fill", "#cc0000")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1);
+
+    // 8B) For each device, draw a mini pie => side-by-side
+    locationGroups.each(function(d) {
+      const parentG = d3.select(this);
+      const devArr = d.devices;
+
+      devArr.forEach((devObj, i) => {
+        const offsetX = i * 25 - 12;
+        const offsetY = -25;
+        const pieData = [ devObj.shareVal, 100 - devObj.shareVal ];
+        const arcGen = d3.arc().outerRadius(10).innerRadius(0);
+        const pieGen = d3.pie().sort(null).value(v => v);
+        const arcs = pieGen(pieData);
+
+        const pieGroup = parentG.append("g")
+          .attr("class", "mini-pie")
+          .attr("transform", `translate(${offsetX}, ${offsetY})`);
+
+        pieGroup.selectAll("path")
+          .data(arcs)
+          .enter()
+          .append("path")
+          .attr("d", arcGen)
+          .attr("fill", (arcDatum, idx2) => {
+            if (idx2 === 0) {
+              return colorForDevice(devObj.device);
+            }
+            return "#ccc";
+          })
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 0.5);
+
+        // small label under pie
+        pieGroup.append("text")
+          .attr("x", 0)
+          .attr("y", 18)
+          .attr("text-anchor", "middle")
+          .attr("font-size", 10)
+          .attr("fill", "#333")
+          .text(devObj.device);
+      });
     });
   }
 
+  // ---------- (F) Canada, UK, Australia (unchanged “bubble” logic) ----------
 
-  /*******************************************************
-   * drawCanadaMapWithLocations(project, containerSelector)
-   *******************************************************/
+  // For the older approach, we gather active city objects:
+  function collectActiveCitiesForProject(project) {
+    if (!project || !Array.isArray(project.searches)) return [];
+    if (typeof window.cityLookup !== "object") {
+      console.warn("[mapsLib] cityLookup not found; city dots won't appear.");
+      return [];
+    }
+    const out = [];
+    project.searches.forEach((s) => {
+      if ((s.status || "").toLowerCase() !== "active") return;
+      const loc = s.location;
+      if (!loc) return;
+      const locArr = Array.isArray(loc) ? loc : [loc];
+      locArr.forEach(locStr => {
+        const canon = locStr.trim().toLowerCase();
+        if (window.cityLookup.has(canon)) {
+          out.push(window.cityLookup.get(canon));
+        }
+      });
+    });
+    return out;
+  }
+
   async function drawCanadaMapWithLocations(project, containerSelector) {
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // load
     let canadaTopo;
     try {
       canadaTopo = await getCanadaMapData();
