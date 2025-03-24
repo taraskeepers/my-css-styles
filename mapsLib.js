@@ -159,7 +159,7 @@
     project.searches.forEach(s => {
       if ((s.status || "").toLowerCase() !== "active") return;
       if (!s.location || !s.device || s.shareVal == null) return;
-      const locKey = s.location.trim().toLowerCase();
+      const locKey = s.location.trim().toLowerCase().replace(/,\s*/g, ',');
       arr.push({
         locName: locKey,
         device:  s.device,
