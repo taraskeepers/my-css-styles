@@ -166,6 +166,7 @@
         shareVal: parseFloat(s.shareVal) || 0
       });
     });
+    console.log("[DEBUG] buildLocationDeviceData - final dataRows:", arr);
     return arr;
   }
 
