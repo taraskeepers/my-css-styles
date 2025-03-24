@@ -139,7 +139,6 @@
   }
 
   // ---------- (C) A utility “colorForDevice” function ----------
-
   function colorForDevice(deviceName) {
     const d = (deviceName || "").toLowerCase();
     if (d.includes("desktop")) return "#007aff"; // blue
@@ -185,7 +184,8 @@
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
     // 4) Build the location+device data
-    const dataRows = buildHomeDataForMap(project);
+    //    (Changed from buildHomeDataForMap to buildLocationDeviceData)
+    const dataRows = buildLocationDeviceData(project);
     if (!dataRows.length) {
       console.warn("[mapsLib] No location/device data found; drawing plain US map.");
     }
@@ -262,24 +262,22 @@
       .attr("class", "loc-group")
       .attr("transform", d => `translate(${d.x}, ${d.y})`);
 
-    // 8A) The main dot
+    // 8A) The main dot for the city
     locationGroups.append("circle")
       .attr("r", 4)
       .attr("fill", "#cc0000")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each device, render a 2-row, 4‑column layout.
-    //      The desktop row is rendered first.
+    // 8B) For each device, render a 2-row, 4-column layout.
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
-      parentG.attr("width", "auto");
 
       // Define arc and pie generators
       const arcGen = d3.arc().outerRadius(15).innerRadius(0);
       const pieGen = d3.pie().sort(null).value(v => v);
 
-      // Order devices: desktop row always comes first.
+      // Separate devices by type (desktop vs mobile)
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
@@ -292,7 +290,7 @@
           .attr("class", "device-row desktop")
           .attr("transform", "translate(0,0)");
 
-        // Column 1: Device icon (desktop)
+        // Column 1: Desktop icon
         rowDesktop.append("image")
           .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
           .attr("x", colPositions[0])
@@ -300,10 +298,11 @@
           .attr("width", 25)
           .attr("height", 25);
 
-        // Column 2: Pie chart
+        // Column 2: Pie chart for desktop
         const pieDesktop = rowDesktop.append("g")
           .attr("class", "mini-pie")
-          .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+          .attr("transform", `translate(${colPositions[1] + 10}, ${rowHeight / 2})`);
+
         const pieData = [ desktop.shareVal, 100 - desktop.shareVal ];
         const arcs = pieGen(pieData);
         pieDesktop.selectAll("path")
@@ -333,17 +332,25 @@
             let trend = Number(desktop.trendVal) || 0;
             const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
             return arrow + " " + Math.abs(trend).toFixed(1);
-
-              const bbox = this.getBBox();
-  parentG.insert("rect", ":first-child")
-    .attr("x", bbox.x - 4)
-    .attr("y", bbox.y - 4)
-    .attr("width", bbox.width + 8)
-    .attr("height", bbox.height + 8)
-    .attr("rx", 8)
-    .attr("fill", "white")
-    .attr("fill-opacity", 0.7);
           });
+          
+          // BELOW CODE IS UNREACHABLE BECAUSE OF THE RETURN ABOVE:
+          // If you want a bounding box around the text, do it in a .call() or .each() 
+          // AFTER the text is appended, e.g.:
+          //
+          // .call(function(selection) {
+          //   selection.each(function() {
+          //     const bbox = this.getBBox();
+          //     rowDesktop.insert("rect", ":first-child")
+          //       .attr("x", bbox.x - 4)
+          //       .attr("y", bbox.y - 4)
+          //       .attr("width", bbox.width + 8)
+          //       .attr("height", bbox.height + 8)
+          //       .attr("rx", 8)
+          //       .attr("fill", "white")
+          //       .attr("fill-opacity", 0.7);
+          //   });
+          // });
       }
 
       // ----- MOBILE ROW (second row) -----
@@ -351,10 +358,9 @@
         const mobileOffsetY = desktop ? rowHeight + 10 : 0;
         const rowMobile = parentG.append("g")
           .attr("class", "device-row mobile")
-          .attr("transform", "translate(0," + mobileOffsetY + ")");
+          .attr("transform", `translate(0,${mobileOffsetY})`);
 
-        // Column positions same as desktop
-        // Column 1: Device icon (mobile)
+        // Column 1: Mobile icon
         rowMobile.append("image")
           .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
           .attr("x", colPositions[0])
@@ -362,10 +368,11 @@
           .attr("width", 20)
           .attr("height", 20);
 
-        // Column 2: Pie chart
+        // Column 2: Pie chart for mobile
         const pieMobile = rowMobile.append("g")
           .attr("class", "mini-pie")
-          .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+          .attr("transform", `translate(${colPositions[1] + 10}, ${rowHeight / 2})`);
+
         const pieDataM = [ mobile.shareVal, 100 - mobile.shareVal ];
         const arcsM = pieGen(pieDataM);
         pieMobile.selectAll("path")
@@ -400,7 +407,7 @@
     });
   }
 
-  // ---------- (F) Canada, UK, Australia (unchanged “bubble” logic) ----------
+  // ---------- (F) Canada, UK, Australia (same as before) ----------
 
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
