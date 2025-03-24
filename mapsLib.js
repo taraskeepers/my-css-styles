@@ -226,7 +226,7 @@
       .attr("fill", (d) => {
         const stPostal = FIPS_TO_POSTAL[d.id] || null;
         if (stPostal && usedStates.has(stPostal)) {
-          return "#EAEAEA"; // slightly colored
+          return "#ADD8E6"; // slightly colored
         }
         return "#FFFFFF";   // or #fafafa for no-locations
       })
@@ -276,46 +276,98 @@
       .attr("stroke-width", 1);
 
     // 8B) For each device, draw a mini pie => side-by-side
-    locationGroups.each(function(d) {
-      const parentG = d3.select(this);
-      const devArr = d.devices;
+// New layout: each loc-group will have 2 rows and 4 columns.
+// We first separate out the desktop and mobile devices and then render each row.
+locationGroups.each(function(d) {
+  const parentG = d3.select(this);
+  const devArr = d.devices;
 
-      devArr.forEach((devObj, i) => {
-        const offsetX = i * 25 - 12;
-        const offsetY = -25;
-        const pieData = [ devObj.shareVal, 100 - devObj.shareVal ];
-        const arcGen = d3.arc().outerRadius(10).innerRadius(0);
-        const pieGen = d3.pie().sort(null).value(v => v);
-        const arcs = pieGen(pieData);
+  // Find the desktop and mobile objects. (Make sure to compare lower-cased device names.)
+  const desktopObj = devArr.find(obj => obj.device.toLowerCase().includes("desktop"));
+  const mobileObj  = devArr.find(obj => obj.device.toLowerCase().includes("mobile"));
 
-        const pieGroup = parentG.append("g")
-          .attr("class", "mini-pie")
-          .attr("transform", `translate(${offsetX}, ${offsetY})`);
+  // Define the column x positions (you can adjust these numbers as needed)
+  const colPositions = [0, 50, 150, 250];
+  // Define row y positions (desktop row and mobile row). Adjust vertical spacing as desired.
+  const rowPositions = {
+    desktop: 0,
+    mobile: 30
+  };
 
-        pieGroup.selectAll("path")
-          .data(arcs)
-          .enter()
-          .append("path")
-          .attr("d", arcGen)
-          .attr("fill", (arcDatum, idx2) => {
-            if (idx2 === 0) {
-              return colorForDevice(devObj.device);
-            }
-            return "#ccc";
-          })
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5);
+  // A helper function that renders one row given a device object and a vertical offset.
+  function renderDeviceRow(devObj, rowY) {
+    // Create a new group for the row.
+    const rowG = parentG.append("g")
+      .attr("class", "loc-row")
+      .attr("transform", `translate(0, ${rowY})`);
 
-        // small label under pie
-        pieGroup.append("text")
-          .attr("x", 0)
-          .attr("y", 18)
-          .attr("text-anchor", "middle")
-          .attr("font-size", 10)
-          .attr("fill", "#333")
-          .text(devObj.device);
-      });
-    });
+    // COLUMN 1: Device icon (using an <image> element)
+    // Choose the URL based on device type.
+    const iconUrl = devObj.device.toLowerCase().includes("desktop")
+      ? "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png"
+      : "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png";
+    rowG.append("image")
+      .attr("x", colPositions[0])
+      .attr("y", -10)  // Adjust vertically so the icon is centered (change as needed)
+      .attr("width", 20)
+      .attr("height", 20)
+      .attr("href", iconUrl);
+
+    // COLUMN 2: Pie chart
+    // Position the pie chart relative to the second column. Here we add an extra offset (15px) for centering.
+    const pieGroup = rowG.append("g")
+      .attr("transform", `translate(${colPositions[1] + 15}, 0)`);
+    const pieData = [ devObj.shareVal, 100 - devObj.shareVal ];
+    const arcGen = d3.arc().outerRadius(10).innerRadius(0);
+    const pieGen = d3.pie().sort(null).value(v => v);
+    const arcs = pieGen(pieData);
+    pieGroup.selectAll("path")
+      .data(arcs)
+      .enter()
+      .append("path")
+      .attr("d", arcGen)
+      .attr("fill", (arcDatum, idx2) => {
+        // Use the color for the device for the first slice; second slice is gray.
+        if (idx2 === 0) {
+          return colorForDevice(devObj.device);
+        }
+        return "#ccc";
+      })
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5);
+
+    // COLUMN 3: % Value, rounded to 1 decimal
+    rowG.append("text")
+      .attr("x", colPositions[2])
+      .attr("y", 5)  // adjust vertically for centering
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(devObj.shareVal.toFixed(1) + "%");
+
+    // COLUMN 4: Trend value (arrow + difference)
+    // Compute arrow: if trendVal > 0 => ▲, if < 0 => ▼, else ±
+    let arrow = "±";
+    if (devObj.trendVal > 0) {
+      arrow = "▲";
+    } else if (devObj.trendVal < 0) {
+      arrow = "▼";
+    }
+    rowG.append("text")
+      .attr("x", colPositions[3])
+      .attr("y", 5)
+      .attr("font-size", 12)
+      .attr("fill", "#333")
+      .text(arrow + " " + Math.abs(devObj.trendVal).toFixed(1));
+  }
+
+  // Always render the desktop row (if available) first, then the mobile row.
+  if (desktopObj) {
+    renderDeviceRow(desktopObj, rowPositions.desktop);
+  }
+  if (mobileObj) {
+    renderDeviceRow(mobileObj, rowPositions.mobile);
+  }
+});
   }
 
   // ---------- (F) Canada, UK, Australia (unchanged “bubble” logic) ----------
