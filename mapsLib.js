@@ -43,13 +43,13 @@
 
   // US: FIPS => state postal code
   const FIPS_TO_POSTAL = {
-    "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
-    "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
-    "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
-    "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
-    "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
-    "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
-    "54":"WV","55":"WI","56":"WY"
+    "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", "10": "DE",
+    "11": "DC", "12": "FL", "13": "GA", "15": "HI", "16": "ID", "17": "IL", "18": "IN", "19": "IA",
+    "20": "KS", "21": "KY", "22": "LA", "23": "ME", "24": "MD", "25": "MA", "26": "MI", "27": "MN",
+    "28": "MS", "29": "MO", "30": "MT", "31": "NE", "32": "NV", "33": "NH", "34": "NJ", "35": "NM",
+    "36": "NY", "37": "NC", "38": "ND", "39": "OH", "40": "OK", "41": "OR", "42": "PA", "44": "RI",
+    "45": "SC", "46": "SD", "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA",
+    "54": "WV", "55": "WI", "56": "WY"
   };
 
   // Canada: object to map e.g. "CA08" => "ON"
@@ -149,10 +149,6 @@
   }
 
   // ---------- (D) Build an array: each item => { locName, device, shareVal } ----------
-
-  // By default, you might store these in project.searches, e.g.:
-  // { location: "Chicago,IL,USA", device: "desktop", shareVal: 12.3, status: "active" }
-  // If your structure differs, adapt here.
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
@@ -171,7 +167,6 @@
   }
 
   // ---------- (E) The core US drawing function, with multi-pie logic ----------
-
   async function drawUsMapWithLocations(project, containerSelector) {
     // 1) Clear old contents
     const container = d3.select(containerSelector);
@@ -226,9 +221,9 @@
       .attr("fill", (d) => {
         const stPostal = FIPS_TO_POSTAL[d.id] || null;
         if (stPostal && usedStates.has(stPostal)) {
-          return "#ADD8E6"; // slightly colored
+          return "#ADD8E6"; // light blue for active locations
         }
-        return "#FFFFFF";   // or #fafafa for no-locations
+        return "#FFFFFF";   // white if not used
       })
       .attr("stroke", "#999");
 
@@ -275,214 +270,131 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each device, draw a mini pie => side-by-side
-// New layout: each loc-group will have 2 rows and 4 columns.
-// We first separate out the desktop and mobile devices and then render each row.
-// NEW: Instead of drawing side‐by‐side pies, create a 2‐row, 4‑column layout per location
-// NEW: Instead of drawing side‐by‐side pies, create a 2‐row, 4‑column layout per location.
-// Each loc-group now has two rows (one for desktop, one for mobile).
-locationGroups.each(function(d) {
-  const parentG = d3.select(this);
-  // Set the group width to auto so it doesn’t extend unnecessarily.
-  parentG.attr("width", "auto");
+    // 8B) For each device, render a 2-row, 4-column layout.
+    //     The desktop row is always rendered first.
+    locationGroups.each(function(d) {
+      const parentG = d3.select(this);
+      // Ensure group width is auto
+      parentG.attr("width", "auto");
 
-  // Order devices: find desktop and mobile.
-  const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-  const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
+      // Define arc and pie generators once per group.
+      const arcGen = d3.arc().outerRadius(10).innerRadius(0);
+      const pieGen = d3.pie().sort(null).value(v => v);
+      
+      // Find desktop and mobile devices from the array.
+      const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
+      const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
+      const rowHeight = 40;  // adjust row height as needed
 
-  // Set the row height (increase this value if you want taller rows)
-  const rowHeight = 40;  // you can change to 50 if you prefer a taller row
+      // ----- DESKTOP ROW (first row) -----
+      if (desktop) {
+        const rowDesktop = parentG.append("g")
+          .attr("class", "device-row desktop")
+          .attr("transform", "translate(0,0)");
 
-  // ----- DESKTOP ROW (first row) -----
-  if (desktop) {
-    const rowDesktop = parentG.append("g")
-      .attr("class", "device-row desktop")
-      .attr("transform", "translate(0,0)");
+        const colPositions = [0, 30, 70, 120];
 
-    // Column positions (adjust as needed)
-    const colPositions = [0, 30, 70, 120];
+        // Column 1: Device icon (desktop)
+        rowDesktop.append("image")
+          .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
+          .attr("x", colPositions[0])
+          .attr("y", 0)
+          .attr("width", 20)
+          .attr("height", 20);
 
-    // Column 1: Device icon (desktop)
-    rowDesktop.append("image")
-      .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
-      .attr("x", colPositions[0])
-      .attr("y", 0)
-      .attr("width", 20)
-      .attr("height", 20);
+        // Column 2: Pie chart
+        const pieDesktop = rowDesktop.append("g")
+          .attr("class", "mini-pie")
+          .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+        const pieData = [ desktop.shareVal, 100 - desktop.shareVal ];
+        const arcs = pieGen(pieData);
+        pieDesktop.selectAll("path")
+          .data(arcs)
+          .enter()
+          .append("path")
+          .attr("d", arcGen)
+          .attr("fill", (d, i) => i === 0 ? colorForDevice(desktop.device) : "#ccc")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 0.5);
 
-    // Column 2: Pie chart at x=colPositions[1], vertically centered
-    const pieDesktop = rowDesktop.append("g")
-      .attr("class", "mini-pie")
-      .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
-    const pieData = [ desktop.shareVal, 100 - desktop.shareVal ];
-    const arcGen = d3.arc().outerRadius(10).innerRadius(0);
-    const pieGen = d3.pie().sort(null).value(v => v);
-    const arcs = pieGen(pieData);
-    pieDesktop.selectAll("path")
-      .data(arcs)
-      .enter()
-      .append("path")
-      .attr("d", arcGen)
-      .attr("fill", (d, i) => i === 0 ? colorForDevice(desktop.device) : "#ccc")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5);
+        // Column 3: % value
+        rowDesktop.append("text")
+          .attr("x", colPositions[2])
+          .attr("y", rowHeight / 2 + 5)
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .text(desktop.shareVal.toFixed(1) + "%");
 
-    // Column 3: % value (rounded to 1 decimal) at x=colPositions[2]
-    rowDesktop.append("text")
-      .attr("x", colPositions[2])
-      .attr("y", rowHeight / 2 + 5)
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(desktop.shareVal.toFixed(1) + "%");
+        // Column 4: Trend value
+        rowDesktop.append("text")
+          .attr("x", colPositions[3])
+          .attr("y", rowHeight / 2 + 5)
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .text(function() {
+            let trend = Number(desktop.trendVal) || 0;
+            const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
+            return arrow + " " + Math.abs(trend).toFixed(1);
+          });
+      }
 
-    // Column 4: Trend value at x=colPositions[3]
-    rowDesktop.append("text")
-      .attr("x", colPositions[3])
-      .attr("y", rowHeight / 2 + 5)
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(function() {
-         // Use Number() to coerce to a number and default to 0 if NaN.
-         let trend = Number(desktop.trendVal) || 0;
-         const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
-         return arrow + " " + Math.abs(trend).toFixed(1);
-      });
+      // ----- MOBILE ROW (second row) -----
+      if (mobile) {
+        const mobileOffsetY = desktop ? rowHeight + 10 : 0;
+        const rowMobile = parentG.append("g")
+          .attr("class", "device-row mobile")
+          .attr("transform", "translate(0," + mobileOffsetY + ")");
+
+        const colPositions = [0, 30, 70, 120];
+
+        // Column 1: Device icon (mobile)
+        rowMobile.append("image")
+          .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
+          .attr("x", colPositions[0])
+          .attr("y", 0)
+          .attr("width", 20)
+          .attr("height", 20);
+
+        // Column 2: Pie chart
+        const pieMobile = rowMobile.append("g")
+          .attr("class", "mini-pie")
+          .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
+        const pieDataM = [ mobile.shareVal, 100 - mobile.shareVal ];
+        const arcsM = pieGen(pieDataM);
+        pieMobile.selectAll("path")
+          .data(arcsM)
+          .enter()
+          .append("path")
+          .attr("d", arcGen)
+          .attr("fill", (d, i) => i === 0 ? colorForDevice(mobile.device) : "#ccc")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 0.5);
+
+        // Column 3: % value
+        rowMobile.append("text")
+          .attr("x", colPositions[2])
+          .attr("y", rowHeight / 2 + 5)
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .text(mobile.shareVal.toFixed(1) + "%");
+
+        // Column 4: Trend value
+        rowMobile.append("text")
+          .attr("x", colPositions[3])
+          .attr("y", rowHeight / 2 + 5)
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .text(function() {
+            let trend = Number(mobile.trendVal) || 0;
+            const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
+            return arrow + " " + Math.abs(trend).toFixed(1);
+          });
+      }
+    });
   }
-
-  // ----- MOBILE ROW (second row) -----
-  if (mobile) {
-    // Offset mobile row below desktop row (if desktop exists, add some extra padding)
-    const mobileOffsetY = desktop ? rowHeight + 10 : 0;
-    const rowMobile = parentG.append("g")
-      .attr("class", "device-row mobile")
-      .attr("transform", "translate(0," + mobileOffsetY + ")");
-
-    // Use same column positions as desktop
-    const colPositions = [0, 30, 70, 120];
-
-    // Column 1: Device icon (mobile)
-    rowMobile.append("image")
-      .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
-      .attr("x", colPositions[0])
-      .attr("y", 0)
-      .attr("width", 20)
-      .attr("height", 20);
-
-    // Column 2: Pie chart
-    const pieMobile = rowMobile.append("g")
-      .attr("class", "mini-pie")
-      .attr("transform", "translate(" + (colPositions[1] + 10) + "," + (rowHeight / 2) + ")");
-    const pieDataM = [ mobile.shareVal, 100 - mobile.shareVal ];
-    const arcsM = pieGen(pieDataM);
-    pieMobile.selectAll("path")
-      .data(arcsM)
-      .enter()
-      .append("path")
-      .attr("d", arcGen)
-      .attr("fill", (d, i) => i === 0 ? colorForDevice(mobile.device) : "#ccc")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5);
-
-    // Column 3: % value
-    rowMobile.append("text")
-      .attr("x", colPositions[2])
-      .attr("y", rowHeight / 2 + 5)
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(mobile.shareVal.toFixed(1) + "%");
-
-    // Column 4: Trend value
-    rowMobile.append("text")
-      .attr("x", colPositions[3])
-      .attr("y", rowHeight / 2 + 5)
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(function() {
-         let trend = Number(mobile.trendVal) || 0;
-         const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
-         return arrow + " " + Math.abs(trend).toFixed(1);
-      });
-  }
-});
-
-  // A helper function that renders one row given a device object and a vertical offset.
-  function renderDeviceRow(devObj, rowY) {
-    // Create a new group for the row.
-    const rowG = parentG.append("g")
-      .attr("class", "loc-row")
-      .attr("transform", `translate(0, ${rowY})`);
-
-    // COLUMN 1: Device icon (using an <image> element)
-    // Choose the URL based on device type.
-    const iconUrl = devObj.device.toLowerCase().includes("desktop")
-      ? "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png"
-      : "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png";
-    rowG.append("image")
-      .attr("x", colPositions[0])
-      .attr("y", -10)  // Adjust vertically so the icon is centered (change as needed)
-      .attr("width", 20)
-      .attr("height", 20)
-      .attr("href", iconUrl);
-
-    // COLUMN 2: Pie chart
-    // Position the pie chart relative to the second column. Here we add an extra offset (15px) for centering.
-    const pieGroup = rowG.append("g")
-      .attr("transform", `translate(${colPositions[1] + 15}, 0)`);
-    const pieData = [ devObj.shareVal, 100 - devObj.shareVal ];
-    const arcGen = d3.arc().outerRadius(10).innerRadius(0);
-    const pieGen = d3.pie().sort(null).value(v => v);
-    const arcs = pieGen(pieData);
-    pieGroup.selectAll("path")
-      .data(arcs)
-      .enter()
-      .append("path")
-      .attr("d", arcGen)
-      .attr("fill", (arcDatum, idx2) => {
-        // Use the color for the device for the first slice; second slice is gray.
-        if (idx2 === 0) {
-          return colorForDevice(devObj.device);
-        }
-        return "#ccc";
-      })
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5);
-
-    // COLUMN 3: % Value, rounded to 1 decimal
-    rowG.append("text")
-      .attr("x", colPositions[2])
-      .attr("y", 5)  // adjust vertically for centering
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(devObj.shareVal.toFixed(1) + "%");
-
-    // COLUMN 4: Trend value (arrow + difference)
-    // Compute arrow: if trendVal > 0 => ▲, if < 0 => ▼, else ±
-    let arrow = "±";
-    if (devObj.trendVal > 0) {
-      arrow = "▲";
-    } else if (devObj.trendVal < 0) {
-      arrow = "▼";
-    }
-    rowG.append("text")
-      .attr("x", colPositions[3])
-      .attr("y", 5)
-      .attr("font-size", 12)
-      .attr("fill", "#333")
-      .text(arrow + " " + Math.abs(devObj.trendVal).toFixed(1));
-  }
-
-  // Always render the desktop row (if available) first, then the mobile row.
-  if (desktopObj) {
-    renderDeviceRow(desktopObj, rowPositions.desktop);
-  }
-  if (mobileObj) {
-    renderDeviceRow(mobileObj, rowPositions.mobile);
-  }
-});
 
   // ---------- (F) Canada, UK, Australia (unchanged “bubble” logic) ----------
 
-  // For the older approach, we gather active city objects:
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     if (typeof window.cityLookup !== "object") {
@@ -517,10 +429,8 @@ locationGroups.each(function(d) {
       return;
     }
 
-    // Convert
     const provincesGeo = topojson.feature(canadaTopo, canadaTopo.objects.provinces);
 
-    // Build provinceCounts
     const provinceCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -536,14 +446,12 @@ locationGroups.each(function(d) {
       });
     });
 
-    // color scale
     let maxCount = 0;
     Object.values(provinceCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
     const colorScale = d3.scaleSequential()
       .domain([0, maxCount || 1])
       .interpolator(d3.interpolateBlues);
 
-    // svg
     const width = 600, height = 500;
     const svg = container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
@@ -554,7 +462,6 @@ locationGroups.each(function(d) {
     const projection = d3.geoMercator().fitSize([width, height], provincesGeo);
     const path = d3.geoPath().projection(projection);
 
-    // draw provinces
     svg.selectAll("path.province")
       .data(provincesGeo.features)
       .enter()
@@ -562,14 +469,13 @@ locationGroups.each(function(d) {
       .attr("class", "province")
       .attr("d", path)
       .attr("fill", (d) => {
-        const code = d.properties.CODE; // e.g. "CA08"
-        const shortCode = mapProvinceCode(code); // e.g. "ON"
+        const code = d.properties.CODE;
+        const shortCode = mapProvinceCode(code);
         const c = provinceCounts[shortCode] || 0;
         return colorScale(c);
       })
       .attr("stroke", "#999");
 
-    // big “bubble” per province
     svg.selectAll("circle.province-bubble")
       .data(provincesGeo.features)
       .enter()
@@ -585,7 +491,6 @@ locationGroups.each(function(d) {
       .attr("fill", "#2962FF")
       .attr("fill-opacity", 0.5);
 
-    // bubble label
     svg.selectAll("text.province-bubble-label")
       .data(provincesGeo.features)
       .enter()
@@ -602,7 +507,6 @@ locationGroups.each(function(d) {
         return c > 0 ? c : "";
       });
 
-    // city “dots”
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -619,15 +523,10 @@ locationGroups.each(function(d) {
     });
   }
 
-
-  /****************************************************
-   * drawUKMapWithLocations(project, containerSelector)
-   ****************************************************/
   async function drawUKMapWithLocations(project, containerSelector) {
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // load
     let ukTopo;
     try {
       ukTopo = await getUKMapData();
@@ -636,11 +535,8 @@ locationGroups.each(function(d) {
       return;
     }
 
-    // convert => geo
-    // The user’s sample used `ukTopo.objects.eer` (regional partitions)
     const ukGeo = topojson.feature(ukTopo, ukTopo.objects.eer);
 
-    // regionCounts => how many searches in each regionName
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -672,7 +568,6 @@ locationGroups.each(function(d) {
     const projection = d3.geoMercator().fitSize([width, height], ukGeo);
     const path = d3.geoPath().projection(projection);
 
-    // draw
     svg.selectAll("path.uk-region")
       .data(ukGeo.features)
       .enter()
@@ -681,13 +576,11 @@ locationGroups.each(function(d) {
       .attr("d", path)
       .attr("stroke", "#999")
       .attr("fill", (d) => {
-        // In the user’s example: d.properties.EER13NM is the region’s name
         const regionName = d.properties.EER13NM || "";
         const c = regionCounts[regionName] || 0;
         return colorScale(c);
       });
 
-    // city “dots”
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -704,10 +597,6 @@ locationGroups.each(function(d) {
     });
   }
 
-
-  /**********************************************************
-   * drawAustraliaMapWithLocations(project, containerSelector)
-   **********************************************************/
   async function drawAustraliaMapWithLocations(project, containerSelector) {
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
@@ -722,7 +611,6 @@ locationGroups.each(function(d) {
 
     const australiaGeo = topojson.feature(auTopo, auTopo.objects.austates);
 
-    // regionCounts => how many in each “state id”
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -746,7 +634,6 @@ locationGroups.each(function(d) {
       .domain([0, maxCount || 1])
       .interpolator(d3.interpolateBlues);
 
-    // build svg
     const width = 700, height = 600;
     const svg = container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
@@ -757,7 +644,6 @@ locationGroups.each(function(d) {
     const projection = d3.geoMercator().fitSize([width, height], australiaGeo);
     const path = d3.geoPath().projection(projection);
 
-    // fill
     svg.selectAll("path.au-state")
       .data(australiaGeo.features)
       .enter()
@@ -766,12 +652,11 @@ locationGroups.each(function(d) {
       .attr("d", path)
       .attr("stroke", "#999")
       .attr("fill", (d) => {
-        const regionId = d.id; // e.g. 0..7
+        const regionId = d.id;
         const c = regionCounts[regionId] || 0;
         return colorScale(c);
       });
 
-    // “bubbles” for each region
     svg.selectAll("circle.au-bubble")
       .data(australiaGeo.features)
       .enter()
@@ -801,7 +686,6 @@ locationGroups.each(function(d) {
         return c > 0 ? c : "";
       });
 
-    // city “dots”
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
