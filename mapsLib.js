@@ -164,13 +164,35 @@
     return arr;
   }
 
-  // ---------- (E) Draw the US map (1200px wide, max-height=600px, remove dot inside loc-group) ----------
+  // ---------- (E) Draw the US map with the new two-pie layout + right-side settings ----------
   async function drawUsMapWithLocations(project, containerSelector) {
     // 1) Clear old contents
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // 2) Load US topo
+    // 2) Create a flexible wrapper for map + settings
+    const mainWrapper = container.append("div")
+      .style("display", "flex")
+      .style("flex-direction", "row");
+
+    // Left side: the map
+    const mapDiv = mainWrapper.append("div")
+      .style("flex", "1 1 auto")
+      .style("position", "relative");
+
+    // Right side: the "Settings" box
+    // Height matches the nominal 600px used by the map’s max-height below
+    const settingsDiv = mainWrapper.append("div")
+      .style("width", "200px")
+      .style("height", "600px")
+      .style("border", "1px solid #ccc")
+      .style("box-sizing", "border-box")
+      .style("padding", "8px");
+
+    settingsDiv.append("h3")
+      .text("Settings");
+
+    // 3) Load US topo
     let usTopo;
     try {
       usTopo = await getUSMapData();
@@ -179,16 +201,16 @@
       return;
     }
 
-    // 3) Convert topo => GeoJSON
+    // 4) Convert topo => GeoJSON
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-    // 4) Build the location+device data
+    // 5) Build the location+device data
     const dataRows = buildLocationDeviceData(project);
     if (!dataRows.length) {
       console.warn("[mapsLib] No location/device data found; drawing plain US map.");
     }
 
-    // 4A) Which states are used:
+    // 5A) Which states are used:
     const usedStates = new Set();
     if (window.cityLookup) {
       dataRows.forEach(row => {
@@ -199,9 +221,9 @@
       });
     }
 
-    // 5) Create an <svg> – width=1200, max-height=600, centered
+    // 6) Create an <svg> – width=1200, max-height=600, centered
     const baseWidth = 975, baseHeight = 610;
-    const svg = container.append("svg")
+    const svg = mapDiv.append("svg")
       .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
       .attr("width", "1200px")      // fixed 1200px wide
@@ -210,9 +232,27 @@
       .style("margin", "0 auto")
       .style("background-color", "transparent");
 
+    // 6A) Define a drop-shadow filter for the pies
+    const defs = svg.append("defs");
+    const filter = defs.append("filter")
+      .attr("id", "dropshadow")
+      .attr("height", "130%");
+    filter.append("feGaussianBlur")
+      .attr("in", "SourceAlpha")
+      .attr("stdDeviation", 3)
+      .attr("result", "blur");
+    filter.append("feOffset")
+      .attr("in", "blur")
+      .attr("dx", 2)
+      .attr("dy", 2)
+      .attr("result", "offsetBlur");
+    const feMerge = filter.append("feMerge");
+    feMerge.append("feMergeNode").attr("in", "offsetBlur");
+    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
     const path = d3.geoPath();
 
-    // 6) Draw each state: fill if used
+    // 7) Draw each state: fill if used
     svg.selectAll("path.state")
       .data(statesGeo.features)
       .enter()
@@ -228,7 +268,7 @@
       })
       .attr("stroke", "#999");
 
-    // 7) Group dataRows by location => array of geometry
+    // 8) Group dataRows by location => array of geometry
     const locMap = new Map();
     dataRows.forEach(row => {
       if (!locMap.has(row.locName)) {
@@ -254,14 +294,11 @@
       });
     }
 
-    // 8) Instead of placing the dot in each loc-group, we place them separately
-    //    so that the dot doesn't enlarge the group's bounding box.
-    //    We'll have a separate “dots-layer” for city circles, 
-    //    and a “group-layer” for the info boxes, offset slightly from the dot.
+    // 9) We'll have a separate layer for city dots and another for the pies
     const dotsLayer = svg.append("g").attr("class", "dots-layer");
     const groupsLayer = svg.append("g").attr("class", "group-layer");
 
-    // 8A) Add the location “dot” in dots-layer
+    // 9A) Add the location “dot” in dots-layer
     dotsLayer.selectAll("circle.city-dot")
       .data(locationData)
       .enter()
@@ -274,8 +311,7 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each location, create a group offset near the dot
-    //     e.g. x+8, y-10 so it’s slightly up-right from the dot.
+    // 9B) For each location, create a group offset near the dot
     const groupOffsetX = 10; 
     const groupOffsetY = -10;
 
@@ -286,118 +322,56 @@
       .attr("class", "loc-group")
       .attr("transform", d => `translate(${d.x + groupOffsetX}, ${d.y + groupOffsetY})`);
 
-    // 8C) Insert the location name (removing “, united states” if present)
-    locationGroups.append("text")
-      .attr("class", "loc-title")
-      .attr("x", 0)
-      .attr("y", -25)
-      .attr("font-size", 12)
-      .attr("font-weight", "bold")
-      .attr("fill", "#333")
-      .text(d => {
-        // remove trailing ",united states" or ", united states"
-        let name = d.locName.replace(/,\s*united states\s*$/i, "");
-        return name;
-      });
-
-    // 9) Build the “table-like layout” for each device row
+    // 10) Build two stacked pies (desktop + mobile), show share% in center
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
 
-      // Arc/pie
-      const arcGen = d3.arc().outerRadius(15).innerRadius(0);
+      const arcGen = d3.arc().outerRadius(25).innerRadius(0);
       const pieGen = d3.pie().sort(null).value(v => v);
 
-      // Separate devices
+      // Extract desktop/mobile
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      // Layout constants
-      const rowHeight = 50; 
-      const rowOffsetX = 10; 
-      const colPositions = [0, 70, 115];
-
-      function drawDeviceRow(gSel, deviceData, yOffset) {
+      // Helper to draw a single pie
+      function drawPie(gSel, deviceData, yOffset) {
         if (!deviceData) return;
-
-        // Create row <g>
-        const row = gSel.append("g")
-          .attr("class", "device-row")
-          .attr("transform", `translate(${rowOffsetX}, ${yOffset})`);
-
-        // 1) We interpret rankChange = (avgRank - prevAvgRank).
-        //    => prevRank = avgRank - rankChange.
-        const avgRankVal = deviceData.avgRank || 0;
-        const rankCh = deviceData.rankChange || 0;
-        const prevRankVal = avgRankVal - rankCh;
-
-        // Show top line => previous rank, bottom line => current rank
-        row.append("text")
-          .attr("x", colPositions[0])
-          .attr("y", (rowHeight / 2) - 5)
-          .attr("font-size", 12)
-          .attr("fill", "#333")
-          .text(prevRankVal.toFixed(2));
-
-        row.append("text")
-          .attr("x", colPositions[0])
-          .attr("y", (rowHeight / 2) + 12)
-          .attr("font-size", 12)
-          .attr("fill", "#333")
-          .text(avgRankVal.toFixed(2));
-
-        // 2) Pie chart
         const shareVal = parseFloat(deviceData.shareVal) || 0;
-        const pieData = [ shareVal, 100 - shareVal ];
-        const arcs = pieGen(pieData);
+        const pieData  = [shareVal, 100 - shareVal];
+        const arcs     = pieGen(pieData);
 
-        const pieG = row.append("g")
-          .attr("transform", `translate(${colPositions[1] + 15}, ${rowHeight / 2})`);
+        const pieG = gSel.append("g")
+          .attr("transform", `translate(0, ${yOffset})`);
 
+        // Draw arcs
         pieG.selectAll("path")
           .data(arcs)
           .enter()
           .append("path")
           .attr("d", arcGen)
-          .attr("fill", (d, i) => i===0 ? colorForDevice(deviceData.device) : "#ccc")
+          .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
           .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5);
+          .attr("stroke-width", 0.5)
+          .attr("filter", "url(#dropshadow)");
 
-        // 3) Larger/bold share text
-        row.append("text")
-          .attr("x", colPositions[2])
-          .attr("y", rowHeight / 2 + 5)
-          .attr("font-size", 14)
-          .attr("font-weight", "bold")
-          .attr("fill", "#333")
-          .text(`${shareVal.toFixed(1)}%`);
+        // Place share% text in center
+        pieG.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.4em")
+          .style("font-size", "14px")
+          .style("font-weight", "bold")
+          .style("fill", "#333")
+          .text(shareVal.toFixed(1) + "%");
       }
 
       let currentY = 0;
       if (desktop) {
-        drawDeviceRow(parentG, desktop, currentY);
-        currentY += rowHeight;
+        drawPie(parentG, desktop, currentY);
+        currentY += 60; // vertical space between pies
       }
       if (mobile) {
-        drawDeviceRow(parentG, mobile, currentY);
+        drawPie(parentG, mobile, currentY);
       }
-    });
-
-    // 9B) Insert a background rect behind each loc-group
-    locationGroups.each(function() {
-      const g = d3.select(this);
-      const bbox = g.node().getBBox();
-      g.insert("rect", ":first-child")
-        .attr("class", "loc-bg")
-        .attr("x", bbox.x - 5)
-        .attr("y", bbox.y - 5)
-        .attr("width", bbox.width + 10)
-        .attr("height", bbox.height + 10)
-        .attr("rx", 8)
-        .attr("fill", "#fff")
-        .attr("fill-opacity", 0.7)
-        .attr("stroke", "#ccc")
-        .attr("stroke-width", 1);
     });
   }
 
