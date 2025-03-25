@@ -85,7 +85,6 @@
   };
 
   // ---------- (B) Helper fetchers for each country’s TopoJSON ----------
-
   async function getUSMapData() {
     if (usTopoCache) return usTopoCache;
     try {
@@ -180,17 +179,84 @@
       .style("flex", "1 1 auto")
       .style("position", "relative");
 
-    // Right side: the "Settings" box
-    // Height matches the nominal 600px used by the map’s max-height below
+    // Right side: the "Settings" box (fixed 200px, Apple-like style)
     const settingsDiv = mainWrapper.append("div")
       .style("width", "200px")
       .style("height", "600px")
-      .style("border", "1px solid #ccc")
+      .style("background-color", "#f5f5f5")
+      .style("border-radius", "8px")
+      .style("box-shadow", "0 0 10px rgba(0,0,0,0.1)")
       .style("box-sizing", "border-box")
-      .style("padding", "8px");
+      .style("padding", "12px")
+      .style("font-family", "Helvetica, Arial, sans-serif")
+      .style("color", "#333");
 
     settingsDiv.append("h3")
+      .style("margin-top", "0")
+      .style("font-weight", "600")
       .text("Settings");
+
+    // 2A) Toggles (Desktop group + Mobile group)
+    // We'll store references so we can attach "change" events to hide/show arcs and ranks
+    const desktopGroup = settingsDiv.append("div")
+      .style("margin-bottom", "20px");
+    desktopGroup.append("h4")
+      .style("margin", "10px 0 5px 0")
+      .text("Desktop");
+
+    const desktopShareToggle = desktopGroup.append("div")
+      .append("label")
+      .style("display", "flex")
+      .style("align-items", "center");
+
+    desktopShareToggle.append("input")
+      .attr("type", "checkbox")
+      .attr("id", "toggleDesktopShare")
+      .property("checked", true)
+      .style("margin-right", "6px");
+    desktopShareToggle.append("span").text("Market Share");
+
+    const desktopRankToggle = desktopGroup.append("div")
+      .append("label")
+      .style("display", "flex")
+      .style("align-items", "center");
+
+    desktopRankToggle.append("input")
+      .attr("type", "checkbox")
+      .attr("id", "toggleDesktopRank")
+      .property("checked", true)
+      .style("margin-right", "6px");
+    desktopRankToggle.append("span").text("Avg Rank");
+
+    const mobileGroup = settingsDiv.append("div")
+      .style("margin-bottom", "20px");
+    mobileGroup.append("h4")
+      .style("margin", "10px 0 5px 0")
+      .text("Mobile");
+
+    const mobileShareToggle = mobileGroup.append("div")
+      .append("label")
+      .style("display", "flex")
+      .style("align-items", "center");
+
+    mobileShareToggle.append("input")
+      .attr("type", "checkbox")
+      .attr("id", "toggleMobileShare")
+      .property("checked", true)
+      .style("margin-right", "6px");
+    mobileShareToggle.append("span").text("Market Share");
+
+    const mobileRankToggle = mobileGroup.append("div")
+      .append("label")
+      .style("display", "flex")
+      .style("align-items", "center");
+
+    mobileRankToggle.append("input")
+      .attr("type", "checkbox")
+      .attr("id", "toggleMobileRank")
+      .property("checked", true)
+      .style("margin-right", "6px");
+    mobileRankToggle.append("span").text("Avg Rank");
 
     // 3) Load US topo
     let usTopo;
@@ -232,23 +298,7 @@
       .style("margin", "0 auto")
       .style("background-color", "transparent");
 
-    // 6A) Define a drop-shadow filter for the pies
-    const defs = svg.append("defs");
-    const filter = defs.append("filter")
-      .attr("id", "dropshadow")
-      .attr("height", "130%");
-    filter.append("feGaussianBlur")
-      .attr("in", "SourceAlpha")
-      .attr("stdDeviation", 3)
-      .attr("result", "blur");
-    filter.append("feOffset")
-      .attr("in", "blur")
-      .attr("dx", 2)
-      .attr("dy", 2)
-      .attr("result", "offsetBlur");
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "offsetBlur");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    // We no longer define or use a drop-shadow filter
 
     const path = d3.geoPath();
 
@@ -311,18 +361,19 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 9B) For each location, create a group offset near the dot
-    const groupOffsetX = 10; 
-    const groupOffsetY = -10;
-
+    // 9B) For each location, decide if pies go on left or right
+    //     We'll place them ~10px left or right, -10 up from the dot
     const locationGroups = groupsLayer.selectAll("g.loc-group")
       .data(locationData)
       .enter()
       .append("g")
       .attr("class", "loc-group")
-      .attr("transform", d => `translate(${d.x + groupOffsetX}, ${d.y + groupOffsetY})`);
+      .attr("transform", d => {
+        const offsetX = d.x < (baseWidth / 2) ? 10 : -10; // on left half => offset right, on right half => offset left
+        return `translate(${d.x + offsetX}, ${d.y - 10})`;
+      });
 
-    // 10) Build two stacked pies (desktop + mobile), show share% in center
+    // 10) Build two stacked pies (desktop + mobile), plus rank label
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
 
@@ -333,34 +384,78 @@
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
+      // Identify device type for toggling classes
+      function getDeviceType(str) {
+        if (!str) return "";
+        return str.toLowerCase().includes("desktop") ? "desktop" : "mobile";
+      }
+
       // Helper to draw a single pie
       function drawPie(gSel, deviceData, yOffset) {
         if (!deviceData) return;
         const shareVal = parseFloat(deviceData.shareVal) || 0;
+        const rankVal  = deviceData.avgRank != null ? deviceData.avgRank.toFixed(1) : "";
+        const deviceType = getDeviceType(deviceData.device);
+
+        // The pie slices for share
+        // We'll create 2 slices: [shareVal, 100 - shareVal]
         const pieData  = [shareVal, 100 - shareVal];
         const arcs     = pieGen(pieData);
 
+        // The group that holds the entire pie + rank
         const pieG = gSel.append("g")
           .attr("transform", `translate(0, ${yOffset})`);
 
-        // Draw arcs
-        pieG.selectAll("path")
+        // Draw a rank box to the left
+        const rankBoxWidth = 40;
+        const rankBoxHeight = 20;
+        const offsetBoxX = -(25 + 10 + rankBoxWidth);
+        const offsetBoxY = - (rankBoxHeight / 2);
+
+        const rankBoxG = pieG.append("g")
+          .attr("class", `rank-box rank-${deviceType}`)
+          .attr("transform", `translate(${offsetBoxX}, ${offsetBoxY})`);
+
+        rankBoxG.append("rect")
+          .attr("width", rankBoxWidth)
+          .attr("height", rankBoxHeight)
+          .attr("rx", 5)
+          .attr("ry", 5)
+          .attr("fill", "#007aff")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 1);
+
+        rankBoxG.append("text")
+          .attr("x", rankBoxWidth / 2)
+          .attr("y", rankBoxHeight / 2 + 1)
+          .attr("text-anchor", "middle")
+          .style("fill", "#fff")
+          .style("font-size", "12px")
+          .style("font-weight", "bold")
+          .style("font-family", "Helvetica, Arial, sans-serif")
+          .text(rankVal);
+
+        // Draw arcs for the "Market Share"
+        // We'll attach a class for toggling: arc, plus arc-desktop or arc-mobile
+        const arcPaths = pieG.selectAll("path.arc")
           .data(arcs)
           .enter()
           .append("path")
+          .attr("class", `arc arc-${deviceType}`)
           .attr("d", arcGen)
           .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
           .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5)
-          .attr("filter", "url(#dropshadow)");
+          .attr("stroke-width", 0.5);
 
-        // Place share% text in center
+        // Place share% text in center of the pie
         pieG.append("text")
+          .attr("class", `share-text share-${deviceType}`)
           .attr("text-anchor", "middle")
           .attr("dy", "0.4em")
           .style("font-size", "14px")
           .style("font-weight", "bold")
           .style("fill", "#333")
+          .style("font-family", "Helvetica, Arial, sans-serif")
           .text(shareVal.toFixed(1) + "%");
       }
 
@@ -373,6 +468,37 @@
         drawPie(parentG, mobile, currentY);
       }
     });
+
+    // 11) Hook up toggles to show/hide arcs and rank boxes
+    function updateToggles() {
+      const dShareOn = d3.select("#toggleDesktopShare").property("checked");
+      const dRankOn  = d3.select("#toggleDesktopRank").property("checked");
+      const mShareOn = d3.select("#toggleMobileShare").property("checked");
+      const mRankOn  = d3.select("#toggleMobileRank").property("checked");
+
+      // Desktop share arcs
+      d3.selectAll(".arc-desktop").style("display", dShareOn ? null : "none");
+      // Desktop share text in center
+      d3.selectAll(".share-desktop").style("display", dShareOn ? null : "none");
+      // Desktop rank
+      d3.selectAll(".rank-desktop").style("display", dRankOn ? null : "none");
+
+      // Mobile share arcs
+      d3.selectAll(".arc-mobile").style("display", mShareOn ? null : "none");
+      // Mobile share text in center
+      d3.selectAll(".share-mobile").style("display", mShareOn ? null : "none");
+      // Mobile rank
+      d3.selectAll(".rank-mobile").style("display", mRankOn ? null : "none");
+    }
+
+    // 12) Listen for changes
+    ["toggleDesktopShare","toggleDesktopRank","toggleMobileShare","toggleMobileRank"]
+      .forEach(id => {
+        d3.select("#"+id).on("change", updateToggles);
+      });
+
+    // Initial apply
+    updateToggles();
   }
 
   // ---------- (F) Canada, UK, Australia remain the same ----------
