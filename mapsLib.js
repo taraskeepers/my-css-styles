@@ -146,30 +146,26 @@
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal, ... } ----------
+  // ---------- (D) Build an array: each item => { locName, device, shareVal, avgRank, rankChange } ----------
+  // (We assume your embed code calls “buildHomeData(company)” internally, 
+  //  returning objects with .avgRank, .rankChange, .avgShare, etc.)
+  // For convenience, here is a minimal function. 
+  // If you already have “buildHomeData” in the embed, you don’t necessarily need this.
   function buildLocationDeviceData(project) {
+    // In your actual usage, you might pass the “homeData” from buildHomeData() directly.
     if (!project || !Array.isArray(project.searches)) return [];
-    const arr = [];
-    project.searches.forEach(s => {
-      if ((s.status || "").toLowerCase() !== "active") return;
-      if (!s.location || !s.device || s.shareVal == null) return;
-      const locKey = s.location.trim().toLowerCase().replace(/,\s*/g, ',');
-
-      // Example placeholders for avgRank / prevAvgRank
-      // Adjust if your data uses different property names
-      const avgRank = parseFloat(s.avgRank) || 0;
-      const prevAvgRank = parseFloat(s.prevAvgRank) || 0;
-
-      arr.push({
-        locName: locKey,
+    const arr = project.searches.map(s => {
+      // We assume: { location, device, shareVal, avgRank, rankChange } from embed
+      if (!s.location || !s.device || s.shareVal == null) return null;
+      return {
+        locName: s.location.trim().toLowerCase().replace(/,\s*/g, ','),
         device:  s.device,
         shareVal: parseFloat(s.shareVal) || 0,
-        avgRank,
-        prevAvgRank
-      });
+        avgRank: s.avgRank != null ? parseFloat(s.avgRank) : 0,
+        rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0
+      };
     });
-    console.log("[DEBUG] buildLocationDeviceData - final dataRows:", arr);
-    return arr;
+    return arr.filter(x => x); // remove nulls
   }
 
   // ---------- (E) The core US drawing function, with multi-pie logic + styling ----------
@@ -190,7 +186,7 @@
     // 3) Convert topo => GeoJSON
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-    // 4) Build the location+device data
+    // 4) Build the location+device data from your embed code
     const dataRows = buildLocationDeviceData(project);
     if (!dataRows.length) {
       console.warn("[mapsLib] No location/device data found; drawing plain US map.");
@@ -207,12 +203,14 @@
       });
     }
 
-    // 5) Create an <svg> – center it, limit max-height, preserve aspect ratio
-    const width = 975, height = 610;
+    // 5) Create an <svg> with width=1200px, max-height=600px, centered
+    const width = 975, height = 610; 
+    // (We keep the “viewBox” at 975×610 so D3’s geo path remains correct,
+    //  then just scale to 1200px wide in actual size.)
     const svg = container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
-      .attr("width", "100%")
+      .attr("width", "1200px")          // exact 1200px
       .style("max-height", "600px")
       .style("display", "block")
       .style("margin", "0 auto")
@@ -230,7 +228,7 @@
       .attr("fill", (d) => {
         const stPostal = FIPS_TO_POSTAL[d.id] || null;
         if (stPostal && usedStates.has(stPostal)) {
-          return "#007bff60"; // light blue for active locations
+          return "#ADD8E6"; // light blue for active locations
         }
         return "#FFFFFF";
       })
@@ -245,6 +243,7 @@
       locMap.get(row.locName).push(row);
     });
 
+    // Convert to an array of geometry
     const projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     const locationData = [];
     if (window.cityLookup) {
@@ -257,7 +256,7 @@
           locName: locKey,
           x: coords[0],
           y: coords[1],
-          devices: devicesArr // array of { device, shareVal, avgRank, prevAvgRank }
+          devices: devicesArr // array of { device, shareVal, avgRank, rankChange }
         });
       });
     }
@@ -278,9 +277,20 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each location group, build the device rows in a table-like layout
+    // 8B) For each location group, build the device rows in a “table-like” layout
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
+
+      // Insert a text label for the location name, above the rows
+      parentG.append("text")
+        .attr("class", "loc-title")
+        .attr("x", 0)
+        .attr("y", -25)
+        .attr("text-anchor", "start")
+        .attr("font-size", 12)
+        .attr("font-weight", "bold")
+        .attr("fill", "#333")
+        .text(d.locName);
 
       // Define arc and pie generators
       const arcGen = d3.arc().outerRadius(15).innerRadius(0);
@@ -291,14 +301,15 @@
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
       // Layout parameters
-      const rowHeight = 50;    // each row's height
-      const rowOffsetX = 10;   // shift the “table” right from the city dot
-      // We'll define 3 columns: 
-      //   col 0 => Avg Rank + comparison
+      const rowHeight = 50; 
+      const rowOffsetX = 10; 
+      // We'll define 3 columns:
+      //   col 0 => rank lines (two lines: current & previous)
       //   col 1 => mini pie
       //   col 2 => share text
       const colPositions = [0, 70, 115];
 
+      // Helper: draw one device row
       function drawDeviceRow(gSel, deviceData, yOffset) {
         if (!deviceData) return;
 
@@ -306,27 +317,32 @@
           .attr("class", "device-row")
           .attr("transform", `translate(${rowOffsetX}, ${yOffset})`);
 
-        // 1) Avg Rank + comparison (two lines)
-        const avgRankValue = (deviceData.avgRank || 0).toFixed(1);
-        const prevRankValue = (deviceData.prevAvgRank || 0).toFixed(1);
+        // 1) Compute prevAvgRank from rankChange
+        //    e.g. if buildHomeData gave us (avgRank=12, rankChange=2 => prevAvg=10),
+        //    rankChange = (avgRank - prevAvgRank). So => prevAvgRank = avgRank - rankChange
+        const avgRankVal = parseFloat(deviceData.avgRank) || 0;
+        const rankChangeVal = parseFloat(deviceData.rankChange) || 0;
+        const prevRankVal = avgRankVal - rankChangeVal;
 
+        // 2) Show two lines: current rank (top), previous rank (bottom).
+        //    (User requested removing the labels “Avg Rank:” and “Prev:”)
         row.append("text")
           .attr("x", colPositions[0])
-          .attr("y", (rowHeight / 2) - 5)  // top line
+          .attr("y", (rowHeight / 2) - 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
           .attr("text-anchor", "start")
-          .text(`Avg Rank: ${avgRankValue}`);
+          .text(avgRankVal.toFixed(2));
 
         row.append("text")
           .attr("x", colPositions[0])
-          .attr("y", (rowHeight / 2) + 12) // second line
+          .attr("y", (rowHeight / 2) + 12)
           .attr("font-size", 12)
           .attr("fill", "#333")
           .attr("text-anchor", "start")
-          .text(`Prev: ${prevRankValue}`);
+          .text(prevRankVal.toFixed(2));
 
-        // 2) Pie chart
+        // 3) Pie chart for shareVal
         const shareVal = parseFloat(deviceData.shareVal) || 0;
         const pieData = [ shareVal, 100 - shareVal ];
         const arcs = pieGen(pieData);
@@ -343,36 +359,42 @@
           .attr("stroke", "#fff")
           .attr("stroke-width", 0.5);
 
-        // 3) Share text
+        // 4) Market Share text, bigger & bold
         row.append("text")
           .attr("x", colPositions[2])
           .attr("y", rowHeight / 2 + 5)
-          .attr("font-size", 12)
+          .attr("font-size", 14)          // bigger
+          .attr("font-weight", "bold")    // bold
           .attr("fill", "#333")
           .attr("text-anchor", "start")
           .text(`${shareVal.toFixed(1)}%`);
       }
 
-      // Draw the two possible rows (desktop, mobile)
-      drawDeviceRow(parentG, desktop, 0);
-      drawDeviceRow(parentG, mobile, desktop ? rowHeight : 0);
+      // Draw the two possible rows
+      // We’ll start them at Y=0 for the first device, or Y=rowHeight if there’s a second.
+      let currentY = 0;
+      if (desktop) {
+        drawDeviceRow(parentG, desktop, currentY);
+        currentY += rowHeight;
+      }
+      if (mobile) {
+        drawDeviceRow(parentG, mobile, currentY);
+      }
     });
 
     // 8C) Insert a background <rect> behind each loc-group
-    //     This creates a semi-transparent white box with rounded corners.
     locationGroups.each(function() {
       const g = d3.select(this);
       const bbox = g.node().getBBox();
-      // Insert a rect as the first child so it's behind the circle/text
       g.insert("rect", ":first-child")
         .attr("class", "loc-bg")
         .attr("x", bbox.x - 5)
         .attr("y", bbox.y - 5)
         .attr("width", bbox.width + 10)
         .attr("height", bbox.height + 10)
-        .attr("rx", 8)                    // rounded corners
-        .attr("fill", "#fff")             // white background
-        .attr("fill-opacity", 0.7)        // 70% transparent
+        .attr("rx", 8)
+        .attr("fill", "#fff")
+        .attr("fill-opacity", 0.7)
         .attr("stroke", "#ccc")
         .attr("stroke-width", 1);
     });
