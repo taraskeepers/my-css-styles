@@ -268,7 +268,7 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each location group, build the device rows
+    // 8B) For each location group, build the device rows in a “table-like” layout
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
 
@@ -280,118 +280,84 @@
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      // We'll offset each row so it doesn't collide with the circle
-      const rowHeight = 50;  
-      const rowOffsetX = 15; // shift device rows to the right of the circle
-      const colPositions = [0, 35, 70, 120];
+      // Use consistent icon sizes, e.g. 24×24
+      const iconSize = 24;
 
-      // ----- DESKTOP ROW (first row) -----
-      if (desktop) {
-        const rowDesktop = parentG.append("g")
-          .attr("class", "device-row desktop")
-          .attr("transform", `translate(${rowOffsetX}, 0)`);
+      // “Table” layout parameters
+      const rowHeight = 40;            // each row is 40 px tall
+      const rowOffsetX = 10;           // shift the “table” right from the city dot
+      const colPositions = [0, 40, 85, 130];
 
-        // Column 1: Desktop icon
-        rowDesktop.append("image")
-          .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png")
+      // Function to draw one “device row”
+      function drawDeviceRow(gSel, deviceData, yOffset) {
+        // gSel => parent <g> selection
+        // deviceData => { device, shareVal, trendVal } or null
+        // yOffset => how far down to place this row
+        if (!deviceData) return;
+
+        const row = gSel.append("g")
+          .attr("class", "device-row")
+          .attr("transform", `translate(${rowOffsetX}, ${yOffset})`);
+
+        // 1) Icon
+        row.append("image")
+          .attr("xlink:href", () => {
+            // Could pick different icons by device type
+            const devName = (deviceData.device || "").toLowerCase();
+            if (devName.includes("desktop")) {
+              return "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png";
+            } else if (devName.includes("mobile")) {
+              return "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png";
+            }
+            return "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png";
+          })
           .attr("x", colPositions[0])
-          .attr("y", 0)
-          .attr("width", 25)
-          .attr("height", 25);
+          .attr("y", (rowHeight - iconSize) / 2)  // center vertically
+          .attr("width", iconSize)
+          .attr("height", iconSize);
 
-        // Column 2: Pie chart for desktop
-        const pieDesktop = rowDesktop.append("g")
-          .attr("class", "mini-pie")
+        // 2) Pie chart
+        const pieG = row.append("g")
           .attr("transform", `translate(${colPositions[1] + 10}, ${rowHeight / 2})`);
 
-        const pieData = [ desktop.shareVal, 100 - desktop.shareVal ];
+        const shareVal = parseFloat(deviceData.shareVal) || 0;
+        const pieData = [ shareVal, 100 - shareVal ];
         const arcs = pieGen(pieData);
-        pieDesktop.selectAll("path")
+        pieG.selectAll("path")
           .data(arcs)
           .enter()
           .append("path")
           .attr("d", arcGen)
-          .attr("fill", (d, i) => i === 0 ? colorForDevice(desktop.device) : "#ccc")
+          .attr("fill", (d, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
           .attr("stroke", "#fff")
           .attr("stroke-width", 0.5);
 
-        // Column 3: % value
-        rowDesktop.append("text")
+        // 3) Share text
+        row.append("text")
           .attr("x", colPositions[2])
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
           .attr("text-anchor", "start")
-          .text(desktop.shareVal.toFixed(1) + "%");
+          .text(shareVal.toFixed(1) + "%");
 
-        // Column 4: Trend value
-        rowDesktop.append("text")
+        // 4) Trend text
+        row.append("text")
           .attr("x", colPositions[3])
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
           .attr("text-anchor", "start")
-          .text(function() {
-            let trend = Number(desktop.trendVal) || 0;
+          .text(() => {
+            let trend = Number(deviceData.trendVal) || 0;
             const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
             return arrow + " " + Math.abs(trend).toFixed(1);
           });
       }
 
-      // ----- MOBILE ROW (second row) -----
-      if (mobile) {
-        // If desktop row is present, move mobile row below it
-        const mobileOffsetY = desktop ? rowHeight + 10 : 0;
-        const rowMobile = parentG.append("g")
-          .attr("class", "device-row mobile")
-          .attr("transform", `translate(${rowOffsetX}, ${mobileOffsetY})`);
-
-        // Column 1: Mobile icon
-        rowMobile.append("image")
-          .attr("xlink:href", "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png")
-          .attr("x", colPositions[0])
-          .attr("y", 0)
-          .attr("width", 20)
-          .attr("height", 20);
-
-        // Column 2: Pie chart for mobile
-        const pieMobile = rowMobile.append("g")
-          .attr("class", "mini-pie")
-          .attr("transform", `translate(${colPositions[1] + 10}, ${rowHeight / 2})`);
-
-        const pieDataM = [ mobile.shareVal, 100 - mobile.shareVal ];
-        const arcsM = pieGen(pieDataM);
-        pieMobile.selectAll("path")
-          .data(arcsM)
-          .enter()
-          .append("path")
-          .attr("d", arcGen)
-          .attr("fill", (d, i) => i === 0 ? colorForDevice(mobile.device) : "#ccc")
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5);
-
-        // Column 3: % value
-        rowMobile.append("text")
-          .attr("x", colPositions[2])
-          .attr("y", rowHeight / 2 + 5)
-          .attr("font-size", 12)
-          .attr("fill", "#333")
-          .attr("text-anchor", "start")
-          .text(mobile.shareVal.toFixed(1) + "%");
-
-        // Column 4: Trend value
-        rowMobile.append("text")
-          .attr("x", colPositions[3])
-          .attr("y", rowHeight / 2 + 5)
-          .attr("font-size", 12)
-          .attr("fill", "#333")
-          .attr("text-anchor", "start")
-          .text(function() {
-            let trend = Number(mobile.trendVal) || 0;
-            const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
-            return arrow + " " + Math.abs(trend).toFixed(1);
-          });
-      }
+      // Draw the two possible rows:
+      drawDeviceRow(parentG, desktop, 0);
+      drawDeviceRow(parentG, mobile, desktop ? rowHeight : 0);
     });
 
     // 8C) Insert a background <rect> behind each loc-group
