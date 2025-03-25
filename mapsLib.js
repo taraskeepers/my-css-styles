@@ -146,7 +146,7 @@
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal, trendVal } ----------
+  // ---------- (D) Build an array: each item => { locName, device, shareVal, ... } ----------
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
@@ -154,11 +154,18 @@
       if ((s.status || "").toLowerCase() !== "active") return;
       if (!s.location || !s.device || s.shareVal == null) return;
       const locKey = s.location.trim().toLowerCase().replace(/,\s*/g, ',');
+
+      // Example placeholders for avgRank / prevAvgRank
+      // Adjust if your data uses different property names
+      const avgRank = parseFloat(s.avgRank) || 0;
+      const prevAvgRank = parseFloat(s.prevAvgRank) || 0;
+
       arr.push({
         locName: locKey,
         device:  s.device,
         shareVal: parseFloat(s.shareVal) || 0,
-        trendVal: s.trendVal // include trend value if available
+        avgRank,
+        prevAvgRank
       });
     });
     console.log("[DEBUG] buildLocationDeviceData - final dataRows:", arr);
@@ -200,12 +207,15 @@
       });
     }
 
-    // 5) Create an <svg>
+    // 5) Create an <svg> – center it, limit max-height, preserve aspect ratio
     const width = 975, height = 610;
     const svg = container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
+      .attr("preserveAspectRatio", "xMidYMid meet")
+      .attr("width", "100%")
+      .style("max-height", "600px")
+      .style("display", "block")
+      .style("margin", "0 auto")
       .style("background-color", "transparent");
 
     const path = d3.geoPath();
@@ -220,7 +230,7 @@
       .attr("fill", (d) => {
         const stPostal = FIPS_TO_POSTAL[d.id] || null;
         if (stPostal && usedStates.has(stPostal)) {
-          return "#ADD8E6"; // light blue for active locations
+          return "#007bff60"; // light blue for active locations
         }
         return "#FFFFFF";
       })
@@ -247,7 +257,7 @@
           locName: locKey,
           x: coords[0],
           y: coords[1],
-          devices: devicesArr // array of { device, shareVal, trendVal }
+          devices: devicesArr // array of { device, shareVal, avgRank, prevAvgRank }
         });
       });
     }
@@ -268,7 +278,7 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each location group, build the device rows in a “table-like” layout
+    // 8B) For each location group, build the device rows in a table-like layout
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
 
@@ -280,49 +290,50 @@
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      // Use consistent icon sizes, e.g. 24×24
-      const iconSize = 24;
+      // Layout parameters
+      const rowHeight = 50;    // each row's height
+      const rowOffsetX = 10;   // shift the “table” right from the city dot
+      // We'll define 3 columns: 
+      //   col 0 => Avg Rank + comparison
+      //   col 1 => mini pie
+      //   col 2 => share text
+      const colPositions = [0, 70, 115];
 
-      // “Table” layout parameters
-      const rowHeight = 40;            // each row is 40 px tall
-      const rowOffsetX = 10;           // shift the “table” right from the city dot
-      const colPositions = [0, 40, 85, 130];
-
-      // Function to draw one “device row”
       function drawDeviceRow(gSel, deviceData, yOffset) {
-        // gSel => parent <g> selection
-        // deviceData => { device, shareVal, trendVal } or null
-        // yOffset => how far down to place this row
         if (!deviceData) return;
 
         const row = gSel.append("g")
           .attr("class", "device-row")
           .attr("transform", `translate(${rowOffsetX}, ${yOffset})`);
 
-        // 1) Icon
-        row.append("image")
-          .attr("xlink:href", () => {
-            // Could pick different icons by device type
-            const devName = (deviceData.device || "").toLowerCase();
-            if (devName.includes("desktop")) {
-              return "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png";
-            } else if (devName.includes("mobile")) {
-              return "https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png";
-            }
-            return "https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png";
-          })
+        // 1) Avg Rank + comparison (two lines)
+        const avgRankValue = (deviceData.avgRank || 0).toFixed(1);
+        const prevRankValue = (deviceData.prevAvgRank || 0).toFixed(1);
+
+        row.append("text")
           .attr("x", colPositions[0])
-          .attr("y", (rowHeight - iconSize) / 2)  // center vertically
-          .attr("width", iconSize)
-          .attr("height", iconSize);
+          .attr("y", (rowHeight / 2) - 5)  // top line
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .attr("text-anchor", "start")
+          .text(`Avg Rank: ${avgRankValue}`);
+
+        row.append("text")
+          .attr("x", colPositions[0])
+          .attr("y", (rowHeight / 2) + 12) // second line
+          .attr("font-size", 12)
+          .attr("fill", "#333")
+          .attr("text-anchor", "start")
+          .text(`Prev: ${prevRankValue}`);
 
         // 2) Pie chart
-        const pieG = row.append("g")
-          .attr("transform", `translate(${colPositions[1] + 10}, ${rowHeight / 2})`);
-
         const shareVal = parseFloat(deviceData.shareVal) || 0;
         const pieData = [ shareVal, 100 - shareVal ];
         const arcs = pieGen(pieData);
+
+        const pieG = row.append("g")
+          .attr("transform", `translate(${colPositions[1] + 15}, ${rowHeight / 2})`);
+
         pieG.selectAll("path")
           .data(arcs)
           .enter()
@@ -339,23 +350,10 @@
           .attr("font-size", 12)
           .attr("fill", "#333")
           .attr("text-anchor", "start")
-          .text(shareVal.toFixed(1) + "%");
-
-        // 4) Trend text
-        row.append("text")
-          .attr("x", colPositions[3])
-          .attr("y", rowHeight / 2 + 5)
-          .attr("font-size", 12)
-          .attr("fill", "#333")
-          .attr("text-anchor", "start")
-          .text(() => {
-            let trend = Number(deviceData.trendVal) || 0;
-            const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
-            return arrow + " " + Math.abs(trend).toFixed(1);
-          });
+          .text(`${shareVal.toFixed(1)}%`);
       }
 
-      // Draw the two possible rows:
+      // Draw the two possible rows (desktop, mobile)
       drawDeviceRow(parentG, desktop, 0);
       drawDeviceRow(parentG, mobile, desktop ? rowHeight : 0);
     });
@@ -365,7 +363,7 @@
     locationGroups.each(function() {
       const g = d3.select(this);
       const bbox = g.node().getBBox();
-      // Insert a rect as the first child so it's behind circles / text
+      // Insert a rect as the first child so it's behind the circle/text
       g.insert("rect", ":first-child")
         .attr("class", "loc-bg")
         .attr("x", bbox.x - 5)
@@ -380,7 +378,7 @@
     });
   }
 
-  // ---------- (F) Canada, UK, Australia (same as before) ----------
+  // ---------- (F) Canada, UK, Australia remain the same ----------
 
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
@@ -688,7 +686,7 @@
     });
   }
 
-  // ----- (E) Expose the methods -----
+  // ----- (G) Expose the methods -----
   window.mapHelpers = {
     drawUsMapWithLocations,
     drawCanadaMapWithLocations,
