@@ -165,7 +165,7 @@
     return arr;
   }
 
-  // ---------- (E) The core US drawing function, with multi-pie logic ----------
+  // ---------- (E) The core US drawing function, with multi-pie logic + styling ----------
   async function drawUsMapWithLocations(project, containerSelector) {
     // 1) Clear old contents
     const container = d3.select(containerSelector);
@@ -184,7 +184,6 @@
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
     // 4) Build the location+device data
-    //    (Changed from buildHomeDataForMap to buildLocationDeviceData)
     const dataRows = buildLocationDeviceData(project);
     if (!dataRows.length) {
       console.warn("[mapsLib] No location/device data found; drawing plain US map.");
@@ -236,22 +235,22 @@
       locMap.get(row.locName).push(row);
     });
 
-    // Convert to an array of geometry
     const projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     const locationData = [];
-    locMap.forEach((devicesArr, locKey) => {
-      if (!window.cityLookup) return;
-      const cityObj = window.cityLookup.get(locKey);
-      if (!cityObj) return;
-      const coords = projection([cityObj.lng, cityObj.lat]);
-      if (!coords) return;
-      locationData.push({
-        locName: locKey,
-        x: coords[0],
-        y: coords[1],
-        devices: devicesArr // array of { device, shareVal, trendVal }
+    if (window.cityLookup) {
+      locMap.forEach((devicesArr, locKey) => {
+        const cityObj = window.cityLookup.get(locKey);
+        if (!cityObj) return;
+        const coords = projection([cityObj.lng, cityObj.lat]);
+        if (!coords) return;
+        locationData.push({
+          locName: locKey,
+          x: coords[0],
+          y: coords[1],
+          devices: devicesArr // array of { device, shareVal, trendVal }
+        });
       });
-    });
+    }
 
     // 8) Create a <g> for all location groups
     const locationLayer = svg.append("g").attr("class", "location-layer");
@@ -269,7 +268,7 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 8B) For each device, render a 2-row, 4-column layout.
+    // 8B) For each location group, build the device rows
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
 
@@ -281,14 +280,16 @@
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      const rowHeight = 50;  // adjust as needed
+      // We'll offset each row so it doesn't collide with the circle
+      const rowHeight = 50;  
+      const rowOffsetX = 15; // shift device rows to the right of the circle
       const colPositions = [0, 35, 70, 120];
 
       // ----- DESKTOP ROW (first row) -----
       if (desktop) {
         const rowDesktop = parentG.append("g")
           .attr("class", "device-row desktop")
-          .attr("transform", "translate(0,0)");
+          .attr("transform", `translate(${rowOffsetX}, 0)`);
 
         // Column 1: Desktop icon
         rowDesktop.append("image")
@@ -320,6 +321,7 @@
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
+          .attr("text-anchor", "start")
           .text(desktop.shareVal.toFixed(1) + "%");
 
         // Column 4: Trend value
@@ -328,37 +330,21 @@
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
+          .attr("text-anchor", "start")
           .text(function() {
             let trend = Number(desktop.trendVal) || 0;
             const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
             return arrow + " " + Math.abs(trend).toFixed(1);
           });
-          
-          // BELOW CODE IS UNREACHABLE BECAUSE OF THE RETURN ABOVE:
-          // If you want a bounding box around the text, do it in a .call() or .each() 
-          // AFTER the text is appended, e.g.:
-          //
-          // .call(function(selection) {
-          //   selection.each(function() {
-          //     const bbox = this.getBBox();
-          //     rowDesktop.insert("rect", ":first-child")
-          //       .attr("x", bbox.x - 4)
-          //       .attr("y", bbox.y - 4)
-          //       .attr("width", bbox.width + 8)
-          //       .attr("height", bbox.height + 8)
-          //       .attr("rx", 8)
-          //       .attr("fill", "white")
-          //       .attr("fill-opacity", 0.7);
-          //   });
-          // });
       }
 
       // ----- MOBILE ROW (second row) -----
       if (mobile) {
+        // If desktop row is present, move mobile row below it
         const mobileOffsetY = desktop ? rowHeight + 10 : 0;
         const rowMobile = parentG.append("g")
           .attr("class", "device-row mobile")
-          .attr("transform", `translate(0,${mobileOffsetY})`);
+          .attr("transform", `translate(${rowOffsetX}, ${mobileOffsetY})`);
 
         // Column 1: Mobile icon
         rowMobile.append("image")
@@ -390,6 +376,7 @@
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
+          .attr("text-anchor", "start")
           .text(mobile.shareVal.toFixed(1) + "%");
 
         // Column 4: Trend value
@@ -398,12 +385,32 @@
           .attr("y", rowHeight / 2 + 5)
           .attr("font-size", 12)
           .attr("fill", "#333")
+          .attr("text-anchor", "start")
           .text(function() {
             let trend = Number(mobile.trendVal) || 0;
             const arrow = trend > 0 ? "▲" : (trend < 0 ? "▼" : "±");
             return arrow + " " + Math.abs(trend).toFixed(1);
           });
       }
+    });
+
+    // 8C) Insert a background <rect> behind each loc-group
+    //     This creates a semi-transparent white box with rounded corners.
+    locationGroups.each(function() {
+      const g = d3.select(this);
+      const bbox = g.node().getBBox();
+      // Insert a rect as the first child so it's behind circles / text
+      g.insert("rect", ":first-child")
+        .attr("class", "loc-bg")
+        .attr("x", bbox.x - 5)
+        .attr("y", bbox.y - 5)
+        .attr("width", bbox.width + 10)
+        .attr("height", bbox.height + 10)
+        .attr("rx", 8)                    // rounded corners
+        .attr("fill", "#fff")             // white background
+        .attr("fill-opacity", 0.7)        // 70% transparent
+        .attr("stroke", "#ccc")
+        .attr("stroke-width", 1);
     });
   }
 
@@ -619,7 +626,7 @@
     try {
       auTopo = await getAustraliaMapData();
     } catch (err) {
-      console.error("[mapsLib] Australia topo load error:", err);
+      console.error("[mapsLib] Australia fetch error:", err);
       return;
     }
 
