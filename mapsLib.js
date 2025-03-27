@@ -438,21 +438,22 @@ pieG.append("foreignObject")
         .text(shareVal.toFixed(1) + "%");
     }
 
-    locationGroups.each(function(d) {
-      const parentG = d3.select(this);
-      let yOff = 0;
+locationGroups.each(function(d) {
+  const parentG = d3.select(this);
+  let yOff = 30; // start at 30 so that the pie and rank box (centered at yOffset) appear in the middle of a 60px cell
 
-      // If you only have Desktop + Mobile, we do them in vertical stack
-      const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-      if (desktop) {
-        drawPie(parentG, desktop, yOff);
-        yOff += 60;
-      }
-      const mobile = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
-      if (mobile) {
-        drawPie(parentG, mobile, yOff);
-      }
-    });
+  // For Desktop (if present)
+  const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
+  if (desktop) {
+    drawPie(parentG, desktop, yOff);
+    yOff += 60;
+  }
+  // For Mobile (if present)
+  const mobile = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
+  if (mobile) {
+    drawPie(parentG, mobile, yOff);
+  }
+});
   }
 
   // ---------- (G) Canada, UK, Australia (same as old code) ----------
