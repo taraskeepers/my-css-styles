@@ -18,10 +18,8 @@
        mapHelpers.drawUsMapWithLocations(myProject, "#locMap");
 ***********************************************************/
 (function() {
-  // Make sure D3 + topojson are available
   const d3 = window.d3;
   const topojson = window.topojson;
-
   if (!d3 || !topojson) {
     console.error("[mapsLib] ERROR: d3 or topojson not found on window.");
     return;
@@ -29,13 +27,11 @@
 
   // ---------- (A) Data / Caches / Constants ----------
 
-  // URLs to your hosted TopoJSON
   const US_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_e242dae5156b4d5991a475cd815a9992.json";
   const CA_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_e7e42edc818f4c7ea8048f3feec919256.json";
   const UK_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_f8ad7eac96194e7b9344ce17ec919256.json";
   const AU_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_570f8666e8c847c69004e83288f088fd.json";
 
-  // Internal caches so we only fetch each TopoJSON once
   let usTopoCache = null;
   let canadaTopoCache = null;
   let ukTopoCache = null;
@@ -52,7 +48,7 @@
     "54": "WV", "55": "WI", "56": "WY"
   };
 
-  // Canada: object to map e.g. "CA08" => "ON"
+  // Canada
   const PROVINCE_CODE_MAP = {
     "CA01": "AB",
     "CA02": "BC",
@@ -72,7 +68,7 @@
     return PROVINCE_CODE_MAP[code] || code;
   }
 
-  // Australia: region “ID” => name
+  // Australia
   const AUSTATE_ID_TO_NAME = {
     0: "New South Wales",
     1: "Victoria",
@@ -84,17 +80,7 @@
     7: "Australian Capital Territory"
   };
 
-  // ---------- (B) Helper: rank color class ----------
-  function colorRank(rawRank) {
-    const r = parseFloat(rawRank);
-    if (isNaN(r) || r <= 0) return "";
-    if (r === 1) return "range-green";
-    if (r <= 3)  return "range-yellow";
-    if (r <= 5)  return "range-orange";
-    return "range-red";
-  }
-
-  // ---------- (C) Helper fetchers for each country’s TopoJSON ----------
+  // ---------- (B) Fetchers for each country’s TopoJSON ----------
   async function getUSMapData() {
     if (usTopoCache) return usTopoCache;
     try {
@@ -147,103 +133,98 @@
     }
   }
 
-  // ---------- (D) A utility “colorForDevice” function ----------
+  // ---------- (C) Utility color functions ----------
+  // colorForDevice => used for the pie slices (Desktop=blue, Mobile=red)
   function colorForDevice(deviceName) {
     const d = (deviceName || "").toLowerCase();
     if (d.includes("desktop")) return "#007aff"; // blue
     if (d.includes("mobile"))  return "#f44336"; // red
-    return "#888";
+    return "#888"; // fallback
   }
 
-  // ---------- (E) Tools to build an array: each item => { locName, device, shareVal, avgRank, rankChange } ----------
+  // colorRank => assigns a class name (range-green, range-yellow, range-orange, range-red)
+  function colorRank(rawRank) {
+    const r = parseFloat(rawRank);
+    if (isNaN(r) || r <= 0) return "";
+    if (r === 1) return "range-green";
+    if (r <= 3)  return "range-yellow";
+    if (r <= 5)  return "range-orange";
+    return "range-red";
+  }
+
+  // We'll map those classes to actual fill colors for the states
+  // (Adjust these colors if you need a different palette.)
+  const RANK_CLASS_TO_FILL = {
+    "range-green":  "#c8e6c9",  // a light green
+    "range-yellow": "#fff9c4",  // a light yellow
+    "range-orange": "#ffe0b2",  // a light orange
+    "range-red":    "#ffcdd2"   // a light red
+  };
+
+  // ---------- (D) Build an array for each location+device ----------
+  // Important: remove the old check that required shareVal != null
+  // so rank data is not skipped when shareVal is absent.
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
     project.searches.forEach(s => {
-      // We assume each search has { location, device, shareVal, avgRank, rankChange }
-      if (!s.location || !s.device || s.shareVal == null) return;
+      // Only skip if location or device is missing
+      if (!s.location || !s.device) return;
+
       const row = {
         locName: s.location.trim().toLowerCase().replace(/,\s*/g, ','),
         device: s.device,
-        shareVal: parseFloat(s.shareVal) || 0,
+        shareVal: s.shareVal != null ? parseFloat(s.shareVal) : 0,
         avgRank: s.avgRank != null ? parseFloat(s.avgRank) : 0,
         rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0
       };
-      console.log("[mapsLib] buildLocationDeviceData row:", row);
       arr.push(row);
     });
     return arr;
   }
 
-  // ---------- (F) Build a state-level share map ----------
-  function buildStateShareMap(dataRows) {
-    // stateShareMap[postal] = { desktopSum, desktopCount, mobileSum, mobileCount }
-    const stateShareMap = {};
+  // ---------- (E) Build a State -> Average Rank Map ----------
+  //   We'll sum up rank for all rows in that state, track count, then average.
+  function buildStateRankMap(dataRows) {
+    const stateRankMap = {};
     if (!window.cityLookup) {
-      console.warn("[mapsLib] cityLookup is missing, state coloring won't be accurate.");
-      return stateShareMap;
+      console.warn("[mapsLib] cityLookup is missing, can't build stateRankMap.");
+      return stateRankMap;
     }
-
     dataRows.forEach(row => {
       const cityObj = window.cityLookup.get(row.locName);
       if (!cityObj || !cityObj.state_id) return;
-      const stPostal = cityObj.state_id;
-      if (!stateShareMap[stPostal]) {
-        stateShareMap[stPostal] = {
-          desktopSum: 0, desktopCount: 0,
-          mobileSum: 0,  mobileCount: 0
-        };
+      const st = cityObj.state_id;
+      if (!stateRankMap[st]) {
+        stateRankMap[st] = { sum: 0, count: 0 };
       }
-      const device = row.device.toLowerCase();
-      if (device.includes("desktop")) {
-        stateShareMap[stPostal].desktopSum += row.shareVal;
-        stateShareMap[stPostal].desktopCount += 1;
-      } else if (device.includes("mobile")) {
-        stateShareMap[stPostal].mobileSum += row.shareVal;
-        stateShareMap[stPostal].mobileCount += 1;
-      }
+      stateRankMap[st].sum += row.avgRank;
+      stateRankMap[st].count++;
     });
-
-    return stateShareMap;
+    return stateRankMap;
   }
 
-  // Compute the relevant share based on toggle states
-  function computeStateShare(stData, desktopOn, mobileOn) {
-    if (!stData) return 0;
-
-    let valDesktop = 0, valMobile = 0;
-    if (desktopOn && stData.desktopCount > 0) {
-      valDesktop = stData.desktopSum / stData.desktopCount;
-    }
-    if (mobileOn && stData.mobileCount > 0) {
-      valMobile = stData.mobileSum / stData.mobileCount;
-    }
-    const togglesActive = (desktopOn && stData.desktopCount > 0 ? 1 : 0)
-                        + (mobileOn && stData.mobileCount > 0 ? 1 : 0);
-    if (togglesActive === 0) {
-      return 0;
-    }
-    return (valDesktop + valMobile) / togglesActive;
-  }
-
-  // ---------- (G) Draw the US map with locations ----------
+  // ---------- (F) Draw the US map, color-coded by average rank, with pies ----------
   async function drawUsMapWithLocations(project, containerSelector) {
     // 1) Clear old contents
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // 2) Create a flexible wrapper for the map (no right-side settings).
-    const mainWrapper = container.append("div")
-      .style("display", "flex")
-      .style("flex-direction", "row")
-      .style("align-items", "flex-start");
-
-    // Map container
-    const mapDiv = mainWrapper.append("div")
-      .style("flex", "1 1 auto")
+    // 2) Create a container for the map
+    const mapDiv = container.append("div")
       .style("position", "relative");
 
-    // 3) Create an <svg> for the map
+    // 3) Load the US TopoJSON
+    let usTopo;
+    try {
+      usTopo = await getUSMapData();
+    } catch (err) {
+      console.error("[mapsLib] Error loading US map data:", err);
+      return;
+    }
+    const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
+
+    // 4) Prepare an <svg>
     const baseWidth = 1175;
     const baseHeight = 610;
     const svg = mapDiv.append("svg")
@@ -257,77 +238,46 @@
 
     const path = d3.geoPath();
 
-    // 4) Load US topo
-    let usTopo;
-    try {
-      usTopo = await getUSMapData();
-    } catch (err) {
-      console.error("[mapsLib] Error loading US map data:", err);
-      return;
-    }
-    const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
+    // 5) Build location-level device data
+    const dataRows = buildLocationDeviceData(project);
 
-    // 5) Draw states
+    // 5B) Build the State -> Average Rank map
+    const stateRankMap = buildStateRankMap(dataRows);
+
+    // 6) Draw the states
     const statesSelection = svg.selectAll("path.state")
       .data(statesGeo.features)
       .enter()
       .append("path")
       .attr("class", "state")
       .attr("d", path)
-      .attr("stroke", "#999");
-
-    // 6) Color scale for states
-    const colorScale = d3.scaleSequential()
-      .domain([0, 100])
-      .interpolator(d3.interpolateBlues);
-
-    // We'll define a function to re-color states based on toggles
-    function updateStateColors() {
-      // Attempt to read toggles from checkboxes with these IDs
-      // (These must be in your home settings popup)
-      const desktopOn = d3.select("#toggleDesktopShare").property("checked");
-      const mobileOn  = d3.select("#toggleMobileShare").property("checked");
-
-      let newMax = 0;
-      Object.entries(stateShareMap).forEach(([st, stData]) => {
-        const combined = computeStateShare(stData, desktopOn, mobileOn);
-        if (combined > newMax) { newMax = combined; }
+      .attr("stroke", "#999")
+      .attr("fill", d => {
+        const stPostal = FIPS_TO_POSTAL[d.id] || null;
+        if (!stPostal || !stateRankMap[stPostal]) {
+          return "#ffffff"; // fallback if no data
+        }
+        const stData = stateRankMap[stPostal];
+        const avgRank = stData.sum / stData.count;
+        const rankClass = colorRank(avgRank);  // e.g. "range-green"
+        const fillColor = RANK_CLASS_TO_FILL[rankClass] || "#ffffff";
+        return fillColor;
       });
-      const maxDomain = newMax > 0 ? newMax : 1;
-      colorScale.domain([0, maxDomain]);
 
-      statesSelection
-        .attr("fill", d => {
-          const stPostal = FIPS_TO_POSTAL[d.id] || null;
-          if (!stPostal) return "#FFFFFF";
-          const stData = stateShareMap[stPostal];
-          if (!stData) return "#FFFFFF";
-          const combinedShare = computeStateShare(stData, desktopOn, mobileOn);
-          if (combinedShare <= 0) return "#FFFFFF";
-          return colorScale(combinedShare);
-        });
-    }
-
-    // 7) Build location data from the project
-    const dataRows      = buildLocationDeviceData(project);
-    const stateShareMap = buildStateShareMap(dataRows);
-
-    // Group rows by location
-    const locMapData = new Map();
+    // 7) Group dataRows by location so we can plot pies per location
+    const locMap = new Map();
     dataRows.forEach(row => {
-      if (!locMapData.has(row.locName)) {
-        locMapData.set(row.locName, []);
+      if (!locMap.has(row.locName)) {
+        locMap.set(row.locName, []);
       }
-      locMapData.get(row.locName).push(row);
+      locMap.get(row.locName).push(row);
     });
 
-    // Albers USA projection
+    // Build an array of location objects with x,y coords from geo projection
     const projection = d3.geoAlbersUsa().scale(1300).translate([baseWidth/2, baseHeight/2]);
-
-    // Build an array for each location with x,y coords
     const locationData = [];
     if (window.cityLookup) {
-      locMapData.forEach((devicesArr, locKey) => {
+      locMap.forEach((devicesArr, locKey) => {
         const cityObj = window.cityLookup.get(locKey);
         if (!cityObj) return;
         const coords = projection([cityObj.lng, cityObj.lat]);
@@ -341,11 +291,11 @@
       });
     }
 
-    // 8) Draw city dots + device pies
+    // 8) Dot + Pie Layers
     const dotsLayer = svg.append("g").attr("class", "dots-layer");
     const groupsLayer = svg.append("g").attr("class", "group-layer");
 
-    // Dot for each location
+    // 8A) City Dot
     dotsLayer.selectAll("circle.city-dot")
       .data(locationData)
       .enter()
@@ -358,105 +308,117 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // For each location, we create a group offset
+    // 8B) Each location => group for the pies
     const locationGroups = groupsLayer.selectAll("g.loc-group")
       .data(locationData)
       .enter()
       .append("g")
       .attr("class", "loc-group")
       .attr("transform", d => {
-        // horizontally offset so the dot is not covered
+        // horizontal offset so the dot is not covered
         const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
         return `translate(${d.x + offsetX}, ${d.y - 10})`;
       });
 
-    // Create pie arcs
+    // Pie helpers
     const arcGen = d3.arc().outerRadius(25).innerRadius(0);
     const pieGen = d3.pie().sort(null).value(v => v);
 
+    // Helper to draw a single pie + rank box
+    function drawPie(gSel, deviceData, yOffset) {
+      if (!deviceData) return;
+      // Market share
+      const shareVal = parseFloat(deviceData.shareVal) || 0;
+      // Rank
+      const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
+      const rankVal = rawRank.toFixed(1);
+
+      // Build the pie slices [shareVal, 100 - shareVal]
+      const pieData = [shareVal, Math.max(0, 100 - shareVal)];
+      const arcs = pieGen(pieData);
+
+      const pieG = gSel.append("g")
+        .attr("transform", `translate(0, ${yOffset})`);
+
+      // The rank box - remove the "Rank:" label and only show the numeric rank
+      const rankClass = colorRank(rankVal);
+
+      pieG.append("foreignObject")
+        .attr("x", - (25 + 10 + 80)) // move to the left
+        .attr("y", -25)             // half of 50
+        .attr("width", 80)
+        .attr("height", 50)
+        .html(`
+          <div class="company-rank ${rankClass}" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <!-- Removed the 'Rank:' text, only show the numeric rankVal -->
+            <div style="font-size:32px; font-weight:bold; line-height:1;">${rankVal}</div>
+          </div>
+        `);
+
+      // arcs
+      pieG.selectAll("path.arc")
+        .data(arcs)
+        .enter()
+        .append("path")
+        .attr("class", "arc")
+        .attr("d", arcGen)
+        .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5);
+
+      // Market share text in center
+      pieG.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.4em")
+        .style("font-size", "14px")
+        .style("font-weight", "bold")
+        .style("fill", "#333")
+        .style("font-family", "Helvetica, Arial, sans-serif")
+        .text(shareVal.toFixed(1) + "%");
+    }
+
+    // Render pies for each device at this location
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
-
-      // find desktop + mobile row
-      const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-      const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
-
-      function colorForDeviceType(devName) {
-        const dName = (devName || "").toLowerCase();
-        return dName.includes("desktop") ? "#007aff"
-             : dName.includes("mobile")  ? "#f44336"
-             : "#888";
-      }
-
-      // draws a single pie + rank box
-      function drawPie(gSel, deviceData, yOffset) {
-        if (!deviceData) return;
-        const shareVal = parseFloat(deviceData.shareVal) || 0;
-        const rankVal  = (deviceData.avgRank != null)
-           ? parseFloat(deviceData.avgRank).toFixed(1)
-           : "";
-
-        const pieData  = [shareVal, 100 - shareVal];
-        const arcs     = pieGen(pieData);
-
-        const pieG = gSel.append("g")
-          .attr("transform", `translate(0, ${yOffset})`);
-
-        // 1) foreignObject for the rank box
-        const offsetBoxX = -(25 + 10 + 80); // left offset
-        const offsetBoxY = -25;            // half of 50
-        const rankClass = colorRank(rankVal);
-
-        pieG.append("foreignObject")
-          .attr("x", offsetBoxX)
-          .attr("y", offsetBoxY)
-          .attr("width", 80)
-          .attr("height", 50)
-          .html(`
-            <div class="company-rank ${rankClass}" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-              <div class="rank-label" style="font-size:14px; font-weight:normal;">Rank:</div>
-              <div class="rank-value" style="font-size:32px; font-weight:bold;">${rankVal}</div>
-            </div>
-          `);
-
-        // 2) Center text for share%
-        pieG.append("text")
-          .attr("class", "share-text")
-          .attr("text-anchor", "middle")
-          .attr("dy", "0.4em")
-          .style("font-size", "14px")
-          .style("font-weight", "bold")
-          .style("fill", "#333")
-          .style("font-family", "Helvetica, Arial, sans-serif")
-          .text(shareVal.toFixed(1) + "%");
-
-        // 3) arcs for share
-        pieG.selectAll("path.arc")
-          .data(arcs)
-          .enter()
-          .append("path")
-          .attr("class", "arc")
-          .attr("d", arcGen)
-          .attr("fill", (dd, i) => i === 0 ? colorForDeviceType(deviceData.device) : "#ccc")
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5);
-      }
-
       let yOffset = 0;
+
+      // Typically we have up to two device types: desktop, mobile
+      // If you have more, you can adapt the logic
+      const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       if (desktop) {
         drawPie(parentG, desktop, yOffset);
-        yOffset += 60;
+        yOffset += 60; // vertical gap
       }
+      const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
       if (mobile) {
         drawPie(parentG, mobile, yOffset);
       }
     });
-
-    // Finally, color the states (initial pass)
-    updateStateColors();
   }
 
-  // ---------- (H) Canada, UK, Australia ----------
+  // ---------- (G) Canada, UK, Australia (unchanged from old version) ----------
+  function collectActiveCitiesForProject(project) {
+    if (!project || !Array.isArray(project.searches)) return [];
+    if (typeof window.cityLookup !== "object") {
+      console.warn("[mapsLib] cityLookup not found; city dots won't appear.");
+      return [];
+    }
+    const out = [];
+    project.searches.forEach((s) => {
+      if ((s.status || "").toLowerCase() !== "active") return;
+      const loc = s.location;
+      if (!loc) return;
+      const locArr = Array.isArray(loc) ? loc : [loc];
+      locArr.forEach(locStr => {
+        const canon = locStr.trim().toLowerCase();
+        if (window.cityLookup.has(canon)) {
+          out.push(window.cityLookup.get(canon));
+        }
+      });
+    });
+    return out;
+  }
+
   async function drawCanadaMapWithLocations(project, containerSelector) {
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
@@ -471,7 +433,6 @@
 
     const provincesGeo = topojson.feature(canadaTopo, canadaTopo.objects.provinces);
 
-    // count by province
     const provinceCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -548,7 +509,6 @@
         return c > 0 ? c : "";
       });
 
-    // also plot city dots if needed
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -579,7 +539,6 @@
 
     const ukGeo = topojson.feature(ukTopo, ukTopo.objects.eer);
 
-    // count by region
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -654,7 +613,6 @@
 
     const australiaGeo = topojson.feature(auTopo, auTopo.objects.austates);
 
-    // count by region
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -730,7 +688,6 @@
         return c > 0 ? c : "";
       });
 
-    // city dots
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -746,30 +703,7 @@
     });
   }
 
-  // ---------- (I) collectActiveCitiesForProject ----------
-  function collectActiveCitiesForProject(project) {
-    if (!project || !Array.isArray(project.searches)) return [];
-    if (typeof window.cityLookup !== "object") {
-      console.warn("[mapsLib] cityLookup not found; city dots won't appear.");
-      return [];
-    }
-    const out = [];
-    project.searches.forEach((s) => {
-      if ((s.status || "").toLowerCase() !== "active") return;
-      const loc = s.location;
-      if (!loc) return;
-      const locArr = Array.isArray(loc) ? loc : [loc];
-      locArr.forEach(locStr => {
-        const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup.has(canon)) {
-          out.push(window.cityLookup.get(canon));
-        }
-      });
-    });
-    return out;
-  }
-
-  // ---------- Expose as mapHelpers ----------
+  // ---------- Expose the methods on window.mapHelpers ----------
   window.mapHelpers = {
     drawUsMapWithLocations,
     drawCanadaMapWithLocations,
