@@ -28,6 +28,7 @@
   }
 
   // ---------- (A) Data / Caches / Constants ----------
+
   // URLs to your hosted TopoJSON
   const US_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_e242dae5156b4d5991a475cd815a9992.json";
   const CA_JSON_URL = "https://0eae2a94-5aba-4e1e-a0bc-1175f0961b08.usrfiles.com/ugd/0eae2a_e7e42edc818f4c7ea8048f3feec919256.json";
@@ -231,21 +232,19 @@
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
 
-    // 2) Create a flexible wrapper for the map.
-    // NOTE: We now remove the right-side Settings container.
+    // 2) Create a flexible wrapper for the map (no right-side settings).
     const mainWrapper = container.append("div")
       .style("display", "flex")
       .style("flex-direction", "row")
       .style("align-items", "flex-start");
 
-    // Left side: the map container
+    // Map container
     const mapDiv = mainWrapper.append("div")
       .style("flex", "1 1 auto")
       .style("position", "relative");
 
-    // ---------- Create the SVG for the map ----------
-    // Increase width if needed. (You can adjust these numbers.)
-    const baseWidth = 1175; 
+    // 3) Create an <svg> for the map
+    const baseWidth = 1175;
     const baseHeight = 610;
     const svg = mapDiv.append("svg")
       .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
@@ -258,7 +257,7 @@
 
     const path = d3.geoPath();
 
-    // Draw states
+    // 4) Load US topo
     let usTopo;
     try {
       usTopo = await getUSMapData();
@@ -267,6 +266,8 @@
       return;
     }
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
+
+    // 5) Draw states
     const statesSelection = svg.selectAll("path.state")
       .data(statesGeo.features)
       .enter()
@@ -275,13 +276,15 @@
       .attr("d", path)
       .attr("stroke", "#999");
 
-    // Create a color scale (domain will be updated later)
+    // 6) Color scale for states
     const colorScale = d3.scaleSequential()
       .domain([0, 100])
       .interpolator(d3.interpolateBlues);
 
-    // ---------- Update state colors based on aggregated data ----------
+    // We'll define a function to re-color states based on toggles
     function updateStateColors() {
+      // Attempt to read toggles from checkboxes with these IDs
+      // (These must be in your home settings popup)
       const desktopOn = d3.select("#toggleDesktopShare").property("checked");
       const mobileOn  = d3.select("#toggleMobileShare").property("checked");
 
@@ -290,7 +293,6 @@
         const combined = computeStateShare(stData, desktopOn, mobileOn);
         if (combined > newMax) { newMax = combined; }
       });
-
       const maxDomain = newMax > 0 ? newMax : 1;
       colorScale.domain([0, maxDomain]);
 
@@ -301,16 +303,16 @@
           const stData = stateShareMap[stPostal];
           if (!stData) return "#FFFFFF";
           const combinedShare = computeStateShare(stData, desktopOn, mobileOn);
-          if (combinedShare <= 0) { return "#FFFFFF"; }
+          if (combinedShare <= 0) return "#FFFFFF";
           return colorScale(combinedShare);
         });
     }
 
-    // ---------- Build location data from project searches ----------
-    const dataRows = buildLocationDeviceData(project);
+    // 7) Build location data from the project
+    const dataRows      = buildLocationDeviceData(project);
     const stateShareMap = buildStateShareMap(dataRows);
 
-    // Group dataRows by location
+    // Group rows by location
     const locMapData = new Map();
     dataRows.forEach(row => {
       if (!locMapData.has(row.locName)) {
@@ -319,8 +321,10 @@
       locMapData.get(row.locName).push(row);
     });
 
-    // Get projection for US map
+    // Albers USA projection
     const projection = d3.geoAlbersUsa().scale(1300).translate([baseWidth/2, baseHeight/2]);
+
+    // Build an array for each location with x,y coords
     const locationData = [];
     if (window.cityLookup) {
       locMapData.forEach((devicesArr, locKey) => {
@@ -337,11 +341,11 @@
       });
     }
 
-    // Create separate layers for dots and for pies
+    // 8) Draw city dots + device pies
     const dotsLayer = svg.append("g").attr("class", "dots-layer");
     const groupsLayer = svg.append("g").attr("class", "group-layer");
 
-    // 9A) Draw city dots
+    // Dot for each location
     dotsLayer.selectAll("circle.city-dot")
       .data(locationData)
       .enter()
@@ -354,78 +358,70 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 9B) For each location, create a group for pies and rank
+    // For each location, we create a group offset
     const locationGroups = groupsLayer.selectAll("g.loc-group")
       .data(locationData)
       .enter()
       .append("g")
       .attr("class", "loc-group")
       .attr("transform", d => {
-        // Offset horizontally so that the dot remains visible
+        // horizontally offset so the dot is not covered
         const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
         return `translate(${d.x + offsetX}, ${d.y - 10})`;
       });
 
-    // 10) For each location group, draw pies for each device and a rank box using HTML
+    // Create pie arcs
+    const arcGen = d3.arc().outerRadius(25).innerRadius(0);
+    const pieGen = d3.pie().sort(null).value(v => v);
+
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
-      console.log("[mapsLib] locationGroups for location:", d.locName, "devices:", d.devices);
 
-      const arcGen = d3.arc().outerRadius(25).innerRadius(0);
-      const pieGen = d3.pie().sort(null).value(v => v);
-
+      // find desktop + mobile row
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
       const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
 
-      function getDeviceType(str) {
-        if (!str) return "";
-        return str.toLowerCase().includes("desktop") ? "desktop" : "mobile";
+      function colorForDeviceType(devName) {
+        const dName = (devName || "").toLowerCase();
+        return dName.includes("desktop") ? "#007aff"
+             : dName.includes("mobile")  ? "#f44336"
+             : "#888";
       }
 
-      // Helper function to draw a single pie along with a rank box
+      // draws a single pie + rank box
       function drawPie(gSel, deviceData, yOffset) {
         if (!deviceData) return;
-
-        console.log("[mapsLib] drawPie deviceData:", deviceData);
-
         const shareVal = parseFloat(deviceData.shareVal) || 0;
-        // Use the avgRank value from deviceData (this should match the locContainer value)
-        // Note: Make sure that deviceData.avgRank is set by your upstream code.
-        const rankVal = (deviceData.avgRank != null)
-                          ? parseFloat(deviceData.avgRank).toFixed(1)
-                          : "";
-        console.log("[mapsLib] -> shareVal:", shareVal, "rankVal:", rankVal);
+        const rankVal  = (deviceData.avgRank != null)
+           ? parseFloat(deviceData.avgRank).toFixed(1)
+           : "";
 
-        const deviceType = getDeviceType(deviceData.device);
         const pieData  = [shareVal, 100 - shareVal];
         const arcs     = pieGen(pieData);
 
         const pieG = gSel.append("g")
           .attr("transform", `translate(0, ${yOffset})`);
 
-        // --- NEW CODE: Replace SVG rank box with HTML using a foreignObject ---
-        // Calculate offsets to position the rank box similar to your locContainer.
-        const offsetBoxX = -(25 + 10 + 80); // 80px width for our new box (adjust as needed)
-        const offsetBoxY = - (50 / 2); // 50px height for our new box
+        // 1) foreignObject for the rank box
+        const offsetBoxX = -(25 + 10 + 80); // left offset
+        const offsetBoxY = -25;            // half of 50
         const rankClass = colorRank(rankVal);
 
-        const foreign = pieG.append("foreignObject")
-            .attr("x", offsetBoxX)
-            .attr("y", offsetBoxY)
-            .attr("width", 80)
-            .attr("height", 50);
-        const rankHTML = `
-          <div class="company-rank ${rankClass}" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <div class="rank-label" style="font-size:14px; font-weight:normal;">Rank:</div>
-            <div class="rank-value" style="font-size:32px; font-weight:bold;">${rankVal}</div>
-          </div>
-        `;
-        foreign.html(rankHTML);
-        // --- End new rank box code ---
+        pieG.append("foreignObject")
+          .attr("x", offsetBoxX)
+          .attr("y", offsetBoxY)
+          .attr("width", 80)
+          .attr("height", 50)
+          .html(`
+            <div class="company-rank ${rankClass}" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div class="rank-label" style="font-size:14px; font-weight:normal;">Rank:</div>
+              <div class="rank-value" style="font-size:32px; font-weight:bold;">${rankVal}</div>
+            </div>
+          `);
 
-        // Place share% text in center of pie
+        // 2) Center text for share%
         pieG.append("text")
-          .attr("class", `share-text share-${deviceType}`)
+          .attr("class", "share-text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.4em")
           .style("font-size", "14px")
@@ -434,33 +430,33 @@
           .style("font-family", "Helvetica, Arial, sans-serif")
           .text(shareVal.toFixed(1) + "%");
 
-        // Draw arcs for Market Share
+        // 3) arcs for share
         pieG.selectAll("path.arc")
           .data(arcs)
           .enter()
           .append("path")
-          .attr("class", `arc arc-${deviceType}`)
+          .attr("class", "arc")
           .attr("d", arcGen)
-          .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
+          .attr("fill", (dd, i) => i === 0 ? colorForDeviceType(deviceData.device) : "#ccc")
           .attr("stroke", "#fff")
           .attr("stroke-width", 0.5);
       }
 
-      let currentY = 0;
+      let yOffset = 0;
       if (desktop) {
-        drawPie(parentG, desktop, currentY);
-        currentY += 60;
+        drawPie(parentG, desktop, yOffset);
+        yOffset += 60;
       }
       if (mobile) {
-        drawPie(parentG, mobile, currentY);
+        drawPie(parentG, mobile, yOffset);
       }
     });
 
-    // After drawing all location groups, update state colors
+    // Finally, color the states (initial pass)
     updateStateColors();
   }
 
-  // ---------- (H) Canada, UK, Australia functions remain unchanged ----------
+  // ---------- (H) Canada, UK, Australia ----------
   async function drawCanadaMapWithLocations(project, containerSelector) {
     const container = d3.select(containerSelector);
     container.selectAll("*").remove();
@@ -475,6 +471,7 @@
 
     const provincesGeo = topojson.feature(canadaTopo, canadaTopo.objects.provinces);
 
+    // count by province
     const provinceCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -551,6 +548,7 @@
         return c > 0 ? c : "";
       });
 
+    // also plot city dots if needed
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -581,6 +579,7 @@
 
     const ukGeo = topojson.feature(ukTopo, ukTopo.objects.eer);
 
+    // count by region
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -655,6 +654,7 @@
 
     const australiaGeo = topojson.feature(auTopo, auTopo.objects.austates);
 
+    // count by region
     const regionCounts = {};
     (project.searches || []).forEach((search) => {
       if ((search.status || "").toLowerCase() !== "active") return;
@@ -730,6 +730,7 @@
         return c > 0 ? c : "";
       });
 
+    // city dots
     const activeCityObjs = collectActiveCitiesForProject(project);
     activeCityObjs.forEach((city) => {
       const coords = projection([city.lng, city.lat]);
@@ -742,9 +743,10 @@
         .attr("fill", "red")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1);
+    });
   }
 
-  // ---------- (H) Helper: collect active cities ----------
+  // ---------- (I) collectActiveCitiesForProject ----------
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     if (typeof window.cityLookup !== "object") {
@@ -767,7 +769,7 @@
     return out;
   }
 
-  // ---------- (I) Expose the methods ----------
+  // ---------- Expose as mapHelpers ----------
   window.mapHelpers = {
     drawUsMapWithLocations,
     drawCanadaMapWithLocations,
