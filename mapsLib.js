@@ -366,26 +366,31 @@
 
     // Draw a single device pie + rank box
 function drawPie(gSel, deviceData, yOffset) {
+  // If both toggles are off, do not draw the pie or rank box.
+  if (deviceData.hideRank && deviceData.hideShare) {
+    return;
+  }
+
   if (!deviceData) return;
   const shareVal = parseFloat(deviceData.shareVal) || 0;
+  // If share toggle is off, set the value to zero so that no pie is drawn.
   const displayShareVal = deviceData.hideShare ? 0 : shareVal;
-  // Use computed avgRank if available; fallback to 0
+  // Use computed avgRank if available; fallback to 0.
   const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
   const rankVal = rawRank.toFixed(1);
 
-  // slices => [ shareVal, 100 - shareVal ]
+  // Prepare the data for the pie: first slice is displayShareVal, second is the remainder up to 100.
   const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
   const arcs = pieGen(pieData);
 
-  // Main group for this device’s pie chart (for both rank and share)
+  // Create the main group for this device’s pie chart (for both rank and share).
   const pieG = gSel.append("g")
     .attr("data-device", deviceData.device.toLowerCase())
     .attr("transform", `translate(0, ${yOffset})`);
 
-  // ---- Append the rank box in its own subgroup ----
+  // Append the rank box only if the toggle for rank is enabled.
   if (!deviceData.hideRank) {
     const rankG = pieG.append("g").attr("class", "rank-box-group");
-    // Determine background color based on rawRank
     let bgColor;
     if (rawRank < 2) {
       bgColor = "#dfffd6";  // light green
@@ -399,7 +404,7 @@ function drawPie(gSel, deviceData, yOffset) {
     rankG.append("foreignObject")
       .attr("class", "rank-box")
       .attr("data-device", deviceData.device.toLowerCase())
-      // (outerRadius=25) + (gap=10) + (boxWidth=38) => 73
+      // Position the rank box to the left of the pie (adjust these values as needed)
       .attr("x", -(25 + 10 + 38))
       .attr("y", -19)
       .attr("width", 38)
@@ -423,7 +428,7 @@ function drawPie(gSel, deviceData, yOffset) {
       `);
   }
 
-  // ---- Append the share pie in its own subgroup ----
+  // Append the share pie only if the toggle for share is enabled.
   const shareG = pieG.append("g").attr("class", "share-pie-group");
   if (!deviceData.hideShare) {
     shareG.selectAll("path.arc")
