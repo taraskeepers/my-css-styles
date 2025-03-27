@@ -399,8 +399,8 @@ pieG.append("foreignObject")
   .attr("height", 50)
   .html(`
     <div style="
-      width: 50px;
-      height: 50px;
+      width: 38px;
+      height: 38px;
       display: flex;
       align-items: center;
       justify-content: center;
