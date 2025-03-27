@@ -394,6 +394,7 @@ if (rawRank < 2) {
 }
 
 // Inside drawPie(), near the rank box code:
+if (!deviceData.hideRank) {
 pieG.append("foreignObject")
   .attr("class", "rank-box")
   .attr("data-device", deviceData.device.toLowerCase())
@@ -419,6 +420,7 @@ pieG.append("foreignObject")
       ${rankVal}
     </div>
   `);
+}
 
       // 2) Pie arcs for share
       pieG.selectAll("path.arc")
