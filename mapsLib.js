@@ -373,34 +373,33 @@ function drawPie(gSel, deviceData, yOffset) {
   const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
   const rankVal = rawRank.toFixed(1);
 
-  // Slices for the pie: [ shareVal, 100 - shareVal ]
+  // slices => [ shareVal, 100 - shareVal ]
   const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
   const arcs = pieGen(pieData);
 
-  // Create the main group for this device’s pie at the specified y offset.
+  // Main group for this device’s pie chart (for both rank and share)
   const pieG = gSel.append("g")
     .attr("data-device", deviceData.device.toLowerCase())
     .attr("transform", `translate(0, ${yOffset})`);
 
-  // Determine the background color for the rank box based on rawRank.
-  let bgColor;
-  if (rawRank < 2) {
-    bgColor = "#dfffd6";  // light green
-  } else if (rawRank < 4) {
-    bgColor = "#fffac2";  // light yellow
-  } else if (rawRank < 6) {
-    bgColor = "#ffe0bd";  // light orange
-  } else {
-    bgColor = "#ffcfcf";  // light red
-  }
-
-  // --- Sub-group for the rank box (independent of market share) ---
+  // ---- Append the rank box in its own subgroup ----
   if (!deviceData.hideRank) {
     const rankG = pieG.append("g").attr("class", "rank-box-group");
+    // Determine background color based on rawRank
+    let bgColor;
+    if (rawRank < 2) {
+      bgColor = "#dfffd6";  // light green
+    } else if (rawRank < 4) {
+      bgColor = "#fffac2";  // light yellow
+    } else if (rawRank < 6) {
+      bgColor = "#ffe0bd";  // light orange
+    } else {
+      bgColor = "#ffcfcf";  // light red
+    }
     rankG.append("foreignObject")
       .attr("class", "rank-box")
       .attr("data-device", deviceData.device.toLowerCase())
-      // Position the rank box at x = -(25 + 10 + 38) = -73, y = -19 so that it is centered vertically.
+      // (outerRadius=25) + (gap=10) + (boxWidth=38) => 73
       .attr("x", -(25 + 10 + 38))
       .attr("y", -19)
       .attr("width", 38)
@@ -424,10 +423,10 @@ function drawPie(gSel, deviceData, yOffset) {
       `);
   }
 
-  // --- Sub-group for the market share pie and its label ---
-  const pieGroup = pieG.append("g").attr("class", "pie-group");
+  // ---- Append the share pie in its own subgroup ----
+  const shareG = pieG.append("g").attr("class", "share-pie-group");
   if (!deviceData.hideShare) {
-    pieGroup.selectAll("path.arc")
+    shareG.selectAll("path.arc")
       .data(arcs)
       .enter()
       .append("path")
@@ -437,7 +436,7 @@ function drawPie(gSel, deviceData, yOffset) {
       .attr("stroke", "#fff")
       .attr("stroke-width", 0.5);
 
-    pieGroup.append("text")
+    shareG.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "0.4em")
       .style("font-size", "14px")
