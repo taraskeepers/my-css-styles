@@ -93,6 +93,7 @@
       throw err;
     }
   }
+
   async function getCanadaMapData() {
     if (canadaTopoCache) return canadaTopoCache;
     try {
@@ -105,6 +106,7 @@
       throw err;
     }
   }
+
   async function getUKMapData() {
     if (ukTopoCache) return ukTopoCache;
     try {
@@ -117,6 +119,7 @@
       throw err;
     }
   }
+
   async function getAustraliaMapData() {
     if (australiaTopoCache) return australiaTopoCache;
     try {
@@ -138,18 +141,26 @@
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal, avgRank, ... } ----------
+  // ---------- (D) Build an array: each item => { locName, device, shareVal, avgRank, rankChange } ----------
   // IMPORTANT: We do NOT skip rows if shareVal is null. We want to preserve rank data.
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
     project.searches.forEach(s => {
       if (!s.location || !s.device) return;  // skip only if these are missing
+
+      // Try both 'avgRank' and 'Avg Rank' (exactly as in your locContainer)
+      let rankVal = 0;
+      if (s.avgRank != null) {
+        rankVal = parseFloat(s.avgRank) || 0;
+      } else if (s["Avg Rank"] != null) {
+        rankVal = parseFloat(s["Avg Rank"]) || 0;
+      }
       arr.push({
         locName: s.location.trim().toLowerCase().replace(/,\s*/g, ','),
         device: s.device,
         shareVal: s.shareVal != null ? parseFloat(s.shareVal) : 0,
-        avgRank: s.avgRank != null ? parseFloat(s.avgRank) : 0,
+        avgRank: rankVal,
         rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0
       });
     });
@@ -157,7 +168,7 @@
   }
 
   // ---------- (E) Build state-based share data so we can color each state by combined share ----------
-  //   Just like the old code, except no toggle references.
+  // Just like the old code, except no toggle references.
   function buildStateShareMap(dataRows) {
     // stateShareMap[postal] = { desktopSum, desktopCount, mobileSum, mobileCount }
     const stateShareMap = {};
@@ -242,7 +253,6 @@
     const path = d3.geoPath();
 
     // 5B) Color scale
-    //    We'll find the max combined share across states
     let maxShare = 0;
     Object.values(stateShareMap).forEach(stData => {
       const c = computeCombinedShare(stData);
@@ -315,14 +325,13 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 9B) location groups
-    const locationGroups = piesLayer.selectAll("g.loc-group")
+    // 9B) location groups (using the same variable name as before)
+    const locationGroups = piesLayer.selectAll("g.location-group")
       .data(locationData)
       .enter()
       .append("g")
-      .attr("class", "loc-group")
+      .attr("class", "location-group")
       .attr("transform", d => {
-        // horizontally offset so dot is visible
         const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
         return `translate(${d.x + offsetX}, ${d.y - 10})`;
       });
@@ -332,68 +341,77 @@
     const pieGen = d3.pie().sort(null).value(v => v);
 
     // Draw a single device pie + rank box
-    function drawPie(gSel, deviceData, yOffset) {
-      if (!deviceData) return;
-      const shareVal = parseFloat(deviceData.shareVal) || 0;
-      const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
-      const rankVal = rawRank.toFixed(1);
-
-      // slices => [ shareVal, 100 - shareVal ]
-      const pieData = [shareVal, Math.max(0, 100 - shareVal)];
-      const arcs = pieGen(pieData);
-
-      const pieG = gSel.append("g")
-        .attr("transform", `translate(0, ${yOffset})`);
-
-      // 1) The rank box => remove "Rank:" text, show only the numeric rank
-      //    For coloring, if you have CSS classes like "range-green"/"range-red" etc., you can add them:
-      //    We'll just wrap it in .company-rank for consistency
-      pieG.append("foreignObject")
-        .attr("x", -(25 + 10 + 80)) // left offset
-        .attr("y", -25)            // half of 50
-        .attr("width", 80)
-        .attr("height", 50)
-        .html(`
-          <div class="company-rank" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <div style="font-size:32px; font-weight:bold; line-height:1;">${rankVal}</div>
-          </div>
-        `);
-
-      // 2) Pie arcs for share
-      pieG.selectAll("path.arc")
-        .data(arcs)
-        .enter()
-        .append("path")
-        .attr("class", "arc")
-        .attr("d", arcGen)
-        .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 0.5);
-
-      // 3) Center text for shareVal
-      pieG.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dy", "0.4em")
-        .style("font-size", "14px")
-        .style("font-weight", "bold")
-        .style("fill", "#333")
-        .style("font-family", "Helvetica, Arial, sans-serif")
-        .text(shareVal.toFixed(1) + "%");
-    }
-
     locationGroups.each(function(d) {
       const parentG = d3.select(this);
-      let yOff = 0;
+      // Debug info:
+      console.log("[mapsLib] locationGroups for location:", d.locName, "devices:", d.devices);
 
-      // If you only have Desktop + Mobile, we do them in vertical stack
       const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-      if (desktop) {
-        drawPie(parentG, desktop, yOff);
-        yOff += 60;
+      const mobile  = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
+
+      // draws a single pie + rank box
+      function drawPie(gSel, deviceData, yOffset) {
+        if (!deviceData) return;
+
+        console.log("[mapsLib] drawPie deviceData:", deviceData);
+
+        const shareVal = parseFloat(deviceData.shareVal) || 0;
+        const rankVal  = deviceData.avgRank != null ? parseFloat(deviceData.avgRank).toFixed(1) : "";
+        console.log("[mapsLib] -> shareVal:", shareVal, "rankVal:", rankVal);
+
+        const pieData  = [shareVal, 100 - shareVal];
+        const arcs     = pieGen(pieData);
+
+        const pieG = gSel.append("g")
+          .attr("transform", `translate(0, ${yOffset})`);
+
+        // 1) foreignObject for the rank box
+        const offsetBoxX = -(25 + 10 + 80); // left offset
+        const offsetBoxY = -25;            // half of 50
+        const rankClass = colorRank(rankVal);
+
+        pieG.append("foreignObject")
+          .attr("x", offsetBoxX)
+          .attr("y", offsetBoxY)
+          .attr("width", 80)
+          .attr("height", 50)
+          .html(`
+            <div class="company-rank ${rankClass}" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div class="rank-label" style="font-size:14px; font-weight:normal;">Rank:</div>
+              <div class="rank-value" style="font-size:32px; font-weight:bold;">${rankVal}</div>
+            </div>
+          `);
+
+        // 2) Center text for share%
+        pieG.append("text")
+          .attr("class", "share-text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.4em")
+          .style("font-size", "14px")
+          .style("font-weight", "bold")
+          .style("fill", "#333")
+          .style("font-family", "Helvetica, Arial, sans-serif")
+          .text(shareVal.toFixed(1) + "%");
+
+        // 3) arcs for share
+        pieG.selectAll("path.arc")
+          .data(arcs)
+          .enter()
+          .append("path")
+          .attr("class", "arc")
+          .attr("d", arcGen)
+          .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 0.5);
       }
-      const mobile = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
+
+      let yOffset = 0;
+      if (desktop) {
+        drawPie(parentG, desktop, yOffset);
+        yOffset += 60;
+      }
       if (mobile) {
-        drawPie(parentG, mobile, yOff);
+        drawPie(parentG, mobile, yOffset);
       }
     });
   }
