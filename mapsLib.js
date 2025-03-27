@@ -391,26 +391,25 @@ if (rawRank < 2) {
   bgColor = "#ffcfcf";  // light red
 }
 
+// inside your drawPie() function, replace ONLY this foreignObject block
 pieG.append("foreignObject")
-  .attr("x", -(25 + 10 + 50))  // x-offset adjusted for a 50px-wide box
-  .attr("y", -25)             // vertical offset: half of 50px so it’s centered vertically
+  .attr("x", -(25 + 10 + 50)) // typically -85
+  .attr("y", -25)            // so the box’s center is at the pie’s center
   .attr("width", 50)
   .attr("height", 50)
   .html(`
     <div style="
-      width:38px;
-      height:38px;
-      font-size:18px;
-      font-weight:bold;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background:${bgColor};
-      color:#333;
-      border-radius:4px;
-      box-shadow:none;
-      text-align:center;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      background: ${bgColor};    /* your computed color */
+      color: #333;
+      border-radius: 4px;
     ">
       ${rankVal}
     </div>
