@@ -358,19 +358,33 @@
       const pieG = gSel.append("g")
         .attr("transform", `translate(0, ${yOffset})`);
 
-// Replace your current rank box foreignObject block with this revised snippet:
+// Inside your drawPie() function, replace the existing foreignObject block with this:
+
+// Determine the background color based on the rank value
+let bgColor;
+if (rawRank < 2) {
+  bgColor = "#dfffd6";  // light green
+} else if (rawRank < 4) {
+  bgColor = "#fffac2";  // light yellow
+} else if (rawRank < 6) {
+  bgColor = "#ffe0bd";  // light orange
+} else {
+  bgColor = "#ffcfcf";  // light red
+}
+
 pieG.append("foreignObject")
-  .attr("x", -(25 + 10 + 38))  // adjust x-offset for a 38px box
-  .attr("y", -19)             // vertical offset = half of 38px (rounded)
-  .attr("width", 38)
-  .attr("height", 38)
+  .attr("x", -(25 + 10 + 50))  // x-offset adjusted for a 50px-wide box
+  .attr("y", -25)             // vertical offset: half of 50px so it’s centered vertically
+  .attr("width", 50)
+  .attr("height", 50)
   .html(`
     <div style="
-      width:38px;
-      height:38px;
-      font-size:12px;
+      width:50px;
+      height:50px;
+      font-size:32px;
+      font-weight:bold;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background:#f0f0f0;
+      background:${bgColor};
       color:#333;
       border-radius:4px;
       box-shadow:none;
@@ -378,7 +392,7 @@ pieG.append("foreignObject")
       display:flex;
       align-items:center;
       justify-content:center;
-      ">
+    ">
       ${rankVal}
     </div>
   `);
