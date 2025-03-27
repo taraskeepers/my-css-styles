@@ -366,12 +366,13 @@
     function drawPie(gSel, deviceData, yOffset) {
       if (!deviceData) return;
       const shareVal = parseFloat(deviceData.shareVal) || 0;
+const displayShareVal = deviceData.hideShare ? 0 : shareVal;
       // Here we use the computed avgRank (as set in buildLocationDeviceData)
       const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
       const rankVal = rawRank.toFixed(1);
 
       // slices => [ shareVal, 100 - shareVal ]
-      const pieData = [shareVal, Math.max(0, 100 - shareVal)];
+      const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
       const arcs = pieGen(pieData);
 
       const pieG = gSel.append("g")
@@ -438,7 +439,7 @@ pieG.append("foreignObject")
         .style("font-weight", "bold")
         .style("fill", "#333")
         .style("font-family", "Helvetica, Arial, sans-serif")
-        .text(shareVal.toFixed(1) + "%");
+        .text(displayShareVal.toFixed(1) + "%");
     }
 
 locationGroups.each(function(d) {
