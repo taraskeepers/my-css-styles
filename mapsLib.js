@@ -270,14 +270,14 @@
       .append("path")
       .attr("class", "state")
       .attr("stroke", "#999")
-      .attr("fill", d => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        // Use extra light blue (#e6f7ff) for inactive states
-        if (!stPostal || !stateShareMap[stPostal]) return "#e6f7ff";
-        const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-        if (combinedShare <= 0) return "#e6f7ff";
-        return colorScale(combinedShare);
-      })
+.attr("fill", d => {
+  const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  // Use extra light blue (#f5fcff) for inactive states (twice lighter than before)
+  if (!stPostal || !stateShareMap[stPostal]) return "#f5fcff";
+  const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
+  if (combinedShare <= 0) return "#f5fcff";
+  return colorScale(combinedShare);
+})
       .attr("d", path);
 
     // 7) Group location rows so we can plot device pies
@@ -360,16 +360,17 @@
 
       // 1) The rank box => show only the numeric rank from computed data
       // Changed to a square box (38x38) matching the "Rank and Market Share History" boxes
-      pieG.append("foreignObject")
-        .attr("x", -(25 + 10 + 38)) // left offset (38 width box)
-        .attr("y", -19)            // half of 38 is 19
-        .attr("width", 38)
-        .attr("height", 38)
-        .html(`
-          <div class="rank-box ${getRankClass(rankVal)}" style="width:38px; height:38px; line-height:38px; text-align:center; border-radius:4px; font-weight:bold; color:#000; font-family: inherit;">
-            ${rankVal}
-          </div>
-        `);
+// 1) The rank box => show only the numeric rank from computed data
+pieG.append("foreignObject")
+  .attr("x", -(25 + 10 + 38)) // left offset (38 width box)
+  .attr("y", -19)            // half of 38 is 19
+  .attr("width", 38)
+  .attr("height", 38)
+  .html(`
+    <div class="rank-box ${getRankClass(rankVal)}" style="width:38px; height:38px; line-height:38px; text-align:center; border-radius:4px; font-weight:bold; color:#000; font-family: inherit; opacity:1;">
+      ${rankVal}
+    </div>
+  `);
 
       // 2) Pie arcs for share
       pieG.selectAll("path.arc")
