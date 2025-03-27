@@ -322,7 +322,7 @@
       .attr("class", "city-dot")
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
-      .attr("r", 4)
+      .attr("r", 8)
       .attr("fill", "#cc0000")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
