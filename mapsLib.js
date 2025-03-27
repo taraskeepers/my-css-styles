@@ -363,86 +363,88 @@
     const pieGen = d3.pie().sort(null).value(v => v);
 
     // Draw a single device pie + rank box
-    function drawPie(gSel, deviceData, yOffset) {
-      if (!deviceData) return;
-      const shareVal = parseFloat(deviceData.shareVal) || 0;
-const displayShareVal = deviceData.hideShare ? 0 : shareVal;
-      // Here we use the computed avgRank (as set in buildLocationDeviceData)
-      const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
-      const rankVal = rawRank.toFixed(1);
+function drawPie(gSel, deviceData, yOffset) {
+  if (!deviceData) return;
+  const shareVal = parseFloat(deviceData.shareVal) || 0;
+  const displayShareVal = deviceData.hideShare ? 0 : shareVal;
+  // Use computed avgRank if available; fallback to 0
+  const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
+  const rankVal = rawRank.toFixed(1);
 
-      // slices => [ shareVal, 100 - shareVal ]
-      const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
-      const arcs = pieGen(pieData);
+  // Slices for the pie: [ shareVal, 100 - shareVal ]
+  const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
+  const arcs = pieGen(pieData);
 
-      const pieG = gSel.append("g")
-        .attr("data-device", deviceData.device.toLowerCase())
-        .attr("transform", `translate(0, ${yOffset})`);
+  // Create the main group for this device’s pie at the specified y offset.
+  const pieG = gSel.append("g")
+    .attr("data-device", deviceData.device.toLowerCase())
+    .attr("transform", `translate(0, ${yOffset})`);
 
-// Inside your drawPie() function, replace the existing foreignObject block with this:
+  // Determine the background color for the rank box based on rawRank.
+  let bgColor;
+  if (rawRank < 2) {
+    bgColor = "#dfffd6";  // light green
+  } else if (rawRank < 4) {
+    bgColor = "#fffac2";  // light yellow
+  } else if (rawRank < 6) {
+    bgColor = "#ffe0bd";  // light orange
+  } else {
+    bgColor = "#ffcfcf";  // light red
+  }
 
-// Determine the background color based on the rank value
-let bgColor;
-if (rawRank < 2) {
-  bgColor = "#dfffd6";  // light green
-} else if (rawRank < 4) {
-  bgColor = "#fffac2";  // light yellow
-} else if (rawRank < 6) {
-  bgColor = "#ffe0bd";  // light orange
-} else {
-  bgColor = "#ffcfcf";  // light red
+  // --- Sub-group for the rank box (independent of market share) ---
+  if (!deviceData.hideRank) {
+    const rankG = pieG.append("g").attr("class", "rank-box-group");
+    rankG.append("foreignObject")
+      .attr("class", "rank-box")
+      .attr("data-device", deviceData.device.toLowerCase())
+      // Position the rank box at x = -(25 + 10 + 38) = -73, y = -19 so that it is centered vertically.
+      .attr("x", -(25 + 10 + 38))
+      .attr("y", -19)
+      .attr("width", 38)
+      .attr("height", 38)
+      .html(`
+        <div style="
+          width: 38px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: bold;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: ${bgColor};
+          color: #333;
+          border-radius: 4px;
+        ">
+          ${rankVal}
+        </div>
+      `);
+  }
+
+  // --- Sub-group for the market share pie and its label ---
+  const pieGroup = pieG.append("g").attr("class", "pie-group");
+  if (!deviceData.hideShare) {
+    pieGroup.selectAll("path.arc")
+      .data(arcs)
+      .enter()
+      .append("path")
+      .attr("class", "arc")
+      .attr("d", arcGen)
+      .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5);
+
+    pieGroup.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "0.4em")
+      .style("font-size", "14px")
+      .style("font-weight", "bold")
+      .style("fill", "#333")
+      .style("font-family", "Helvetica, Arial, sans-serif")
+      .text(displayShareVal.toFixed(1) + "%");
+  }
 }
-
-// Inside drawPie(), near the rank box code:
-if (!deviceData.hideRank) {
-pieG.append("foreignObject")
-  .attr("class", "rank-box")
-  .attr("data-device", deviceData.device.toLowerCase())
-  // (outerRadius=25) + (gap=10) + (boxWidth=38) => 25 + 10 + 38 = 73
-  .attr("x", -(25 + 10 + 38))  // -73 => positions box to left
-  .attr("y", -19)              // half of 38 => center it vertically
-  .attr("width", 38)
-  .attr("height", 38)
-  .html(`
-    <div style="
-      width: 38px;
-      height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: bold;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: ${bgColor}; /* your computed color */
-      color: #333;
-      border-radius: 4px;
-    ">
-      ${rankVal}
-    </div>
-  `);
-}
-
-      // 2) Pie arcs for share
-      pieG.selectAll("path.arc")
-        .data(arcs)
-        .enter()
-        .append("path")
-        .attr("class", "arc")
-        .attr("d", arcGen)
-        .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 0.5);
-
-      // 3) Center text for shareVal
-      pieG.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dy", "0.4em")
-        .style("font-size", "14px")
-        .style("font-weight", "bold")
-        .style("fill", "#333")
-        .style("font-family", "Helvetica, Arial, sans-serif")
-        .text(displayShareVal.toFixed(1) + "%");
-    }
 
 locationGroups.each(function(d) {
   const parentG = d3.select(this);
