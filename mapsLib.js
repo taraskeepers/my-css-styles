@@ -358,19 +358,27 @@
       const pieG = gSel.append("g")
         .attr("transform", `translate(0, ${yOffset})`);
 
-      // 1) The rank box => show only the numeric rank from computed data
-      // Changed to a square box (38x38) matching the "Rank and Market Share History" boxes
-// 1) The rank box => show only the numeric rank from computed data
-// New rank box code – a 38×38 square with no transparency, matching your embed element styling
-// (Old code example)
-// 1) The rank box => show only the numeric rank from computed data
+// Replace your current rank box foreignObject block with this revised snippet:
 pieG.append("foreignObject")
-  .attr("x", -(25 + 10 + 38)) // left offset (38 width box)
-  .attr("y", -19)            // half of 38 is 19
+  .attr("x", -(25 + 10 + 38))  // adjust x-offset for a 38px box
+  .attr("y", -19)             // vertical offset = half of 38px (rounded)
   .attr("width", 38)
   .attr("height", 38)
   .html(`
-    <div class="rank-box ${getRankClass(rankVal)}" style="width:38px; height:38px; line-height:38px; text-align:center; border-radius:4px; font-weight:bold; color:#000; font-family: inherit;">
+    <div style="
+      width:38px;
+      height:38px;
+      font-size:12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background:#f0f0f0;
+      color:#333;
+      border-radius:4px;
+      box-shadow:none;
+      text-align:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      ">
       ${rankVal}
     </div>
   `);
