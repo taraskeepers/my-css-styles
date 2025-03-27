@@ -226,6 +226,21 @@
     const mapDiv = container.append("div")
       .style("position", "relative");
 
+  const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
+  const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
+  const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
+  const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
+
+  project.searches.forEach(s => {
+    if (s.device && s.device.toLowerCase().includes("desktop")) {
+      s.hideShare = !desktopShare;  // With toggles off by default, this becomes true.
+      s.hideRank  = !desktopRank;
+    } else if (s.device && s.device.toLowerCase().includes("mobile")) {
+      s.hideShare = !mobileShare;
+      s.hideRank  = !mobileRank;
+    }
+  });
+
     // 3) Load US topo
     let usTopo;
     try {
