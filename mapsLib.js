@@ -379,9 +379,9 @@ pieG.append("foreignObject")
   .attr("height", 50)
   .html(`
     <div style="
-      width:50px;
-      height:50px;
-      font-size:32px;
+      width:38px;
+      height:38px;
+      font-size:18px;
       font-weight:bold;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background:${bgColor};
