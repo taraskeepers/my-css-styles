@@ -151,7 +151,9 @@
         shareVal: s.shareVal != null ? parseFloat(s.shareVal) : 0,
         // ***** FIX: Use computedAvgRank if available, otherwise fallback to avgRank *****
         avgRank: s.computedAvgRank != null ? parseFloat(s.computedAvgRank) : (s.avgRank != null ? parseFloat(s.avgRank) : 0),
-        rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0
+        rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0,
+        hideRank: s.hideRank || false,   // <-- Added: pass through rank toggle state
+        hideShare: s.hideShare || false  // <-- Added: pass through share toggle state (if used)
       });
     });
     return arr;
