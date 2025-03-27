@@ -391,12 +391,13 @@ if (rawRank < 2) {
   bgColor = "#ffcfcf";  // light red
 }
 
-// inside your drawPie() function, replace ONLY this foreignObject block
+// Inside drawPie(), near the rank box code:
 pieG.append("foreignObject")
-  .attr("x", -(25 + 10 + 50)) // typically -85
-  .attr("y", -25)            // so the box’s center is at the pie’s center
-  .attr("width", 50)
-  .attr("height", 50)
+  // (outerRadius=25) + (gap=10) + (boxWidth=38) => 25 + 10 + 38 = 73
+  .attr("x", -(25 + 10 + 38))  // -73 => positions box to left
+  .attr("y", -19)              // half of 38 => center it vertically
+  .attr("width", 38)
+  .attr("height", 38)
   .html(`
     <div style="
       width: 38px;
@@ -407,7 +408,7 @@ pieG.append("foreignObject")
       font-size: 18px;
       font-weight: bold;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: ${bgColor};    /* your computed color */
+      background: ${bgColor}; /* your computed color */
       color: #333;
       border-radius: 4px;
     ">
