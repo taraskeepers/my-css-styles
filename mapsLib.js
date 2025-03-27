@@ -362,13 +362,15 @@
       // Changed to a square box (38x38) matching the "Rank and Market Share History" boxes
 // 1) The rank box => show only the numeric rank from computed data
 // New rank box code – a 38×38 square with no transparency, matching your embed element styling
+// (Old code example)
+// 1) The rank box => show only the numeric rank from computed data
 pieG.append("foreignObject")
-  .attr("x", -(25 + 10 + 38))  // Adjust x-offset for a 38px box
-  .attr("y", -19)             // half of 38px
+  .attr("x", -(25 + 10 + 38)) // left offset (38 width box)
+  .attr("y", -19)            // half of 38 is 19
   .attr("width", 38)
   .attr("height", 38)
   .html(`
-    <div class="company-rank ${getRankClass(rankVal)}" style="width:38px; height:38px; font-size:12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f0f0f0; color:#333; padding:4px 8px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center; z-index:2; display:block;">
+    <div class="rank-box ${getRankClass(rankVal)}" style="width:38px; height:38px; line-height:38px; text-align:center; border-radius:4px; font-weight:bold; color:#000; font-family: inherit;">
       ${rankVal}
     </div>
   `);
