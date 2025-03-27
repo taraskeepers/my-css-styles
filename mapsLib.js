@@ -157,6 +157,16 @@
     return arr;
   }
 
+  // Helper: return a class for rank value matching the "rank-box" styling in the embed element.
+  function getRankClass(rankVal) {
+    const r = parseFloat(rankVal);
+    if (isNaN(r) || r <= 0) return "";
+    if (r === 1) return "range-green";
+    if (r <= 3)  return "range-yellow";
+    if (r <= 5)  return "range-orange";
+    return "range-red";
+  }
+
   // ---------- (E) Build state-based share data so we can color each state by combined share ----------
   //   Just like the old code, except no toggle references.
   function buildStateShareMap(dataRows) {
@@ -262,9 +272,10 @@
       .attr("stroke", "#999")
       .attr("fill", d => {
         const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return "#FFFFFF";
+        // Use extra light blue (#e6f7ff) for inactive states
+        if (!stPostal || !stateShareMap[stPostal]) return "#e6f7ff";
         const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-        if (combinedShare <= 0) return "#FFFFFF";
+        if (combinedShare <= 0) return "#e6f7ff";
         return colorScale(combinedShare);
       })
       .attr("d", path);
@@ -348,14 +359,15 @@
         .attr("transform", `translate(0, ${yOffset})`);
 
       // 1) The rank box => show only the numeric rank from computed data
+      // Changed to a square box (38x38) matching the "Rank and Market Share History" boxes
       pieG.append("foreignObject")
-        .attr("x", -(25 + 10 + 80)) // left offset
-        .attr("y", -25)            // half of 50
-        .attr("width", 80)
-        .attr("height", 50)
+        .attr("x", -(25 + 10 + 38)) // left offset (38 width box)
+        .attr("y", -19)            // half of 38 is 19
+        .attr("width", 38)
+        .attr("height", 38)
         .html(`
-          <div class="company-rank" style="width:80px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <div style="font-size:32px; font-weight:bold; line-height:1;">${rankVal}</div>
+          <div class="rank-box ${getRankClass(rankVal)}" style="width:38px; height:38px; line-height:38px; text-align:center; border-radius:4px; font-weight:bold; color:#000; font-family: inherit;">
+            ${rankVal}
           </div>
         `);
 
