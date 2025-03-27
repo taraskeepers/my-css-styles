@@ -375,6 +375,7 @@
       const arcs = pieGen(pieData);
 
       const pieG = gSel.append("g")
+        .attr("data-device", deviceData.device.toLowerCase())
         .attr("transform", `translate(0, ${yOffset})`);
 
 // Inside your drawPie() function, replace the existing foreignObject block with this:
@@ -393,6 +394,8 @@ if (rawRank < 2) {
 
 // Inside drawPie(), near the rank box code:
 pieG.append("foreignObject")
+  .attr("class", "rank-box")
+  .attr("data-device", deviceData.device.toLowerCase())
   // (outerRadius=25) + (gap=10) + (boxWidth=38) => 25 + 10 + 38 = 73
   .attr("x", -(25 + 10 + 38))  // -73 => positions box to left
   .attr("y", -19)              // half of 38 => center it vertically
