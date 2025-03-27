@@ -333,11 +333,30 @@
       .enter()
       .append("g")
       .attr("class", "loc-group")
-      .attr("transform", d => {
-        // horizontally offset so dot is visible
-        const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
-        return `translate(${d.x + offsetX}, ${d.y - 10})`;
-      });
+.attr("transform", d => {
+  // Horizontal offset: keep the same as before
+  const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
+
+  // Determine the group’s height based on how many devices exist:
+  // Each device pie is assumed to be 60px tall.
+  let groupHeight = 0;
+  if (d.devices.find(item => item.device.toLowerCase().includes("desktop"))) {
+    groupHeight += 60;
+  }
+  if (d.devices.find(item => item.device.toLowerCase().includes("mobile"))) {
+    groupHeight += 60;
+  }
+  // Fallback if for some reason no device is found
+  if (groupHeight === 0) groupHeight = 60;
+
+  // Calculate vertical translation so that the group is centered on the dot.
+  // newY is computed as: the location’s y-coordinate minus half the group height.
+  let newY = d.y - groupHeight / 2;
+  // Ensure the entire group remains within the map’s vertical bounds:
+  newY = Math.max(0, Math.min(newY, baseHeight - groupHeight));
+
+  return `translate(${d.x + offsetX}, ${newY})`;
+});
 
     // Pie generator
     const arcGen = d3.arc().outerRadius(25).innerRadius(0);
