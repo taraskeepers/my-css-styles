@@ -130,7 +130,7 @@
     }
   }
 
-  // ---------- (C) Simple color utility for device slices ----------
+  // ---------- (C) Color for device slices ----------
   function colorForDevice(deviceName) {
     const d = (deviceName || "").toLowerCase();
     if (d.includes("desktop")) return "#007aff"; // blue
@@ -138,110 +138,117 @@
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal, avgRank, ... } ----------
-  // IMPORTANT: We do NOT skip rows if shareVal is null. We want to preserve rank data.
+  // ---------- (D) Build location–device array ----------
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     const arr = [];
     project.searches.forEach(s => {
-      if (!s.location || !s.device) return;  // skip only if these are missing
+      if (!s.location || !s.device) return;  // skip if missing
       arr.push({
         locName: s.location.trim().toLowerCase().replace(/,\s*/g, ','),
         device: s.device,
         shareVal: s.shareVal != null ? parseFloat(s.shareVal) : 0,
-        // ***** FIX: Use computedAvgRank if available, otherwise fallback to avgRank *****
-        avgRank: s.computedAvgRank != null ? parseFloat(s.computedAvgRank) : (s.avgRank != null ? parseFloat(s.avgRank) : 0),
+        avgRank: s.computedAvgRank != null
+          ? parseFloat(s.computedAvgRank)
+          : (s.avgRank != null ? parseFloat(s.avgRank) : 0),
         rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0,
-        hideRank: s.hideRank || false,   // <-- Added: pass through rank toggle state
-        hideShare: s.hideShare || false  // <-- Added: pass through share toggle state (if used)
+        hideRank:  !!s.hideRank,
+        hideShare: !!s.hideShare
       });
     });
     return arr;
   }
 
-  // Helper: return a class for rank value matching the "rank-box" styling in the embed element.
-  function getRankClass(rankVal) {
-    const r = parseFloat(rankVal);
-    if (isNaN(r) || r <= 0) return "";
-    if (r === 1) return "range-green";
-    if (r <= 3)  return "range-yellow";
-    if (r <= 5)  return "range-orange";
-    return "range-red";
-  }
-
-  // ---------- (E) Build state-based share data so we can color each state by combined share ----------
-  //   Just like the old code, except no toggle references.
-  function buildStateShareMap(dataRows) {
-    // stateShareMap[postal] = { desktopSum, desktopCount, mobileSum, mobileCount }
-    const stateShareMap = {};
+  // ---------- (E) Build aggregator with share + rank for each device ----------
+  //   stateStats[stPostal] = {
+  //     desktopShareSum, desktopShareCount, desktopRankSum, desktopRankCount,
+  //     mobileShareSum,  mobileShareCount,  mobileRankSum,  mobileRankCount
+  //   }
+  // We’ll also store .combinedShare => average of desktop + mobile means
+  function buildStateStats(dataRows) {
+    const stateStats = {};
     if (!window.cityLookup) {
-      console.warn("[mapsLib] cityLookup is missing, coloring won't be accurate.");
-      return stateShareMap;
+      console.warn("[mapsLib] cityLookup is missing, skipping stateStats aggregator.");
+      return stateStats;
     }
 
     dataRows.forEach(row => {
       const cityObj = window.cityLookup.get(row.locName);
       if (!cityObj || !cityObj.state_id) return;
-      const stPostal = cityObj.state_id;
-      if (!stateShareMap[stPostal]) {
-        stateShareMap[stPostal] = {
-          desktopSum: 0, desktopCount: 0,
-          mobileSum: 0,  mobileCount: 0
+      const st = cityObj.state_id;
+      if (!stateStats[st]) {
+        stateStats[st] = {
+          desktopShareSum: 0, desktopShareCount: 0, desktopRankSum: 0, desktopRankCount: 0,
+          mobileShareSum:  0, mobileShareCount:  0, mobileRankSum:  0, mobileRankCount:  0
         };
       }
       const dev = row.device.toLowerCase();
       if (dev.includes("desktop")) {
-        stateShareMap[stPostal].desktopSum += row.shareVal;
-        stateShareMap[stPostal].desktopCount++;
+        stateStats[st].desktopShareSum += row.shareVal;
+        stateStats[st].desktopShareCount++;
+        if (row.avgRank > 0) {
+          stateStats[st].desktopRankSum += row.avgRank;
+          stateStats[st].desktopRankCount++;
+        }
       } else if (dev.includes("mobile")) {
-        stateShareMap[stPostal].mobileSum += row.shareVal;
-        stateShareMap[stPostal].mobileCount++;
+        stateStats[st].mobileShareSum += row.shareVal;
+        stateStats[st].mobileShareCount++;
+        if (row.avgRank > 0) {
+          stateStats[st].mobileRankSum += row.avgRank;
+          stateStats[st].mobileRankCount++;
+        }
       }
     });
 
-    return stateShareMap;
+    // Then store derived averages for convenience
+    Object.keys(stateStats).forEach(st => {
+      const obj = stateStats[st];
+      const dShare = (obj.desktopShareCount > 0) ? (obj.desktopShareSum / obj.desktopShareCount) : 0;
+      const mShare = (obj.mobileShareCount  > 0) ? (obj.mobileShareSum  / obj.mobileShareCount)  : 0;
+      obj.desktopAvgShare = dShare;
+      obj.mobileAvgShare  = mShare;
+
+      const dRank = (obj.desktopRankCount>0) ? (obj.desktopRankSum / obj.desktopRankCount) : 0;
+      const mRank = (obj.mobileRankCount >0) ? (obj.mobileRankSum / obj.mobileRankCount)   : 0;
+      obj.desktopAvgRank = dRank;
+      obj.mobileAvgRank  = mRank;
+
+      // For coloring + center label => combine the average shares
+      let sum=0, c=0;
+      if (dShare>0) { sum += dShare; c++; }
+      if (mShare>0) { sum += mShare; c++; }
+      obj.combinedShare = (c>0) ? (sum/c) : 0;
+    });
+
+    return stateStats;
   }
 
-  // Compute average share (both desktop & mobile) for color fill
-  function computeCombinedShare(stData) {
-    if (!stData) return 0;
-    let sum = 0, count = 0;
-    if (stData.desktopCount > 0) {
-      sum += (stData.desktopSum / stData.desktopCount);
-      count++;
-    }
-    if (stData.mobileCount > 0) {
-      sum += (stData.mobileSum / stData.mobileCount);
-      count++;
-    }
-    return (count === 0) ? 0 : (sum / count);
-  }
-
-  // ---------- (F) Draw US map with location pies, color states by share, show rank in boxes ----------
+  // ---------- (F) The main “draw US map” function ----------
   async function drawUsMapWithLocations(project, containerSelector) {
-    // 1) Clear old
+    // Clear old content
     const container = d3.select(containerSelector).html("");
 
-    // 2) <div> for the map
+    // A wrapper <div> for the map (position:relative)
     const mapDiv = container.append("div")
       .style("position", "relative");
 
-  const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
-  const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
-  const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
-  const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
+    // 1) Read toggles from DOM => set hideRank/hideShare in project.searches
+    const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
+    const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
+    const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
+    const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
+    project.searches.forEach(s => {
+      const dev = (s.device||"").toLowerCase();
+      if (dev.includes("desktop")) {
+        s.hideShare = !desktopShare;
+        s.hideRank  = !desktopRank;
+      } else if (dev.includes("mobile")) {
+        s.hideShare = !mobileShare;
+        s.hideRank  = !mobileRank;
+      }
+    });
 
-  project.searches.forEach(s => {
-    if (s.device && s.device.toLowerCase().includes("desktop")) {
-      s.hideShare = !desktopShare;  // With toggles off by default, this becomes true.
-      s.hideRank  = !desktopRank;
-    } else if (s.device && s.device.toLowerCase().includes("mobile")) {
-      s.hideShare = !mobileShare;
-      s.hideRank  = !mobileRank;
-    }
-  });
-
-    // 3) Load US topo
+    // 2) Fetch the US topo
     let usTopo;
     try {
       usTopo = await getUSMapData();
@@ -251,13 +258,12 @@
     }
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-    // 4) Build data
+    // 3) Build data arrays
     const dataRows = buildLocationDeviceData(project);
-    const stateShareMap = buildStateShareMap(dataRows);
+    const stStats  = buildStateStats(dataRows);
 
-    // 5) <svg>
-    const baseWidth = 975;      // match old version's sizing
-    const baseHeight = 610;
+    // 4) Prepare the <svg>
+    const baseWidth = 975, baseHeight = 610;
     const svg = mapDiv.append("svg")
       .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
@@ -269,47 +275,122 @@
 
     const path = d3.geoPath();
 
-    // 5B) Color scale
-    //    We'll find the max combined share across states
+    // 5) Color scale for combined share
     let maxShare = 0;
-    Object.values(stateShareMap).forEach(stData => {
-      const c = computeCombinedShare(stData);
-      if (c > maxShare) maxShare = c;
+    Object.values(stStats).forEach(obj => {
+      if (obj.combinedShare>maxShare) maxShare = obj.combinedShare;
     });
     const colorScale = d3.scaleSequential()
-      .domain([0, maxShare || 1])
+      .domain([0, maxShare||1])
       .interpolator(d3.interpolateBlues);
 
-    // 6) Draw states
+    // 6) Draw the states
     const statesSelection = svg.selectAll("path.state")
       .data(statesGeo.features)
       .enter()
       .append("path")
       .attr("class", "state")
       .attr("stroke", "#999")
-.attr("fill", d => {
-  const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  // Use extra light blue (#f5fcff) for inactive states (twice lighter than before)
-  if (!stPostal || !stateShareMap[stPostal]) return "#f5fcff";
-  const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-  if (combinedShare <= 0) return "#f5fcff";
-  return colorScale(combinedShare);
-})
+      .attr("fill", d => {
+        const stPostal = FIPS_TO_POSTAL[d.id] || null;
+        if (!stPostal || !stStats[stPostal]) {
+          // No data => a light color
+          return "#f5fcff";
+        }
+        const val = stStats[stPostal].combinedShare;
+        if (val <= 0) return "#f5fcff";
+        return colorScale(val);
+      })
       .attr("d", path);
 
-    // 7) Group location rows so we can plot device pies
+    // 6B) Add a text label at each state centroid for combined share
+    svg.selectAll("text.state-label")
+      .data(statesGeo.features)
+      .enter()
+      .append("text")
+      .attr("class", "state-label")
+      .attr("x", d => path.centroid(d)[0])
+      .attr("y", d => path.centroid(d)[1])
+      .attr("text-anchor", "middle")
+      .attr("fill", "#fff")
+      .style("font-size","14px")
+      .style("font-weight","600")
+      .style("pointer-events","none") // text doesn’t block hover
+      .text(d => {
+        const stPostal = FIPS_TO_POSTAL[d.id] || null;
+        if (!stPostal || !stStats[stPostal]) return "";
+        const val = stStats[stPostal].combinedShare;
+        return (val>0) ? val.toFixed(1)+"%" : "";
+      });
+
+    // 7) Apple‑style tooltip for states on hover
+    //    We'll attach a single <div> for the tooltip, show/hide it on mouseover/out
+    const tooltip = container.append("div")
+      .style("position","absolute")
+      .style("padding","8px 10px")
+      .style("border","1px solid #ddd")
+      .style("border-radius","8px")
+      .style("box-shadow","0 4px 8px rgba(0,0,0,0.15)")
+      .style("background","#fff")
+      .style("font-family","-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif")
+      .style("font-size","13px")
+      .style("color","#333")
+      .style("display","none")
+      .style("z-index","9999");
+
+    statesSelection
+      .on("mouseover", function(event, d) {
+        const stPostal = FIPS_TO_POSTAL[d.id] || null;
+        if (!stPostal || !stStats[stPostal]) {
+          tooltip.style("display","none");
+          return;
+        }
+        const obj = stStats[stPostal];
+
+        // Build a small HTML snippet for desktop & mobile if present
+        const deskShare = obj.desktopAvgShare>0 ? obj.desktopAvgShare.toFixed(1)+"%" : "N/A";
+        const deskRank  = obj.desktopAvgRank>0  ? obj.desktopAvgRank.toFixed(1)      : "N/A";
+        const mobShare  = obj.mobileAvgShare>0  ? obj.mobileAvgShare.toFixed(1)+"%"  : "N/A";
+        const mobRank   = obj.mobileAvgRank>0   ? obj.mobileAvgRank.toFixed(1)       : "N/A";
+
+        // We can do a small table or just lines:
+        const html = `
+          <div style="margin-bottom:4px; font-weight:bold; font-size:14px;">
+            ${stPostal} – ${obj.combinedShare.toFixed(1)}%
+          </div>
+          <div style="margin-bottom:4px;">
+            <strong>Desktop</strong><br>
+            Rank: ${deskRank}<br>
+            Share: ${deskShare}
+          </div>
+          <div>
+            <strong>Mobile</strong><br>
+            Rank: ${mobRank}<br>
+            Share: ${mobShare}
+          </div>
+        `;
+
+        tooltip.html(html)
+          .style("display","block");
+      })
+      .on("mousemove", function(event) {
+        // Position tooltip near mouse
+        const offsetX = 12, offsetY = 12;
+        tooltip
+          .style("left", (event.pageX + offsetX)+"px")
+          .style("top",  (event.pageY + offsetY)+"px");
+      })
+      .on("mouseout", function() {
+        tooltip.style("display","none");
+      });
+
+    // 8) Build location device data => city pies
+    const projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     const locMap = new Map();
     dataRows.forEach(r => {
-      if (!locMap.has(r.locName)) {
-        locMap.set(r.locName, []);
-      }
+      if (!locMap.has(r.locName)) locMap.set(r.locName, []);
       locMap.get(r.locName).push(r);
     });
-
-    // 8) Use the same old AlbersUSA projection => dots align
-    const projection = d3.geoAlbersUsa()
-      .scale(1300)
-      .translate([487.5, 305]); // match old code
 
     const locationData = [];
     if (window.cityLookup) {
@@ -327,11 +408,10 @@
       });
     }
 
-    // 9) Dots + Pies
     const dotsLayer = svg.append("g").attr("class", "dots-layer");
     const piesLayer = svg.append("g").attr("class", "pies-layer");
 
-    // Dot for each location
+    // Dot for each city
     dotsLayer.selectAll("circle.city-dot")
       .data(locationData)
       .enter()
@@ -344,149 +424,106 @@
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
-    // 9B) location groups
+    // Groups for pies
     const locationGroups = piesLayer.selectAll("g.loc-group")
       .data(locationData)
       .enter()
       .append("g")
       .attr("class", "loc-group")
-.attr("transform", d => {
-  // Horizontal offset: keep the same as before
-  const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
+      .attr("transform", d => {
+        const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
+        let groupHeight = 0;
+        if (d.devices.some(it=>it.device.toLowerCase().includes("desktop"))) {
+          groupHeight += 60;
+        }
+        if (d.devices.some(it=>it.device.toLowerCase().includes("mobile"))) {
+          groupHeight += 60;
+        }
+        if (groupHeight===0) groupHeight=60;
+        let newY = d.y - groupHeight/2;
+        newY = Math.max(0, Math.min(newY, baseHeight-groupHeight));
+        return `translate(${d.x + offsetX},${newY})`;
+      });
 
-  // Determine the group’s height based on how many devices exist:
-  // Each device pie is assumed to be 60px tall.
-  let groupHeight = 0;
-  if (d.devices.find(item => item.device.toLowerCase().includes("desktop"))) {
-    groupHeight += 60;
-  }
-  if (d.devices.find(item => item.device.toLowerCase().includes("mobile"))) {
-    groupHeight += 60;
-  }
-  // Fallback if for some reason no device is found
-  if (groupHeight === 0) groupHeight = 60;
-
-  // Calculate vertical translation so that the group is centered on the dot.
-  // newY is computed as: the location’s y-coordinate minus half the group height.
-  let newY = d.y - groupHeight / 2;
-  // Ensure the entire group remains within the map’s vertical bounds:
-  newY = Math.max(0, Math.min(newY, baseHeight - groupHeight));
-
-  return `translate(${d.x + offsetX}, ${newY})`;
-});
-
-    // Pie generator
     const arcGen = d3.arc().outerRadius(25).innerRadius(0);
-    const pieGen = d3.pie().sort(null).value(v => v);
+    const pieGen = d3.pie().sort(null).value(v=>v);
 
-    // Draw a single device pie + rank box
-function drawPie(gSel, deviceData, yOffset) {
-  // If both the rank and share elements should be hidden, don't draw anything.
-  if (deviceData.hideRank && deviceData.hideShare) {
-    return;
-  }
+    function drawPie(gSel, deviceData, yOffset) {
+      // skip if both toggles are off
+      if (deviceData.hideRank && deviceData.hideShare) {
+        return;
+      }
+      if (!deviceData) return;
 
-  if (!deviceData) return;
-  const shareVal = parseFloat(deviceData.shareVal) || 0;
-  // If the share toggle is off, force the displayed share value to 0.
-  const displayShareVal = deviceData.hideShare ? 0 : shareVal;
-  // Use computed avgRank if available; fallback to 0.
-  const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
-  const rankVal = rawRank.toFixed(1);
+      const shareVal = parseFloat(deviceData.shareVal)||0;
+      const displayShareVal = deviceData.hideShare? 0 : shareVal;
+      const rawRank = deviceData.avgRank>0 ? deviceData.avgRank : 0;
+      const rankVal = rawRank.toFixed(1);
 
-  // Prepare pie data: the first slice is the share value (if visible),
-  // the second slice is the remainder (to make up 100%).
-  const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
-  const arcs = pieGen(pieData);
+      const pieData = [displayShareVal, Math.max(0,100-displayShareVal)];
+      const arcs= pieGen(pieData);
 
-  // Create a group for this device’s pie (and rank box if needed)
-  const pieG = gSel.append("g")
-    .attr("data-device", deviceData.device.toLowerCase())
-    .attr("transform", `translate(0, ${yOffset})`);
+      const pieG = gSel.append("g")
+        .attr("data-device", deviceData.device.toLowerCase())
+        .attr("transform",`translate(0,${yOffset})`);
 
-  // Append the rank box only if the rank toggle is ON.
-  if (!deviceData.hideRank) {
-    const rankG = pieG.append("g").attr("class", "rank-box-group");
-    let bgColor;
-    if (rawRank < 2) {
-      bgColor = "#dfffd6";  // light green
-    } else if (rawRank < 4) {
-      bgColor = "#fffac2";  // light yellow
-    } else if (rawRank < 6) {
-      bgColor = "#ffe0bd";  // light orange
-    } else {
-      bgColor = "#ffcfcf";  // light red
+      // rank box if toggle on
+      if (!deviceData.hideRank) {
+        const rankG = pieG.append("g").attr("class","rank-box-group");
+        let bgColor="#ffcfcf";
+        if (rawRank<2)      bgColor="#dfffd6";
+        else if (rawRank<4) bgColor="#fffac2";
+        else if (rawRank<6) bgColor="#ffe0bd";
+
+        rankG.append("foreignObject")
+          .attr("class","rank-box")
+          .attr("width",38).attr("height",38)
+          .attr("x",-(25+10+38)).attr("y",-19)
+          .html(`
+            <div style="
+              width: 38px; height:38px;
+              display:flex; align-items:center; justify-content:center;
+              font-size:18px; font-weight:bold;
+              font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background:${bgColor}; color:#333; border-radius:4px;">
+              ${rankVal}
+            </div>
+          `);
+      }
+
+      if (!deviceData.hideShare) {
+        const shareG= pieG.append("g").attr("class","share-pie-group");
+        shareG.selectAll("path.arc")
+          .data(arcs).enter()
+          .append("path")
+          .attr("class","arc")
+          .attr("d",arcGen)
+          .attr("fill",(dd,i)=> i===0? colorForDevice(deviceData.device):"#ccc")
+          .attr("stroke","#fff")
+          .attr("stroke-width",0.5);
+
+        shareG.append("text")
+          .attr("text-anchor","middle")
+          .attr("dy","0.4em")
+          .style("font-size","14px")
+          .style("font-weight","bold")
+          .style("fill","#333")
+          .style("font-family","Helvetica, Arial, sans-serif")
+          .text(displayShareVal.toFixed(1)+"%");
+      }
     }
-    rankG.append("foreignObject")
-      .attr("class", "rank-box")
-      .attr("data-device", deviceData.device.toLowerCase())
-      // Adjust these coordinates as needed.
-      .attr("x", -(25 + 10 + 38))
-      .attr("y", -19)
-      .attr("width", 38)
-      .attr("height", 38)
-      .html(`
-        <div style="
-          width: 38px;
-          height: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-          font-weight: bold;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background: ${bgColor};
-          color: #333;
-          border-radius: 4px;
-        ">
-          ${rankVal}
-        </div>
-      `);
+
+    locationGroups.each(function(d){
+      const parentG = d3.select(this);
+      let yOff=30;
+      const desktop= d.devices.find(it=> it.device.toLowerCase().includes("desktop"));
+      if(desktop){ drawPie(parentG, desktop, yOff); yOff+=60; }
+      const mobile= d.devices.find(it=> it.device.toLowerCase().includes("mobile"));
+      if(mobile){ drawPie(parentG, mobile, yOff); }
+    });
   }
 
-  // Append the share pie only if the share toggle is ON.
-  const shareG = pieG.append("g").attr("class", "share-pie-group");
-  if (!deviceData.hideShare) {
-    shareG.selectAll("path.arc")
-      .data(arcs)
-      .enter()
-      .append("path")
-      .attr("class", "arc")
-      .attr("d", arcGen)
-      .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5);
-
-    shareG.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.4em")
-      .style("font-size", "14px")
-      .style("font-weight", "bold")
-      .style("fill", "#333")
-      .style("font-family", "Helvetica, Arial, sans-serif")
-      .text(displayShareVal.toFixed(1) + "%");
-  }
-}
-
-locationGroups.each(function(d) {
-  const parentG = d3.select(this);
-  let yOff = 30; // start at 30 so that the pie and rank box (centered at yOffset) appear in the middle of a 60px cell
-
-  // For Desktop (if present)
-  const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-  if (desktop) {
-    drawPie(parentG, desktop, yOff);
-    yOff += 60;
-  }
-  // For Mobile (if present)
-  const mobile = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
-  if (mobile) {
-    drawPie(parentG, mobile, yOff);
-  }
-});
-  }
-
-  // ---------- (G) Canada, UK, Australia (same as old code) ----------
+  // ---------- (G) Canada, UK, Australia: mostly unchanged ----------
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
     if (typeof window.cityLookup !== "object") {
@@ -538,80 +575,46 @@ locationGroups.each(function(d) {
     });
 
     let maxCount = 0;
-    Object.values(provinceCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
+    Object.values(provinceCounts).forEach((v) => { if (v>maxCount) maxCount=v; });
     const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+      .domain([0, maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 600, height = 500;
+    const width=600, height=500;
     const svg = container.append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
+      .attr("viewBox",`0 0 ${width} ${height}`)
+      .style("width","100%")
+      .style("height","auto")
+      .style("background","transparent");
 
-    const projection = d3.geoMercator().fitSize([width, height], provincesGeo);
+    const projection = d3.geoMercator().fitSize([width,height], provincesGeo);
     const path = d3.geoPath().projection(projection);
 
     svg.selectAll("path.province")
       .data(provincesGeo.features)
       .enter()
       .append("path")
-      .attr("class", "province")
-      .attr("d", path)
-      .attr("fill", (d) => {
-        const code = d.properties.CODE;
-        const shortCode = mapProvinceCode(code);
-        const c = provinceCounts[shortCode] || 0;
+      .attr("class","province")
+      .attr("d",path)
+      .attr("fill", d=>{
+        const code= d.properties.CODE;
+        const shortCode= mapProvinceCode(code);
+        const c= provinceCounts[shortCode]||0;
         return colorScale(c);
       })
-      .attr("stroke", "#999");
+      .attr("stroke","#999");
 
-    svg.selectAll("circle.province-bubble")
-      .data(provincesGeo.features)
-      .enter()
-      .append("circle")
-      .attr("class", "province-bubble")
-      .attr("cx", (d) => path.centroid(d)[0])
-      .attr("cy", (d) => path.centroid(d)[1])
-      .attr("r", (d) => {
-        const shortCode = mapProvinceCode(d.properties.CODE);
-        const c = provinceCounts[shortCode] || 0;
-        return c > 0 ? 20 : 0;
-      })
-      .attr("fill", "#2962FF")
-      .attr("fill-opacity", 0.5);
-
-    svg.selectAll("text.province-bubble-label")
-      .data(provincesGeo.features)
-      .enter()
-      .append("text")
-      .attr("class", "province-bubble-label")
-      .attr("x", (d) => path.centroid(d)[0])
-      .attr("y", (d) => path.centroid(d)[1] + 5)
-      .attr("text-anchor", "middle")
-      .attr("font-size", 14)
-      .attr("fill", "#fff")
-      .text((d) => {
-        const shortCode = mapProvinceCode(d.properties.CODE);
-        const c = provinceCounts[shortCode] || 0;
-        return c > 0 ? c : "";
-      });
-
-    // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
-      const [x, y] = coords;
+    const activeCityObjs= collectActiveCitiesForProject(project);
+    activeCityObjs.forEach(city=>{
+      const coords= projection([city.lng, city.lat]);
+      if(!coords) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("cx",coords[0])
+        .attr("cy",coords[1])
+        .attr("r",5)
+        .attr("fill","red")
+        .attr("stroke","#fff")
+        .attr("stroke-width",1);
     });
   }
 
@@ -621,164 +624,145 @@ locationGroups.each(function(d) {
 
     let ukTopo;
     try {
-      ukTopo = await getUKMapData();
-    } catch (err) {
-      console.error("[mapsLib] UK topo load error:", err);
+      ukTopo= await getUKMapData();
+    } catch(err) {
+      console.error("[mapsLib] UK topo load error:",err);
       return;
     }
 
-    const ukGeo = topojson.feature(ukTopo, ukTopo.objects.eer);
-    const regionCounts = {};
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locArr = Array.isArray(search.location) ? search.location : search.location ? [search.location] : [];
-      locArr.forEach((locStr) => {
-        const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const regionName = (cityObj.regionName || "").trim();
-          if (!regionCounts[regionName]) regionCounts[regionName] = 0;
-          regionCounts[regionName]++;
+    const ukGeo= topojson.feature(ukTopo, ukTopo.objects.eer);
+    const regionCounts={};
+    (project.searches||[]).forEach(search=>{
+      if((search.status||"").toLowerCase()!=="active") return;
+      const locArr= Array.isArray(search.location)? search.location : search.location?[search.location]:[];
+      locArr.forEach(locStr=>{
+        const canon= locStr.trim().toLowerCase();
+        if(window.cityLookup && window.cityLookup.has(canon)) {
+          const cityObj= window.cityLookup.get(canon);
+          const rn= (cityObj.regionName||"").trim();
+          if(!regionCounts[rn]) regionCounts[rn]=0;
+          regionCounts[rn]++;
         }
       });
     });
 
-    let maxCount = 0;
-    Object.values(regionCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
-    const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+    let maxCount=0;
+    Object.values(regionCounts).forEach(v=>{ if(v>maxCount) maxCount=v; });
+    const colorScale= d3.scaleSequential()
+      .domain([0, maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 600, height = 500;
-    const svg = container.append("svg")
+    const width=600, height=500;
+    const svg= container.append("svg")
       .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
+      .style("width","100%")
+      .style("height","auto")
+      .style("background","transparent");
 
-    const projection = d3.geoMercator().fitSize([width, height], ukGeo);
-    const path = d3.geoPath().projection(projection);
+    const projection= d3.geoMercator().fitSize([width,height], ukGeo);
+    const path= d3.geoPath().projection(projection);
 
     svg.selectAll("path.uk-region")
       .data(ukGeo.features)
       .enter()
       .append("path")
-      .attr("class", "uk-region")
-      .attr("d", path)
-      .attr("stroke", "#999")
-      .attr("fill", (d) => {
-        const regionName = d.properties.EER13NM || "";
-        const c = regionCounts[regionName] || 0;
+      .attr("class","uk-region")
+      .attr("d",path)
+      .attr("stroke","#999")
+      .attr("fill", d=>{
+        const regionName= d.properties.EER13NM||"";
+        const c= regionCounts[regionName]||0;
         return colorScale(c);
       });
 
-    // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
-      const [x, y] = coords;
+    const activeCityObjs= collectActiveCitiesForProject(project);
+    activeCityObjs.forEach(city=>{
+      const coords= projection([city.lng, city.lat]);
+      if(!coords) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("cx",coords[0])
+        .attr("cy",coords[1])
+        .attr("r",5)
+        .attr("fill","red")
+        .attr("stroke","#fff")
+        .attr("stroke-width",1);
     });
   }
 
   async function drawAustraliaMapWithLocations(project, containerSelector) {
-    const container = d3.select(containerSelector);
+    const container= d3.select(containerSelector);
     container.selectAll("*").remove();
 
     let auTopo;
     try {
-      auTopo = await getAustraliaMapData();
-    } catch (err) {
-      console.error("[mapsLib] Australia fetch error:", err);
+      auTopo= await getAustraliaMapData();
+    } catch(err) {
+      console.error("[mapsLib] Australia fetch error:",err);
       return;
     }
 
-    const australiaGeo = topojson.feature(auTopo, auTopo.objects.austates);
-    const regionCounts = {};
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locArr = Array.isArray(search.location) ? search.location : search.location ? [search.location] : [];
-      locArr.forEach((locStr) => {
-        const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const rid = cityObj.regionId;
-          if (typeof rid === "number" && rid >= 0) {
-            if (!regionCounts[rid]) regionCounts[rid] = 0;
+    const australiaGeo= topojson.feature(auTopo, auTopo.objects.austates);
+    const regionCounts={};
+    (project.searches||[]).forEach(search=>{
+      if((search.status||"").toLowerCase()!=="active") return;
+      const locArr= Array.isArray(search.location)? search.location: search.location?[search.location]:[];
+      locArr.forEach(locStr=>{
+        const canon= locStr.trim().toLowerCase();
+        if(window.cityLookup && window.cityLookup.has(canon)) {
+          const cityObj= window.cityLookup.get(canon);
+          const rid= cityObj.regionId;
+          if(typeof rid==="number" && rid>=0) {
+            if(!regionCounts[rid]) regionCounts[rid]=0;
             regionCounts[rid]++;
           }
         }
       });
     });
 
-    let maxCount = 0;
-    Object.values(regionCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
-    const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+    let maxCount=0;
+    Object.values(regionCounts).forEach(v=>{ if(v>maxCount) maxCount=v; });
+    const colorScale= d3.scaleSequential()
+      .domain([0, maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 700, height = 600;
-    const svg = container.append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
+    const width=700, height=600;
+    const svg= container.append("svg")
+      .attr("viewBox",`0 0 ${width} ${height}`)
+      .style("width","100%")
+      .style("height","auto")
+      .style("background","transparent");
 
-    const projection = d3.geoMercator().fitSize([width, height], australiaGeo);
-    const path = d3.geoPath().projection(projection);
+    const projection= d3.geoMercator().fitSize([width,height], australiaGeo);
+    const path= d3.geoPath().projection(projection);
 
     svg.selectAll("path.au-state")
       .data(australiaGeo.features)
       .enter()
       .append("path")
-      .attr("class", "au-state")
-      .attr("d", path)
-      .attr("stroke", "#999")
-      .attr("fill", (d) => {
-        const regionId = d.id;
-        const c = regionCounts[regionId] || 0;
+      .attr("class","au-state")
+      .attr("d",path)
+      .attr("stroke","#999")
+      .attr("fill", d=>{
+        const regionId=d.id;
+        const c= regionCounts[regionId]||0;
         return colorScale(c);
       });
 
-    svg.selectAll("circle.au-bubble")
-      .data(australiaGeo.features)
-      .enter()
-      .append("circle")
-      .attr("class", "au-bubble")
-      .attr("cx", (d) => path.centroid(d)[0])
-      .attr("cy", (d) => path.centroid(d)[1])
-      .attr("r", (d) => {
-        const c = regionCounts[d.id] || 0;
-        return c > 0 ? 20 : 0;
-      })
-      .attr("fill", "#2962FF")
-      .attr("fill-opacity", 0.4);
-
-    // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
+    const activeCityObjs= collectActiveCitiesForProject(project);
+    activeCityObjs.forEach(city=>{
+      const coords= projection([city.lng, city.lat]);
+      if(!coords) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", coords[0])
-        .attr("cy", coords[1])
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("cx",coords[0])
+        .attr("cy",coords[1])
+        .attr("r",5)
+        .attr("fill","red")
+        .attr("stroke","#fff")
+        .attr("stroke-width",1);
     });
   }
 
-  // ---------- (H) Expose as mapHelpers ----------
+  // Expose as mapHelpers
   window.mapHelpers = {
     drawUsMapWithLocations,
     drawCanadaMapWithLocations,
