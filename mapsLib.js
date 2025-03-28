@@ -241,7 +241,7 @@
     const stateShareMap = buildStateShareMap(dataRows);
 
     // 5) Create the SVG container
-    const baseWidth = 975, baseHeight = 610;
+    const baseWidth = 780, baseHeight = 488;
     const svg = mapDiv.append("svg")
       .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
@@ -288,25 +288,53 @@
       .attr("d", path);
 
     // 6B) Add white labels (average market share) inside each state
-    svg.selectAll("text.state-label")
-      .data(statesGeo.features)
-      .enter()
-      .append("text")
-      .attr("class", "state-label")
-      .attr("clip-path", d => "url(#clip-" + d.id + ")")
-      .attr("x", d => path.centroid(d)[0])
-      .attr("y", d => path.centroid(d)[1])
-      .attr("text-anchor", "middle")
-      .attr("fill", "#fff")
-      .style("font-size", "18px")
-      .style("font-weight", "600")
-      .style("pointer-events", "none")
-      .text(d => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return "";
-        const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-        return (combinedShare > 0) ? combinedShare.toFixed(1) + "%" : "";
-      });
+svg.selectAll("foreignObject.state-label")
+  .data(statesGeo.features)
+  .enter()
+  .append("foreignObject")
+  .attr("class", "state-label")
+  .attr("clip-path", d => "url(#clip-" + d.id + ")")
+  // Adjust x and y so the box is centered (you might need to tweak the offsets)
+  .attr("x", d => path.centroid(d)[0] - 30) 
+  .attr("y", d => path.centroid(d)[1] - 15)
+  .attr("width", "60px")
+  .attr("height", "30px")
+  .html(d => {
+    const stPostal = FIPS_TO_POSTAL[d.id] || null;
+    if (!stPostal || !stateShareMap[stPostal]) return "";
+    const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
+    const shareText = (combinedShare > 0) ? combinedShare.toFixed(1) + "%" : "";
+    
+    // Retrieve the trend data.
+    // This example assumes that window.locContainer is an object keyed by state postal codes
+    // and that each value has a Trend property with either "up" or "down".
+    let trendArrow = "";
+    if (window.locContainer && window.locContainer[stPostal]) {
+      trendArrow = window.locContainer[stPostal].Trend === "up" ? "&#x2191;" : "&#x2193;";
+    }
+    
+    // The inline style creates a box with a white background (70% opaque), dark grey text, and rounded corners.
+    return `
+      <div style="
+        width: 60px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        font-family: Helvetica, Arial, sans-serif;
+        background: rgba(255, 255, 255, 0.7);
+        color: #333;
+        border-radius: 4px;
+      ">
+        ${shareText}
+        <span style="margin-left: 4px; color: ${trendArrow === "&#x2191;" ? 'green' : 'red'};">
+          ${trendArrow}
+        </span>
+      </div>
+    `;
+  });
 
     // 7) Group location rows for device pies
     const locMap = new Map();
