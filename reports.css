@@ -2530,3 +2530,75 @@ body.home-page #layoutCompToggleContainer {
   cursor: pointer !important;
   box-sizing: border-box !important;
 }
+/* === Fix vis-badge placement inside each ad-details (grid-mode) === */
+#filteredResults.grid-mode .ad-thumbnail-container {
+  position: relative;
+}
+#filteredResults.grid-mode .ad-thumbnail-container .vis-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  z-index: 4;
+  /* Adjust size if needed */
+  width: auto;
+  height: auto;
+}
+
+/* === Restore rating bar styling in grid-mode === */
+#filteredResults.grid-mode .ad-rating {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+#filteredResults.grid-mode .star-container {
+  display: inline-flex;
+  align-items: center;
+}
+#filteredResults.grid-mode .star {
+  width: 14px;
+  height: 14px;
+  margin-right: 2px;
+  background: linear-gradient(to right, #fbbc04 var(--fill, 100)%, #dadce0 var(--fill, 100)%);
+  -webkit-mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc+') no-repeat center;
+  mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc+') no-repeat center;
+  background-size: cover;
+}
+#filteredResults.grid-mode .review-count {
+  font-size: 12px;
+  color: #70757a;
+  margin-left: 4px;
+}
+
+/* === Restore trend box styling in grid-mode === */
+#filteredResults.grid-mode .trend-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  margin-top: auto;
+  border-top: 1px solid #dadce0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+#filteredResults.grid-mode .trend-box .trend-header {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+  background: none;
+  border: none;
+}
+#filteredResults.grid-mode .trend-box .trend-data {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+#filteredResults.grid-mode .trend-box .trend-value-box.trend-up {
+  background-color: green;
+  color: #fff;
+}
+#filteredResults.grid-mode .trend-box .trend-value-box.trend-down {
+  background-color: red;
+  color: #fff;
+}
