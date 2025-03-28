@@ -241,7 +241,7 @@
     const stateShareMap = buildStateShareMap(dataRows);
 
     // 5) Create the SVG container
-    const baseWidth = 780, baseHeight = 488;
+    const baseWidth = 975, baseHeight = 610;
     const svg = mapDiv.append("svg")
       .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
