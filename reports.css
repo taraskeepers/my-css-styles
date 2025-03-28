@@ -1,1376 +1,789 @@
-{
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    html, body {
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
-                   "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #1C1C1E;
-      background-color: #F9F9FB;
-    }
-    #container {
-      display: flex;
-      flex-direction: column;
-      background-color: #fff;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      padding: 20px;
-    }
-    #rightColumn {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+/* ==============================================
+   1) GLOBAL & BASIC RESET
+   ============================================== */
 
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       1) TOP FILTER CONTAINER (Apple "frosted" style)
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    #filterContainer {
-      width: 100%;
-      height: 70px;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 18px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .apple-box.small-apple-block {
-      background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      padding: 12px;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      height: 50px;
-    }
-    #engineFilter { width: 265px; }
-    #deviceFilter { width: 260px; }
-    #locationFilter {
-      width: 320px !important;
-      max-width: 320px !important;
-      position: relative;
-    }
-    #searchTerm {
-      width: 400px !important;
-    }
-    #searchTermValue {
-      font-size: 16px;
-    }
-    .apple-label {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: #333;
-      text-align: left;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-    .apple-options-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: nowrap;
-      justify-content: flex-start;
-    }
-    .apple-option {
-      min-width: 60px;
-      padding: 6px 10px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: center;
-      color: #333;
-      background-color: #f5f5f7;
-      border: 1px solid #ccc;
-      border-radius: 9999px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .apple-option:hover {
-      background-color: #ebebed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .apple-option.active {
-      background-color: #007aff;
-      border-color: #005bbb;
-      color: #fff;
-    }
-    .apple-option.apple-option-gradient {
-      background: linear-gradient(to bottom, #f2f2f2, #e5e5e5);
-      border-color: #ccc;
-    }
-    .apple-option.apple-option-gradient:hover {
-      background: linear-gradient(to bottom, #fafafa, #ededed);
-    }
-    .apple-option.apple-option-gradient.active {
-      background: linear-gradient(to bottom, #007aff, #005bbb);
-      color: #fff;
-    }
-
-    /* Location dropdown styling */
-    #locationDropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 10000;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-top: 4px;
-      padding: 0;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .md-list {
-      background-color: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      padding: 0 !important;
-      max-height: 100%;
-      overflow-y: auto;
-      list-style: none;
-    }
-    .md-list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin-bottom: 6px;
-      background-color: #fafafa;
-      gap: 8px;
-      font-size: 14px;
-      transition: background-color 0.2s, box-shadow 0.2s;
-      cursor: pointer;
-    }
-    .md-list-item:hover {
-      background-color: #f2f2f7;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-    .item-col-left { flex: 1; }
-    .pop-badge {
-      color: #fff;
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-weight: 600;
-      min-width: 40px;
-      text-align: center;
-      background-color: #444;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       2) TOP BAR (Period Toggle & Date Range Picker)
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    #top-bar {
-      width: 100%;
-      height: 70px;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 18px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .three-position-toggle {
-      display: inline-flex;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 9999px;
-      overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      cursor: pointer;
-    }
-    .three-position-toggle .toggle-option {
-      flex: 1;
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-      text-align: center;
-      padding: 8px 16px;
-      transition: background-color 0.2s, color 0.2s, transform 0.2s;
-      user-select: none;
-    }
-    .three-position-toggle .toggle-option:hover {
-      background-color: #ebebed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .three-position-toggle .toggle-option.active {
-      background-color: #007aff;
-      color: #fff;
-      border-color: #005bbb;
-      box-shadow: none;
-      transform: none;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       Two-position toggle for “Grid/List”
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    .two-position-toggle {
-      display: inline-flex;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 9999px;
-      overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      cursor: pointer;
-    }
-    .two-position-toggle .toggle-option {
-      flex: 1;
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-      text-align: center;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      transition: background-color 0.2s, color 0.2s, transform 0.2s;
-      user-select: none;
-    }
-    .two-position-toggle .toggle-option:hover {
-      background-color: #ebebed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .two-position-toggle .toggle-option.active {
-      background-color: #007aff;
-      color: #fff;
-      border-color: #005bbb;
-      box-shadow: none;
-      transform: none;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       3) FILTERED RESULTS (PLA CARDS)
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    #filteredResults {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, 150px);
-      grid-gap: 8px;
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      padding: 0;
-    }
-    #filteredResults h2, #filteredResults p {
-      display: none;
-    }
-
-    /*
-       .list-mode => row layout with 7 columns
-    */
-    #filteredResults.list-mode {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    #filteredResults.table-mode {
-        display: block;
-      }      
-
-    #filteredResults.list-mode .column-image {
-        position: relative; /* So absolutely positioned badges appear over the image */
-        display: flex;      /* or block/inline-block; flex is okay if you center the image */
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;   /* optional: if you want to clip anything that goes beyond */
-      }
-      #filteredResults.list-mode .column-visibility {
-        /* Force the visibility column to center its content */
-        display: flex;
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: center;
-        /* Optional: Add some padding if you prefer */
-        padding: 4px;
-      }
-      #filteredResults.list-mode .column-visibility .vis-label {
-        margin-top: 4px;
-        font-size: 12px;
-        color: #333;
-      }      
-
-      #filteredResults.list-mode .column-title-company .ad-title {
-        display: block;
-        -webkit-line-clamp: unset;
-        -webkit-box-orient: unset;
-        overflow: visible;
-        text-overflow: clip;
-        white-space: normal;
-        text-align: left;
-      }      
-      
-      /* Sale badge => top-left corner over the image */
-#filteredResults.list-mode .column-image .sale-badge {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 4; /* ensures it’s above the image */
-  }
-  
-  /* Pos badge => top-right corner over the image */
-  #filteredResults.list-mode .column-image .pos-badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 4;
-  }
-  
-  /* Vis badge => bottom-right corner over the image */
-  #filteredResults.list-mode .column-image .vis-badge {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
-    z-index: 4;
-  }  
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       INDIVIDUAL AD CARD – default (GRID mode) structure
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    .ad-details {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      background-color: #fff;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      overflow: hidden;
-      transition: box-shadow 0.2s ease;
-      cursor: pointer;
-      width: 150px;
-      height: 380px;
-    }
-    .ad-details:hover {
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-    .ad-details a.ad-link {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 3;
-      outline: 0;
-      text-decoration: none;
-      cursor: pointer;
-      -webkit-tap-highlight-color: rgba(255,255,255,0.1);
-    }
-    .ad-details.selected {
-      border: 2px solid #007aff;
-      box-shadow: 0 0 10px rgba(0,122,255,0.5);
-      transition: box-shadow 0.3s ease;
-    }
-
-    /* ~~~ GRID-MODE layout (the old structure) ~~~ */
-    .grid-mode-layout {
-      /* We’ll keep these “block/flex” as before */
-      display: flex;
-      flex-direction: column;
-      height: 100%; /* so it fills the parent .ad-details */
-    }
-    .ad-thumbnail-container {
-      position: relative;
-      width: 100%;
-      background-color: #f8f9fa;
-      border-bottom: 1px solid #eee;
-      height: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    .ad-thumbnail {
-      max-width: 100%;
-      max-height: 130px;
-      object-fit: contain;
-    }
-    .sale-badge {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background-color: #ffffff;
-      color: #000;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 3px;
-      padding: 2px 6px;
-      width: 50px;
-      height: 20px;
-      z-index: 4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .pos-badge {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background-color: green;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 3px;
-      padding: 2px 6px;
-      height: 20px;
-      z-index: 4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .vis-badge {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      width: 70px;
-      height: 70px;
-      padding: 4px;
-      box-sizing: border-box;
-      z-index: 4;
-    }
-
-    .ad-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 8px 8px;
-    }
-    .ad-title {
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 1.3;
-      color: #202124;
-      margin-bottom: 4px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ad-title a {
-      text-decoration: none;
-      color: #1a0dab;
-      font-weight: 400;
-    }
-    .ad-title a:hover {
-      text-decoration: underline;
-    }
-    .ad-price {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: #000;
-    }
-    .ad-price.discounted {
-      color: #0f9d58;
-    }
-    .ad-old-price {
-      font-size: 12px;
-      color: #70757a;
-      text-decoration: line-through;
-      margin-left: 6px;
-    }
-    .ad-merchant {
-      font-size: 14px;
-      color: #70757a;
-      margin-bottom: 6px;
-    }
-    /* RATING & REVIEWS – Original star rating */
-    .ad-rating {
-      display: flex;
-      align-items: center;
-      margin-bottom: 4px;
-    }
-    #filteredResults.list-mode .ad-rating {
-        flex-direction: column;
-        align-items: center;
-      }      
-    .star-container {
-      display: inline-flex;
-      align-items: center;
-    }
-    .star {
-      width: 14px;
-      height: 14px;
-      margin-right: 2px;
-      background: linear-gradient(to right, #fbbc04 var(--fill, 100)%, #dadce0 var(--fill, 100)%);
-      -webkit-mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc+') no-repeat center;
-      mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc+') no-repeat center;
-      background-size: cover;
-    }
-    .review-count {
-      font-size: 12px;
-      color: #70757a;
-      margin-left: 4px;
-    }
-    .ad-extensions {
-      display: inline-flex;
-      gap: 4px;
-      max-height: 20px;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .ad-extension {
-      background-color: #f1f3f4;
-      color: #3c4043;
-      font-size: 11px;
-      padding: 2px 4px;
-      border-radius: 3px;
-      white-space: nowrap;
-    }
-
-    /* The old (grid-mode) trend-box at the bottom */
-    .trend-box {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: auto auto;
-      margin-top: auto;
-      border-top: 1px solid #dadce0;
-      border-bottom-left-radius: 8px;
-      border-bottom-right-radius: 8px;
-    }
-    .trend-box .trend-header {
-      padding: 4px 6px;
-      text-align: center;
-      font-size: 11px;
-      font-weight: bold;
-      color: #333;
-      background: none;
-      border: none;
-    }
-    .trend-box .trend-data {
-      padding: 4px 6px;
-      text-align: center;
-      font-size: 12px;
-      font-weight: bold;
-    }
-/* 1) For list mode => keep your existing backgrounds on .trend-value-box */
-.trend-value-box.trend-up {
-    background-color: green;
-    color: #fff;
-  }
-  .trend-value-box.trend-down {
-    background-color: red;
-    color: #fff;
-  }
-  
-  /* 2) For table mode => text color only, no background */
-  .trend-up-text {
-    color: green;
-    background-color: transparent !important;
-  }
-  .trend-down-text {
-    color: red;
-    background-color: transparent !important;
-  }
-  .trend-neutral-text {
-    color: #333;
-    background-color: transparent !important;
-  }  
-
-    /* Hide the old .trend-box in list-mode, since we have the new columns there */
-    #filteredResults.list-mode .trend-box {
-      display: none;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       LIST-MODE layout (new 7-column arrangement)
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-       #filteredResults.list-mode .ad-details {
-        width: 100% !important;
-        height: 120px;          /* Fixed row height (instead of max-height) */
-        display: grid;
-        gap: 8px;
-        align-items: center;    /* Ensures child columns stretch vertically */
-        padding: 0px;
-        cursor: pointer;
-        border-radius: 8px;
-        border: 1px solid #dadce0;
-        box-sizing: border-box;
-      }
-
-    /* Hide the .grid-mode-layout when we are in list-mode */
-    #filteredResults.list-mode .grid-mode-layout {
-      display: none;
-    }
-    /* Show the .list-mode-layout in list-mode */
-    .list-mode-layout {
-      display: none; /* hidden by default in grid-mode */
-    }
-    #filteredResults.list-mode .list-mode-layout {
-      display: contents; /* display:contents => direct children can occupy the grid columns */
-    }
-
-    /* Column 1 – Trend Box (vertical) */
-    .column-trend {
-        height: 100%;               /* Fills the .ad-details row’s fixed height */
-        border-top-left-radius: 8px;
-        border-bottom-left-radius: 8px;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
-        /* We don't define columns here; each .trend-row is a separate "horizontal" grid */
-        display: flex;              /* or block, but flex is fine to stack the 3 rows */
-        flex-direction: column;
-      }
-      
-/* 2) The container that holds the 3 .trend-row items vertically */
-.list-mode-trend-box {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    /* No vertical padding => color is flush at top/bottom */
-    padding: 0;
-    /* No gap => rows have no extra vertical space between them */
-    gap: 0;
-  }
-  
-  /* 3) Each “trend-row” is itself a 2-column grid: left side = color, right side = label */
-  .trend-row {
-    display: grid;
-    grid-template-columns: 60% 40%; /* Adjust 60/40 or 50/50 as you prefer */
-    align-items: center;
-    flex: 1;          /* let each row share available vertical space equally */
-    margin: 0;
-    padding: 0;
-    gap: 8px;
-  }
-  
-  /* 4) The fully colored cell (arrow+value) should fill its entire half of the row */
-  .trend-value-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;    /* Fill the cell vertically */
-    white-space: nowrap;  /* Keep arrow and value on one line */
-    font-size: 16px;
-    color: #fff;          /* So text is visible on red/green background */
-    /* No extra padding or margin, so color occupies the entire cell */
-  }
-      
-/* 6) Red/green background for down/up trends, white text inside */
-.trend-up {
-    background-color: green; /* Original green */
-    color: #fff;
-  }
-  .trend-down {
-    background-color: red;   /* Original red */
-    color: #fff;
-  }
-      
-      /* Optional: style the value and label for consistency */
-      .trend-value {
-        font-weight: bold;
-        font-size: 12px;
-      }
-      
-      .trend-label {
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        color: #333;
-        font-size: 12px;
-        padding-left: 0;
-      }
-    
-    .list-mode-trend-box .trend-header {
-      display: none; /* hide row headers in vertical mode */
-    }
-    .list-mode-trend-box .trend-data {
-      text-align: left;
-      font-size: 12px;
-      padding: 2px;
-    }
-    .list-mode-trend-box .trend-data:nth-of-type(1)::before {
-      content: "1d: ";
-    }
-    .list-mode-trend-box .trend-data:nth-of-type(2)::before {
-      content: "7d: ";
-    }
-    .list-mode-trend-box .trend-data:nth-of-type(3)::before {
-      content: "30d: ";
-    }
-
-    /* Column 2 – Image & badges */
-    .column-image {
-      grid-column: 2;
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    /* Column 3 – Title + Company */
-    .column-title-company {
-      grid-column: 3;
-    }
-
-    /* Column 4 – Position */
-    .column-position {
-      grid-column: 1;
-      text-align: center;
-      font-weight: 600;
-    }
-
-    /* Column 5 – Visibility */
-    .column-visibility {
-      grid-column: 4;
-      text-align: center;
-    }
-
-    /* Column 6 – Price & promotions */
-    .column-price {
-      grid-column: 5;
-    }
-
-    /* Column 7 – Rating & reviews */
-    .column-rating {
-      grid-column: 6;
-      text-align: center;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       PLA DETAILS PANEL & CHARTS
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    .pla-details-panel {
-      grid-column: 1 / -1;
-      margin: 0 auto;
-      width: 1255px;
-      height: 470px;
-      overflow: hidden;
-      background-color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      font-size: 14px;
-    }
-    .pla-details-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: rgba(255,255,255,0.35);
-      padding: 10px 20px;
-      border-bottom: 1px solid #ccc;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .pla-details-title {
-      font-weight: bold;
-      font-size: 18px;
-      color: #333;
-    }
-    .pla-details-date-picker {
-      margin-left: auto;
-      width: 215px;
-    }
-    .pla-details-date-picker input {
-      width: 215px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 12px;
-      padding: 8px 12px;
-      font-size: 16px;
-      color: #333;
-      outline: none;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    .pla-details-date-picker input:focus {
-      border-color: #007aff;
-      box-shadow: 0 0 8px rgba(0,122,255,0.4);
-    }
-
-    .pla-details-content {
-      display: flex;
-      width: 100%;
-      height: calc(100% - 50px);
-    }
-    .pla-details-column {
-      padding: 10px;
-      overflow: auto;
-      box-sizing: border-box;
-    }
-    .pla-details-left {
-      flex: 0 0 600px;
-    }
-    .pla-details-middle {
-      flex: 0 0 250px;
-    }
-    .pla-details-main-metrics {
-      flex: 0 0 200px;
-    }
-    .pla-details-settings {
-      background-color: #f2f2f2;
-      padding: 10px;
-      border-radius: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      color: #333;
-    }
-    .pla-details-settings h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-    .toggle-switch-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .toggle-label {
-      font-size: 14px;
-      margin-right: 10px;
-    }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 20px;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: 0.4s;
-      border-radius: 20px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 2px; bottom: 2px;
-      background-color: #fff;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-    .toggle-switch input:checked + .slider {
-      background-color: #007aff;
-    }
-    .toggle-switch input:checked + .slider:before {
-      transform: translateX(20px);
-    }
-
-    .pla-details-main-metrics {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      justify-content: start;
-      align-items: center;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 18px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    .metric-row {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-size: 16px;
-      color: #333;
-      width: 100%;
-      text-align: center;
-      margin-bottom: 6px;
-    }
-    .metric-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-      font-size: 15px;
-      color: #444;
-    }
-    .metric-value {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      color: #007aff;
-      white-space: nowrap;
-    }
-    .volatility-status {
-      margin-top: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #444;
-    }
-
-    .daterangepicker .drp-buttons button {
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      margin: 0 4px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-    .daterangepicker .drp-buttons button.applyBtn {
-      background-color: #007aff;
-      color: #fff;
-    }
-    .daterangepicker .drp-buttons button.cancelBtn {
-      background-color: transparent;
-      color: #007aff;
-    }
-    .daterangepicker .drp-buttons button:hover {
-      opacity: 0.85;
-    }
-    .daterangepicker .drp-calendar table td.active,
-    .daterangepicker .drp-calendar table td.active:hover {
-      background-color: #007aff !important;
-      border-color: #007aff !important;
-    }
-    .daterangepicker .drp-calendar table td:hover {
-      border-color: #007aff !important;
-    }
-    .daterangepicker .drp-buttons button.applyBtn {
-      background-color: #007aff !important;
-      color: #fff !important;
-    }
-    .daterangepicker .drp-buttons button.cancelBtn {
-      background-color: transparent !important;
-      color: #007aff !important;
-    }
-    .daterangepicker {
-      z-index: 11000 !important;
-    }
-
-    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       TABS styling
-       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-    .tabs-container {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: calc(100% - 50px);
-      background: none;
-    }
-    .tab-buttons {
-      display: flex;
-      gap: 8px;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 14px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin: 10px 20px;
-      padding: 8px;
-    }
-    .tab-buttons button {
-      background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .tab-buttons button:hover {
-      background-color: #ebebed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .tab-buttons button.active {
-      background-color: #005bbb;
-      color: #2a2a2a;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-      transform: translateY(2px);
-    }
-    .tab-content {
-      flex: 1;
-      display: flex;
-      padding: 10px 20px;
-      overflow: auto;
-    }
-    .active-extension-tag {
-      display: inline-block;
-      width: auto;
-      background-color: #385ae5;
-      color: #ffffff;
-      font-size: 14px;
-      padding: 4px 8px;
-      border-radius: 12px;
-      margin-bottom: 4px;
-    }
-    .price-chart-container { width: 400px; }
-    .rating-chart-container { width: 400px; }
-    .rating-metrics-container { width: 200px; }
-    .active-extensions-container { width: 200px; }
-
-    /* Generic topbar button styling */
-    .topbar-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.35);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 6px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 12px;
-      min-width: 30px;
-      min-height: 30px;
-      cursor: pointer;
-      margin-left: 8px;
-      transition: background-color 0.2s, transform 0.2s;
-    }
-    .topbar-button:hover {
-      background-color: #ebebed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    #settingsDropdown {
-      display: none;
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      background: #f2f2f2;
-      border: 1px solid #ccc;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 99999;
-      width: 220px;
-      padding: 12px;
-    }
-    .settings-dropdown-inner {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    #settingsDropdown.show {
-      display: block;
-    }
-    .column-title-company {
-        /* Allow text wrapping and left alignment */
-        display: block;        /* block-level so text can wrap */
-        text-align: left;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        padding: 4px;          /* optional: a little padding for readability */
-      }
-    .column-position,
-    .column-visibility,
-    .column-price,
-    .column-rating {
-      display: flex;
-      align-items: center;        /* vertically center the content */
-      justify-content: center;   /* horizontal center */
-      padding: 4px;
-    }
-    #filteredResults.list-mode .column-extensions .ad-extensions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        max-height: 120px;
-        white-space: normal;
-        overflow: visible;
-        overflow-y: hidden;
-      }
-#filteredResults.list-mode .column-position {
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;       /* center horizontally */
-  justify-content: center;   /* center vertically */
-  height: 100% !important;
-  text-align: center;
+/* Corrected universal reset (original had just braces without a selector) */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
-      
-      #filteredResults.list-mode .column-position .pos-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      }
-      
-#filteredResults.list-mode .column-position .pos-label {
-  position: static !important;
-  margin-top: 4px;            /* If you want spacing below the number */
-  text-align: center;         /* keep it centered horizontally */
+
+/* Merge of original html/body plus embed margin/padding */
+html, body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1C1C1E;
+  background-color: #F9F9FB;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==============================================
+   #container – merged
+   ============================================== */
+#container {
+  margin: 0;               /* from embed */
+  padding: 0;              /* from embed */
+  display: flex;           /* from original */
+  flex-direction: column;  /* from original */
+  background-color: #fff;  /* from original */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* from original */
+}
+
+/* Original #rightColumn (no conflicts) */
+#rightColumn {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ==============================================
+   2) TOP FILTER CONTAINER
+   ============================================== */
+#filterContainer {
+  width: 100%;
+  height: 70px;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-box.small-apple-block {
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  max-width: 400px;
+  height: 50px;
+}
+
+#engineFilter { width: 265px; }
+#deviceFilter { width: 260px; }
+#locationFilter {
+  width: 320px !important;
+  max-width: 320px !important;
+  position: relative;
+}
+#searchTerm {
+  width: 400px !important;
+}
+#searchTermValue {
+  font-size: 16px;
+}
+
+.apple-label {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  text-align: left;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.apple-options-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+.apple-option {
+  min-width: 60px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+  background-color: #f5f5f7;
+  border: 1px solid #ccc;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.apple-option:hover {
+  background-color: #ebebed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.apple-option.active {
+  background-color: #007aff;
+  border-color: #005bbb;
+  color: #fff;
+}
+.apple-option.apple-option-gradient {
+  background: linear-gradient(to bottom, #f2f2f2, #e5e5e5);
+  border-color: #ccc;
+}
+.apple-option.apple-option-gradient:hover {
+  background: linear-gradient(to bottom, #fafafa, #ededed);
+}
+.apple-option.apple-option-gradient.active {
+  background: linear-gradient(to bottom, #007aff, #005bbb);
+  color: #fff;
+}
+
+/* Location dropdown styling (original) */
+#locationDropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 4px;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* For the location dropdown <ul> and <li> items */
+.md-list {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-height: 100%;
+  overflow-y: auto;
+  list-style: none;
+}
+.md-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background-color: #fafafa;
+  gap: 8px;
+  font-size: 14px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.md-list-item:hover {
+  background-color: #f2f2f7;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.item-col-left { flex: 1; }
+.pop-badge {
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+  background-color: #444;
+}
+
+/* ==============================================
+   3) TOP BAR (Period Toggle & Date Range)
+   ============================================== */
+
+/* Original #top-bar plus embed also said #top-bar { display:flex; align-items:center; } – no conflict */
+#top-bar {
+  width: 100%;
+  height: 70px;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* .three-position-toggle – final merged. Embed took similar approach, so this is consolidated. */
+.three-position-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+.three-position-toggle .toggle-option {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  padding: 8px 16px;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+  user-select: none;
+}
+.three-position-toggle .toggle-option:hover {
+  background-color: #ebebed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.three-position-toggle .toggle-option.active {
+  background-color: #007aff;
+  color: #fff;
+  border-color: #005bbb;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Two-position toggle (Grid vs List) */
+.two-position-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+.two-position-toggle .toggle-option {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+  user-select: none;
+}
+.two-position-toggle .toggle-option:hover {
+  background-color: #ebebed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.two-position-toggle .toggle-option.active {
+  background-color: #007aff;
+  color: #fff;
+  border-color: #005bbb;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ==============================================
+   4) FILTERED RESULTS (Grid, List, Table)
+   ============================================== */
+
+/* #filteredResults – from original */
+#filteredResults {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 150px);
+  grid-gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+#filteredResults h2, #filteredResults p {
+  display: none;
+}
+/* list-mode => row layout (original) */
+#filteredResults.list-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#filteredResults.table-mode {
+  display: block;
+}
+
+/* .grid-mode-layout (original) – used in grid mode */
+.grid-mode-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Additional embed overrides for #filteredResults grid-mode => make flex, wrap, etc. */
+#filteredResults.grid-mode {
+  display: flex !important;
+  flex-wrap: wrap;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+#filteredResults.grid-mode .ad-details {
+  flex: 0 0 calc(12.5% - 10px) !important;
+  box-sizing: border-box;
+}
+
+/* table-mode remains from original (display:block). 
+   Additional styling for “list-mode .ad-details” from original */
+#filteredResults.list-mode .ad-details {
+  width: 100% !important;
+  height: 120px;
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  padding: 0px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid #dadce0;
+  box-sizing: border-box;
+}
+
+/* For the columns in list-mode (original). */
+#filteredResults.list-mode .column-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#filteredResults.list-mode .column-visibility {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+#filteredResults.list-mode .column-visibility .vis-label {
+  margin-top: 4px;
   font-size: 12px;
   color: #333;
-  padding-bottom: 0;          /* no extra padding needed */
 }
+#filteredResults.list-mode .column-title-company .ad-title {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  text-align: left;
+}
+/* The original “badge” positioning in .column-image was overridden by embed, so we remove them in favor of new .sale-badge / .pos-badge merges below. */
 
-      #filteredResults.list-mode .column-price {
-        flex-direction: column;
-      }      
-      #filteredResults.list-mode .column-price .active-promotions {
-        display: inline-block;      /* or flex if you need more control */
-        background-color: orange;        /* red background */
-        color: white;                 /* white text */
-        font-size: 16px;              /* adjust size as needed */
-        padding: 6px 10px;            /* more padding for a bigger appearance */
-        border-radius: 4px;           /* rounded corners */
-        margin-top: 4px;              /* spacing between price and promotions */
-      }
-      #filteredResults.list-mode .pos-badge,
+/* Hide pos-badge / vis-badge in list-mode (from embed) */
+#filteredResults.list-mode .pos-badge,
 #filteredResults.list-mode .vis-badge {
   display: none;
-}       
-#filteredResults.list-mode .column-visibility .vis-label {
-    text-align: center;
-    font-size: 12px;
-    color: #333;
-    margin-top: 4px;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend {
-    margin-top: 4px;
-    font-size: 12px;
-    color: #333;
-    text-align: center;
-    width: 100%;
-  }
-  #filteredResults.list-mode .column-rating .rating-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend {
-    margin-top: 4px; /* spacing between the rating bar and the trend */
-    font-size: 12px;
-    color: #333;
-    width: 100%;
-    text-align: center;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-up {
-    color: green;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-down {
-    color: red;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-neutral {
-    color: #333;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend .rating-trend-value {
-    background: none;
-  }
-  #filteredResults.list-mode .column-rating .rating-trend .rating-trend-arrow {
-    background: none; /* ensure no background is applied */
-    color: inherit;   /* inherit the text color from its parent */
-  }          
-  .three-position-toggle {
-    display: inline-flex;
-    background: rgba(255,255,255,0.35);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 9999px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    cursor: pointer;
-  }
-  .three-position-toggle .toggle-option {
-    flex: 1;
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-    text-align: center;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    transition: background-color 0.2s, color 0.2s, transform 0.2s;
-    user-select: none;
-  }
-  .three-position-toggle .toggle-option:hover {
-    background-color: #ebebed;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  .three-position-toggle .toggle-option.active {
-    background-color: #007aff;
-    color: #fff;
-    border-color: #005bbb;
-    box-shadow: none;
-    transform: none;
-  }
-  .apple-table {
-    width: 1000px;
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0;
-    background-color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-radius: 12px;
-    overflow: hidden; /* so the corners are clipped by the radius */
-  }
-  
-  .apple-table thead {
-    background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-    border-bottom: 2px solid #ddd;
-    table-layout: fixed;
-  }
-  .apple-table th,
-  .apple-table th {
-    height: 50px;
-    overflow: hidden;
-  white-space: nowrap;  /* prevents multiple lines */
+}
+
+/* Overriding some layout details from embed */
+#filteredResults.list-mode .ad-details .pla-details-panel {
+  min-height: 120px;
+}
+
+/* For table-like mode – no direct conflicts, so we keep them. */
+
+/* ==============================================
+   5) INDIVIDUAL AD CARD
+   ============================================== */
+.ad-details {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
+  width: 150px;
+  height: 380px;
+}
+.ad-details:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.ad-details a.ad-link {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 3;
+  outline: 0;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+.ad-details.selected {
+  border: 2px solid #007aff;
+  box-shadow: 0 0 10px rgba(0,122,255,0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+/* .grid-mode-layout’s internals */
+.ad-thumbnail-container {
+  position: relative;
+  width: 100%;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.ad-thumbnail {
+  max-width: 100%;
+  max-height: 130px;
+  object-fit: contain;
+}
+
+/* ~~~ MERGED .sale-badge from both original & embed ~~~ */
+.sale-badge {
+  position: absolute;
+  top: 4px;       /* Keep original top from old or any desired top? */
+  left: 0;        /* Embed overrides right:4px -> left:0 */
+  right: auto;
+  margin: 5px;    /* from embed */
+  padding: 4px 6px; 
+  background: red; 
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;     /* from original */
+  font-weight: 600;    /* from original */
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ~~~ MERGED .pos-badge from both original & embed ~~~ */
+.pos-badge {
+  position: absolute;
+  top: 5px;       /* embed override (was 4px in original) */
+  right: 0;
+  margin: 5px;    /* embed addition */
+  padding: 4px 6px;
+  background-color: green;
+  color: #fff;
+  border-radius: 4px; /* embed override original 3px */
+  font-size: 12px;    /* keep original */
+  font-weight: 600;   /* keep original */
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ~~~ MERGED .vis-badge from both original & embed ~~~ */
+.vis-badge {
+  display: block;        /* embed override (remove absolute positioning) */
+  width: 80px;           /* embed override was 80px vs original 70px */
+  height: 80px;          /* embed override was 80px vs original 70px */
+}
+
+/* ==============================================
+   6) AD INFO BLOCKS (Title, Price, Rating)
+   ============================================== */
+.ad-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 8px;
+}
+.ad-title {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.3;
+  color: #202124;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   text-overflow: ellipsis;
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
-    font-size: 14px;
-    border-right: 1px solid #eee;
-  }
-  .apple-table th:last-child {
-    border-right: none;
-  }
-  
-  .apple-table td {
-    position: relative;
-    padding: 12px;
-    font-size: 14px;
-    color: #333;
-    vertical-align: middle;
-    border-bottom: 1px solid #eee;
-    border-right: 1px solid #eee;
-    height: 50px;
-  }
-  .apple-table td::after {
-    content: "...";
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    background: white;
-    padding: 0 2px;
-    display: none;
-  }
-  .apple-table td:hover::after {
-    /* if you want to show "..." on hover, or reveal full text in a tooltip, etc. */
-    display: none; /* or do something else */
-  }
-  .table-container {
-    overflow-x: auto;
-  }
-  .apple-table th.date-col span {
-    display: block;                   /* block so margin auto can center it */
-    width: 100%;                      /* so margin auto aligns within the cell’s width */
-    transform: rotate(-90deg);
-    transform-origin: center center;  /* so the rotation is about the true center */
-    margin: 0 auto;                   /* ensures the block is centered horizontally */
-    text-align: center;               /* if you want the text itself centered on its baseline */
-    font-size: 12px;
-  }
-  .apple-table th.date-col {
-    text-align: center;      /* center horizontally */
-    padding: 0;             /* remove default left/right padding */
-  }  
-  .apple-table thead tr th {
-    /* Increase only the first row’s height */
-    height: 100px;
-  }
-  .apple-table td.title-col {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .apple-table td.visibility-col,
+}
+.ad-title a {
+  text-decoration: none;
+  color: #1a0dab;
+  font-weight: 400;
+}
+.ad-title a:hover {
+  text-decoration: underline;
+}
+.ad-price {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #000;
+}
+.ad-price.discounted {
+  color: #0f9d58;
+}
+.ad-old-price {
+  font-size: 12px;
+  color: #70757a;
+  text-decoration: line-through;
+  margin-left: 6px;
+}
+.ad-merchant {
+  font-size: 14px;
+  color: #70757a;
+  margin-bottom: 6px;
+}
+/* Rating & reviews */
+.ad-rating {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+#filteredResults.list-mode .ad-rating {
+  flex-direction: column;
+  align-items: center;
+}
+.star-container {
+  display: inline-flex;
+  align-items: center;
+}
+.star {
+  width: 14px;
+  height: 14px;
+  margin-right: 2px;
+  background: linear-gradient(to right, #fbbc04 var(--fill, 100)%, #dadce0 var(--fill, 100)%);
+  -webkit-mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc=') no-repeat center;
+  mask: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkQ4MzAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNy44NjYuNjk1bDIuMTQ1IDMuOTc1IDQuNDI4LjY0LS4wNCAuMDcxLTMuMTIgMy4wNDcuNzQ4IDQuMjgyLS4xMTcuMDY5LTMuNTYtMS44Ny0zLjU1OCAxLjg3IC0uMTE3LS4wNjkuNzQ4LTQuMjgyLTMuMTItMy4wNDctLjA0LS4wNzEgNC40MjgtLjY0LjA0LS4wNzFaIi8+PC9zdmc=') no-repeat center;
+  background-size: cover;
+}
+.review-count {
+  font-size: 12px;
+  color: #70757a;
+  margin-left: 4px;
+}
+/* Ad extensions */
+.ad-extensions {
+  display: inline-flex;
+  gap: 4px;
+  max-height: 20px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ad-extension {
+  background-color: #f1f3f4;
+  color: #3c4043;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* ==============================================
+   7) TREND BOX (grid-mode)
+   ============================================== */
+.trend-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  margin-top: auto;
+  border-top: 1px solid #dadce0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.trend-box .trend-header {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+  background: none;
+  border: none;
+}
+.trend-box .trend-data {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+/* up/down background versions */
+.trend-value-box.trend-up {
+  background-color: green;
+  color: #fff;
+}
+.trend-value-box.trend-down {
+  background-color: red;
+  color: #fff;
+}
+/* text-only versions */
+.trend-up-text {
+  color: green;
+  background-color: transparent !important;
+}
+.trend-down-text {
+  color: red;
+  background-color: transparent !important;
+}
+.trend-neutral-text {
+  color: #333;
+  background-color: transparent !important;
+}
+/* Hide .trend-box in list-mode, as per original code */
+#filteredResults.list-mode .trend-box {
+  display: none;
+}
+
+/* .list-mode layout toggles */
+.list-mode-layout {
+  display: none;
+}
+#filteredResults.list-mode .list-mode-layout {
+  display: contents;
+}
+.column-trend {
+  grid-column: 1;
+}
+
+/* Additional embed .trend-data color overrides */
+.trend-data {
+  color: #fff !important;   /* from embed snippet */
+}
+.trend-header {
+  color: #555 !important;   /* from embed snippet */
+}
+
+/* ==============================================
+   8) APPLE-TABLE (MERGED)
+   ============================================== */
+.apple-table {
+  width: 1000px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.apple-table thead {
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  border-bottom: 2px solid #ddd;
+  table-layout: fixed;
+}
+.apple-table th,
+.apple-table th {
+  height: 50px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  border-right: 1px solid #eee;
+}
+.apple-table th:last-child {
+  border-right: none;
+}
+.apple-table td {
+  position: relative;
+  padding: 12px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
+  height: 50px;
+}
+.apple-table td::after {
+  content: "...";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: white;
+  padding: 0 2px;
+  display: none;
+}
+.apple-table td:hover::after {
+  display: none;
+}
+.table-container {
+  overflow-x: auto;
+}
+.apple-table th.date-col span {
+  display: block;
+  width: 100%;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 12px;
+}
+.apple-table th.date-col {
+  text-align: center;
+  padding: 0;
+}
+.apple-table thead tr th {
+  height: 100px;
+}
+.apple-table td.title-col {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.apple-table td.visibility-col,
 .apple-table td.avg-pos-col,
 .apple-table td.trend-1d-col,
 .apple-table td.trend-7d-col,
 .apple-table td.trend-30d-col {
   text-align: center;
-}   
-.title-col {
-    position: relative; /* so .resize-handle can absolutely position inside it */
-    min-width: 80px;
-  }
-  .title-col .resize-handle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 5px;
-    height: 100%;
-    cursor: col-resize;
-  }
-  .resize-handle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
-    cursor: col-resize; /* visually indicates a "drag to resize" */
-    height: 100%;
-    z-index: 2;
-    /* optional background: if you want a tiny visual bar, do:
-    background-color: rgba(0,0,0,0.2);
-    */
-  }
-  .apple-table th.title-col {
-    position: relative; /* so .resize-handle can be absolutely placed */
-  }
-  .vis-progress-container {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;              /* space between bar and text */
-    width: 100%;           /* let it fill the cell width */
-    justify-content: start;/* or space-between, etc. */
-  }
-  
-  .vis-progress-bar {
-    background-color: #007aff;  /* the bar color */
-    height: 8px;                /* bar thickness */
-    border-radius: 4px;
-    transition: width 0.3s;
-    flex-shrink: 0;             /* so it doesn't shrink to zero */
-    max-width: 80px;            /* optionally limit the bar’s max width if you want */
-  }
-  
-  .vis-progress-label {
-    font-size: 14px;
-    color: #333;
-    min-width: 40px;            /* ensures the text doesn't jump around if 1-digit or 2-digit numbers */
-  }
-  /* 1) Let the three trend columns wrap text if needed */
-.apple-table th.trend-1d-col,
-.apple-table th.trend-7d-col,
-.apple-table th.trend-30d-col {
-  white-space: normal; 
-  word-wrap: break-word; 
-  text-align: center; /* optional */
 }
-
-/* 2) Color-coded background for numeric date columns */
+.title-col {
+  position: relative;
+  min-width: 80px;
+}
+.title-col .resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+}
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  cursor: col-resize;
+  height: 100%;
+  z-index: 2;
+}
+.vis-progress-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: start;
+}
+.vis-progress-bar {
+  background-color: #007aff;
+  height: 8px;
+  border-radius: 4px;
+  transition: width 0.3s;
+  flex-shrink: 0;
+  max-width: 80px;
+}
+.vis-progress-label {
+  font-size: 14px;
+  color: #333;
+  min-width: 40px;
+}
+/* color-coded background for numeric cells */
 .range-green {
   background-color: rgba(0,255,0,0.2);
 }
@@ -1383,8 +796,6 @@
 .range-red {
   background-color: rgba(255,0,0,0.2);
 }
-
-/* 3) Trend arrow text colors */
 .trend-up {
   color: green;
 }
@@ -1392,18 +803,1164 @@
   color: red;
 }
 .trend-neutral {
-  color: #333; /* or black/gray */
+  color: #333;
 }
 .apple-filter-button {
-    background: none;
-    border: none;
-    color: #007aff; 
-    font-size: 14px;
-    cursor: pointer;
-    margin-left: 8px;
-    padding: 4px;
-    border-radius: 6px;
-  }
-  .apple-filter-button:hover {
-    background-color: #ebebed;
-  } 
+  background: none;
+  border: none;
+  color: #007aff;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: 8px;
+  padding: 4px;
+  border-radius: 6px;
+}
+.apple-filter-button:hover {
+  background-color: #ebebed;
+}
+
+/* Additional embed rules for .apple-table rows / selecting */
+.apple-table tbody tr.selected {
+  background-color: #e0f0ff; /* highlight color from embed */
+}
+.apple-table tbody tr {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+.apple-table td.title-col {
+  vertical-align: middle;
+  position: relative;
+}
+
+/* Title clickable + ephemeral “copied” bubble */
+.title-clickable {
+  cursor: pointer;
+  position: relative;
+}
+.copied-tooltip {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  z-index: 9999;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* date-col styles from embed */
+.date-col .position-value {
+  font-weight: bold;
+}
+.date-col .visibility-value {
+  font-size: 90%;
+  color: #666;
+  margin-top: 2px;
+}
+.date-col {
+  position: relative;
+}
+.date-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-size: 12px;
+  pointer-events: none;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.date-col:hover .date-popup {
+  display: block;
+}
+.apple-table td.date-col {
+  text-align: center;
+}
+
+/* ==============================================
+   9) SETTINGS DROPDOWN – MERGED
+   ============================================== */
+#settingsDropdown {
+  display: none; /* original default */
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  background-color: #f2f2f2 !important; 
+  border: 1px solid #ccc !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+  padding: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  z-index: 99999999 !important;
+  width: 220px;
+}
+.settings-dropdown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#settingsDropdown.show {
+  display: block;
+}
+
+/* .settings-dropdown (from embed) if needed – same approach
+   (It used .settings-dropdown { position:fixed; ... } – but we’re using #settingsDropdown above). */
+
+/* ==============================================
+   10) COLUMN-POSITION / VIS / PRICE / RATING (List-mode)
+   ============================================== */
+.column-title-company {
+  display: block;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 4px;
+}
+.column-position,
+.column-visibility,
+.column-price,
+.column-rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+#filteredResults.list-mode .column-position {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;     
+  justify-content: center; 
+  height: 100% !important;
+  text-align: center;
+}
+#filteredResults.list-mode .column-position .pos-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#filteredResults.list-mode .column-position .pos-label {
+  position: static !important;
+  margin-top: 4px;
+  text-align: center;
+  font-size: 12px;
+  color: #333;
+  padding-bottom: 0;
+}
+#filteredResults.list-mode .column-price {
+  flex-direction: column;
+}
+#filteredResults.list-mode .column-price .active-promotions {
+  display: inline-block;
+  background-color: orange;
+  color: #fff;
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+#filteredResults.list-mode .column-rating .rating-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#filteredResults.list-mode .column-rating .rating-trend {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #333;
+  width: 100%;
+  text-align: center;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-up {
+  color: green;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-down {
+  color: red;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-neutral {
+  color: #333;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value {
+  background: none;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-arrow {
+  background: none;
+  color: inherit;
+}
+
+/* ==============================================
+   11) PLA DETAILS PANEL (original + embed overrides)
+   ============================================== */
+.pla-details-panel {
+  grid-column: 1 / -1;
+  margin: 0 auto;
+  width: 1255px;
+  height: 470px;
+  overflow: hidden;
+  background-color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; /* embed addition */
+}
+.pla-details-panel .pla-details-panel {
+  box-shadow: none !important;
+  margin-top: 0 !important;
+}
+.pla-details-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(255,255,255,0.35);
+  padding: 10px 20px;
+  border-bottom: 1px solid #ccc;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pla-details-title {
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
+}
+.pla-details-date-picker {
+  margin-left: auto;
+  width: 215px;
+}
+.pla-details-date-picker input {
+  width: 215px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 16px;
+  color: #333;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.pla-details-date-picker input:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 8px rgba(0,122,255,0.4);
+}
+
+.pla-details-content {
+  display: flex;
+  width: 100%;
+  height: calc(100% - 50px);
+}
+.pla-details-column {
+  padding: 10px;
+  overflow: auto;
+  box-sizing: border-box;
+}
+.pla-details-left {
+  flex: 0 0 600px;
+}
+.pla-details-middle {
+  flex: 0 0 250px;
+}
+.pla-details-main-metrics {
+  flex: 0 0 200px;
+}
+.pla-details-settings {
+  background-color: #f2f2f2;
+  padding: 10px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  color: #333;
+}
+.pla-details-settings h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.toggle-switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toggle-label {
+  font-size: 14px;
+  margin-right: 10px;
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 20px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px; bottom: 2px;
+  background-color: #fff;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+.toggle-switch input:checked + .slider {
+  background-color: #007aff;
+}
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.pla-details-main-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: start;
+  align-items: center;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 20px;
+}
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 16px;
+  color: #333;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.metric-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 15px;
+  color: #444;
+}
+.metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #007aff;
+  white-space: nowrap;
+}
+.volatility-status {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+/* ==============================================
+   12) DATERANGEPICKER (original styling)
+   ============================================== */
+.daterangepicker .drp-buttons button {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin: 0 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.daterangepicker .drp-buttons button.applyBtn {
+  background-color: #007aff;
+  color: #fff;
+}
+.daterangepicker .drp-buttons button.cancelBtn {
+  background-color: transparent;
+  color: #007aff;
+}
+.daterangepicker .drp-buttons button:hover {
+  opacity: 0.85;
+}
+.daterangepicker .drp-calendar table td.active,
+.daterangepicker .drp-calendar table td.active:hover {
+  background-color: #007aff !important;
+  border-color: #007aff !important;
+}
+.daterangepicker .drp-calendar table td:hover {
+  border-color: #007aff !important;
+}
+.daterangepicker .drp-buttons button.applyBtn {
+  background-color: #007aff !important;
+  color: #fff !important;
+}
+.daterangepicker .drp-buttons button.cancelBtn {
+  background-color: transparent !important;
+  color: #007aff !important;
+}
+.daterangepicker {
+  z-index: 11000 !important;
+}
+
+/* #dateRangePicker from embed */
+#dateRangePicker {
+  cursor: pointer;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 220px;
+  background-color: #fff;
+}
+
+/* ==============================================
+   13) TABS styling
+   ============================================== */
+.tabs-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - 50px);
+  background: none;
+}
+.tab-buttons {
+  display: flex;
+  gap: 8px;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 10px 20px;
+  padding: 8px;
+}
+.tab-buttons button {
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-buttons button:hover {
+  background-color: #ebebed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.tab-buttons button.active {
+  background-color: #005bbb;
+  color: #2a2a2a;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  transform: translateY(2px);
+}
+.tab-content {
+  flex: 1;
+  display: flex;
+  padding: 10px 20px;
+  overflow: auto;
+}
+
+/* ==============================================
+   14) “Add to top bar” style
+   ============================================== */
+.topbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  padding: 12px;
+  min-width: 30px;
+  min-height: 30px;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.topbar-button:hover {
+  background-color: #ebebed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ==============================================
+   15) DROPDOWNS: SERP, COMPANY
+   ============================================== */
+#serpSegmentsDropdown,
+#companyDropdown {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#serpSegmentsDropdown.show,
+#companyDropdown.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+#serpSegmentsDropdown li:hover {
+  background-color: #f2f2f2;
+}
+#serpSegmentsDropdown li {
+  font-size: 14px;
+}
+#locationDropdown li {
+  font-size: 14px;
+}
+#companyDropdown {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.company-name-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* #companySelector (embed) */
+#companySelector {
+  width: 250px;
+  position: relative;
+}
+#companySelector:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+#companyDropdown li {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  height: 40px;
+  padding: 8px 12px;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+#companyDropdown li:hover {
+  background-color: #f2f2f2;
+}
+
+/* ==============================================
+   16) FILTER SLIDERS (embed)
+   ============================================== */
+#filterSliders {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+  gap: 10px;
+  height: auto;
+}
+ion-range {
+  --bar-height: 10px;
+  --height: 30px;
+  width: 200px; 
+  --bar-background-active: #007aff;
+  --min-height: 30px;
+  margin: 0;
+  padding: 0;
+}
+ion-range::part(pin) {
+  font-size: 12px;
+  background: var(--ion-color-primary);
+  color: white;
+}
+ion-range::part(label) {
+  font-size: 12px;
+}
+ion-range::part(knob) {
+  border-radius: 50%;
+}
+.slider-container {
+  margin-right: 16px;
+}
+
+/* ==============================================
+   17) #loader, Apple dot-loader
+   ============================================== */
+#loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: transparent;
+}
+.apple-dot-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+.apple-dot-loader div {
+  width: 20px;
+  height: 20px;
+  margin: 8px;
+  border-radius: 50%;
+  background: #007aff;
+  animation: apple-dot-pulse 0.8s infinite ease-in-out both;
+}
+.apple-dot-loader div:nth-child(1) {
+  animation-delay: 0s;
+}
+.apple-dot-loader div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.apple-dot-loader div:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.apple-loading-text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  color: #1d1d1f;
+  margin-top: 8px;
+  text-align: center;
+}
+
+@keyframes apple-dot-pulse {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* ==============================================
+   18) #tabsContainer & .my-tab (embed)
+   ============================================== */
+#tabsContainer {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-top: -20px;
+  z-index: 10;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+}
+#tabsContainer.open {
+  max-height: 100px;
+  opacity: 1;
+}
+.my-tab {
+  background: linear-gradient(to bottom, #555 0%, #333 100%) !important;
+  color: #fff !important;
+  border: 1px solid #222 !important;
+  border-radius: 0 0 8px 8px !important;
+  width: 200px !important;
+  height: 45px !important;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.my-tab:hover {
+  background: linear-gradient(to bottom, #666 0%, #444 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.25) !important;
+}
+.my-tab:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+}
+.my-tab.selected {
+  background: linear-gradient(to bottom, #444 0%, #222 100%) !important;
+  border-bottom: 2px solid #444 !important;
+  transform: none;
+  box-shadow: none !important;
+}
+#tabsContainer .my-tab:first-child {
+  margin-left: 20px;
+}
+
+/* ==============================================
+   19) FILTER TAGS / POPUPS
+   ============================================== */
+#columnFilterPopup {
+  display: none;
+  position: absolute;
+  z-index: 999999 !important;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+#columnFilterPopup input[type="text"] {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 14px;
+}
+#columnFilterPopup button {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+#columnFilterPopup button:hover {
+  background: #005bbb;
+}
+
+/* Filter-tag elements */
+.filter-tag-container {
+  display: block;      /* embed eventually set display:block for final version */
+  margin-top: 4px;
+  position: relative;
+}
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #007aff;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: default;
+}
+.filter-tag .tag-text {
+  margin-right: 6px;
+}
+.filter-tag .tag-close {
+  color: #fff;
+  margin-left: 2px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.filter-tag .tag-close:hover {
+  color: #ffd2d2;
+}
+.tag-close {
+  color: #fff;
+  margin-left: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tag-close:hover {
+  color: #ffd2d2;
+}
+
+/* ==============================================
+   20) Additional “company stats” / “market share”
+   ============================================== */
+/* From embed, used for “company chart” or “trend chart” inside .companiesTrend-chart, etc. */
+.companiesTrend-chart canvas,
+.productsTrend-chart canvas {
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.2);
+  border-radius: 6px;
+}
+.ms-bar-container {
+  position: relative;
+  width: 80px;
+  height: 20px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ms-bar-filled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #007aff;
+}
+.ms-bar-label {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #000;
+  white-space: nowrap;
+}
+.company-table tr {
+  height: 15px;
+}
+.company-table td {
+  line-height: 15px;
+}
+#companiesTableContainer {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding-top: 20px;
+  padding-right: 20px;
+  margin-left: auto;
+}
+.companyStats-inner.companies {
+  overflow-y: auto;
+}
+#companyChart {
+  min-height: 0 !important;
+  height: 180px;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  max-width: 220px;
+}
+
+/* #companyStats (embed) */
+#companyStats {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 10px 0px 10px auto;
+  transition: height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  overflow: hidden;
+}
+
+/* .table-stats from embed snippet */
+.table-stats {
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  font-weight: bold;
+  text-align: left;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  min-height: 55px !important;
+  height: 55px !important;
+  flex-shrink: 0;
+  width: 1241px;
+}
+
+/* ==============================================
+   21) SERP Segments, Company selector transitions
+   ============================================== */
+#serpSegmentsDropdown,
+#companyDropdown {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#serpSegmentsDropdown.show,
+#companyDropdown.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+#serpSegmentsDropdown li:hover {
+  background-color: #f2f2f2;
+}
+
+/* ==============================================
+   22) Company Name Link
+   ============================================== */
+.company-name-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ==============================================
+   23) Additional classes for color-coding
+   ============================================== */
+.vertical-header {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.range-green  { background-color: #dfffd6; }
+.range-yellow { background-color: #fffac2; }
+.range-orange { background-color: #ffe0bd; }
+.range-red    { background-color: #ffcfcf; }
+
+/* Company rank variations */
+.company-rank.range-green  { background-color: #dfffd6; }
+.company-rank.range-yellow { background-color: #fffac2; }
+.company-rank.range-orange { background-color: #ffe0bd; }
+.company-rank.range-red    { background-color: #ffcfcf; }
+
+/* ==============================================
+   24) HOME MAIN BUTTON (embed)
+   ============================================== */
+.home-main-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background: linear-gradient(to bottom, #fff 0%, #f2f2f2 100%);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  cursor: pointer;
+  outline: none;
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.home-main-button img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+}
+.home-main-button:hover {
+  background: linear-gradient(to bottom, #f2f2f2 0%, #e6e6e6 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.25);
+}
+.home-main-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.home-main-button.selected {
+  background: linear-gradient(to bottom, #555 0%, #333 100%);
+  border: 1px solid #222;
+  color: #fff;
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+.home-main-button.selected img {
+  filter: brightness(0) invert(1);
+}
+
+/* ==============================================
+   25) LOCATION CONTAINER & MAP (embed)
+   ============================================== */
+.locContainer {
+  width: 1300px;
+  height: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  margin-bottom: 10px;
+  margin-left: 20px;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+}
+.home-table {
+  border-collapse: collapse;
+  width: 1000px;
+}
+.home-table th,
+.home-table td {
+  font-size: 14px;
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+#locMap {
+  width: 1000px;
+  height: 600px;
+  border: none;
+  margin: 20px;
+  transform: scale(0.9);
+}
+
+/* ==============================================
+   26) #infoBlock (embed)
+   ============================================== */
+#infoBlock {
+  width: 220px;
+  height: 600px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  padding: 10px;
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+#infoBlock .info-section {
+  margin: 10px;
+}
+#infoBlock .info-section .section-header {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+#infoBlock .info-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#infoBlock .info-row span {
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 6px;
+  color: #000;
+}
+#infoBlock .trend-value {
+  margin-left: 6px;
+  font-size: 18px;
+  font-weight: bold;
+}
+#infoBlock .trend-value.trend-up {
+  color: green !important;
+  background: none !important;
+}
+#infoBlock .trend-value.trend-down {
+  color: red !important;
+  background: none !important;
+}
+#infoBlock .trend-value.trend-neutral {
+  color: #333 !important;
+  background: none !important;
+}
+#infoBlock .rank-box {
+  width: 55px;
+  height: 55px;
+  line-height: 55px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+  color: #000;
+  font-size: 18px;
+  margin-left: 10px;
+  display: inline-block;
+}
+
+/* Larger bar container & label in infoBlock */
+#infoBlock .ms-bar-container {
+  height: 25px !important;
+  width: 130px !important;
+  padding-left: 20px;
+}
+#infoBlock .ms-bar-label {
+  font-size: 16px;
+}
+#infoBlock .ms-bar-wrapper .trend-value {
+  display: block;
+  margin-top: 5px;
+  margin-left: 0;
+  align-items: right;
+}
+#infoBlock .ms-bar-wrapper {
+  margin-left: 10px;
+}
+
+/* Toggle-switch container spacing in embed */
+.toggle-switch-container + .toggle-switch-container {
+  margin-top: 8px;
+}
+
+/* map info wrapper transitions */
+#mapInfoWrapper {
+  transform-origin: top;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: scaleY(1);
+  opacity: 1;
+  display: block;
+}
+.hidden-map {
+  display: none !important;
+  transform: scaleY(0);
+  opacity: 0;
+}
+.location-label {
+  padding-left: 20px;
+}
+
+/* Hiding top bar items if body has .home-page (embed rule) */
+body.home-page #filterSliders,
+body.home-page #layoutToggleContainer,
+body.home-page #layoutCompToggleContainer {
+  display: none !important;
+}
+
+/* ==============================================
+   27) MISC EXTRAS / Mini-market-charts, etc.
+   ============================================== */
+.mini-market-chart {
+  width: 650px;
+  height: 130px;
+}
+.company-insights-table {
+  width: 1050px;
+  border-collapse: separate;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #fff;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-radius: 8px !important;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.company-insights-table th,
+.company-insights-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #333;
+  box-sizing: border-box;
+  border: none;
+}
+.company-insights-table thead th {
+  background-color: #f9f9f9;
+  font-weight: 600;
+  border-bottom: 2px solid #e0e0e0;
+}
+.company-insights-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+.company-insights-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.company-insights-table tbody tr:first-of-type {
+  height: 120px !important;
+  font-size: 20px;
+}
+.company-insights-table tbody tr:nth-of-type(n+2) {
+  height: 120px !important;
+  font-size: 16px;
+}
+
+/* ==============================================
+   END OF MERGED REPORTS.CSS
+   ============================================== */
