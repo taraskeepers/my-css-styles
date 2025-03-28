@@ -2602,3 +2602,74 @@ body.home-page #layoutCompToggleContainer {
   background-color: red;
   color: #fff;
 }
+/* === Products‑tab: Grid-mode adjustments === */
+
+/* Fix the trend box inside each ad-details */
+#filteredResults.grid-mode .trend-box {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  grid-gap: 4px;
+  padding: 4px;
+  border-top: 1px solid #dadce0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Lower the font size of the product's rating in the rating-bar */
+#filteredResults.grid-mode .ad-rating {
+  font-size: 12px !important;
+}
+
+/* === Companies‑tab: Grid-mode adjustments === */
+
+/* Restore the company-row rating-reviews-row styling */
+#companyResults.company-results .company-details .rating-reviews-row {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* Restore the trend-table-col styling */
+.trend-table-col {
+  width: 100%;
+  padding: 10px 0;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Restore improved-table styling */
+.improved-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+  border: none;
+}
+.improved-table th,
+.improved-table td {
+  padding: 4px 8px;
+  font-size: 16px;
+  border: none;
+  text-align: center;
+}
+.improved-table th {
+  background-color: transparent;
+  font-weight: bold;
+}
+
+/* Change the font type and size of the more-tab-button and rank-button */
+.company-details .more-tab-button,
+.company-details .rank-button {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* In the company-row extensions-content, allow wrapping */
+.company-details .extensions-row {
+  white-space: normal;
+  word-wrap: break-word;
+}
