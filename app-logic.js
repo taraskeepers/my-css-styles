@@ -3,6 +3,7 @@
 // 1) Global variables
 Chart.register(window["ChartDataLabels"]);
 
+let projectData = [];
 let loadingCount = 0;
   let panelAnimating = false;
   window.filterState = {
