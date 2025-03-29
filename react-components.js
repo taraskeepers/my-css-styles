@@ -884,164 +884,274 @@ function PriceChart({ rowData, startDate, endDate }) {
 /**
  * A "RatingChart" for average rating or daily rating 
  */
-function RatingChart({ rowData, startDate, endDate }) {
-      const [chartData, setChartData] = useState([]);
-      useEffect(()=>{
-        setChartData(prepareRatingChartData(rowData, startDate, endDate));
-      },[rowData, startDate, endDate]);
+function PriceChart({ rowData, startDate, endDate }) {
+  const { useEffect, useState } = React;
+  const [chartData, setChartData] = useState([]);
 
-      function prepareRatingChartData(rowData, startDate, endDate){
-        if(!rowData) return [];
-        const hist= rowData.historical_data||[];
-        if(!hist.length) return [];
-        const dataMap={};
-        hist.forEach(item=>{
-          dataMap[item.date.value]=item;
-        });
-        const result=[];
-        let lastRating=null;
-        let dt= startDate.clone();
-        while(dt.isSameOrBefore(endDate)){
-          const dateStr= dt.format("YYYY-MM-DD");
-          let ratingValue=null;
-          if(dataMap[dateStr] && dataMap[dateStr].rating!=null){
-            ratingValue= parseFloat(dataMap[dateStr].rating);
-            lastRating= ratingValue;
-          } else {
-            ratingValue= lastRating;
-          }
-          result.push({ name: dateStr, rating: ratingValue });
-          dt.add(1,"days");
-        }
-        return result;
+  useEffect(() => {
+    setChartData(preparePriceChartData(rowData, startDate, endDate));
+  }, [rowData, startDate, endDate]);
+
+  function preparePriceChartData(rowData, startDate, endDate) {
+    if (!rowData) return [];
+    const hist= rowData.historical_data || [];
+    if (!hist.length) return [];
+    const dataMap= {};
+    hist.forEach(item=>{
+      if (item.date && item.date.value) {
+        dataMap[item.date.value] = item;
       }
-
-      return (
-        <div style={{ width:"100%", height:"300px" }}>
-          <ResponsiveContainer>
-            <ComposedChart data={chartData} margin={{ top:20, right:20, bottom:20, left:20 }}>
-              <CartesianGrid strokeDasharray="3 3"/>
-              <XAxis dataKey="name" scale="band" tick={{ fontSize:10 }} angle={-90} textAnchor="end"/>
-              <YAxis domain={[0,5]}/>
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="rating"
-                stroke="#FFA500"
-                strokeWidth={2}
-                dot={{r:1}}
-                connectNulls
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      );
+    });
+    let dt = startDate.clone();
+    const result = [];
+    let lastPrice=null;
+    while (dt.isSameOrBefore(endDate)) {
+      const dStr= dt.format("YYYY-MM-DD");
+      if (dataMap[dStr] && dataMap[dStr].price) {
+        const p = parseFloat(dataMap[dStr].price.replace("$",""));
+        lastPrice = p;
+      }
+      result.push({
+        name: dStr,
+        price: lastPrice
+      });
+      dt.add(1,"days");
     }
+    return result;
+  }
+
+  const {
+    ResponsiveContainer,
+    ComposedChart,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip,
+    Line
+  } = window.Recharts;
+
+  return (
+    <div style={{ width:"100%", height:"300px" }}>
+      <ResponsiveContainer>
+        <ComposedChart data={chartData} margin={{ top:20, right:20, bottom:20, left:20 }}>
+          <CartesianGrid strokeDasharray="3 3"/>
+          <XAxis 
+            dataKey="name" 
+            scale="band" 
+            tick={{ fontSize:10 }} 
+            angle={-90} 
+            textAnchor="end"
+          />
+          <YAxis />
+          <Tooltip />
+          <Line 
+            type="step"
+            dataKey="price"
+            stroke="#FF0000"
+            strokeWidth={2}
+            dot={{ r:1 }}
+            connectNulls
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/**
+ * A "RatingChart" for average rating or daily rating 
+ */
+function RatingChart({ rowData, startDate, endDate }) {
+  const { useEffect, useState } = React;
+  const [chartData, setChartData] = useState([]);
+
+  useEffect(() => {
+    setChartData(prepareRatingChartData(rowData, startDate, endDate));
+  }, [rowData, startDate, endDate]);
+
+  function prepareRatingChartData(rowData, startDate, endDate) {
+    if (!rowData) return [];
+    const hist = rowData.historical_data || [];
+    if (!hist.length) return [];
+    const dataMap= {};
+    hist.forEach(item=>{
+      if (item.date && item.date.value) {
+        dataMap[item.date.value] = item;
+      }
+    });
+    let dt = startDate.clone();
+    let lastRating= null;
+    const result = [];
+    while (dt.isSameOrBefore(endDate)) {
+      const dStr= dt.format("YYYY-MM-DD");
+      let ratingVal= null;
+      if (dataMap[dStr] && dataMap[dStr].rating != null) {
+        ratingVal= parseFloat(dataMap[dStr].rating);
+        lastRating= ratingVal;
+      } else {
+        ratingVal= lastRating; 
+      }
+      result.push({ name: dStr, rating: ratingVal });
+      dt.add(1,"days");
+    }
+    return result;
+  }
+
+  const {
+    ResponsiveContainer,
+    ComposedChart,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip,
+    Line
+  } = window.Recharts;
+
+  return (
+    <div style={{ width:"100%", height:"300px" }}>
+      <ResponsiveContainer>
+        <ComposedChart data={chartData} margin={{ top:20, right:20, bottom:20, left:20 }}>
+          <CartesianGrid strokeDasharray="3 3"/>
+          <XAxis 
+            dataKey="name" 
+            scale="band" 
+            tick={{ fontSize:10 }}
+            angle={-90} 
+            textAnchor="end"
+          />
+          <YAxis domain={[0,5]}/>
+          <Tooltip />
+          <Line
+            type="monotone"
+            dataKey="rating"
+            stroke="#FFA500"
+            strokeWidth={2}
+            dot={{ r:1 }}
+            connectNulls
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 /**
  * A small metrics panel summarizing rating, 
  * plus a “priceTrend” if you want, etc.
  */
 function RatingMetrics({ rowData, startDate, endDate }) {
-      const [avgRating, setAvgRating] = useState(0);
-      const [ratingTrend, setRatingTrend] = useState("");
-      const [currentPrice, setCurrentPrice] = useState(null);
-      const [priceTrend, setPriceTrend] = useState("");
+  const { useState, useEffect } = React;
+  const [avgRating, setAvgRating] = useState(0);
+  const [ratingTrend, setRatingTrend] = useState("");
+  const [currentPrice, setCurrentPrice] = useState(null);
+  const [priceTrend, setPriceTrend] = useState("");
 
-      useEffect(()=>{
-        if(!rowData || !startDate||!endDate) return;
-        const hist= rowData.historical_data||[];
-        const filtered= hist.filter(item=>{
-          const d= new Date(item.date.value);
-          return d>= startDate.toDate() && d<=endDate.toDate() && item.rating!=null;
-        });
-        let sum=0,count=0;
-        filtered.forEach(item=> {
-          sum+= parseFloat(item.rating);
-          count++;
-        });
-        const avg= count>0? sum/count:0;
-        setAvgRating(avg);
+  useEffect(() => {
+    if (!rowData || !startDate || !endDate) return;
+    const hist= rowData.historical_data || [];
+    // filter for rating data
+    const filtered= hist.filter(item => {
+      const d= moment(item.date.value, "YYYY-MM-DD");
+      return d.isBetween(startDate, endDate, "day", "[]") && item.rating!=null;
+    });
+    let sum=0, c=0;
+    filtered.forEach(f => {
+      sum += parseFloat(f.rating);
+      c++;
+    });
+    const avg= c>0? sum/c :0;
+    setAvgRating(avg);
 
-        if(filtered.length>1){
-          const sorted= filtered.slice().sort((a,b)=> new Date(a.date.value)- new Date(b.date.value));
-          const firstTime= new Date(sorted[0].date.value).getTime();
-          let sumX=0, sumY=0, sumXY=0, sumX2=0;
-          const n= sorted.length;
-          for(let i=0;i<n;i++){
-            const t= new Date(sorted[i].date.value).getTime();
-            const x= (t- firstTime)/(1000*3600*24);
-            const y= parseFloat(sorted[i].rating);
-            sumX+= x; sumY+= y; sumXY+= x*y; sumX2+= x*x;
-          }
-          const denominator= (n*sumX2 - sumX*sumX);
-          const slope= denominator!==0? (n*sumXY - sumX*sumY)/ denominator : 0;
-          const arrow= slope>0?"▲": slope<0?"▼":"±";
-          setRatingTrend(`${arrow} ${Math.abs(slope).toFixed(2)}`);
-        } else {
-          setRatingTrend("");
-        }
-      },[rowData,startDate,endDate]);
-
-      useEffect(()=>{
-        if(!rowData || !startDate||!endDate) return;
-        const hist= rowData.historical_data||[];
-        const filteredPrice= hist.filter(item=>{
-          const d= new Date(item.date.value);
-          return d>= startDate.toDate() && d<= endDate.toDate() && item.price && item.price.trim()!=="";
-        });
-        if(filteredPrice.length>0){
-          const sorted= filteredPrice.slice().sort((a,b)=> new Date(a.date.value)- new Date(b.date.value));
-          const latestPrice= parseFloat(sorted[sorted.length-1].price.replace("$",""));
-          setCurrentPrice(latestPrice);
-
-          const firstTime= new Date(sorted[0].date.value).getTime();
-          let sumX=0, sumY=0, sumXY=0, sumX2=0;
-          const n= sorted.length;
-          for(let i=0;i<n;i++){
-            const t= new Date(sorted[i].date.value).getTime();
-            const x= (t- firstTime)/(1000*3600*24);
-            const y= parseFloat(sorted[i].price.replace("$",""));
-            sumX+= x; sumY+= y; sumXY+= x*y; sumX2+= x*x;
-          }
-          const denominator= (n*sumX2 - sumX*sumX);
-          const slope= denominator!==0? (n*sumXY - sumX*sumY)/ denominator : 0;
-          const arrow= slope>0?"▲": slope<0?"▼":"±";
-          setPriceTrend(`${arrow} ${Math.abs(slope).toFixed(2)}`);
-        } else {
-          setCurrentPrice(null);
-          setPriceTrend("");
-        }
-      },[rowData,startDate,endDate]);
-
-      const fullStars= Math.floor(avgRating);
-      const halfStar = avgRating-fullStars>=0.5;
-      const stars=[];
-      for(let i=0;i<fullStars;i++){ stars.push("★"); }
-      if(halfStar) stars.push("☆");
-
-      return(
-        <div>
-          <div className="metric-row">
-            <div className="metric-title">Average Rating</div>
-            <div className="metric-value">
-              {avgRating.toFixed(2)} <span>{stars.join("")}</span>
-            </div>
-          </div>
-          <div className="metric-row">
-            <div className="metric-title">Rating Trend</div>
-            <div className="metric-value">
-              {ratingTrend}
-            </div>
-          </div>
-          <div className="metric-row">
-            <div className="metric-title">Current Price</div>
-            <div className="metric-value">
-              {currentPrice!==null? `$${currentPrice.toFixed(2)}`:"N/A"} <span>{priceTrend}</span>
-            </div>
-          </div>
-        </div>
-      );
+    // compute rating slope for the same range
+    if (filtered.length>1) {
+      const sorted= filtered.slice().sort((a,b)=> new Date(a.date.value) - new Date(b.date.value));
+      const firstTime= new Date(sorted[0].date.value).getTime();
+      let sumX=0, sumY=0, sumXY=0, sumX2=0;
+      const n= sorted.length;
+      for (let i=0; i<n; i++) {
+        const t= new Date(sorted[i].date.value).getTime();
+        const x= (t- firstTime)/(1000*3600*24);
+        const y= parseFloat(sorted[i].rating);
+        sumX+= x; sumY+= y; sumXY+= (x*y); sumX2+=(x*x);
+      }
+      const denom= (n*sumX2 - sumX*sumX);
+      const slope= denom!==0? (n*sumXY - sumX*sumY)/denom :0;
+      const arrow= slope>0? "▲": slope<0?"▼":"±";
+      setRatingTrend(`${arrow} ${Math.abs(slope).toFixed(2)}`);
+    } else {
+      setRatingTrend("");
     }
+  }, [rowData, startDate, endDate]);
+
+  useEffect(() => {
+    if (!rowData || !startDate || !endDate) return;
+    const hist= rowData.historical_data || [];
+    // filter for price
+    const filteredPrice= hist.filter(item => {
+      const d= moment(item.date.value, "YYYY-MM-DD");
+      return d.isBetween(startDate, endDate, "day", "[]") && item.price && item.price.trim()!=="";
+    });
+    if (filteredPrice.length>0) {
+      const sorted= filteredPrice.slice().sort((a,b)=> new Date(a.date.value)- new Date(b.date.value));
+      const latestPrice= parseFloat(sorted[sorted.length-1].price.replace("$",""));
+      setCurrentPrice(latestPrice);
+
+      // slope
+      const firstTime= new Date(sorted[0].date.value).getTime();
+      let sumX=0, sumY=0, sumXY=0, sumX2=0;
+      const n= sorted.length;
+      for (let i=0; i<n; i++) {
+        const t= new Date(sorted[i].date.value).getTime();
+        const x= (t - firstTime)/(1000*3600*24);
+        const y= parseFloat(sorted[i].price.replace("$",""));
+        sumX+= x; sumY+= y; sumXY+=(x*y); sumX2+=(x*x);
+      }
+      const denom= (n*sumX2 - sumX*sumX);
+      const slope= denom!==0? (n*sumXY - sumX*sumY)/denom :0;
+      const arrow= slope>0?"▲": slope<0?"▼":"±";
+      setPriceTrend(`${arrow} ${Math.abs(slope).toFixed(2)}`);
+    } else {
+      setCurrentPrice(null);
+      setPriceTrend("");
+    }
+  }, [rowData, startDate, endDate]);
+
+  // build star display
+  const fullStars= Math.floor(avgRating);
+  const halfStar = avgRating - fullStars >= 0.5;
+  const stars=[];
+  for (let i=0; i<fullStars; i++){
+    stars.push("★");
+  }
+  if (halfStar) stars.push("☆");
+
+  return (
+    <div>
+      <div className="metric-row">
+        <div className="metric-title">Average Rating</div>
+        <div className="metric-value">
+          {avgRating.toFixed(2)}{" "}
+          <span>{stars.join("")}</span>
+        </div>
+      </div>
+
+      <div className="metric-row">
+        <div className="metric-title">Rating Trend</div>
+        <div className="metric-value">
+          {ratingTrend}
+        </div>
+      </div>
+
+      <div className="metric-row">
+        <div className="metric-title">Current Price</div>
+        <div className="metric-value">
+          {currentPrice !== null ? `$${currentPrice.toFixed(2)}` : "N/A"}{" "}
+          <span>{priceTrend}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * If your rowData has an array of “extensions”,
