@@ -23,12 +23,14 @@ html, body {
   margin: 0;               
   padding: 0;              
   display: flex;           
-  flex-direction: column;  
+  flex-direction: row;  
+  align-items: flex-start;
   background-color: #fff;  
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 #rightColumn {
+  flex: 1;
   padding: 20px;
   display: flex;
   flex-direction: column;
