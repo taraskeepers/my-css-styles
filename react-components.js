@@ -8,6 +8,20 @@
 // and that chartjs-plugin-datalabels is loaded
 Chart.register(window["ChartDataLabels"]);
 
+const {
+  ResponsiveContainer,
+  ComposedChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Line,
+  Area,
+  ReferenceArea,
+  LabelList,
+  Legend
+} = window.Recharts;
+
 /** 
  * A simple toggle switch used inside the DetailsPanel 
  * or anywhere you want a labeled checkbox.
