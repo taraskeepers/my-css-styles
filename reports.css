@@ -2921,4 +2921,8 @@ body.home-page #layoutCompToggleContainer {
   max-height: 500px;
   padding: 8px 15px;
 }
-
+.location-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+}
