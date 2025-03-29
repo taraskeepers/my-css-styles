@@ -49,11 +49,6 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
   // We'll store a local dateRange so the user can pick a sub-range
   const [dateRange, setDateRange] = useState({ start, end });
 
-  const handleTabChange = (newTab) => {
-    setActiveTab(newTab);
-    window.savedActiveTab = newTab;  // if you want to track the user’s last active tab globally
-  };
-
   // Example: useEffect to set up a date range picker on #dateRangePicker2
 useEffect(() => {
         const pickerInput = document.getElementById("dateRangePicker2");
