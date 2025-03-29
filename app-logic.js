@@ -1,6 +1,7 @@
 /* app-logic.js */
 
 // 1) Global variables
+Chart.register(window["ChartDataLabels"]);
 
 let loadingCount = 0;
   let panelAnimating = false;
