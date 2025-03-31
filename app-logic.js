@@ -364,33 +364,33 @@ function autoPickDefaultFirstGroup(allRows) {
       }; 
 
 function populateHomePage() {
-  // 1) Make sure the map helpers are loaded
-  if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== 'function') {
+  // 1) Check that mapHelpers is ready
+  if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
     console.warn("mapsLib.js not loaded yet. Retrying in 500ms.");
     setTimeout(populateHomePage, 500);
     return;
   }
 
-  // 2) Clear and prep the #locList container
+  // 2) Grab the locList container and reset
   const locListContainer = document.getElementById("locList");
   locListContainer.innerHTML = "";
-  locListContainer.style.maxHeight = "1000px";
+  locListContainer.style.maxHeight = "1000px"; 
   locListContainer.style.overflowY = "auto";
 
-  // 3) Optionally add a heading if you want
+  // (Optional) Add a heading if you like
   const heading = document.createElement("h2");
-  heading.textContent = "All Locations (Single Table)";
+  heading.textContent = "Locations & Devices (Single Table)";
   locListContainer.appendChild(heading);
 
-  // 4) Figure out which company to show on the home page
+  // 3) Determine the target company
   const st = window.filterState;
-  const targetCompany = st.company && st.company.trim() 
+  const targetCompany = st.company && st.company.trim()
     ? st.company.trim()
-    : "Under Armour";  // fallback
+    : "Under Armour"; // fallback
   window.filterState.company = targetCompany;
   document.getElementById("companyText").textContent = targetCompany;
 
-  // 5) Build the homeData array for that company
+  // 4) Build the homeData for that company
   window.homeData = buildHomeData(targetCompany);
   if (!homeData.length) {
     const noDataP = document.createElement("p");
@@ -399,7 +399,7 @@ function populateHomePage() {
     return;
   }
 
-  // 6) Group homeData by location
+  // 5) Group homeData by location
   const locMap = {};
   homeData.forEach(item => {
     if (!locMap[item.location]) {
@@ -408,20 +408,22 @@ function populateHomePage() {
     locMap[item.location].push(item);
   });
 
-  // 7) Create ONE wrapper and ONE table for all locations
+  // 6) Create a single wrapper with max-width = 1270px
   const allLocationsWrapper = document.createElement("div");
-  allLocationsWrapper.style.width = "100%";
-  allLocationsWrapper.style.background = "#fff";
+  allLocationsWrapper.style.maxWidth = "1270px";
+  allLocationsWrapper.style.backgroundColor = "#fff";
   allLocationsWrapper.style.borderRadius = "8px";
   allLocationsWrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
+  allLocationsWrapper.style.marginBottom = "10px";
   allLocationsWrapper.style.padding = "10px";
 
+  // 7) Create one single table for all locations
   const bigTable = document.createElement("table");
   bigTable.classList.add("home-table");
   bigTable.style.borderCollapse = "collapse";
   bigTable.style.width = "100%";
 
-  // Build the table header (6 columns total)
+  // Table header (6 columns)
   bigTable.innerHTML = `
     <thead>
       <tr style="height: 30px;">
@@ -430,104 +432,151 @@ function populateHomePage() {
         <th style="width:120px;">Avg Rank</th>
         <th style="width:120px;">Market Share</th>
         <th style="width:120px;">Trend</th>
-        <th style="width:480px;">Rank &amp; Market Share History</th>
+        <th style="width:500px;">Rank &amp; Market Share History</th>
       </tr>
     </thead>
     <tbody></tbody>
   `;
   const bigTbody = bigTable.querySelector("tbody");
 
-  // 8) For each location -> for each device entry, build one row
+  // 8) For each location, we’ll place Desktop row first, then Mobile
   Object.keys(locMap).forEach(locName => {
-    const rowArr = locMap[locName]; // all data objects for this location
+    const rowArr = locMap[locName];
 
-    rowArr.forEach(data => {
+    // Sort so that desktop is first
+    rowArr.sort((a, b) => {
+      const ad = a.device.toLowerCase();
+      const bd = b.device.toLowerCase();
+      if (ad === "desktop" && bd !== "desktop") return -1;
+      if (bd === "desktop" && ad !== "desktop") return 1;
+      return 0;
+    });
+
+    // We'll parse locName into two lines, like your old code
+    const parts = locName.split(",");
+    const line1 = parts[0] ? parts[0].trim() : "";
+    const line2 = parts.slice(1).map(x => x.trim()).join(", ");
+
+    // We only want to show the location cell once, spanning however many device rows we have
+    const rowSpanCount = rowArr.length;
+    
+    // Now build each device row
+    rowArr.forEach((data, idx) => {
       const tr = document.createElement("tr");
       tr.style.height = "50px";
 
-      // (A) LOCATION cell
-      const tdLoc = document.createElement("td");
-      tdLoc.style.fontWeight = "bold";
-      tdLoc.style.fontSize   = "16px";
-      tdLoc.textContent      = locName;
-      tr.appendChild(tdLoc);
+      // (A) The LOCATION cell for the first row only
+      if (idx === 0) {
+        const tdLoc = document.createElement("td");
+        tdLoc.style.verticalAlign = "top";
+        tdLoc.rowSpan = rowSpanCount; 
+        // Same styling as old code:
+        // big, bold, margin-bottom, and smaller second line
+        tdLoc.innerHTML = `
+          <div style="font-size:28px; font-weight:bold; margin-bottom:4px; padding-left:20px;">
+            ${line1}
+          </div>
+          <div style="font-size:14px; padding-left:20px;">
+            ${line2}
+          </div>
+        `;
+        tr.appendChild(tdLoc);
+      }
 
       // (B) DEVICE cell
       const tdDevice = document.createElement("td");
       tdDevice.textContent = data.device;
       tr.appendChild(tdDevice);
 
-      // (C) AVG RANK cell
+      // (C) AVG RANK cell (same approach as your old code)
       const tdRank = document.createElement("td");
-      // (Same logic as you had before)
-      // For example:
-      const rankVal = data.avgRank.toFixed(2);
-      let rankHTML = `<div style="font-size: 18px; font-weight: bold;">${rankVal}</div>`;
-      if (data.rankChange != null) {
-        let arrow = "±", color = "#444";
-        if (data.rankChange < 0) {
-          arrow = "▲"; color = "green";
-        } else if (data.rankChange > 0) {
-          arrow = "▼"; color = "red";
+      {
+        const rankVal = data.avgRank.toFixed(2);
+        let rankHTML = `<div style="font-size: 18px; font-weight: bold;">${rankVal}</div>`;
+        if (data.rankChange != null) {
+          let arrow = "±", color = "#444";
+          if (data.rankChange < 0) {
+            arrow = "▲"; color = "green";
+          } else if (data.rankChange > 0) {
+            arrow = "▼"; color = "red";
+          }
+          rankHTML += `<div style="font-size: 12px; color:${color};">${arrow} ${Math.abs(data.rankChange).toFixed(2)}</div>`;
         }
-        rankHTML += `<div style="font-size: 12px; color:${color};">${arrow} ${Math.abs(data.rankChange).toFixed(2)}</div>`;
+        tdRank.innerHTML = rankHTML;
       }
-      tdRank.innerHTML = rankHTML;
       tr.appendChild(tdRank);
 
-      // (D) MARKET SHARE cell
+      // (D) MARKET SHARE
       const tdShare = document.createElement("td");
-      const sharePct = data.avgShare.toFixed(1);
-      let barColor = (data.trendVal < 0) ? "red" : "#007aff";
-      tdShare.innerHTML = `
-        <div class="ms-bar-container"
-             style="position: relative; width: 100px; height: 25px; background: #eee; border-radius: 4px; overflow: hidden;">
-          <div class="ms-bar-filled"
-               style="position:absolute; top:0; left:0; bottom:0; width:${sharePct}%; background:${barColor};">
+      {
+        const sharePct = data.avgShare.toFixed(1);
+        let barColor = (data.trendVal < 0) ? "red" : "#007aff";
+        tdShare.innerHTML = `
+          <div class="ms-bar-container"
+               style="position: relative; width: 100px; height: 25px; background: #eee; border-radius: 4px; overflow: hidden;">
+            <div class="ms-bar-filled"
+                 style="position:absolute; top:0; left:0; bottom:0; width:${sharePct}%; background:${barColor};">
+            </div>
+            <div class="ms-bar-label"
+                 style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px; color:#000;">
+              ${sharePct}%
+            </div>
           </div>
-          <div class="ms-bar-label"
-               style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px; color:#000;">
-            ${sharePct}%
-          </div>
-        </div>
-      `;
+        `;
+      }
       tr.appendChild(tdShare);
 
-      // (E) TREND cell
+      // (E) TREND
       const tdTrend = document.createElement("td");
-      let arrow = "±", color = "#333";
-      if (data.trendVal > 0) {
-        arrow = "▲"; color = "green";
-      } else if (data.trendVal < 0) {
-        arrow = "▼"; color = "red";
+      {
+        let arrow = "±", color = "#333";
+        if (data.trendVal > 0) {
+          arrow = "▲"; color = "green";
+        } else if (data.trendVal < 0) {
+          arrow = "▼"; color = "red";
+        }
+        tdTrend.innerHTML = `
+          <span style="color:${color}; font-weight:bold;">
+            ${arrow} ${Math.abs(data.trendVal).toFixed(2)}%
+          </span>
+        `;
       }
-      tdTrend.innerHTML = `<span style="color:${color}; font-weight:bold;">${arrow} ${Math.abs(data.trendVal).toFixed(2)}%</span>`;
       tr.appendChild(tdTrend);
 
-      // (F) RANK & SHARE HISTORY (the “boxes”)
+      // (F) RANK & SHARE HISTORY (with the same box layout & spacing you used before)
       const tdHistory = document.createElement("td");
       const histContainer = document.createElement("div");
-      histContainer.style.width = "480px";
+      histContainer.style.width = "500px"; // same width you had
       histContainer.style.overflowX = "auto";
       histContainer.style.display = "flex";
       histContainer.style.flexDirection = "column";
 
-      // RANK row
+      // rankRowDiv
       const rankRowDiv = document.createElement("div");
       rankRowDiv.style.display = "inline-flex";
       rankRowDiv.classList.add("history-rank-row");
       rankRowDiv.style.flexWrap = "nowrap";
+      rankRowDiv.style.flexDirection = "row";
       rankRowDiv.style.marginBottom = "4px";
 
-      // Prepare date array for tooltips (30 days from data.endDate)
+      // shareRowDiv
+      const shareRowDiv = document.createElement("div");
+      shareRowDiv.style.display = "inline-flex";
+      shareRowDiv.classList.add("history-share-row");
+      shareRowDiv.style.flexWrap = "nowrap";
+      shareRowDiv.style.flexDirection = "row";
+
+      // build date array for tooltips
       const endDateMoment = moment(data.endDate, "YYYY-MM-DD");
       const dateArray = [];
       for (let i = 0; i < 30; i++) {
-        dateArray.push(endDateMoment.clone().subtract(i, "days").format("YYYY-MM-DD"));
+        dateArray.push(
+          endDateMoment.clone().subtract(i, "days").format("YYYY-MM-DD")
+        );
       }
 
-      // Render rank boxes (in reverse order)
-      data.last30ranks.slice().reverse().forEach((rVal, idx) => {
+      // rank boxes (reverse order)
+      data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
         const box = document.createElement("div");
         box.style.width = "38px";
         box.style.height = "38px";
@@ -537,8 +586,8 @@ function populateHomePage() {
         box.style.marginRight = "4px";
         box.style.borderRadius = "4px";
 
-        // Color rank box
-        let bgColor = "#ffcfcf"; // default "range-red"
+        // color
+        let bgColor = "#ffcfcf"; // default red range
         if (rVal <= 1) {
           bgColor = "#dfffd6";
         } else if (rVal <= 3) {
@@ -549,17 +598,12 @@ function populateHomePage() {
         box.style.backgroundColor = bgColor;
         box.style.color = "#000";
         box.textContent = (rVal === 40) ? "" : rVal;
-        box.setAttribute("title", dateArray[idx]); // tooltip
+        box.setAttribute("title", dateArray[idx2]);
         rankRowDiv.appendChild(box);
       });
 
-      // SHARE row
-      const shareRowDiv = document.createElement("div");
-      shareRowDiv.style.display = "inline-flex";
-      shareRowDiv.classList.add("history-share-row");
-      shareRowDiv.style.flexWrap = "nowrap";
-
-      data.last30shares.slice().reverse().forEach((sVal, idx) => {
+      // share boxes (reverse order)
+      data.last30shares.slice().reverse().forEach((sVal, idx3) => {
         const fillPct = Math.min(100, Math.max(0, sVal));
         const shareBox = document.createElement("div");
         shareBox.style.position = "relative";
@@ -592,7 +636,7 @@ function populateHomePage() {
 
         shareBox.appendChild(fillDiv);
         shareBox.appendChild(labelSpan);
-        shareBox.setAttribute("title", dateArray[idx]);
+        shareBox.setAttribute("title", dateArray[idx3]);
         shareRowDiv.appendChild(shareBox);
       });
 
@@ -601,19 +645,20 @@ function populateHomePage() {
       tdHistory.appendChild(histContainer);
       tr.appendChild(tdHistory);
 
+      // add row to table
       bigTbody.appendChild(tr);
     });
   });
 
-  // 9) Append the table into #locList
+  // 9) Append the table to our wrapper and then to locList
   allLocationsWrapper.appendChild(bigTable);
   locListContainer.appendChild(allLocationsWrapper);
 
-  // 10) Call the existing “infoBlock” + “historyRows” logic
+  // 10) Call your existing info block + toggles
   updateInfoBlock();
   updateHistoryRows();
 
-  // 11) Draw the map as before
+  // 11) Finally draw the map
   const mapData = buildHomeDataForMap();
   window.mapHelpers.drawUsMapWithLocations(mapData, "#locMap");
 }
