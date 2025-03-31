@@ -407,7 +407,7 @@ function populateHomePage() {
 
   // 6) Create a single wrapper with max-width = 1270px and add 20px left margin
   const allLocationsWrapper = document.createElement("div");
-  allLocationsWrapper.style.maxWidth = "1270px";
+  allLocationsWrapper.style.maxWidth = "1250px";
   allLocationsWrapper.style.marginLeft = "20px";
   allLocationsWrapper.style.backgroundColor = "#fff";
   allLocationsWrapper.style.borderRadius = "8px";
