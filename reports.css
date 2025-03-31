@@ -279,6 +279,7 @@ html, body {
 
 /* Grid-mode overrides from embed */
 #filteredResults.grid-mode {
+   width: 1260px;
   display: flex !important;
   flex-wrap: wrap;
   padding-right: 0 !important;
