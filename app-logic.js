@@ -292,7 +292,16 @@ function autoPickDefaultFirstGroup(allRows) {
     deviceArr.sort((a,b)=> b.count - a.count);
     if (deviceArr.length>0) {
       window.filterState.device = deviceArr[0].name;
-      document.getElementById("deviceOptionsRow").textContent = deviceArr[0].name;
+        const deviceFilterContainer = document.getElementById("deviceFilter");
+  if (deviceFilterContainer) {
+    deviceFilterContainer.querySelectorAll(".toggle-option").forEach(option => {
+      option.classList.remove("active");  // Clear any existing active classes
+      if (option.getAttribute("data-device").toLowerCase() === deviceArr[0].name.toLowerCase()) {
+        option.classList.add("active");  // Mark the matching toggle as active
+      }
+    });
+  }
+      /*document.getElementById("deviceOptionsRow").textContent = deviceArr[0].name;*/
       subset = applyAllFilters(allRows); // re-filter with new device
     }
   
