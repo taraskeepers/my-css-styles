@@ -1652,7 +1652,7 @@ ion-range::part(knob) {
   height: 600px;
   border: none;
   margin: 20px;
-  transform: scale(0.9);
+  transform: scale(0.8);
 }
 
 /* ==============================================
