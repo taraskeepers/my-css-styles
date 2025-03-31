@@ -324,7 +324,7 @@ function autoPickDefaultFirstGroup(allRows) {
         window.allRows = rows;
         updateSearchTermDropdown(rows);
         updateEngineDropdown(rows);
-        updateDeviceDropdown(rows);
+        /*updateDeviceDropdown(rows);*/
         updateLocationDropdown(rows);
         autoPickDefaultFirstGroup(rows);
         renderData();
@@ -932,7 +932,7 @@ function populateHomePage() {
       }
 
 
-      function updateDeviceDropdown(rows) {
+    /*  function updateDeviceDropdown(rows) {
         const deviceCounts = {};
         rows.forEach(r => {
           const deviceVal = r.device || "";
@@ -990,7 +990,7 @@ function populateHomePage() {
             renderDeviceList(filtered);
           }
         });
-      } 
+      } */
 
       function updateLocationDropdown(rows) {
         const filteredRows = applyAllFilters(rows);
