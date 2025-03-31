@@ -1648,6 +1648,7 @@ ion-range::part(knob) {
    ============================================== */
 .locContainer {
   width: 1235px;
+  max-width: 1235px;
   height: auto;
   background: #fff;
   border-radius: 8px;
