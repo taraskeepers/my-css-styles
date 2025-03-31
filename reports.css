@@ -58,7 +58,7 @@ html, body {
 }
 
 #engineFilter { width: 265px; }
-#deviceFilter { width: 260px; }
+#deviceFilter { width: 120px; }
 #locationFilter {
   width: 320px !important;
   max-width: 320px !important;
