@@ -377,7 +377,7 @@ function populateHomePage() {
   locListContainer.style.maxHeight = "1000px"; 
   locListContainer.style.overflowY = "auto";
 
-  // (Optional) Add a heading if you like
+  // (Optional) A heading
   const heading = document.createElement("h2");
   heading.textContent = "Locations & Devices (Single Table)";
   locListContainer.appendChild(heading);
@@ -432,18 +432,18 @@ function populateHomePage() {
         <th style="width:120px;">Avg Rank</th>
         <th style="width:120px;">Market Share</th>
         <th style="width:120px;">Trend</th>
-        <th style="width:500px;">Rank &amp; Market Share History</th>
+        <th style="width:480px;">Rank &amp; Market Share History</th>
       </tr>
     </thead>
     <tbody></tbody>
   `;
   const bigTbody = bigTable.querySelector("tbody");
 
-  // 8) For each location, we’ll place Desktop row first, then Mobile
+  // 8) For each location, place Desktop row first, then Mobile
   Object.keys(locMap).forEach(locName => {
     const rowArr = locMap[locName];
 
-    // Sort so that desktop is first
+    // Sort so that Desktop is first
     rowArr.sort((a, b) => {
       const ad = a.device.toLowerCase();
       const bd = b.device.toLowerCase();
@@ -452,31 +452,38 @@ function populateHomePage() {
       return 0;
     });
 
-    // We'll parse locName into two lines, like your old code
+    // Parse locName into two lines, same as your older code
     const parts = locName.split(",");
     const line1 = parts[0] ? parts[0].trim() : "";
     const line2 = parts.slice(1).map(x => x.trim()).join(", ");
 
-    // We only want to show the location cell once, spanning however many device rows we have
+    // We'll only place the location cell once, with rowSpan for however many device rows
     const rowSpanCount = rowArr.length;
-    
-    // Now build each device row
+
     rowArr.forEach((data, idx) => {
       const tr = document.createElement("tr");
       tr.style.height = "50px";
 
-      // (A) The LOCATION cell for the first row only
+      // 8a) Light grey background for mobile rows
+      if (data.device.toLowerCase() === "mobile") {
+        tr.style.backgroundColor = "#f8f8f8";
+      }
+
+      // (A) The LOCATION cell only on the first row
       if (idx === 0) {
         const tdLoc = document.createElement("td");
-        tdLoc.style.verticalAlign = "top";
-        tdLoc.rowSpan = rowSpanCount; 
-        // Same styling as old code:
-        // big, bold, margin-bottom, and smaller second line
+        tdLoc.rowSpan = rowSpanCount;
+
+        // Vertically center + left alignment
+        tdLoc.style.verticalAlign = "middle";
+        tdLoc.style.paddingLeft = "20px"; // same as before
+
+        // Big bold line + smaller line
         tdLoc.innerHTML = `
-          <div style="font-size:28px; font-weight:bold; margin-bottom:4px; padding-left:20px;">
+          <div style="font-size:28px; font-weight:bold; margin-bottom:4px;">
             ${line1}
           </div>
-          <div style="font-size:14px; padding-left:20px;">
+          <div style="font-size:14px;">
             ${line2}
           </div>
         `;
@@ -485,11 +492,13 @@ function populateHomePage() {
 
       // (B) DEVICE cell
       const tdDevice = document.createElement("td");
+      tdDevice.style.verticalAlign = "middle";
       tdDevice.textContent = data.device;
       tr.appendChild(tdDevice);
 
-      // (C) AVG RANK cell (same approach as your old code)
+      // (C) AVG RANK cell
       const tdRank = document.createElement("td");
+      tdRank.style.verticalAlign = "middle";
       {
         const rankVal = data.avgRank.toFixed(2);
         let rankHTML = `<div style="font-size: 18px; font-weight: bold;">${rankVal}</div>`;
@@ -500,7 +509,9 @@ function populateHomePage() {
           } else if (data.rankChange > 0) {
             arrow = "▼"; color = "red";
           }
-          rankHTML += `<div style="font-size: 12px; color:${color};">${arrow} ${Math.abs(data.rankChange).toFixed(2)}</div>`;
+          rankHTML += `<div style="font-size: 12px; color:${color};">
+              ${arrow} ${Math.abs(data.rankChange).toFixed(2)}
+            </div>`;
         }
         tdRank.innerHTML = rankHTML;
       }
@@ -508,6 +519,7 @@ function populateHomePage() {
 
       // (D) MARKET SHARE
       const tdShare = document.createElement("td");
+      tdShare.style.verticalAlign = "middle";
       {
         const sharePct = data.avgShare.toFixed(1);
         let barColor = (data.trendVal < 0) ? "red" : "#007aff";
@@ -528,6 +540,7 @@ function populateHomePage() {
 
       // (E) TREND
       const tdTrend = document.createElement("td");
+      tdTrend.style.verticalAlign = "middle";
       {
         let arrow = "±", color = "#333";
         if (data.trendVal > 0) {
@@ -543,28 +556,32 @@ function populateHomePage() {
       }
       tr.appendChild(tdTrend);
 
-      // (F) RANK & SHARE HISTORY (with the same box layout & spacing you used before)
+      // (F) RANK & SHARE HISTORY
       const tdHistory = document.createElement("td");
+      tdHistory.style.verticalAlign = "middle";
+
+      // Give it a fixed width + horizontal scrolling
+      tdHistory.style.width = "480px";
+      tdHistory.style.overflowX = "auto";
+      tdHistory.style.whiteSpace = "nowrap";
+
+      // Container that has 2 rows (rank + share)
+      // We'll stack them vertically, but still scroll horizontally
+      // => use inline-block rows with "white-space: nowrap" so you can scroll
       const histContainer = document.createElement("div");
-      histContainer.style.width = "500px"; // same width you had
-      histContainer.style.overflowX = "auto";
       histContainer.style.display = "flex";
       histContainer.style.flexDirection = "column";
+      histContainer.style.gap = "4px"; // small vertical gap between row divs
 
       // rankRowDiv
       const rankRowDiv = document.createElement("div");
-      rankRowDiv.style.display = "inline-flex";
-      rankRowDiv.classList.add("history-rank-row");
-      rankRowDiv.style.flexWrap = "nowrap";
-      rankRowDiv.style.flexDirection = "row";
-      rankRowDiv.style.marginBottom = "4px";
+      rankRowDiv.style.display = "inline-block"; // so it doesn't wrap
+      rankRowDiv.style.whiteSpace = "nowrap";
 
       // shareRowDiv
       const shareRowDiv = document.createElement("div");
-      shareRowDiv.style.display = "inline-flex";
-      shareRowDiv.classList.add("history-share-row");
-      shareRowDiv.style.flexWrap = "nowrap";
-      shareRowDiv.style.flexDirection = "row";
+      shareRowDiv.style.display = "inline-block";
+      shareRowDiv.style.whiteSpace = "nowrap";
 
       // build date array for tooltips
       const endDateMoment = moment(data.endDate, "YYYY-MM-DD");
@@ -578,6 +595,7 @@ function populateHomePage() {
       // rank boxes (reverse order)
       data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
         const box = document.createElement("div");
+        box.style.display = "inline-block";
         box.style.width = "38px";
         box.style.height = "38px";
         box.style.lineHeight = "38px";
@@ -606,6 +624,7 @@ function populateHomePage() {
       data.last30shares.slice().reverse().forEach((sVal, idx3) => {
         const fillPct = Math.min(100, Math.max(0, sVal));
         const shareBox = document.createElement("div");
+        shareBox.style.display = "inline-block";
         shareBox.style.position = "relative";
         shareBox.style.width = "38px";
         shareBox.style.height = "38px";
@@ -640,12 +659,15 @@ function populateHomePage() {
         shareRowDiv.appendChild(shareBox);
       });
 
+      // Put them into histContainer
       histContainer.appendChild(rankRowDiv);
       histContainer.appendChild(shareRowDiv);
+
+      // Then into tdHistory
       tdHistory.appendChild(histContainer);
       tr.appendChild(tdHistory);
 
-      // add row to table
+      // Finally, add row to table
       bigTbody.appendChild(tr);
     });
   });
