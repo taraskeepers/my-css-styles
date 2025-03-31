@@ -29,13 +29,6 @@ html, body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-#rightColumn {
-  flex: 1;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
 
 /* ==============================================
    2) TOP FILTER CONTAINER
