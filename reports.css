@@ -1352,9 +1352,9 @@ ion-range::part(knob) {
   opacity: 1;
 }
 
-#tabsContainer .my-tab:first-child {
+/*#tabsContainer .my-tab:first-child {
   margin-left: 20px;
-}
+}*/
 
 /* ==============================================
    19) FILTER TAGS / POPUPS
