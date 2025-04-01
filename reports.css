@@ -1166,6 +1166,7 @@ html, body {
   display: flex;
   padding: 10px 20px;
   overflow: auto;
+  gap: 1px !important;
 }
 
 /* ==============================================
