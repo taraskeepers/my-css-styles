@@ -947,7 +947,7 @@ html, body {
   height: calc(100% - 50px);
 }
 .pla-details-column {
-  padding: 10px;
+  /*padding: 10px;*/
   overflow: auto;
   box-sizing: border-box;
 }
