@@ -280,7 +280,7 @@ html, body {
 /* Grid-mode overrides from embed */
 #filteredResults.grid-mode {
    width: 1260px;
-  display: flex !important;
+  display: flex;
   flex-wrap: wrap;
   padding-right: 0 !important;
   margin-right: 0 !important;
