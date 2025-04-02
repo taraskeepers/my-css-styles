@@ -2898,7 +2898,8 @@ body.home-page #layoutCompToggleContainer {
   width: 100% !important;
   height: 120px;         
   display: grid;
-  gap: 8px;
+  grid-template-columns: 80px 120px 300px 260px 120px 100px 250px;
+  gap: 5px;
   align-items: center;
   padding: 0;
   cursor: pointer;
