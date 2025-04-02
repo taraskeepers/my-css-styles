@@ -2878,3 +2878,48 @@ body.home-page #layoutCompToggleContainer {
   height: 20px;
   margin-right: 4px;
 }
+/* 
+   Ensures each PLA "card" in list-mode 
+   stretches full width and uses a grid layout 
+*/
+#filteredResults.list-mode .ad-details {
+  width: 100% !important;
+  height: 120px;          /* or any fixed row height you prefer */
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  padding: 0px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid #dadce0;
+  box-sizing: border-box;
+}
+#filteredResults.list-mode .pos-badge,
+#filteredResults.list-mode .vis-badge {
+  display: none;
+}
+/* 
+   Positions the badges around the image 
+   when .column-image is used in list-mode.
+*/
+#filteredResults.list-mode .column-image .sale-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 4;
+}
+#filteredResults.list-mode .column-image .pos-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 4;
+}
+#filteredResults.list-mode .column-image .vis-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  z-index: 4;
+  width: auto;
+  height: auto;
+}
+
