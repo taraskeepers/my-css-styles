@@ -3154,4 +3154,11 @@ body.home-page #layoutCompToggleContainer {
   overflow: visible;
   overflow-y: hidden;
 }
+.column-position { grid-column: 1; }
+.column-image    { grid-column: 2; }
+.column-title-company { grid-column: 3; }
+.column-minichart { grid-column: 4; }
+.column-price    { grid-column: 5; }
+.column-rating   { grid-column: 6; }
+.column-extensions { grid-column: 7; }
 
