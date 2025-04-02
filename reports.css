@@ -1743,14 +1743,14 @@ body.home-page #layoutCompToggleContainer {
   height: 130px;
 }
 .company-insights-table {
-  width: 1050px;
+  width: 900px;
   border-collapse: separate;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: #fff;
   border: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   border-radius: 8px !important;
-  margin: 0 auto;
+  margin-left: 20px;
   overflow: hidden;
 }
 .company-insights-table th,
