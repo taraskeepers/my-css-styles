@@ -2882,26 +2882,139 @@ body.home-page #layoutCompToggleContainer {
    Ensures each PLA "card" in list-mode 
    stretches full width and uses a grid layout 
 */
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   LIST-MODE layout (7-column arrangement)
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+/* Overall container when list-mode is active */
+#filteredResults.list-mode {
+  display: flex;          /* One row per item */
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* In list-mode, the standard .ad-details gets turned into a row of columns */
 #filteredResults.list-mode .ad-details {
   width: 100% !important;
-  height: 120px;          /* or any fixed row height you prefer */
+  height: 120px;         
   display: grid;
   gap: 8px;
   align-items: center;
-  padding: 0px;
+  padding: 0;
   cursor: pointer;
   border-radius: 8px;
   border: 1px solid #dadce0;
   box-sizing: border-box;
 }
+
+/* Hide the original grid-mode layout inside each .ad-details */
+#filteredResults.list-mode .grid-mode-layout {
+  display: none;
+}
+
+/* The .list-mode-layout wrapper becomes "visible" (occupies the grid cells) */
+.list-mode-layout {
+  display: none; /* default hidden in grid-mode */
+}
+#filteredResults.list-mode .list-mode-layout {
+  display: contents; /* children flow directly into the .ad-details grid */
+}
+
+/* ~~~ If you used a hidden .trend-box or badges in list-mode, hide them: ~~~ */
+#filteredResults.list-mode .trend-box {
+  display: none; 
+}
+/* If you want to hide the small pos/vis badges in list-mode: */
 #filteredResults.list-mode .pos-badge,
 #filteredResults.list-mode .vis-badge {
   display: none;
 }
-/* 
-   Positions the badges around the image 
-   when .column-image is used in list-mode.
-*/
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   “Column” classes for each portion of the row
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+/* Example column for a "trend" strip on the left (3 vertical cells) */
+.column-trend {
+  height: 100%;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* If you used a .list-mode-trend-box inside .column-trend: */
+.list-mode-trend-box {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0;
+  gap: 0; /* no extra gap between trend rows */
+}
+.trend-row {
+  display: grid;
+  grid-template-columns: 60% 40%; /* adjust as you like */
+  align-items: center;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  gap: 8px;
+}
+.trend-value-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  white-space: nowrap;
+  font-size: 16px;
+  color: #fff;
+}
+.trend-up {
+  background-color: green;
+  color: #fff;
+}
+.trend-down {
+  background-color: red;
+  color: #fff;
+}
+.trend-value {
+  font-weight: bold;
+  font-size: 12px;
+}
+.trend-label {
+  font-weight: bold;
+  font-size: 12px;
+  color: #333;
+}
+.list-mode-trend-box .trend-header {
+  display: none; /* hide small headers in vertical layout */
+}
+.list-mode-trend-box .trend-data {
+  text-align: left;
+  font-size: 12px;
+  padding: 2px;
+}
+.list-mode-trend-box .trend-data:nth-of-type(1)::before {
+  content: "1d: ";
+}
+.list-mode-trend-box .trend-data:nth-of-type(2)::before {
+  content: "7d: ";
+}
+.list-mode-trend-box .trend-data:nth-of-type(3)::before {
+  content: "30d: ";
+}
+
+/* Column for the product image & overlapping badges (sale, pos, vis) */
+.column-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* If you want different positions for badges over the image in list-mode: */
 #filteredResults.list-mode .column-image .sale-badge {
   position: absolute;
   top: 4px;
@@ -2919,7 +3032,126 @@ body.home-page #layoutCompToggleContainer {
   bottom: 4px;
   right: 4px;
   z-index: 4;
-  width: auto;
-  height: auto;
+}
+
+/* Column for product title & company name */
+.column-title-company {
+  /* Typically the 3rd column in your grid */
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 4px;
+}
+/* Let the .ad-title inside list-mode expand more lines */
+#filteredResults.list-mode .column-title-company .ad-title {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Column for the product's position/rank */
+.column-position {
+  text-align: center;
+  font-weight: 600;
+}
+/* Force vertical centering if needed */
+#filteredResults.list-mode .column-position {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100% !important;
+}
+#filteredResults.list-mode .column-position .pos-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#filteredResults.list-mode .column-position .pos-label {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #333;
+  text-align: center;
+}
+
+/* Column for the product's visibility (bar, label, etc.) */
+.column-visibility {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+#filteredResults.list-mode .column-visibility .vis-label {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #333;
+}
+
+/* Column for price & promotions */
+.column-price {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+#filteredResults.list-mode .column-price .active-promotions {
+  display: inline-block;
+  background-color: orange;
+  color: #fff;
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+/* Column for rating & rating trends */
+.column-rating {
+  text-align: center;
+}
+#filteredResults.list-mode .column-rating .rating-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#filteredResults.list-mode .column-rating .rating-trend {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #333;
+  width: 100%;
+  text-align: center;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-up {
+  color: green;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-down {
+  color: red;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value.trend-neutral {
+  color: #333;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-value {
+  background: none;
+}
+#filteredResults.list-mode .column-rating .rating-trend .rating-trend-arrow {
+  background: none;
+  color: inherit;
+}
+
+/* If you have a separate "extensions" column in list-mode */
+#filteredResults.list-mode .column-extensions .ad-extensions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 120px;
+  white-space: normal;
+  overflow: visible;
+  overflow-y: hidden;
 }
 
