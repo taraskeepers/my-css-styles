@@ -363,20 +363,9 @@ function autoPickDefaultFirstGroup(allRows) {
         document.getElementById("locationText").textContent = randomRow.location_requested || "";
       }; 
 
-async function populateHomePage() {
- // [A] We want to load from IDB first, so let's do that right at the top:
-
- // 1) Try reading previously cached aggregator for this company:
- const st = window.filterState;
- const targetCompany = st.company && st.company.trim()
-   ? st.company.trim()
-   : "Under Armour"; // fallback
-
- const cacheKey = "acc1_pr1_homeData::" + targetCompany.toLowerCase();
- let cachedHomeData = await getDataFromIDB(cacheKey);
-  
+function populateHomePage() {
   // 1) Check that mapHelpers is ready
- if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
+  if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
     console.warn("mapsLib.js not loaded yet. Retrying in 500ms.");
     setTimeout(populateHomePage, 500);
     return;
@@ -390,32 +379,20 @@ async function populateHomePage() {
 
   // **** Removed the heading text ("Locations & Devices (Single Table)") ****
 
- // fallback
+  // 3) Determine the target company
+  const st = window.filterState;
+  const targetCompany = st.company && st.company.trim()
+    ? st.company.trim()
+    : "Under Armour"; // fallback
   window.filterState.company = targetCompany;
   document.getElementById("companyText").textContent = targetCompany;
 
- let data;
- if (cachedHomeData && Array.isArray(cachedHomeData) && cachedHomeData.length > 0) {
-   console.log("[HomePage] Using cached aggregator for", targetCompany);
-   data = cachedHomeData;
- } else {
-   console.log("[HomePage] No cached aggregator => computing for", targetCompany);
-   data = buildHomeData(targetCompany);
-   // Store in IDB for future loads:
-   await setDataInIDB(cacheKey, data);
- }
-
   // 4) Build the homeData for that company
-  window.homeData = data;
+  window.homeData = buildHomeData(targetCompany);
   if (!homeData.length) {
     const noDataP = document.createElement("p");
     noDataP.textContent = "No data to display for Home container.";
     locListContainer.appendChild(noDataP);
-
-   // Even if no data, we still fade out the loader gracefully:
-   const loader = document.getElementById("overlayLoader");
-   loader.style.opacity = "0";
-   setTimeout(() => { loader.style.display = "none"; }, 500);
     return;
   }
 
@@ -695,10 +672,6 @@ async function populateHomePage() {
   // 11) Finally, draw the map as before
   const mapData = buildHomeDataForMap();
   window.mapHelpers.drawUsMapWithLocations(mapData, "#locMap");
-
- const loader = document.getElementById("overlayLoader");
- loader.style.opacity = "0";
- setTimeout(() => { loader.style.display = "none"; }, 500);
 }
 
     function updateHomeMapMetrics() {
@@ -1410,4 +1383,3 @@ async function populateHomePage() {
           }
         });
       }
-
