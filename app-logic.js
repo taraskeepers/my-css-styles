@@ -364,6 +364,7 @@ function autoPickDefaultFirstGroup(allRows) {
       }; 
 
 function populateHomePage() {
+  const st = window.filterState; 
   let targetCompany = "";
   if (window.myCompany && window.myCompany.trim()) {
     targetCompany = window.myCompany.trim();
