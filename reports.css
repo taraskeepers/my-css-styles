@@ -3163,3 +3163,16 @@ body.home-page #layoutCompToggleContainer {
 .column-rating   { grid-column: 6; }
 .column-extensions { grid-column: 7; }
 
+#accountDropdown {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  display: none;
+}
+
+#accountDropdown.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
