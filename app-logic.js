@@ -364,8 +364,6 @@ function autoPickDefaultFirstGroup(allRows) {
       }; 
 
 function populateHomePage() {
-    const st = window.filterState;
-
   let targetCompany = "";
   if (window.myCompany && window.myCompany.trim()) {
     targetCompany = window.myCompany.trim();
@@ -750,7 +748,8 @@ function populateHomePage() {
       }
 
   function buildHomeDataForMap() {
-    const raw = buildHomeData("Under Armour");  // or from filterState.company, etc.
+    const fallbackCo = (window.filterState.company || "Under Armour").trim();
+const raw = buildHomeData(fallbackCo);
   
     const arr = raw.map(item => {
       return {
