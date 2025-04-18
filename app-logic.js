@@ -391,9 +391,6 @@ function populateHomePage() {
   locListContainer.style.overflowY = "auto";
 
   // **** Removed the heading text ("Locations & Devices (Single Table)") ****
-
-  // 3) Determine the target company
-  const st = window.filterState;
   /*
   const targetCompany = st.company && st.company.trim()
     ? st.company.trim()
