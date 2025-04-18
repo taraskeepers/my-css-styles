@@ -364,6 +364,20 @@ function autoPickDefaultFirstGroup(allRows) {
       }; 
 
 function populateHomePage() {
+    const st = window.filterState;
+
+  let targetCompany = "";
+  if (window.myCompany && window.myCompany.trim()) {
+    targetCompany = window.myCompany.trim();
+  } else if (st.company && st.company.trim()) {
+    targetCompany = st.company.trim();
+  } else {
+    targetCompany = "Under Armour";   // fallback
+  }
+
+  window.filterState.company = targetCompany;
+  document.getElementById("companyText").textContent = targetCompany;
+  
   // 1) Check that mapHelpers is ready
   if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
     console.warn("mapsLib.js not loaded yet. Retrying in 500ms.");
@@ -381,11 +395,12 @@ function populateHomePage() {
 
   // 3) Determine the target company
   const st = window.filterState;
+  /*
   const targetCompany = st.company && st.company.trim()
     ? st.company.trim()
     : "Under Armour"; // fallback
   window.filterState.company = targetCompany;
-  document.getElementById("companyText").textContent = targetCompany;
+  document.getElementById("companyText").textContent = targetCompany;*/
 
   // 4) Build the homeData for that company
   window.homeData = buildHomeData(targetCompany);
