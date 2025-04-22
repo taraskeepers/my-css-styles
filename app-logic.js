@@ -364,6 +364,12 @@ function autoPickDefaultFirstGroup(allRows) {
       }; 
 
 function populateHomePage() {
+    console.log(
+    "[DEBUG] ▶ populateHomePage() called with:",
+    "\n   myCompany =", window.myCompany,
+    "\n   companyStatsData.length =", window.companyStatsData?.length,
+    "\n   marketTrendsData.length =", window.marketTrendsData?.length
+  );
   const st = window.filterState; 
   let targetCompany = "";
   if (window.myCompany && window.myCompany.trim()) {
