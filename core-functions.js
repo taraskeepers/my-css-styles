@@ -4,10 +4,10 @@
     function renderData(skipCompanyStats) {
         console.log("[DEBUG] ▶ renderData() called — prefix:", window.dataPrefix);
         console.group("[📊 renderData() – Confirming Data Source]");
-console.log("dataPrefix in use:", window.dataPrefix);
-console.log("companyStatsData.length =", window.companyStatsData?.length || 0);
-console.log("marketTrendsData.length =", window.marketTrendsData?.length || 0);
-console.groupEnd();
+        console.log("dataPrefix in use:", window.dataPrefix);
+        console.log("companyStatsData.length =", window.companyStatsData?.length || 0);
+        console.log("marketTrendsData.length =", window.marketTrendsData?.length || 0);
+        console.groupEnd();
 
         document.querySelectorAll(".pla-details-panel:not(#companyStats):not(#serpContainer):not(#companyStatsSerp)").forEach(panel => panel.remove());
         currentlyOpenPanel = null;
