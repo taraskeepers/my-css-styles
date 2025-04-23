@@ -329,6 +329,7 @@ function autoPickDefaultFirstGroup(allRows) {
 
     // Called once we receive rows from parent or IDB
     function onReceivedRows(rows) {
+      console.log("[onReceivedRows] Received processed rows length =", data?.length);
         // Process your data
         window.allRows = rows;
         updateSearchTermDropdown(rows);
