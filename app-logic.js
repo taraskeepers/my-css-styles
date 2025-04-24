@@ -25,7 +25,7 @@ let loadingCount = 0;
   };
   window.localEmbedToggles = {};
 let db = null;
-    const DB_NAME = "myReportsDB";ƒrows
+    const DB_NAME = "myReportsDB";
     const DB_VERSION = 1;
     const STORE_NAME = "projects";
     let dataLoaded = false;
