@@ -3,6 +3,8 @@
 // 1) Global variables
 Chart.register(window["ChartDataLabels"]);
 
+window.currentlyOpenPanel = null;
+window.currentlySelectedIndex = null;
 let projectData = [];
 let loadingCount = 0;
   let panelAnimating = false;
@@ -41,9 +43,7 @@ window.initialAvgPosRangeSet = false;
   let avgPosFilterRange = { min: 1, max: 40 };  
     let titleColumnWidth = 200;
     let selectedPeriod = "7d";
-    let currentlyOpenPanel = null;
     let currentlyRowEndIndex = null;
-    let currentlySelectedIndex = null;
     let cachedRows = [];
   window.serpSegmentMapping = {
     "top3":     { share: "top3_market_share", prod: "top3_avg_products", showSale: false },
