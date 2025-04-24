@@ -2,6 +2,20 @@
 
     // The core rendering logic
     function renderData(skipCompanyStats) {
+          // Run default click ONCE
+  if (!window._didAutoClickPr1) {
+    window._didAutoClickPr1 = true;
+    setTimeout(() => {
+      const firstCard = document.querySelector('.search-card[project-number="1"]');
+      if (firstCard) {
+        console.log("[AUTO] Clicking default card from project 1");
+        firstCard.click();
+      } else {
+        console.warn("[AUTO] No search card found for project 1");
+      }
+    }, 200);
+  }
+        
         console.log("[DEBUG] ▶ renderData() called — prefix:", window.dataPrefix);
         console.group("[📊 renderData() – Confirming Data Source]");
         console.log("dataPrefix in use:", window.dataPrefix);
@@ -21,16 +35,6 @@
         }
         // (Optionally) save fullDataset into cachedRows if needed
         cachedRows = fullDataset.slice();
-    
-    setTimeout(() => {
-    const firstCard = document.querySelector('.search-card[project-number="1"]');
-    if (firstCard) {
-      console.log("[AUTO] Clicking default card from project 1");
-      firstCard.click();
-    } else {
-      console.warn("[AUTO] No search card found for project 1");
-    }
-  }, 200);
       
         // ----------------------------------------------------------------------
         // A) RECOMPUTE PERIOD-BASED FIELDS (finalPosition, slope, ratingTrend,
