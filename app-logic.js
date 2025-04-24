@@ -799,16 +799,25 @@ const raw = buildHomeData(fallbackCo);
 /* All functions that do real-time data gathering and populate the dropdown lists */
 
 function updateSearchTermDropdown(rows) {
-  const activeProjectNumber = window.activeProjectNumber;
-  if (activeProjectNumber == null) {
-    console.warn("❌ window.activeProjectNumber is not set.");
-    return;
+  let activeProjectNumber = window.activeProjectNumber;
+
+  if (activeProjectNumber == null && rows?.length > 0) {
+    // fallback: pick first available project_number from rows
+    const first = rows.find(r => r.project_number != null);
+    if (first) {
+      activeProjectNumber = first.project_number;
+      window.activeProjectNumber = activeProjectNumber;
+      console.warn(`[⚠️ Fallback] project_number defaulted to ${activeProjectNumber}`);
+    } else {
+      console.warn("❌ No valid project_number found in rows.");
+      return;
+    }
   }
 
-  const filteredRows = rows.filter(r => {
-    return r.project_number === activeProjectNumber;
-  });
+  // 1. Filter rows by active project
+  const filteredRows = rows.filter(r => r.project_number === activeProjectNumber);
 
+  // 2. Count occurrences of each search term
   const qCounts = {};
   filteredRows.forEach(r => {
     const qVal = r.q || "";
@@ -819,6 +828,39 @@ function updateSearchTermDropdown(rows) {
   const allQ = Object.keys(qCounts).map(qVal => ({ name: qVal, count: qCounts[qVal] }));
   allQ.sort((a, b) => b.count - a.count);
 
+  // 3. Auto-pick the most common one on first load
+  if (!window.filterState.searchTerm && allQ.length > 0) {
+    const defaultSearch = allQ[0].name;
+    window.filterState.searchTerm = defaultSearch;
+    document.getElementById("searchTermValue").textContent = defaultSearch;
+
+    // Also auto-fill the other filters based on the most common row for that search
+    const matching = filteredRows.filter(r => r.q === defaultSearch);
+
+    if (matching.length > 0) {
+      const topRow = matching[0];
+      window.filterState.engine = topRow.engine || "";
+      window.filterState.device = topRow.device || "";
+      window.filterState.location = topRow.location_requested || "";
+
+      if (topRow.engine) document.getElementById("engineOptionsRow").textContent = topRow.engine;
+      if (topRow.device) {
+        const deviceEl = document.getElementById("deviceFilter");
+        deviceEl?.querySelectorAll(".toggle-option").forEach(opt => {
+          opt.classList.toggle("active", opt.getAttribute("data-device")?.toLowerCase() === topRow.device.toLowerCase());
+        });
+      }
+      if (topRow.location_requested) {
+        document.getElementById("locationText").textContent = topRow.location_requested;
+      }
+    }
+
+    // Re-render with selected filters
+    renderData();
+    updateCompanyDropdown(window.filteredData);
+  }
+
+  // 4. Build the dropdown UI
   const dropdown = document.getElementById("searchTermDropdown");
   dropdown.innerHTML = "";
 
