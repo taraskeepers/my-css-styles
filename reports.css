@@ -2784,8 +2784,9 @@ body.home-page #layoutCompToggleContainer {
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 .search-card {
   display: flex;
-  align-items: center;
-  height: 40px;
+  align-items: flex-start;;
+  height: auto !important;
+  min-height: 40px;
   width: 100%;
   padding: 0 15px;
   box-sizing: border-box;
