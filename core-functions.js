@@ -2,9 +2,8 @@
 
     // The core rendering logic
     function renderData(skipCompanyStats) {
-if (typeof window.currentlyOpenPanel === "undefined") {
-  window.currentlyOpenPanel = null;
-}
+  window.currentlyOpenPanel     = null;
+  window.currentlySelectedIndex = null;
           // Run default click ONCE
   if (!window._didAutoClickPr1) {
     window._didAutoClickPr1 = true;
