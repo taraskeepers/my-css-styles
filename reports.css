@@ -2769,8 +2769,8 @@ body.home-page #layoutCompToggleContainer {
 
 /* Sub-menu that expands when a project is clicked */
 .sub-menu {
-  max-height: 0;
-  overflow: hidden;
+  overflow: visible !important;
+  max-height: none !important;
   transition: max-height 0.3s ease, padding 0.3s ease;
   background-color: #fafafa;
 }
@@ -2783,8 +2783,8 @@ body.home-page #layoutCompToggleContainer {
    E) The search cards within each sub-menu
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 .search-card {
-  display: flex;
-  align-items: flex-start;;
+  /*display: flex;*/
+  align-items: flex-start;
   height: auto !important;
   min-height: 40px;
   width: 100%;
