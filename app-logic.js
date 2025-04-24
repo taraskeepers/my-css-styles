@@ -799,16 +799,12 @@ const raw = buildHomeData(fallbackCo);
 /* All functions that do real-time data gathering and populate the dropdown lists */
 
 function updateSearchTermDropdown(rows) {
-  const currentPrefix = window.dataPrefix || "";
-  const match = currentPrefix.match(/pr(\d+)_/);
-  const activeProjectNumber = match ? parseInt(match[1], 10) : null;
-
-  if (activeProjectNumber === null) {
-    console.warn("❌ No valid project_number parsed from dataPrefix.");
+  const activeProjectNumber = window.activeProjectNumber;
+  if (activeProjectNumber == null) {
+    console.warn("❌ window.activeProjectNumber is not set.");
     return;
   }
 
-  // ✅ Only include rows for this active project
   const filteredRows = rows.filter(r => {
     return r.project_number === activeProjectNumber;
   });
@@ -820,10 +816,7 @@ function updateSearchTermDropdown(rows) {
     qCounts[qVal]++;
   });
 
-  const allQ = Object.keys(qCounts).map(qVal => ({
-    name: qVal,
-    count: qCounts[qVal]
-  }));
+  const allQ = Object.keys(qCounts).map(qVal => ({ name: qVal, count: qCounts[qVal] }));
   allQ.sort((a, b) => b.count - a.count);
 
   const dropdown = document.getElementById("searchTermDropdown");
