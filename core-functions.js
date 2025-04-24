@@ -1,9 +1,8 @@
+core-functions.js
 /* core functions */
 
     // The core rendering logic
     function renderData(skipCompanyStats) {
-  window.currentlyOpenPanel     = null;
-  window.currentlySelectedIndex = null;
           // Run default click ONCE
   if (!window._didAutoClickPr1) {
     window._didAutoClickPr1 = true;
@@ -26,8 +25,8 @@
         console.groupEnd();
 
         document.querySelectorAll(".pla-details-panel:not(#companyStats):not(#serpContainer):not(#companyStatsSerp)").forEach(panel => panel.remove());
-        //currentlyOpenPanel = null;
-        //currentlySelectedIndex = null;
+        currentlyOpenPanel = null;
+        currentlySelectedIndex = null;
 
         const globalLastDate = getGlobalMaxDate(window.allRows); 
         const fullDataset = window.allRows;
