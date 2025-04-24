@@ -2783,7 +2783,7 @@ body.home-page #layoutCompToggleContainer {
    E) The search cards within each sub-menu
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 .search-card {
-  /*display: flex;*/
+  display: flex;
   align-items: flex-start;
   height: auto !important;
   min-height: 40px;
