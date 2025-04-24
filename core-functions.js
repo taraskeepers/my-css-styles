@@ -26,8 +26,8 @@
         console.groupEnd();
 
         document.querySelectorAll(".pla-details-panel:not(#companyStats):not(#serpContainer):not(#companyStatsSerp)").forEach(panel => panel.remove());
-        currentlyOpenPanel = null;
-        currentlySelectedIndex = null;
+        //currentlyOpenPanel = null;
+        //currentlySelectedIndex = null;
 
         const globalLastDate = getGlobalMaxDate(window.allRows); 
         const fullDataset = window.allRows;
