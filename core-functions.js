@@ -1,20 +1,23 @@
 /* core functions */
 
     // The core rendering logic
-    function renderData(skipCompanyStats) {
-          // Run default click ONCE
+function renderData(skipCompanyStats) {
+  // Run default click ONCE
   if (!window._didAutoClickPr1) {
     window._didAutoClickPr1 = true;
     setTimeout(() => {
       const firstCard = document.querySelector('.search-card[project-number="1"]');
-      if (firstCard) 
-        clearSelectedSearchCards(); 
+      if (firstCard) {
+        clearSelectedSearchCards();
         console.log("[AUTO] Clicking default card from project 1");
         firstCard.classList.add("selected");
-          const subMenu = firstCard.closest(".sub-menu");
-          if (subMenu) {
+
+        // Expand the sub-menu for this card
+        const subMenu = firstCard.closest(".sub-menu");
+        if (subMenu) {
           subMenu.classList.add("expanded");
-          }
+        }
+
         firstCard.click();
       } else {
         console.warn("[AUTO] No search card found for project 1");
