@@ -798,10 +798,18 @@ const raw = buildHomeData(fallbackCo);
 
 /* All functions that do real-time data gathering and populate the dropdown lists */
 
-      function updateSearchTermDropdown(rows) {
-        // 1. Gather distinct q values and counts
-        const qCounts = {};
-        rows.forEach(r => {
+function updateSearchTermDropdown(rows) {
+  const currentPrefix = window.dataPrefix || "";
+  const match = currentPrefix.match(/pr(\d+)_/);
+  const activeProjectNumber = match ? parseInt(match[1], 10) : null;
+
+  // Filter rows for current project_number only
+  const filteredRows = rows.filter(r => {
+    return String(r.project_number) === String(activeProjectNumber);
+  });
+
+  const qCounts = {};
+  filteredRows.forEach(r => {
           const qVal = r.q || "";
           if (!qCounts[qVal]) { qCounts[qVal] = 0; }
           qCounts[qVal]++;
