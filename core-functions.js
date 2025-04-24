@@ -1,4 +1,3 @@
-core-functions.js
 /* core functions */
 
     // The core rendering logic
