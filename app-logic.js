@@ -23,7 +23,7 @@ let loadingCount = 0;
   };
   window.localEmbedToggles = {};
 let db = null;
-    const DB_NAME = "myReportsDB";
+    const DB_NAME = "myReportsDB";ƒrows
     const DB_VERSION = 1;
     const STORE_NAME = "projects";
     let dataLoaded = false;
@@ -803,78 +803,82 @@ function updateSearchTermDropdown(rows) {
   const match = currentPrefix.match(/pr(\d+)_/);
   const activeProjectNumber = match ? parseInt(match[1], 10) : null;
 
-  // Filter rows for current project_number only
+  if (activeProjectNumber === null) {
+    console.warn("❌ No valid project_number parsed from dataPrefix.");
+    return;
+  }
+
+  // ✅ Only include rows for this active project
   const filteredRows = rows.filter(r => {
-    return String(r.project_number) === String(activeProjectNumber);
+    return r.project_number === activeProjectNumber;
   });
 
   const qCounts = {};
   filteredRows.forEach(r => {
-          const qVal = r.q || "";
-          if (!qCounts[qVal]) { qCounts[qVal] = 0; }
-          qCounts[qVal]++;
-        });
-        // 2. Convert to array and sort descending by count
-        const allQ = Object.keys(qCounts).map(qVal => ({ name: qVal, count: qCounts[qVal] }));
-        allQ.sort((a, b) => b.count - a.count);       
-      
-        // 4. Get the dropdown element and clear previous content
-        const dropdown = document.getElementById("searchTermDropdown");
-        dropdown.innerHTML = "";
-        
-        // 5. Insert a search input box
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = "Search term...";
-        input.style.cssText = `
-          display: block;
-          width: 90%;
-          margin: 8px auto;
-          padding: 6px 8px;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-          font-size: 14px;
-        `;
-        dropdown.appendChild(input);
-        
-        // 7. Helper to render the list items
-        function renderQList(arr) {
-          // Remove list items beyond input and liAll
-          while (dropdown.childNodes.length > 2) {
-            dropdown.removeChild(dropdown.lastChild);
-          }
-          arr.forEach(item => {
-            const li = document.createElement("li");
-            li.textContent = `${item.name} (${item.count})`;
-            li.style.cursor = "pointer";
-            li.addEventListener("click", () => {
-                window.filterState.searchTerm = item.name;
-              document.getElementById("searchTermValue").textContent = item.name;
-              dropdown.style.display = "none";
-              window.filterState.visibilityRange = { min: 0, max: 100 };
-              const visSlider = document.querySelector('#visibilityRange');
-              visSlider.value = { lower: 0, upper: 100 };
-              document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              
-              renderData();
-              updateCompanyDropdown(window.filteredData);
-            });
-            dropdown.appendChild(li);
-          });
-        }
-        
-        // 8. Render the list and attach search handler
-        renderQList(allQ);
-        input.addEventListener("input", () => {
-          const typed = input.value.toLowerCase();
-          if (typed.length < 2) {
-            renderQList(allQ);
-          } else {
-            const filtered = allQ.filter(x => x.name.toLowerCase().includes(typed));
-            renderQList(filtered);
-          }
-        });
-      }
+    const qVal = r.q || "";
+    if (!qCounts[qVal]) qCounts[qVal] = 0;
+    qCounts[qVal]++;
+  });
+
+  const allQ = Object.keys(qCounts).map(qVal => ({
+    name: qVal,
+    count: qCounts[qVal]
+  }));
+  allQ.sort((a, b) => b.count - a.count);
+
+  const dropdown = document.getElementById("searchTermDropdown");
+  dropdown.innerHTML = "";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Search term...";
+  input.style.cssText = `
+    display: block;
+    width: 90%;
+    margin: 8px auto;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  `;
+  dropdown.appendChild(input);
+
+  function renderQList(arr) {
+    while (dropdown.childNodes.length > 2) {
+      dropdown.removeChild(dropdown.lastChild);
+    }
+    arr.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.name} (${item.count})`;
+      li.style.cursor = "pointer";
+      li.addEventListener("click", () => {
+        window.filterState.searchTerm = item.name;
+        document.getElementById("searchTermValue").textContent = item.name;
+        dropdown.style.display = "none";
+
+        window.filterState.visibilityRange = { min: 0, max: 100 };
+        const visSlider = document.querySelector('#visibilityRange');
+        visSlider.value = { lower: 0, upper: 100 };
+        document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
+
+        renderData();
+        updateCompanyDropdown(window.filteredData);
+      });
+      dropdown.appendChild(li);
+    });
+  }
+
+  renderQList(allQ);
+  input.addEventListener("input", () => {
+    const typed = input.value.toLowerCase();
+    if (typed.length < 2) {
+      renderQList(allQ);
+    } else {
+      const filtered = allQ.filter(x => x.name.toLowerCase().includes(typed));
+      renderQList(filtered);
+    }
+  });
+}
 
     function updateEngineDropdown(rows) {
         // 1. Gather distinct engine values
