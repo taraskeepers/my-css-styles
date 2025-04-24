@@ -7,8 +7,14 @@
     window._didAutoClickPr1 = true;
     setTimeout(() => {
       const firstCard = document.querySelector('.search-card[project-number="1"]');
-      if (firstCard) {
+      if (firstCard) 
+        clearSelectedSearchCards(); 
         console.log("[AUTO] Clicking default card from project 1");
+        firstCard.classList.add("selected");
+          const subMenu = firstCard.closest(".sub-menu");
+          if (subMenu) {
+          subMenu.classList.add("expanded");
+          }
         firstCard.click();
       } else {
         console.warn("[AUTO] No search card found for project 1");
