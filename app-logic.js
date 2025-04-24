@@ -1,4 +1,3 @@
-app-logic.js
 /* app-logic.js */
 
 // 1) Global variables
