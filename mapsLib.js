@@ -892,7 +892,7 @@ function filterHomeTableByState(stateName) {
   const rows = table.querySelectorAll("tbody tr");
   rows.forEach(row => {
     // Adjust the column index if your 'Location' column is not the 2nd
-    const locCell = row.cells[1]; // or row.querySelector(".location-col")
+    const locCell = row.cells[0]; // or row.querySelector(".location-col")
     if (!locCell) return;
 
     // If the location cell text includes the spelled-out state name => show it
@@ -913,7 +913,7 @@ function filterProjectTableByState(stateName) {
   const rows = table.querySelectorAll("tbody tr");
   rows.forEach(row => {
     // again, assume Location is in the 2nd column
-    const locCell = row.cells[1];
+    const locCell = row.cells[0];
     if (!locCell) return;
 
     if (locCell.textContent.includes(stateName)) {
