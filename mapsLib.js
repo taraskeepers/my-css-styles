@@ -228,6 +228,12 @@ const POSTAL_TO_STATE_NAME = {
     const mapDiv = container.append("div")
       .style("position", "relative");
 
+    // After creating mapDiv
+const tagContainer = container.append("div")
+  .attr("id", "stateFilterTag")
+  .style("margin-top", "10px")
+  .style("text-align", "center");
+
     // Apply toggle settings to project.searches
     const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
     const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
@@ -562,6 +568,57 @@ svg.selectAll("foreignObject.state-label")
     // 3) Save this as the 'previouslySelectedState'
     previouslySelectedState = d3.select(this);
 
+    // 4) Create or update the selected State tag
+const tagDiv = document.getElementById("stateFilterTag");
+if (tagDiv) {
+  const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  if (!stPostal) return;
+  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
+
+  tagDiv.innerHTML = `
+    <span style="
+      display: inline-block;
+      background: #007aff;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      position: relative;
+    ">
+      ${stateName}
+      <span id="clearStateFilter" style="
+        margin-left: 8px;
+        cursor: pointer;
+        font-weight: bold;
+      ">
+        &times;
+      </span>
+    </span>
+  `;
+
+  // Attach click event to the × button
+  document.getElementById("clearStateFilter").addEventListener("click", function() {
+    // Clear the tag
+    tagDiv.innerHTML = "";
+
+    // Remove table filtering
+    if (document.getElementById("homePage").style.display !== "none") {
+      showAllHomeTableRows();
+    } else if (document.getElementById("projectPage").style.display !== "none") {
+      showAllProjectTableRows();
+    }
+
+    // Reset previously selected state's stroke
+    if (previouslySelectedState) {
+      previouslySelectedState
+        .attr("stroke-width", 1)
+        .attr("stroke", "#999");
+      previouslySelectedState = null;
+    }
+  });
+}
+
     // 4) Figure out the spelled-out name from the postal code
     const stPostal = FIPS_TO_POSTAL[d.id] || null;
     if (!stPostal) return;  // unknown or no data
@@ -883,25 +940,25 @@ svg.selectAll("foreignObject.state-label")
   // Filter the home-table so that only rows whose LOCATION cell
 // contains the specified stateName remain visible
 function filterHomeTableByState(stateName) {
-  // 1) Find the table that you want to filter
-  //    (assuming there's an element with class .home-table inside #homePage)
   const table = document.querySelector("#homePage .home-table");
   if (!table) return;
 
-  // 2) For each row, check if the 'Location' cell includes the stateName
   const rows = table.querySelectorAll("tbody tr");
-  rows.forEach(row => {
-    // Adjust the column index if your 'Location' column is not the 2nd
-    const locCell = row.cells[0]; // or row.querySelector(".location-col")
-    if (!locCell) return;
+  let currentLocationName = ""; // 🆕 Remember last non-empty Location
 
-    // If the location cell text includes the spelled-out state name => show it
-    // Otherwise hide the row
-    if (locCell.textContent.includes(stateName)) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
+  rows.forEach(row => {
+    const locCell = row.cells[0]; // Location is in the 0th column
+    if (locCell) {
+      const locationText = locCell.textContent.trim();
+if (locationText) {
+  currentLocationName = locationText.toLowerCase();
+}
+
+if (currentLocationName.includes(stateName.toLowerCase())) {
+  row.style.display = "";
+} else {
+  row.style.display = "none";
+}
   });
 }
 
@@ -911,16 +968,37 @@ function filterProjectTableByState(stateName) {
   if (!table) return;
 
   const rows = table.querySelectorAll("tbody tr");
-  rows.forEach(row => {
-    // again, assume Location is in the 2nd column
-    const locCell = row.cells[1];
-    if (!locCell) return;
+  let currentLocationName = "";
 
-    if (locCell.textContent.includes(stateName)) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
+  rows.forEach(row => {
+    const locCell = row.cells[1]; // Location is in the 2nd column for Project Table
+    if (locCell) {
+      const locationText = locCell.textContent.trim();
+if (locationText) {
+  currentLocationName = locationText.toLowerCase();
+}
+
+if (currentLocationName.includes(stateName.toLowerCase())) {
+  row.style.display = "";
+} else {
+  row.style.display = "none";
+}
+  });
+}
+
+  function showAllHomeTableRows() {
+  const table = document.querySelector("#homePage .home-table");
+  if (!table) return;
+  table.querySelectorAll("tbody tr").forEach(row => {
+    row.style.display = "";
+  });
+}
+
+function showAllProjectTableRows() {
+  const table = document.querySelector("#projectPage .project-table");
+  if (!table) return;
+  table.querySelectorAll("tbody tr").forEach(row => {
+    row.style.display = "";
   });
 }
 
