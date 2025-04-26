@@ -817,12 +817,13 @@ svg.selectAll("foreignObject.state-label")
   }
 
   // ---------- (H) Expose as mapHelpers ----------
-  window.mapHelpers = {
-    drawUsMapWithLocations,
-    drawCanadaMapWithLocations,
-    drawUKMapWithLocations,
-    drawAustraliaMapWithLocations
-  };
+  if (typeof window.mapHelpers !== "object") {
+    window.mapHelpers = {};
+  }
+  window.mapHelpers.drawUsMapWithLocations = drawUsMapWithLocations;
+  window.mapHelpers.drawCanadaMapWithLocations = drawCanadaMapWithLocations;
+  window.mapHelpers.drawUKMapWithLocations = drawUKMapWithLocations;
+  window.mapHelpers.drawAustraliaMapWithLocations = drawAustraliaMapWithLocations;
 
   // Helper for collecting active city objects
   function collectActiveCitiesForProject(project) {
