@@ -944,21 +944,22 @@ function filterHomeTableByState(stateName) {
   if (!table) return;
 
   const rows = table.querySelectorAll("tbody tr");
-  let currentLocationName = ""; // 🆕 Remember last non-empty Location
+  let currentLocationName = "";
 
   rows.forEach(row => {
-    const locCell = row.cells[0]; // Location is in the 0th column
+    const locCell = row.cells[0];
     if (locCell) {
       const locationText = locCell.textContent.trim();
-if (locationText) {
-  currentLocationName = locationText.toLowerCase();
-}
+      if (locationText) {
+        currentLocationName = locationText.toLowerCase();
+      }
+    }
 
-if (currentLocationName.includes(stateName.toLowerCase())) {
-  row.style.display = "";
-} else {
-  row.style.display = "none";
-}
+    if (currentLocationName.includes(stateName.toLowerCase())) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
   });
 }
 
@@ -971,18 +972,19 @@ function filterProjectTableByState(stateName) {
   let currentLocationName = "";
 
   rows.forEach(row => {
-    const locCell = row.cells[1]; // Location is in the 2nd column for Project Table
+    const locCell = row.cells[1]; // Location is in the 2nd column
     if (locCell) {
       const locationText = locCell.textContent.trim();
-if (locationText) {
-  currentLocationName = locationText.toLowerCase();
-}
+      if (locationText) {
+        currentLocationName = locationText.toLowerCase();
+      }
+    }
 
-if (currentLocationName.includes(stateName.toLowerCase())) {
-  row.style.display = "";
-} else {
-  row.style.display = "none";
-}
+    if (currentLocationName.includes(stateName.toLowerCase())) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
   });
 }
 
