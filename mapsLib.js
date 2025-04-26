@@ -287,6 +287,8 @@
       .append("path")
       .attr("d", path);
 
+    let previouslySelectedState = null;
+
     // 6B) Add white labels (average market share) inside each state
 svg.selectAll("foreignObject.state-label")
   .data(statesGeo.features)
@@ -526,6 +528,22 @@ svg.selectAll("foreignObject.state-label")
       .on("mouseout", function() {
         tooltip.style("display", "none");
       });
+      .on("click", function(event, d) {
+    // 1) If there was a previously selected state, revert its outline
+    if (previouslySelectedState) {
+      previouslySelectedState
+        .attr("stroke-width", 1)
+        .attr("stroke", "#999");
+    }
+
+    // 2) Highlight the newly clicked state
+    d3.select(this)
+      .attr("stroke-width", 3)
+      .attr("stroke", "#e60000");  // or any highlight color
+
+    // 3) Save this one as the 'previouslySelectedState'
+    previouslySelectedState = d3.select(this);
+  });
   }
 
   // ---------- (G) Canada, UK, Australia (same as old code) ----------
