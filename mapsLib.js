@@ -945,17 +945,17 @@ function filterHomeTableByState(stateName) {
 
   const rows = table.querySelectorAll("tbody tr");
   let currentLocationName = "";
+  const needle = stateName.toLowerCase();
 
   rows.forEach(row => {
-    const locCell = row.cells[0];
-    if (locCell) {
-      const locationText = locCell.textContent.trim();
-      if (locationText) {
-        currentLocationName = locationText.toLowerCase();
-      }
+    const firstCell = row.cells[0];
+    // only update when this cell is the one that holds the Location (it has a rowspan)
+    if (firstCell && firstCell.hasAttribute("rowspan")) {
+      currentLocationName = firstCell.textContent.trim().toLowerCase();
     }
 
-    if (currentLocationName.includes(stateName.toLowerCase())) {
+    // show/hide every row based on that last-seen location name
+    if (currentLocationName.includes(needle)) {
       row.style.display = "";
     } else {
       row.style.display = "none";
@@ -970,17 +970,16 @@ function filterProjectTableByState(stateName) {
 
   const rows = table.querySelectorAll("tbody tr");
   let currentLocationName = "";
+  const needle = stateName.toLowerCase();
 
   rows.forEach(row => {
-    const locCell = row.cells[1]; // Location is in the 2nd column
-    if (locCell) {
-      const locationText = locCell.textContent.trim();
-      if (locationText) {
-        currentLocationName = locationText.toLowerCase();
-      }
+    const locCell = row.cells[1];
+    // only update when this is the “real” Location cell (has rowspan)
+    if (locCell && locCell.hasAttribute("rowspan")) {
+      currentLocationName = locCell.textContent.trim().toLowerCase();
     }
 
-    if (currentLocationName.includes(stateName.toLowerCase())) {
+    if (currentLocationName.includes(needle)) {
       row.style.display = "";
     } else {
       row.style.display = "none";
