@@ -527,7 +527,7 @@ svg.selectAll("foreignObject.state-label")
       })
       .on("mouseout", function() {
         tooltip.style("display", "none");
-      });
+      })
       .on("click", function(event, d) {
     // 1) If there was a previously selected state, revert its outline
     if (previouslySelectedState) {
