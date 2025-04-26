@@ -913,7 +913,7 @@ function filterProjectTableByState(stateName) {
   const rows = table.querySelectorAll("tbody tr");
   rows.forEach(row => {
     // again, assume Location is in the 2nd column
-    const locCell = row.cells[0];
+    const locCell = row.cells[1];
     if (!locCell) return;
 
     if (locCell.textContent.includes(stateName)) {
