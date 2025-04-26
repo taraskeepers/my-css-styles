@@ -48,6 +48,23 @@
     "54": "WV", "55": "WI", "56": "WY"
   };
 
+  // Add this map from 2-letter postal => spelled-out state name
+const POSTAL_TO_STATE_NAME = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas",
+  CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware",
+  DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii",
+  ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine",
+  MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
+  MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska",
+  NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico",
+  NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island",
+  SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas",
+  UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington",
+  WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming"
+};
+
   // Canada
   const PROVINCE_CODE_MAP = {
     "CA01": "AB",
@@ -528,21 +545,36 @@ svg.selectAll("foreignObject.state-label")
       .on("mouseout", function() {
         tooltip.style("display", "none");
       })
-      .on("click", function(event, d) {
-    // 1) If there was a previously selected state, revert its outline
+  .on("click", function(event, d) {
+
+    // 1) Revert the previously selected state's outline
     if (previouslySelectedState) {
       previouslySelectedState
         .attr("stroke-width", 1)
         .attr("stroke", "#999");
     }
 
-    // 2) Highlight the newly clicked state
+    // 2) Highlight this newly clicked state
     d3.select(this)
-      .attr("stroke-width", 3)
-      .attr("stroke", "#e60000");  // or any highlight color
+      .attr("stroke-width", 4)
+      .attr("stroke", "#007aff");
 
-    // 3) Save this one as the 'previouslySelectedState'
+    // 3) Save this as the 'previouslySelectedState'
     previouslySelectedState = d3.select(this);
+
+    // 4) Figure out the spelled-out name from the postal code
+    const stPostal = FIPS_TO_POSTAL[d.id] || null;
+    if (!stPostal) return;  // unknown or no data
+    const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
+
+    // 5) If we’re on the homePage, filter the “home-table”
+    if (document.getElementById("homePage").style.display !== "none") {
+      filterHomeTableByState(stateName);
+    }
+    // If we’re on the projectPage, filter the “project-table”
+    else if (document.getElementById("projectPage").style.display !== "none") {
+      filterProjectTableByState(stateName);
+    }
   });
   }
 
@@ -847,4 +879,49 @@ svg.selectAll("foreignObject.state-label")
     });
     return out;
   }
+
+  // Filter the home-table so that only rows whose LOCATION cell
+// contains the specified stateName remain visible
+function filterHomeTableByState(stateName) {
+  // 1) Find the table that you want to filter
+  //    (assuming there's an element with class .home-table inside #homePage)
+  const table = document.querySelector("#homePage .home-table");
+  if (!table) return;
+
+  // 2) For each row, check if the 'Location' cell includes the stateName
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach(row => {
+    // Adjust the column index if your 'Location' column is not the 2nd
+    const locCell = row.cells[1]; // or row.querySelector(".location-col")
+    if (!locCell) return;
+
+    // If the location cell text includes the spelled-out state name => show it
+    // Otherwise hide the row
+    if (locCell.textContent.includes(stateName)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+// Same approach for the projectPage
+function filterProjectTableByState(stateName) {
+  const table = document.querySelector("#projectPage .project-table");
+  if (!table) return;
+
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach(row => {
+    // again, assume Location is in the 2nd column
+    const locCell = row.cells[1];
+    if (!locCell) return;
+
+    if (locCell.textContent.includes(stateName)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
 })();
