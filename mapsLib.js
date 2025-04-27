@@ -993,54 +993,52 @@ async function rebuildProjectTableByState(stateName) {
   // 1) Remove the existing project-table from #projectPage
   const oldTableWrapper = document.querySelector("#projectPage .project-table");
   if (oldTableWrapper) {
-    // The table is wrapped in a <div> or appended directly.
-    // Remove that entire parent <div> so it’s fully gone:
     const wrapperDiv = oldTableWrapper.closest("div");
-    if (wrapperDiv && wrapperDiv.classList.contains("project-table") === false) {
-      // If the <table> was inside some dedicated wrapper:
+    if (wrapperDiv && !wrapperDiv.classList.contains("project-table")) {
       wrapperDiv.remove();
     } else {
-      // Otherwise just remove the table itself
       oldTableWrapper.remove();
     }
   }
 
-  // 2) Re-run buildProjectData() the same way populateProjectPage() does
-  //    Make sure buildProjectData() is in a scope where we can call it.
-  let fullData = buildProjectData(); 
+  // 2) Run buildProjectData() WITHOUT modifying it
+  //    This might be returning zero rows if it depends on st.activeProjectNumber or your filterState.
+  let fullData = buildProjectData();
   if (!Array.isArray(fullData)) {
-    console.warn("[rebuildProjectTableByState] buildProjectData() returned no array.");
+    console.warn("[rebuildProjectTableByState] buildProjectData() returned no array. Stopping.");
     return;
   }
-  console.log(`[rebuildProjectTableByState] after buildProjectData => ${fullData.length} rows total.`);
+  console.log(`[rebuildProjectTableByState] after buildProjectData => ${fullData.length} total rows.`);
 
-  // Hard-code projectNumber=1:
-  fullData = fullData.filter(item => item.project_number === 1);
-  console.log(`[rebuildProjectTableByState] after filtering project_number=1 => ${fullData.length} rows remain.`);
+  // 3) EITHER read st.activeProjectNumber from filterState...
+  //    (if you actually set window.filterState.activeProjectNumber somewhere else)
+  const st = window.filterState || {};
+  const projectNum = st.activeProjectNumber || 1;  
+  // If you prefer a strict hardcode => comment out the above and do:
+  // const projectNum = 1;
 
-  // 3) Filter to only those rows whose .location includes the clicked stateName
-  //    (case‑insensitive). E.g. "California" in "San Diego, CA, US".
-  const needle = stateName.toLowerCase();
+  // Filter only rows that match projectNum
+  fullData = fullData.filter(item => item.project_number === projectNum);
+  console.log(`[rebuildProjectTableByState] after filtering project_number=${projectNum} => ${fullData.length} rows remain.`);
+
+  // 4) Filter by the clicked stateName (case-insensitive)
+  const needle = stateName.trim().toLowerCase();
   fullData = fullData.filter(item =>
     item.location && item.location.toLowerCase().includes(needle)
   );
 
   if (!fullData.length) {
-    console.log(`[rebuildProjectTableByState] No rows for state = ${stateName}`);
-    // Optionally show a "No Data" message:
+    console.log(`[rebuildProjectTableByState] No rows for state = ${stateName} in project #${projectNum}`);
     const locListContainer = document.querySelector("#projectPage #locList");
     if (locListContainer) {
       const msg = document.createElement("p");
-      msg.textContent = `No data for ${stateName}`;
+      msg.textContent = `No data for ${stateName} in project #${projectNum}`;
       locListContainer.appendChild(msg);
     }
     return;
   }
 
-  // 4) Build a new table in #locList exactly like "populateProjectPage()" does,
-  //    except we use the *filtered* data "fullData" instead of the entire array.
-
-  // Create a wrapper <div> to hold the table
+  // 5) Build the project-table exactly like your previous version
   const wrapper = document.createElement("div");
   wrapper.style.maxWidth = "1250px";
   wrapper.style.margin = "10px auto";
@@ -1049,7 +1047,6 @@ async function rebuildProjectTableByState(stateName) {
   wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
   wrapper.style.padding = "10px";
 
-  // Build an HTML table
   const table = document.createElement("table");
   table.classList.add("project-table");
   table.style.width = "100%";
@@ -1070,8 +1067,7 @@ async function rebuildProjectTableByState(stateName) {
 
   const tbody = table.querySelector("tbody");
 
-  // Just like your "populateProjectPage": group by (searchTerm -> location -> devices).
-  // We'll do a quick nested map approach:
+  // EXACT grouping + sorting as before:
   const nestedMap = {};
   fullData.forEach(item => {
     const t = item.searchTerm;
@@ -1081,14 +1077,12 @@ async function rebuildProjectTableByState(stateName) {
     nestedMap[t][l].push(item);
   });
 
-  // Sort search terms alphabetically
   const searchTerms = Object.keys(nestedMap).sort();
   
   searchTerms.forEach(term => {
     const locObj = nestedMap[term];
     const locs   = Object.keys(locObj).sort();
 
-    // Count total device rows across all locations
     let totalTermRows = 0;
     locs.forEach(loc => {
       totalTermRows += locObj[loc].length;
@@ -1098,7 +1092,6 @@ async function rebuildProjectTableByState(stateName) {
     locs.forEach(loc => {
       const deviceRows = locObj[loc];
       deviceRows.sort((a, b) => {
-        // Make desktop appear above mobile, for example
         const ad = a.device.toLowerCase();
         const bd = b.device.toLowerCase();
         if (ad === "desktop" && bd !== "desktop") return -1;
@@ -1127,7 +1120,6 @@ async function rebuildProjectTableByState(stateName) {
           const tdLoc = document.createElement("td");
           tdLoc.style.verticalAlign = "middle";
           tdLoc.rowSpan = deviceRows.length;
-          // same approach: two lines for city vs state
           const parts = loc.split(",");
           const line1 = parts[0] || "";
           const line2 = parts.slice(1).join(", ");
@@ -1160,8 +1152,8 @@ async function rebuildProjectTableByState(stateName) {
         const tdShare = document.createElement("td");
         const shareVal = data.avgShare.toFixed(1);
         let shareArrow = "", shareColor = "#666";
-        if (data.trendVal > 0)  { shareArrow = "▲"; shareColor = "green"; }
-        if (data.trendVal < 0)  { shareArrow = "▼"; shareColor = "red"; }
+        if (data.trendVal > 0) { shareArrow = "▲"; shareColor = "green"; }
+        if (data.trendVal < 0) { shareArrow = "▼"; shareColor = "red"; }
         tdShare.innerHTML = `
           <div style="text-align:center;">
             <div class="ms-bar-container" style="position:relative; width:100px; height:20px; background:#eee; margin:0 auto; border-radius:4px;">
@@ -1177,12 +1169,11 @@ async function rebuildProjectTableByState(stateName) {
         `;
         tr.appendChild(tdShare);
 
-        // (6) History (rank or share for last 30 days)
+        // (6) History
         const tdHist = document.createElement("td");
         tdHist.style.width = "400px";
         tdHist.style.textAlign = "center";
-        // For simplicity, you could replicate the "small squares" logic from populateProjectPage,
-        // or just show a placeholder. We’ll keep it short:
+        // Just a placeholder or replicate your squares logic
         tdHist.innerHTML = `<em>(${data.last30ranks.length} day history...)</em>`;
         tr.appendChild(tdHist);
 
@@ -1193,7 +1184,6 @@ async function rebuildProjectTableByState(stateName) {
 
   wrapper.appendChild(table);
 
-  // Finally, re-append it inside #locList
   const locList = document.querySelector("#projectPage #locList");
   if (locList) {
     locList.appendChild(wrapper);
