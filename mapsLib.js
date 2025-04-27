@@ -630,7 +630,7 @@ if (tagDiv) {
     }
     // If we’re on the projectPage, filter the “project-table”
     else if (document.getElementById("projectPage").style.display !== "none") {
-      filterProjectTableByState(stateName);
+      rebuildProjectTableByState(stateName);
     }
   });
   }
@@ -1125,6 +1125,256 @@ function filterProjectTableByState(stateName) {
   } // end while i< total
 
   console.log("---- END filterProjectTableByState ----");
+}
+
+  function rebuildProjectTableByState(stateName) {
+  console.log("[rebuildProjectTableByState] called with:", stateName);
+
+  const table = document.querySelector("#projectPage .project-table");
+  if (!table) {
+    console.warn("[rebuildProjectTableByState] No .project-table found");
+    return;
+  }
+
+  const needle = stateName.toLowerCase();
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
+  if (rows.length === 0) {
+    console.warn("[rebuildProjectTableByState] Table has 0 rows");
+    return;
+  }
+
+  // 1) Parse the existing table into a nested data structure
+  //    We do this in a top-down pass, skipping rowSpan subrows.
+  let i = 0;
+  const searchTerms = [];  // array of { searchTerm, rowElement, locations: [...] }
+
+  while (i < rows.length) {
+    const rowST = rows[i];
+    const col0 = rowST.cells[0], col1 = rowST.cells[1];
+    if (!col0) {
+      i++;
+      continue; // skip malformed row
+    }
+    const stSpan = col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
+    // The text of the searchTerm is in col0 if there's no separate element for it:
+    const searchTermText = col0.textContent.trim();
+    if (stSpan < 2) {
+      // means this row might be a leftover device row or location row
+      // skip or handle? Let's assume your table always has stSpan>1 for big "SearchTerm"
+      i++;
+      continue;
+    }
+
+    // Build a searchTerm object
+    const stObj = {
+      searchTerm: searchTermText,
+      rowElement: rowST, // might store for reference if needed
+      locations: []
+    };
+    // we know the subrows run from i+1 .. i + (stSpan-1)
+    const stEnd = i + stSpan;
+    let k = i + 1;
+    while (k < stEnd && k < rows.length) {
+      const rowLoc = rows[k];
+      const loc0 = rowLoc.cells[0];
+      const loc1 = rowLoc.cells[1];
+      if (!loc0 || !loc1) {
+        k++;
+        continue;
+      }
+      const rspan0 = loc0.hasAttribute("rowspan") ? parseInt(loc0.getAttribute("rowspan"),10) : 0;
+      const rspan1 = loc1.hasAttribute("rowspan") ? parseInt(loc1.getAttribute("rowspan"),10) : 0;
+
+      // If col1 has rowSpan>1, that indicates a location group
+      // The location name is inside col1's text
+      if (rspan1 > 1) {
+        const locationName = loc1.textContent.trim();
+        const locObj = {
+          locationName,
+          rowElement: rowLoc,
+          devices: []
+        };
+        // subrows => the device rows
+        const locEnd = k + rspan1;
+        let d = k + 1;
+        while (d < locEnd && d < rows.length) {
+          const devRow = rows[d];
+          // For safety, check that devRow has col0.rowSpan=0, col1.rowSpan=0
+          const devCol0 = devRow.cells[0];
+          const devCol1 = devRow.cells[1];
+          if (!devCol0 || !devCol1) {
+            d++;
+            continue;
+          }
+          locObj.devices.push({
+            deviceName: devCol0.textContent.trim(),
+            rowElement: devRow
+          });
+          d++;
+        }
+        stObj.locations.push(locObj);
+        k += rspan1; 
+      } 
+      else {
+        // Possibly a location row with rowSpan=1 => single device row
+        // Or if col0 rowSpan>1 => might be nested again
+        const locationName = loc1.textContent.trim();
+        const locObj = {
+          locationName,
+          rowElement: rowLoc,
+          devices: []
+        };
+        // If rspan1 ===1 => that means there's exactly 1 subrow => the row itself is the device?
+        // But let's see if col0 rowSpan=2 => that might be a location with 2 devices
+        if (rspan0>1) {
+          // That means col0 is "Location"? This depends on your table design.
+          // Possibly do a sub-parse or skip. Let's do a quick approach:
+          const locEnd = k + rspan0;
+          let d = k+1;
+          while (d<locEnd && d<rows.length) {
+            locObj.devices.push({
+              deviceName: rows[d].cells[0].textContent.trim(),
+              rowElement: rows[d]
+            });
+            d++;
+          }
+          stObj.locations.push(locObj);
+          k += rspan0;
+        } else {
+          // single row => single device?
+          // Actually let's treat col0's text as device, col1 as "Location"
+          // But your table might have them reversed. Adjust if needed
+          const deviceName = loc0.textContent.trim();
+          locObj.devices.push({
+            deviceName,
+            rowElement: rowLoc
+          });
+          stObj.locations.push(locObj);
+          k++;
+        }
+      }
+    } // end while(k < stEnd)
+    searchTerms.push(stObj);
+    i += stSpan;
+  } // end while(i < rows.length)
+
+  console.log("[rebuildProjectTableByState] parse result:", searchTerms);
+
+  // 2) Filter the nested structure => only keep locations whose locationName includes `needle`,
+  //    and only keep devices for that location. Actually, we keep *all device rows* if
+  //    the location is a match, or none if not matched?
+  searchTerms.forEach(stObj => {
+    // For each location in stObj.locations, check if locationName includes needle
+    stObj.locations = stObj.locations.filter(locObj => {
+      if (locObj.locationName.toLowerCase().includes(needle)) {
+        return true; // keep entire location with devices
+      } else {
+        return false;
+      }
+    });
+  });
+  // Then remove any searchTerm with 0 locations
+  const filteredST = searchTerms.filter(st => st.locations.length>0);
+
+  console.log("[rebuildProjectTableByState] after filter =>", filteredST);
+
+  // 3) Build a brand-new <tbody> that only contains the matched rows
+  //    We'll replicate the rowSpan logic ourselves
+  let newHTML = "";
+  filteredST.forEach(stObj => {
+    // (A) compute rowSpan = sum of each location's rowSpan => each location has # of device rows
+    // Actually, each "location" will have location row + device rows => rowSpan = 1 + devices.length
+    let sumRowSpan = 0;
+    stObj.locations.forEach(loc => {
+      sumRowSpan += (1 + loc.devices.length);
+    });
+
+    // (B) Build the <tr> for the searchTerm
+    // col0 => searchTerm with rowSpan = sumRowSpan
+    // col1 => ??? maybe empty, or we can place the first location name here. 
+    // But we want to replicate your original design:
+    // We'll do col1 empty => the next row(s) handle the location
+    newHTML += `
+      <tr>
+        <td rowspan="${sumRowSpan}" style="vertical-align: middle; font-weight: bold;">
+          ${stObj.searchTerm}
+        </td>
+    `;
+    // But we also need to handle the *first location row* inside the same <tr>
+    // Let's do: get the first location
+    const firstLoc = stObj.locations[0];
+    if (firstLoc) {
+      const locRowSpan = 1 + firstLoc.devices.length;
+      newHTML += `
+        <td rowspan="${locRowSpan}" style="vertical-align: middle;">
+          ${firstLoc.locationName}
+        </td>
+      `;
+      // If there's at least 1 device => show the first device in this same row
+      if (firstLoc.devices.length > 0) {
+        const firstDev = firstLoc.devices[0];
+        newHTML += `
+          <td>${firstDev.deviceName}</td>
+        `;
+      } else {
+        // no device => just close
+      }
+    }
+    newHTML += `</tr>\n`;
+
+    // Now we handle the rest of the devices in firstLoc
+    if (firstLoc) {
+      for (let d=1; d<firstLoc.devices.length; d++) {
+        const devObj = firstLoc.devices[d];
+        newHTML += `
+          <tr>
+            <td>${devObj.deviceName}</td>
+          </tr>
+        `;
+      }
+    }
+
+    // Then the subsequent locations
+    for (let l=1; l<stObj.locations.length; l++) {
+      const locObj = stObj.locations[l];
+      // location row => rowSpan = 1 + locObj.devices.length
+      let locRowSpan = 1 + locObj.devices.length;
+      newHTML += `
+        <tr>
+          <td rowspan="${locRowSpan}" style="vertical-align: middle;">
+            ${locObj.locationName}
+          </td>
+      `;
+      // again show the first device in the same row
+      if (locObj.devices.length>0) {
+        const dev = locObj.devices[0];
+        newHTML += `
+            <td>${dev.deviceName}</td>
+          </tr>
+        `;
+        // the rest devices each in separate row
+        for (let d=1; d<locObj.devices.length; d++) {
+          newHTML += `
+            <tr>
+              <td>${locObj.devices[d].deviceName}</td>
+            </tr>
+          `;
+        }
+      } else {
+        // no devices => just close the row
+        newHTML += `</tr>\n`;
+      }
+    }
+  }); // end for each searchTerm
+
+  // 4) Replace the old table’s <tbody> with this brand-new HTML
+  const tbody = table.querySelector("tbody");
+  if (!tbody) {
+    console.warn("[rebuildProjectTableByState] table has no <tbody>?");
+    return;
+  }
+  tbody.innerHTML = newHTML;
+  console.log("[rebuildProjectTableByState] done rebuilding. newHTML:", newHTML);
 }
 
   
