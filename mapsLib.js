@@ -965,117 +965,168 @@ function filterHomeTableByState(stateName) {
 
 // Same approach for the projectPage
 function filterProjectTableByState(stateName) {
-  console.log("[filterProjectTableByState] Called with stateName =", stateName);
+  console.log("[filterProjectTableByState] Called with", stateName);
 
   const table = document.querySelector("#projectPage .project-table");
   if (!table) {
-    console.warn("[filterProjectTableByState] No project-table found in #projectPage");
+    console.warn("[filterProjectTableByState] no #projectPage .project-table found");
     return;
   }
 
   const needle = stateName.toLowerCase();
   const rows = Array.from(table.querySelectorAll("tbody tr"));
-  console.log(`[filterProjectTableByState] Found ${rows.length} tbody rows.`);
+  const total = rows.length;
+  console.log(`[filterProjectTableByState] Found ${total} rows.`);
 
-  //
-  // ───────── PASS #1 ─────────
-  // Hide or show only the "plain device" rows: col0.rowSpan===0, col1.rowSpan===0
-  //
-  console.log("---- PASS #1 (hide/show plain device rows) ----");
-  rows.forEach((row, rowIndex) => {
-    const col0 = row.cells[0], col1 = row.cells[1];
-    const rspan0 = col0 && col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
-    const rspan1 = col1 && col1.hasAttribute("rowspan") ? parseInt(col1.getAttribute("rowspan"), 10) : 0;
-
-    // If either column has rowSpan>1, it's a group row => skip
-    if (rspan0 > 1 || rspan1 > 1) {
-      console.log(`Pass1 rowIndex=${rowIndex} => skipping group row (col0=${rspan0}, col1=${rspan1})`);
-      return;
-    }
-
-    // Otherwise, col1 is the actual cell with "Austin, TX" or "San Diego, California"
-    const locText = (col1?.textContent || "").trim().toLowerCase();
-    console.log(`Pass1 rowIndex=${rowIndex} => locText="${locText}" vs needle="${needle}"`);
-
-    if (locText.includes(needle)) {
-      row.style.display = "";
-      console.log("  -> MATCH => show device row");
-    } else {
-      row.style.display = "none";
-      console.log("  -> NO match => hide device row");
-    }
-  });
-
-  //
-  // ───────── PASS #2 ─────────
-  // For each row that has col1.rowSpan>1 => "Location" group row:
-  // hide it if all its subrows (the device rows) are hidden
-  //
-  console.log("---- PASS #2 (hide/show location rows) ----");
   let i = 0;
-  while (i < rows.length) {
-    const row = rows[i];
-    const col0 = row.cells[0], col1 = row.cells[1];
-    const rspan0 = col0 && col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
-    const rspan1 = col1 && col1.hasAttribute("rowspan") ? parseInt(col1.getAttribute("rowspan"), 10) : 0;
-
-    // If col1 has rowSpan>1 => we treat that as "location group"
-    if (rspan1 > 1) {
-      console.log(`Pass2 i=${i} => location group, span=${rspan1}`);
-      let visibleCount = 0;
-      for (let j = i + 1; j < i + rspan1; j++) {
-        // if subrow j is not hidden, increment
-        if (rows[j].style.display !== "none") {
-          visibleCount++;
-        }
-      }
-      if (visibleCount === 0) {
-        row.style.display = "none";
-        console.log("  => all subrows hidden => hide location row");
-      } else {
-        row.style.display = "";
-        console.log("  => some subrows visible => keep location row");
-      }
-      i += rspan1;
-    } else {
-      i++;
-    }
-  }
-
-  //
-  // ───────── PASS #3 ─────────
-  // For each row that has col0.rowSpan>1 => "SearchTerm" group row:
-  // hide it if all its location sub-groups are hidden
-  //
-  console.log("---- PASS #3 (hide/show searchTerm rows) ----");
-  i = 0;
-  while (i < rows.length) {
+  while (i < total) {
+    // 1) Check if this is a “SearchTerm” row => col0.rowSpan>1
     const row = rows[i];
     const col0 = row.cells[0];
-    const rspan0 = col0 && col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
-    if (rspan0 > 1) {
-      console.log(`Pass3 i=${i} => searchTerm group, span=${rspan0}`);
-      let visibleCount = 0;
-      for (let j = i + 1; j < i + rspan0; j++) {
-        if (rows[j].style.display !== "none") {
-          visibleCount++;
+    const col1 = row.cells[1];
+    const stSpan = col0 && col0.hasAttribute("rowspan")
+      ? parseInt(col0.getAttribute("rowspan"), 10)
+      : 0;
+    const locSpan = col1 && col1.hasAttribute("rowspan")
+      ? parseInt(col1.getAttribute("rowspan"), 10)
+      : 0;
+
+    if (stSpan > 1) {
+      // This is a searchTerm group row
+      console.log(`searchTerm row at i=${i}, rowSpan=${stSpan}`);
+      // We parse the subrows from i+1 to i+(stSpan-1).
+      // Inside that block, we might have multiple “location rows.”
+
+      // Keep track if at least one location is visible
+      let anyLocationVisible = false;
+
+      let stEnd = i + stSpan; // beyond the last subrow
+      let k = i + 1;
+      while (k < stEnd && k < total) {
+        const locRow = rows[k];
+        const c0 = locRow.cells[0];
+        const c1 = locRow.cells[1];
+        const c0span = c0 && c0.hasAttribute("rowspan") ? parseInt(c0.getAttribute("rowspan"),10) : 0;
+        const c1span = c1 && c1.hasAttribute("rowspan") ? parseInt(c1.getAttribute("rowspan"),10) : 0;
+
+        if (c0span > 1) {
+          // Actually a sub searchTerm row? This can happen in your table,
+          // but let's assume it's the "Location" row if col1 also has >1. 
+          console.log(`  nested? row k=${k} col0span=${c0span} col1span=${c1span}`);
         }
-      }
-      if (visibleCount === 0) {
+        if (c1span > 1) {
+          // This row is a “Location group” => parse its device subrows
+          console.log(`  location row k=${k}, rowSpan=${c1span}`);
+          let anyDeviceVisible = false;
+
+          // device subrows from k+1 to k+(c1span)
+          let locEnd = k + c1span;
+          let d = k + 1;
+          while (d < locEnd && d < total) {
+            const devRow = rows[d];
+            // devRow => col0.rowSpan=0, col1.rowSpan=0
+            const devCol0 = devRow.cells[0];
+            const devCol1 = devRow.cells[1];
+            const dev0span = devCol0 && devCol0.hasAttribute("rowspan") ? parseInt(devCol0.getAttribute("rowspan"),10) : 0;
+            const dev1span = devCol1 && devCol1.hasAttribute("rowspan") ? parseInt(devCol1.getAttribute("rowspan"),10) : 0;
+
+            if (dev0span>0 || dev1span>0) {
+              // Another grouping row? Then something is deeply nested again.
+              console.log(`    device row d=${d} is actually group => skipping or parse?`);
+            } else {
+              // Actual device => read col1 text => see if includes needle
+              const locText = (devCol1?.textContent || "").toLowerCase();
+              if (locText.includes(needle)) {
+                devRow.style.display = "";
+                anyDeviceVisible = true;
+              } else {
+                devRow.style.display = "none";
+              }
+            }
+            d++;
+          }
+          // Now if anyDeviceVisible is false => hide location row k
+          if (!anyDeviceVisible) {
+            locRow.style.display = "none";
+            console.log(`  => hide location row k=${k}`);
+          } else {
+            locRow.style.display = "";
+            anyLocationVisible = true;
+            console.log(`  => keep location row k=${k}`);
+          }
+          k += c1span; // skip past that location block
+        } else {
+          // Possibly a location row with rowSpan=1 => a single device?
+          // Or a leftover row. Let's see if col1's text includes the state.
+          if (c1span === 1) {
+            // means it’s basically a single device row, or
+            // a single location row with 1 subrow. 
+            const locText = (c1?.textContent || "").toLowerCase();
+            if (locText.includes(needle)) {
+              locRow.style.display = "";
+              anyLocationVisible = true;
+            } else {
+              locRow.style.display = "none";
+            }
+          }
+          k++;
+        }
+      } // end while k < stEnd
+
+      // If no location is visible => hide searchTerm row
+      if (!anyLocationVisible) {
         row.style.display = "none";
-        console.log("  => all subrows hidden => hide searchTerm row");
+        console.log(`searchTerm row i=${i} => hide entire ST row (no locations visible)`);
       } else {
         row.style.display = "";
-        console.log("  => some subrows visible => keep searchTerm row");
+        console.log(`searchTerm row i=${i} => keep ST row`);
       }
-      i += rspan0;
-    } else {
-      i++;
+      i += stSpan; // jump past the subrows for this searchTerm
+    } 
+    else {
+      // This row is NOT a big searchTerm row => maybe a single location or device leftover
+      // We can do a simpler approach: if col1 has rowSpan>1 => parse it as location block?
+      // But to keep it simpler, let's just hide it, or show it if it matches the needle.
+      // Or skip it so we let the “big parse” handle it. 
+      console.log(`row i=${i} => not a top-level searchTerm row (col0span=${stSpan}, col1span=${locSpan}). Just hide or show?`);
+
+      // Let's check if it’s a location group or a device row with no group:
+      if (locSpan>1) {
+        // location group => do smaller logic:
+        let anyDeviceVisible = false;
+        let locEnd = i + locSpan;
+        let d = i+1;
+        while(d<locEnd && d<total) {
+          const devRow = rows[d];
+          const dev1 = devRow.cells[1];
+          const text = (dev1?.textContent||"").toLowerCase();
+          if (text.includes(needle)) {
+            devRow.style.display="";
+            anyDeviceVisible=true;
+          } else {
+            devRow.style.display="none";
+          }
+          d++;
+        }
+        if(!anyDeviceVisible) row.style.display="none";
+        else row.style.display="";
+        i+= locSpan;
+      } else {
+        // just a single device row => check text
+        const col1Text = (col1?.textContent||"").toLowerCase();
+        if (col1Text.includes(needle)) {
+          row.style.display="";
+        } else {
+          row.style.display="none";
+        }
+        i++;
+      }
     }
-  }
+  } // end while i< total
 
   console.log("---- END filterProjectTableByState ----");
 }
+
   
   function showAllHomeTableRows() {
   const table = document.querySelector("#homePage .home-table");
