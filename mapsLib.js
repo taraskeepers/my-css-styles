@@ -963,233 +963,354 @@ function filterHomeTableByState(stateName) {
   });
 }
 
+/**
+ * Removes the old table in #projectPage #locList,
+ * creates a new filtered table for the specified stateName,
+ * then appends it to #locList again.
+ */
 function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
-  const table = document.querySelector("#projectPage .project-table");
-  if (!table) {
-    console.warn("[rebuildProjectTableByState] No .project-table found");
+  // 1) Grab the container where the table currently lives.
+  const locListContainer = document.querySelector("#projectPage #locList");
+  if (!locListContainer) {
+    console.warn("[rebuildProjectTableByState] #locList not found inside #projectPage.");
     return;
   }
 
+  // 2) Remove the old table wrapper (the one created in `populateProjectPage()`).
+  //    We assume it is a <div> containing the <table> with class .project-table
+  const oldTableWrapper = locListContainer.querySelector("div > table.project-table")?.parentElement;
+  if (oldTableWrapper) {
+    locListContainer.removeChild(oldTableWrapper);
+    console.log("[rebuildProjectTableByState] Removed old table wrapper.");
+  }
+
+  // 3) Re-run your aggregator that gives the FULL data array of shape:
+  //    [ { searchTerm, location, device, avgRank, avgShare, ... } ]
+  //    so we can filter it by stateName.
+  const allProjectData = buildProjectData(); 
+  // ^ If your aggregator is named differently, replace accordingly.
+
+  console.log("[rebuildProjectTableByState] parse result:", allProjectData);
+
+  // 4) Filter out rows that do NOT match the clicked state
+  //    E.g. if the row.location includes "California"
+  //    or if you want a more precise match, adapt the check to your scenario
   const needle = stateName.toLowerCase();
-  const rows = Array.from(table.querySelectorAll("tbody tr"));
-  if (rows.length === 0) {
-    console.warn("[rebuildProjectTableByState] Table has 0 rows");
+  const filtered = allProjectData.filter(item => {
+    const locText = item.location.toLowerCase();
+    return locText.includes(needle);
+  });
+
+  console.log("[rebuildProjectTableByState] after filter =>", filtered);
+
+  // 5) If no rows match, you can either show a "No results" or just do nothing:
+  if (!filtered.length) {
+    const p = document.createElement("p");
+    p.textContent = "No results for " + stateName;
+    locListContainer.appendChild(p);
+    console.log("[rebuildProjectTableByState] No matching rows => appended message.");
     return;
   }
 
-  //
-  // ───────── STEP 1: Parse the Old Table into a Nested Data Structure ─────────
-  //
-  let i = 0;
-  const searchTerms = [];
+  // 6) Build a new table the same way you do in `populateProjectPage()` => but only with `filtered`.
+  //    We'll do the same rowSpan logic (SearchTerm → Location → device row).
+  
+  const wrapper = document.createElement("div");
+  wrapper.style.maxWidth = "1250px";
+  wrapper.style.marginLeft = "20px";
+  wrapper.style.backgroundColor = "#fff";
+  wrapper.style.borderRadius = "8px";
+  wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
+  wrapper.style.marginBottom = "10px";
+  wrapper.style.padding = "10px";
 
-  while (i < rows.length) {
-    const stRow = rows[i];
-    const col0 = stRow.cells[0];
-    const col1 = stRow.cells[1];
-    if (!col0) {
-      i++;
-      continue;
-    }
+  const table = document.createElement("table");
+  table.classList.add("home-table", "project-table"); // same classes as original
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
 
-    // The text for the searchTerm:
-    const searchTermText = col0.textContent.trim();
+  table.innerHTML = `
+    <thead>
+      <tr style="height:30px;">
+        <th style="width:180px;">Search Term</th>
+        <th style="width:220px;">Location</th>
+        <th style="width:100px;">Device</th>
+        <th style="width:120px;">Avg Rank</th>
+        <th style="width:140px;">Market Share &amp; Trend</th>
+        <th style="width:400px; position:relative;">
+          Rank &amp; Market Share History
+          <label style="position:absolute; right:8px; top:3px; font-size:12px; user-select:none; cursor:pointer;">
+            <input type="checkbox" id="historyToggle" style="vertical-align:middle; margin-right:4px;" />
+            <span>Share</span>
+          </label>
+        </th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
 
-    // If no `rowspan` on col0, assume at least 1
-    let stSpan = 1;
-    if (col0.hasAttribute("rowspan")) {
-      stSpan = parseInt(col0.getAttribute("rowspan"), 10);
-    }
-
-    console.log(`[parse] Found potential searchTerm row i=${i}, stSpan=${stSpan}, text="${searchTermText}"`);
-
-    // Build a searchTerm object
-    const stObj = {
-      searchTerm: searchTermText,
-      locations: []
-    };
-
-    // Also see if col1 has rowSpan => first location might be on the same row
-    let locSpan = 1;
-    if (col1 && col1.hasAttribute("rowspan")) {
-      locSpan = parseInt(col1.getAttribute("rowspan"), 10);
-    }
-
-    console.log(`    row i=${i}, col1.rowSpan=${locSpan}`);
-    if (col1) {
-      const firstLocName = col1.textContent.trim();
-      console.log(`    [parse] Also found location in same row? name="${firstLocName}", locSpan=${locSpan}`);
-
-      // Build that location object
-      const locObj = {
-        locationName: firstLocName,
-        devices: []
-      };
-
-      // subrows for devices => from i+1.. i+(locSpan-1)
-      let dStart = i + 1;
-      let dEnd   = i + locSpan;
-      console.log(`    => parse device subrows [${dStart}..${dEnd-1}]`);
-      for (let d = dStart; d < dEnd && d < rows.length; d++) {
-        const devRow = rows[d];
-        const devCol0 = devRow.cells[0];
-        if (devCol0) {
-          const devName = devCol0.textContent.trim();
-          locObj.devices.push({ deviceName: devName });
-          console.log(`        => device row d=${d}, devName="${devName}"`);
-        }
-      }
-      stObj.locations.push(locObj);
-
-      // We have now consumed locSpan subrows for this location.
-      // Next, we parse the rest of the subrows up to stSpan total for the entire searchTerm
-      let newI = i + locSpan; // skip those device rows
-      let stEnd = i + stSpan;
-      console.log(`    => done first location => newI=${newI}, stEnd=${stEnd}`);
-
-      // parse subsequent locations in [newI.. stEnd-1]
-      let k = newI;
-      while (k < stEnd && k < rows.length) {
-        const locRow = rows[k];
-        const c0 = locRow.cells[0];
-        const c1 = locRow.cells[1];
-        let c0span = c0 && c0.hasAttribute("rowspan") ? parseInt(c0.getAttribute("rowspan"),10) : 0;
-        let c1span = c1 && c1.hasAttribute("rowspan") ? parseInt(c1.getAttribute("rowspan"),10) : 0;
-
-        if (!c0 || !c1) {
-          k++;
-          continue;
-        }
-
-        // If c1span>1 => we treat it as location
-        if (c1span>1) {
-          const nextLocName = c1.textContent.trim();
-          console.log(`[parse] row k=${k} => new location with c1span=${c1span}, name="${nextLocName}"`);
-          const locObj2 = { locationName: nextLocName, devices: [] };
-
-          const devStart = k+1;
-          const devEnd   = k + c1span;
-          for (let dd=devStart; dd<devEnd && dd<rows.length; dd++) {
-            const rowDev = rows[dd];
-            const devC0  = rowDev.cells[0];
-            if (devC0) {
-              const devText = devC0.textContent.trim();
-              locObj2.devices.push({ deviceName: devText });
-              console.log(`   => dev row dd=${dd}, devName="${devText}"`);
-            }
-          }
-          stObj.locations.push(locObj2);
-          k += c1span;
-        } else {
-          // single-loc row?
-          const singleLocName = c1.textContent.trim();
-          console.log(`[parse] row k=${k} => single-loc? name="${singleLocName}"`);
-          const locObjX = { locationName: singleLocName, devices: [] };
-
-          // Possibly c0 is device name
-          const devText = c0.textContent.trim();
-          locObjX.devices.push({ deviceName: devText });
-          stObj.locations.push(locObjX);
-          k++;
-        }
-      }
-      i += stSpan; 
-      searchTerms.push(stObj);
-    } else {
-      // If col1 doesn't exist, we may have an odd row. We'll just skip stSpan subrows
-      console.log(`[parse] col1 missing or no location => skipping stSpan rows`);
-      i += stSpan;
-      searchTerms.push(stObj); // might be an empty location set
-    }
-  } // end while(i<rows.length)
-
-  console.log("[rebuildProjectTableByState] parse result:", searchTerms);
-
-  //
-  // ───────── STEP 2: Filter by the location text that includes “needle” ─────────
-  //
-  searchTerms.forEach(st => {
-    st.locations = st.locations.filter(loc => {
-      const L = loc.locationName.toLowerCase();
-      return L.includes(needle);
-    });
-  });
-  // remove any searchTerm that has 0 locations
-  const filteredST = searchTerms.filter(st => st.locations.length>0);
-
-  console.log("[rebuildProjectTableByState] after filter =>", filteredST);
-
-  //
-  // ───────── STEP 3: Rebuild brand-new <tbody> HTML ─────────
-  //
-  let newHTML = "";
-  filteredST.forEach(stObj => {
-    // sum rowSpan => each location => (1 + # of devices)
-    let sumSpan = 0;
-    stObj.locations.forEach(loc => {
-      sumSpan += (1 + loc.devices.length);
-    });
-    if (sumSpan < 1) sumSpan = 1; // safety
-
-    // build searchTerm row => place the *first* location if it exists
-    const firstLoc = stObj.locations[0];
-    newHTML += `<tr>\n`;
-    newHTML += `  <td rowspan="${sumSpan}" style="vertical-align: middle; font-weight: bold;">
-                    ${stObj.searchTerm}
-                  </td>\n`;
-
-    if (firstLoc) {
-      const locRowSpan = 1 + firstLoc.devices.length;
-      newHTML += `  <td rowspan="${locRowSpan}" style="vertical-align: middle;">
-                      ${firstLoc.locationName}
-                    </td>\n`;
-      if (firstLoc.devices.length > 0) {
-        // show first device in same row
-        const firstDev = firstLoc.devices[0];
-        newHTML += `  <td>${firstDev.deviceName}</td>\n`;
-      }
-    }
-    newHTML += `</tr>\n`;
-
-    // if firstLoc has >1 device => place them each on separate row
-    if (firstLoc && firstLoc.devices.length > 1) {
-      for (let d=1; d<firstLoc.devices.length; d++) {
-        newHTML += `<tr><td>${firstLoc.devices[d].deviceName}</td></tr>\n`;
-      }
-    }
-
-    // subsequent locations
-    for (let lx=1; lx<stObj.locations.length; lx++) {
-      const locObj = stObj.locations[lx];
-      const locSpan = 1 + locObj.devices.length;
-      newHTML += `<tr>\n`;
-      newHTML += `  <td rowspan="${locSpan}" style="vertical-align: middle;">
-                      ${locObj.locationName}
-                    </td>\n`;
-      if (locObj.devices.length>0) {
-        newHTML += `  <td>${locObj.devices[0].deviceName}</td>\n`;
-      }
-      newHTML += `</tr>\n`;
-      for (let dd=1; dd<locObj.devices.length; dd++) {
-        newHTML += `<tr>\n`;
-        newHTML += `  <td>${locObj.devices[dd].deviceName}</td>\n`;
-        newHTML += `</tr>\n`;
-      }
-    }
-  });
-
-  //
-  // ───────── STEP 4: Replace old table’s tbody ─────────
-  //
   const tbody = table.querySelector("tbody");
-  if (!tbody) {
-    console.warn("[rebuildProjectTableByState] table has no <tbody>");
-    return;
+
+  // 7) Next, group them by searchTerm => location => device
+  const nestedMap = {};
+  filtered.forEach(item => {
+    const t = item.searchTerm;
+    const l = item.location;
+    if (!nestedMap[t]) nestedMap[t] = {};
+    if (!nestedMap[t][l]) nestedMap[t][l] = [];
+    nestedMap[t][l].push(item);
+  });
+
+  // Sort each device array so that desktop is first
+  Object.keys(nestedMap).forEach(term => {
+    Object.keys(nestedMap[term]).forEach(loc => {
+      nestedMap[term][loc].sort((a,b) => {
+        const ad = a.device.toLowerCase();
+        const bd = b.device.toLowerCase();
+        if (ad==="desktop" && bd!=="desktop") return -1;
+        if (bd==="desktop" && ad!=="desktop") return 1;
+        return 0;
+      });
+    });
+  });
+
+  // 8) Build table rows
+  const searchTerms = Object.keys(nestedMap).sort();
+  searchTerms.forEach(term => {
+    const locObj = nestedMap[term];
+    const allLocs = Object.keys(locObj).sort();
+
+    // Count total device rows across all locations => rowSpan for the Search Term cell
+    let totalRowsForTerm = 0;
+    allLocs.forEach(loc => { totalRowsForTerm += locObj[loc].length; });
+
+    let termCellUsed = false;
+    allLocs.forEach(loc => {
+      const deviceRows = locObj[loc];
+      const deviceCount = deviceRows.length;
+      let locCellUsed = false;
+
+      deviceRows.forEach((data, idx) => {
+        const tr = document.createElement("tr");
+        tr.style.height = "50px";
+
+        // shading if device = mobile
+        if ((data.device || "").toLowerCase() === "mobile") {
+          tr.style.backgroundColor = "#f8f8f8";
+        }
+
+        // (a) searchTerm cell
+        if (!termCellUsed) {
+          const tdTerm = document.createElement("td");
+          tdTerm.style.verticalAlign = "middle";
+          tdTerm.style.fontWeight = "bold";
+          tdTerm.rowSpan = totalRowsForTerm;
+          tdTerm.textContent = term;
+          tr.appendChild(tdTerm);
+          termCellUsed = true;
+        }
+
+        // (b) location cell
+        if (!locCellUsed) {
+          const tdLoc = document.createElement("td");
+          tdLoc.style.verticalAlign = "middle";
+          tdLoc.rowSpan = deviceCount;
+          const parts = loc.split(",");
+          const line1 = parts[0] ? parts[0].trim() : "";
+          const line2 = parts.slice(1).map(x => x.trim()).join(", ");
+          tdLoc.innerHTML = `
+            <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
+            <div style="font-size:14px;">${line2}</div>
+          `;
+          tr.appendChild(tdLoc);
+          locCellUsed = true;
+        }
+
+        // (c) Device
+        const tdDev = document.createElement("td");
+        tdDev.textContent = data.device;
+        tr.appendChild(tdDev);
+
+        // (d) Avg Rank
+        const tdRank = document.createElement("td");
+        tdRank.style.textAlign = "center";
+        const rankVal = data.avgRank.toFixed(2);
+        let rankHTML = `<div style="font-size:18px; font-weight:bold;">${rankVal}</div>`;
+        if (data.rankChange !== undefined) {
+          let arrow = "±", color = "#444";
+          if (data.rankChange < 0) {
+            arrow = "▲"; color = "green";
+          } else if (data.rankChange > 0) {
+            arrow = "▼"; color = "red";
+          }
+          rankHTML += `
+            <div style="font-size:12px; color:${color};">
+              ${arrow} ${Math.abs(data.rankChange).toFixed(2)}
+            </div>
+          `;
+        }
+        tdRank.innerHTML = rankHTML;
+        tr.appendChild(tdRank);
+
+        // (e) Market Share & Trend
+        const tdShareTrend = document.createElement("td");
+        tdShareTrend.style.textAlign = "center";
+        const sharePct = data.avgShare.toFixed(1);
+        let arrow = "±";
+        let arrowColor = "#333";
+        if (data.trendVal > 0) {
+          arrow = "▲";
+          arrowColor = "green";
+        } else if (data.trendVal < 0) {
+          arrow = "▼";
+          arrowColor = "red";
+        }
+        tdShareTrend.innerHTML = `
+          <div class="ms-bar-container"
+               style="position:relative; width:100px; height:25px; background:#eee; border-radius:4px; margin:0 auto;">
+            <div class="ms-bar-filled"
+                 style="position:absolute; top:0; left:0; bottom:0; width:${sharePct}%; background:#007aff;">
+            </div>
+            <div class="ms-bar-label"
+                 style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px;">
+              ${sharePct}%
+            </div>
+          </div>
+          <div style="margin-top:4px; text-align:center; color:${arrowColor}; font-weight:bold;">
+            ${arrow} ${Math.abs(data.trendVal).toFixed(2)}%
+          </div>
+        `;
+        tr.appendChild(tdShareTrend);
+
+        // (f) History => rank and share
+        const tdHist = document.createElement("td");
+        tdHist.style.width = "400px";
+
+        const histContainer = document.createElement("div");
+        histContainer.style.width = "380px";
+        histContainer.style.overflowX = "auto";
+        histContainer.style.whiteSpace = "nowrap";
+        histContainer.style.display = "flex";
+        histContainer.style.flexDirection = "column";
+        histContainer.style.gap = "4px";
+
+        const rankRowDiv = document.createElement("div");
+        rankRowDiv.classList.add("rank-row-div");
+        rankRowDiv.style.display = "inline-block";
+
+        const shareRowDiv = document.createElement("div");
+        shareRowDiv.classList.add("share-row-div");
+        shareRowDiv.style.display = "none";
+
+        // Build reversed date array to label:
+        const endDateMoment = moment(data.endDate, "YYYY-MM-DD");
+        const dateArray = [];
+        for (let i=0; i<30; i++){
+          dateArray.push(endDateMoment.clone().subtract(i,"days").format("YYYY-MM-DD"));
+        }
+
+        // RANK row
+        data.last30ranks.slice().reverse().forEach((rVal, i2) => {
+          const box = document.createElement("div");
+          box.style.display = "inline-block";
+          box.style.width = "38px";
+          box.style.height= "38px";
+          box.style.lineHeight = "38px";
+          box.style.textAlign = "center";
+          box.style.fontWeight= "bold";
+          box.style.marginRight = "4px";
+          box.style.borderRadius= "4px";
+          let bgColor = "#ffcfcf";
+          if (rVal <= 1) bgColor = "#dfffd6";
+          else if (rVal <= 3) bgColor = "#fffac2";
+          else if (rVal <= 5) bgColor = "#ffe0bd";
+          box.style.backgroundColor = bgColor;
+          box.style.color = "#000";
+          box.textContent = (rVal===40) ? "" : rVal;
+          box.title = dateArray[i2];
+          rankRowDiv.appendChild(box);
+        });
+
+        // SHARE row
+        data.last30shares.slice().reverse().forEach((sVal, i2) => {
+          const fillPct = Math.min(100, Math.max(0, sVal));
+          const sBox = document.createElement("div");
+          sBox.style.display = "inline-block";
+          sBox.style.position= "relative";
+          sBox.style.width    = "38px";
+          sBox.style.height   = "38px";
+          sBox.style.background= "#ddd";
+          sBox.style.borderRadius = "4px";
+          sBox.style.marginRight  = "4px";
+          sBox.style.overflow     = "hidden";
+
+          const fillDiv = document.createElement("div");
+          fillDiv.style.position= "absolute";
+          fillDiv.style.left    = "0";
+          fillDiv.style.bottom  = "0";
+          fillDiv.style.width   = "100%";
+          fillDiv.style.height  = fillPct + "%";
+          fillDiv.style.background = "#007aff";
+
+          const labelSpan = document.createElement("span");
+          labelSpan.style.position   = "relative";
+          labelSpan.style.zIndex     = "2";
+          labelSpan.style.display    = "inline-block";
+          labelSpan.style.width      = "100%";
+          labelSpan.style.textAlign  = "center";
+          labelSpan.style.fontWeight = "bold";
+          labelSpan.style.fontSize   = "12px";
+          labelSpan.style.lineHeight = "38px";
+          labelSpan.style.color      = "#333";
+          labelSpan.textContent      = sVal.toFixed(0) + "%";
+
+          sBox.appendChild(fillDiv);
+          sBox.appendChild(labelSpan);
+          sBox.title = dateArray[i2];
+          shareRowDiv.appendChild(sBox);
+        });
+
+        histContainer.appendChild(rankRowDiv);
+        histContainer.appendChild(shareRowDiv);
+        tdHist.appendChild(histContainer);
+        tr.appendChild(tdHist);
+
+        tbody.appendChild(tr);
+      });
+    });
+  });
+
+  // 9) Append the newly built table
+  wrapper.appendChild(table);
+  locListContainer.appendChild(wrapper);
+
+  // 10) The #historyToggle => show/hide share vs rank
+  const historyToggle = table.querySelector("#historyToggle");
+  if (historyToggle) {
+    historyToggle.addEventListener("change", function() {
+      const showShare = this.checked;
+      const allRank  = table.querySelectorAll(".rank-row-div");
+      const allShare = table.querySelectorAll(".share-row-div");
+      if (showShare) {
+        allRank.forEach(el => { el.style.display = "none"; });
+        allShare.forEach(el => { el.style.display= "inline-block"; });
+      } else {
+        allRank.forEach(el => { el.style.display = "inline-block"; });
+        allShare.forEach(el => { el.style.display= "none"; });
+      }
+    });
   }
-  tbody.innerHTML = newHTML;
-  console.log("[rebuildProjectTableByState] done rebuilding. newHTML:\n", newHTML);
+
+  // 11) Optionally recalc the #infoBlock or #map with the new filtered data
+  //     if you want the left stats to match the newly filtered table. 
+  //     For example:
+  window.homeData = filtered;
+  updateInfoBlock();
+  updateHistoryRows();
+
+  console.log("[rebuildProjectTableByState] done rebuilding.");
 }
 
   
