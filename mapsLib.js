@@ -968,23 +968,62 @@ function filterProjectTableByState(stateName) {
   const table = document.querySelector("#projectPage .project-table");
   if (!table) return;
 
-  const rows = table.querySelectorAll("tbody tr");
-  let currentLocationName = "";
   const needle = stateName.toLowerCase();
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
 
+  // --- PASS #1: Hide/show each location row based on column #1 (Location) ---
   rows.forEach(row => {
-    const locCell = row.cells[1];
-    // only update when this is the “real” Location cell (has rowspan)
-    if (locCell && locCell.hasAttribute("rowspan")) {
-      currentLocationName = locCell.textContent.trim().toLowerCase();
+    // If this is the row that holds the searchTerm (i.e. col 0 has rowspan), skip it here:
+    const searchTermCell = row.cells[0];
+    if (searchTermCell && searchTermCell.hasAttribute("rowspan")) {
+      return; // We'll deal with these in Pass #2.
     }
 
-    if (currentLocationName.includes(needle)) {
+    // Otherwise, column #1 should contain the Location text
+    const locCell = row.cells[1];
+    if (!locCell) return; // safety check
+
+    const locText = locCell.textContent.trim().toLowerCase();
+    if (locText.includes(needle)) {
+      // This location row matches => keep it visible
       row.style.display = "";
     } else {
+      // Not a match => hide
       row.style.display = "none";
     }
   });
+
+  // --- PASS #2: For each “searchTerm” row, hide it if none of its location rows are visible ---
+  let i = 0;
+  while (i < rows.length) {
+    const row = rows[i];
+    const stCell = row.cells[0];
+    if (stCell && stCell.hasAttribute("rowspan")) {
+      // This row is the "SearchTerm" row.
+      // figure out how many subrows it spans:
+      const spanCount = parseInt(stCell.getAttribute("rowspan"), 10) || 1;
+      let visibleCount = 0;
+
+      // Check all rows that belong to this same searchTerm block:
+      for (let j = i + 1; j < i + spanCount; j++) {
+        // If that sub-row hasn't been set display="none", then it matched
+        if (rows[j].style.display !== "none") {
+          visibleCount++;
+        }
+      }
+
+      // If none of them are visible => hide the entire searchTerm row too:
+      if (visibleCount === 0) {
+        row.style.display = "none";
+      } else {
+        row.style.display = "";
+      }
+
+      i += spanCount; // Skip ahead to the next searchTerm block
+    } else {
+      i++;
+    }
+  }
 }
 
   function showAllHomeTableRows() {
