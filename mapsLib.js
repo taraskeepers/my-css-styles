@@ -971,15 +971,16 @@ function filterProjectTableByState(stateName) {
   const needle = stateName.toLowerCase();
   const rows = Array.from(table.querySelectorAll("tbody tr"));
 
-  // PASS #1: Hide/show each “non-group” row based on column #1 containing state
+  // PASS #1: Hide/show each “non-group” row based on col #1's state
   rows.forEach(row => {
-    const groupCell = row.cells[0]; 
-    if (groupCell && groupCell.hasAttribute("rowspan")) {
-      // skip these in pass #1
+    // If col #1 has rowspan => that is the group row
+    const locationCell = row.cells[1];
+    if (locationCell && locationCell.hasAttribute("rowspan")) {
+      // skip in pass #1
       return;
     }
 
-    // So for subrows, the location text is in col #1
+    // otherwise, the location is still in col #1
     const locText = (row.cells[1]?.textContent || "").trim().toLowerCase();
     if (locText.includes(needle)) {
       row.style.display = "";
@@ -988,13 +989,13 @@ function filterProjectTableByState(stateName) {
     }
   });
 
-  // PASS #2: For each “group row” (col #0 has rowspan), hide if all subrows are hidden
+  // PASS #2: For each row that does have rowSpan in col #1, hide if subrows are hidden
   let i = 0;
   while (i < rows.length) {
     const row = rows[i];
-    const groupCell = row.cells[0];
-    if (groupCell && groupCell.hasAttribute("rowspan")) {
-      const spanCount = parseInt(groupCell.getAttribute("rowspan"), 10) || 1;
+    const locCell = row.cells[1];
+    if (locCell && locCell.hasAttribute("rowspan")) {
+      const spanCount = parseInt(locCell.getAttribute("rowspan"), 10) || 1;
       let visibleCount = 0;
       for (let j = i + 1; j < i + spanCount; j++) {
         if (rows[j].style.display !== "none") {
