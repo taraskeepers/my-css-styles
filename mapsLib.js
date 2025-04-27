@@ -986,14 +986,14 @@ async function rebuildProjectTableByState(stateName) {
     return;
   }
 
-  // 1) Remove old table
-  const oldWrapper = container.querySelector(".project-table-wrapper");
+  // --- STEP 1: REMOVE OLD TABLE ---
+  const oldWrapper = container.querySelector(".project-table-wrapper, .home-table, .project-table");
   if (oldWrapper) {
     oldWrapper.remove();
-    console.log("[rebuildProjectTableByState] Removed old table wrapper.");
+    console.log("[rebuildProjectTableByState] Removed existing project table.");
   }
 
-  // 2) Filter the original project data (homeData / projectData / etc)
+  // --- STEP 2: Filter the original project data ---
   const allRows = window.homeData || [];
   if (!allRows.length) {
     console.warn("[rebuildProjectTableByState] homeData missing or empty.");
@@ -1016,7 +1016,7 @@ async function rebuildProjectTableByState(stateName) {
     return;
   }
 
-  // 3) Group filteredRows the same way as the original populateProjectPage()
+  // --- STEP 3: Group filteredRows the same way as in original projectTable ---
   const nestedMap = {};
   filteredRows.forEach(item => {
     const t = item.searchTerm;
@@ -1030,9 +1030,9 @@ async function rebuildProjectTableByState(stateName) {
     nestedMap[t][l].push(item);
   });
 
-  // 4) Rebuild the table
+  // --- STEP 4: Create New Table ---
   const wrapper = document.createElement("div");
-  wrapper.className = "project-table-wrapper"; // mark it so we can remove easily later
+  wrapper.className = "project-table-wrapper";
   wrapper.style.maxWidth = "1250px";
   wrapper.style.marginLeft = "20px";
   wrapper.style.backgroundColor = "#fff";
@@ -1142,7 +1142,7 @@ async function rebuildProjectTableByState(stateName) {
         tr.appendChild(tdShare);
 
         const tdHist = document.createElement("td");
-        tdHist.textContent = "(history)"; // placeholder
+        tdHist.textContent = "(history)"; // placeholder for future
         tr.appendChild(tdHist);
 
         tbody.appendChild(tr);
@@ -1155,7 +1155,6 @@ async function rebuildProjectTableByState(stateName) {
 
   console.log("[rebuildProjectTableByState] Table rebuilt successfully with", filteredRows.length, "rows.");
 }
-
   
   function showAllHomeTableRows() {
   const table = document.querySelector("#homePage .home-table");
