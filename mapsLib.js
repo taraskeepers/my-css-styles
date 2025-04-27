@@ -988,6 +988,13 @@ function filterHomeTableByState(stateName) {
  * same "project-table" structure from populateProjectPage().
  */
 async function rebuildProjectTableByState(stateName) {
+ //    so buildProjectData() doesn’t complain or return 0
+  if (!window.filterState) {
+    window.filterState = {};
+  }
+  window.filterState.activeProjectNumber = 1; 
+  // or a different project # if desired
+  
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
   // 1) Remove the existing project-table from #projectPage
