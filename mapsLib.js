@@ -979,71 +979,61 @@ function filterHomeTableByState(stateName) {
 
 // Full, final version for copy-paste
 
-// Full correct rebuildProjectTableByState function
 async function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
+  // 1) Find container
   const container = document.querySelector("#projectPage #locList");
   if (!container) {
-    console.error("[rebuildProjectTableByState] #locList not found inside #projectPage.");
+    console.error("[rebuildProjectTableByState] #locList not found.");
     return;
   }
 
-  // --- STEP 1: REMOVE OLD TABLE WRAPPER IF EXISTS ---
-  const oldWrapper = container.querySelector(".project-table-wrapper");
-  if (oldWrapper) {
-    oldWrapper.remove();
-    console.log("[rebuildProjectTableByState] Removed old table wrapper.");
-  }
+  // 2) Clear out ANY old table or message
+  container.querySelectorAll(".project-table-wrapper, .no-results").forEach(el => el.remove());
 
-  // --- STEP 2: Filter from window.homeData ---
+  // 3) Filter your master data
   const allRows = window.homeData || [];
-  if (!allRows.length) {
-    console.warn("[rebuildProjectTableByState] homeData missing or empty.");
+  const filteredRows = allRows.filter(item =>
+    item.location &&
+    item.location.toLowerCase().includes(stateName.toLowerCase())
+  );
+  console.log("[rebuildProjectTableByState] After filtering:", filteredRows.length, "rows");
+
+  // 4) If none, show “no results”
+  if (filteredRows.length === 0) {
+    const msg = document.createElement("p");
+    msg.className = "no-results";
+    msg.textContent = `No results for ${stateName}`;
+    container.appendChild(msg);
     return;
   }
 
-  const filteredRows = allRows.filter(item => {
-    if (!item || !item.location) return false;
-    return item.location.toLowerCase().includes(stateName.toLowerCase());
+  // 5) Group by searchTerm → location → device
+  const nested = {};
+  filteredRows.forEach(d => {
+    const t = d.searchTerm;
+    const l = d.location;
+    const dev = d.device.toLowerCase();
+    if (!nested[t]) nested[t] = {};
+    if (!nested[t][l]) nested[t][l] = { desktop: null, mobile: null };
+    nested[t][l][dev] = d;
   });
 
-  console.log("[rebuildProjectTableByState] Filtered rows:", filteredRows.length);
-
-  if (!filteredRows.length) {
-    const noResults = document.createElement("p");
-    noResults.textContent = "No results for " + stateName;
-    container.appendChild(noResults);
-    return;
-  }
-
-  // --- STEP 3: Group filteredRows like before ---
-  const nestedMap = {};
-  filteredRows.forEach(item => {
-    const t = item.searchTerm;
-    const l = item.location;
-    if (!nestedMap[t]) nestedMap[t] = {};
-    if (!nestedMap[t][l]) nestedMap[t][l] = [];
-    nestedMap[t][l].push(item);
-  });
-
-  // --- STEP 4: Create NEW wrapper ---
+  // 6) Build wrapper + table
   const wrapper = document.createElement("div");
   wrapper.className = "project-table-wrapper";
-  wrapper.style.maxWidth = "1250px";
-  wrapper.style.marginLeft = "20px";
-  wrapper.style.backgroundColor = "#fff";
-  wrapper.style.borderRadius = "8px";
-  wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
-  wrapper.style.marginBottom = "10px";
-  wrapper.style.padding = "10px";
-
-  // --- STEP 5: Create Table ---
+  wrapper.style.cssText = `
+    max-width:1250px;
+    margin:10px 0 20px 20px;
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 4px 8px rgba(0,0,0,0.08);
+    padding:10px;
+  `;
   const table = document.createElement("table");
   table.className = "home-table project-table";
-  table.style.width = "100%";
-  table.style.borderCollapse = "collapse";
-
+  table.style.cssText = "width:100%; border-collapse:collapse;";
   table.innerHTML = `
     <thead>
       <tr style="height:30px;">
@@ -1051,119 +1041,114 @@ async function rebuildProjectTableByState(stateName) {
         <th style="width:220px;">Location</th>
         <th style="width:100px;">Device</th>
         <th style="width:120px;">Avg Rank</th>
-        <th style="width:140px;">Market Share & Trend</th>
-        <th style="width:400px; position:relative;">
-          Rank & Market Share History
-          <label style="position:absolute; right:8px; top:3px; font-size:12px; user-select:none; cursor:pointer;">
-            <input type="checkbox" id="historyToggle" style="vertical-align:middle; margin-right:4px;" />
-            <span>Share</span>
-          </label>
-        </th>
+        <th style="width:140px;">Market Share &amp; Trend</th>
+        <th style="width:400px;">Rank &amp; Market Share History</th>
       </tr>
     </thead>
     <tbody></tbody>
   `;
-
   const tbody = table.querySelector("tbody");
 
-  const searchTerms = Object.keys(nestedMap).sort();
-  searchTerms.forEach(term => {
-    const locObj = nestedMap[term];
-    const locs = Object.keys(locObj).sort();
+  // 7) Iterate search terms in alphabetical order
+  Object.keys(nested).sort().forEach(term => {
+    const locs = Object.keys(nested[term]).sort();
+    // count how many device rows under this term
+    const totalDevices = locs.reduce((sum, loc) => {
+      const grp = nested[term][loc];
+      return sum + (grp.desktop ? 1 : 0) + (grp.mobile ? 1 : 0);
+    }, 0);
 
-    let totalRowsForTerm = 0;
+    let termUsed = false;
     locs.forEach(loc => {
-      totalRowsForTerm += locObj[loc].length;
-    });
-
-    let termCellUsed = false;
-    locs.forEach(loc => {
-      const deviceRows = locObj[loc].slice().sort((a,b) => {
-        const ad = (a.device||"").toLowerCase();
-        const bd = (b.device||"").toLowerCase();
-        if (ad === "desktop" && bd !== "desktop") return -1;
-        if (bd === "desktop" && ad !== "desktop") return 1;
-        return 0;
-      });
-
-      const deviceCount = deviceRows.length;
-      let locCellUsed = false;
-
-      deviceRows.forEach((data, idx) => {
+      // Desktop first, then mobile
+      ["desktop","mobile"].forEach(devType => {
+        const data = nested[term][loc][devType];
+        if (!data) return;
         const tr = document.createElement("tr");
         tr.style.height = "50px";
-        if ((data.device || "").toLowerCase() === "mobile") {
-          tr.style.backgroundColor = "#f8f8f8";
+        if (devType === "mobile") tr.style.backgroundColor = "#f8f8f8";
+
+        // Search-Term cell
+        if (!termUsed) {
+          const td = document.createElement("td");
+          td.rowSpan = totalDevices;
+          td.style.cssText = "vertical-align:middle;font-weight:bold;";
+          td.textContent = term;
+          tr.appendChild(td);
+          termUsed = true;
         }
 
-        if (!termCellUsed) {
-          const tdTerm = document.createElement("td");
-          tdTerm.style.verticalAlign = "middle";
-          tdTerm.style.fontWeight = "bold";
-          tdTerm.rowSpan = totalRowsForTerm;
-          tdTerm.textContent = term;
-          tr.appendChild(tdTerm);
-          termCellUsed = true;
-        }
-
-        if (!locCellUsed) {
-          const tdLoc = document.createElement("td");
-          tdLoc.style.verticalAlign = "middle";
-          tdLoc.rowSpan = deviceCount;
-          const parts = loc.split(",");
-          const line1 = parts[0]?.trim() || "";
-          const line2 = parts.slice(1).map(x => x.trim()).join(", ");
-          tdLoc.innerHTML = `
-            <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
-            <div style="font-size:14px;">${line2}</div>
+        // Location cell
+        if (!tr.querySelector(".loc-cell")) {
+          const td = document.createElement("td");
+          td.rowSpan = (nested[term][loc].desktop ? 1 : 0) + (nested[term][loc].mobile ? 1 : 0);
+          td.className = "loc-cell";
+          td.style.verticalAlign = "middle";
+          const [line1, ...rest] = loc.split(",");
+          td.innerHTML = `
+            <div style="font-size:20px;font-weight:bold;margin-bottom:4px;">${line1.trim()}</div>
+            <div style="font-size:14px;">${rest.join(",").trim()}</div>
           `;
-          tr.appendChild(tdLoc);
-          locCellUsed = true;
+          tr.appendChild(td);
         }
 
+        // Device cell
         const tdDev = document.createElement("td");
-        tdDev.textContent = data.device;
+        tdDev.textContent = devType.charAt(0).toUpperCase() + devType.slice(1);
         tr.appendChild(tdDev);
 
+        // Avg Rank cell
         const tdRank = document.createElement("td");
         tdRank.style.textAlign = "center";
-        const rankVal = data.avgRank.toFixed(2);
-        let rankHTML = `<div style="font-size:18px; font-weight:bold;">${rankVal}</div>`;
-        if (data.rankChange !== undefined) {
-          let arrow = "±", color = "#444";
-          if (data.rankChange < 0) { arrow = "▲"; color = "green"; }
-          else if (data.rankChange > 0) { arrow = "▼"; color = "red"; }
-          rankHTML += `<div style="font-size:12px; color:${color};">${arrow} ${Math.abs(data.rankChange).toFixed(2)}</div>`;
-        }
-        tdRank.innerHTML = rankHTML;
+        tdRank.innerHTML = `
+          <div style="font-size:18px;font-weight:bold;">${data.avgRank.toFixed(2)}</div>
+          <div style="font-size:12px;color:gray;">
+            ${data.rankChange>0?"▲":"▼"} ${Math.abs(data.rankChange).toFixed(2)}
+          </div>
+        `;
         tr.appendChild(tdRank);
 
+        // Market Share cell
+        const share = data.avgShare.toFixed(1);
+        const trend = data.trendVal>0?"▲":"▼";
+        const color = data.trendVal>0?"green":"red";
         const tdShare = document.createElement("td");
         tdShare.style.textAlign = "center";
-        const shareVal = data.avgShare.toFixed(1);
-        const trend = (data.trendVal > 0) ? "▲" : (data.trendVal < 0) ? "▼" : "±";
-        const trendColor = (data.trendVal > 0) ? "green" : (data.trendVal < 0) ? "red" : "gray";
         tdShare.innerHTML = `
-          <div class="ms-bar-container" style="position:relative; width:100px; height:25px; background:#eee; border-radius:4px; margin:0 auto;">
-            <div class="ms-bar-filled" style="position:absolute; top:0; left:0; bottom:0; width:${shareVal}%; background:#007aff;"></div>
-            <div class="ms-bar-label" style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px;">
-              ${shareVal}%
-            </div>
+          <div class="ms-bar-container" style="
+            position:relative;
+            width:100px;height:25px;
+            background:#eee;border-radius:4px;
+            margin:0 auto;
+          ">
+            <div class="ms-bar-filled" style="
+              position:absolute;
+              top:0;left:0;bottom:0;
+              width:${share}%;
+              background:#007aff;
+            "></div>
+            <div class="ms-bar-label" style="
+              position:absolute;left:8px;
+              top:0;bottom:0;
+              display:flex;align-items:center;
+              font-size:13px;
+            ">${share}%</div>
           </div>
-          <div style="margin-top:4px; color:${trendColor}; font-weight:bold;">
+          <div style="margin-top:4px;color:${color};font-weight:bold;">
             ${trend} ${Math.abs(data.trendVal).toFixed(2)}%
           </div>
         `;
         tr.appendChild(tdShare);
 
+        // History cell: render the same .rank-boxes as full table
         const tdHist = document.createElement("td");
-        tdHist.style.width = "400px";
-        tdHist.innerHTML = "<div class='rank-row-div' style='white-space:nowrap;'>" +
-          data.last30ranks.map(r => `<div style='display:inline-block; width:38px; height:38px; line-height:38px; text-align:center; font-weight:bold; background-color:#e0e0e0; border-radius:4px; margin-right:2px;'>${r}</div>`).join("") +
-          "</div>" +
-          "<div class='share-row-div' style='white-space:nowrap; display:none;'>" +
-          data.last30shares.map(s => `<div style='display:inline-block; width:38px; height:38px; line-height:38px; text-align:center; font-weight:bold; background-color:#eee; border-radius:4px; margin-right:2px;'>${s.toFixed(0)}%</div>`).join("") +
-          "</div>";
+        tdHist.style.whiteSpace = "nowrap";
+        data.last30ranks.forEach(r => {
+          const div = document.createElement("div");
+          div.className = `rank-box ${r===1?"range-green":r<=3?"range-yellow":r<=5?"range-orange":"range-red"}`;
+          div.textContent = r;
+          tdHist.appendChild(div);
+        });
         tr.appendChild(tdHist);
 
         tbody.appendChild(tr);
@@ -1171,27 +1156,25 @@ async function rebuildProjectTableByState(stateName) {
     });
   });
 
+  // 8) Re-attach the share/rank toggle to this new wrapper
+  //    (assumes you have a #shareRankToggle button somewhere to clone)
+  const toggle = document.getElementById("shareRankToggle");
+  if (toggle) {
+    const clone = toggle.cloneNode(true);
+    clone.addEventListener("click", () => {
+      // toggles rank vs share columns
+      tbody.querySelectorAll("tr").forEach(r => {
+        r.children[3].style.display = toggle.checked ? "" : "none";  // Avg Rank
+        r.children[4].style.display = toggle.checked ? "none" : "";  // Market Share
+      });
+    });
+    wrapper.insertBefore(clone, table);
+  }
+
   wrapper.appendChild(table);
   container.appendChild(wrapper);
 
-  // --- STEP 6: Activate the Rank/Share Switcher ---
-  const historyToggle = wrapper.querySelector("#historyToggle");
-  if (historyToggle) {
-    historyToggle.addEventListener("change", function() {
-      const showShare = this.checked;
-      const allRank = wrapper.querySelectorAll(".rank-row-div");
-      const allShare = wrapper.querySelectorAll(".share-row-div");
-      if (showShare) {
-        allRank.forEach(el => el.style.display = "none");
-        allShare.forEach(el => el.style.display = "inline-block");
-      } else {
-        allRank.forEach(el => el.style.display = "inline-block");
-        allShare.forEach(el => el.style.display = "none");
-      }
-    });
-  }
-
-  console.log("[rebuildProjectTableByState] Finished rebuild.");
+  console.log("[rebuildProjectTableByState] Table rebuilt successfully.");
 }
   
   function showAllHomeTableRows() {
