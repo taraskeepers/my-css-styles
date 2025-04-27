@@ -971,6 +971,17 @@ function filterHomeTableByState(stateName) {
 function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
+    // 1) Make sure we have a projectNumber
+  if (!window.filterState.activeProjectNumber) {
+    // Hard-code or store somewhere. Suppose your project is #1:
+    window.filterState.activeProjectNumber = 1;
+  }
+
+  // 2) Now call buildProjectData
+  const allProjectData = buildProjectData();
+
+  console.log("[rebuildProjectTableByState] parse result:", allProjectData);
+
   // 1) Grab the container where the table currently lives.
   const locListContainer = document.querySelector("#projectPage #locList");
   if (!locListContainer) {
