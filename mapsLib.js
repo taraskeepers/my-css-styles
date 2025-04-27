@@ -1011,6 +1011,7 @@ async function rebuildProjectTableByState(stateName) {
   // 2) Run buildProjectData() WITHOUT modifying it
   //    This might be returning zero rows if it depends on st.activeProjectNumber or your filterState.
   let fullData = buildProjectData();
+  console.log("[DEBUG] buildProjectData returned =>", fullData);
   if (!Array.isArray(fullData)) {
     console.warn("[rebuildProjectTableByState] buildProjectData() returned no array. Stopping.");
     return;
