@@ -37,897 +37,653 @@
   let ukTopoCache = null;
   let australiaTopoCache = null;
 
-  // US: FIPS => state postal
   const FIPS_TO_POSTAL = {
-    "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", "10": "DE",
-    "11": "DC", "12": "FL", "13": "GA", "15": "HI", "16": "ID", "17": "IL", "18": "IN", "19": "IA",
-    "20": "KS", "21": "KY", "22": "LA", "23": "ME", "24": "MD", "25": "MA", "26": "MI", "27": "MN",
-    "28": "MS", "29": "MO", "30": "MT", "31": "NE", "32": "NV", "33": "NH", "34": "NJ", "35": "NM",
-    "36": "NY", "37": "NC", "38": "ND", "39": "OH", "40": "OK", "41": "OR", "42": "PA", "44": "RI",
-    "45": "SC", "46": "SD", "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA",
-    "54": "WV", "55": "WI", "56": "WY"
+    "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+    "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+    "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+    "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+    "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+    "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+    "54":"WV","55":"WI","56":"WY"
   };
 
-  // Add this map from 2-letter postal => spelled-out state name
-const POSTAL_TO_STATE_NAME = {
-  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas",
-  CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware",
-  DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii",
-  ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
-  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine",
-  MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
-  MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska",
-  NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico",
-  NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
-  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island",
-  SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas",
-  UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington",
-  WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming"
-};
+  const POSTAL_TO_STATE_NAME = {
+    AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",
+    CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",
+    HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",
+    LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",
+    MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",
+    NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",
+    OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",
+    SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",
+    WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"
+  };
 
-  // Canada
   const PROVINCE_CODE_MAP = {
-    "CA01": "AB",
-    "CA02": "BC",
-    "CA03": "MB",
-    "CA04": "NB",
-    "CA05": "NL",
-    "CA06": "NT",
-    "CA07": "NS",
-    "CA08": "ON",
-    "CA09": "PE",
-    "CA10": "QC",
-    "CA11": "SK",
-    "CA12": "YT",
-    "CA13": "NU"
+    "CA01":"AB","CA02":"BC","CA03":"MB","CA04":"NB","CA05":"NL","CA06":"NT","CA07":"NS",
+    "CA08":"ON","CA09":"PE","CA10":"QC","CA11":"SK","CA12":"YT","CA13":"NU"
   };
   function mapProvinceCode(code) {
     return PROVINCE_CODE_MAP[code] || code;
   }
 
-  // Australia
   const AUSTATE_ID_TO_NAME = {
-    0: "New South Wales",
-    1: "Victoria",
-    2: "Queensland",
-    3: "South Australia",
-    4: "Western Australia",
-    5: "Tasmania",
-    6: "Northern Territory",
-    7: "Australian Capital Territory"
+    0:"New South Wales",1:"Victoria",2:"Queensland",3:"South Australia",
+    4:"Western Australia",5:"Tasmania",6:"Northern Territory",7:"Australian Capital Territory"
   };
 
-  // ---------- (B) Fetch each country’s TopoJSON ----------
+  // ---------- (B) Fetch TopoJSON ----------
   async function getUSMapData() {
     if (usTopoCache) return usTopoCache;
-    try {
-      const resp = await fetch(US_JSON_URL);
-      if (!resp.ok) throw new Error("Fetching US TopoJSON failed: " + resp.status);
-      usTopoCache = await resp.json();
-      return usTopoCache;
-    } catch (err) {
-      console.error("[mapsLib] US fetch error:", err);
-      throw err;
-    }
+    const resp = await fetch(US_JSON_URL);
+    if (!resp.ok) throw new Error("US TopoJSON fetch failed: " + resp.status);
+    return (usTopoCache = await resp.json());
   }
   async function getCanadaMapData() {
     if (canadaTopoCache) return canadaTopoCache;
-    try {
-      const resp = await fetch(CA_JSON_URL);
-      if (!resp.ok) throw new Error("Fetching Canada TopoJSON failed: " + resp.status);
-      canadaTopoCache = await resp.json();
-      return canadaTopoCache;
-    } catch (err) {
-      console.error("[mapsLib] Canada fetch error:", err);
-      throw err;
-    }
+    const resp = await fetch(CA_JSON_URL);
+    if (!resp.ok) throw new Error("Canada TopoJSON fetch failed: " + resp.status);
+    return (canadaTopoCache = await resp.json());
   }
   async function getUKMapData() {
     if (ukTopoCache) return ukTopoCache;
-    try {
-      const resp = await fetch(UK_JSON_URL);
-      if (!resp.ok) throw new Error("Fetching UK TopoJSON failed: " + resp.status);
-      ukTopoCache = await resp.json();
-      return ukTopoCache;
-    } catch (err) {
-      console.error("[mapsLib] UK fetch error:", err);
-      throw err;
-    }
+    const resp = await fetch(UK_JSON_URL);
+    if (!resp.ok) throw new Error("UK TopoJSON fetch failed: " + resp.status);
+    return (ukTopoCache = await resp.json());
   }
   async function getAustraliaMapData() {
     if (australiaTopoCache) return australiaTopoCache;
-    try {
-      const resp = await fetch(AU_JSON_URL);
-      if (!resp.ok) throw new Error("Fetching Australia TopoJSON failed: " + resp.status);
-      australiaTopoCache = await resp.json();
-      return australiaTopoCache;
-    } catch (err) {
-      console.error("[mapsLib] Australia fetch error:", err);
-      throw err;
-    }
+    const resp = await fetch(AU_JSON_URL);
+    if (!resp.ok) throw new Error("Australia TopoJSON fetch failed: " + resp.status);
+    return (australiaTopoCache = await resp.json());
   }
 
-  // ---------- (C) Simple color utility for device slices ----------
-  function colorForDevice(deviceName) {
-    const d = (deviceName || "").toLowerCase();
-    if (d.includes("desktop")) return "#007aff"; // blue
-    if (d.includes("mobile"))  return "#f44336"; // red
+  // ---------- (C) Color utility ----------
+  function colorForDevice(name) {
+    name = (name||"").toLowerCase();
+    if (name.includes("desktop")) return "#007aff";
+    if (name.includes("mobile"))  return "#f44336";
     return "#888";
   }
 
-  // ---------- (D) Build an array: each item => { locName, device, shareVal, avgRank, ... } ----------
+  // ---------- (D) Build location/device data ----------
   function buildLocationDeviceData(project) {
     if (!project || !Array.isArray(project.searches)) return [];
-    const arr = [];
+    const out = [];
     project.searches.forEach(s => {
       if (!s.location || !s.device) return;
-      arr.push({
+      out.push({
         locName: s.location.trim().toLowerCase().replace(/,\s*/g, ','),
-        device: s.device,
-        shareVal: s.shareVal != null ? parseFloat(s.shareVal) : 0,
-        avgRank: s.computedAvgRank != null ? parseFloat(s.computedAvgRank) : (s.avgRank != null ? parseFloat(s.avgRank) : 0),
-        rankChange: s.rankChange != null ? parseFloat(s.rankChange) : 0,
-        hideRank: s.hideRank || false,
-        hideShare: s.hideShare || false
+        device:  s.device,
+        shareVal:s.shareVal!=null?parseFloat(s.shareVal):0,
+        avgRank: s.computedAvgRank!=null?parseFloat(s.computedAvgRank):
+                 (s.avgRank!=null?parseFloat(s.avgRank):0),
+        hideRank: s.hideRank||false,
+        hideShare:s.hideShare||false
       });
     });
-    return arr;
+    return out;
   }
 
-  // Helper: return a class for rank value matching the "rank-box" styling
-  function getRankClass(rankVal) {
-    const r = parseFloat(rankVal);
-    if (isNaN(r) || r <= 0) return "";
-    if (r === 1) return "range-green";
-    if (r <= 3)  return "range-yellow";
-    if (r <= 5)  return "range-orange";
-    return "range-red";
-  }
-
-  // ---------- (E) Build state-based share data so we can color each state by combined share ----------
-  function buildStateShareMap(dataRows) {
-    const stateShareMap = {};
-    if (!window.cityLookup) {
-      console.warn("[mapsLib] cityLookup is missing, coloring won't be accurate.");
-      return stateShareMap;
-    }
-    dataRows.forEach(row => {
-      const cityObj = window.cityLookup.get(row.locName);
-      if (!cityObj || !cityObj.state_id) return;
-      const stPostal = cityObj.state_id;
-      if (!stateShareMap[stPostal]) {
-        stateShareMap[stPostal] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
-      }
-      const dev = row.device.toLowerCase();
-      if (dev.includes("desktop")) {
-        stateShareMap[stPostal].desktopSum += row.shareVal;
-        stateShareMap[stPostal].desktopCount++;
-      } else if (dev.includes("mobile")) {
-        stateShareMap[stPostal].mobileSum += row.shareVal;
-        stateShareMap[stPostal].mobileCount++;
+  // ---------- (E) State share map ----------
+  function buildStateShareMap(rows) {
+    const map = {};
+    if (!window.cityLookup) return map;
+    rows.forEach(r => {
+      const city = window.cityLookup.get(r.locName);
+      if (!city || !city.state_id) return;
+      const st = city.state_id;
+      if (!map[st]) map[st] = { desktopSum:0,desktopCount:0,mobileSum:0,mobileCount:0 };
+      const d = r.device.toLowerCase();
+      if (d.includes("desktop")) {
+        map[st].desktopSum += r.shareVal;
+        map[st].desktopCount++;
+      } else if (d.includes("mobile")) {
+        map[st].mobileSum += r.shareVal;
+        map[st].mobileCount++;
       }
     });
-    return stateShareMap;
+    return map;
+  }
+  function computeCombinedShare(d) {
+    if (!d) return 0;
+    let sum=0,c=0;
+    if (d.desktopCount>0){sum+=d.desktopSum/d.desktopCount;c++;}
+    if (d.mobileCount>0){sum+=d.mobileSum/d.mobileCount;c++;}
+    return c?sum/c:0;
   }
 
-  // Compute average share for a state
-  function computeCombinedShare(stData) {
-    if (!stData) return 0;
-    let sum = 0, count = 0;
-    if (stData.desktopCount > 0) { sum += (stData.desktopSum / stData.desktopCount); count++; }
-    if (stData.mobileCount > 0)  { sum += (stData.mobileSum / stData.mobileCount); count++; }
-    return (count === 0) ? 0 : (sum / count);
-  }
-
-  // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
-  async function drawUsMapWithLocations(project, containerSelector) {
+  // ---------- (F) Draw US map + click/tag/filter ----------
+  async function drawUsMapWithLocations(project, sel) {
     // 1) Clear old
-    const container = d3.select(containerSelector).html("");
+    const container = d3.select(sel).html("");
+    const mapDiv = container.append("div").style("position","relative");
 
-    // 2) Create a container div for the map
-    const mapDiv = container.append("div")
-      .style("position", "relative");
+    // 2) Tag container aligned left
+    const tagContainer = container.append("div")
+      .attr("id","stateFilterTag")
+      .style("margin-top","10px")
+      .style("text-align","left");
 
-    // After creating mapDiv
-const tagContainer = container.append("div")
-  .attr("id", "stateFilterTag")
-  .style("margin-top", "10px")
-  .style("text-align", "center");
-
-    // Apply toggle settings to project.searches
-    const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
-    const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
-    const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
-    const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
-    project.searches.forEach(s => {
-      if (s.device && s.device.toLowerCase().includes("desktop")) {
-        s.hideShare = !desktopShare;
-        s.hideRank  = !desktopRank;
-      } else if (s.device && s.device.toLowerCase().includes("mobile")) {
-        s.hideShare = !mobileShare;
-        s.hideRank  = !mobileRank;
+    // 3) Apply toggles
+    const ds = document.getElementById("toggleDesktopShare")?.checked;
+    const dr = document.getElementById("toggleDesktopRank")?.checked;
+    const ms = document.getElementById("toggleMobileShare")?.checked;
+    const mr = document.getElementById("toggleMobileRank")?.checked;
+    project.searches.forEach(s=>{
+      if (s.device.toLowerCase().includes("desktop")) {
+        s.hideShare = !ds; s.hideRank = !dr;
+      } else {
+        s.hideShare = !ms; s.hideRank = !mr;
       }
     });
 
-    // 3) Load US TopoJSON
+    // 4) Load TopoJSON
     let usTopo;
-    try {
-      usTopo = await getUSMapData();
-    } catch (err) {
-      console.error("[mapsLib] US topo load error:", err);
-      return;
-    }
+    try { usTopo = await getUSMapData(); }
+    catch(e){ console.error(e); return; }
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-    // 4) Build location/device data
+    // 5) Build data
     const dataRows = buildLocationDeviceData(project);
     const stateShareMap = buildStateShareMap(dataRows);
 
-    // 5) Create the SVG container
-    const baseWidth = 975, baseHeight = 610;
+    // 6) SVG
+    const W=975,H=610;
     const svg = mapDiv.append("svg")
-      .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .attr("width", baseWidth + "px")
-      .style("max-height", "600px")
-      .style("display", "block")
-      .style("margin", "0 auto")
-      .style("background-color", "transparent");
+      .attr("viewBox",`0 0 ${W} ${H}`)
+      .attr("preserveAspectRatio","xMidYMid meet")
+      .attr("width",W+"px")
+      .style("max-height","600px")
+      .style("display","block")
+      .style("margin","0 auto")
+      .style("background-color","transparent");
+    const pathGen = d3.geoPath();
 
-    const path = d3.geoPath();
-
-    // 5B) Build a color scale for states based on combined market share
-    let maxShare = 0;
-    Object.values(stateShareMap).forEach(stData => {
-      const c = computeCombinedShare(stData);
-      if (c > maxShare) maxShare = c;
+    // 7) Color scale
+    let maxS=0;
+    Object.values(stateShareMap).forEach(d=>{
+      const c = computeCombinedShare(d);
+      if (c>maxS) maxS=c;
     });
     const colorScale = d3.scaleSequential()
-      .domain([0, maxShare || 1])
+      .domain([0,maxS||1])
       .interpolator(d3.interpolateBlues);
 
-    // 6) Draw state paths
-    const statesSelection = svg.selectAll("path.state")
+    // 8) Draw states
+    const statesSel = svg.selectAll("path.state")
       .data(statesGeo.features)
-      .enter()
-      .append("path")
-      .attr("class", "state")
-      .attr("stroke", "#999")
-      .attr("fill", d => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return "#f5fcff";
-        const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-        return (combinedShare <= 0) ? "#f5fcff" : colorScale(combinedShare);
+      .enter().append("path")
+      .attr("class","state")
+      .attr("stroke","#999")
+      .attr("fill",d=>{
+        const p = FIPS_TO_POSTAL[d.id];
+        if (!p||!stateShareMap[p]) return "#f5fcff";
+        const c = computeCombinedShare(stateShareMap[p]);
+        return c<=0?"#f5fcff":colorScale(c);
       })
-      .attr("d", path);
+      .attr("d",pathGen);
 
-    // 6A) Create clip paths so state labels are confined within each state
+    // 9) ClipPaths & labels
     svg.selectAll("clipPath.state-clip")
       .data(statesGeo.features)
-      .enter()
-      .append("clipPath")
-      .attr("id", d => "clip-" + d.id)
-      .append("path")
-      .attr("d", path);
+      .enter().append("clipPath")
+      .attr("id",d=>"clip-"+d.id)
+      .append("path").attr("d",pathGen);
 
-    let previouslySelectedState = null;
+    svg.selectAll("foreignObject.state-label")
+      .data(statesGeo.features)
+      .enter().append("foreignObject")
+      .attr("class","state-label")
+      .attr("clip-path",d=>"url(#clip-"+d.id+")")
+      .attr("x",d=>pathGen.centroid(d)[0]-30)
+      .attr("y",d=>pathGen.centroid(d)[1]-15)
+      .attr("width","60px")
+      .attr("height","30px")
+      .html(d=>{
+        const p = FIPS_TO_POSTAL[d.id];
+        if (!p||!stateShareMap[p]) return "";
+        const pct = computeCombinedShare(stateShareMap[p]).toFixed(1)+"%";
+        const trend = window.locContainer?.[p]?.Trend==="up"?"&#x2191;":"&#x2193;";
+        return `
+          <div style="
+            width:60px;height:30px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:14px;font-weight:bold;
+            background:rgba(255,255,255,0.7);border-radius:4px;color:#333;
+          ">
+            ${pct}
+            <span style="margin-left:4px;color:${trend==="&#x2191;"?"green":"red"}">
+              ${trend}
+            </span>
+          </div>`;
+      });
 
-    // 6B) Add white labels (average market share) inside each state
-svg.selectAll("foreignObject.state-label")
-  .data(statesGeo.features)
-  .enter()
-  .append("foreignObject")
-  .attr("class", "state-label")
-  .attr("clip-path", d => "url(#clip-" + d.id + ")")
-  // Adjust x and y so the box is centered (you might need to tweak the offsets)
-  .attr("x", d => path.centroid(d)[0] - 30) 
-  .attr("y", d => path.centroid(d)[1] - 15)
-  .attr("width", "60px")
-  .attr("height", "30px")
-  .html(d => {
-    const stPostal = FIPS_TO_POSTAL[d.id] || null;
-    if (!stPostal || !stateShareMap[stPostal]) return "";
-    const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-    const shareText = (combinedShare > 0) ? combinedShare.toFixed(1) + "%" : "";
-    
-    // Retrieve the trend data.
-    // This example assumes that window.locContainer is an object keyed by state postal codes
-    // and that each value has a Trend property with either "up" or "down".
-    let trendArrow = "";
-    if (window.locContainer && window.locContainer[stPostal]) {
-      trendArrow = window.locContainer[stPostal].Trend === "up" ? "&#x2191;" : "&#x2193;";
-    }
-    
-    // The inline style creates a box with a white background (70% opaque), dark grey text, and rounded corners.
-    return `
-      <div style="
-        width: 60px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        font-weight: bold;
-        font-family: Helvetica, Arial, sans-serif;
-        background: rgba(255, 255, 255, 0.7);
-        color: #333;
-        border-radius: 4px;
-      ">
-        ${shareText}
-        <span style="margin-left: 4px; color: ${trendArrow === "&#x2191;" ? 'green' : 'red'};">
-          ${trendArrow}
-        </span>
-      </div>
-    `;
-  });
-
-    // 7) Group location rows for device pies
+    // 10) Draw pies at city locations
     const locMap = new Map();
-    dataRows.forEach(r => {
-      if (!locMap.has(r.locName)) { locMap.set(r.locName, []); }
+    dataRows.forEach(r=>{
+      if (!locMap.has(r.locName)) locMap.set(r.locName,[]);
       locMap.get(r.locName).push(r);
     });
-
-    // 8) Use AlbersUSA projection
-    const projection = d3.geoAlbersUsa()
-      .scale(1300)
-      .translate([487.5, 305]);
-
+    const proj = d3.geoAlbersUsa().scale(1300).translate([W/2,H/2]);
     const locationData = [];
     if (window.cityLookup) {
-      locMap.forEach((devicesArr, locKey) => {
-        const cityObj = window.cityLookup.get(locKey);
-        if (!cityObj) return;
-        const coords = projection([cityObj.lng, cityObj.lat]);
-        if (!coords) return;
-        locationData.push({ locName: locKey, x: coords[0], y: coords[1], devices: devicesArr });
+      locMap.forEach((devices,loc)=>{
+        const city = window.cityLookup.get(loc);
+        if (!city) return;
+        const c = proj([city.lng,city.lat]);
+        if (!c) return;
+        locationData.push({loc,x:c[0],y:c[1],devices});
       });
     }
 
-    // 9) Draw dots and pies layers
-    const dotsLayer = svg.append("g").attr("class", "dots-layer");
-    const piesLayer = svg.append("g").attr("class", "pies-layer");
+    const dotsLayer = svg.append("g").attr("class","dots-layer");
+    const piesLayer = svg.append("g").attr("class","pies-layer");
 
     dotsLayer.selectAll("circle.city-dot")
       .data(locationData)
-      .enter()
-      .append("circle")
-      .attr("class", "city-dot")
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y)
-      .attr("r", 8)
-      .attr("fill", "#cc0000")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1);
+      .enter().append("circle")
+      .attr("class","city-dot")
+      .attr("cx",d=>d.x)
+      .attr("cy",d=>d.y)
+      .attr("r",8)
+      .attr("fill","#cc0000")
+      .attr("stroke","#fff")
+      .attr("stroke-width",1);
 
-    const locationGroups = piesLayer.selectAll("g.loc-group")
+    const arcGen = d3.arc().outerRadius(25).innerRadius(0);
+    const pieGen = d3.pie().sort(null).value(v=>v);
+    function drawPie(g,deviceData,yOffset){
+      if (!deviceData || (deviceData.hideRank&&deviceData.hideShare)) return;
+      const shareVal = parseFloat(deviceData.shareVal)||0;
+      const disp = deviceData.hideShare?0:shareVal;
+      const rankRaw = parseFloat(deviceData.avgRank)||0;
+      const rankVal = deviceData.hideRank?null:rankRaw.toFixed(1);
+      const pieData = [disp,100-disp];
+      const arcs = pieGen(pieData);
+      const pg = g.append("g").attr("transform",`translate(0,${yOffset})`);
+      if (rankVal!==null){
+        let bg = "#dfffd6";
+        if (rankRaw>=2&&rankRaw<4) bg="#fffac2";
+        else if (rankRaw>=4&&rankRaw<6) bg="#ffe0bd";
+        else if (rankRaw>=6) bg="#ffcfcf";
+        pg.append("foreignObject")
+          .attr("class","rank-box")
+          .attr("x",-(25+10+38))
+          .attr("y",-19)
+          .attr("width",38)
+          .attr("height",38)
+          .html(`<div style="
+            width:38px;height:38px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:18px;font-weight:bold;
+            background:${bg};border-radius:4px;color:#333;
+          ">${rankVal}</div>`);
+      }
+      const sg = pg.append("g").attr("class","share-pie-group");
+      if (!deviceData.hideShare){
+        sg.selectAll("path.arc")
+          .data(arcs)
+          .enter().append("path")
+          .attr("class","arc")
+          .attr("d",arcGen)
+          .attr("fill",(d,i)=>i===0?colorForDevice(deviceData.device):"#ccc")
+          .attr("stroke","#fff")
+          .attr("stroke-width",0.5);
+        sg.append("text")
+          .attr("text-anchor","middle")
+          .attr("dy","0.4em")
+          .style("font","bold 14px sans-serif")
+          .text(disp.toFixed(1)+"%");
+      }
+    }
+
+    const locGroups = piesLayer.selectAll("g.loc-group")
       .data(locationData)
-      .enter()
-      .append("g")
-      .attr("class", "loc-group")
-      .attr("transform", d => {
-        const offsetX = d.x < (baseWidth / 2) ? 40 : -40;
-        let groupHeight = 0;
-        if (d.devices.find(item => item.device.toLowerCase().includes("desktop"))) { groupHeight += 60; }
-        if (d.devices.find(item => item.device.toLowerCase().includes("mobile"))) { groupHeight += 60; }
-        if (groupHeight === 0) groupHeight = 60;
-        let newY = d.y - groupHeight / 2;
-        newY = Math.max(0, Math.min(newY, baseHeight - groupHeight));
-        return `translate(${d.x + offsetX}, ${newY})`;
+      .enter().append("g")
+      .attr("class","loc-group")
+      .attr("transform",d=>{
+        const offsetX = d.x< W/2 ? 40 : -40;
+        let h=0;
+        if (d.devices.some(dd=>dd.device.toLowerCase().includes("desktop"))) h+=60;
+        if (d.devices.some(dd=>dd.device.toLowerCase().includes("mobile")))  h+=60;
+        if (!h) h=60;
+        let y0 = d.y - h/2;
+        y0 = Math.max(0, Math.min(y0, H - h));
+        return `translate(${d.x+offsetX},${y0})`;
       });
 
-    // Pie generator
-    const arcGen = d3.arc().outerRadius(25).innerRadius(0);
-    const pieGen = d3.pie().sort(null).value(v => v);
-
-    // Draw a single device pie + rank box
-    function drawPie(gSel, deviceData, yOffset) {
-      if (deviceData.hideRank && deviceData.hideShare) { return; }
-      if (!deviceData) return;
-      const shareVal = parseFloat(deviceData.shareVal) || 0;
-      const displayShareVal = deviceData.hideShare ? 0 : shareVal;
-      const rawRank = deviceData.avgRank != null ? parseFloat(deviceData.avgRank) : 0;
-      const rankVal = rawRank.toFixed(1);
-      const pieData = [displayShareVal, Math.max(0, 100 - displayShareVal)];
-      const arcs = pieGen(pieData);
-      const pieG = gSel.append("g")
-        .attr("data-device", deviceData.device.toLowerCase())
-        .attr("transform", `translate(0, ${yOffset})`);
-      if (!deviceData.hideRank) {
-        const rankG = pieG.append("g").attr("class", "rank-box-group");
-        let bgColor;
-        if (rawRank < 2) { bgColor = "#dfffd6"; }
-        else if (rawRank < 4) { bgColor = "#fffac2"; }
-        else if (rawRank < 6) { bgColor = "#ffe0bd"; }
-        else { bgColor = "#ffcfcf"; }
-        rankG.append("foreignObject")
-          .attr("class", "rank-box")
-          .attr("data-device", deviceData.device.toLowerCase())
-          .attr("x", -(25 + 10 + 38))
-          .attr("y", -19)
-          .attr("width", 38)
-          .attr("height", 38)
-          .html(`
-            <div style="
-              width: 38px;
-              height: 38px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 18px;
-              font-weight: bold;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: ${bgColor};
-              color: #333;
-              border-radius: 4px;
-            ">
-              ${rankVal}
-            </div>
-          `);
-      }
-      const shareG = pieG.append("g").attr("class", "share-pie-group");
-      if (!deviceData.hideShare) {
-        shareG.selectAll("path.arc")
-          .data(arcs)
-          .enter()
-          .append("path")
-          .attr("class", "arc")
-          .attr("d", arcGen)
-          .attr("fill", (dd, i) => i === 0 ? colorForDevice(deviceData.device) : "#ccc")
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 0.5);
-        shareG.append("text")
-          .attr("text-anchor", "middle")
-          .attr("dy", "0.4em")
-          .style("font-size", "14px")
-          .style("font-weight", "bold")
-          .style("fill", "#333")
-          .style("font-family", "Helvetica, Arial, sans-serif")
-          .text(displayShareVal.toFixed(1) + "%");
-      }
-    }
-
-    locationGroups.each(function(d) {
-      const parentG = d3.select(this);
+    locGroups.each(function(d){
       let yOff = 30;
-      const desktop = d.devices.find(item => item.device.toLowerCase().includes("desktop"));
-      if (desktop) { drawPie(parentG, desktop, yOff); yOff += 60; }
-      const mobile = d.devices.find(item => item.device.toLowerCase().includes("mobile"));
-      if (mobile) { drawPie(parentG, mobile, yOff); }
+      const desktop = d.devices.find(dd=>dd.device.toLowerCase().includes("desktop"));
+      if (desktop) { drawPie(d3.select(this),desktop,yOff); yOff+=60; }
+      const mobile = d.devices.find(dd=>dd.device.toLowerCase().includes("mobile"));
+      if (mobile) drawPie(d3.select(this),mobile,yOff);
     });
 
-    // ---------- (F.1) Add a tooltip popup for state hover ----------
+    // 11) Tooltip
     const tooltip = container.append("div")
-      .attr("class", "state-tooltip")
-      .style("position", "absolute")
-      .style("pointer-events", "none")
-      .style("background", "rgba(0, 0, 0, 0.7)")
-      .style("color", "#fff")
-      .style("padding", "8px")
-      .style("border-radius", "6px")
-      .style("font-size", "14px")
-      .style("display", "none");
+      .attr("class","state-tooltip")
+      .style("position","absolute")
+      .style("pointer-events","none")
+      .style("background","rgba(0,0,0,0.7)")
+      .style("color","#fff")
+      .style("padding","8px")
+      .style("border-radius","6px")
+      .style("font-size","14px")
+      .style("display","none");
 
-    // Attach mouse events to states for the popup
-    statesSelection
-      .on("mouseover", function(event, d) {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return;
-        // Filter dataRows for desktop and mobile devices in this state
-        const desktopRows = dataRows.filter(r => {
-          const city = window.cityLookup.get(r.locName);
-          return city && city.state_id === stPostal && r.device.toLowerCase().includes("desktop");
-        });
-        const mobileRows = dataRows.filter(r => {
-          const city = window.cityLookup.get(r.locName);
-          return city && city.state_id === stPostal && r.device.toLowerCase().includes("mobile");
-        });
-        function avgRank(rows) {
-          if (!rows.length) return "N/A";
-          const sum = rows.reduce((acc, cur) => acc + (parseFloat(cur.avgRank)||0), 0);
-          return (sum / rows.length).toFixed(1);
+    // 12) Click / highlight / tag / filter
+    let previouslySelectedState = null;
+    statesSel
+      .on("mousemove",(ev)=> {
+        const [x,y] = d3.pointer(ev, container.node());
+        tooltip.style("left",(x+12)+"px").style("top",(y+12)+"px");
+      })
+      .on("mouseout",()=> tooltip.style("display","none"))
+      .on("click", function(ev, d) {
+        // single stPostal + stateName
+        const stPostal = FIPS_TO_POSTAL[d.id];
+        if (!stPostal) return;
+        const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
+
+        // unhighlight old
+        if (previouslySelectedState) {
+          previouslySelectedState.attr("stroke","#999").attr("stroke-width",1);
         }
-        const desktopAvgRank = avgRank(desktopRows);
-        const mobileAvgRank = avgRank(mobileRows);
-        const desktopShare = desktopRows.length ? computeCombinedShare({
-          desktopSum: desktopRows.reduce((acc, r) => acc + r.shareVal, 0),
-          desktopCount: desktopRows.length
-        }) : 0;
-        const mobileShare = mobileRows.length ? computeCombinedShare({
-          mobileSum: mobileRows.reduce((acc, r) => acc + r.shareVal, 0),
-          mobileCount: mobileRows.length
-        }) : 0;
-        tooltip.html(`
-          <div><strong>Desktop</strong>: Rank: ${desktopAvgRank}, Share: ${desktopShare.toFixed(1)}%</div>
-          <div><strong>Mobile</strong>: Rank: ${mobileAvgRank}, Share: ${mobileShare.toFixed(1)}%</div>
+        // highlight new
+        const me = d3.select(this)
+          .attr("stroke","#007aff").attr("stroke-width",4);
+        previouslySelectedState = me;
+
+        // update tag
+        tagContainer.html(`
+          <span style="
+            display:inline-block;
+            background:#007aff;color:#fff;
+            padding:6px 12px;border-radius:20px;
+            font-size:14px;font-weight:500;
+          ">
+            ${stateName}
+            <span id="clearStateFilter" style="
+              margin-left:8px;cursor:pointer;font-weight:bold;
+            ">&times;</span>
+          </span>
         `);
-        tooltip.style("display", "block");
+
+        document.getElementById("clearStateFilter").onclick = ()=>{
+          tagContainer.html("");
+          if (document.getElementById("homePage").style.display!=="none") {
+            showAllHomeTableRows();
+          } else {
+            showAllProjectTableRows();
+          }
+          if (previouslySelectedState) {
+            previouslySelectedState.attr("stroke","#999").attr("stroke-width",1);
+            previouslySelectedState = null;
+          }
+        };
+
+        // now filter
+        if (document.getElementById("homePage").style.display!=="none") {
+          filterHomeTableByState(stateName);
+        } else {
+          filterProjectTableByState(stateName);
+        }
       })
-      .on("mousemove", function(event, d) {
-        const [x, y] = d3.pointer(event, container.node());
-        tooltip.style("left", (x + 12) + "px")
-               .style("top", (y + 12) + "px");
-      })
-      .on("mouseout", function() {
-        tooltip.style("display", "none");
-      })
-  .on("click", function(event, d) {
+      .on("mouseover", (ev,d)=>{
+        // reuse stPostal, stateName
+        const p = FIPS_TO_POSTAL[d.id];
+        if (!p||!stateShareMap[p]) return;
+        const desktopRows = dataRows.filter(r=>{
+          const c = window.cityLookup.get(r.locName);
+          return c&&c.state_id===p&&r.device.toLowerCase().includes("desktop");
+        });
+        const mobileRows = dataRows.filter(r=>{
+          const c = window.cityLookup.get(r.locName);
+          return c&&c.state_id===p&&r.device.toLowerCase().includes("mobile");
+        });
+        function avgRank(arr){
+          if (!arr.length) return "N/A";
+          const sum = arr.reduce((a,r)=>a+(parseFloat(r.avgRank)||0),0);
+          return (sum/arr.length).toFixed(1);
+        }
+        const dr = avgRank(desktopRows);
+        const mr = avgRank(mobileRows);
+        const dsVal = desktopRows.length?
+          computeCombinedShare({
+            desktopSum:desktopRows.reduce((a,r)=>a+r.shareVal,0),
+            desktopCount:desktopRows.length
+          }).toFixed(1):0;
+        const msVal = mobileRows.length?
+          computeCombinedShare({
+            mobileSum:mobileRows.reduce((a,r)=>a+r.shareVal,0),
+            mobileCount:mobileRows.length
+          }).toFixed(1):0;
 
-    // 1) Revert the previously selected state's outline
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-    }
-
-    // 2) Highlight this newly clicked state
-    d3.select(this)
-      .attr("stroke-width", 4)
-      .attr("stroke", "#007aff");
-
-    // 3) Save this as the 'previouslySelectedState'
-    previouslySelectedState = d3.select(this);
-
-    // 4) Create or update the selected State tag
-const tagDiv = document.getElementById("stateFilterTag");
-if (tagDiv) {
-  const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  if (!stPostal) return;
-  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
-
-  tagDiv.innerHTML = `
-    <span style="
-      display: inline-block;
-      background: #007aff;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 500;
-      position: relative;
-    ">
-      ${stateName}
-      <span id="clearStateFilter" style="
-        margin-left: 8px;
-        cursor: pointer;
-        font-weight: bold;
-      ">
-        &times;
-      </span>
-    </span>
-  `;
-
-  // Attach click event to the × button
-  document.getElementById("clearStateFilter").addEventListener("click", function() {
-    // Clear the tag
-    tagDiv.innerHTML = "";
-
-    // Remove table filtering
-    if (document.getElementById("homePage").style.display !== "none") {
-      showAllHomeTableRows();
-    } else if (document.getElementById("projectPage").style.display !== "none") {
-      showAllProjectTableRows();
-    }
-
-    // Reset previously selected state's stroke
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-      previouslySelectedState = null;
-    }
-  });
-}
-
-    // 4) Figure out the spelled-out name from the postal code
-    const stPostal = FIPS_TO_POSTAL[d.id] || null;
-    if (!stPostal) return;  // unknown or no data
-    const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
-
-    // 5) If we’re on the homePage, filter the “home-table”
-    if (document.getElementById("homePage").style.display !== "none") {
-      filterHomeTableByState(stateName);
-    }
-    // If we’re on the projectPage, filter the “project-table”
-    else if (document.getElementById("projectPage").style.display !== "none") {
-      filterProjectTableByState(stateName);
-    }
-  });
+        tooltip.html(`
+          <div><strong>Desktop</strong>: Rank ${dr}, Share ${dsVal}%</div>
+          <div><strong>Mobile</strong>: Rank ${mr}, Share ${msVal}%</div>
+        `).style("display","block");
+      });
   }
 
-  // ---------- (G) Canada, UK, Australia (same as old code) ----------
-  async function drawCanadaMapWithLocations(project, containerSelector) {
-    const container = d3.select(containerSelector);
+  // ---------- (G) Canada / UK / Australia (unchanged) ----------
+  async function drawCanadaMapWithLocations(project, selector) {
+    const container = d3.select(selector);
     container.selectAll("*").remove();
-
-    let canadaTopo;
-    try {
-      canadaTopo = await getCanadaMapData();
-    } catch (err) {
-      console.error("[mapsLib] Canada topo load error:", err);
-      return;
-    }
-
-    const provincesGeo = topojson.feature(canadaTopo, canadaTopo.objects.provinces);
+    let topo;
+    try { topo = await getCanadaMapData(); }
+    catch(e){ console.error(e); return; }
+    const provincesGeo = topojson.feature(topo, topo.objects.provinces);
     const provinceCounts = {};
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locs = Array.isArray(search.location) ? search.location : search.location ? [search.location] : [];
-      locs.forEach((locStr) => {
+    (project.searches||[]).forEach(search=>{
+      if ((search.status||"").toLowerCase()!=="active") return;
+      const locs = Array.isArray(search.location)?search.location:[search.location];
+      locs.forEach(locStr=>{
+        if (!locStr) return;
         const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const st_id = cityObj.state_id || "";
-          if (!provinceCounts[st_id]) provinceCounts[st_id] = 0;
-          provinceCounts[st_id]++;
-        }
+        if (!window.cityLookup.has(canon)) return;
+        const city = window.cityLookup.get(canon);
+        const st = city.state_id;
+        provinceCounts[st] = (provinceCounts[st]||0)+1;
       });
     });
-
-    let maxCount = 0;
-    Object.values(provinceCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
+    let maxCount=0;
+    Object.values(provinceCounts).forEach(v=>maxCount=Math.max(maxCount,v));
     const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+      .domain([0,maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 600, height = 500;
+    const WIDTH=600, HEIGHT=500;
     const svg = container.append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
-
-    const projection = d3.geoMercator().fitSize([width, height], provincesGeo);
-    const path = d3.geoPath().projection(projection);
+      .attr("viewBox",`0 0 ${WIDTH} ${HEIGHT}`)
+      .style("width","100%").style("height","auto")
+      .style("background-color","transparent");
+    const projection = d3.geoMercator().fitSize([WIDTH,HEIGHT], provincesGeo);
+    const path  = d3.geoPath().projection(projection);
 
     svg.selectAll("path.province")
       .data(provincesGeo.features)
-      .enter()
-      .append("path")
-      .attr("class", "province")
-      .attr("d", path)
-      .attr("fill", (d) => {
-        const code = d.properties.CODE;
-        const shortCode = mapProvinceCode(code);
-        const c = provinceCounts[shortCode] || 0;
-        return colorScale(c);
+      .enter().append("path")
+      .attr("class","province")
+      .attr("d",path)
+      .attr("fill",d=>{
+        const code = mapProvinceCode(d.properties.CODE);
+        return colorScale(provinceCounts[code]||0);
       })
-      .attr("stroke", "#999");
+      .attr("stroke","#999");
 
     svg.selectAll("circle.province-bubble")
       .data(provincesGeo.features)
-      .enter()
-      .append("circle")
-      .attr("class", "province-bubble")
-      .attr("cx", (d) => path.centroid(d)[0])
-      .attr("cy", (d) => path.centroid(d)[1])
-      .attr("r", (d) => {
-        const shortCode = mapProvinceCode(d.properties.CODE);
-        const c = provinceCounts[shortCode] || 0;
-        return c > 0 ? 20 : 0;
-      })
-      .attr("fill", "#2962FF")
-      .attr("fill-opacity", 0.5);
+      .enter().append("circle")
+      .attr("class","province-bubble")
+      .attr("cx",d=>path.centroid(d)[0])
+      .attr("cy",d=>path.centroid(d)[1])
+      .attr("r",d=>(provinceCounts[mapProvinceCode(d.properties.CODE)]||0)>0?20:0)
+      .attr("fill","#2962FF").attr("fill-opacity",0.5);
 
     svg.selectAll("text.province-bubble-label")
       .data(provincesGeo.features)
-      .enter()
-      .append("text")
-      .attr("class", "province-bubble-label")
-      .attr("x", (d) => path.centroid(d)[0])
-      .attr("y", (d) => path.centroid(d)[1] + 5)
-      .attr("text-anchor", "middle")
-      .attr("font-size", 14)
-      .attr("fill", "#fff")
-      .text((d) => {
-        const shortCode = mapProvinceCode(d.properties.CODE);
-        const c = provinceCounts[shortCode] || 0;
-        return c > 0 ? c : "";
-      });
+      .enter().append("text")
+      .attr("class","province-bubble-label")
+      .attr("x",d=>path.centroid(d)[0])
+      .attr("y",d=>path.centroid(d)[1]+5)
+      .attr("text-anchor","middle")
+      .attr("font-size",14).attr("fill","#fff")
+      .text(d=>(provinceCounts[mapProvinceCode(d.properties.CODE)]||""));
 
     // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
-      const [x, y] = coords;
+    const cities = collectActiveCitiesForProject(project);
+    cities.forEach(city=>{
+      const c = projection([city.lng,city.lat]);
+      if (!c) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("class","city-dot")
+        .attr("cx",c[0]).attr("cy",c[1]).attr("r",5)
+        .attr("fill","red").attr("stroke","#fff").attr("stroke-width",1);
     });
   }
 
-  async function drawUKMapWithLocations(project, containerSelector) {
-    const container = d3.select(containerSelector);
+  async function drawUKMapWithLocations(project, selector) {
+    const container = d3.select(selector);
     container.selectAll("*").remove();
-
-    let ukTopo;
-    try {
-      ukTopo = await getUKMapData();
-    } catch (err) {
-      console.error("[mapsLib] UK topo load error:", err);
-      return;
-    }
-
-    const ukGeo = topojson.feature(ukTopo, ukTopo.objects.eer);
+    let topo;
+    try { topo = await getUKMapData(); }
+    catch(e){ console.error(e); return; }
+    const ukGeo = topojson.feature(topo, topo.objects.eer);
     const regionCounts = {};
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locArr = Array.isArray(search.location) ? search.location : search.location ? [search.location] : [];
-      locArr.forEach((locStr) => {
+    (project.searches||[]).forEach(search=>{
+      if ((search.status||"").toLowerCase()!=="active") return;
+      const locs = Array.isArray(search.location)?search.location:[search.location];
+      locs.forEach(locStr=>{
+        if (!locStr) return;
         const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const regionName = (cityObj.regionName || "").trim();
-          if (!regionCounts[regionName]) regionCounts[regionName] = 0;
-          regionCounts[regionName]++;
-        }
+        if (!window.cityLookup.has(canon)) return;
+        const city = window.cityLookup.get(canon);
+        const region = (city.regionName||"").trim();
+        regionCounts[region] = (regionCounts[region]||0)+1;
       });
     });
-
-    let maxCount = 0;
-    Object.values(regionCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
+    let maxCount=0;
+    Object.values(regionCounts).forEach(v=>maxCount=Math.max(maxCount,v));
     const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+      .domain([0,maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 600, height = 500;
+    const WIDTH=600, HEIGHT=500;
     const svg = container.append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
-
-    const projection = d3.geoMercator().fitSize([width, height], ukGeo);
+      .attr("viewBox",`0 0 ${WIDTH} ${HEIGHT}`)
+      .style("width","100%").style("height","auto")
+      .style("background-color","transparent");
+    const projection = d3.geoMercator().fitSize([WIDTH,HEIGHT], ukGeo);
     const path = d3.geoPath().projection(projection);
 
     svg.selectAll("path.uk-region")
       .data(ukGeo.features)
-      .enter()
-      .append("path")
-      .attr("class", "uk-region")
-      .attr("d", path)
-      .attr("stroke", "#999")
-      .attr("fill", (d) => {
-        const regionName = d.properties.EER13NM || "";
-        const c = regionCounts[regionName] || 0;
-        return colorScale(c);
+      .enter().append("path")
+      .attr("class","uk-region")
+      .attr("d",path)
+      .attr("stroke","#999")
+      .attr("fill",d=>{
+        const nm = d.properties.EER13NM||"";
+        return colorScale(regionCounts[nm]||0);
       });
 
-    // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
-      const [x, y] = coords;
+    const cities = collectActiveCitiesForProject(project);
+    cities.forEach(city=>{
+      const c = projection([city.lng,city.lat]);
+      if (!c) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("class","city-dot")
+        .attr("cx",c[0]).attr("cy",c[1]).attr("r",5)
+        .attr("fill","red").attr("stroke","#fff").attr("stroke-width",1);
     });
   }
 
-  async function drawAustraliaMapWithLocations(project, containerSelector) {
-    const container = d3.select(containerSelector);
+  async function drawAustraliaMapWithLocations(project, selector) {
+    const container = d3.select(selector);
     container.selectAll("*").remove();
-
-    let auTopo;
-    try {
-      auTopo = await getAustraliaMapData();
-    } catch (err) {
-      console.error("[mapsLib] Australia fetch error:", err);
-      return;
-    }
-
-    const australiaGeo = topojson.feature(auTopo, auTopo.objects.austates);
+    let topo;
+    try { topo = await getAustraliaMapData(); }
+    catch(e){ console.error(e); return; }
+    const auGeo = topojson.feature(topo, topo.objects.austates);
     const regionCounts = {};
-    (project.searches || []).forEach((search) => {
-      if ((search.status || "").toLowerCase() !== "active") return;
-      const locArr = Array.isArray(search.location) ? search.location : search.location ? [search.location] : [];
-      locArr.forEach((locStr) => {
+    (project.searches||[]).forEach(search=>{
+      if ((search.status||"").toLowerCase()!=="active") return;
+      const locs = Array.isArray(search.location)?search.location:[search.location];
+      locs.forEach(locStr=>{
+        if (!locStr) return;
         const canon = locStr.trim().toLowerCase();
-        if (window.cityLookup && window.cityLookup.has(canon)) {
-          const cityObj = window.cityLookup.get(canon);
-          const rid = cityObj.regionId;
-          if (typeof rid === "number" && rid >= 0) {
-            if (!regionCounts[rid]) regionCounts[rid] = 0;
-            regionCounts[rid]++;
-          }
+        if (!window.cityLookup.has(canon)) return;
+        const city = window.cityLookup.get(canon);
+        const rid = city.regionId;
+        if (typeof rid==="number"&&rid>=0) {
+          regionCounts[rid] = (regionCounts[rid]||0)+1;
         }
       });
     });
-
-    let maxCount = 0;
-    Object.values(regionCounts).forEach((v) => { if (v > maxCount) maxCount = v; });
+    let maxCount=0;
+    Object.values(regionCounts).forEach(v=>maxCount=Math.max(maxCount,v));
     const colorScale = d3.scaleSequential()
-      .domain([0, maxCount || 1])
+      .domain([0,maxCount||1])
       .interpolator(d3.interpolateBlues);
 
-    const width = 700, height = 600;
+    const WIDTH=700, HEIGHT=600;
     const svg = container.append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .style("width", "100%")
-      .style("height", "auto")
-      .style("background-color", "transparent");
-
-    const projection = d3.geoMercator().fitSize([width, height], australiaGeo);
+      .attr("viewBox",`0 0 ${WIDTH} ${HEIGHT}`)
+      .style("width","100%").style("height","auto")
+      .style("background-color","transparent");
+    const projection = d3.geoMercator().fitSize([WIDTH,HEIGHT], auGeo);
     const path = d3.geoPath().projection(projection);
 
     svg.selectAll("path.au-state")
-      .data(australiaGeo.features)
-      .enter()
-      .append("path")
-      .attr("class", "au-state")
-      .attr("d", path)
-      .attr("stroke", "#999")
-      .attr("fill", (d) => {
-        const regionId = d.id;
-        const c = regionCounts[d.id] || 0;
-        return colorScale(c);
-      });
+      .data(auGeo.features)
+      .enter().append("path")
+      .attr("class","au-state")
+      .attr("d",path)
+      .attr("stroke","#999")
+      .attr("fill",d=>colorScale(regionCounts[d.id]||0));
 
     svg.selectAll("circle.au-bubble")
-      .data(australiaGeo.features)
-      .enter()
-      .append("circle")
-      .attr("class", "au-bubble")
-      .attr("cx", (d) => path.centroid(d)[0])
-      .attr("cy", (d) => path.centroid(d)[1])
-      .attr("r", (d) => {
-        const c = regionCounts[d.id] || 0;
-        return c > 0 ? 20 : 0;
-      })
-      .attr("fill", "#2962FF")
-      .attr("fill-opacity", 0.4);
+      .data(auGeo.features)
+      .enter().append("circle")
+      .attr("class","au-bubble")
+      .attr("cx",d=>path.centroid(d)[0])
+      .attr("cy",d=>path.centroid(d)[1])
+      .attr("r",d=>regionCounts[d.id]>0?20:0)
+      .attr("fill","#2962FF").attr("fill-opacity",0.4);
 
-    // city dots
-    const activeCityObjs = collectActiveCitiesForProject(project);
-    activeCityObjs.forEach((city) => {
-      const coords = projection([city.lng, city.lat]);
-      if (!coords) return;
+    const cities = collectActiveCitiesForProject(project);
+    cities.forEach(city=>{
+      const c = projection([city.lng,city.lat]);
+      if (!c) return;
       svg.append("circle")
-        .attr("class", "city-dot")
-        .attr("cx", coords[0])
-        .attr("cy", coords[1])
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1);
+        .attr("class","city-dot")
+        .attr("cx",c[0]).attr("cy",c[1]).attr("r",5)
+        .attr("fill","red").attr("stroke","#fff").attr("stroke-width",1);
     });
   }
 
-  // ---------- (H) Expose as mapHelpers ----------
-  if (typeof window.mapHelpers !== "object") {
-    window.mapHelpers = {};
-  }
-  window.mapHelpers.drawUsMapWithLocations = drawUsMapWithLocations;
-  window.mapHelpers.drawCanadaMapWithLocations = drawCanadaMapWithLocations;
-  window.mapHelpers.drawUKMapWithLocations = drawUKMapWithLocations;
+  // ---------- (H) Expose mapHelpers ----------
+  if (typeof window.mapHelpers !== "object") window.mapHelpers = {};
+  window.mapHelpers.drawUsMapWithLocations       = drawUsMapWithLocations;
+  window.mapHelpers.drawCanadaMapWithLocations   = drawCanadaMapWithLocations;
+  window.mapHelpers.drawUKMapWithLocations       = drawUKMapWithLocations;
   window.mapHelpers.drawAustraliaMapWithLocations = drawAustraliaMapWithLocations;
 
-  // Helper for collecting active city objects
+  // ---------- (I) Helpers ----------
+
+  // collect active city objects for Canada/UK/AU dots
   function collectActiveCitiesForProject(project) {
     if (!project || !Array.isArray(project.searches)) return [];
-    if (typeof window.cityLookup !== "object") {
-      console.warn("[mapsLib] cityLookup not found; city dots won't appear.");
-      return [];
-    }
+    if (typeof window.cityLookup!=="object") return [];
     const out = [];
-    project.searches.forEach((s) => {
-      if ((s.status || "").toLowerCase() !== "active") return;
-      const loc = s.location;
-      if (!loc) return;
-      const locArr = Array.isArray(loc) ? loc : [loc];
-      locArr.forEach(locStr => {
+    project.searches.forEach(s=>{
+      if ((s.status||"").toLowerCase()!=="active") return;
+      const locs = Array.isArray(s.location)?s.location:[s.location];
+      locs.forEach(locStr=>{
+        if (!locStr) return;
         const canon = locStr.trim().toLowerCase();
         if (window.cityLookup.has(canon)) {
           out.push(window.cityLookup.get(canon));
@@ -937,70 +693,45 @@ if (tagDiv) {
     return out;
   }
 
-  // Filter the home-table so that only rows whose LOCATION cell
-// contains the specified stateName remain visible
-function filterHomeTableByState(stateName) {
-  const table = document.querySelector("#homePage .home-table");
-  if (!table) return;
+  // Filter home table by state, respecting rowspan
+  function filterHomeTableByState(stateName) {
+    const table = document.querySelector("#homePage .home-table");
+    if (!table) return;
+    const needle = stateName.toLowerCase();
+    let currentLoc="";
+    table.querySelectorAll("tbody tr").forEach(row=>{
+      const cell = row.cells[0];
+      if (cell && cell.hasAttribute("rowspan")) {
+        currentLoc = cell.textContent.trim().toLowerCase();
+      }
+      row.style.display = currentLoc.includes(needle) ? "" : "none";
+    });
+  }
 
-  const rows = table.querySelectorAll("tbody tr");
-  let currentLocationName = "";
-  const needle = stateName.toLowerCase();
-
-  rows.forEach(row => {
-    const firstCell = row.cells[0];
-    // only update when this cell is the one that holds the Location (it has a rowspan)
-    if (firstCell && firstCell.hasAttribute("rowspan")) {
-      currentLocationName = firstCell.textContent.trim().toLowerCase();
-    }
-
-    // show/hide every row based on that last-seen location name
-    if (currentLocationName.includes(needle)) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  });
-}
-
-// Same approach for the projectPage
-function filterProjectTableByState(stateName) {
-  const table = document.querySelector("#projectPage .project-table");
-  if (!table) return;
-
-  const rows = table.querySelectorAll("tbody tr");
-  let currentLocationName = "";
-  const needle = stateName.toLowerCase();
-
-  rows.forEach(row => {
-    const locCell = row.cells[1];
-    // only update when this is the “real” Location cell (has rowspan)
-    if (locCell && locCell.hasAttribute("rowspan")) {
-      currentLocationName = locCell.textContent.trim().toLowerCase();
-    }
-
-    if (currentLocationName.includes(needle)) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  });
-}
+  // Filter project table by state, respecting rowspan at column 1
+  function filterProjectTableByState(stateName) {
+    const table = document.querySelector("#projectPage .project-table");
+    if (!table) return;
+    const needle = stateName.toLowerCase();
+    let currentLoc="";
+    table.querySelectorAll("tbody tr").forEach(row=>{
+      const cell = row.cells[1];
+      if (cell && cell.hasAttribute("rowspan")) {
+        currentLoc = cell.textContent.trim().toLowerCase();
+      }
+      row.style.display = currentLoc.includes(needle) ? "" : "none";
+    });
+  }
 
   function showAllHomeTableRows() {
-  const table = document.querySelector("#homePage .home-table");
-  if (!table) return;
-  table.querySelectorAll("tbody tr").forEach(row => {
-    row.style.display = "";
-  });
-}
-
-function showAllProjectTableRows() {
-  const table = document.querySelector("#projectPage .project-table");
-  if (!table) return;
-  table.querySelectorAll("tbody tr").forEach(row => {
-    row.style.display = "";
-  });
-}
+    const table = document.querySelector("#homePage .home-table");
+    if (!table) return;
+    table.querySelectorAll("tbody tr").forEach(r=>r.style.display="");
+  }
+  function showAllProjectTableRows() {
+    const table = document.querySelector("#projectPage .project-table");
+    if (!table) return;
+    table.querySelectorAll("tbody tr").forEach(r=>r.style.display="");
+  }
 
 })();
