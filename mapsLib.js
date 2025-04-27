@@ -971,55 +971,49 @@ function filterProjectTableByState(stateName) {
   const needle = stateName.toLowerCase();
   const rows = Array.from(table.querySelectorAll("tbody tr"));
 
-  // --- PASS #1: Hide/show each location row based on column #1 (Location) ---
+  // PASS #1: Hide/show each location row based on col #1 containing the state
   rows.forEach(row => {
-    // If this is the row that holds the searchTerm (i.e. col 0 has rowspan), skip it here:
+    // Detect if this row is the “Search Term” row => col #0 has rowspan
     const searchTermCell = row.cells[0];
     if (searchTermCell && searchTermCell.hasAttribute("rowspan")) {
-      return; // We'll deal with these in Pass #2.
+      // Do not process these in PASS #1
+      return;
     }
 
-    // Otherwise, column #1 should contain the Location text
+    // Otherwise, column #1 is the Location for the project-table
     const locCell = row.cells[1];
-    if (!locCell) return; // safety check
+    if (!locCell) return; // defensive
 
     const locText = locCell.textContent.trim().toLowerCase();
     if (locText.includes(needle)) {
-      // This location row matches => keep it visible
       row.style.display = "";
     } else {
-      // Not a match => hide
       row.style.display = "none";
     }
   });
 
-  // --- PASS #2: For each “searchTerm” row, hide it if none of its location rows are visible ---
+  // PASS #2: Hide any “Search Term” row that has 0 visible location rows
   let i = 0;
   while (i < rows.length) {
     const row = rows[i];
     const stCell = row.cells[0];
     if (stCell && stCell.hasAttribute("rowspan")) {
-      // This row is the "SearchTerm" row.
-      // figure out how many subrows it spans:
+      // This row is the Search Term row
       const spanCount = parseInt(stCell.getAttribute("rowspan"), 10) || 1;
       let visibleCount = 0;
-
-      // Check all rows that belong to this same searchTerm block:
+      // Look at the next ‘spanCount’ rows, see how many are still visible
       for (let j = i + 1; j < i + spanCount; j++) {
-        // If that sub-row hasn't been set display="none", then it matched
         if (rows[j].style.display !== "none") {
           visibleCount++;
         }
       }
-
-      // If none of them are visible => hide the entire searchTerm row too:
       if (visibleCount === 0) {
+        // hide the entire searchTerm row
         row.style.display = "none";
       } else {
         row.style.display = "";
       }
-
-      i += spanCount; // Skip ahead to the next searchTerm block
+      i += spanCount; // skip ahead
     } else {
       i++;
     }
