@@ -971,20 +971,17 @@ function filterProjectTableByState(stateName) {
   const needle = stateName.toLowerCase();
   const rows = Array.from(table.querySelectorAll("tbody tr"));
 
-  // PASS #1: Hide/show each location row based on col #1 containing the state
+  // --- PASS #1: Hide/show each subrow that does NOT have the rowspan in col #1 ---
   rows.forEach(row => {
-    // Detect if this row is the “Search Term” row => col #0 has rowspan
-    const searchTermCell = row.cells[0];
-    if (searchTermCell && searchTermCell.hasAttribute("rowspan")) {
-      // Do not process these in PASS #1
+    // If column #1 has rowspan => this is the "location" row, skip it in PASS #1
+    const locationCell = row.cells[1];
+    if (locationCell && locationCell.hasAttribute("rowspan")) {
+      // Skip these in pass #1
       return;
     }
 
-    // Otherwise, column #1 is the Location for the project-table
-    const locCell = row.cells[1];
-    if (!locCell) return; // defensive
-
-    const locText = locCell.textContent.trim().toLowerCase();
+    // Otherwise, this row *should* have a normal Location cell in col #1
+    const locText = (row.cells[1]?.textContent || "").trim().toLowerCase();
     if (locText.includes(needle)) {
       row.style.display = "";
     } else {
@@ -992,28 +989,28 @@ function filterProjectTableByState(stateName) {
     }
   });
 
-  // PASS #2: Hide any “Search Term” row that has 0 visible location rows
+  // --- PASS #2: For each row that *does* have rowspan in col #1, hide it if all subrows are hidden ---
   let i = 0;
   while (i < rows.length) {
     const row = rows[i];
-    const stCell = row.cells[0];
-    if (stCell && stCell.hasAttribute("rowspan")) {
-      // This row is the Search Term row
-      const spanCount = parseInt(stCell.getAttribute("rowspan"), 10) || 1;
+    const locCell = row.cells[1];
+    // if col #1 has rowspan => that is your big "location" block
+    if (locCell && locCell.hasAttribute("rowspan")) {
+      const spanCount = parseInt(locCell.getAttribute("rowspan"), 10) || 1;
       let visibleCount = 0;
-      // Look at the next ‘spanCount’ rows, see how many are still visible
+      // check the subrows that belong to this location
       for (let j = i + 1; j < i + spanCount; j++) {
         if (rows[j].style.display !== "none") {
           visibleCount++;
         }
       }
       if (visibleCount === 0) {
-        // hide the entire searchTerm row
+        // hide the entire location row as well
         row.style.display = "none";
       } else {
         row.style.display = "";
       }
-      i += spanCount; // skip ahead
+      i += spanCount; // jump past its subrows
     } else {
       i++;
     }
