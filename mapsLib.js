@@ -993,7 +993,7 @@ async function rebuildProjectTableByState(stateName) {
   // 1) Remove the existing project-table from #projectPage
   const oldTableWrapper = document.querySelector("#projectPage .project-table");
   if (oldTableWrapper) {
-    // The table is wrapped in a <div> or appended directly. 
+    // The table is wrapped in a <div> or appended directly.
     // Remove that entire parent <div> so it’s fully gone:
     const wrapperDiv = oldTableWrapper.closest("div");
     if (wrapperDiv && wrapperDiv.classList.contains("project-table") === false) {
@@ -1012,9 +1012,14 @@ async function rebuildProjectTableByState(stateName) {
     console.warn("[rebuildProjectTableByState] buildProjectData() returned no array.");
     return;
   }
+  console.log(`[rebuildProjectTableByState] after buildProjectData => ${fullData.length} rows total.`);
+
+  // Hard-code projectNumber=1:
+  fullData = fullData.filter(item => item.project_number === 1);
+  console.log(`[rebuildProjectTableByState] after filtering project_number=1 => ${fullData.length} rows remain.`);
 
   // 3) Filter to only those rows whose .location includes the clicked stateName
-  //    (case‑insensitive).  E.g. "California" in "San Diego, CA, US".
+  //    (case‑insensitive). E.g. "California" in "San Diego, CA, US".
   const needle = stateName.toLowerCase();
   fullData = fullData.filter(item =>
     item.location && item.location.toLowerCase().includes(needle)
@@ -1075,6 +1080,7 @@ async function rebuildProjectTableByState(stateName) {
     if (!nestedMap[t][l]) nestedMap[t][l] = [];
     nestedMap[t][l].push(item);
   });
+
   // Sort search terms alphabetically
   const searchTerms = Object.keys(nestedMap).sort();
   
@@ -1095,8 +1101,8 @@ async function rebuildProjectTableByState(stateName) {
         // Make desktop appear above mobile, for example
         const ad = a.device.toLowerCase();
         const bd = b.device.toLowerCase();
-        if (ad==="desktop" && bd!=="desktop") return -1;
-        if (bd==="desktop" && ad!=="desktop") return 1;
+        if (ad === "desktop" && bd !== "desktop") return -1;
+        if (bd === "desktop" && ad !== "desktop") return 1;
         return 0;
       });
 
@@ -1141,9 +1147,9 @@ async function rebuildProjectTableByState(stateName) {
         // (4) Avg Rank
         const tdRank = document.createElement("td");
         const rankVal = data.avgRank.toFixed(2);
-        let arrow = "", color="#666";
-        if (data.rankChange < 0) { arrow="▲"; color="green"; }
-        else if (data.rankChange > 0) { arrow="▼"; color="red"; }
+        let arrow = "", color = "#666";
+        if (data.rankChange < 0) { arrow = "▲"; color = "green"; }
+        else if (data.rankChange > 0) { arrow = "▼"; color = "red"; }
         tdRank.innerHTML = `
           <div style="font-size:18px; font-weight:bold;">${rankVal}</div>
           <div style="font-size:12px; color:${color};">${arrow} ${Math.abs(data.rankChange).toFixed(2)}</div>
@@ -1153,9 +1159,9 @@ async function rebuildProjectTableByState(stateName) {
         // (5) Market Share & Trend
         const tdShare = document.createElement("td");
         const shareVal = data.avgShare.toFixed(1);
-        let shareArrow = "", shareColor="#666";
-        if (data.trendVal>0)  { shareArrow="▲"; shareColor="green"; }
-        if (data.trendVal<0)  { shareArrow="▼"; shareColor="red"; }
+        let shareArrow = "", shareColor = "#666";
+        if (data.trendVal > 0)  { shareArrow = "▲"; shareColor = "green"; }
+        if (data.trendVal < 0)  { shareArrow = "▼"; shareColor = "red"; }
         tdShare.innerHTML = `
           <div style="text-align:center;">
             <div class="ms-bar-container" style="position:relative; width:100px; height:20px; background:#eee; margin:0 auto; border-radius:4px;">
