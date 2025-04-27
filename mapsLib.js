@@ -988,16 +988,9 @@ function filterHomeTableByState(stateName) {
  * same "project-table" structure from populateProjectPage().
  */
 async function rebuildProjectTableByState(stateName) {
- //    so buildProjectData() doesn’t complain or return 0
-  if (!window.filterState) {
-    window.filterState = {};
-  }
-  window.filterState.activeProjectNumber = 1; 
-  // or a different project # if desired
-  
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
-  // 1) Remove the existing project-table from #projectPage
+  // 1) Remove the old project table
   const oldTableWrapper = document.querySelector("#projectPage .project-table");
   if (oldTableWrapper) {
     const wrapperDiv = oldTableWrapper.closest("div");
@@ -1008,46 +1001,41 @@ async function rebuildProjectTableByState(stateName) {
     }
   }
 
-  // 2) Run buildProjectData() WITHOUT modifying it
-  //    This might be returning zero rows if it depends on st.activeProjectNumber or your filterState.
-  console.log("[DEBUG] window.companyStatsData =", window.companyStatsData);
-  let fullData = buildProjectData();
-  console.log("[DEBUG] buildProjectData returned =>", fullData);
-  if (!Array.isArray(fullData)) {
-    console.warn("[rebuildProjectTableByState] buildProjectData() returned no array. Stopping.");
+  // 2) Build the full data (for current myCompany and current project)
+  const fullData = buildProjectData();
+  console.log("[DEBUG] buildProjectData returned rows:", fullData.length);
+
+  if (!Array.isArray(fullData) || fullData.length === 0) {
+    console.warn("[rebuildProjectTableByState] No rows found. Aborting.");
     return;
   }
-  console.log(`[rebuildProjectTableByState] after buildProjectData => ${fullData.length} total rows.`);
 
-  // 3) EITHER read st.activeProjectNumber from filterState...
-  //    (if you actually set window.filterState.activeProjectNumber somewhere else)
+  // 3) Get active project number
   const st = window.filterState || {};
-  const projectNum = st.activeProjectNumber || 1;  
-  // If you prefer a strict hardcode => comment out the above and do:
-  // const projectNum = 1;
+  const projectNum = st.activeProjectNumber || 1;
+  console.log("[DEBUG] Active project_number =", projectNum);
 
-  // Filter only rows that match projectNum
-  fullData = fullData.filter(item => item.project_number === projectNum);
-  console.log(`[rebuildProjectTableByState] after filtering project_number=${projectNum} => ${fullData.length} rows remain.`);
+  // 4) Filter by project number (✅ important)
+  let filteredData = fullData.filter(row => row.project_number === projectNum);
 
-  // 4) Filter by the clicked stateName (case-insensitive)
+  // 5) Filter by clicked stateName
   const needle = stateName.trim().toLowerCase();
-  fullData = fullData.filter(item =>
-    item.location && item.location.toLowerCase().includes(needle)
+  filteredData = filteredData.filter(row => 
+    row.location && row.location.toLowerCase().includes(needle)
   );
 
-  if (!fullData.length) {
-    console.log(`[rebuildProjectTableByState] No rows for state = ${stateName} in project #${projectNum}`);
+  console.log(`[DEBUG] After filtering: ${filteredData.length} rows remain for state: ${stateName}`);
+
+  // 6) If no data, show message
+  if (filteredData.length === 0) {
     const locListContainer = document.querySelector("#projectPage #locList");
     if (locListContainer) {
-      const msg = document.createElement("p");
-      msg.textContent = `No data for ${stateName} in project #${projectNum}`;
-      locListContainer.appendChild(msg);
+      locListContainer.innerHTML = `<p style="padding:20px; text-align:center;">No data for ${stateName}.</p>`;
     }
     return;
   }
 
-  // 5) Build the project-table exactly like your previous version
+  // 7) Build the table (same layout like your full table)
   const wrapper = document.createElement("div");
   wrapper.style.maxWidth = "1250px";
   wrapper.style.margin = "10px auto";
@@ -1060,6 +1048,7 @@ async function rebuildProjectTableByState(stateName) {
   table.classList.add("project-table");
   table.style.width = "100%";
   table.style.borderCollapse = "collapse";
+
   table.innerHTML = `
     <thead>
       <tr>
@@ -1076,9 +1065,9 @@ async function rebuildProjectTableByState(stateName) {
 
   const tbody = table.querySelector("tbody");
 
-  // EXACT grouping + sorting as before:
+  // Group and sort rows (same as your full table)
   const nestedMap = {};
-  fullData.forEach(item => {
+  filteredData.forEach(item => {
     const t = item.searchTerm;
     const l = item.location;
     if (!nestedMap[t]) nestedMap[t] = {};
@@ -1097,7 +1086,7 @@ async function rebuildProjectTableByState(stateName) {
       totalTermRows += locObj[loc].length;
     });
 
-    let termCellUsed = false; 
+    let termCellUsed = false;
     locs.forEach(loc => {
       const deviceRows = locObj[loc];
       deviceRows.sort((a, b) => {
@@ -1113,7 +1102,7 @@ async function rebuildProjectTableByState(stateName) {
         const tr = document.createElement("tr");
         tr.style.height = "50px";
 
-        // (1) Search Term cell
+        // (1) Search Term
         if (!termCellUsed) {
           const tdTerm = document.createElement("td");
           tdTerm.style.fontWeight = "bold";
@@ -1124,7 +1113,7 @@ async function rebuildProjectTableByState(stateName) {
           termCellUsed = true;
         }
 
-        // (2) Location cell
+        // (2) Location
         if (!locCellUsed) {
           const tdLoc = document.createElement("td");
           tdLoc.style.verticalAlign = "middle";
@@ -1182,7 +1171,6 @@ async function rebuildProjectTableByState(stateName) {
         const tdHist = document.createElement("td");
         tdHist.style.width = "400px";
         tdHist.style.textAlign = "center";
-        // Just a placeholder or replicate your squares logic
         tdHist.innerHTML = `<em>(${data.last30ranks.length} day history...)</em>`;
         tr.appendChild(tdHist);
 
@@ -1198,7 +1186,7 @@ async function rebuildProjectTableByState(stateName) {
     locList.appendChild(wrapper);
   }
 
-  console.log("[rebuildProjectTableByState] Table rebuilt successfully.");
+  console.log("[rebuildProjectTableByState] New filtered table built successfully.");
 }
 
   
