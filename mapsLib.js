@@ -969,118 +969,106 @@ function filterProjectTableByState(stateName) {
 
   const table = document.querySelector("#projectPage .project-table");
   if (!table) {
-    console.warn("[filterProjectTableByState] No project-table found in #projectPage");
+    console.warn("[filterProjectTableByState] No project-table found!");
     return;
   }
 
   const needle = stateName.toLowerCase();
   const rows = Array.from(table.querySelectorAll("tbody tr"));
-  console.log("[filterProjectTableByState] Found", rows.length, "tbody rows.");
+  console.log(`[filterProjectTableByState] Found ${rows.length} tbody rows.`);
 
-  // === PASS #1: Hide or show sub-rows based on location text in some column
   console.log("---- PASS #1 ----");
   rows.forEach((row, rowIndex) => {
-    // Let’s print the row’s outerHTML or at least the text
+    // Show partial outerHTML
     console.log(
       `Pass1 rowIndex=${rowIndex}`,
-      "outerHTML:", row.outerHTML.substring(0,300).replace(/\s+/g," ")
+      "outerHTML:",
+      row.outerHTML.substring(0, 200).replace(/\s+/g, " ")
     );
 
-    // Check which column has the rowSpan
-    const col0 = row.cells[0];
-    const col1 = row.cells[1];
-    const rowSpan0 = (col0 && col0.hasAttribute("rowspan")) ? col0.getAttribute("rowspan") : 0;
-    const rowSpan1 = (col1 && col1.hasAttribute("rowspan")) ? col1.getAttribute("rowspan") : 0;
+    const col0 = row.cells[0], col1 = row.cells[1];
+    const rowSpan0 = col0 && col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
+    const rowSpan1 = col1 && col1.hasAttribute("rowspan") ? parseInt(col1.getAttribute("rowspan"), 10) : 0;
+    console.log(`  col0.rowSpan=${rowSpan0}, col1.rowSpan=${rowSpan1}`);
 
-    console.log(
-      `  col0.rowSpan=${rowSpan0}, col1.rowSpan=${rowSpan1}`
-    );
-
-    // If one of them is the "group" row => skip in pass #1
-    // (depends on your real table design – you must confirm)
-    if (col0 && col0.hasAttribute("rowspan")) {
-      console.log(`  rowIndex=${rowIndex} => This is a group row (col0). Skipping pass #1.`);
+    // If the row is a "group row" (depending on which column you expect),
+    // skip in PASS #1 so we don't hide it yet:
+    if (rowSpan0 > 1) {
+      console.log(`  rowIndex=${rowIndex} => Group row in col0 => skip pass#1`);
       return;
     }
-    if (col1 && col1.hasAttribute("rowspan")) {
-      console.log(`  rowIndex=${rowIndex} => This is a group row (col1). Skipping pass #1.`);
+    if (rowSpan1 > 1) {
+      console.log(`  rowIndex=${rowIndex} => Group row in col1 => skip pass#1`);
       return;
     }
 
-    // Otherwise, we assume col #1 is the location text
-    const locText = (col1 && col1.textContent) ? col1.textContent.trim().toLowerCase() : "";
-    console.log(`  rowIndex=${rowIndex} => Checking locText="${locText}" against needle="${needle}"`);
+    // Now read location text from whichever column truly has it:
+    // (This depends on your actual table design – adjust accordingly)
+    const locText = (col1?.textContent || "").trim().toLowerCase();
+    console.log(`  rowIndex=${rowIndex} => locText="${locText}" vs needle="${needle}"`);
 
     if (locText.includes(needle)) {
       row.style.display = "";
-      console.log("  -> MATCHES. Show row.");
+      console.log("  -> MATCH => showing row");
     } else {
       row.style.display = "none";
-      console.log("  -> NO match. Hide row.");
+      console.log("  -> NO match => hiding row");
     }
   });
 
-  // === PASS #2: For each group row, hide it if all subrows are hidden
   console.log("---- PASS #2 ----");
   let i = 0;
   while (i < rows.length) {
     const row = rows[i];
-    console.log(`Pass2 i=${i}`, "outerHTML:", row.outerHTML.substring(0,300).replace(/\s+/g," "));
+    console.log(`Pass2 i=${i}`, "outerHTML:", row.outerHTML.substring(0, 200).replace(/\s+/g, " "));
+    
+    const col0 = row.cells[0], col1 = row.cells[1];
+    const rowSpan0 = col0 && col0.hasAttribute("rowspan") ? parseInt(col0.getAttribute("rowspan"), 10) : 0;
+    const rowSpan1 = col1 && col1.hasAttribute("rowspan") ? parseInt(col1.getAttribute("rowspan"), 10) : 0;
 
-    const col0 = row.cells[0];
-    const col1 = row.cells[1];
-    const rowSpan0 = (col0 && col0.hasAttribute("rowspan")) ? parseInt(col0.getAttribute("rowspan"),10) : 0;
-    const rowSpan1 = (col1 && col1.hasAttribute("rowspan")) ? parseInt(col1.getAttribute("rowspan"),10) : 0;
-
-    // If col #0 is the group row (SearchTerm?), or if col #1 is the group row (Location?), etc.
-    // You must confirm which column is actually the grouping in your final HTML
-    // For example, if col #0 is the group:
     if (rowSpan0 > 1) {
-      // This is a group row in col0
       console.log(`  Found group row in col0 with spanCount=${rowSpan0}`);
       let visibleCount = 0;
-      for (let j = i + 1; j < i + rowSpan0; j++) {
-        console.log(`    Checking subrow j=${j}`, "display=", rows[j].style.display);
+      for (let j = i+1; j < i+rowSpan0; j++) {
+        console.log(`    Checking subrow j=${j}, display=${rows[j].style.display}`);
         if (rows[j].style.display !== "none") {
           visibleCount++;
         }
       }
       if (visibleCount === 0) {
         row.style.display = "none";
-        console.log(`  -> All subrows hidden => hide group row i=${i}`);
+        console.log("  -> All subrows hidden => hide group row");
       } else {
         row.style.display = "";
-        console.log(`  -> Some subrows visible => keep group row i=${i}`);
+        console.log("  -> Some subrows visible => keep group row");
       }
       i += rowSpan0;
     }
     else if (rowSpan1 > 1) {
-      // This is a group row in col1
       console.log(`  Found group row in col1 with spanCount=${rowSpan1}`);
       let visibleCount = 0;
-      for (let j = i + 1; j < i + rowSpan1; j++) {
-        console.log(`    Checking subrow j=${j}`, "display=", rows[j].style.display);
+      for (let j = i+1; j < i+rowSpan1; j++) {
+        console.log(`    Checking subrow j=${j}, display=${rows[j].style.display}`);
         if (rows[j].style.display !== "none") {
           visibleCount++;
         }
       }
       if (visibleCount === 0) {
         row.style.display = "none";
-        console.log(`  -> All subrows hidden => hide group row i=${i}`);
+        console.log("  -> All subrows hidden => hide group row");
       } else {
         row.style.display = "";
-        console.log(`  -> Some subrows visible => keep group row i=${i}`);
+        console.log("  -> Some subrows visible => keep group row");
       }
       i += rowSpan1;
     }
     else {
-      // Not a group row => just move on
+      // No group row => just move on
       i++;
     }
   }
   console.log("---- END filterProjectTableByState ----");
 }
-
   function showAllHomeTableRows() {
   const table = document.querySelector("#homePage .home-table");
   if (!table) return;
