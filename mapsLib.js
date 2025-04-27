@@ -977,183 +977,154 @@ function filterHomeTableByState(stateName) {
  * 4) Builds & populates a new .project-table.
  */
 
-async function rebuildProjectTableByState(stateName) {
+// Full, final version for copy-paste
+
+function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
-  const container = document.querySelector("#projectPage #locList");
+  const container = document.getElementById("project-table-container");
   if (!container) {
-    console.error("[rebuildProjectTableByState] #locList not found inside #projectPage.");
+    console.error("[rebuildProjectTableByState] No #project-table-container found.");
     return;
   }
 
-  // --- STEP 1: REMOVE OLD TABLE ---
-  const oldWrapper = container.querySelector(".project-table-wrapper, .home-table, .project-table");
-  if (oldWrapper) {
-    oldWrapper.remove();
-    console.log("[rebuildProjectTableByState] Removed existing project table.");
-  }
+  // 1) REMOVE OLD TABLES AND WRAPPERS
+  const oldWrappers = container.querySelectorAll(".project-table-wrapper, .home-table, .project-table, table");
+  oldWrappers.forEach(el => el.remove());
+  console.log("[rebuildProjectTableByState] Removed ALL old tables.");
 
-  // --- STEP 2: Filter the original project data ---
-  const allRows = window.homeData || [];
-  if (!allRows.length) {
-    console.warn("[rebuildProjectTableByState] homeData missing or empty.");
+  if (!window._projectDataForRebuild || !Array.isArray(window._projectDataForRebuild)) {
+    console.error("[rebuildProjectTableByState] No _projectDataForRebuild available.");
     return;
   }
 
-  const filteredRows = allRows.filter(item => {
-    if (!item || !item.location) return false;
-    const locLower = item.location.toLowerCase();
-    const stateLower = stateName.toLowerCase();
-    return locLower.includes(stateLower);
+  // 2) FILTER BY STATE NAME
+  const filteredRows = window._projectDataForRebuild.filter(row => {
+    return row.Location && row.Location.toLowerCase().includes(stateName.toLowerCase());
   });
 
-  console.log("[rebuildProjectTableByState] After filtering, rows:", filteredRows.length);
+  console.log("[rebuildProjectTableByState] Filtered rows:", filteredRows.length);
 
-  if (!filteredRows.length) {
-    const noResults = document.createElement("p");
-    noResults.textContent = "No results for " + stateName;
+  if (filteredRows.length === 0) {
+    const noResults = document.createElement("div");
+    noResults.textContent = `No results for ${stateName}`;
     container.appendChild(noResults);
     return;
   }
 
-  // --- STEP 3: Group filteredRows the same way as in original projectTable ---
-  const nestedMap = {};
-  filteredRows.forEach(item => {
-    const t = item.searchTerm;
-    const l = item.location;
-    if (!nestedMap[t]) {
-      nestedMap[t] = {};
-    }
-    if (!nestedMap[t][l]) {
-      nestedMap[t][l] = [];
-    }
-    nestedMap[t][l].push(item);
+  // 3) GROUP BY LOCATION
+  const locationGroups = {};
+  filteredRows.forEach(row => {
+    if (!locationGroups[row.Location]) locationGroups[row.Location] = [];
+    locationGroups[row.Location].push(row);
   });
 
-  // --- STEP 4: Create New Table ---
+  // 4) BUILD NEW TABLE WRAPPER
   const wrapper = document.createElement("div");
   wrapper.className = "project-table-wrapper";
-  wrapper.style.maxWidth = "1250px";
-  wrapper.style.marginLeft = "20px";
-  wrapper.style.backgroundColor = "#fff";
-  wrapper.style.borderRadius = "8px";
-  wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
-  wrapper.style.marginBottom = "10px";
-  wrapper.style.padding = "10px";
 
   const table = document.createElement("table");
-  table.className = "home-table project-table";
-  table.style.width = "100%";
-  table.style.borderCollapse = "collapse";
+  table.className = "project-table";
 
-  table.innerHTML = `
-    <thead>
-      <tr style="height:30px;">
-        <th style="width:180px;">Search Term</th>
-        <th style="width:220px;">Location</th>
-        <th style="width:100px;">Device</th>
-        <th style="width:120px;">Avg Rank</th>
-        <th style="width:140px;">Market Share &amp; Trend</th>
-        <th style="width:400px;">Rank &amp; Market Share History</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
+  // 5) BUILD HEADER WITH SHARE SWITCH
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["Location", "Search Term", "Device", "Market Share", "Rank & Market Share History"].forEach(text => {
+    const th = document.createElement("th");
+    th.textContent = text;
 
-  const tbody = table.querySelector("tbody");
+    if (text === "Rank & Market Share History") {
+      const toggle = document.createElement("label");
+      toggle.className = "switch";
 
-  const searchTerms = Object.keys(nestedMap).sort();
-  searchTerms.forEach(term => {
-    const locObj = nestedMap[term];
-    const locs = Object.keys(locObj).sort();
-
-    let totalRowsForTerm = 0;
-    locs.forEach(loc => {
-      totalRowsForTerm += locObj[loc].length;
-    });
-
-    let termCellUsed = false;
-    locs.forEach(loc => {
-      const deviceRows = locObj[loc];
-      const deviceCount = deviceRows.length;
-      let locCellUsed = false;
-
-      deviceRows.forEach((data, idx) => {
-        const tr = document.createElement("tr");
-        tr.style.height = "50px";
-        if ((data.device || "").toLowerCase() === "mobile") {
-          tr.style.backgroundColor = "#f8f8f8";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.id = "historyToggle";
+      input.addEventListener("change", function () {
+        const rankRows = table.querySelectorAll(".rank-row-div");
+        const shareRows = table.querySelectorAll(".share-row-div");
+        if (this.checked) {
+          rankRows.forEach(r => r.style.display = "none");
+          shareRows.forEach(s => s.style.display = "block");
+        } else {
+          rankRows.forEach(r => r.style.display = "block");
+          shareRows.forEach(s => s.style.display = "none");
         }
-
-        if (!termCellUsed) {
-          const tdTerm = document.createElement("td");
-          tdTerm.style.verticalAlign = "middle";
-          tdTerm.style.fontWeight = "bold";
-          tdTerm.rowSpan = totalRowsForTerm;
-          tdTerm.textContent = term;
-          tr.appendChild(tdTerm);
-          termCellUsed = true;
-        }
-
-        if (!locCellUsed) {
-          const tdLoc = document.createElement("td");
-          tdLoc.style.verticalAlign = "middle";
-          tdLoc.rowSpan = deviceCount;
-          const parts = loc.split(",");
-          const line1 = parts[0]?.trim() || "";
-          const line2 = parts.slice(1).map(x => x.trim()).join(", ");
-          tdLoc.innerHTML = `
-            <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
-            <div style="font-size:14px;">${line2}</div>
-          `;
-          tr.appendChild(tdLoc);
-          locCellUsed = true;
-        }
-
-        const tdDev = document.createElement("td");
-        tdDev.textContent = data.device;
-        tr.appendChild(tdDev);
-
-        const tdRank = document.createElement("td");
-        tdRank.style.textAlign = "center";
-        const rankVal = data.avgRank.toFixed(2);
-        tdRank.innerHTML = `
-          <div style="font-size:18px; font-weight:bold;">${rankVal}</div>
-          <div style="font-size:12px; color:gray;">▲ ${Math.abs(data.rankChange).toFixed(2)}</div>
-        `;
-        tr.appendChild(tdRank);
-
-        const tdShare = document.createElement("td");
-        tdShare.style.textAlign = "center";
-        const shareVal = data.avgShare.toFixed(1);
-        const trend = (data.trendVal > 0) ? "▲" : (data.trendVal < 0) ? "▼" : "±";
-        const trendColor = (data.trendVal > 0) ? "green" : (data.trendVal < 0) ? "red" : "gray";
-        tdShare.innerHTML = `
-          <div class="ms-bar-container" style="position:relative; width:100px; height:25px; background:#eee; border-radius:4px; margin:0 auto;">
-            <div class="ms-bar-filled" style="position:absolute; top:0; left:0; bottom:0; width:${shareVal}%; background:#007aff;"></div>
-            <div class="ms-bar-label" style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px;">
-              ${shareVal}%
-            </div>
-          </div>
-          <div style="margin-top:4px; color:${trendColor}; font-weight:bold;">
-            ${trend} ${Math.abs(data.trendVal).toFixed(2)}%
-          </div>
-        `;
-        tr.appendChild(tdShare);
-
-        const tdHist = document.createElement("td");
-        tdHist.textContent = "(history)"; // placeholder for future
-        tr.appendChild(tdHist);
-
-        tbody.appendChild(tr);
       });
-    });
-  });
 
+      const slider = document.createElement("span");
+      slider.className = "slider round";
+
+      toggle.appendChild(input);
+      toggle.appendChild(slider);
+      th.appendChild(toggle);
+    }
+
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // 6) BUILD BODY
+  const tbody = document.createElement("tbody");
+
+  for (const [location, rows] of Object.entries(locationGroups)) {
+    // Sort device types desktop -> mobile
+    rows.sort((a, b) => {
+      const aDev = a.Device.toLowerCase();
+      const bDev = b.Device.toLowerCase();
+      if (aDev === "desktop" && bDev !== "desktop") return -1;
+      if (bDev === "desktop" && aDev !== "desktop") return 1;
+      return 0;
+    });
+
+    rows.forEach(row => {
+      const tr = document.createElement("tr");
+
+      const tdLoc = document.createElement("td");
+      tdLoc.textContent = location;
+      tr.appendChild(tdLoc);
+
+      const tdSearch = document.createElement("td");
+      tdSearch.textContent = row["Search Term"] || "";
+      tr.appendChild(tdSearch);
+
+      const tdDev = document.createElement("td");
+      tdDev.textContent = row.Device || "";
+      tr.appendChild(tdDev);
+
+      const tdShare = document.createElement("td");
+      tdShare.textContent = (row["Market Share"] || 0) + "%";
+      tr.appendChild(tdShare);
+
+      // Create history column with both rank and share rows
+      const tdHist = document.createElement("td");
+      tdHist.style.minWidth = "150px";
+      tdHist.style.position = "relative";
+
+      const rankDiv = document.createElement("div");
+      rankDiv.className = "rank-row-div";
+      rankDiv.style.display = "block";
+      rankDiv.textContent = `Rank: ${row["Rank"] || "-"}`;
+
+      const shareDiv = document.createElement("div");
+      shareDiv.className = "share-row-div";
+      shareDiv.style.display = "none";
+      shareDiv.textContent = `Share: ${row["Market Share"] || "-"}%`;
+
+      tdHist.appendChild(rankDiv);
+      tdHist.appendChild(shareDiv);
+      tr.appendChild(tdHist);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  table.appendChild(tbody);
   wrapper.appendChild(table);
   container.appendChild(wrapper);
 
-  console.log("[rebuildProjectTableByState] Table rebuilt successfully with", filteredRows.length, "rows.");
+  console.log("[rebuildProjectTableByState] ✅ New filtered table built.");
 }
   
   function showAllHomeTableRows() {
