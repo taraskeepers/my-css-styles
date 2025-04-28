@@ -987,10 +987,10 @@ function filterHomeTableByState(stateName) {
  * .location includes the clicked stateName, then rebuild the
  * same "project-table" structure from populateProjectPage().
  */
-async function rebuildProjectTableByState(stateName) {
+function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
 
-  // 1) Remove the old table
+  // 1) Remove the old "project-table"
   const oldTableWrapper = document.querySelector("#projectPage .project-table");
   if (oldTableWrapper) {
     const wrapperDiv = oldTableWrapper.closest("div");
@@ -1001,61 +1001,44 @@ async function rebuildProjectTableByState(stateName) {
     }
   }
 
-  // 2) Gather the full data from buildProjectData (whatever your existing logic is).
-  //    For example, if you rely on window.filterState, do:
-  const fullData = buildProjectData();
-  console.log("[DEBUG] buildProjectData returned rows:", fullData.length);
-
-  // Force-insert project_number if needed
-  const projectNum = window.filterState?.activeProjectNumber || 1;
-  fullData.forEach(row => {
-    row.project_number = projectNum;
-  });
-
-  if (!Array.isArray(fullData) || fullData.length === 0) {
-    console.warn("[rebuildProjectTableByState] No rows found. Aborting.");
+  // 2) Filter from the *entire* companyStatsData by location_requested
+  //    => no calls to buildProjectData, no project_number checks.
+  if (!Array.isArray(window.companyStatsData) || !window.companyStatsData.length) {
+    console.warn("[rebuildProjectTableByState] No companyStatsData at all.");
     return;
   }
 
-  // 3) Filter by project number
-  const st = window.filterState || {};
-  let filteredData = fullData.filter(row => row.project_number === projectNum);
-
-  // 4) Also filter by the clicked stateName => location_requested includes it
   const needle = stateName.trim().toLowerCase();
-  filteredData = filteredData.filter(row => {
+  const filteredData = window.companyStatsData.filter(row => {
     if (!row.location_requested) return false;
     return row.location_requested.toLowerCase().includes(needle);
   });
-  console.log(`[DEBUG] After filtering: ${filteredData.length} rows remain for ${stateName}`);
 
-  // 5) If nothing matched => show message, then stop
+  console.log(`[DEBUG] After filtering by stateName "${stateName}", got ${filteredData.length} rows`);
+
+  // 3) If nothing matched => show a “No Data” message and stop
   if (!filteredData.length) {
     const locListContainer = document.querySelector("#projectPage #locList");
     if (locListContainer) {
-      locListContainer.innerHTML = `
-        <p style="padding:20px; text-align:center;">
-          No data for ${stateName}.
-        </p>
-      `;
+      locListContainer.innerHTML = `<p style="padding:20px; text-align:center;">No data for ${stateName}.</p>`;
     }
     return;
   }
 
-  // 6) Same styling wrapper as your old version
+  // 4) Build a styled wrapper (same as your old version)
   const wrapper = document.createElement("div");
-  wrapper.style.maxWidth = "1250px";
-  wrapper.style.margin = "10px auto";
+  wrapper.style.maxWidth        = "1250px";
+  wrapper.style.margin          = "10px auto";
   wrapper.style.backgroundColor = "#fff";
-  wrapper.style.borderRadius = "8px";
-  wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
-  wrapper.style.padding = "10px";
+  wrapper.style.borderRadius    = "8px";
+  wrapper.style.boxShadow       = "0 4px 8px rgba(0,0,0,0.08)";
+  wrapper.style.padding         = "10px";
 
-  // 7) Build the table exactly like your old layout
+  // 5) Create the table with the same “project-table” layout
   const table = document.createElement("table");
   table.classList.add("project-table");
-  table.style.width = "100%";
-  table.style.borderCollapse = "collapse";
+  table.style.width           = "100%";
+  table.style.borderCollapse  = "collapse";
 
   table.innerHTML = `
     <thead>
@@ -1072,63 +1055,67 @@ async function rebuildProjectTableByState(stateName) {
   `;
   const tbody = table.querySelector("tbody");
 
-  // 8) Same grouping logic => nestedMap by searchTerm -> location -> device rows
+  // 6) Group by (searchTerm -> location_requested -> deviceRows), same approach as your old code
   const nestedMap = {};
+
   filteredData.forEach(item => {
-    const t = item.searchTerm;
-    const l = item.location_requested;  // or item.location if you prefer
+    // Some of your data calls it "searchTerm", some calls it "q" => adapt if needed:
+    const t = item.searchTerm || item.q || "(no term)";
+    const l = item.location_requested; // used for grouping
+
     if (!nestedMap[t]) nestedMap[t] = {};
     if (!nestedMap[t][l]) nestedMap[t][l] = [];
     nestedMap[t][l].push(item);
   });
 
   const searchTerms = Object.keys(nestedMap).sort();
+
   searchTerms.forEach(term => {
     const locObj = nestedMap[term];
-    const locs   = Object.keys(locObj).sort();
+    const locKeys = Object.keys(locObj).sort();
 
-    // Count how many device-rows total for this searchTerm
+    // totalTermRows => sum of all deviceRows under these locations
     let totalTermRows = 0;
-    locs.forEach(loc => {
+    locKeys.forEach(loc => {
       totalTermRows += locObj[loc].length;
     });
 
-    let termCellUsed = false;
-    locs.forEach(loc => {
+    let termCellUsed = false; // so we only insert the searchTerm cell once
+    locKeys.forEach(loc => {
       const deviceRows = locObj[loc];
 
-      // Sort so desktop first
+      // Sort so that "desktop" is first
       deviceRows.sort((a, b) => {
-        const ad = a.device.toLowerCase();
-        const bd = b.device.toLowerCase();
+        const ad = (a.device || "").toLowerCase();
+        const bd = (b.device || "").toLowerCase();
         if (ad === "desktop" && bd !== "desktop") return -1;
         if (bd === "desktop" && ad !== "desktop") return 1;
         return 0;
       });
 
-      let locCellUsed = false;
+      let locCellUsed = false; // insert the Location cell once per location
       deviceRows.forEach((data, i) => {
         const tr = document.createElement("tr");
         tr.style.height = "50px";
 
-        // (1) Search Term => rowSpan for the entire group
+        // (1) The “Search Term” cell => rowSpan = totalTermRows
         if (!termCellUsed) {
           const tdTerm = document.createElement("td");
-          tdTerm.style.fontWeight = "bold";
+          tdTerm.style.fontWeight    = "bold";
           tdTerm.style.verticalAlign = "middle";
-          tdTerm.rowSpan = totalTermRows;
-          tdTerm.textContent = term;
+          tdTerm.rowSpan             = totalTermRows;
+          tdTerm.textContent         = term;
           tr.appendChild(tdTerm);
           termCellUsed = true;
         }
 
-        // (2) Location => rowSpan for deviceRows
+        // (2) The “Location” cell => rowSpan = deviceRows.length
         if (!locCellUsed) {
           const tdLoc = document.createElement("td");
           tdLoc.style.verticalAlign = "middle";
-          tdLoc.rowSpan = deviceRows.length;
+          tdLoc.rowSpan             = deviceRows.length;
 
-          // For display: break at commas => big line / small line
+          // For display, split at commas => big line, smaller line
           const parts = loc.split(",");
           const line1 = parts[0] || "";
           const line2 = parts.slice(1).join(", ");
@@ -1142,39 +1129,47 @@ async function rebuildProjectTableByState(stateName) {
 
         // (3) Device
         const tdDev = document.createElement("td");
-        tdDev.textContent = data.device;
+        tdDev.textContent = data.device || "";
         tr.appendChild(tdDev);
 
-        // (4) Avg Rank
+        // (4) Avg Rank (with arrow)
         const tdRank = document.createElement("td");
-        const rankVal = data.avgRank.toFixed(2);
+        const rankVal = (data.avgRank || 0).toFixed(2);
         let arrow = "", color = "#666";
         if (data.rankChange < 0) { arrow = "▲"; color = "green"; }
         else if (data.rankChange > 0) { arrow = "▼"; color = "red"; }
         tdRank.innerHTML = `
           <div style="font-size:18px; font-weight:bold;">${rankVal}</div>
           <div style="font-size:12px; color:${color};">
-            ${arrow} ${Math.abs(data.rankChange).toFixed(2)}
+            ${arrow} ${Math.abs(data.rankChange || 0).toFixed(2)}
           </div>
         `;
         tr.appendChild(tdRank);
 
         // (5) Market Share & Trend
         const tdShare = document.createElement("td");
-        const shareVal = data.avgShare.toFixed(1);
+        const shareVal = (data.avgShare || 0).toFixed(1);
         let shareArrow = "", shareColor = "#666";
         if (data.trendVal > 0) { shareArrow = "▲"; shareColor = "green"; }
-        if (data.trendVal < 0) { shareArrow = "▼"; shareColor = "red"; }
+        else if (data.trendVal < 0) { shareArrow = "▼"; shareColor = "red"; }
+
         tdShare.innerHTML = `
           <div style="text-align:center;">
-            <div class="ms-bar-container" style="position:relative; width:100px; height:20px; background:#eee; margin:0 auto; border-radius:4px;">
-              <div class="ms-bar-filled" style="position:absolute; left:0; top:0; bottom:0; width:${shareVal}%; background:#007aff;"></div>
-              <div class="ms-bar-label" style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px;">
+            <div class="ms-bar-container"
+                 style="position:relative; width:100px; height:20px;
+                        background:#eee; margin:0 auto; border-radius:4px;">
+              <div class="ms-bar-filled"
+                   style="position:absolute; left:0; top:0; bottom:0;
+                          width:${shareVal}%; background:#007aff;">
+              </div>
+              <div class="ms-bar-label"
+                   style="position:absolute; left:8px; top:0; bottom:0;
+                          display:flex; align-items:center; font-size:13px;">
                 ${shareVal}%
               </div>
             </div>
             <div style="margin-top:4px; font-size:12px; font-weight:bold; color:${shareColor};">
-              ${shareArrow} ${Math.abs(data.trendVal).toFixed(1)}%
+              ${shareArrow} ${Math.abs(data.trendVal || 0).toFixed(1)}%
             </div>
           </div>
         `;
@@ -1182,29 +1177,31 @@ async function rebuildProjectTableByState(stateName) {
 
         // (6) Rank & Share History
         const tdHist = document.createElement("td");
-        tdHist.style.width = "400px";
-        tdHist.style.textAlign = "center";
-        tdHist.innerHTML = `<em>(${data.last30ranks.length} day history...)</em>`;
+        tdHist.style.width        = "400px";
+        tdHist.style.textAlign    = "center";
+        const dayCount = Array.isArray(data.last30ranks) ? data.last30ranks.length : 0;
+        tdHist.innerHTML = `<em>(${dayCount} day history...)</em>`;
         tr.appendChild(tdHist);
 
-        // add row
+        // Finally add the row
         tbody.appendChild(tr);
       });
     });
   });
 
-  // 9) Append the table
+  // 7) Append the table into the wrapper
   wrapper.appendChild(table);
 
-  // 10) Put it into #locList on #projectPage
+  // 8) Insert into #locList
   const locList = document.querySelector("#projectPage #locList");
   if (locList) {
-    locList.innerHTML = ""; // optional: clear old content
+    locList.innerHTML = ""; 
     locList.appendChild(wrapper);
   }
 
-  console.log("[rebuildProjectTableByState] Filtered table built successfully for:", stateName);
+  console.log("[rebuildProjectTableByState] Built new table for state:", stateName);
 }
+
   
   function showAllHomeTableRows() {
   const table = document.querySelector("#homePage .home-table");
