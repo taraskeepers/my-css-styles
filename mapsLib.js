@@ -1358,9 +1358,7 @@ async function rebuildProjectTableByState(stateName) {
 
         const rankRowDiv = document.createElement("div");
 rankRowDiv.classList.add("rank-row-div");
-rankRowDiv.style.display = "flex";        // ✅ change to flex
-rankRowDiv.style.flexDirection = "row";   // ✅ horizontal row
-rankRowDiv.style.gap = "4px";              // ✅ same gap between boxes
+rankRowDiv.style.display = "inline-flex";
 
         const shareRowDiv = document.createElement("div");
         shareRowDiv.classList.add("share-row-div");
