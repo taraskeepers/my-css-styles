@@ -1371,35 +1371,44 @@ async function rebuildProjectTableByState(stateName) {
           dateArray.push(endDateM.clone().subtract(i,"days").format("YYYY-MM-DD"));
         }
 
-        // RANK squares
-        rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
-          const box = document.createElement("div");
-          box.style.display        = "inline-block";
-          box.style.width          = "38px";
-          box.style.height         = "38px";
-          box.style.lineHeight     = "38px";
-          box.style.textAlign      = "center";
-          box.style.fontWeight     = "bold";
-          box.style.fontSize       = "14px"; // match original table squares
-          box.style.marginRight    = "4px";
-          box.style.borderRadius   = "4px";
-          box.style.color          = "#000";
+// RANK squares
+rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
+  const box = document.createElement("div");
+  box.style.display        = "inline-flex";    // ✅ inline-flex for perfect centering
+  box.style.alignItems     = "center";         // ✅ vertical center
+  box.style.justifyContent = "center";         // ✅ horizontal center
+  box.style.width          = "38px";
+  box.style.height         = "38px";
+  box.style.textAlign      = "center";
+  box.style.fontWeight     = "bold";
+  box.style.fontSize       = "14px";
+  box.style.marginRight    = "4px";
+  box.style.borderRadius   = "4px";
+  box.style.color          = "#000";
 
-          let bgColor = "#ffcfcf"; // default pink
-          if (rv <= 1) {
-            bgColor = "#dfffd6"; // green
-          } else if (rv <= 3) {
-            bgColor = "#fffac2"; // yellow
-          } else if (rv <= 5) {
-            bgColor = "#ffe0bd"; // orange
-          }
-          box.style.backgroundColor = bgColor;
-          box.textContent           = (rv===40) ? "" : rv;
-          if (dateArray[idx2]) {
-            box.title = dateArray[idx2];
-          }
-          rankRowDiv.appendChild(box);
-        });
+  if (rv === 40) {
+    // Grey empty box (no rank)
+    box.style.backgroundColor = "#ddd";
+    box.textContent = "";
+  } else {
+    // Real rank value
+    let bgColor = "#ffcfcf"; // default pink
+    if (rv <= 1) {
+      bgColor = "#dfffd6"; // green
+    } else if (rv <= 3) {
+      bgColor = "#fffac2"; // yellow
+    } else if (rv <= 5) {
+      bgColor = "#ffe0bd"; // orange
+    }
+    box.style.backgroundColor = bgColor;
+    box.textContent = rv;
+  }
+
+  if (dateArray[idx2]) {
+    box.title = dateArray[idx2];
+  }
+  rankRowDiv.appendChild(box);
+});
 
         // SHARE squares
         rowData.last30shares.slice().reverse().forEach((sv, idx3) => {
