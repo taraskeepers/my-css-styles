@@ -778,6 +778,56 @@ function buildHomeData(targetCompany) {
   const filtered = allRows.filter(row => {
     return row.source && row.source.toLowerCase() === targetCompany.toLowerCase();
   });
+  if (!filtered.length) return [];
+
+  // 1) Grab the single overall max date from all your companyStatsData:
+  const globalMax = findOverallMaxDate(window.companyStatsData);
+  if (!globalMax) {
+    // if no valid date found, just return what we have
+    return filtered;
+  }
+
+  // 2) We'll define a 30-day window [start..end]
+  const end = globalMax.clone();
+  const start = end.clone().subtract(29, "days");
+
+  // 3) For each row in 'filtered', build row.last30ranks and row.last30shares
+  filtered.forEach(row => {
+    const allHist = Array.isArray(row.historical_data) ? row.historical_data : [];
+    // Build a map dateStr => { rank, share }
+    let dayMap = {};
+    allHist.forEach(obj => {
+      if (!obj.date || !obj.date.value) return;
+      const ds = obj.date.value;
+      const rVal = (obj.rank != null) ? parseFloat(obj.rank) : 40;
+      const sVal = (obj.market_share != null) ? parseFloat(obj.market_share)*100 : 0;
+      dayMap[ds] = { rank: rVal, share: sVal };
+    });
+
+    // Now fill a 30-day array
+    let last30r = [];
+    let last30s = [];
+    let run = start.clone();
+    while (run.isSameOrBefore(end, "day")) {
+      const ds = run.format("YYYY-MM-DD");
+      if (dayMap[ds]) {
+        last30r.push(dayMap[ds].rank);
+        last30s.push(dayMap[ds].share);
+      } else {
+        // missing day => rank=40 => empty, share=0 => empty
+        last30r.push(40);
+        last30s.push(0);
+      }
+      run.add(1, "days");
+    }
+
+    // Attach them onto the row object for later use
+    row.last30ranks = last30r;
+    row.last30shares = last30s;
+    // Also store the 'endDate' so you can do e.g. data.endDate in your table
+    row.endDate = end.format("YYYY-MM-DD");
+  });
+
   return filtered;
 }
 
