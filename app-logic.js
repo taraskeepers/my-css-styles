@@ -604,9 +604,11 @@ function populateHomePage() {
 data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
   const box = document.createElement("div");
   box.style.display = "inline-flex";
+box.style.alignItems = "center";
+box.style.justifyContent = "center";
   box.style.width = "38px";
   box.style.height = "38px";
-  //box.style.lineHeight = "38px";
+  box.style.lineHeight = "38px";
   box.style.textAlign = "center";
   box.style.fontWeight = "bold";
   box.style.marginRight = "4px";
