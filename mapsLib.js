@@ -987,7 +987,7 @@ function filterHomeTableByState(stateName) {
  * .location includes the clicked stateName, then rebuild the
  * same "project-table" structure from populateProjectPage().
  */
-function rebuildProjectTableByState(stateName) {
+async function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] => clicked state:", stateName);
 
   // 1) Remove any existing .project-table in #projectPage
@@ -1002,8 +1002,8 @@ function rebuildProjectTableByState(stateName) {
     return;
   }
   if (!window.filterState) window.filterState = {};
-  
-  // 3) Identify the active company + periodDays
+
+  // 3) Identify active company + chosen period
   const st = window.filterState;
   const targetCompany = (st.company || window.myCompany || "Under Armour").toLowerCase();
   
@@ -1011,7 +1011,7 @@ function rebuildProjectTableByState(stateName) {
   if (st.period === "3d")  periodDays = 3;
   if (st.period === "30d") periodDays = 30;
 
-  // 4) Filter raw rows => must match (company) AND location includes stateName
+  // 4) Filter raw rows => must match (company) + (location includes stateName)
   const needle = (stateName || "").trim().toLowerCase();
   let baseRows = window.companyStatsData.filter(row => {
     const src = (row.source || "").toLowerCase();
@@ -1020,11 +1020,11 @@ function rebuildProjectTableByState(stateName) {
     if (!loc.includes(needle)) return false;
     return true;
   });
-  
+
   if (!baseRows.length) {
     const locList = document.querySelector("#projectPage #locList");
     if (locList) {
-      locList.innerHTML = `<p style="text-align:center; padding:20px;">
+      locList.innerHTML = `<p style="padding:20px; text-align:center;">
         No data for ${stateName}.
       </p>`;
     }
@@ -1175,27 +1175,28 @@ function rebuildProjectTableByState(stateName) {
     const locList = document.querySelector("#projectPage #locList");
     if (locList) {
       locList.innerHTML = `<p style="text-align:center; padding:20px;">
-        No aggregator results for ${stateName}
+        No aggregator results for ${stateName}.
       </p>`;
     }
     return;
   }
 
-  // 6) Build the “project-table” with the 6 columns & rowSpan approach
+  // 6) Build the styled project-table (same as main table)
   const wrapper = document.createElement("div");
-  wrapper.style.maxWidth        = "1250px";
-  wrapper.style.margin          = "10px auto";
-  wrapper.style.backgroundColor = "#fff";
-  wrapper.style.borderRadius    = "8px";
-  wrapper.style.boxShadow       = "0 4px 8px rgba(0,0,0,0.08)";
-  wrapper.style.padding         = "10px";
+  // Same wrapper styling from your main table:
+  wrapper.style.maxWidth         = "1250px";
+  wrapper.style.marginLeft       = "20px";
+  wrapper.style.backgroundColor  = "#fff";
+  wrapper.style.borderRadius     = "8px";
+  wrapper.style.boxShadow        = "0 4px 8px rgba(0,0,0,0.08)";
+  wrapper.style.marginBottom     = "10px";
+  wrapper.style.padding          = "10px";
 
   const table = document.createElement("table");
-  table.classList.add("project-table");
-  table.style.width          = "100%";
-  table.style.borderCollapse = "collapse";
+  table.classList.add("home-table","project-table"); // <-- important for matching CSS
+  table.style.width           = "100%";
+  table.style.borderCollapse  = "collapse";
 
-  // Include the “Rank & Market Share History” toggle in the <th>, identical to main table
   table.innerHTML = `
     <thead>
       <tr style="height:30px;">
@@ -1217,7 +1218,7 @@ function rebuildProjectTableByState(stateName) {
   `;
   const tbody = table.querySelector("tbody");
 
-  // Group results again => (searchTerm -> location -> deviceRows)
+  // Group results => (searchTerm -> location -> array of deviceRows)
   const nestedMap = {};
   results.forEach(item => {
     const t = item.searchTerm;
@@ -1227,11 +1228,13 @@ function rebuildProjectTableByState(stateName) {
     nestedMap[t][l].push(item);
   });
 
+  // Sort search terms
   const sortedTerms = Object.keys(nestedMap).sort();
   sortedTerms.forEach(term => {
-    const locObj   = nestedMap[term];
-    const locKeys  = Object.keys(locObj).sort();
+    const locObj  = nestedMap[term];
+    const locKeys = Object.keys(locObj).sort();
 
+    // totalTermRows => rowSpan for the SearchTerm cell
     let totalTermRows = 0;
     locKeys.forEach(loc => { totalTermRows += locObj[loc].length; });
 
@@ -1252,7 +1255,7 @@ function rebuildProjectTableByState(stateName) {
         const tr = document.createElement("tr");
         tr.style.height = "50px";
 
-        // Light grey if device=mobile
+        // Light grey if device=mobile (as in your main table code)
         if ((rowData.device || "").toLowerCase() === "mobile") {
           tr.style.backgroundColor = "#f8f8f8";
         }
@@ -1262,6 +1265,7 @@ function rebuildProjectTableByState(stateName) {
           const tdTerm = document.createElement("td");
           tdTerm.style.fontWeight    = "bold";
           tdTerm.style.verticalAlign = "middle";
+          tdTerm.style.fontSize      = "16px";  // match your main table’s search term font
           tdTerm.rowSpan             = totalTermRows;
           tdTerm.textContent         = term;
           tr.appendChild(tdTerm);
@@ -1274,12 +1278,13 @@ function rebuildProjectTableByState(stateName) {
           tdLoc.style.verticalAlign = "middle";
           tdLoc.rowSpan             = devRows.length;
 
+          // same 2-line approach from your main table
           const parts = loc.split(",");
-          const line1 = parts[0] || "";
-          const line2 = parts.slice(1).join(", ");
+          const line1 = parts[0] ? parts[0].trim() : "";
+          const line2 = parts.slice(1).join(", ").trim();
           tdLoc.innerHTML = `
-            <div style="font-size:20px; font-weight:bold;">${line1.trim()}</div>
-            <div style="font-size:14px; color:#555;">${line2.trim()}</div>
+            <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
+            <div style="font-size:14px; color:#555;">${line2}</div>
           `;
           tr.appendChild(tdLoc);
           locCellUsed = true;
@@ -1287,11 +1292,13 @@ function rebuildProjectTableByState(stateName) {
 
         // (3) Device
         const tdDev = document.createElement("td");
+        tdDev.style.fontSize = "14px"; // match main table
         tdDev.textContent = rowData.device;
         tr.appendChild(tdDev);
 
         // (4) Avg Rank + arrow
         const tdRank = document.createElement("td");
+        tdRank.style.textAlign = "center";
         const rankVal = rowData.avgRank.toFixed(2);
         let arrowRank="", colorRank="#666";
         if (rowData.rankChange < 0) { arrowRank="▲"; colorRank="green"; }
@@ -1307,6 +1314,7 @@ function rebuildProjectTableByState(stateName) {
 
         // (5) Market Share + arrow
         const tdShare = document.createElement("td");
+        tdShare.style.textAlign = "center";
         const shareVal = rowData.avgShare.toFixed(1);
         let arrowShare="", colorShare="#666";
         if (rowData.trendVal > 0) { arrowShare="▲"; colorShare="green"; }
@@ -1323,7 +1331,7 @@ function rebuildProjectTableByState(stateName) {
               </div>
               <div class="ms-bar-label"
                    style="position:absolute; left:8px; top:0; bottom:0;
-                          display:flex; align-items:center; font-size:13px;">
+                          display:flex; align-items:center; font-size:13px; color:#000;">
                 ${shareVal}%
               </div>
             </div>
@@ -1334,36 +1342,36 @@ function rebuildProjectTableByState(stateName) {
         `;
         tr.appendChild(tdShare);
 
-        // (6) Rank & Share History => EXACT same mini-charts
+        // (6) Rank & Share History => 2 sub-rows + “Share” toggle
         const tdHist = document.createElement("td");
         tdHist.style.width     = "400px";
         tdHist.style.textAlign = "center";
 
-        // Create the container with rankRowDiv & shareRowDiv
+        // Container holds rankRowDiv + shareRowDiv
         const histContainer = document.createElement("div");
-        histContainer.style.width          = "380px";
-        histContainer.style.overflowX      = "auto";
-        histContainer.style.whiteSpace     = "nowrap";
-        histContainer.style.display        = "flex";
-        histContainer.style.flexDirection  = "column";
-        histContainer.style.gap            = "4px";
+        histContainer.style.width         = "380px";
+        histContainer.style.overflowX     = "auto";
+        histContainer.style.whiteSpace    = "nowrap";
+        histContainer.style.display       = "flex";
+        histContainer.style.flexDirection = "column";
+        histContainer.style.gap           = "4px";
 
         const rankRowDiv = document.createElement("div");
-        rankRowDiv.style.display       = "inline-block";
         rankRowDiv.classList.add("rank-row-div");
+        rankRowDiv.style.display = "inline-block";
 
         const shareRowDiv = document.createElement("div");
-        shareRowDiv.style.display      = "none";
         shareRowDiv.classList.add("share-row-div");
+        shareRowDiv.style.display = "none";
 
-        // Build an array of the last 30 days in descending order
+        // Build array of last 30 days
         const endDateM = moment(rowData.endDate, "YYYY-MM-DD");
         const dateArray = [];
         for (let i=0; i<30; i++){
           dateArray.push(endDateM.clone().subtract(i,"days").format("YYYY-MM-DD"));
         }
 
-        // Reversed iteration => rankRowDiv
+        // RANK squares
         rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
           const box = document.createElement("div");
           box.style.display        = "inline-block";
@@ -1372,19 +1380,20 @@ function rebuildProjectTableByState(stateName) {
           box.style.lineHeight     = "38px";
           box.style.textAlign      = "center";
           box.style.fontWeight     = "bold";
+          box.style.fontSize       = "14px"; // match original table squares
           box.style.marginRight    = "4px";
           box.style.borderRadius   = "4px";
+          box.style.color          = "#000";
 
-          let bgColor = "#ffcfcf"; // higher ranks
+          let bgColor = "#ffcfcf"; // default pink
           if (rv <= 1) {
-            bgColor = "#dfffd6";
-          } else if (rv <=3) {
-            bgColor = "#fffac2";
-          } else if (rv <=5) {
-            bgColor = "#ffe0bd";
+            bgColor = "#dfffd6"; // green
+          } else if (rv <= 3) {
+            bgColor = "#fffac2"; // yellow
+          } else if (rv <= 5) {
+            bgColor = "#ffe0bd"; // orange
           }
           box.style.backgroundColor = bgColor;
-          box.style.color           = "#000";
           box.textContent           = (rv===40) ? "" : rv;
           if (dateArray[idx2]) {
             box.title = dateArray[idx2];
@@ -1392,26 +1401,26 @@ function rebuildProjectTableByState(stateName) {
           rankRowDiv.appendChild(box);
         });
 
-        // shareRowDiv
+        // SHARE squares
         rowData.last30shares.slice().reverse().forEach((sv, idx3) => {
           const fillPct = Math.min(100, Math.max(0, sv));
           const sBox = document.createElement("div");
-          sBox.style.display     = "inline-block";
-          sBox.style.position    = "relative";
-          sBox.style.width       = "38px";
-          sBox.style.height      = "38px";
-          sBox.style.background  = "#ddd";
-          sBox.style.borderRadius= "4px";
-          sBox.style.marginRight = "4px";
-          sBox.style.overflow    = "hidden";
+          sBox.style.display      = "inline-block";
+          sBox.style.position     = "relative";
+          sBox.style.width        = "38px";
+          sBox.style.height       = "38px";
+          sBox.style.background   = "#ddd";
+          sBox.style.borderRadius = "4px";
+          sBox.style.marginRight  = "4px";
+          sBox.style.overflow     = "hidden";
 
           const fillDiv = document.createElement("div");
-          fillDiv.style.position = "absolute";
-          fillDiv.style.left     = "0";
-          fillDiv.style.bottom   = "0";
-          fillDiv.style.width    = "100%";
-          fillDiv.style.height   = fillPct + "%";
-          fillDiv.style.background = "#007aff";
+          fillDiv.style.position    = "absolute";
+          fillDiv.style.left        = "0";
+          fillDiv.style.bottom      = "0";
+          fillDiv.style.width       = "100%";
+          fillDiv.style.height      = fillPct + "%";
+          fillDiv.style.background  = "#007aff";
 
           const labelSpan = document.createElement("span");
           labelSpan.style.position   = "relative";
@@ -1420,7 +1429,7 @@ function rebuildProjectTableByState(stateName) {
           labelSpan.style.width      = "100%";
           labelSpan.style.textAlign  = "center";
           labelSpan.style.fontWeight = "bold";
-          labelSpan.style.fontSize   = "12px";
+          labelSpan.style.fontSize   = "14px";  // match rank squares
           labelSpan.style.lineHeight = "38px";
           labelSpan.style.color      = "#333";
           labelSpan.textContent      = sv.toFixed(0) + "%";
@@ -1436,8 +1445,9 @@ function rebuildProjectTableByState(stateName) {
         histContainer.appendChild(rankRowDiv);
         histContainer.appendChild(shareRowDiv);
         tdHist.appendChild(histContainer);
-
         tr.appendChild(tdHist);
+
+        // finalize row
         tbody.appendChild(tr);
       });
     });
@@ -1445,14 +1455,14 @@ function rebuildProjectTableByState(stateName) {
 
   wrapper.appendChild(table);
 
-  // 7) Insert into #locList
+  // 7) Put into #locList
   const locListContainer = document.querySelector("#projectPage #locList");
   if (locListContainer) {
     locListContainer.innerHTML = "";
     locListContainer.appendChild(wrapper);
   }
 
-  // 8) Add the toggle for rank/ share
+  // 8) Add “Share” toggle to switch rank/ share squares
   const historyToggle = table.querySelector("#historyToggle");
   if (historyToggle) {
     historyToggle.addEventListener("change", function() {
@@ -1469,7 +1479,9 @@ function rebuildProjectTableByState(stateName) {
     });
   }
 
-  console.log(`[rebuildProjectTableByState] => built table with ${results.length} rows for "${stateName}".`);
+  console.log(
+    `[rebuildProjectTableByState] => built table with ${results.length} aggregated rows for "${stateName}".`
+);
 }
   
   function showAllHomeTableRows() {
