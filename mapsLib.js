@@ -1019,7 +1019,6 @@ fullData.forEach(row => {
 
   // 3) Get active project number
   const st = window.filterState || {};
-  const projectNum = st.activeProjectNumber || 1;
   console.log("[DEBUG] Active project_number =", projectNum);
 
   // 4) Filter by project number (✅ important)
