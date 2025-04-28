@@ -1374,39 +1374,38 @@ rankRowDiv.style.display = "inline-flex";
 // RANK squares
 rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
   const box = document.createElement("div");
-  box.style.display        = "inline-flex";    // ✅ inline-flex for perfect centering
-  box.style.alignItems     = "center";         // ✅ vertical center
-  box.style.justifyContent = "center";         // ✅ horizontal center
-  box.style.width          = "38px";
-  box.style.height         = "38px";
-  box.style.textAlign      = "center";
-  box.style.fontWeight     = "bold";
-  box.style.fontSize       = "14px";
-  box.style.marginRight    = "4px";
-  box.style.borderRadius   = "4px";
-  box.style.color          = "#000";
+  box.style.display = "inline-flex";
+  box.style.alignItems = "center";
+  box.style.justifyContent = "center";
+  box.style.width = "38px";
+  box.style.height = "38px";
+  box.style.marginRight = "4px";
+  box.style.borderRadius = "4px";
+
+  const span = document.createElement("span");
+  span.style.fontWeight = "bold";
+  span.style.fontSize = "14px";
+  span.style.color = "#333";
 
   if (rv === 40) {
-    // Grey empty box (no rank)
-    box.style.backgroundColor = "#ddd";
-    box.textContent = "";
+    box.style.backgroundColor = "#ddd"; // Empty grey box
+    span.textContent = "";
   } else {
-    // Real rank value
-    let bgColor = "#ffcfcf"; // default pink
-    if (rv <= 1) {
-      bgColor = "#dfffd6"; // green
-    } else if (rv <= 3) {
-      bgColor = "#fffac2"; // yellow
-    } else if (rv <= 5) {
-      bgColor = "#ffe0bd"; // orange
-    }
+    let bgColor = "#ffcfcf"; // fallback
+    if (rv <= 1) bgColor = "#dfffd6";
+    else if (rv <= 3) bgColor = "#fffac2";
+    else if (rv <= 5) bgColor = "#ffe0bd";
+
     box.style.backgroundColor = bgColor;
-    box.textContent = rv;
+    span.textContent = rv; // Add the number inside the span
   }
+
+  box.appendChild(span);
 
   if (dateArray[idx2]) {
     box.title = dateArray[idx2];
   }
+
   rankRowDiv.appendChild(box);
 });
 
