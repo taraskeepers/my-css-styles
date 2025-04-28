@@ -1357,8 +1357,10 @@ async function rebuildProjectTableByState(stateName) {
         histContainer.style.gap           = "4px";
 
         const rankRowDiv = document.createElement("div");
-        rankRowDiv.classList.add("rank-row-div");
-        rankRowDiv.style.display = "inline-block";
+rankRowDiv.classList.add("rank-row-div");
+rankRowDiv.style.display = "flex";        // ✅ change to flex
+rankRowDiv.style.flexDirection = "row";   // ✅ horizontal row
+rankRowDiv.style.gap = "4px";              // ✅ same gap between boxes
 
         const shareRowDiv = document.createElement("div");
         shareRowDiv.classList.add("share-row-div");
