@@ -988,6 +988,7 @@ function filterHomeTableByState(stateName) {
  * same "project-table" structure from populateProjectPage().
  */
 async function rebuildProjectTableByState(stateName) {
+  console.log("[DEBUG] First 5 rows of companyStatsData:", window.companyStatsData.slice(0,5));
   console.log("[rebuildProjectTableByState] called with:", stateName);
   console.log("[DEBUG] Example row from companyStatsData =", window.companyStatsData?.[0]);
 
