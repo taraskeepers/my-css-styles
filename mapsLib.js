@@ -1004,7 +1004,7 @@ async function rebuildProjectTableByState(stateName) {
   }
 
   // 2) Build the full data (for current myCompany and current project)
-  const fullData = buildProjectData(true);
+  const fullData = buildProjectData();
   console.log("[DEBUG] buildProjectData returned rows:", fullData.length);
 
   const projectNum = window.filterState?.activeProjectNumber || 1;
