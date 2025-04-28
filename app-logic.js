@@ -613,7 +613,12 @@ box.style.justifyContent = "center";
   box.style.fontWeight = "bold";
   box.style.marginRight = "4px";
   box.style.borderRadius = "4px";
-
+  
+const span = document.createElement("span");
+span.style.fontWeight = "bold";
+span.style.fontSize = "14px";   // adjust if needed
+span.style.color = "#333";
+  
   // 1) If rVal===40 => means “no data” => grey box, no text
   if (rVal === 40) {
     box.style.backgroundColor = "#ddd";
@@ -629,6 +634,8 @@ box.style.justifyContent = "center";
     box.style.backgroundColor = bgColor;
     box.textContent = rVal;  // show the rank
   }
+
+  box.appendChild(span);
 
   // Optionally set box title for a date tooltip
   box.title = dateArray[idx2];
