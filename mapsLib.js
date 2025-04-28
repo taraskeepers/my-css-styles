@@ -1007,6 +1007,11 @@ async function rebuildProjectTableByState(stateName) {
   const fullData = buildProjectData();
   console.log("[DEBUG] buildProjectData returned rows:", fullData.length);
 
+  const projectNum = window.filterState?.activeProjectNumber || 1;
+fullData.forEach(row => {
+  row.project_number = projectNum;   // Force-insert project_number into each row
+});
+
   if (!Array.isArray(fullData) || fullData.length === 0) {
     console.warn("[rebuildProjectTableByState] No rows found. Aborting.");
     return;
