@@ -989,6 +989,7 @@ function filterHomeTableByState(stateName) {
  */
 async function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] called with:", stateName);
+  console.log("[DEBUG] Example row from companyStatsData =", window.companyStatsData?.[0]);
 
   // 1) Remove the old project table
   const oldTableWrapper = document.querySelector("#projectPage .project-table");
