@@ -717,9 +717,16 @@ function findGlobalMaxDate(homeDataArray) {
   let maxD = null;
   homeDataArray.forEach(item => {
     // item.endDate was previously set to each row’s last date
-    const d = moment(item.endDate, "YYYY-MM-DD");
-    if (!maxD || d.isAfter(maxD)) {
-      maxD = d.clone();
+    // Instead, loop over item.historical_data to find the true max date
+    if (Array.isArray(item.historical_data)) {
+      item.historical_data.forEach(dayObj => {
+        if (dayObj.date && dayObj.date.value) {
+          const d = moment(dayObj.date.value, "YYYY-MM-DD");
+          if (!maxD || d.isAfter(maxD)) {
+            maxD = d.clone();
+          }
+        }
+      });
     }
   });
   return maxD;
