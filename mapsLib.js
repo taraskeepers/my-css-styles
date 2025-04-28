@@ -1385,32 +1385,21 @@ async function rebuildProjectTableByState(stateName) {
           box.style.borderRadius   = "4px";
           box.style.color          = "#000";
 
-  const span = document.createElement("span");
-span.style.fontWeight = "bold";
-span.style.fontSize = "14px";   // adjust if needed
-span.style.color = "#333";
-
-  if (rv === 40) {
-    box.style.backgroundColor = "#ddd";
-    box.textContent = "";
-  }
-  else {
-    // 2) Otherwise, apply your normal color thresholds:
-    let bgColor = "#ffcfcf";               // fallback
-    if (rv <= 1)       bgColor = "#dfffd6";
-    else if (rv <= 3)  bgColor = "#fffac2";
-    else if (rv <= 5)  bgColor = "#ffe0bd";
-
-    box.style.backgroundColor = bgColor;
-    box.textContent = rv;  // show the rank
-  }
-
-  box.appendChild(span);
-  // Optionally set box title for a date tooltip
-  box.title = dateArray[idx2];
-
-  rankRowDiv.appendChild(box);
-});
+          let bgColor = "#ffcfcf"; // default pink
+          if (rv <= 1) {
+            bgColor = "#dfffd6"; // green
+          } else if (rv <= 3) {
+            bgColor = "#fffac2"; // yellow
+          } else if (rv <= 5) {
+            bgColor = "#ffe0bd"; // orange
+          }
+          box.style.backgroundColor = bgColor;
+          box.textContent           = (rv===40) ? "" : rv;
+          if (dateArray[idx2]) {
+            box.title = dateArray[idx2];
+          }
+          rankRowDiv.appendChild(box);
+        });
 
         // SHARE squares
         rowData.last30shares.slice().reverse().forEach((sv, idx3) => {
