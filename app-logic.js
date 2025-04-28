@@ -793,11 +793,56 @@ function findGlobalMaxDate(homeDataArray) {
       }
 
 function buildHomeData(targetCompany) {
-  const allRows = buildProjectData();
+  const allRows = buildProjectData(); // Get all rows
   const filtered = allRows.filter(row => {
     return row.source && row.source.toLowerCase() === targetCompany.toLowerCase();
   });
-  return filtered;
+
+  const homeData = [];
+
+  filtered.forEach(row => {
+    if (!row.historical_data || !row.historical_data.length) {
+      return; // Skip if no historical data
+    }
+
+    const dayMap = {};  // date => { r: rank, s: share }
+    let rankSum = 0;
+    let shareSum = 0;
+    let count = 0;
+
+    row.historical_data.forEach(hd => {
+      if (!hd.date || !hd.date.value) return;
+      const d = hd.date.value;
+      const r = hd.rank != null ? hd.rank : 40;
+      const s = hd.market_share != null ? (hd.market_share * 100) : 0;
+
+      dayMap[d] = { r, s };
+
+      if (r !== 40) {
+        rankSum += r;
+        count++;
+      }
+      shareSum += s;
+    });
+
+    if (count === 0) count = 1; // Avoid division by 0
+
+    // Calculate average rank and share
+    const avgRank = rankSum / count;
+    const avgShare = shareSum / row.historical_data.length;
+    
+    homeData.push({
+      location: row.location_requested || row.location_used || "Unknown",
+      device: row.device || "desktop",
+      avgRank: avgRank,
+      avgShare: avgShare,
+      trendVal: 0,  // Will calculate later if needed
+      dayMap: dayMap,
+      historical_data: row.historical_data,  // needed for findGlobalMaxDate
+    });
+  });
+
+  return homeData;
 }
 
   function buildHomeDataForMap() {
