@@ -752,8 +752,8 @@ function populateHomePage() {
           }, 100);
       }
 
-function buildHomeData(targetCompany, ignoreSearchTerm = false) {
-  const allRows = buildProjectData(false); // <-- use (false) here to fix ignoreSearchTerm crash
+function buildHomeData(targetCompany) {
+  const allRows = buildProjectData();
   const filtered = allRows.filter(row => {
     return row.source && row.source.toLowerCase() === targetCompany.toLowerCase();
   });
