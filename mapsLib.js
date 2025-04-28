@@ -1372,7 +1372,7 @@ rankRowDiv.style.display = "inline-flex";
         }
 
 // RANK squares
-rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
+rowData.last30ranks.slice().reverse().forEach((rVal, idx2) => {
   const box = document.createElement("div");
   box.style.display = "inline-flex";
   box.style.alignItems = "center";
@@ -1381,24 +1381,23 @@ rowData.last30ranks.slice().reverse().forEach((rv, idx2) => {
   box.style.height = "38px";
   box.style.marginRight = "4px";
   box.style.borderRadius = "4px";
+  
+  let bgColor = "#ffcfcf"; // fallback
+  if (rVal <= 1) bgColor = "#dfffd6";
+  else if (rVal <= 3) bgColor = "#fffac2";
+  else if (rVal <= 5) bgColor = "#ffe0bd";
+
+  if (rVal === 40) {
+    bgColor = "#ddd";
+  }
+
+  box.style.backgroundColor = bgColor;
 
   const span = document.createElement("span");
   span.style.fontWeight = "bold";
   span.style.fontSize = "14px";
   span.style.color = "#333";
-
-  if (rv === 40) {
-    box.style.backgroundColor = "#ddd"; // Empty grey box
-    span.textContent = "";
-  } else {
-    let bgColor = "#ffcfcf"; // fallback
-    if (rv <= 1) bgColor = "#dfffd6";
-    else if (rv <= 3) bgColor = "#fffac2";
-    else if (rv <= 5) bgColor = "#ffe0bd";
-
-    box.style.backgroundColor = bgColor;
-    span.textContent = rv; // Add the number inside the span
-  }
+  span.textContent = (rVal === 40) ? "" : rVal;
 
   box.appendChild(span);
 
