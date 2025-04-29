@@ -280,15 +280,17 @@ const tagContainer = container.append("div")
     const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
     const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
     const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
-    project.searches.forEach(s => {
-      if (s.device && s.device.toLowerCase().includes("desktop")) {
-        s.hideShare = !desktopShare;
-        s.hideRank  = !desktopRank;
-      } else if (s.device && s.device.toLowerCase().includes("mobile")) {
-        s.hideShare = !mobileShare;
-        s.hideRank  = !mobileRank;
-      }
-    });
+if (project && Array.isArray(project.searches)) {
+  project.searches.forEach(s => {
+    if (s.device && s.device.toLowerCase().includes("desktop")) {
+      s.hideShare = !desktopShare;
+      s.hideRank  = !desktopRank;
+    } else if (s.device && s.device.toLowerCase().includes("mobile")) {
+      s.hideShare = !mobileShare;
+      s.hideRank  = !mobileRank;
+    }
+  });
+}
 
     // 3) Load US TopoJSON
     let usTopo;
@@ -327,6 +329,8 @@ if (project && Array.isArray(project.searches)) {
   console.warn("[drawUsMapWithLocations] No valid searches or companyStatsData found.");
   stateShareMap = {};
 }
+
+    console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
 
     // 5) Create the SVG container
     const baseWidth = 975, baseHeight = 610;
