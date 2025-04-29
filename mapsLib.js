@@ -1487,7 +1487,7 @@ rowData.last30ranks.slice().reverse().forEach((rVal, idx2) => {
       const allShareRows = table.querySelectorAll(".share-row-div");
       if (showShare) {
         allRankRows.forEach(div => { div.style.display = "none"; });
-        allShareRows.forEach(div => { div.style.display = "flex"; });
+        allShareRows.forEach(div => { div.style.display = "inline-block"; });
       } else {
         allRankRows.forEach(div => { div.style.display = "flex"; });
         allShareRows.forEach(div => { div.style.display = "none"; });
