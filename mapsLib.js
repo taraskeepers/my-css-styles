@@ -273,6 +273,24 @@ function buildProjectPageLocationData() {
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
   async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
+    console.log("🔍 Checking window.projectTableData:");
+if (!window.projectTableData) {
+  console.warn("❌ projectTableData is NOT defined on window.");
+} else {
+  console.log("✅ projectTableData exists. Length =", window.projectTableData.length);
+  const sample = window.projectTableData.slice(0, 3);
+  console.log("🧪 Sample rows:", sample);
+
+  const missingFields = sample.map((row, i) => {
+    return {
+      index: i,
+      hasLocation: !!row.location,
+      hasDevice: !!row.device,
+      hasAvgShare: typeof row.avgShare === "number"
+    };
+  });
+  console.table(missingFields);
+}
     // 1) Clear old
     const container = d3.select(containerSelector).html("");
 
