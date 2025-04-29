@@ -1361,9 +1361,11 @@ async function rebuildProjectTableByState(stateName) {
         histContainer.style.flexDirection = "column";
         histContainer.style.gap           = "4px";
 
-        const rankRowDiv = document.createElement("div");
+const rankRowDiv = document.createElement("div");
 rankRowDiv.classList.add("rank-row-div");
-rankRowDiv.style.display = "inline-flex";
+rankRowDiv.style.display = "flex";
+rankRowDiv.style.flexWrap = "nowrap";
+rankRowDiv.style.alignItems = "center";
 
         const shareRowDiv = document.createElement("div");
         shareRowDiv.classList.add("share-row-div");
