@@ -174,6 +174,47 @@ const POSTAL_TO_STATE_NAME = {
     return arr;
   }
 
+  function buildProjectPageLocationData() {
+  if (!Array.isArray(window.companyStatsData)) {
+    console.warn("[mapsLib] companyStatsData not available.");
+    return [];
+  }
+
+  const locData = {};
+
+  window.companyStatsData.forEach(row => {
+    const loc = (row.location_requested || "").toLowerCase();
+    const device = (row.device || "").toLowerCase();
+    const share = row.avgShare != null ? parseFloat(row.avgShare) : 0;
+
+    if (!window.cityLookup || !window.cityLookup.has(loc)) return;
+
+    const cityObj = window.cityLookup.get(loc);
+    if (!cityObj || !cityObj.state_id) return;
+
+    const stPostal = cityObj.state_id;
+
+    if (!locData[stPostal]) {
+      locData[stPostal] = { sumShare: 0, count: 0 };
+    }
+
+    locData[stPostal].sumShare += share;
+    locData[stPostal].count += 1;
+  });
+
+  // Turn into array of objects: { stPostal, avgShare }
+  const out = [];
+  for (const st in locData) {
+    const d = locData[st];
+    out.push({
+      statePostal: st,
+      avgShare: (d.count > 0) ? d.sumShare / d.count : 0
+    });
+  }
+
+  return out;
+}
+
   // Helper: return a class for rank value matching the "rank-box" styling
   function getRankClass(rankVal) {
     const r = parseFloat(rankVal);
@@ -220,7 +261,7 @@ const POSTAL_TO_STATE_NAME = {
   }
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
-  async function drawUsMapWithLocations(project, containerSelector) {
+  async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
     // 1) Clear old
     const container = d3.select(containerSelector).html("");
 
@@ -260,8 +301,32 @@ const tagContainer = container.append("div")
     const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
     // 4) Build location/device data
-    const dataRows = buildLocationDeviceData(project);
-    const stateShareMap = buildStateShareMap(dataRows);
+let dataRows;
+let stateShareMap;
+
+// 🔵 If project.searches exists, treat it as "home" page
+if (project && Array.isArray(project.searches)) {
+  dataRows = buildLocationDeviceData(project);
+  stateShareMap = buildStateShareMap(dataRows);
+
+// 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
+} else if (Array.isArray(window.companyStatsData)) {
+  const projectLocData = buildProjectPageLocationData();
+  stateShareMap = {};
+  projectLocData.forEach(item => {
+    stateShareMap[item.statePostal] = {
+      desktopSum: item.avgShare,
+      desktopCount: 1,
+      mobileSum: item.avgShare,
+      mobileCount: 1
+    };
+  });
+
+// 🔵 Otherwise: fallback
+} else {
+  console.warn("[drawUsMapWithLocations] No valid searches or companyStatsData found.");
+  stateShareMap = {};
+}
 
     // 5) Create the SVG container
     const baseWidth = 975, baseHeight = 610;
