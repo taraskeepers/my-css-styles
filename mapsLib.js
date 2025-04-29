@@ -987,31 +987,28 @@ function filterHomeTableByState(stateName) {
  * .location includes the clicked stateName, then rebuild the
  * same "project-table" structure from populateProjectPage().
  */
+// FULLY UPDATED rebuildProjectTableByState()
+
 async function rebuildProjectTableByState(stateName) {
   console.log("[rebuildProjectTableByState] => clicked state:", stateName);
 
-  // 1) Remove any existing .project-table in #projectPage
   const oldTable = document.querySelector("#projectPage .project-table");
-  if (oldTable) {
-    oldTable.remove();
-  }
+  if (oldTable) oldTable.remove();
 
-  // 2) Basic checks
   if (!Array.isArray(window.companyStatsData) || !window.companyStatsData.length) {
     console.warn("[rebuildProjectTableByState] No companyStatsData found or empty.");
     return;
   }
+
   if (!window.filterState) window.filterState = {};
 
-  // 3) Identify active company + chosen period
   const st = window.filterState;
   const targetCompany = (st.company || window.myCompany || "Under Armour").toLowerCase();
-  
-  let periodDays = 7; // default
+
+  let periodDays = 7;
   if (st.period === "3d")  periodDays = 3;
   if (st.period === "30d") periodDays = 30;
 
-  // 4) Filter raw rows => must match (company) + (location includes stateName)
   const needle = (stateName || "").trim().toLowerCase();
   let baseRows = window.companyStatsData.filter(row => {
     const src = (row.source || "").toLowerCase();
@@ -1024,38 +1021,44 @@ async function rebuildProjectTableByState(stateName) {
   if (!baseRows.length) {
     const locList = document.querySelector("#projectPage #locList");
     if (locList) {
-      locList.innerHTML = `<p style="padding:20px; text-align:center;">
-        No data for ${stateName}.
-      </p>`;
+      locList.innerHTML = `<p style="padding:20px; text-align:center;">No data for ${stateName}.</p>`;
     }
     return;
   }
 
-  // 5) Inline aggregator => merges historical_data => compute avgRank, avgShare, etc.
-  function findMaxDate(arr) {
+  // NEW: Find global max date across all baseRows
+  function findGlobalMax(rows) {
     let maxM = null;
-    arr.forEach(obj => {
-      if (obj.date && obj.date.value) {
-        const mm = moment(obj.date.value, "YYYY-MM-DD");
-        if (!maxM || mm.isAfter(maxM)) {
-          maxM = mm.clone();
-        }
+    rows.forEach(r => {
+      if (Array.isArray(r.historical_data)) {
+        r.historical_data.forEach(obj => {
+          if (obj.date && obj.date.value) {
+            const mm = moment(obj.date.value, "YYYY-MM-DD");
+            if (!maxM || mm.isAfter(maxM)) {
+              maxM = mm.clone();
+            }
+          }
+        });
       }
     });
     return maxM;
   }
 
-  // Group these filtered rows by (searchTerm, location, device)
+  const globalMaxDate = findGlobalMax(baseRows);
+  if (!globalMaxDate) {
+    console.warn("[rebuildProjectTableByState] No valid max date found in baseRows.");
+    return;
+  }
+
+  // Group rows
   const groupingMap = {};
   baseRows.forEach(row => {
     const sTerm = row.q || row.search || "(no term)";
-    const loc   = row.location_requested || "(unknown loc)";
-    const dev   = row.device || "(unknown dev)";
-    const key   = `${sTerm}||${loc}||${dev}`;
+    const loc = row.location_requested || "(unknown loc)";
+    const dev = row.device || "(unknown dev)";
+    const key = `${sTerm}||${loc}||${dev}`;
 
-    if (!groupingMap[key]) {
-      groupingMap[key] = [];
-    }
+    if (!groupingMap[key]) groupingMap[key] = [];
     groupingMap[key].push(row);
   });
 
@@ -1070,81 +1073,83 @@ async function rebuildProjectTableByState(stateName) {
     });
     if (!mergedHist.length) return;
 
-    // 5A) Find overall max date => define [start..end]
-    const maxDate = findMaxDate(mergedHist);
-    if (!maxDate) return;
-    const end   = maxDate.clone();
+    const end = globalMaxDate.clone();
     const start = end.clone().subtract(periodDays - 1, "days");
 
-    // current window
-    const currentArr = mergedHist.filter(d => {
-      const dd = moment(d.date.value, "YYYY-MM-DD");
-      return dd.isBetween(start, end, "day", "[]");
-    });
-    // previous window
-    const prevEnd   = start.clone().subtract(1, "days");
-    const prevStart = prevEnd.clone().subtract(periodDays - 1, "days");
-    const prevArr   = mergedHist.filter(d => {
-      const dd = moment(d.date.value, "YYYY-MM-DD");
-      return dd.isBetween(prevStart, prevEnd, "day", "[]");
-    });
-
-    // avgRank
-    let sumR=0, cR=0;
-    currentArr.forEach(obj => {
-      if (obj.rank != null) {
-        sumR += parseFloat(obj.rank);
-        cR++;
-      }
-    });
-    const avgRank = cR>0 ? sumR/cR : 40;
-
-    // avgShare
-    let sumS=0, cS=0;
-    currentArr.forEach(obj => {
-      if (obj.market_share != null) {
-        sumS += parseFloat(obj.market_share)*100;
-        cS++;
-      }
-    });
-    const avgShare = cS>0 ? sumS/cS : 0;
-
-    // previous share => difference => trendVal
-    let sumPrev=0, cPrev=0;
-    prevArr.forEach(obj => {
-      if (obj.market_share != null) {
-        sumPrev += parseFloat(obj.market_share)*100;
-        cPrev++;
-      }
-    });
-    const prevShare = cPrev>0 ? sumPrev/cPrev : 0;
-    const diff = avgShare - prevShare;
-
-    // rankChange
-    let sumPR=0, countPR=0;
-    prevArr.forEach(obj => {
-      if (obj.rank != null) {
-        sumPR += parseFloat(obj.rank);
-        countPR++;
-      }
-    });
-    const prevRank = countPR>0 ? sumPR/countPR : 40;
-    const rankDiff = avgRank - prevRank;
-
-    // last30 arrays
     const dayMap = {};
     mergedHist.forEach(obj => {
       if (obj.date && obj.date.value) {
         const ds = obj.date.value;
-        const rV = (obj.rank != null) ? parseFloat(obj.rank) : 40;
-        const sV = (obj.market_share != null) ? parseFloat(obj.market_share)*100 : 0;
+        const rV = obj.rank != null ? parseFloat(obj.rank) : 40;
+        const sV = obj.market_share != null ? parseFloat(obj.market_share) * 100 : 0;
         dayMap[ds] = { r: rV, s: sV };
       }
     });
+
+    // avgRank
+    let sumR = 0, countR = 0;
+    let run = start.clone();
+    while (run.isSameOrBefore(end, "day")) {
+      const ds = run.format("YYYY-MM-DD");
+      if (dayMap[ds]) {
+        if (dayMap[ds].r !== undefined) {
+          sumR += dayMap[ds].r;
+          countR++;
+        }
+      } else {
+        sumR += 40;
+        countR++;
+      }
+      run.add(1, "days");
+    }
+    const avgRank = countR ? (sumR / countR) : 40;
+
+    // avgShare
+    let sumS = 0;
+    run = start.clone();
+    while (run.isSameOrBefore(end, "day")) {
+      const ds = run.format("YYYY-MM-DD");
+      if (dayMap[ds]) {
+        sumS += dayMap[ds].s;
+      }
+      run.add(1, "days");
+    }
+    const avgShare = periodDays ? (sumS / periodDays) : 0;
+
+    // previous share
+    const prevEnd = start.clone().subtract(1, "days");
+    const prevStart = prevEnd.clone().subtract(periodDays - 1, "days");
+    let sumPrevS = 0;
+    run = prevStart.clone();
+    while (run.isSameOrBefore(prevEnd, "day")) {
+      const ds = run.format("YYYY-MM-DD");
+      if (dayMap[ds]) {
+        sumPrevS += dayMap[ds].s;
+      }
+      run.add(1, "days");
+    }
+    const prevShare = periodDays ? (sumPrevS / periodDays) : 0;
+    const diff = avgShare - prevShare;
+
+    // rankChange
+    let sumPrevRank = 0, countPrevRank = 0;
+    run = prevStart.clone();
+    while (run.isSameOrBefore(prevEnd, "day")) {
+      const ds = run.format("YYYY-MM-DD");
+      if (dayMap[ds]) {
+        sumPrevRank += dayMap[ds].r;
+        countPrevRank++;
+      }
+      run.add(1, "days");
+    }
+    const prevRank = countPrevRank ? (sumPrevRank / countPrevRank) : 40;
+    const rankDiff = avgRank - prevRank;
+
+    // last30r
     const last30r = [];
     const last30s = [];
     const start30 = end.clone().subtract(29, "days");
-    let run = start30.clone();
+    run = start30.clone();
     while (run.isSameOrBefore(end, "day")) {
       const ds = run.format("YYYY-MM-DD");
       if (dayMap[ds]) {
@@ -1154,20 +1159,20 @@ async function rebuildProjectTableByState(stateName) {
         last30r.push(40);
         last30s.push(0);
       }
-      run.add(1,"days");
+      run.add(1, "days");
     }
 
     results.push({
       searchTerm: theTerm,
-      location:   theLoc,
-      device:     theDev,
+      location: theLoc,
+      device: theDev,
       avgRank,
       rankChange: rankDiff,
       avgShare,
       trendVal: diff,
-      last30ranks:  last30r,
+      last30ranks: last30r,
       last30shares: last30s,
-      endDate:     end.format("YYYY-MM-DD")
+      endDate: end.format("YYYY-MM-DD")
     });
   });
 
