@@ -341,17 +341,32 @@ if (project && Array.isArray(project.searches)) {
   stateShareMap = buildStateShareMap(dataRows);
 
 // 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
-} else if (Array.isArray(window.companyStatsData)) {
-const projectLocData = buildProjectPageLocationData();
-stateShareMap = {};
-projectLocData.forEach(item => {
-  stateShareMap[item.statePostal] = {
-    desktopSum: item.desktopSum,
-    desktopCount: item.desktopCount,
-    mobileSum: item.mobileSum,
-    mobileCount: item.mobileCount
-  };
-});
+} else if (Array.isArray(window.projectTableData)) {
+  console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
+
+  stateShareMap = {};
+  window.projectTableData.forEach(row => {
+    const loc = (row.location || "").toLowerCase();
+    const device = (row.device || "").toLowerCase();
+    const share = typeof row.avgShare === "number" ? row.avgShare : 0;
+
+    if (!window.cityLookup || !window.cityLookup.has(loc)) return;
+    const cityObj = window.cityLookup.get(loc);
+    if (!cityObj || !cityObj.state_id) return;
+
+    const stPostal = cityObj.state_id;
+    if (!stateShareMap[stPostal]) {
+      stateShareMap[stPostal] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
+    }
+
+    if (device.includes("desktop")) {
+      stateShareMap[stPostal].desktopSum += share;
+      stateShareMap[stPostal].desktopCount++;
+    } else if (device.includes("mobile")) {
+      stateShareMap[stPostal].mobileSum += share;
+      stateShareMap[stPostal].mobileCount++;
+    }
+  });
 
 // 🔵 Otherwise: fallback
 } else {
