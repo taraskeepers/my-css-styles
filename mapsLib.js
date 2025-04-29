@@ -174,16 +174,16 @@ const POSTAL_TO_STATE_NAME = {
     return arr;
   }
 
-  function buildProjectPageLocationData() {
-  if (!Array.isArray(window.companyStatsData)) {
-    console.warn("[mapsLib] companyStatsData not available.");
+function buildProjectPageLocationData() {
+  if (!Array.isArray(window.projectTableData)) {
+    console.warn("[mapsLib] projectTableData not available.");
     return [];
   }
 
   const locData = {};
 
-  window.companyStatsData.forEach(row => {
-    const loc = (row.location_requested || "").toLowerCase();
+  window.projectTableData.forEach(row => {
+    const loc = (row.location || "").toLowerCase();
     const device = (row.device || "").toLowerCase();
     const share = row.avgShare != null ? parseFloat(row.avgShare) : 0;
 
@@ -195,20 +195,31 @@ const POSTAL_TO_STATE_NAME = {
     const stPostal = cityObj.state_id;
 
     if (!locData[stPostal]) {
-      locData[stPostal] = { sumShare: 0, count: 0 };
+      locData[stPostal] = {
+        desktopSum: 0, desktopCount: 0,
+        mobileSum: 0, mobileCount: 0
+      };
     }
 
-    locData[stPostal].sumShare += share;
-    locData[stPostal].count += 1;
+    if (device.includes("desktop")) {
+      locData[stPostal].desktopSum += share;
+      locData[stPostal].desktopCount++;
+    } else if (device.includes("mobile")) {
+      locData[stPostal].mobileSum += share;
+      locData[stPostal].mobileCount++;
+    }
   });
 
-  // Turn into array of objects: { stPostal, avgShare }
+  // Turn into array of objects: { statePostal, avgShare }
   const out = [];
   for (const st in locData) {
     const d = locData[st];
     out.push({
       statePostal: st,
-      avgShare: (d.count > 0) ? d.sumShare / d.count : 0
+      desktopSum: d.desktopSum,
+      desktopCount: d.desktopCount,
+      mobileSum: d.mobileSum,
+      mobileCount: d.mobileCount
     });
   }
 
