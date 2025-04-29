@@ -324,16 +324,16 @@ if (project && Array.isArray(project.searches)) {
 
 // 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
 } else if (Array.isArray(window.companyStatsData)) {
-  const projectLocData = buildProjectPageLocationData();
-  stateShareMap = {};
-  projectLocData.forEach(item => {
-    stateShareMap[item.statePostal] = {
-      desktopSum: item.avgShare,
-      desktopCount: 1,
-      mobileSum: item.avgShare,
-      mobileCount: 1
-    };
-  });
+const projectLocData = buildProjectPageLocationData();
+stateShareMap = {};
+projectLocData.forEach(item => {
+  stateShareMap[item.statePostal] = {
+    desktopSum: item.desktopSum,
+    desktopCount: item.desktopCount,
+    mobileSum: item.mobileSum,
+    mobileCount: item.mobileCount
+  };
+});
 
 // 🔵 Otherwise: fallback
 } else {
