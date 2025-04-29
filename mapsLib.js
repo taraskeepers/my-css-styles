@@ -331,6 +331,12 @@ if (project && Array.isArray(project.searches)) {
 }
 
     console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
+    console.log("[drawUsMapWithLocations] full stateShareMap object:", stateShareMap);
+
+let testStates = ["TX", "FL", "NY", "CA"];
+testStates.forEach(st => {
+  console.log(`[drawUsMapWithLocations] ${st} combinedShare =`, computeCombinedShare(stateShareMap[st]));
+});
 
     // 5) Create the SVG container
     const baseWidth = 975, baseHeight = 610;
@@ -354,6 +360,8 @@ if (project && Array.isArray(project.searches)) {
     const colorScale = d3.scaleSequential()
       .domain([0, maxShare || 1])
       .interpolator(d3.interpolateBlues);
+
+    console.log("[drawUsMapWithLocations] maxShare =", maxShare);
 
     // 6) Draw state paths
     const statesSelection = svg.selectAll("path.state")
