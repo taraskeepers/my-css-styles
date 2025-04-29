@@ -575,9 +575,6 @@ svg.selectAll("foreignObject.state-label")
     // 4) Create or update the selected State tag
 const tagDiv = document.getElementById("stateFilterTag");
 if (tagDiv) {
-  const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  if (!stPostal) return;
-  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
   tagDiv.innerHTML = `
     <span style="
