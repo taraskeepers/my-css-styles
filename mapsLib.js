@@ -552,6 +552,10 @@ svg.selectAll("foreignObject.state-label")
         tooltip.style("display", "none");
       })
   .on("click", function(event, d) {
+      const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  if (!stPostal) return;
+  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
+    console.log("▶ Clicked state:", stateName);
 
     // 1) Revert the previously selected state's outline
     if (previouslySelectedState) {
