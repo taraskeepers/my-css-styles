@@ -1381,7 +1381,7 @@ rankRowDiv.style.alignItems = "center";
 // RANK squares
 rowData.last30ranks.slice().reverse().forEach((rVal, idx2) => {
   const box = document.createElement("div");
-  box.style.display = "inline-flex";
+  box.style.display = "flex";
   box.style.alignItems = "center";
   box.style.justifyContent = "center";
   box.style.width = "38px";
