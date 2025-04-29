@@ -552,10 +552,6 @@ svg.selectAll("foreignObject.state-label")
         tooltip.style("display", "none");
       })
   .on("click", function(event, d) {
-      const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  if (!stPostal) return;
-  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
-    console.log("▶ Clicked state:", stateName);
 
     // 1) Revert the previously selected state's outline
     if (previouslySelectedState) {
@@ -575,6 +571,9 @@ svg.selectAll("foreignObject.state-label")
     // 4) Create or update the selected State tag
 const tagDiv = document.getElementById("stateFilterTag");
 if (tagDiv) {
+  const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  if (!stPostal) return;
+  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
   tagDiv.innerHTML = `
     <span style="
@@ -618,44 +617,6 @@ if (tagDiv) {
       previouslySelectedState = null;
     }
   });
-}
-
-    if (document.getElementById("projectPage").style.display !== "none") {
-  const tagDiv2 = document.getElementById("projectPage").querySelector("#stateFilterTag");
-  if (tagDiv2) {
-    tagDiv2.innerHTML = `
-      <span style="
-        display: inline-block;
-        background: #007aff;
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 500;
-        position: relative;
-      ">
-        ${stateName}
-        <span id="clearStateFilter2" style="
-          margin-left: 8px;
-          cursor: pointer;
-          font-weight: bold;
-        ">
-          &times;
-        </span>
-      </span>
-    `;
-
-    document.getElementById("clearStateFilter2").addEventListener("click", function() {
-      tagDiv2.innerHTML = "";
-      showAllProjectTableRows();
-      if (previouslySelectedState) {
-        previouslySelectedState
-          .attr("stroke-width", 1)
-          .attr("stroke", "#999");
-        previouslySelectedState = null;
-      }
-    });
-  }
 }
 
     // 4) Figure out the spelled-out name from the postal code
