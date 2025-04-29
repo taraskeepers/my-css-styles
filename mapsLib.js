@@ -596,7 +596,7 @@ if (tagDiv) {
       </span>
     </span>
   `;
-
+  
   // Attach click event to the × button
   document.getElementById("clearStateFilter").addEventListener("click", function() {
     // Clear the tag
@@ -617,6 +617,44 @@ if (tagDiv) {
       previouslySelectedState = null;
     }
   });
+}
+
+    if (document.getElementById("projectPage").style.display !== "none") {
+  const tagDiv2 = document.getElementById("projectPage").querySelector("#stateFilterTag");
+  if (tagDiv2) {
+    tagDiv2.innerHTML = `
+      <span style="
+        display: inline-block;
+        background: #007aff;
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        position: relative;
+      ">
+        ${stateName}
+        <span id="clearStateFilter2" style="
+          margin-left: 8px;
+          cursor: pointer;
+          font-weight: bold;
+        ">
+          &times;
+        </span>
+      </span>
+    `;
+
+    document.getElementById("clearStateFilter2").addEventListener("click", function() {
+      tagDiv2.innerHTML = "";
+      showAllProjectTableRows();
+      if (previouslySelectedState) {
+        previouslySelectedState
+          .attr("stroke-width", 1)
+          .attr("stroke", "#999");
+        previouslySelectedState = null;
+      }
+    });
+  }
 }
 
     // 4) Figure out the spelled-out name from the postal code
