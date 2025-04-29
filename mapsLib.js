@@ -1366,6 +1366,8 @@ rankRowDiv.classList.add("rank-row-div");
 rankRowDiv.style.display = "flex";
 rankRowDiv.style.flexWrap = "nowrap";
 rankRowDiv.style.alignItems = "center";
+rankRowDiv.style.justifyContent = "flex-start";
+rankRowDiv.style.minWidth = "fit-content";
 
         const shareRowDiv = document.createElement("div");
         shareRowDiv.classList.add("share-row-div");
