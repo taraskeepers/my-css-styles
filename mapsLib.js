@@ -575,15 +575,26 @@ svg.selectAll("foreignObject.state-label")
           <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
         </span>
       `;
-      document.getElementById("clearStateFilterProject").addEventListener("click", function() {
-        tagContainer.innerHTML = "";
-        showAllProjectTableRows();
-        if (previouslySelectedState) {
-          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
-          previouslySelectedState = null;
-        }
-      });
+  document.getElementById("clearStateFilterProject").addEventListener("click", function() {
+    tagContainer.innerHTML = "";
+
+    // (NEW) Simulate a click on projectButton
+    const projectBtn = document.getElementById("projectButton");
+    if (projectBtn) {
+      projectBtn.click();
+    } else {
+      console.warn("[mapsLib] Project button (#projectButton) not found.");
     }
+
+    // Reset state outline
+    if (previouslySelectedState) {
+      previouslySelectedState
+        .attr("stroke-width", 1)
+        .attr("stroke", "#999");
+      previouslySelectedState = null;
+    }
+  });
+}
 
     // (EXISTING) 2. Then rebuild the project table
     rebuildProjectTableByState(stateName);
