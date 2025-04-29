@@ -551,88 +551,44 @@ svg.selectAll("foreignObject.state-label")
       .on("mouseout", function() {
         tooltip.style("display", "none");
       })
-  .on("click", function(event, d) {
+.on("click", function(event, d) {
+  if (previouslySelectedState) {
+    previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+  }
+  d3.select(this).attr("stroke-width", 4).attr("stroke", "#007aff");
+  previouslySelectedState = d3.select(this);
 
-    // 1) Revert the previously selected state's outline
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-    }
-
-    // 2) Highlight this newly clicked state
-    d3.select(this)
-      .attr("stroke-width", 4)
-      .attr("stroke", "#007aff");
-
-    // 3) Save this as the 'previouslySelectedState'
-    previouslySelectedState = d3.select(this);
-
-    // 4) Create or update the selected State tag
-const tagDiv = document.getElementById("stateFilterTag");
-if (tagDiv) {
   const stPostal = FIPS_TO_POSTAL[d.id] || null;
   if (!stPostal) return;
   const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
-  tagDiv.innerHTML = `
-    <span style="
-      display: inline-block;
-      background: #007aff;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 500;
-      position: relative;
-    ">
-      ${stateName}
-      <span id="clearStateFilter" style="
-        margin-left: 8px;
-        cursor: pointer;
-        font-weight: bold;
-      ">
-        &times;
-      </span>
-    </span>
-  `;
-  
-  // Attach click event to the × button
-  document.getElementById("clearStateFilter").addEventListener("click", function() {
-    // Clear the tag
-    tagDiv.innerHTML = "";
-
-    // Remove table filtering
-    if (document.getElementById("homePage").style.display !== "none") {
-      showAllHomeTableRows();
-    } else if (document.getElementById("projectPage").style.display !== "none") {
-      showAllProjectTableRows();
+  if (document.getElementById("homePage").style.display !== "none") {
+    filterHomeTableByState(stateName);
+  }
+  else if (document.getElementById("projectPage").style.display !== "none") {
+    // (NEW) 1. Insert the Filter Tag
+    const tagContainer = document.querySelector("#projectPage #stateFilterTag");
+    if (tagContainer) {
+      tagContainer.innerHTML = `
+        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
+          ${stateName}
+          <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
+        </span>
+      `;
+      document.getElementById("clearStateFilterProject").addEventListener("click", function() {
+        tagContainer.innerHTML = "";
+        showAllProjectTableRows();
+        if (previouslySelectedState) {
+          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+          previouslySelectedState = null;
+        }
+      });
     }
 
-    // Reset previously selected state's stroke
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-      previouslySelectedState = null;
-    }
-  });
-}
-
-    // 4) Figure out the spelled-out name from the postal code
-    const stPostal = FIPS_TO_POSTAL[d.id] || null;
-    if (!stPostal) return;  // unknown or no data
-    const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
-
-    // 5) If we’re on the homePage, filter the “home-table”
-    if (document.getElementById("homePage").style.display !== "none") {
-      filterHomeTableByState(stateName);
-    }
-    // If we’re on the projectPage, filter the “project-table”
-    else if (document.getElementById("projectPage").style.display !== "none") {
-      rebuildProjectTableByState(stateName);
-    }
-  });
+    // (EXISTING) 2. Then rebuild the project table
+    rebuildProjectTableByState(stateName);
+  }
+});
   }
 
   // ---------- (G) Canada, UK, Australia (same as old code) ----------
