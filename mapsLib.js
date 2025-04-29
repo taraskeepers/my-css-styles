@@ -1363,7 +1363,7 @@ async function rebuildProjectTableByState(stateName) {
 
 const rankRowDiv = document.createElement("div");
 rankRowDiv.classList.add("rank-row-div");
-rankRowDiv.style.display = "flex";
+rankRowDiv.style.display = "inline-flex";
 rankRowDiv.style.flexWrap = "nowrap";
 rankRowDiv.style.alignItems = "center";
 rankRowDiv.style.justifyContent = "flex-start";
