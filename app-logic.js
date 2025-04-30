@@ -366,11 +366,19 @@ function onReceivedRows(rows) {
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
 
-  // 6) Call project page population logic
-setTimeout(() => {
-  console.log("[onReceivedRows] Delayed call to populateProjectPage");
-  populateProjectPage();
-}, 100);
+waitForProjectDataThenPopulate();
+}
+
+function waitForProjectDataThenPopulate(attempts = 0) {
+  if (window.projectData && window.projectData.length > 0) {
+    console.log("[✅] projectData is now available. Populating project page.");
+    populateProjectPage();
+  } else if (attempts < 10) {
+    console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
+    setTimeout(() => waitForProjectDataThenPopulate(attempts + 1), 100);
+  } else {
+    console.warn("[❌] projectData not available after 10 attempts. Aborting project page load.");
+  }
 }
 
     function pickRandomValidTuple(rows) {
