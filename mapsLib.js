@@ -320,52 +320,46 @@ async function drawUsMapWithLocations(project, containerSelector, mode = "home")
   if (project && Array.isArray(project.searches)) {
     dataRows = buildLocationDeviceData(project);
     stateShareMap = buildStateShareMap(dataRows);
-  } else if (Array.isArray(window.projectTableData)) {
-    console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
+} else if (Array.isArray(window.projectTableData)) {
+  console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
 
-    // 🟡 NEW: Aggregate avgShare per location + device
-    const shareByLocDev = {};
-    window.projectTableData.forEach(row => {
-      const loc = (row.location || "").toLowerCase();
-      const device = (row.device || "").toLowerCase();
-      const key = `${loc}||${device}`;
-      if (!shareByLocDev[key]) {
-        shareByLocDev[key] = { sum: 0, count: 0 };
-      }
-      shareByLocDev[key].sum += (typeof row.avgShare === "number") ? row.avgShare : 0;
-      shareByLocDev[key].count++;
-    });
+  stateShareMap = {};
+  dataRows = []; // ← Also reset this
 
-    // 🟡 NEW: Build stateShareMap using averaged share per device per location
-    Object.entries(shareByLocDev).forEach(([key, val]) => {
-      const [loc, device] = key.split("||");
-      if (!window.cityLookup || !window.cityLookup.has(loc)) return;
-      const cityObj = window.cityLookup.get(loc);
-      if (!cityObj || !cityObj.state_id) return;
-      const st = cityObj.state_id;
-      if (!stateShareMap[st]) {
-        stateShareMap[st] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
-      }
-      const avg = val.count ? (val.sum / val.count) : 0;
-      if (device.includes("desktop")) {
-        stateShareMap[st].desktopSum += avg;
-        stateShareMap[st].desktopCount++;
-      } else if (device.includes("mobile")) {
-        stateShareMap[st].mobileSum += avg;
-        stateShareMap[st].mobileCount++;
-      }
-    });
+  window.projectTableData.forEach(row => {
+    const loc = (row.location || "").trim().toLowerCase().replace(/,\s*/g, ',');
+    const device = (row.device || "").toLowerCase();
+    const share = typeof row.avgShare === "number" ? row.avgShare : 0;
 
-    // 🟡 Assign dataRows so pies can render
-    dataRows = window.projectTableData.map(row => ({
-      locName: (row.location || "").trim().toLowerCase().replace(/,\s*/g, ','),
-      device: row.device,
-      shareVal: typeof row.avgShare === "number" ? row.avgShare : 0,
+    if (!window.cityLookup || !window.cityLookup.has(loc)) return;
+    const cityObj = window.cityLookup.get(loc);
+    if (!cityObj || !cityObj.state_id) return;
+
+    const st = cityObj.state_id;
+    if (!stateShareMap[st]) {
+      stateShareMap[st] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
+    }
+
+    if (device.includes("desktop")) {
+      stateShareMap[st].desktopSum += share;
+      stateShareMap[st].desktopCount++;
+    } else if (device.includes("mobile")) {
+      stateShareMap[st].mobileSum += share;
+      stateShareMap[st].mobileCount++;
+    }
+
+    // Build the row for pie rendering
+    dataRows.push({
+      locName: loc,
+      device,
+      shareVal: share,
       avgRank: typeof row.avgRank === "number" ? row.avgRank : 0,
       rankChange: typeof row.rankChange === "number" ? row.rankChange : 0,
       hideRank: false,
       hideShare: false
-    }));
+    });
+  });
+    
   } else {
     console.warn("[drawUsMapWithLocations] No valid searches or projectTableData found.");
   }
