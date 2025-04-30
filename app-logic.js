@@ -367,8 +367,10 @@ function onReceivedRows(rows) {
   document.getElementById("mainButton").classList.remove("selected");
 
   // 6) Call project page population logic
+setTimeout(() => {
+  console.log("[onReceivedRows] Delayed call to populateProjectPage");
   populateProjectPage();
-  document.getElementById("projectButton").click();
+}, 100);
 }
 
     function pickRandomValidTuple(rows) {
