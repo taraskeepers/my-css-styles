@@ -345,7 +345,8 @@ function autoPickDefaultFirstGroup(allRows) {
         document.getElementById("main").style.display = "none";
       
         // Now fire the home-button click event.
-        //document.getElementById("homeButton").click();
+document.getElementById("projectButton").click();
+
       } 
 
     function pickRandomValidTuple(rows) {
