@@ -174,16 +174,16 @@ const POSTAL_TO_STATE_NAME = {
     return arr;
   }
 
-function buildProjectPageLocationData() {
-  if (!Array.isArray(window.projectTableData)) {
-    console.warn("[mapsLib] projectTableData not available.");
+  function buildProjectPageLocationData() {
+  if (!Array.isArray(window.companyStatsData)) {
+    console.warn("[mapsLib] companyStatsData not available.");
     return [];
   }
 
   const locData = {};
 
-  window.projectTableData.forEach(row => {
-    const loc = (row.location || "").toLowerCase();
+  window.companyStatsData.forEach(row => {
+    const loc = (row.location_requested || "").toLowerCase();
     const device = (row.device || "").toLowerCase();
     const share = row.avgShare != null ? parseFloat(row.avgShare) : 0;
 
@@ -195,31 +195,20 @@ function buildProjectPageLocationData() {
     const stPostal = cityObj.state_id;
 
     if (!locData[stPostal]) {
-      locData[stPostal] = {
-        desktopSum: 0, desktopCount: 0,
-        mobileSum: 0, mobileCount: 0
-      };
+      locData[stPostal] = { sumShare: 0, count: 0 };
     }
 
-    if (device.includes("desktop")) {
-      locData[stPostal].desktopSum += share;
-      locData[stPostal].desktopCount++;
-    } else if (device.includes("mobile")) {
-      locData[stPostal].mobileSum += share;
-      locData[stPostal].mobileCount++;
-    }
+    locData[stPostal].sumShare += share;
+    locData[stPostal].count += 1;
   });
 
-  // Turn into array of objects: { statePostal, avgShare }
+  // Turn into array of objects: { stPostal, avgShare }
   const out = [];
   for (const st in locData) {
     const d = locData[st];
     out.push({
       statePostal: st,
-      desktopSum: d.desktopSum,
-      desktopCount: d.desktopCount,
-      mobileSum: d.mobileSum,
-      mobileCount: d.mobileCount
+      avgShare: (d.count > 0) ? d.sumShare / d.count : 0
     });
   }
 
@@ -272,138 +261,107 @@ function buildProjectPageLocationData() {
   }
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
-async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
-  console.log("🔍 Checking window.projectTableData:");
-  if (!window.projectTableData) {
-    console.warn("❌ projectTableData is NOT defined on window.");
-  } else {
-    console.log("✅ projectTableData exists. Length =", window.projectTableData.length);
-    const sample = window.projectTableData.slice(0, 3);
-    console.log("🧪 Sample rows:", sample);
-  }
+  async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
+    // 1) Clear old
+    const container = d3.select(containerSelector).html("");
 
-  const container = d3.select(containerSelector).html("");
-  const mapDiv = container.append("div").style("position", "relative");
-  container.append("div")
-    .attr("id", "stateFilterTag")
-    .style("margin-top", "10px")
-    .style("text-align", "left");
+    // 2) Create a container div for the map
+    const mapDiv = container.append("div")
+      .style("position", "relative");
 
-  const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
-  const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
-  const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
-  const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
-  if (project && Array.isArray(project.searches)) {
-    project.searches.forEach(s => {
-      if (s.device?.toLowerCase().includes("desktop")) {
-        s.hideShare = !desktopShare;
-        s.hideRank  = !desktopRank;
-      } else if (s.device?.toLowerCase().includes("mobile")) {
-        s.hideShare = !mobileShare;
-        s.hideRank  = !mobileRank;
-      }
-    });
-  }
+    // After creating mapDiv
+const tagContainer = container.append("div")
+  .attr("id", "stateFilterTag")
+  .style("margin-top", "10px")
+  .style("text-align", "left");
 
-  let usTopo;
-  try {
-    usTopo = await getUSMapData();
-  } catch (err) {
-    console.error("[mapsLib] US topo load error:", err);
-    return;
-  }
-  const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
-
-  let dataRows = [];
-  let stateShareMap = {};
-
-  if (project && Array.isArray(project.searches)) {
-    dataRows = buildLocationDeviceData(project);
-    stateShareMap = buildStateShareMap(dataRows);
-} else if (Array.isArray(window.projectTableData)) {
-  console.log("[drawUsMapWithLocations] ✅ Aggregating projectTableData...");
-
-  const shareMap = new Map();
-
-  window.projectTableData.forEach(row => {
-    const loc = (row.location || "").trim().toLowerCase().replace(/,\s*/g, ',');
-    const device = (row.device || "").toLowerCase();
-    const key = `${loc}||${device}`;
-
-    if (!shareMap.has(key)) {
-      shareMap.set(key, { sum: 0, count: 0 });
+    // Apply toggle settings to project.searches
+    const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
+    const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
+    const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
+    const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
+if (project && Array.isArray(project.searches)) {
+  project.searches.forEach(s => {
+    if (s.device && s.device.toLowerCase().includes("desktop")) {
+      s.hideShare = !desktopShare;
+      s.hideRank  = !desktopRank;
+    } else if (s.device && s.device.toLowerCase().includes("mobile")) {
+      s.hideShare = !mobileShare;
+      s.hideRank  = !mobileRank;
     }
-
-    const rec = shareMap.get(key);
-    rec.sum += typeof row.avgShare === "number" ? row.avgShare : 0;
-    rec.count += 1;
   });
-
-  dataRows = [];
-  stateShareMap = {};
-
-  for (const [key, val] of shareMap.entries()) {
-    const [loc, device] = key.split("||");
-    const avg = val.count ? (val.sum / val.count) : 0;
-
-    if (!window.cityLookup || !window.cityLookup.has(loc)) continue;
-    const cityObj = window.cityLookup.get(loc);
-    if (!cityObj || !cityObj.state_id) continue;
-    const st = cityObj.state_id;
-
-    // Build state share map
-    if (!stateShareMap[st]) {
-      stateShareMap[st] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
-    }
-    if (device.includes("desktop")) {
-      stateShareMap[st].desktopSum += avg;
-      stateShareMap[st].desktopCount++;
-    } else if (device.includes("mobile")) {
-      stateShareMap[st].mobileSum += avg;
-      stateShareMap[st].mobileCount++;
-    }
-
-    // Add row for pies
-    dataRows.push({
-      locName: loc,
-      device: device,
-      shareVal: avg,
-      avgRank: 0,
-      rankChange: 0,
-      hideRank: true,
-      hideShare: false
-    });
-  }
 }
-    
-  } else {
-    console.warn("[drawUsMapWithLocations] No valid searches or projectTableData found.");
-  }
 
-  console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
-  console.log("[drawUsMapWithLocations] full stateShareMap object:", stateShareMap);
+    // 3) Load US TopoJSON
+    let usTopo;
+    try {
+      usTopo = await getUSMapData();
+    } catch (err) {
+      console.error("[mapsLib] US topo load error:", err);
+      return;
+    }
+    const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
 
-  const baseWidth = 975, baseHeight = 610;
-  const svg = mapDiv.append("svg")
-    .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
-    .attr("preserveAspectRatio", "xMidYMid meet")
-    .attr("width", baseWidth + "px")
-    .style("max-height", "600px")
-    .style("display", "block")
-    .style("margin", "0 auto")
-    .style("background-color", "transparent");
+    // 4) Build location/device data
+let dataRows;
+let stateShareMap;
 
-  const path = d3.geoPath();
-  let maxShare = 0;
-  Object.values(stateShareMap).forEach(stData => {
-    const c = computeCombinedShare(stData);
-    if (c > maxShare) maxShare = c;
+// 🔵 If project.searches exists, treat it as "home" page
+if (project && Array.isArray(project.searches)) {
+  dataRows = buildLocationDeviceData(project);
+  stateShareMap = buildStateShareMap(dataRows);
+
+// 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
+} else if (Array.isArray(window.companyStatsData)) {
+  const projectLocData = buildProjectPageLocationData();
+  stateShareMap = {};
+  projectLocData.forEach(item => {
+    stateShareMap[item.statePostal] = {
+      desktopSum: item.avgShare,
+      desktopCount: 1,
+      mobileSum: item.avgShare,
+      mobileCount: 1
+    };
   });
-  const colorScale = d3.scaleSequential()
-    .domain([0, maxShare || 1])
-    .interpolator(d3.interpolateBlues);
 
-  console.log("[drawUsMapWithLocations] maxShare =", maxShare);
+// 🔵 Otherwise: fallback
+} else {
+  console.warn("[drawUsMapWithLocations] No valid searches or companyStatsData found.");
+  stateShareMap = {};
+}
+
+    console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
+    console.log("[drawUsMapWithLocations] full stateShareMap object:", stateShareMap);
+
+let testStates = ["TX", "FL", "NY", "CA"];
+testStates.forEach(st => {
+  console.log(`[drawUsMapWithLocations] ${st} combinedShare =`, computeCombinedShare(stateShareMap[st]));
+});
+
+    // 5) Create the SVG container
+    const baseWidth = 975, baseHeight = 610;
+    const svg = mapDiv.append("svg")
+      .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+      .attr("width", baseWidth + "px")
+      .style("max-height", "600px")
+      .style("display", "block")
+      .style("margin", "0 auto")
+      .style("background-color", "transparent");
+
+    const path = d3.geoPath();
+
+    // 5B) Build a color scale for states based on combined market share
+    let maxShare = 0;
+    Object.values(stateShareMap).forEach(stData => {
+      const c = computeCombinedShare(stData);
+      if (c > maxShare) maxShare = c;
+    });
+    const colorScale = d3.scaleSequential()
+      .domain([0, maxShare || 1])
+      .interpolator(d3.interpolateBlues);
+
+    console.log("[drawUsMapWithLocations] maxShare =", maxShare);
 
     // 6) Draw state paths
     const statesSelection = svg.selectAll("path.state")
