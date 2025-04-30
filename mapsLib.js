@@ -309,7 +309,19 @@ let stateShareMap;
 // 🔵 If project.searches exists, treat it as "home" page
 if (project && Array.isArray(project.searches)) {
   dataRows = buildLocationDeviceData(project);
-  stateShareMap = buildStateShareMap(dataRows);
+
+  console.group("[drawUsMapWithLocations] Location Debug (ProjectPage)");
+console.log("✅ dataRows.length =", dataRows.length);
+
+const matched = dataRows.filter(r => window.cityLookup?.has(r.locName));
+const unmatched = dataRows.filter(r => !window.cityLookup?.has(r.locName));
+
+console.log("✅ Matched locations in cityLookup:", matched.length);
+console.log("❌ Unmatched locations:", unmatched.length);
+console.log("🔍 Sample unmatched locNames:", unmatched.map(r => r.locName).slice(0, 10));
+console.groupEnd();
+
+stateShareMap = buildStateShareMap(dataRows);
 
 // 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
 } else if (Array.isArray(window.companyStatsData)) {
