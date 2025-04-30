@@ -344,14 +344,21 @@ if (project && Array.isArray(project.searches)) {
 } else if (Array.isArray(window.projectTableData)) {
   console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
 
-  stateShareMap = {};
-  window.projectTableData.forEach(row => {
-    const loc = (row.location || "").toLowerCase();
-    const device = (row.device || "").toLowerCase();
-    const share = typeof row.avgShare === "number" ? row.avgShare : 0;
+  // First build dataRows from projectTableData (for pies, tooltips, etc.)
+  dataRows = window.projectTableData.map(row => ({
+    locName: (row.location || "").trim().toLowerCase().replace(/,\s*/g, ','),
+    device: row.device,
+    shareVal: typeof row.avgShare === "number" ? row.avgShare : 0,
+    avgRank: typeof row.avgRank === "number" ? row.avgRank : 0,
+    rankChange: typeof row.rankChange === "number" ? row.rankChange : 0,
+    hideRank: false,
+    hideShare: false
+  }));
 
-    if (!window.cityLookup || !window.cityLookup.has(loc)) return;
-    const cityObj = window.cityLookup.get(loc);
+  // Then build stateShareMap for coloring
+  stateShareMap = {};
+  dataRows.forEach(row => {
+    const cityObj = window.cityLookup?.get(row.locName);
     if (!cityObj || !cityObj.state_id) return;
 
     const stPostal = cityObj.state_id;
@@ -359,11 +366,12 @@ if (project && Array.isArray(project.searches)) {
       stateShareMap[stPostal] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
     }
 
-    if (device.includes("desktop")) {
-      stateShareMap[stPostal].desktopSum += share;
+    const dev = row.device?.toLowerCase();
+    if (dev.includes("desktop")) {
+      stateShareMap[stPostal].desktopSum += row.shareVal;
       stateShareMap[stPostal].desktopCount++;
-    } else if (device.includes("mobile")) {
-      stateShareMap[stPostal].mobileSum += share;
+    } else if (dev.includes("mobile")) {
+      stateShareMap[stPostal].mobileSum += row.shareVal;
       stateShareMap[stPostal].mobileCount++;
     }
   });
