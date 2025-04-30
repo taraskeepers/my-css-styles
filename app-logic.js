@@ -367,7 +367,7 @@ function onReceivedRows(rows) {
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
 
-//waitForProjectDataThenPopulate();
+waitForProjectDataThenPopulate();
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
