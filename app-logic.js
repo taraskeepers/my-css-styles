@@ -328,26 +328,47 @@ function autoPickDefaultFirstGroup(allRows) {
 /* specialized helper logic */
 
     // Called once we receive rows from parent or IDB
-    function onReceivedRows(rows) {
-      console.log("Received", rows.length, "rows");
-        // Process your data
-        window.allRows = rows;
-        updateSearchTermDropdown(rows);
-        updateEngineDropdown(rows);
-        /*updateDeviceDropdown(rows);*/
-        updateLocationDropdown(rows);
-        autoPickDefaultFirstGroup(rows);
-        renderData();
-        updateCompanyDropdown(window.filteredData);
-      
-        // Set home page visible and hide main content.
-        document.getElementById("homePage").style.display = "block";
-        document.getElementById("main").style.display = "none";
-      
-        // Now fire the home-button click event
-document.getElementById("projectButton").click();
+function onReceivedRows(rows) {
+  console.log("Received", rows.length, "rows");
 
-      } 
+  // 1) Process data and update filters
+  window.allRows = rows;
+  updateSearchTermDropdown(rows);
+  updateEngineDropdown(rows);
+  updateLocationDropdown(rows);
+  autoPickDefaultFirstGroup(rows);
+  renderData();
+  updateCompanyDropdown(window.filteredData);
+
+  // 2) Set default company from `myCompany` or fallback
+  if (!window.filterState.company || window.filterState.company.trim() === "") {
+    if (window.myCompany && window.myCompany.trim()) {
+      window.filterState.company = window.myCompany.trim();
+    } else {
+      window.filterState.company = "Under Armour";  // fallback
+    }
+  }
+
+  // 3) Update the UI label for company selector
+  document.getElementById("companyText").textContent = window.filterState.company;
+
+  // 4) Set default active project if not already set
+  if (!window.filterState.activeProjectNumber) {
+    window.filterState.activeProjectNumber = 1;
+  }
+
+  // 5) Force-load the Project page directly
+  document.getElementById("projectPage").style.display = "block";
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("main").style.display = "none";
+
+  document.getElementById("projectButton").classList.add("selected");
+  document.getElementById("homeButton").classList.remove("selected");
+  document.getElementById("mainButton").classList.remove("selected");
+
+  // 6) Call project page population logic
+  populateProjectPage();
+}
 
     function pickRandomValidTuple(rows) {
         if (!rows || !rows.length) return;
