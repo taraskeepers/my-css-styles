@@ -368,6 +368,7 @@ function onReceivedRows(rows) {
 
   // 6) Call project page population logic
   populateProjectPage();
+  document.getElementById("projectButton").click();
 }
 
     function pickRandomValidTuple(rows) {
