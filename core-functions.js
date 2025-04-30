@@ -2,7 +2,6 @@
 
     // The core rendering logic
 function renderData(skipCompanyStats) {
-  }
         
         console.log("[DEBUG] ▶ renderData() called — prefix:", window.dataPrefix);
         console.group("[📊 renderData() – Confirming Data Source]");
