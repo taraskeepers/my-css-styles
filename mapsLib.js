@@ -321,44 +321,60 @@ async function drawUsMapWithLocations(project, containerSelector, mode = "home")
     dataRows = buildLocationDeviceData(project);
     stateShareMap = buildStateShareMap(dataRows);
 } else if (Array.isArray(window.projectTableData)) {
-  console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
+  console.log("[drawUsMapWithLocations] ✅ Aggregating projectTableData...");
 
-  stateShareMap = {};
-  dataRows = []; // ← Also reset this
+  const shareMap = new Map();
 
   window.projectTableData.forEach(row => {
     const loc = (row.location || "").trim().toLowerCase().replace(/,\s*/g, ',');
     const device = (row.device || "").toLowerCase();
-    const share = typeof row.avgShare === "number" ? row.avgShare : 0;
+    const key = `${loc}||${device}`;
 
-    if (!window.cityLookup || !window.cityLookup.has(loc)) return;
+    if (!shareMap.has(key)) {
+      shareMap.set(key, { sum: 0, count: 0 });
+    }
+
+    const rec = shareMap.get(key);
+    rec.sum += typeof row.avgShare === "number" ? row.avgShare : 0;
+    rec.count += 1;
+  });
+
+  dataRows = [];
+  stateShareMap = {};
+
+  for (const [key, val] of shareMap.entries()) {
+    const [loc, device] = key.split("||");
+    const avg = val.count ? (val.sum / val.count) : 0;
+
+    if (!window.cityLookup || !window.cityLookup.has(loc)) continue;
     const cityObj = window.cityLookup.get(loc);
-    if (!cityObj || !cityObj.state_id) return;
-
+    if (!cityObj || !cityObj.state_id) continue;
     const st = cityObj.state_id;
+
+    // Build state share map
     if (!stateShareMap[st]) {
       stateShareMap[st] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
     }
-
     if (device.includes("desktop")) {
-      stateShareMap[st].desktopSum += share;
+      stateShareMap[st].desktopSum += avg;
       stateShareMap[st].desktopCount++;
     } else if (device.includes("mobile")) {
-      stateShareMap[st].mobileSum += share;
+      stateShareMap[st].mobileSum += avg;
       stateShareMap[st].mobileCount++;
     }
 
-    // Build the row for pie rendering
+    // Add row for pies
     dataRows.push({
       locName: loc,
-      device,
-      shareVal: share,
-      avgRank: typeof row.avgRank === "number" ? row.avgRank : 0,
-      rankChange: typeof row.rankChange === "number" ? row.rankChange : 0,
-      hideRank: false,
+      device: device,
+      shareVal: avg,
+      avgRank: 0,
+      rankChange: 0,
+      hideRank: true,
       hideShare: false
     });
-  });
+  }
+}
     
   } else {
     console.warn("[drawUsMapWithLocations] No valid searches or projectTableData found.");
