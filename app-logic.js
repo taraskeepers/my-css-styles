@@ -372,18 +372,7 @@ waitForProjectDataThenPopulate();
 function waitForProjectDataThenPopulate(attempts = 0) {
   if (window.projectData && window.projectData.length > 0) {
     console.log("[✅] projectData is now available. Populating project page.");
-
-    // Optional: extra safety checks
-    if (!window.companyStatsData || !window.companyStatsData.length) {
-      console.warn("[waitForProjectDataThenPopulate] Aborted: companyStatsData missing.");
-      return;
-    }
-    if (!window.marketTrendsData || !window.marketTrendsData.length) {
-      console.warn("[waitForProjectDataThenPopulate] Aborted: marketTrendsData missing.");
-      return;
-    }
-
-    populateHomePage();
+    populateProjectPage();
   } else if (attempts < 10) {
     console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
     setTimeout(() => waitForProjectDataThenPopulate(attempts + 1), 100);
