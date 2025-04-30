@@ -344,7 +344,8 @@ function autoPickDefaultFirstGroup(allRows) {
         document.getElementById("homePage").style.display = "block";
         document.getElementById("main").style.display = "none";
       
-        // Now fire the home-button click event.
+        // Now fire the home-button click event
+      document.getElementById("homeButton").click();
 document.getElementById("projectButton").click();
 
       } 
