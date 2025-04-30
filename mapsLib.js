@@ -272,148 +272,128 @@ function buildProjectPageLocationData() {
   }
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
-  async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
-    console.log("🔍 Checking window.projectTableData:");
-if (!window.projectTableData) {
-  console.warn("❌ projectTableData is NOT defined on window.");
-} else {
-  console.log("✅ projectTableData exists. Length =", window.projectTableData.length);
-  const sample = window.projectTableData.slice(0, 3);
-  console.log("🧪 Sample rows:", sample);
+async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
+  console.log("🔍 Checking window.projectTableData:");
+  if (!window.projectTableData) {
+    console.warn("❌ projectTableData is NOT defined on window.");
+  } else {
+    console.log("✅ projectTableData exists. Length =", window.projectTableData.length);
+    const sample = window.projectTableData.slice(0, 3);
+    console.log("🧪 Sample rows:", sample);
+  }
 
-  const missingFields = sample.map((row, i) => {
-    return {
-      index: i,
-      hasLocation: !!row.location,
-      hasDevice: !!row.device,
-      hasAvgShare: typeof row.avgShare === "number"
-    };
-  });
-  console.table(missingFields);
-}
-    // 1) Clear old
-    const container = d3.select(containerSelector).html("");
+  const container = d3.select(containerSelector).html("");
+  const mapDiv = container.append("div").style("position", "relative");
+  container.append("div")
+    .attr("id", "stateFilterTag")
+    .style("margin-top", "10px")
+    .style("text-align", "left");
 
-    // 2) Create a container div for the map
-    const mapDiv = container.append("div")
-      .style("position", "relative");
-
-    // After creating mapDiv
-const tagContainer = container.append("div")
-  .attr("id", "stateFilterTag")
-  .style("margin-top", "10px")
-  .style("text-align", "left");
-
-    // Apply toggle settings to project.searches
-    const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
-    const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
-    const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
-    const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
-if (project && Array.isArray(project.searches)) {
-  project.searches.forEach(s => {
-    if (s.device && s.device.toLowerCase().includes("desktop")) {
-      s.hideShare = !desktopShare;
-      s.hideRank  = !desktopRank;
-    } else if (s.device && s.device.toLowerCase().includes("mobile")) {
-      s.hideShare = !mobileShare;
-      s.hideRank  = !mobileRank;
-    }
-  });
-}
-
-    // 3) Load US TopoJSON
-    let usTopo;
-    try {
-      usTopo = await getUSMapData();
-    } catch (err) {
-      console.error("[mapsLib] US topo load error:", err);
-      return;
-    }
-    const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
-
-    // 4) Build location/device data
-let dataRows;
-let stateShareMap;
-
-// 🔵 If project.searches exists, treat it as "home" page
-if (project && Array.isArray(project.searches)) {
-  dataRows = buildLocationDeviceData(project);
-  stateShareMap = buildStateShareMap(dataRows);
-
-// 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
-} else if (Array.isArray(window.projectTableData)) {
-  console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
-
-  // First build dataRows from projectTableData (for pies, tooltips, etc.)
-  dataRows = window.projectTableData.map(row => ({
-    locName: (row.location || "").trim().toLowerCase().replace(/,\s*/g, ','),
-    device: row.device,
-    shareVal: typeof row.avgShare === "number" ? row.avgShare : 0,
-    avgRank: typeof row.avgRank === "number" ? row.avgRank : 0,
-    rankChange: typeof row.rankChange === "number" ? row.rankChange : 0,
-    hideRank: false,
-    hideShare: false
-  }));
-
-  // Then build stateShareMap for coloring
-  stateShareMap = {};
-  dataRows.forEach(row => {
-    const cityObj = window.cityLookup?.get(row.locName);
-    if (!cityObj || !cityObj.state_id) return;
-
-    const stPostal = cityObj.state_id;
-    if (!stateShareMap[stPostal]) {
-      stateShareMap[stPostal] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
-    }
-
-    const dev = row.device?.toLowerCase();
-    if (dev.includes("desktop")) {
-      stateShareMap[stPostal].desktopSum += row.shareVal;
-      stateShareMap[stPostal].desktopCount++;
-    } else if (dev.includes("mobile")) {
-      stateShareMap[stPostal].mobileSum += row.shareVal;
-      stateShareMap[stPostal].mobileCount++;
-    }
-  });
-
-// 🔵 Otherwise: fallback
-} else {
-  console.warn("[drawUsMapWithLocations] No valid searches or companyStatsData found.");
-  stateShareMap = {};
-}
-
-    console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
-    console.log("[drawUsMapWithLocations] full stateShareMap object:", stateShareMap);
-
-let testStates = ["TX", "FL", "NY", "CA"];
-testStates.forEach(st => {
-  console.log(`[drawUsMapWithLocations] ${st} combinedShare =`, computeCombinedShare(stateShareMap[st]));
-});
-
-    // 5) Create the SVG container
-    const baseWidth = 975, baseHeight = 610;
-    const svg = mapDiv.append("svg")
-      .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .attr("width", baseWidth + "px")
-      .style("max-height", "600px")
-      .style("display", "block")
-      .style("margin", "0 auto")
-      .style("background-color", "transparent");
-
-    const path = d3.geoPath();
-
-    // 5B) Build a color scale for states based on combined market share
-    let maxShare = 0;
-    Object.values(stateShareMap).forEach(stData => {
-      const c = computeCombinedShare(stData);
-      if (c > maxShare) maxShare = c;
+  const desktopShare = document.getElementById("toggleDesktopShare")?.checked;
+  const desktopRank  = document.getElementById("toggleDesktopRank")?.checked;
+  const mobileShare  = document.getElementById("toggleMobileShare")?.checked;
+  const mobileRank   = document.getElementById("toggleMobileRank")?.checked;
+  if (project && Array.isArray(project.searches)) {
+    project.searches.forEach(s => {
+      if (s.device?.toLowerCase().includes("desktop")) {
+        s.hideShare = !desktopShare;
+        s.hideRank  = !desktopRank;
+      } else if (s.device?.toLowerCase().includes("mobile")) {
+        s.hideShare = !mobileShare;
+        s.hideRank  = !mobileRank;
+      }
     });
-    const colorScale = d3.scaleSequential()
-      .domain([0, maxShare || 1])
-      .interpolator(d3.interpolateBlues);
+  }
 
-    console.log("[drawUsMapWithLocations] maxShare =", maxShare);
+  let usTopo;
+  try {
+    usTopo = await getUSMapData();
+  } catch (err) {
+    console.error("[mapsLib] US topo load error:", err);
+    return;
+  }
+  const statesGeo = topojson.feature(usTopo, usTopo.objects.states);
+
+  let dataRows = [];
+  let stateShareMap = {};
+
+  if (project && Array.isArray(project.searches)) {
+    dataRows = buildLocationDeviceData(project);
+    stateShareMap = buildStateShareMap(dataRows);
+  } else if (Array.isArray(window.projectTableData)) {
+    console.log("[drawUsMapWithLocations] ✅ Using projectTableData for state coloring");
+
+    // 🟡 NEW: Aggregate avgShare per location + device
+    const shareByLocDev = {};
+    window.projectTableData.forEach(row => {
+      const loc = (row.location || "").toLowerCase();
+      const device = (row.device || "").toLowerCase();
+      const key = `${loc}||${device}`;
+      if (!shareByLocDev[key]) {
+        shareByLocDev[key] = { sum: 0, count: 0 };
+      }
+      shareByLocDev[key].sum += (typeof row.avgShare === "number") ? row.avgShare : 0;
+      shareByLocDev[key].count++;
+    });
+
+    // 🟡 NEW: Build stateShareMap using averaged share per device per location
+    Object.entries(shareByLocDev).forEach(([key, val]) => {
+      const [loc, device] = key.split("||");
+      if (!window.cityLookup || !window.cityLookup.has(loc)) return;
+      const cityObj = window.cityLookup.get(loc);
+      if (!cityObj || !cityObj.state_id) return;
+      const st = cityObj.state_id;
+      if (!stateShareMap[st]) {
+        stateShareMap[st] = { desktopSum: 0, desktopCount: 0, mobileSum: 0, mobileCount: 0 };
+      }
+      const avg = val.count ? (val.sum / val.count) : 0;
+      if (device.includes("desktop")) {
+        stateShareMap[st].desktopSum += avg;
+        stateShareMap[st].desktopCount++;
+      } else if (device.includes("mobile")) {
+        stateShareMap[st].mobileSum += avg;
+        stateShareMap[st].mobileCount++;
+      }
+    });
+
+    // 🟡 Assign dataRows so pies can render
+    dataRows = window.projectTableData.map(row => ({
+      locName: (row.location || "").trim().toLowerCase().replace(/,\s*/g, ','),
+      device: row.device,
+      shareVal: typeof row.avgShare === "number" ? row.avgShare : 0,
+      avgRank: typeof row.avgRank === "number" ? row.avgRank : 0,
+      rankChange: typeof row.rankChange === "number" ? row.rankChange : 0,
+      hideRank: false,
+      hideShare: false
+    }));
+  } else {
+    console.warn("[drawUsMapWithLocations] No valid searches or projectTableData found.");
+  }
+
+  console.log("[drawUsMapWithLocations] stateShareMap keys:", Object.keys(stateShareMap));
+  console.log("[drawUsMapWithLocations] full stateShareMap object:", stateShareMap);
+
+  const baseWidth = 975, baseHeight = 610;
+  const svg = mapDiv.append("svg")
+    .attr("viewBox", `0 0 ${baseWidth} ${baseHeight}`)
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .attr("width", baseWidth + "px")
+    .style("max-height", "600px")
+    .style("display", "block")
+    .style("margin", "0 auto")
+    .style("background-color", "transparent");
+
+  const path = d3.geoPath();
+  let maxShare = 0;
+  Object.values(stateShareMap).forEach(stData => {
+    const c = computeCombinedShare(stData);
+    if (c > maxShare) maxShare = c;
+  });
+  const colorScale = d3.scaleSequential()
+    .domain([0, maxShare || 1])
+    .interpolator(d3.interpolateBlues);
+
+  console.log("[drawUsMapWithLocations] maxShare =", maxShare);
 
     // 6) Draw state paths
     const statesSelection = svg.selectAll("path.state")
