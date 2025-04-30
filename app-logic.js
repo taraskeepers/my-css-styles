@@ -2,6 +2,7 @@
 
 // 1) Global variables
 Chart.register(window["ChartDataLabels"]);
+window._embedFullyInitialized = false;
 
 let projectData = [];
 let loadingCount = 0;
@@ -366,13 +367,17 @@ function onReceivedRows(rows) {
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
 
-waitForProjectDataThenPopulate();
+//waitForProjectDataThenPopulate();
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
   if (window.projectData && window.projectData.length > 0) {
     console.log("[✅] projectData is now available. Populating project page.");
-    populateProjectPage();
+    if (!window._embedFullyInitialized) {
+  console.warn("[onReceivedRows] ⚠️ embed not ready, skipping populateHomePage");
+  return;
+}
+populateHomePage();
   } else if (attempts < 10) {
     console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
     setTimeout(() => waitForProjectDataThenPopulate(attempts + 1), 100);
