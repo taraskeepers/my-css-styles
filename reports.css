@@ -2735,9 +2735,6 @@ body.home-page #layoutCompToggleContainer {
   transition: background-color 0.2s;
   border-bottom: 1px solid #ddd;
 }
-.project-menu-item:hover {
-  background-color: #eee;
-}
 .project-info {
   display: flex;
   align-items: center;
