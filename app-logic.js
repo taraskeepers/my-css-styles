@@ -768,6 +768,9 @@ span.style.color = "#333";
   setTimeout(() => {
   styleHomeTableHistoryBoxes();
 }, 100);
+  document.querySelectorAll('.history-empty-box, .history-empty-share-box').forEach(el => {
+  void el.offsetHeight;
+});
 
   // 11) Finally, draw the map as before
   const mapData = buildHomeDataForMap();
