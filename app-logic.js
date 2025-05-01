@@ -748,43 +748,51 @@ data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
 });
 
       // Render market share boxes (in reverse order)
-      data.last30shares.slice().reverse().forEach((sVal, idx3) => {
-        const fillPct = Math.min(100, Math.max(0, sVal));
-        const shareBox = document.createElement("div");
-        shareBox.style.display = "inline-block";
-        shareBox.style.position = "relative";
-        shareBox.style.width = "38px";
-        shareBox.style.height = "38px";
-        shareBox.style.backgroundColor = "#ddd";
-        shareBox.style.borderRadius = "4px";
-        shareBox.style.marginRight = "4px";
-        shareBox.style.overflow = "hidden";
+data.last30shares.slice().reverse().forEach((sVal, idx3) => {
+  const fillPct = Math.min(100, Math.max(0, sVal));
+  const shareBox = document.createElement("div");
+  shareBox.style.display = "inline-block";
+  shareBox.style.position = "relative";
+  shareBox.style.width = "38px";
+  shareBox.style.borderRadius = "4px";
+  shareBox.style.marginRight = "4px";
+  shareBox.style.overflow = "hidden";
 
-        const fillDiv = document.createElement("div");
-        fillDiv.style.position = "absolute";
-        fillDiv.style.left = "0";
-        fillDiv.style.bottom = "0";
-        fillDiv.style.width = "100%";
-        fillDiv.style.height = fillPct + "%";
-        fillDiv.style.backgroundColor = "#007aff";
+  if (sVal !== 0) {
+    shareBox.style.height = "38px";
+  }
 
-        const labelSpan = document.createElement("span");
-        labelSpan.style.position = "relative";
-        labelSpan.style.zIndex = "2";
-        labelSpan.style.display = "inline-block";
-        labelSpan.style.width = "100%";
-        labelSpan.style.textAlign = "center";
-        labelSpan.style.fontWeight = "bold";
-        labelSpan.style.fontSize = "12px";
-        labelSpan.style.lineHeight = "38px";
-        labelSpan.style.color = "#333";
-        labelSpan.textContent = sVal.toFixed(0) + "%";
+  const fillDiv = document.createElement("div");
+  fillDiv.style.position = "absolute";
+  fillDiv.style.left = "0";
+  fillDiv.style.bottom = "0";
+  fillDiv.style.width = "100%";
+  fillDiv.style.height = fillPct + "%";
+  fillDiv.style.backgroundColor = "#007aff";
 
-        shareBox.appendChild(fillDiv);
-        shareBox.appendChild(labelSpan);
-        shareBox.setAttribute("title", dateArray[idx3]);
-        shareRowDiv.appendChild(shareBox);
-      });
+  const labelSpan = document.createElement("span");
+  labelSpan.style.position = "relative";
+  labelSpan.style.zIndex = "2";
+  labelSpan.style.display = "inline-block";
+  labelSpan.style.width = "100%";
+  labelSpan.style.textAlign = "center";
+  labelSpan.style.fontWeight = "bold";
+  labelSpan.style.fontSize = "12px";
+  labelSpan.style.lineHeight = "38px";
+  labelSpan.style.color = "#333";
+
+  if (sVal === 0) {
+    labelSpan.textContent = "";
+    shareBox.classList.add("history-empty-share-box"); // 🚀 add styling class
+  } else {
+    labelSpan.textContent = sVal.toFixed(0) + "%";
+  }
+
+  shareBox.appendChild(fillDiv);
+  shareBox.appendChild(labelSpan);
+  shareBox.setAttribute("title", dateArray[idx3]);
+  shareRowDiv.appendChild(shareBox);
+});
 
       // Append the two rows into the scrollable histContainer
       histContainer.appendChild(rankRowDiv);
