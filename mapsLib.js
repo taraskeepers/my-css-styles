@@ -1551,9 +1551,8 @@ rowData.last30ranks.slice().reverse().forEach((rVal, idx2) => {
     });
   }
 
-  console.log(
-    `[rebuildProjectTableByState] => built table with ${results.length} aggregated rows for "${stateName}".`
-);
+  console.log(`[rebuildProjectTableByState] => built table with ${results.length} aggregated rows for "${stateName}".`);
+  styleEmptyHistoryBoxes();
 }
   
   function showAllHomeTableRows() {
@@ -1569,6 +1568,27 @@ function showAllProjectTableRows() {
   if (!table) return;
   table.querySelectorAll("tbody tr").forEach(row => {
     row.style.display = "";
+  });
+}
+
+  // Re-style empty boxes in project-table
+function styleEmptyHistoryBoxes() {
+  // Rank boxes: empty = shorter
+  document.querySelectorAll('.project-table .rank-row-div div').forEach(box => {
+    const text = box.textContent.trim();
+    if (!text || text === "—" || text === "") {
+      box.classList.add("history-empty-box");
+    }
+  });
+
+  // Share boxes: "0%" = shorter + hide label
+  document.querySelectorAll('.project-table .share-row-div > div').forEach(box => {
+    const label = box.querySelector('span');
+    const value = label?.textContent?.trim();
+    if (value === "0%" || value === "0.0%") {
+      box.classList.add("history-empty-share-box");
+      if (label) label.textContent = "";
+    }
   });
 }
 
