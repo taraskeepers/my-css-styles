@@ -1552,7 +1552,7 @@ rowData.last30ranks.slice().reverse().forEach((rVal, idx2) => {
   }
 
   console.log(`[rebuildProjectTableByState] => built table with ${results.length} aggregated rows for "${stateName}".`);
-  styleEmptyHistoryBoxes();
+  styleEmptyHistoryBoxes(".project-table");
 }
   
   function showAllHomeTableRows() {
@@ -1572,9 +1572,9 @@ function showAllProjectTableRows() {
 }
 
   // Re-style empty boxes in project-table
-function styleEmptyHistoryBoxes() {
+function styleEmptyHistoryBoxes(tableSelector = ".project-table") {
   // Rank boxes: empty = shorter
-  document.querySelectorAll('.project-table .rank-row-div div').forEach(box => {
+  document.querySelectorAll(`${tableSelector} .rank-row-div div`).forEach(box => {
     const text = box.textContent.trim();
     if (!text || text === "—" || text === "") {
       box.classList.add("history-empty-box");
@@ -1582,7 +1582,7 @@ function styleEmptyHistoryBoxes() {
   });
 
   // Share boxes: "0%" = shorter + hide label
-  document.querySelectorAll('.project-table .share-row-div > div').forEach(box => {
+  document.querySelectorAll(`${tableSelector} .share-row-div > div`).forEach(box => {
     const label = box.querySelector('span');
     const value = label?.textContent?.trim();
     if (value === "0%" || value === "0.0%") {
