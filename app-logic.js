@@ -113,6 +113,26 @@ window.initialAvgPosRangeSet = false;
 
 /* All the big logic that transforms or filters data, calculates metrics, etc */
 
+function styleHomeTableHistoryBoxes() {
+  // Rank boxes: empty = shorter
+  document.querySelectorAll(".home-table .rank-row-div div").forEach(box => {
+    const text = box.textContent.trim();
+    if (!text || text === "—" || text === "") {
+      box.classList.add("history-empty-box");
+    }
+  });
+
+  // Share boxes: "0%" = shorter + hide label
+  document.querySelectorAll(".home-table .share-row-div > div").forEach(box => {
+    const label = box.querySelector('span');
+    const value = label?.textContent?.trim();
+    if (value === "0%" || value === "0.0%") {
+      box.classList.add("history-empty-share-box");
+      if (label) label.textContent = "";
+    }
+  });
+}
+
       // Global helper to apply all active filters
       function applyAllFilters(rows) {
         const st = window.filterState;
@@ -734,7 +754,7 @@ span.style.color = "#333";
 
   // 10) Call existing info block and history update functions
   updateInfoBlock();
-  styleEmptyHistoryBoxes(".home-table");
+  styleEmptyHistoryBoxes();
   updateHistoryRows();
 
   // 11) Finally, draw the map as before
