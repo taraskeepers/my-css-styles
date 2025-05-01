@@ -114,21 +114,31 @@ window.initialAvgPosRangeSet = false;
 /* All the big logic that transforms or filters data, calculates metrics, etc */
 
 function styleHomeTableHistoryBoxes() {
+  console.log("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
+
   // Rank boxes: empty = shorter
-  document.querySelectorAll(".home-table .rank-row-div div").forEach(box => {
+  const rankBoxes = document.querySelectorAll(".home-table .rank-row-div div");
+  console.log("[DEBUG] Rank boxes found:", rankBoxes.length);
+
+  rankBoxes.forEach(box => {
     const text = box.textContent.trim();
     if (!text || text === "—" || text === "") {
       box.classList.add("history-empty-box");
+      console.log("[DEBUG] ➤ Empty rank box styled");
     }
   });
 
   // Share boxes: "0%" = shorter + hide label
-  document.querySelectorAll(".home-table .share-row-div > div").forEach(box => {
+  const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
+  console.log("[DEBUG] Share boxes found:", shareBoxes.length);
+
+  shareBoxes.forEach(box => {
     const label = box.querySelector('span');
     const value = label?.textContent?.trim();
     if (value === "0%" || value === "0.0%") {
       box.classList.add("history-empty-share-box");
       if (label) label.textContent = "";
+      console.log("[DEBUG] ➤ Empty share box styled");
     }
   });
 }
