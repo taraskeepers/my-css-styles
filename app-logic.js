@@ -711,42 +711,39 @@ function populateHomePage() {
 data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
   const box = document.createElement("div");
   box.style.display = "inline-flex";
-box.style.alignItems = "center";
-box.style.justifyContent = "center";
+  box.style.alignItems = "center";
+  box.style.justifyContent = "center";
   box.style.width = "38px";
-  box.style.height = "38px";
-  //box.style.lineHeight = "38px";
   box.style.textAlign = "center";
   box.style.fontWeight = "bold";
   box.style.marginRight = "4px";
   box.style.borderRadius = "4px";
-  
-const span = document.createElement("span");
-span.style.fontWeight = "bold";
-span.style.fontSize = "14px";   // adjust if needed
-span.style.color = "#333";
-  
-  // 1) If rVal===40 => means “no data” => grey box, no text
+
+  if (rVal !== 40) {
+    box.style.height = "38px"; // full height only for real data
+  }
+
+  const span = document.createElement("span");
+  span.style.fontWeight = "bold";
+  span.style.fontSize = "14px";
+  span.style.color = "#333";
+
   if (rVal === 40) {
     box.style.backgroundColor = "#ddd";
-    box.textContent = "";
-  }
-  else {
-    // 2) Otherwise, apply your normal color thresholds:
-    let bgColor = "#ffcfcf";               // fallback
+    span.textContent = "";
+    box.classList.add("history-empty-box");  // 🚀 add class here directly
+  } else {
+    let bgColor = "#ffcfcf";
     if (rVal <= 1)       bgColor = "#dfffd6";
     else if (rVal <= 3)  bgColor = "#fffac2";
     else if (rVal <= 5)  bgColor = "#ffe0bd";
 
     box.style.backgroundColor = bgColor;
-    box.textContent = rVal;  // show the rank
+    span.textContent = rVal;
   }
 
   box.appendChild(span);
-
-  // Optionally set box title for a date tooltip
   box.title = dateArray[idx2];
-
   rankRowDiv.appendChild(box);
 });
 
