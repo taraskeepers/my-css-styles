@@ -116,62 +116,75 @@ window.initialAvgPosRangeSet = false;
 function styleHomeTableHistoryBoxes() {
   console.debug("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
 
-  // Style RANK boxes
+  // Rank boxes
   const rankBoxes = document.querySelectorAll(".home-table .rank-row-div div");
   console.debug("[DEBUG] Rank boxes found:", rankBoxes.length);
-  let rankEmptyCount = 0;
 
+  let styledRankCount = 0;
   rankBoxes.forEach(box => {
     const text = box.textContent.trim();
-    if (!text || text === "—" || text === "") {
+    if (!text || text === "—") {
       box.classList.add("history-empty-box");
 
-      // 💥 FORCE styling
-      box.style.height = "12px";
-      box.style.minHeight = "12px";
-      box.style.alignItems = "flex-end";
-      box.style.verticalAlign = "bottom";
+      // ⚠️ REMOVE conflicting inline styles
+      box.style.removeProperty("height");
+      box.style.removeProperty("min-height");
+      box.style.removeProperty("line-height");
+      box.style.removeProperty("align-items");
 
       const span = box.querySelector("span");
       if (span) {
-        span.style.lineHeight = "12px";
-        span.style.fontSize = "10px";
+        span.style.removeProperty("line-height");
+        span.style.removeProperty("font-size");
       }
 
-      rankEmptyCount++;
+      // ⚠️ Trigger DOM reflow
+      box.style.display = "none";
+      void box.offsetHeight;  // trigger reflow
+      box.style.display = "inline-flex";
+
+      styledRankCount++;
       console.debug("➤ Rank box set to empty class:", box.outerHTML);
     }
   });
-  console.debug("[DEBUG] ➤ Empty rank box styled:", rankEmptyCount);
 
-  // Style SHARE boxes
+  console.debug("[DEBUG] ➤ Empty rank box styled:", styledRankCount);
+
+
+  // Share boxes
   const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
   console.debug("[DEBUG] Share boxes found:", shareBoxes.length);
-  let shareEmptyCount = 0;
 
+  let styledShareCount = 0;
   shareBoxes.forEach(box => {
-    const label = box.querySelector("span");
-    const value = label?.textContent?.trim();
+    const span = box.querySelector("span");
+    const val = span?.textContent?.trim();
 
-    if (value === "0%" || value === "0.0%") {
+    if (val === "0%" || val === "0.0%") {
       box.classList.add("history-empty-share-box");
-      box.style.height = "12px";
-      box.style.minHeight = "12px";
-      box.style.alignItems = "flex-end";
-      box.style.verticalAlign = "bottom";
-      box.style.overflow = "hidden";
 
-      if (label) {
-        label.textContent = "";
-        label.style.lineHeight = "12px";
-        label.style.fontSize = "10px";
+      // Remove conflicting inline styles
+      box.style.removeProperty("height");
+      box.style.removeProperty("min-height");
+      box.style.removeProperty("line-height");
+      box.style.removeProperty("align-items");
+
+      if (span) {
+        span.textContent = "";
+        span.style.removeProperty("line-height");
+        span.style.removeProperty("font-size");
       }
 
-      shareEmptyCount++;
-      console.debug("➤ Share box set to empty class:", box.outerHTML);
+      // Trigger reflow
+      box.style.display = "none";
+      void box.offsetHeight;
+      box.style.display = "inline-flex";
+
+      styledShareCount++;
     }
   });
-  console.debug("[DEBUG] ➤ Empty share box styled:", shareEmptyCount);
+
+  console.debug("[DEBUG] ➤ Empty share box styled:", styledShareCount);
 }
 
       // Global helper to apply all active filters
