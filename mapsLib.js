@@ -325,6 +325,25 @@ stateShareMap = buildStateShareMap(dataRows);
 
 // 🔵 If project is missing searches but companyStatsData exists, treat it as "project" page
 } else if (Array.isArray(window.companyStatsData)) {
+  // 🛠️ Apply toggle settings to companyStatsData (project page)
+if (Array.isArray(window.companyStatsData)) {
+  const toggles = window.localEmbedToggles || {};
+  const desktopShare = toggles.toggleDesktopShare !== false;
+  const desktopRank  = toggles.toggleDesktopRank !== false;
+  const mobileShare  = toggles.toggleMobileShare !== false;
+  const mobileRank   = toggles.toggleMobileRank !== false;
+
+  window.companyStatsData.forEach(row => {
+    const dev = (row.device || "").toLowerCase();
+    if (dev.includes("desktop")) {
+      row.hideShare = !desktopShare;
+      row.hideRank  = !desktopRank;
+    } else if (dev.includes("mobile")) {
+      row.hideShare = !mobileShare;
+      row.hideRank  = !mobileRank;
+    }
+  });
+}
   const projectLocData = buildProjectPageLocationData();
   stateShareMap = {};
   projectLocData.forEach(item => {
