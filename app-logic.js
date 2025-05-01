@@ -754,8 +754,8 @@ span.style.color = "#333";
 
   // 10) Call existing info block and history update functions
   updateInfoBlock();
-  styleHomeTableHistoryBoxes();
   updateHistoryRows();
+  styleHomeTableHistoryBoxes();
 
   // 11) Finally, draw the map as before
   const mapData = buildHomeDataForMap();
