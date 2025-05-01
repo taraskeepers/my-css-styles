@@ -757,10 +757,7 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   shareBox.style.borderRadius = "4px";
   shareBox.style.marginRight = "4px";
   shareBox.style.overflow = "hidden";
-
-  if (sVal !== 0) {
-    shareBox.style.height = "38px";
-  }
+  shareBox.style.backgroundColor = "#ddd"; // 👈 always set background for visibility
 
   const fillDiv = document.createElement("div");
   fillDiv.style.position = "absolute";
@@ -782,9 +779,10 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   labelSpan.style.color = "#333";
 
   if (sVal === 0) {
-    labelSpan.textContent = "";
-    shareBox.classList.add("history-empty-share-box"); // 🚀 add styling class
+    shareBox.classList.add("history-empty-share-box");
+    labelSpan.textContent = "";  // hide label
   } else {
+    shareBox.style.height = "38px"; // ✅ force full height
     labelSpan.textContent = sVal.toFixed(0) + "%";
   }
 
