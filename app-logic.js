@@ -114,45 +114,64 @@ window.initialAvgPosRangeSet = false;
 /* All the big logic that transforms or filters data, calculates metrics, etc */
 
 function styleHomeTableHistoryBoxes() {
-  console.log("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
+  console.debug("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
 
+  // Style RANK boxes
   const rankBoxes = document.querySelectorAll(".home-table .rank-row-div div");
-  console.log("[DEBUG] Rank boxes found:", rankBoxes.length);
+  console.debug("[DEBUG] Rank boxes found:", rankBoxes.length);
+  let rankEmptyCount = 0;
 
-  let emptyRankCount = 0;
-rankBoxes.forEach(box => {
-  const text = box.textContent.trim();
-  if (!text || text === "—" || text === "") {
-    box.classList.add("history-empty-box");
+  rankBoxes.forEach(box => {
+    const text = box.textContent.trim();
+    if (!text || text === "—" || text === "") {
+      box.classList.add("history-empty-box");
 
-    // 💥 Manually override inline height styles
-    box.style.height = "12px";
-    box.style.minHeight = "12px";
-    box.style.alignItems = "flex-end";
-    box.style.verticalAlign = "bottom";
-  }
-});
-  console.log(`[DEBUG] ➤ Empty rank box styled: ${emptyRankCount}`);
+      // 💥 FORCE styling
+      box.style.height = "12px";
+      box.style.minHeight = "12px";
+      box.style.alignItems = "flex-end";
+      box.style.verticalAlign = "bottom";
 
+      const span = box.querySelector("span");
+      if (span) {
+        span.style.lineHeight = "12px";
+        span.style.fontSize = "10px";
+      }
+
+      rankEmptyCount++;
+      console.debug("➤ Rank box set to empty class:", box.outerHTML);
+    }
+  });
+  console.debug("[DEBUG] ➤ Empty rank box styled:", rankEmptyCount);
+
+  // Style SHARE boxes
   const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
-  console.log("[DEBUG] Share boxes found:", shareBoxes.length);
+  console.debug("[DEBUG] Share boxes found:", shareBoxes.length);
+  let shareEmptyCount = 0;
 
-  let emptyShareCount = 0;
   shareBoxes.forEach(box => {
     const label = box.querySelector("span");
     const value = label?.textContent?.trim();
-if (value === "0%" || value === "0.0%") {
-  box.classList.add("history-empty-share-box");
-  if (label) label.textContent = "";
 
-  // 💥 Manually override inline height styles
-  box.style.height = "12px";
-  box.style.minHeight = "12px";
-  box.style.alignItems = "flex-end";
-  box.style.verticalAlign = "bottom";
-}
+    if (value === "0%" || value === "0.0%") {
+      box.classList.add("history-empty-share-box");
+      box.style.height = "12px";
+      box.style.minHeight = "12px";
+      box.style.alignItems = "flex-end";
+      box.style.verticalAlign = "bottom";
+      box.style.overflow = "hidden";
+
+      if (label) {
+        label.textContent = "";
+        label.style.lineHeight = "12px";
+        label.style.fontSize = "10px";
+      }
+
+      shareEmptyCount++;
+      console.debug("➤ Share box set to empty class:", box.outerHTML);
+    }
   });
-  console.log(`[DEBUG] ➤ Empty share box styled: ${emptyShareCount}`);
+  console.debug("[DEBUG] ➤ Empty share box styled:", shareEmptyCount);
 }
 
       // Global helper to apply all active filters
