@@ -116,31 +116,35 @@ window.initialAvgPosRangeSet = false;
 function styleHomeTableHistoryBoxes() {
   console.log("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
 
-  // Rank boxes: empty = shorter
   const rankBoxes = document.querySelectorAll(".home-table .rank-row-div div");
   console.log("[DEBUG] Rank boxes found:", rankBoxes.length);
 
+  let emptyRankCount = 0;
   rankBoxes.forEach(box => {
     const text = box.textContent.trim();
     if (!text || text === "—" || text === "") {
+      emptyRankCount++;
       box.classList.add("history-empty-box");
-      console.log("[DEBUG] ➤ Empty rank box styled");
+      console.log("[DEBUG] ➤ Rank box set to empty class:", box);
     }
   });
+  console.log(`[DEBUG] ➤ Empty rank box styled: ${emptyRankCount}`);
 
-  // Share boxes: "0%" = shorter + hide label
   const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
   console.log("[DEBUG] Share boxes found:", shareBoxes.length);
 
+  let emptyShareCount = 0;
   shareBoxes.forEach(box => {
-    const label = box.querySelector('span');
+    const label = box.querySelector("span");
     const value = label?.textContent?.trim();
     if (value === "0%" || value === "0.0%") {
+      emptyShareCount++;
       box.classList.add("history-empty-share-box");
       if (label) label.textContent = "";
-      console.log("[DEBUG] ➤ Empty share box styled");
+      console.log("[DEBUG] ➤ Share box set to empty class:", box);
     }
   });
+  console.log(`[DEBUG] ➤ Empty share box styled: ${emptyShareCount}`);
 }
 
       // Global helper to apply all active filters
