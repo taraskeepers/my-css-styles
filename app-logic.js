@@ -120,14 +120,18 @@ function styleHomeTableHistoryBoxes() {
   console.log("[DEBUG] Rank boxes found:", rankBoxes.length);
 
   let emptyRankCount = 0;
-  rankBoxes.forEach(box => {
-    const text = box.textContent.trim();
-    if (!text || text === "—" || text === "") {
-      emptyRankCount++;
-      box.classList.add("history-empty-box");
-      console.log("[DEBUG] ➤ Rank box set to empty class:", box);
-    }
-  });
+rankBoxes.forEach(box => {
+  const text = box.textContent.trim();
+  if (!text || text === "—" || text === "") {
+    box.classList.add("history-empty-box");
+
+    // 💥 Manually override inline height styles
+    box.style.height = "12px";
+    box.style.minHeight = "12px";
+    box.style.alignItems = "flex-end";
+    box.style.verticalAlign = "bottom";
+  }
+});
   console.log(`[DEBUG] ➤ Empty rank box styled: ${emptyRankCount}`);
 
   const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
@@ -137,12 +141,16 @@ function styleHomeTableHistoryBoxes() {
   shareBoxes.forEach(box => {
     const label = box.querySelector("span");
     const value = label?.textContent?.trim();
-    if (value === "0%" || value === "0.0%") {
-      emptyShareCount++;
-      box.classList.add("history-empty-share-box");
-      if (label) label.textContent = "";
-      console.log("[DEBUG] ➤ Share box set to empty class:", box);
-    }
+if (value === "0%" || value === "0.0%") {
+  box.classList.add("history-empty-share-box");
+  if (label) label.textContent = "";
+
+  // 💥 Manually override inline height styles
+  box.style.height = "12px";
+  box.style.minHeight = "12px";
+  box.style.alignItems = "flex-end";
+  box.style.verticalAlign = "bottom";
+}
   });
   console.log(`[DEBUG] ➤ Empty share box styled: ${emptyShareCount}`);
 }
