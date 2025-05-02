@@ -1,5 +1,22 @@
 /* core functions */
 
+      function getGlobalMaxDate(allRows) {
+        let maxDate = null;
+        if (!allRows || !allRows.length) return moment(); // fallback: “today”
+      
+        allRows.forEach(row => {
+          if (!row.historical_data) return;
+          row.historical_data.forEach(h => {
+            const d = moment(h.date.value, "YYYY-MM-DD");
+            if (!maxDate || d.isAfter(maxDate)) {
+              maxDate = d.clone();
+            }
+          });
+        });
+      
+        return maxDate || moment();
+      } 
+
     // The core rendering logic
 function renderData(skipCompanyStats) {
         
