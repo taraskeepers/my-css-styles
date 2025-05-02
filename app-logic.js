@@ -114,11 +114,9 @@ window.initialAvgPosRangeSet = false;
 /* All the big logic that transforms or filters data, calculates metrics, etc */
 
 function styleHomeTableHistoryBoxes() {
-  console.debug("[DEBUG] ➤ styleHomeTableHistoryBoxes() called");
 
   // Rank boxes
   const rankBoxes = document.querySelectorAll(".home-table .rank-row-div div");
-  console.debug("[DEBUG] Rank boxes found:", rankBoxes.length);
 
   let styledRankCount = 0;
   rankBoxes.forEach(box => {
@@ -144,16 +142,12 @@ function styleHomeTableHistoryBoxes() {
       box.style.display = "inline-flex";
 
       styledRankCount++;
-      console.debug("➤ Rank box set to empty class:", box.outerHTML);
     }
   });
-
-  console.debug("[DEBUG] ➤ Empty rank box styled:", styledRankCount);
 
 
   // Share boxes
   const shareBoxes = document.querySelectorAll(".home-table .share-row-div > div");
-  console.debug("[DEBUG] Share boxes found:", shareBoxes.length);
 
   let styledShareCount = 0;
   shareBoxes.forEach(box => {
