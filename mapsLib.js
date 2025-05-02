@@ -262,6 +262,14 @@ const POSTAL_TO_STATE_NAME = {
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
   async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
+    console.warn("[🛑 drawUsMapWithLocations called when?]",
+  "page state =", {
+    homePage: document.getElementById("homePage")?.style.display,
+    projectPage: document.getElementById("projectPage")?.style.display,
+    mainPage: document.getElementById("main")?.style.display
+  }
+);
+
     // 1) Clear old
     const container = d3.select(containerSelector).html("");
 
