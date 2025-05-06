@@ -668,51 +668,59 @@ svg.selectAll("foreignObject.state-label")
         tooltip.style("display", "none");
       })
 .on("click", function(event, d) {
+  // 1) Visually highlight the clicked state (thicker stroke).
   if (previouslySelectedState) {
     previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
   }
   d3.select(this).attr("stroke-width", 4).attr("stroke", "#007aff");
   previouslySelectedState = d3.select(this);
 
+  // 2) Figure out the 2-letter postal code + spelled-out name
   const stPostal = FIPS_TO_POSTAL[d.id] || null;
   if (!stPostal) return;
   const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
+  // 3) If we’re on the homePage => filter the home table
   if (document.getElementById("homePage").style.display !== "none") {
     filterHomeTableByState(stateName);
   }
+  // 4) If we’re on the projectPage => show a “tag” + rebuild table
   else if (document.getElementById("projectPage").style.display !== "none") {
-    // (NEW) 1. Insert the Filter Tag
+    
+    // (NEW) 1. Insert or update the “filter tag”
     const tagContainer = document.querySelector("#projectPage #stateFilterTag");
     if (tagContainer) {
       tagContainer.innerHTML = `
-        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
+        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;
+                     border-radius:20px;font-size:14px;font-weight:500;position:relative;">
           ${stateName}
           <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
         </span>
       `;
-  document.getElementById("clearStateFilterProject").addEventListener("click", function() {
-    tagContainer.innerHTML = "";
+      // “X” to remove the filter:
+      document.getElementById("clearStateFilterProject").addEventListener("click", function() {
+        tagContainer.innerHTML = "";
 
-    // (NEW) Simulate a click on projectButton
-    const projectBtn = document.getElementById("projectButton");
-    if (projectBtn) {
-      projectBtn.click();
-    } else {
-      console.warn("[mapsLib] Project button (#projectButton) not found.");
+        // 1) Un-highlight the state shape
+        if (previouslySelectedState) {
+          previouslySelectedState
+            .attr("stroke-width", 1)
+            .attr("stroke", "#999");
+          previouslySelectedState = null;
+        }
+
+        // 2) Clear the special table by re-loading the full table
+        //    E.g. simulate a click on projectButton or call your “populateProjectPage”:
+        const projectBtn = document.getElementById("projectButton");
+        if (projectBtn) {
+          projectBtn.click();
+        }
+        // If for some reason you just want to do “populateProjectPage()”:
+        // populateProjectPage();
+      });
     }
 
-    // Reset state outline
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-      previouslySelectedState = null;
-    }
-  });
-}
-
-    // (EXISTING) 2. Then rebuild the project table
+    // (NEW) 2. Actually rebuild the project table for that one state
     rebuildProjectTableByState(stateName);
   }
 });
