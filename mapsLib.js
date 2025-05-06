@@ -719,12 +719,14 @@ document.getElementById("clearStateFilterProject").addEventListener("click", fun
   // 4) Also re-run the chart with full data
   const fullData = buildProjectData();  // your normal aggregator
   renderProjectMarketShareChart(fullData);
+  renderProjectDailyRankBoxes(fullData);
 });
 }
 
     // (EXISTING) 2. Then rebuild the project table
     rebuildProjectTableByState(stateName);
     renderProjectMarketShareChart(filteredProjectData);
+    renderProjectDailyRankBoxes(filteredProjectData);
   }
 });
   }
