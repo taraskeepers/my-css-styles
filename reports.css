@@ -1708,9 +1708,9 @@ ion-range::part(knob) {
   margin-left: 0;
   align-items: right;
 }
-#infoBlock .ms-bar-wrapper {
+/*#infoBlock .ms-bar-wrapper {
   margin-left: 10px;
-}
+}*/
 .toggle-switch-container + .toggle-switch-container {
   margin-top: 8px;
 }
