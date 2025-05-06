@@ -678,6 +678,10 @@ svg.selectAll("foreignObject.state-label")
   if (!stPostal) return;
   const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
+      const filteredProjectData = buildProjectData().filter(row =>
+      row.location.toLowerCase().includes(stateName.toLowerCase())
+    );
+
   if (document.getElementById("homePage").style.display !== "none") {
     filterHomeTableByState(stateName);
   }
@@ -691,29 +695,36 @@ svg.selectAll("foreignObject.state-label")
           <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
         </span>
       `;
-  document.getElementById("clearStateFilterProject").addEventListener("click", function() {
-    tagContainer.innerHTML = "";
+document.getElementById("clearStateFilterProject").addEventListener("click", function() {
+  // 1) Clear the tag
+  tagContainer.innerHTML = "";
 
-    // (NEW) Simulate a click on projectButton
-    const projectBtn = document.getElementById("projectButton");
-    if (projectBtn) {
-      projectBtn.click();
-    } else {
-      console.warn("[mapsLib] Project button (#projectButton) not found.");
-    }
+  // 2) Optionally re-show entire Project Page
+  //    (You do this by simulating "click on #projectButton")
+  const projectBtn = document.getElementById("projectButton");
+  if (projectBtn) {
+    projectBtn.click();
+  } else {
+    console.warn("[mapsLib] Project button (#projectButton) not found.");
+  }
 
-    // Reset state outline
-    if (previouslySelectedState) {
-      previouslySelectedState
-        .attr("stroke-width", 1)
-        .attr("stroke", "#999");
-      previouslySelectedState = null;
-    }
-  });
+  // 3) Reset any previously selected outline
+  if (previouslySelectedState) {
+    previouslySelectedState
+      .attr("stroke-width", 1)
+      .attr("stroke", "#999");
+    previouslySelectedState = null;
+  }
+
+  // 4) Also re-run the chart with full data
+  const fullData = buildProjectData();  // your normal aggregator
+  renderProjectMarketShareChart(fullData);
+});
 }
 
     // (EXISTING) 2. Then rebuild the project table
     rebuildProjectTableByState(stateName);
+    renderProjectMarketShareChart(filteredProjectData);
   }
 });
   }
