@@ -399,33 +399,66 @@ function autoPickDefaultFirstGroup(allRows) {
 function onReceivedRows(rows) {
   console.log("Received", rows.length, "rows");
 
-  // 1) Process data and update filters
-  window.allRows = rows;
-  updateSearchTermDropdown(rows);
-  updateEngineDropdown(rows);
-  updateLocationDropdown(rows);
-  autoPickDefaultFirstGroup(rows);
-  renderData();
-  updateCompanyDropdown(window.filteredData);
+  const prefix = window.dataPrefix;
+  const isDemo = prefix.startsWith("demo_");
 
-  // 2) Set default company from `myCompany` or fallback
-  if (!window.filterState.company || window.filterState.company.trim() === "") {
-    if (window.myCompany && window.myCompany.trim()) {
-      window.filterState.company = window.myCompany.trim();
-    } else {
-      window.filterState.company = "Under Armour";  // fallback
-    }
+  const statsTable = prefix + "company_serp_stats";
+  const trendsTable = prefix + "market_trends";
+  const processedTable = prefix + "processed";
+
+  const serpStats = getTableFromIDB(statsTable);
+  const marketTrends = getTableFromIDB(trendsTable);
+  const processed = getTableFromIDB(processedTable);
+
+  if (!serpStats || !marketTrends || !processed) {
+    console.warn("❌ Missing one or more tables from IDB. Aborting onReceivedRows.");
+    return;
   }
 
-  // 3) Update the UI label for company selector
-  document.getElementById("companyText").textContent = window.filterState.company;
+  // ✅ Force myCompany = "Nike" in DEMO mode
+  if (isDemo) {
+    console.log("🟡 DEMO mode active — forcing myCompany = Nike");
+    window.myCompany = "Nike";
+  }
 
-  // 4) Set default active project if not already set
+  // ✅ Patch company_serp_stats with source and project_number
+  const patchedStats = serpStats.data.map((row) => {
+    return {
+      ...row,
+      source: isDemo ? "Nike" : row.source || "Unknown",
+      project_number: inferProjectNumberFromTableName(statsTable),
+    };
+  });
+
+  window.companyStatsData = patchedStats;
+  window.marketTrendsData = marketTrends.data;
+  window.allRows = processed.data;
+
+  console.log("✅ Patched rows loaded into global variables.");
+  console.log("Sample companyStatsData row:", patchedStats[0]);
+
+  // 🔄 Update dropdowns based on 'processed' rows
+  updateSearchTermDropdown(processed.data);
+  updateEngineDropdown(processed.data);
+  updateLocationDropdown(processed.data);
+  autoPickDefaultFirstGroup(processed.data);
+  updateCompanyDropdown(window.filteredData);
+
+  // 🏢 Set default company in filterState
+  if (!window.filterState.company || window.filterState.company.trim() === "") {
+    window.filterState.company = window.myCompany?.trim() || "Under Armour";
+  }
+
+  // 🏷️ Update company name label
+  const label = document.getElementById("companyText");
+  if (label) label.textContent = window.filterState.company;
+
+  // 🧭 Ensure default project number is set
   if (!window.filterState.activeProjectNumber) {
     window.filterState.activeProjectNumber = 1;
   }
 
-  // 5) Force-load the Project page directly
+  // 📄 Switch to Project Page immediately
   document.getElementById("projectPage").style.display = "block";
   document.getElementById("homePage").style.display = "none";
   document.getElementById("main").style.display = "none";
@@ -434,7 +467,13 @@ function onReceivedRows(rows) {
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
 
-waitForProjectDataThenPopulate();
+  // 📥 Trigger full project page population
+  waitForProjectDataThenPopulate();
+}
+
+function inferProjectNumberFromTableName(tableName) {
+  const match = tableName.match(/pr(\d+)_/);
+  return match ? parseInt(match[1], 10) : null;
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
