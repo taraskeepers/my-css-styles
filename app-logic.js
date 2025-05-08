@@ -1059,7 +1059,13 @@ const raw = buildHomeData(fallbackCo);
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
               
-              renderData();
+              if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from renderQList");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
               updateCompanyDropdown(window.filteredData);
             });
             dropdown.appendChild(li);
@@ -1126,7 +1132,13 @@ const raw = buildHomeData(fallbackCo);
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
               
-              renderData();
+              if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from renderEngineList");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
               updateCompanyDropdown(window.filteredData);
             });
             dropdown.appendChild(li);
@@ -1249,7 +1261,13 @@ const raw = buildHomeData(fallbackCo);
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
               
-              renderData();
+              if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from renderLocationList");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
               updateCompanyDropdown(window.filteredData);
             });
             dropdown.appendChild(li);
@@ -1337,7 +1355,13 @@ const raw = buildHomeData(fallbackCo);
               document.getElementById("companyText").textContent = "Companies:";
               dropdown.style.display = "none";
               // re-render
-              renderData();
+              if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from if companyLiAll");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
               updateCompanyDropdown(window.filteredData);
             });
             dropdown.appendChild(companyLiAll);
@@ -1365,7 +1389,13 @@ const raw = buildHomeData(fallbackCo);
                 if (companySearchInput) {
                   companySearchInput.value = "";
                 }
-                renderData();
+                if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from renderNoShareList");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
                 updateCompanyDropdown(window.filteredData);
               });
               dropdown.appendChild(li);
@@ -1432,7 +1462,13 @@ const raw = buildHomeData(fallbackCo);
             if (companySearchInput) companySearchInput.value = "";
             document.getElementById("companyText").textContent = "Companies:";
             dropdown.style.display = "none";
-            renderData();
+            if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from if companyLiAll2");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
             updateCompanyDropdown(cachedRows);
           });
           dropdown.appendChild(companyLiAll);
@@ -1476,7 +1512,13 @@ const raw = buildHomeData(fallbackCo);
               if (companySearchInput) {
                 companySearchInput.value = "";
               }
-              renderData();
+              if (typeof renderData === "function") {
+  console.log("[TRACE] renderData() called from li.addEventListener");
+  console.trace();
+  renderData();
+} else {
+  console.warn("renderData() not yet defined — skipping this trace");
+}
               updateCompanyDropdown(window.filteredData);
             });
             dropdown.appendChild(li);
