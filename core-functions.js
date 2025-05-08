@@ -2,6 +2,21 @@
 
     // The core rendering logic
 function renderData(skipCompanyStats) {
+    // --- DEBUG WRAPPER ---
+if (!window._renderDataCallCount) window._renderDataCallCount = 0;
+window._renderDataCallCount++;
+
+const callerStack = new Error().stack.split("\n").slice(1, 6).map(l => l.trim()).join("\n  ↪ ");
+const now = new Date().toISOString();
+
+console.groupCollapsed(`[TRACE] renderData() call #${window._renderDataCallCount} @ ${now}`);
+console.log("🔹 skipCompanyStats =", skipCompanyStats);
+console.log("🔹 dataPrefix       =", window.dataPrefix);
+console.log("🔹 allRows.length   =", window.allRows?.length || 0);
+console.log("🔹 companyStatsData =", window.companyStatsData?.length || 0);
+console.log("🔹 filteredData     =", window.filteredData?.length || 0);
+console.log("🔹 Stack trace:\n  ↪", callerStack);
+console.groupEnd();
         
         console.log("[DEBUG] ▶ renderData() called — prefix:", window.dataPrefix);
         console.group("[📊 renderData() – Confirming Data Source]");
