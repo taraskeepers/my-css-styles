@@ -396,6 +396,47 @@ function autoPickDefaultFirstGroup(allRows) {
 /* specialized helper logic */
 
     // Called once we receive rows from parent or IDB
+function onReceivedRows(rows) {
+  console.log("Received", rows.length, "rows");
+
+  // 1) Process data and update filters
+  window.allRows = rows;
+  updateSearchTermDropdown(rows);
+  updateEngineDropdown(rows);
+  updateLocationDropdown(rows);
+  autoPickDefaultFirstGroup(rows);
+  renderData();
+  updateCompanyDropdown(window.filteredData);
+
+  // 2) Set default company from `myCompany` or fallback
+  if (!window.filterState.company || window.filterState.company.trim() === "") {
+    if (window.myCompany && window.myCompany.trim()) {
+      window.filterState.company = window.myCompany.trim();
+    } else {
+      window.filterState.company = "Under Armour";  // fallback
+    }
+  }
+
+  // 3) Update the UI label for company selector
+  document.getElementById("companyText").textContent = window.filterState.company;
+
+  // 4) Set default active project if not already set
+  if (!window.filterState.activeProjectNumber) {
+    window.filterState.activeProjectNumber = 1;
+  }
+
+  // 5) Force-load the Project page directly
+  document.getElementById("projectPage").style.display = "block";
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("main").style.display = "none";
+
+  document.getElementById("projectButton").classList.add("selected");
+  document.getElementById("homeButton").classList.remove("selected");
+  document.getElementById("mainButton").classList.remove("selected");
+
+waitForProjectDataThenPopulate();
+}
+
 function waitForProjectDataThenPopulate(attempts = 0) {
   if (window.projectData && window.projectData.length > 0) {
     console.log("[✅] projectData is now available. Populating project page.");
@@ -1011,9 +1052,7 @@ const raw = buildHomeData(fallbackCo);
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-
-              console.log("[TRACE] renderData() called from function renderQList(arr)");
-console.trace();
+              
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1080,8 +1119,7 @@ console.trace();
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              console.log("[TRACE] renderData() called from function renderEngineList(arr)");
-console.trace();
+              
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1204,8 +1242,7 @@ console.trace();
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              console.log("[TRACE] renderData() called from function renderLocationList(arr)");
-console.trace();
+              
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1293,9 +1330,6 @@ console.trace();
               if (companySearchInput) companySearchInput.value = "";
               document.getElementById("companyText").textContent = "Companies:";
               dropdown.style.display = "none";
-
-              console.log("[TRACE] renderData() called from app-logic if (!companyLiAll)");
-console.trace();
               // re-render
               renderData();
               updateCompanyDropdown(window.filteredData);
@@ -1325,8 +1359,6 @@ console.trace();
                 if (companySearchInput) {
                   companySearchInput.value = "";
                 }
-                console.log("[TRACE] renderData() called from function renderNoShareList(companiesArray) ");
-console.trace();
                 renderData();
                 updateCompanyDropdown(window.filteredData);
               });
@@ -1394,8 +1426,6 @@ console.trace();
             if (companySearchInput) companySearchInput.value = "";
             document.getElementById("companyText").textContent = "Companies:";
             dropdown.style.display = "none";
-            console.log("[TRACE] renderData() called from app-logic if (!companyLiAll)");
-console.trace();
             renderData();
             updateCompanyDropdown(cachedRows);
           });
@@ -1440,8 +1470,6 @@ console.trace();
               if (companySearchInput) {
                 companySearchInput.value = "";
               }
-              console.log("[TRACE] renderData() called from app logic li.addEventListener("click"");
-console.trace();
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
