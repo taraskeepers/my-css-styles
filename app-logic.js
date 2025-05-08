@@ -444,12 +444,15 @@ async function onReceivedRows(rows) {
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
 
+  console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
 waitForProjectDataThenPopulate();
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
+  
   if (window.projectData && window.projectData.length > 0) {
     console.log("[✅] projectData is now available. Populating project page.");
+    console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
     populateProjectPage();
   } else if (attempts < 10) {
     console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
