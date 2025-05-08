@@ -397,6 +397,7 @@ function autoPickDefaultFirstGroup(allRows) {
 
     // Called once we receive rows from parent or IDB
 async function onReceivedRows(rows) {
+  console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
   console.log("Received", rows.length, "rows");
 
     if (window.myCompanyReady) {
