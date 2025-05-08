@@ -411,6 +411,7 @@ async function onReceivedRows(rows) {
   if (typeof renderData === "function") {
   console.log("[TRACE] renderData() called from onReceivedRows");
   console.trace();
+    console.log("[DEBUG] Before processing data, myCompany =", window.myCompany);
   renderData();
 } else {
   console.warn("renderData() not yet defined — skipping this trace");
