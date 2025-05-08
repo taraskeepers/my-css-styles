@@ -466,6 +466,9 @@ function waitForProjectDataThenPopulate(attempts = 0) {
       }; 
 
 function populateHomePage(triggeredByClick = false) {
+    const stack = new Error().stack;
+  console.log("[TRACE] populateHomePage() call stack:\n", stack);
+  
   if (!triggeredByClick) {
     console.log("[populateHomePage] Skipped — not user triggered.");
     return;
