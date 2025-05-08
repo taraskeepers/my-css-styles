@@ -829,6 +829,7 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   // 11) Finally, draw the map as before
   const mapData = buildHomeDataForMap();
   window.mapHelpers.drawUsMapWithLocations(mapData, "#locMap");
+  
 }
 
 function findOverallMaxDate(companyStats) {
