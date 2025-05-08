@@ -405,13 +405,13 @@ function onReceivedRows(rows) {
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
   autoPickDefaultFirstGroup(rows);
-  if (typeof renderData === "function") {
+  /*if (typeof renderData === "function") {
   console.log("[TRACE] renderData() called from onReceivedRows");
   console.trace();
-  /*renderData();*/
+  renderData();
 } else {
   console.warn("renderData() not yet defined — skipping this trace");
-}
+}*/
   updateCompanyDropdown(window.filteredData);
 
   // 2) Set default company from `myCompany` or fallback
