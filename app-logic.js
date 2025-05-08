@@ -1051,7 +1051,9 @@ const raw = buildHomeData(fallbackCo);
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              
+
+              console.log("[TRACE] renderData() called from function renderQList(arr)");
+console.trace();
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1118,7 +1120,8 @@ const raw = buildHomeData(fallbackCo);
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              
+              console.log("[TRACE] renderData() called from function renderEngineList(arr)");
+console.trace();
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1241,7 +1244,8 @@ const raw = buildHomeData(fallbackCo);
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
               document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              
+              console.log("[TRACE] renderData() called from function renderLocationList(arr)");
+console.trace();
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
@@ -1329,6 +1333,9 @@ const raw = buildHomeData(fallbackCo);
               if (companySearchInput) companySearchInput.value = "";
               document.getElementById("companyText").textContent = "Companies:";
               dropdown.style.display = "none";
+
+              console.log("[TRACE] renderData() called from app-logic if (!companyLiAll)");
+console.trace();
               // re-render
               renderData();
               updateCompanyDropdown(window.filteredData);
@@ -1358,6 +1365,8 @@ const raw = buildHomeData(fallbackCo);
                 if (companySearchInput) {
                   companySearchInput.value = "";
                 }
+                console.log("[TRACE] renderData() called from function renderNoShareList(companiesArray) ");
+console.trace();
                 renderData();
                 updateCompanyDropdown(window.filteredData);
               });
@@ -1425,6 +1434,8 @@ const raw = buildHomeData(fallbackCo);
             if (companySearchInput) companySearchInput.value = "";
             document.getElementById("companyText").textContent = "Companies:";
             dropdown.style.display = "none";
+            console.log("[TRACE] renderData() called from app-logic if (!companyLiAll)");
+console.trace();
             renderData();
             updateCompanyDropdown(cachedRows);
           });
@@ -1469,6 +1480,8 @@ const raw = buildHomeData(fallbackCo);
               if (companySearchInput) {
                 companySearchInput.value = "";
               }
+              console.log("[TRACE] renderData() called from app logic li.addEventListener("click"");
+console.trace();
               renderData();
               updateCompanyDropdown(window.filteredData);
             });
