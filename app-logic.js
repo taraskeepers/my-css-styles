@@ -396,9 +396,12 @@ function autoPickDefaultFirstGroup(allRows) {
 /* specialized helper logic */
 
     // Called once we receive rows from parent or IDB
-function onReceivedRows(rows) {
+async function onReceivedRows(rows) {
   console.log("Received", rows.length, "rows");
 
+    if (window.myCompanyReady) {
+    await window.myCompanyReady;
+  }
   // 1) Process data and update filters
   window.allRows = rows;
   updateSearchTermDropdown(rows);
