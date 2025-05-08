@@ -408,7 +408,7 @@ function onReceivedRows(rows) {
   if (typeof renderData === "function") {
   console.log("[TRACE] renderData() called from onReceivedRows");
   console.trace();
-  renderData();
+  /*renderData();*/
 } else {
   console.warn("renderData() not yet defined — skipping this trace");
 }
