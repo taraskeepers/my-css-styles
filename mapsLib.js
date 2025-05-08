@@ -262,6 +262,26 @@ const POSTAL_TO_STATE_NAME = {
 
   // ---------- (F) Draw US map with location pies, state labels, and popup tooltip ----------
   async function drawUsMapWithLocations(project, containerSelector, mode = "home") {
+        // Log when the function is triggered
+    console.log("[MAP] drawUsMapWithLocations called at:", new Date().toISOString());
+
+    // Log the current page state to see if it changes unexpectedly
+    console.log("[MAP] Current page state:", {
+        homePage: document.getElementById('homePage')?.style.display,
+        projectPage: document.getElementById('projectPage')?.style.display,
+        mainPage: document.getElementById('mainPage')?.style.display,
+    });
+
+    // Log the function parameters
+    console.log("[MAP] Parameters received by drawUsMapWithLocations:", {
+        dataRows: window.dataRows, // Log the data being passed in
+        stateShareMap: window.stateShareMap, // Log any state data used in map rendering
+        maxShare: window.maxShare // Log the max share value, if relevant
+    });
+
+    // Add a stack trace to identify the call source
+    console.trace("[MAP] Stack trace:");
+    
     console.warn("[🛑 drawUsMapWithLocations called when?]",
   "page state =", {
     homePage: document.getElementById("homePage")?.style.display,
