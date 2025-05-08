@@ -405,7 +405,6 @@ function onReceivedRows(rows) {
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
   autoPickDefaultFirstGroup(rows);
-  renderData();
   updateCompanyDropdown(window.filteredData);
 
   // 2) Set default company from `myCompany` or fallback
