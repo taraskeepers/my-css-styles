@@ -465,7 +465,11 @@ function waitForProjectDataThenPopulate(attempts = 0) {
         document.getElementById("locationText").textContent = randomRow.location_requested || "";
       }; 
 
-function populateHomePage() {
+function populateHomePage(triggeredByClick = false) {
+  if (!triggeredByClick) {
+    console.log("[populateHomePage] Skipped — not user triggered.");
+    return;
+  }
     console.log(
     "[DEBUG] ▶ populateHomePage() called with:",
     "\n   myCompany =", window.myCompany,
