@@ -496,30 +496,42 @@ async function onReceivedRows(rows) {
 function showLoadingOverlay() {
   // Show the overlay
   const overlay = document.getElementById("dataLoadingOverlay");
-  const rightSide = document.querySelector(".rightSide"); // Target only the right section
+  const rightSide = document.querySelector(".rightSide"); // Target the original right side
+  const placeholderRightSide = document.getElementById("placeholderRightSide"); // Target the new placeholder
+  
   if (overlay) {
     overlay.style.display = "flex";  // Show the overlay with the message
   }
   
-  // Apply the blur effect to the right side
+  // Hide the original right side
   if (rightSide) {
-    rightSide.style.filter = "blur(5px)";
-    rightSide.style.pointerEvents = "none"; // Disable interactions on the right side
+    rightSide.style.display = "none";
+  }
+
+  // Show the new placeholder with the message
+  if (placeholderRightSide) {
+    placeholderRightSide.style.display = "flex";
   }
 }
 
 function hideLoadingOverlay() {
   // Hide the overlay when data is available
   const overlay = document.getElementById("dataLoadingOverlay");
-  const rightSide = document.querySelector(".rightSide"); // Target only the right section
+  const rightSide = document.querySelector(".rightSide"); // Target the original right side
+  const placeholderRightSide = document.getElementById("placeholderRightSide"); // Target the new placeholder
+  
   if (overlay) {
     overlay.style.display = "none";  // Hide the overlay once data is ready
   }
   
-  // Remove the blur effect from the right side
+  // Show the original right side
   if (rightSide) {
-    rightSide.style.filter = "none";
-    rightSide.style.pointerEvents = "auto"; // Re-enable interactions on the right side
+    rightSide.style.display = "block";
+  }
+
+  // Hide the new placeholder
+  if (placeholderRightSide) {
+    placeholderRightSide.style.display = "none";
   }
 }
 
