@@ -496,16 +496,30 @@ async function onReceivedRows(rows) {
 function showLoadingOverlay() {
   // Show the overlay
   const overlay = document.getElementById("dataLoadingOverlay");
+  const rightSide = document.querySelector(".rightSide"); // Target only the right section
   if (overlay) {
     overlay.style.display = "flex";  // Show the overlay with the message
+  }
+  
+  // Apply the blur effect to the right side
+  if (rightSide) {
+    rightSide.style.filter = "blur(5px)";
+    rightSide.style.pointerEvents = "none"; // Disable interactions on the right side
   }
 }
 
 function hideLoadingOverlay() {
   // Hide the overlay when data is available
   const overlay = document.getElementById("dataLoadingOverlay");
+  const rightSide = document.querySelector(".rightSide"); // Target only the right section
   if (overlay) {
     overlay.style.display = "none";  // Hide the overlay once data is ready
+  }
+  
+  // Remove the blur effect from the right side
+  if (rightSide) {
+    rightSide.style.filter = "none";
+    rightSide.style.pointerEvents = "auto"; // Re-enable interactions on the right side
   }
 }
 
