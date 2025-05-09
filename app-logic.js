@@ -433,8 +433,9 @@ async function onReceivedRows(rows) {
     window.filterState.activeProjectNumber = 1;
   }
 
-  // 5) Handle the account prefix based on whether DEMO is selected
-  const prefix = window.isDemoAccount ? "demo_acc1_" : "acc1_pr1_"; // Adjust prefix based on selected account
+    // 5) **DEBUGGING**: Log window.isDemoAccount and window.dataPrefix
+  console.log("[DEMO DEBUG] window.isDemoAccount:", window.isDemoAccount);
+  const prefix = window.isDemoAccount ? "demo_acc1_" : "acc1_pr1_";  // Adjust prefix based on selected account
   window.dataPrefix = prefix;
 
   console.log("[DEBUG] Data prefix set to:", window.dataPrefix);
