@@ -20,6 +20,7 @@ let loadingCount = 0;
     },
     visibilityRange: { min: 0, max: 100 },  // from the slider
     avgPosRange:     { min: 1, max: 40 },   // from the slider
+    activeProjectNumber: 1
   };
   window.localEmbedToggles = {};
 let db = null;
