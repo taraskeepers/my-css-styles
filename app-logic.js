@@ -404,6 +404,11 @@ async function onReceivedRows(rows) {
   console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
   console.log("Received", rows.length, "rows");
 
+    if (rows.length === 0 && !window.isDemoAccount) {
+    console.log("[WARN] No data found for Account 1. Showing loading overlay.");
+    showLoadingOverlay();
+  }
+
   // Ensure the company data is ready if needed
   if (window.myCompanyReady) {
     await window.myCompanyReady;
@@ -458,6 +463,8 @@ async function onReceivedRows(rows) {
       processTableData(serpStats, "company_serp_stats");
       processTableData(marketTrends, "market_trends");
 
+      hideLoadingOverlay();
+
       // Now call renderData (if defined) to render the page with the loaded data
       if (typeof renderData === "function") {
         console.log("[TRACE] renderData() called from onReceivedRows");
@@ -484,6 +491,22 @@ async function onReceivedRows(rows) {
 
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
   waitForProjectDataThenPopulate();
+}
+
+function showLoadingOverlay() {
+  // Show the overlay
+  const overlay = document.getElementById("dataLoadingOverlay");
+  if (overlay) {
+    overlay.style.display = "flex";  // Show the overlay with the message
+  }
+}
+
+function hideLoadingOverlay() {
+  // Hide the overlay when data is available
+  const overlay = document.getElementById("dataLoadingOverlay");
+  if (overlay) {
+    overlay.style.display = "none";  // Hide the overlay once data is ready
+  }
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
