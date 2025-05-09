@@ -406,7 +406,6 @@ async function onReceivedRows(rows) {
 
     if (rows.length === 0 && !window.isDemoAccount) {
     console.log("[WARN] No data found for Account 1. Showing loading overlay.");
-    showLoadingOverlay();
   }
 
   // Ensure the company data is ready if needed
@@ -463,8 +462,6 @@ async function onReceivedRows(rows) {
       processTableData(serpStats, "company_serp_stats");
       processTableData(marketTrends, "market_trends");
 
-      hideLoadingOverlay();
-
       // Now call renderData (if defined) to render the page with the loaded data
       if (typeof renderData === "function") {
         console.log("[TRACE] renderData() called from onReceivedRows");
@@ -491,48 +488,6 @@ async function onReceivedRows(rows) {
 
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
   waitForProjectDataThenPopulate();
-}
-
-function showLoadingOverlay() {
-  // Show the overlay
-  const overlay = document.getElementById("dataLoadingOverlay");
-  const rightSide = document.querySelector(".rightSide"); // Target the original right side
-  const placeholderRightSide = document.getElementById("placeholderRightSide"); // Target the new placeholder
-  
-  if (overlay) {
-    overlay.style.display = "flex";  // Show the overlay with the message
-  }
-  
-  // Hide the original right side
-  if (rightSide) {
-    rightSide.style.display = "none";
-  }
-
-  // Show the new placeholder with the message
-  if (placeholderRightSide) {
-    placeholderRightSide.style.display = "flex";
-  }
-}
-
-function hideLoadingOverlay() {
-  // Hide the overlay when data is available
-  const overlay = document.getElementById("dataLoadingOverlay");
-  const rightSide = document.querySelector(".rightSide"); // Target the original right side
-  const placeholderRightSide = document.getElementById("placeholderRightSide"); // Target the new placeholder
-  
-  if (overlay) {
-    overlay.style.display = "none";  // Hide the overlay once data is ready
-  }
-  
-  // Show the original right side
-  if (rightSide) {
-    rightSide.style.display = "block";
-  }
-
-  // Hide the new placeholder
-  if (placeholderRightSide) {
-    placeholderRightSide.style.display = "none";
-  }
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
