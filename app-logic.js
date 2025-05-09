@@ -91,9 +91,13 @@ window.initialAvgPosRangeSet = false;
     function getDataFromIDB(key) {
       return new Promise((resolve) => {
         if (!db) return resolve(null);
+
+        const prefix = window.isDemoAccount ? "demo_acc1_" : "acc1_pr1_";
+        const tableName = `${prefix}${key}`;
+        
         const tx = db.transaction(STORE_NAME, "readonly");
         const store = tx.objectStore(STORE_NAME);
-        const req = store.get(key);
+        const req = store.get(tableName);
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => resolve(null);
       });
