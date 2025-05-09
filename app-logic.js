@@ -404,24 +404,17 @@ async function onReceivedRows(rows) {
   console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
   console.log("Received", rows.length, "rows");
 
-    if (window.myCompanyReady) {
+  // Ensure the company data is ready if needed
+  if (window.myCompanyReady) {
     await window.myCompanyReady;
   }
+
   // 1) Process data and update filters
   window.allRows = rows;
   updateSearchTermDropdown(rows);
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
   autoPickDefaultFirstGroup(rows);
-  if (typeof renderData === "function") {
-  console.log("[TRACE] renderData() called from onReceivedRows");
-  console.trace();
-    console.log("[DEBUG] Before processing data, myCompany =", window.myCompany);
-  renderData();
-} else {
-  console.warn("renderData() not yet defined — skipping this trace");
-}
-  updateCompanyDropdown(window.filteredData);
 
   // 2) Set default company from `myCompany` or fallback
   if (!window.filterState.company || window.filterState.company.trim() === "") {
@@ -440,7 +433,46 @@ async function onReceivedRows(rows) {
     window.filterState.activeProjectNumber = 1;
   }
 
-  // 5) Force-load the Project page directly
+  // 5) Handle the account prefix based on whether DEMO is selected
+  const prefix = window.isDemoAccount ? "demo_acc1_" : "acc1_pr1_"; // Adjust prefix based on selected account
+  window.dataPrefix = prefix;
+
+  console.log("[DEBUG] Data prefix set to:", window.dataPrefix);
+
+  // 6) Load the data using the appropriate prefix
+  Promise.all([
+    getDataFromIDB(window.dataPrefix + "processed"),
+    getDataFromIDB(window.dataPrefix + "company_serp_stats"),
+    getDataFromIDB(window.dataPrefix + "market_trends")
+  ])
+  .then(([processed, serpStats, marketTrends]) => {
+    console.log("[DEBUG] processed data:", processed);
+    console.log("[DEBUG] company_serp_stats data:", serpStats);
+    console.log("[DEBUG] market_trends data:", marketTrends);
+
+    // Process and use the loaded data
+    if (processed && serpStats && marketTrends) {
+      // Process the data (you can adjust this logic as needed)
+      processTableData(processed, "processed");
+      processTableData(serpStats, "company_serp_stats");
+      processTableData(marketTrends, "market_trends");
+
+      // Now call renderData (if defined) to render the page with the loaded data
+      if (typeof renderData === "function") {
+        console.log("[TRACE] renderData() called from onReceivedRows");
+        renderData();
+      } else {
+        console.warn("renderData() not yet defined — skipping this trace");
+      }
+    } else {
+      console.warn("[WARN] One or more required tables are missing data.");
+    }
+  })
+  .catch(error => {
+    console.error("[ERROR] Error loading tables:", error);
+  });
+
+  // 7) Force-load the Project page directly
   document.getElementById("projectPage").style.display = "block";
   document.getElementById("homePage").style.display = "none";
   document.getElementById("main").style.display = "none";
@@ -450,7 +482,7 @@ async function onReceivedRows(rows) {
   document.getElementById("mainButton").classList.remove("selected");
 
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
-waitForProjectDataThenPopulate();
+  waitForProjectDataThenPopulate();
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
