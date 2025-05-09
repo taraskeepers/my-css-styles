@@ -495,11 +495,13 @@ function waitForProjectDataThenPopulate(attempts = 0) {
   
   if (window.projectData && window.projectData.length > 0) {
     console.log("[✅] projectData is now available. Populating project page.");
+    console.log("[POPULATEPROJECTPAGE] projectData is available.");
     console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
     populateProjectPage();
   } else if (attempts < 10) {
     console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
     setTimeout(() => waitForProjectDataThenPopulate(attempts + 1), 100);
+    console.warn("[POPULATEPROJECTPAGE] No data available to populate the project page.");
   } else {
     console.warn("[❌] projectData not available after 10 attempts. Aborting project page load.");
   }
