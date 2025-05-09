@@ -2,6 +2,7 @@
 
     // The core rendering logic
 function renderData(skipCompanyStats) {
+    console.time("[CALC RENDER] Data Calculations");
     // --- DEBUG WRAPPER ---
   const now = new Date().toISOString();
   const stack = new Error().stack;
@@ -22,6 +23,7 @@ function renderData(skipCompanyStats) {
         const fullDataset = window.allRows;
         if (!fullDataset || !Array.isArray(fullDataset)) {
           console.warn("renderData was called without a valid full dataset.");
+            console.timeEnd("[CALC RENDER] Data Calculations");
           return;
         }
         // (Optionally) save fullDataset into cachedRows if needed
@@ -50,6 +52,7 @@ function renderData(skipCompanyStats) {
               }
             }
           });
+            console.timeEnd("[CALC RENDER] Data Calculations");
       
           // Build a stars array for rating rendering
           row.stars = [];
