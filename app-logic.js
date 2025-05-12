@@ -869,6 +869,7 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   locListContainer.appendChild(allLocationsWrapper);
 
   // 10) Call existing info block and history update functions
+  populateHomeStats();
   updateInfoBlock();
   updateHistoryRows();
   setTimeout(() => {
