@@ -522,18 +522,6 @@ function waitForProjectDataThenPopulate(attempts = 0) {
       }; 
 
 function populateHomePage(triggeredByClick = false) {
-    if (forceRefresh && window.filterState) {
-    // Preserve the search filter but clear location filter when coming from project page
-    // (only if we keep the same search term between pages)
-    if (window.filterState.location && !window.filterState.comingFromSameSearch) {
-      window.filterState.location = "";
-    }
-  }
-  
-  // Fresh data build for home page
-  const homeData = buildHomeData(window.myCompany);
-  window.homeData = homeData;
-  
     const stack = new Error().stack;
   console.log("[TRACE] populateHomePage() call stack:\n", stack);
   
