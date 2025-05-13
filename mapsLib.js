@@ -698,12 +698,41 @@ svg.selectAll("foreignObject.state-label")
   if (!stPostal) return;
   const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
-      const filteredProjectData = buildProjectData().filter(row =>
-      row.location.toLowerCase().includes(stateName.toLowerCase())
-    );
+  const filteredProjectData = buildProjectData().filter(row =>
+    row.location.toLowerCase().includes(stateName.toLowerCase())
+  );
 
   if (document.getElementById("homePage").style.display !== "none") {
+    // Filter the home table by state
     filterHomeTableByState(stateName);
+    
+    // Add filter tag for home page
+    const homeTagContainer = document.querySelector("#stateFilterTag");
+    if (homeTagContainer) {
+      homeTagContainer.innerHTML = `
+        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
+          ${stateName}
+          <span id="clearStateFilterHome" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
+        </span>
+      `;
+      
+      // Add event listener to clear button
+      document.getElementById("clearStateFilterHome").addEventListener("click", function() {
+        // Clear the tag
+        homeTagContainer.innerHTML = "";
+        
+        // Reset table filtering
+        showAllHomeTableRows();
+        
+        // Reset the selected state
+        if (previouslySelectedState) {
+          previouslySelectedState
+            .attr("stroke-width", 1)
+            .attr("stroke", "#999");
+          previouslySelectedState = null;
+        }
+      });
+    }
   }
   else if (document.getElementById("projectPage").style.display !== "none") {
     // (NEW) 1. Insert the Filter Tag
