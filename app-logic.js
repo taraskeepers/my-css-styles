@@ -476,7 +476,6 @@ async function onReceivedRows(rows) {
     console.error("[ERROR] Error loading tables:", error);
   });
 
-/*
   // 7) Force-load the Project page directly
   document.getElementById("projectPage").style.display = "block";
   document.getElementById("homePage").style.display = "none";
@@ -485,11 +484,9 @@ async function onReceivedRows(rows) {
   document.getElementById("projectButton").classList.add("selected");
   document.getElementById("homeButton").classList.remove("selected");
   document.getElementById("mainButton").classList.remove("selected");
-*/
+
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
-    if (document.getElementById("projectPage").style.display === "block") {
-    waitForProjectDataThenPopulate();
-  }
+  waitForProjectDataThenPopulate();
 }
 
 function waitForProjectDataThenPopulate(attempts = 0) {
@@ -525,18 +522,6 @@ function waitForProjectDataThenPopulate(attempts = 0) {
       }; 
 
 function populateHomePage(triggeredByClick = false) {
-    if (forceRefresh && window.filterState) {
-    // Preserve the search filter but clear location filter when coming from project page
-    // (only if we keep the same search term between pages)
-    if (window.filterState.location && !window.filterState.comingFromSameSearch) {
-      window.filterState.location = "";
-    }
-  }
-  
-  // Fresh data build for home page
-  const homeData = buildHomeData(window.myCompany);
-  window.homeData = homeData;
-  
     const stack = new Error().stack;
   console.log("[TRACE] populateHomePage() call stack:\n", stack);
   
