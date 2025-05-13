@@ -878,9 +878,20 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   void el.offsetHeight;
 });
 
-  // 11) Finally, draw the map as before
-  const mapData = buildHomeDataForMap();
-  window.mapHelpers.drawUsMapWithLocations(mapData, "#locMap");
+// 11) Finally, draw the map as before
+const mapData = buildHomeDataForMap();
+// Check if mapData already has a searches property
+if (mapData && mapData.searches) {
+  // Create a deep copy of the searches array
+  const safeCopy = mapData.searches.map(row => ({ ...row }));
+  // Pass the data in the correct format
+  window.mapHelpers.drawUsMapWithLocations({ searches: safeCopy }, "#locMap");
+} else {
+  // If mapData doesn't have searches property, wrap it in an object with searches property
+  const safeCopy = Array.isArray(mapData) ? mapData.map(row => ({ ...row })) : [];
+  window.mapHelpers.drawUsMapWithLocations({ searches: safeCopy }, "#locMap");
+}
+  
   setTimeout(() => {
   if (window.homeData && window.homeData.length > 0) {
     populateHomeStats();
