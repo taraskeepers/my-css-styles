@@ -692,47 +692,68 @@ svg.selectAll("foreignObject.state-label")
   if (!stPostal) return;
   const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
   
-  // Check if this state is already selected
+  // Track if we're clicking the same state
+  let isSameStateClick = false;
+  
+  // Check if previouslySelectedState exists and references the same state
   if (previouslySelectedState) {
-    const prevSelection = previouslySelectedState.datum();
-    if (prevSelection && prevSelection.id === d.id) {
-      // This is the same state - trigger the clear action
+    try {
+      // Safe way to check if it's the same state - compare the postal codes
+      const prevStateElement = previouslySelectedState.node();
+      if (prevStateElement) {
+        const prevStateData = d3.select(prevStateElement).datum();
+        const prevStatePostal = prevStateData && FIPS_TO_POSTAL[prevStateData.id];
+        isSameStateClick = (prevStatePostal === stPostal);
+      }
+    } catch (err) {
+      console.warn("Error comparing states:", err);
+      isSameStateClick = false;
+    }
+  }
+  
+  // If clicking the same state, trigger the clear action
+  if (isSameStateClick) {
+    // Reset visual state
+    previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+    previouslySelectedState = null;
+    
+    // Determine which page is active and reset appropriately
+    if (document.getElementById("homePage") && document.getElementById("homePage").style.display !== "none") {
+      // Clear home page filter
+      const homeTagContainer = document.querySelector("#stateFilterTag");
+      if (homeTagContainer) {
+        homeTagContainer.innerHTML = "";
+      }
+      if (typeof showAllHomeTableRows === 'function') {
+        showAllHomeTableRows();
+      }
+    } 
+    else if (document.getElementById("projectPage") && document.getElementById("projectPage").style.display !== "none") {
+      // Clear project page filter
+      const projectTagContainer = document.querySelector("#projectPage #stateFilterTag");
+      if (projectTagContainer) {
+        projectTagContainer.innerHTML = "";
+      }
       
-      // Determine which page is active
-      if (document.getElementById("homePage").style.display !== "none") {
-        // Home page - trigger the clear home filter
-        const clearBtn = document.getElementById("clearStateFilterHome");
-        if (clearBtn) {
-          clearBtn.click();
-        } else {
-          // Manual cleanup if button not found
-          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
-          previouslySelectedState = null;
-          document.querySelector("#stateFilterTag")?.innerHTML = "";
-          showAllHomeTableRows();
-        }
-        return; // Exit early
-      } 
-      else if (document.getElementById("projectPage").style.display !== "none") {
-        // Project page - trigger the clear project filter
-        const clearBtn = document.getElementById("clearStateFilterProject");
-        if (clearBtn) {
-          clearBtn.click();
-        } else {
-          // Manual cleanup if button not found
-          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
-          previouslySelectedState = null;
-          document.querySelector("#projectPage #stateFilterTag")?.innerHTML = "";
-          showAllProjectTableRows();
-          
-          // Reload full data for project page charts
+      // Reset project data if functions exist
+      if (typeof showAllProjectTableRows === 'function') {
+        showAllProjectTableRows();
+      }
+      
+      if (typeof buildProjectData === 'function' && 
+          typeof renderProjectMarketShareChart === 'function' && 
+          typeof renderProjectDailyRankBoxes === 'function') {
+        try {
           const fullData = buildProjectData();
           renderProjectMarketShareChart(fullData);
           renderProjectDailyRankBoxes(fullData);
+        } catch (err) {
+          console.warn("Error refreshing project data:", err);
         }
-        return; // Exit early
       }
     }
+    
+    return; // Exit early
   }
   
   // If we get here, it's a new state selection
