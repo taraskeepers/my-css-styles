@@ -770,6 +770,7 @@ svg.selectAll("foreignObject.state-label")
   if (document.getElementById("homePage").style.display !== "none") {
     // Filter the home table by state
     filterHomeTableByState(stateName);
+    window.filterState.location = stateName;
     document.dispatchEvent(new CustomEvent("locationFilterChange"));
       if (typeof populateHomeStats === 'function') {
     populateHomeStats();
@@ -792,6 +793,7 @@ svg.selectAll("foreignObject.state-label")
         
         // Reset table filtering
         showAllHomeTableRows();
+        window.filterState.location = "";
         document.dispatchEvent(new CustomEvent("locationFilterChange"));
           if (typeof populateHomeStats === 'function') {
           populateHomeStats();
