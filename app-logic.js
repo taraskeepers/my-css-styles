@@ -378,21 +378,19 @@ function autoPickDefaultFirstGroup(allRows) {
       subset = applyAllFilters(allRows); // re-filter with new device
     }
   
-    // 4) LOCATION
-    if (!subset.length) return;
-    const locationCounts = {};
-    subset.forEach(r => {
-      const val = r.location_requested || "";
-      if (!locationCounts[val]) locationCounts[val] = 0;
-      locationCounts[val]++;
-    });
-    const locationArr = Object.keys(locationCounts).map(k=>({ name:k, count:locationCounts[k]}));
-    locationArr.sort((a,b)=> b.count - a.count);
-    if (locationArr.length>0) {
-      window.filterState.location = locationArr[0].name;
-      document.getElementById("locationText").textContent = locationArr[0].name;
-      subset = applyAllFilters(allRows); // re-filter with new location
-    }
+// 4) LOCATION
+if (!subset.length) return;
+const locationCounts = {};
+subset.forEach(r => {
+  const val = r.location_requested || "";
+  if (!locationCounts[val]) locationCounts[val] = 0;
+  locationCounts[val]++;
+});
+const locationArr = Object.keys(locationCounts).map(k=>({ name:k, count:locationCounts[k]}));
+locationArr.sort((a,b)=> b.count - a.count);
+// 🚫 Do not auto-set location — let user pick it manually
+window.filterState.location = "";
+document.getElementById("locationText").textContent = "(select a location)";
   
     // At this point, filterState.searchTerm, engine, device, location are set
     // and we've updated subset. That subset is your final "default" subset.
