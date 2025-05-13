@@ -881,7 +881,20 @@ data.last30shares.slice().reverse().forEach((sVal, idx3) => {
   // 11) Finally, draw the map as before
   const mapData = buildHomeDataForMap();
   window.mapHelpers.drawUsMapWithLocations(mapData, "#locMap");
-  populateHomeStats();
+  setTimeout(() => {
+  if (window.homeData && window.homeData.length > 0) {
+    populateHomeStats();
+  } else {
+    console.warn("[populateHomePage] Delaying populateHomeStats() — homeData not ready.");
+    setTimeout(() => {
+      if (window.homeData && window.homeData.length > 0) {
+        populateHomeStats();
+      } else {
+        console.error("[populateHomePage] Still no homeData. Skipping populateHomeStats().");
+      }
+    }, 200);
+  }
+}, 50);
 }
 
 function findOverallMaxDate(companyStats) {
