@@ -770,6 +770,7 @@ svg.selectAll("foreignObject.state-label")
   if (document.getElementById("homePage").style.display !== "none") {
     // Filter the home table by state
     filterHomeTableByState(stateName);
+    document.dispatchEvent(new CustomEvent("locationFilterChange"));
     
     // Add filter tag for home page
     const homeTagContainer = document.querySelector("#stateFilterTag");
@@ -788,6 +789,7 @@ svg.selectAll("foreignObject.state-label")
         
         // Reset table filtering
         showAllHomeTableRows();
+        document.dispatchEvent(new CustomEvent("locationFilterChange"));
         
         // Reset the selected state
         if (previouslySelectedState) {
@@ -812,6 +814,7 @@ svg.selectAll("foreignObject.state-label")
 document.getElementById("clearStateFilterProject").addEventListener("click", function() {
   // 1) Clear the tag
   tagContainer.innerHTML = "";
+  document.dispatchEvent(new CustomEvent("locationFilterChange"));
 
   // 2) Optionally re-show entire Project Page
   //    (You do this by simulating "click on #projectButton")
@@ -841,6 +844,8 @@ document.getElementById("clearStateFilterProject").addEventListener("click", fun
     rebuildProjectTableByState(stateName);
     renderProjectMarketShareChart(filteredProjectData);
     renderProjectDailyRankBoxes(filteredProjectData);
+
+    document.dispatchEvent(new CustomEvent("locationFilterChange"));
   }
 });
   }
