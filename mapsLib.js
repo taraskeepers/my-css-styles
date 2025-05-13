@@ -688,15 +688,59 @@ svg.selectAll("foreignObject.state-label")
         tooltip.style("display", "none");
       })
 .on("click", function(event, d) {
+  const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  if (!stPostal) return;
+  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
+  
+  // Check if this state is already selected
+  if (previouslySelectedState) {
+    const prevSelection = previouslySelectedState.datum();
+    if (prevSelection && prevSelection.id === d.id) {
+      // This is the same state - trigger the clear action
+      
+      // Determine which page is active
+      if (document.getElementById("homePage").style.display !== "none") {
+        // Home page - trigger the clear home filter
+        const clearBtn = document.getElementById("clearStateFilterHome");
+        if (clearBtn) {
+          clearBtn.click();
+        } else {
+          // Manual cleanup if button not found
+          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+          previouslySelectedState = null;
+          document.querySelector("#stateFilterTag")?.innerHTML = "";
+          showAllHomeTableRows();
+        }
+        return; // Exit early
+      } 
+      else if (document.getElementById("projectPage").style.display !== "none") {
+        // Project page - trigger the clear project filter
+        const clearBtn = document.getElementById("clearStateFilterProject");
+        if (clearBtn) {
+          clearBtn.click();
+        } else {
+          // Manual cleanup if button not found
+          previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+          previouslySelectedState = null;
+          document.querySelector("#projectPage #stateFilterTag")?.innerHTML = "";
+          showAllProjectTableRows();
+          
+          // Reload full data for project page charts
+          const fullData = buildProjectData();
+          renderProjectMarketShareChart(fullData);
+          renderProjectDailyRankBoxes(fullData);
+        }
+        return; // Exit early
+      }
+    }
+  }
+  
+  // If we get here, it's a new state selection
   if (previouslySelectedState) {
     previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
   }
   d3.select(this).attr("stroke-width", 4).attr("stroke", "#007aff");
   previouslySelectedState = d3.select(this);
-
-  const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  if (!stPostal) return;
-  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
 
   const filteredProjectData = buildProjectData().filter(row =>
     row.location.toLowerCase().includes(stateName.toLowerCase())
