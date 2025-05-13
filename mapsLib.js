@@ -771,6 +771,9 @@ svg.selectAll("foreignObject.state-label")
     // Filter the home table by state
     filterHomeTableByState(stateName);
     document.dispatchEvent(new CustomEvent("locationFilterChange"));
+      if (typeof populateHomeStats === 'function') {
+    populateHomeStats();
+    }
     
     // Add filter tag for home page
     const homeTagContainer = document.querySelector("#stateFilterTag");
@@ -790,6 +793,9 @@ svg.selectAll("foreignObject.state-label")
         // Reset table filtering
         showAllHomeTableRows();
         document.dispatchEvent(new CustomEvent("locationFilterChange"));
+          if (typeof populateHomeStats === 'function') {
+          populateHomeStats();
+         }
         
         // Reset the selected state
         if (previouslySelectedState) {
