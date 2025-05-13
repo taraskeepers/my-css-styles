@@ -2773,7 +2773,7 @@ body.home-page #layoutCompToggleContainer {
 }
 .sub-menu.expanded {
   max-height: 400px; /* or bigger if needed */
-  padding: 10px 15px;
+  /*padding: 10px 15px;*/
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
