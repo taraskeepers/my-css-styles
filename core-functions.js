@@ -467,7 +467,7 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
           trendColumnWidth: 50,
           dateColumnWidth: 65,
           tableRowHeight: 40,
-          tableRowHeightWithImage: 150,
+          tableRowHeightWithImage: 100,
   showHeader: true,
   titleCellStyle: `
     white-space: normal;
