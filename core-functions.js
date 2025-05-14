@@ -468,8 +468,18 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
           dateColumnWidth: 65,
           tableRowHeight: 40,
           tableRowHeightWithImage: 150,
-          showHeader: true
-        };
+  showHeader: true,
+  titleCellStyle: `
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.2;
+    max-height: 2.4em;
+  `
+};
       
         // Turn the subset into HTML
         const adsHtml   = subset.map(row => template(row)).join("");
@@ -532,7 +542,18 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
                   ${tableStats2HTML}
                 `;
                 
-                outputDiv.innerHTML = tableModeHTML;                
+                outputDiv.innerHTML = tableModeHTML;
+
+                   document.querySelectorAll('.apple-table .title-col > *').forEach(titleContent => {
+    titleContent.style.whiteSpace = 'normal';
+    titleContent.style.overflow = 'hidden';
+    titleContent.style.textOverflow = 'ellipsis';
+    titleContent.style.display = '-webkit-box';
+    titleContent.style.webkitLineClamp = '2';
+    titleContent.style.webkitBoxOrient = 'vertical';
+    titleContent.style.lineHeight = '1.2';
+    titleContent.style.maxHeight = '2.4em';
+  });
               
                 attachResizeHandle();
                 attachRowClickHandlers();
