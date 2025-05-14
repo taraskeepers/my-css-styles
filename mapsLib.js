@@ -646,232 +646,195 @@ svg.selectAll("foreignObject.state-label")
 
     // Attach mouse events to states for the popup
     statesSelection
-      .on("mouseover", function(event, d) {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return;
-        // Filter dataRows for desktop and mobile devices in this state
-        const desktopRows = dataRows.filter(r => {
-          const city = window.cityLookup.get(r.locName);
-          return city && city.state_id === stPostal && r.device.toLowerCase().includes("desktop");
-        });
-        const mobileRows = dataRows.filter(r => {
-          const city = window.cityLookup.get(r.locName);
-          return city && city.state_id === stPostal && r.device.toLowerCase().includes("mobile");
-        });
-        function avgRank(rows) {
-          if (!rows.length) return "N/A";
-          const sum = rows.reduce((acc, cur) => acc + (parseFloat(cur.avgRank)||0), 0);
-          return (sum / rows.length).toFixed(1);
-        }
-        const desktopAvgRank = avgRank(desktopRows);
-        const mobileAvgRank = avgRank(mobileRows);
-        const desktopShare = desktopRows.length ? computeCombinedShare({
-          desktopSum: desktopRows.reduce((acc, r) => acc + r.shareVal, 0),
-          desktopCount: desktopRows.length
-        }) : 0;
-        const mobileShare = mobileRows.length ? computeCombinedShare({
-          mobileSum: mobileRows.reduce((acc, r) => acc + r.shareVal, 0),
-          mobileCount: mobileRows.length
-        }) : 0;
-        tooltip.html(`
-          <div><strong>Desktop</strong>: Rank: ${desktopAvgRank}, Share: ${desktopShare.toFixed(1)}%</div>
-          <div><strong>Mobile</strong>: Rank: ${mobileAvgRank}, Share: ${mobileShare.toFixed(1)}%</div>
-        `);
-        tooltip.style("display", "block");
-      })
-      .on("mousemove", function(event, d) {
-        const [x, y] = d3.pointer(event, container.node());
-        tooltip.style("left", (x + 12) + "px")
-               .style("top", (y + 12) + "px");
-      })
-      .on("mouseout", function() {
-        tooltip.style("display", "none");
-      })
-.on("click", function(event, d) {
-  const stPostal = FIPS_TO_POSTAL[d.id] || null;
-  if (!stPostal) return;
-  const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
-  
-  // Track if we're clicking the same state
-  let isSameStateClick = false;
-  
-  // Check if previouslySelectedState exists and references the same state
-  if (previouslySelectedState) {
-    try {
-      // Safe way to check if it's the same state - compare the postal codes
-      const prevStateElement = previouslySelectedState.node();
-      if (prevStateElement) {
-        const prevStateData = d3.select(prevStateElement).datum();
-        const prevStatePostal = prevStateData && FIPS_TO_POSTAL[prevStateData.id];
-        isSameStateClick = (prevStatePostal === stPostal);
-      }
-    } catch (err) {
-      console.warn("Error comparing states:", err);
-      isSameStateClick = false;
-    }
-  }
-  
-  // If clicking the same state, trigger the clear action
-  if (isSameStateClick) {
-    // Reset visual state
-    previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
-    previouslySelectedState = null;
+  .on("click", function(event, d) {
+    const stPostal = FIPS_TO_POSTAL[d.id] || null;
+    if (!stPostal) return;
+    const stateName = POSTAL_TO_STATE_NAME[stPostal] || "";
     
-    // Determine which page is active and reset appropriately
-    if (document.getElementById("homePage") && document.getElementById("homePage").style.display !== "none") {
-      // Clear home page filter
+    // Track if we're clicking the same state
+    let isSameStateClick = false;
+    
+    // Check if previouslySelectedState exists and references the same state
+    if (previouslySelectedState) {
+      try {
+        // Safe way to check if it's the same state - compare the postal codes
+        const prevStateElement = previouslySelectedState.node();
+        if (prevStateElement) {
+          const prevStateData = d3.select(prevStateElement).datum();
+          const prevStatePostal = prevStateData && FIPS_TO_POSTAL[prevStateData.id];
+          isSameStateClick = (prevStatePostal === stPostal);
+        }
+      } catch (err) {
+        console.warn("Error comparing states:", err);
+        isSameStateClick = false;
+      }
+    }
+    
+    // If clicking the same state, trigger the clear action
+    if (isSameStateClick) {
+      // Reset visual state
+      previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+      previouslySelectedState = null;
+      
+      // Determine which page is active and reset appropriately
+      if (document.getElementById("homePage") && document.getElementById("homePage").style.display !== "none") {
+        // Clear home page filter
+        const homeTagContainer = document.querySelector("#stateFilterTag");
+        if (homeTagContainer) {
+          homeTagContainer.innerHTML = "";
+        }
+        if (typeof showAllHomeTableRows === 'function') {
+          showAllHomeTableRows();
+        }
+      } 
+      else if (document.getElementById("projectPage") && document.getElementById("projectPage").style.display !== "none") {
+        // Clear project page filter
+        const projectTagContainer = document.querySelector("#projectPage #stateFilterTag");
+        if (projectTagContainer) {
+          projectTagContainer.innerHTML = "";
+        }
+        
+        // Reset project data if functions exist
+        if (typeof showAllProjectTableRows === 'function') {
+          showAllProjectTableRows();
+        }
+        
+        if (typeof buildProjectData === 'function' && 
+            typeof renderProjectMarketShareChart === 'function' && 
+            typeof renderProjectDailyRankBoxes === 'function') {
+          try {
+            const fullData = buildProjectData();
+            renderProjectMarketShareChart(fullData);
+            renderProjectDailyRankBoxes(fullData);
+          } catch (err) {
+            console.warn("Error refreshing project data:", err);
+          }
+        }
+      }
+      
+      return; // Exit early
+    }
+    
+    // If we get here, it's a new state selection
+    if (previouslySelectedState) {
+      previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
+    }
+    d3.select(this).attr("stroke-width", 4).attr("stroke", "#007aff");
+    previouslySelectedState = d3.select(this);
+
+    if (document.getElementById("homePage").style.display !== "none") {
+      // First, make a backup of the full data if not already saved
+      if (!window._fullHomeData && window.homeData) {
+        window._fullHomeData = [...window.homeData];
+      }
+      
+      // Filter the actual window.homeData object to only include the clicked state
+      if (window.homeData && Array.isArray(window.homeData)) {
+        window.homeData = window.homeData.filter(item => 
+          item.location.toLowerCase().includes(stateName.toLowerCase())
+        );
+      }
+      
+      // Then proceed with visual filtering and updates
+      filterHomeTableByState(stateName);
+      window.filterState.location = stateName;
+      document.dispatchEvent(new CustomEvent("locationFilterChange"));
+      
+      if (typeof populateHomeStats === 'function') {
+        populateHomeStats();
+      }
+        
+      // Add filter tag for home page
       const homeTagContainer = document.querySelector("#stateFilterTag");
       if (homeTagContainer) {
-        homeTagContainer.innerHTML = "";
+        homeTagContainer.innerHTML = `
+          <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
+            ${stateName}
+            <span id="clearStateFilterHome" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
+          </span>
+        `;
+        
+        // Add event listener to clear button
+        document.getElementById("clearStateFilterHome").addEventListener("click", function() {
+          // Clear the tag
+          homeTagContainer.innerHTML = "";
+          
+          // Restore the full homeData if backup exists
+          if (window._fullHomeData) {
+            window.homeData = [...window._fullHomeData];
+          }
+          
+          // Reset table filtering
+          showAllHomeTableRows();
+          window.filterState.location = "";
+          document.dispatchEvent(new CustomEvent("locationFilterChange"));
+          
+          if (typeof populateHomeStats === 'function') {
+            populateHomeStats();
+          }
+          
+          // Reset the selected state
+          if (previouslySelectedState) {
+            previouslySelectedState
+              .attr("stroke-width", 1)
+              .attr("stroke", "#999");
+            previouslySelectedState = null;
+          }
+        });
       }
-      if (typeof showAllHomeTableRows === 'function') {
-        showAllHomeTableRows();
-      }
-    } 
-    else if (document.getElementById("projectPage") && document.getElementById("projectPage").style.display !== "none") {
-      // Clear project page filter
-      const projectTagContainer = document.querySelector("#projectPage #stateFilterTag");
-      if (projectTagContainer) {
-        projectTagContainer.innerHTML = "";
-      }
-      
-      // Reset project data if functions exist
-      if (typeof showAllProjectTableRows === 'function') {
-        showAllProjectTableRows();
-      }
-      
-      if (typeof buildProjectData === 'function' && 
-          typeof renderProjectMarketShareChart === 'function' && 
-          typeof renderProjectDailyRankBoxes === 'function') {
-        try {
-          const fullData = buildProjectData();
+    }
+    else if (document.getElementById("projectPage").style.display !== "none") {
+      // Define filteredProjectData
+      const filteredProjectData = buildProjectData().filter(row =>
+        row.location.toLowerCase().includes(stateName.toLowerCase())
+      );
+    
+      // (NEW) 1. Insert the Filter Tag
+      const tagContainer = document.querySelector("#projectPage #stateFilterTag");
+      if (tagContainer) {
+        tagContainer.innerHTML = `
+          <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
+            ${stateName}
+            <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
+          </span>
+        `;
+        
+        document.getElementById("clearStateFilterProject").addEventListener("click", function() {
+          // 1) Clear the tag
+          tagContainer.innerHTML = "";
+          document.dispatchEvent(new CustomEvent("locationFilterChange"));
+          
+          // 2) Optionally re-show entire Project Page
+          //    (You do this by simulating "click on #projectButton")
+          const projectBtn = document.getElementById("projectButton");
+          if (projectBtn) {
+            projectBtn.click();
+          } else {
+            console.warn("[mapsLib] Project button (#projectButton) not found.");
+          }
+          
+          // 3) Reset any previously selected outline
+          if (previouslySelectedState) {
+            previouslySelectedState
+              .attr("stroke-width", 1)
+              .attr("stroke", "#999");
+            previouslySelectedState = null;
+          }
+          
+          // 4) Also re-run the chart with full data
+          const fullData = buildProjectData();  // your normal aggregator
           renderProjectMarketShareChart(fullData);
           renderProjectDailyRankBoxes(fullData);
-        } catch (err) {
-          console.warn("Error refreshing project data:", err);
-        }
+        });
       }
-    }
-    
-    return; // Exit early
-  }
-  
-  // If we get here, it's a new state selection
-  if (previouslySelectedState) {
-    previouslySelectedState.attr("stroke-width", 1).attr("stroke", "#999");
-  }
-  d3.select(this).attr("stroke-width", 4).attr("stroke", "#007aff");
-  previouslySelectedState = d3.select(this);
-
-  const filteredProjectData = buildProjectData().filter(row =>
-    row.location.toLowerCase().includes(stateName.toLowerCase())
-  );
-
-if (document.getElementById("homePage").style.display !== "none") {
-  // First, make a backup of the full data if not already saved
-  if (!window._fullHomeData && window.homeData) {
-    window._fullHomeData = [...window.homeData];
-  }
-  
-  // Filter the actual window.homeData object to only include the clicked state
-  if (window.homeData && Array.isArray(window.homeData)) {
-    window.homeData = window.homeData.filter(item => 
-      item.location.toLowerCase().includes(stateName.toLowerCase())
-    );
-  }
-  
-  // Then proceed with visual filtering and updates
-  filterHomeTableByState(stateName);
-  window.filterState.location = stateName;
-  document.dispatchEvent(new CustomEvent("locationFilterChange"));
-  
-  if (typeof populateHomeStats === 'function') {
-    populateHomeStats();
-  }
-    
-    // Add filter tag for home page
-    const homeTagContainer = document.querySelector("#stateFilterTag");
-    if (homeTagContainer) {
-      homeTagContainer.innerHTML = `
-        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
-          ${stateName}
-          <span id="clearStateFilterHome" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
-        </span>
-      `;
       
-      // Add event listener to clear button
-      document.getElementById("clearStateFilterHome").addEventListener("click", function() {
-        // Clear the tag
-        homeTagContainer.innerHTML = "";
-          if (window._fullHomeData) {
-    window.homeData = [...window._fullHomeData];
-  }
-        
-        // Reset table filtering
-        showAllHomeTableRows();
-        window.filterState.location = "";
-        document.dispatchEvent(new CustomEvent("locationFilterChange"));
-          if (typeof populateHomeStats === 'function') {
-          populateHomeStats();
-         }
-        
-        // Reset the selected state
-        if (previouslySelectedState) {
-          previouslySelectedState
-            .attr("stroke-width", 1)
-            .attr("stroke", "#999");
-          previouslySelectedState = null;
-        }
-      });
+      // (EXISTING) 2. Then rebuild the project table
+      rebuildProjectTableByState(stateName);
+      renderProjectMarketShareChart(filteredProjectData);
+      renderProjectDailyRankBoxes(filteredProjectData);
+      document.dispatchEvent(new CustomEvent("locationFilterChange"));
     }
-  }
-  else if (document.getElementById("projectPage").style.display !== "none") {
-    // (NEW) 1. Insert the Filter Tag
-    const tagContainer = document.querySelector("#projectPage #stateFilterTag");
-    if (tagContainer) {
-      tagContainer.innerHTML = `
-        <span style="display:inline-block;background:#007aff;color:#fff;padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;position:relative;">
-          ${stateName}
-          <span id="clearStateFilterProject" style="margin-left:8px;cursor:pointer;font-weight:bold;">&times;</span>
-        </span>
-      `;
-document.getElementById("clearStateFilterProject").addEventListener("click", function() {
-  // 1) Clear the tag
-  tagContainer.innerHTML = "";
-  document.dispatchEvent(new CustomEvent("locationFilterChange"));
-
-  // 2) Optionally re-show entire Project Page
-  //    (You do this by simulating "click on #projectButton")
-  const projectBtn = document.getElementById("projectButton");
-  if (projectBtn) {
-    projectBtn.click();
-  } else {
-    console.warn("[mapsLib] Project button (#projectButton) not found.");
-  }
-
-  // 3) Reset any previously selected outline
-  if (previouslySelectedState) {
-    previouslySelectedState
-      .attr("stroke-width", 1)
-      .attr("stroke", "#999");
-    previouslySelectedState = null;
-  }
-
-  // 4) Also re-run the chart with full data
-  const fullData = buildProjectData();  // your normal aggregator
-  renderProjectMarketShareChart(fullData);
-  renderProjectDailyRankBoxes(fullData);
-});
-}
-
-    // (EXISTING) 2. Then rebuild the project table
-    rebuildProjectTableByState(stateName);
-    renderProjectMarketShareChart(filteredProjectData);
-    renderProjectDailyRankBoxes(filteredProjectData);
-
-    document.dispatchEvent(new CustomEvent("locationFilterChange"));
-  }
-});
+  });
   }
 
   // ---------- (G) Canada, UK, Australia (same as old code) ----------
