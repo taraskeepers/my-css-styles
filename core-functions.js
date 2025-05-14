@@ -554,6 +554,7 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
     titleContent.style.webkitBoxOrient = 'vertical';
     titleContent.style.lineHeight = '1.2';
     titleContent.style.maxHeight = '2.4em';
+    titleContent.style.width = '100%';
   });
                  
                 attachRowClickHandlers();
