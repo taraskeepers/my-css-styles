@@ -584,6 +584,7 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
               
                 // 4) Now set the output
                 outputDiv.innerHTML = finalListHTML;
+                 setupPLAInteractions();
                 // Within your existing "renderData()" after you create the list-mode HTML:
 if (resultsEl.classList.contains("list-mode")) {
 
@@ -756,13 +757,7 @@ if (resultsEl.classList.contains("list-mode")) {
                  } else {
                    // GRID mode => just “adsHtml”
                    outputDiv.innerHTML = adsHtml;
-                 // Reattach click listeners to highlight selected ad
-document.querySelectorAll(".ad-details").forEach((el) => {
-  el.addEventListener("click", () => {
-    document.querySelectorAll(".ad-details").forEach(el2 => el2.classList.remove("selected"));
-    el.classList.add("selected");
-  });
-});
+                 setupPLAInteractions();
                  }
 
                // 1) Grab references to each table’s scrolling container
