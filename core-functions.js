@@ -39,6 +39,9 @@ function renderData(skipCompanyStats) {
         //    row.visibilityBarValue, etc.) FOR *EVERY* ROW in fullDataset
         // ----------------------------------------------------------------------
         fullDataset.forEach((row) => {
+            row.isMyCompany = window.myCompany && 
+                 row.source && 
+                 row.source.toLowerCase() === window.myCompany.toLowerCase();
           // Default rating & reviews if missing
           if (row.rating == null) row.rating = 4.5;
           if (row.reviews == null) row.reviews = 99;
