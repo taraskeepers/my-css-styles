@@ -2,6 +2,13 @@
 
     // The core rendering logic
 function renderData(skipCompanyStats) {
+      // Save the currently selected index before re-rendering
+  const selectedIndex = currentlySelectedIndex;
+  
+  // Clear panels (existing code)
+  document.querySelectorAll(".pla-details-panel:not(#companyStats):not(#serpContainer):not(#companyStatsSerp)").forEach(panel => panel.remove());
+  currentlyOpenPanel = null;
+  currentlySelectedIndex = null;
     // --- DEBUG WRAPPER ---
   const now = new Date().toISOString();
   const stack = new Error().stack;
@@ -808,6 +815,14 @@ if (resultsEl.classList.contains("list-mode")) {
       
         // Re-run your “click -> open panel” logic
         setupPLAInteractions();
+      // Restore the selection if there was one
+  if (selectedIndex !== null) {
+    const selectedEl = document.querySelector(`.ad-details[data-pla-index="${selectedIndex}"]`);
+    if (selectedEl) {
+      selectedEl.classList.add("selected");
+      currentlySelectedIndex = selectedIndex; // Restore this as well
+    }
+  }
       
         // Render mini-gauges for list-mode
         document.querySelectorAll('.vis-gauge').forEach(function(el) {
