@@ -704,10 +704,15 @@ svg.selectAll("foreignObject.state-label")
           projectTagContainer.innerHTML = "";
         }
         
-        // Reset project data if functions exist
-        if (typeof showAllProjectTableRows === 'function') {
-          showAllProjectTableRows();
-        }
+  // ADD THIS: Rebuild the project table with all data 
+  if (typeof rebuildProjectTableByState === 'function') {
+    rebuildProjectTableByState("");  // Empty string should match all locations
+  } else {
+    // Fallback to just showing all rows if function doesn't exist
+    if (typeof showAllProjectTableRows === 'function') {
+      showAllProjectTableRows();
+    }
+  }
         
         if (typeof buildProjectData === 'function' && 
             typeof renderProjectMarketShareChart === 'function' && 
@@ -720,6 +725,7 @@ svg.selectAll("foreignObject.state-label")
             console.warn("Error refreshing project data:", err);
           }
         }
+        document.dispatchEvent(new CustomEvent("locationFilterChange"));
       }
       
       return; // Exit early
