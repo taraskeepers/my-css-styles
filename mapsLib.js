@@ -767,14 +767,27 @@ svg.selectAll("foreignObject.state-label")
     row.location.toLowerCase().includes(stateName.toLowerCase())
   );
 
-  if (document.getElementById("homePage").style.display !== "none") {
-    // Filter the home table by state
-    filterHomeTableByState(stateName);
-    window.filterState.location = stateName;
-    document.dispatchEvent(new CustomEvent("locationFilterChange"));
-      if (typeof populateHomeStats === 'function') {
+if (document.getElementById("homePage").style.display !== "none") {
+  // First, make a backup of the full data if not already saved
+  if (!window._fullHomeData && window.homeData) {
+    window._fullHomeData = [...window.homeData];
+  }
+  
+  // Filter the actual window.homeData object to only include the clicked state
+  if (window.homeData && Array.isArray(window.homeData)) {
+    window.homeData = window.homeData.filter(item => 
+      item.location.toLowerCase().includes(stateName.toLowerCase())
+    );
+  }
+  
+  // Then proceed with visual filtering and updates
+  filterHomeTableByState(stateName);
+  window.filterState.location = stateName;
+  document.dispatchEvent(new CustomEvent("locationFilterChange"));
+  
+  if (typeof populateHomeStats === 'function') {
     populateHomeStats();
-    }
+  }
     
     // Add filter tag for home page
     const homeTagContainer = document.querySelector("#stateFilterTag");
@@ -790,6 +803,9 @@ svg.selectAll("foreignObject.state-label")
       document.getElementById("clearStateFilterHome").addEventListener("click", function() {
         // Clear the tag
         homeTagContainer.innerHTML = "";
+          if (window._fullHomeData) {
+    window.homeData = [...window._fullHomeData];
+  }
         
         // Reset table filtering
         showAllHomeTableRows();
