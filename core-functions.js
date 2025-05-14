@@ -756,6 +756,13 @@ if (resultsEl.classList.contains("list-mode")) {
                  } else {
                    // GRID mode => just “adsHtml”
                    outputDiv.innerHTML = adsHtml;
+                 // Reattach click listeners to highlight selected ad
+document.querySelectorAll(".ad-details").forEach((el) => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".ad-details").forEach(el2 => el2.classList.remove("selected"));
+    el.classList.add("selected");
+  });
+});
                  }
 
                // 1) Grab references to each table’s scrolling container
