@@ -683,9 +683,19 @@ svg.selectAll("foreignObject.state-label")
         if (homeTagContainer) {
           homeTagContainer.innerHTML = "";
         }
+    if (window._fullHomeData) {
+      window.homeData = [...window._fullHomeData];
+    }
+        
         if (typeof showAllHomeTableRows === 'function') {
           showAllHomeTableRows();
         }
+            if (typeof populateHomeStats === 'function') {
+      populateHomeStats();
+    }
+    
+    window.filterState.location = "";
+    document.dispatchEvent(new CustomEvent("locationFilterChange"));
       } 
       else if (document.getElementById("projectPage") && document.getElementById("projectPage").style.display !== "none") {
         // Clear project page filter
@@ -729,11 +739,12 @@ svg.selectAll("foreignObject.state-label")
       }
       
       // Filter the actual window.homeData object to only include the clicked state
-      if (window.homeData && Array.isArray(window.homeData)) {
-        window.homeData = window.homeData.filter(item => 
-          item.location.toLowerCase().includes(stateName.toLowerCase())
-        );
-      }
+  if (window._fullHomeData && Array.isArray(window._fullHomeData)) {
+    // Filter from the original full data, not from the potentially already filtered data
+    window.homeData = window._fullHomeData.filter(item => 
+      item.location.toLowerCase().includes(stateName.toLowerCase())
+    );
+  }
       
       // Then proceed with visual filtering and updates
       filterHomeTableByState(stateName);
