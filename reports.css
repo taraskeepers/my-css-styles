@@ -271,7 +271,7 @@ html, body {
 #filteredResults.list-mode {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0px;
 }
 #filteredResults.table-mode {
   display: block;
@@ -2883,13 +2883,6 @@ body.home-page #layoutCompToggleContainer {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    LIST-MODE layout (7-column arrangement)
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
-/* Overall container when list-mode is active */
-#filteredResults.list-mode {
-  display: flex;          /* One row per item */
-  flex-direction: column;
-  gap: 12px;
-}
 
 /* In list-mode, the standard .ad-details gets turned into a row of columns */
 #filteredResults.list-mode .ad-details {
