@@ -543,6 +543,7 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
                 `;
                 
                 outputDiv.innerHTML = tableModeHTML;
+                 attachResizeHandle();
 
                    document.querySelectorAll('.apple-table .title-col > *').forEach(titleContent => {
     titleContent.style.whiteSpace = 'normal';
@@ -554,8 +555,7 @@ if (diff < 0)  productTrendValue = `▼ ${Math.abs(diff)}`;
     titleContent.style.lineHeight = '1.2';
     titleContent.style.maxHeight = '2.4em';
   });
-              
-                attachResizeHandle();
+                 
                 attachRowClickHandlers();
                 attachTitleCopyHandlers();
             } else if (outputDiv.classList.contains("list-mode")) {
