@@ -100,9 +100,28 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
             Prices &amp; Reviews
           </button>
         </div>
-        <div className="pla-details-date-picker">
+        <div className="pla-details-date-picker" style={{ display: 'none' }}>
           <input type="text" id="dateRangePicker2" />
         </div>
+                    {/* New close button */}
+        <button 
+          className="pla-details-close-btn" 
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '10px',
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            color: '#333',
+            zIndex: 10
+          }}
+        >
+          &times;
+        </button>  
       </div>
 
       <div className="tabs-container">
