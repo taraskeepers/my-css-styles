@@ -30,6 +30,11 @@ function ToggleSwitch({ id, checked, onChange, label }) {
  * Contains tabs, chart areas, toggles, etc.
  */
 function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
+    const handleClose = onClose || (() => {
+    // Default close behavior - try to find the parent panel and hide it
+    const panel = document.getElementById('product-map-details-panel');
+    if (panel) panel.style.display = 'none';
+  });
   // React basics
   const { useState, useEffect } = React;
   const [trendToggles, setTrendToggles] = useState({
