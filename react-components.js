@@ -258,31 +258,59 @@ function PLAChart({ rowData, trendToggles, startDate, endDate }) {
 
 useEffect(() => {
   // Override the display date range to always show 30 days
-  // while using the provided dates for calculations
-  let displayStartDate, displayEndDate;
+  // Find the global maximum date from all data
+  let globalMaxDate;
   
-  // Find the latest date in the historical data
-  let latestDate = null;
-  if (rowData && rowData.historical_data) {
-    rowData.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
-        }
-      }
-    });
-  }
-  
-  // Use the latest date as the end date for display, and 30 days before that as start
-  if (latestDate) {
-    displayEndDate = latestDate.clone();
-    displayStartDate = displayEndDate.clone().subtract(29, 'days');
+  // Check if there's a global function or variable with the max date
+  if (typeof window.getGlobalMaxDate === 'function') {
+    // If there's a global function to get max date, use it
+    globalMaxDate = window.getGlobalMaxDate(window.allRows || []);
+  } else if (window.globalLastDate) {
+    // If there's a global variable with the last date, use it
+    globalMaxDate = window.globalLastDate.clone();
   } else {
-    // Fallback to provided dates if no historical data
-    displayStartDate = startDate;
-    displayEndDate = endDate;
+    // Fallback: find the max date across all products in window.allRows
+    let maxDate = null;
+    if (window.allRows && Array.isArray(window.allRows)) {
+      window.allRows.forEach(product => {
+        if (product.historical_data) {
+          product.historical_data.forEach(item => {
+            if (item.date && item.date.value) {
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              if (maxDate === null || itemDate.isAfter(maxDate)) {
+                maxDate = itemDate.clone();
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // If we found a max date from all rows, use it
+    if (maxDate) {
+      globalMaxDate = maxDate;
+    } else {
+      // Final fallback: Look in current product only
+      let productMaxDate = null;
+      if (rowData && rowData.historical_data) {
+        rowData.historical_data.forEach(item => {
+          if (item.date && item.date.value) {
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            if (productMaxDate === null || itemDate.isAfter(productMaxDate)) {
+              productMaxDate = itemDate.clone();
+            }
+          }
+        });
+      }
+      
+      // Use product max date or default to end date
+      globalMaxDate = productMaxDate || endDate;
+    }
   }
+  
+  // Now set up the display window based on the global max date
+  const displayEndDate = globalMaxDate;
+  const displayStartDate = displayEndDate.clone().subtract(29, 'days');
   
   // Use the display dates for chart rendering, but keep original dates for calculations
   setChartData(prepareChartData(rowData, displayStartDate, displayEndDate, startDate, endDate));
