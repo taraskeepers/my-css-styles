@@ -256,43 +256,71 @@ function PLAChart({ rowData, trendToggles, startDate, endDate }) {
   const { useState, useEffect } = React;
   const [chartData, setChartData] = useState([]);
 
-  useEffect(() => {
-    setChartData(prepareChartData(rowData, startDate, endDate));
-  }, [rowData, startDate, endDate]);
-
-  function prepareChartData(rowData, startDate, endDate) {
-    if (!rowData) return [];
-    const hist = rowData.historical_data || [];
-    if (!hist.length) return [];
-
-    // Build a map dateStr => row
-    const dataMap = {};
-    hist.forEach(item => {
+useEffect(() => {
+  // Override the display date range to always show 30 days
+  // while using the provided dates for calculations
+  let displayStartDate, displayEndDate;
+  
+  // Find the latest date in the historical data
+  let latestDate = null;
+  if (rowData && rowData.historical_data) {
+    rowData.historical_data.forEach(item => {
       if (item.date && item.date.value) {
-        dataMap[item.date.value] = item;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (latestDate === null || itemDate.isAfter(latestDate)) {
+          latestDate = itemDate.clone();
+        }
       }
     });
+  }
+  
+  // Use the latest date as the end date for display, and 30 days before that as start
+  if (latestDate) {
+    displayEndDate = latestDate.clone();
+    displayStartDate = displayEndDate.clone().subtract(29, 'days');
+  } else {
+    // Fallback to provided dates if no historical data
+    displayStartDate = startDate;
+    displayEndDate = endDate;
+  }
+  
+  // Use the display dates for chart rendering, but keep original dates for calculations
+  setChartData(prepareChartData(rowData, displayStartDate, displayEndDate, startDate, endDate));
+}, [rowData, startDate, endDate, trendToggles]);
 
-    // Fill every day from start..end
-    const result = [];
-    let dt = startDate.clone();
-    while (dt.isSameOrBefore(endDate, "day")) {
-      const dateStr = dt.format("YYYY-MM-DD");
-      let position = 40;    // default => not ranked
-      let visibility = 0;   // default => 0
-      if (dataMap[dateStr]) {
-        const rec = dataMap[dateStr];
-        const p = parseFloat(rec.avg_position);
-        if (!isNaN(p) && p !== 0) {
-          position = p;
-        }
-        if (rec.visibility != null) {
-          visibility = parseFloat(rec.visibility) * 100;
-        }
-      }
-      result.push({ name: dateStr, position, visibility });
-      dt.add(1, "days");
+function prepareChartData(rowData, displayStartDate, displayEndDate, calcStartDate, calcEndDate) {
+  if (!rowData) return [];
+  const hist = rowData.historical_data || [];
+  if (!hist.length) return [];
+
+  // Build a map dateStr => row
+  const dataMap = {};
+  hist.forEach(item => {
+    if (item.date && item.date.value) {
+      dataMap[item.date.value] = item;
     }
+  });
+
+  // Fill every day from displayStart..displayEnd for the chart
+  const result = [];
+  let dt = displayStartDate.clone();
+  while (dt.isSameOrBefore(displayEndDate, "day")) {
+    const dateStr = dt.format("YYYY-MM-DD");
+    let position = 40;    // default => not ranked
+    let visibility = 0;   // default => 0
+    if (dataMap[dateStr]) {
+      const rec = dataMap[dateStr];
+      const p = parseFloat(rec.avg_position);
+      if (!isNaN(p) && p !== 0) {
+        position = p;
+      }
+      if (rec.visibility != null) {
+        visibility = parseFloat(rec.visibility) * 100;
+      }
+    }
+    result.push({ name: dateStr, position, visibility });
+    dt.add(1, "days");
+  }
 
     // Compute 3/7/30 day trend lines if needed
     // We'll define a helper:
