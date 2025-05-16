@@ -95,9 +95,9 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab, onClos
 
   return (
     <div className="pla-details-panel">
-      <div className="pla-details-topbar">
-        <div className="pla-details-title">Product Details</div>
-        <div className="tab-buttons">
+<div className="pla-details-topbar" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+  <div className="pla-details-title" style={{ marginRight: '20px' }}>Product Details</div>
+  <div className="tab-buttons" style={{ flex: '1', textAlign: 'left' }}>
           <button 
             className={activeTab === 1 ? "active" : ""}
             onClick={() => handleTabChange(1)}
