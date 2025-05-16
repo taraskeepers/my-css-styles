@@ -29,12 +29,7 @@ function ToggleSwitch({ id, checked, onChange, label }) {
  * when you open a product's detail view in your PLA.
  * Contains tabs, chart areas, toggles, etc.
  */
-function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
-    const handleClose = onClose || (() => {
-    // Default close behavior - try to find the parent panel and hide it
-    const panel = document.getElementById('product-map-details-panel');
-    if (panel) panel.style.display = 'none';
-  });
+function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab, onClose }) {
   // React basics
   const { useState, useEffect } = React;
   const [trendToggles, setTrendToggles] = useState({
@@ -50,9 +45,20 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
   // We'll store a local dateRange so the user can pick a sub-range
   const [dateRange, setDateRange] = useState({ start, end });
 
+  // Create a handleClose function that uses onClose if provided or a default behavior
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else {
+      // Default close behavior
+      const panel = document.getElementById('product-map-details-panel');
+      if (panel) panel.style.display = 'none';
+    }
+  };
+
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    window.savedActiveTab = newTab;  // if you want to track the user’s last active tab globally
+    window.savedActiveTab = newTab;  // if you want to track the user's last active tab globally
   };
 
   // Example: useEffect to set up a date range picker on #dateRangePicker2
@@ -108,10 +114,10 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
         <div className="pla-details-date-picker" style={{ display: 'none' }}>
           <input type="text" id="dateRangePicker2" />
         </div>
-                    {/* New close button */}
+        {/* Close button with fixed onClick handler */}
         <button 
           className="pla-details-close-btn" 
-          onClick={onClose}
+          onClick={handleClose}
           style={{
             position: 'absolute',
             right: '10px',
@@ -243,7 +249,6 @@ function DetailsPanel({ rowData, start, end, activeTab: initialActiveTab }) {
     </div>
   );
 }
-
 /**
  * A line/area chart combining position & visibility for a single product
  */
