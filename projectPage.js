@@ -329,7 +329,377 @@
       console.groupEnd();
       return results;
     }    // end buildProjectData
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2) Build the aggregated array
+    // ─────────────────────────────────────────────────────────────────────────
+    const projectData = buildProjectData(false);
+    if (!projectData.length) {
+      const noDataP = document.createElement("p");
+      noDataP.textContent = "No data to display for Project container.";
+      locListContainer.appendChild(noDataP);
+      return;
+    }
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3) Convert projectData => nested structure: (searchTerm -> location -> [deviceRows])
+    //    Then we’ll build the table with rowSpans for searchTerm & location
+    // ─────────────────────────────────────────────────────────────────────────
+    const nestedMap = {};
+    projectData.forEach(item => {
+      const t = item.searchTerm;
+      const l = item.location;
+      if (!nestedMap[t]) {
+        nestedMap[t] = {};
+      }
+      if (!nestedMap[t][l]) {
+        nestedMap[t][l] = [];
+      }
+      nestedMap[t][l].push(item);
+    });
+    // Sort each device array so that desktop is first
+    Object.keys(nestedMap).forEach(term => {
+      Object.keys(nestedMap[term]).forEach(loc => {
+        nestedMap[term][loc].sort((a,b) => {
+          const ad = a.device.toLowerCase();
+          const bd = b.device.toLowerCase();
+          if (ad==="desktop" && bd!=="desktop") return -1;
+          if (bd==="desktop" && ad!=="desktop") return 1;
+          return 0;
+        });
+      });
+    });
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4) Build the table
+    //    Columns: [Search Term] [Location] [Device] [Avg Rank] [Market Share+Trend] [Rank & Share History]
+    // ─────────────────────────────────────────────────────────────────────────
+    const wrapper = document.createElement("div");
+    wrapper.style.maxWidth = "1250px";
+    wrapper.style.marginLeft = "20px";
+    wrapper.style.backgroundColor = "#fff";
+    wrapper.style.borderRadius = "8px";
+    wrapper.style.boxShadow = "0 4px 8px rgba(0,0,0,0.08)";
+    wrapper.style.marginBottom = "10px";
+    wrapper.style.padding = "10px";
+  
+    const table = document.createElement("table");
+    // style it similarly to your “home-table”
+    table.classList.add("home-table", "project-table");
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+  
+    // We add a toggle in the 6th column header to switch rank vs share
+    table.innerHTML = `
+      <thead>
+        <tr style="height:30px;">
+          <th style="width:180px;">Search Term</th>
+          <th style="width:220px;">Location</th>
+          <th style="width:100px;">Device</th>
+          <th style="width:120px;">Avg Rank</th>
+          <th style="width:140px;">Market Share &amp; Trend</th>
+          <th style="width:400px; position:relative;">
+            Rank &amp; Market Share History
+            <!-- The small switch on the right side -->
+            <label style="position:absolute; right:8px; top:3px; font-size:12px; user-select:none; cursor:pointer;">
+              <input type="checkbox" id="historyToggle" style="vertical-align:middle; margin-right:4px;" />
+              <span>Share</span>
+            </label>
+          </th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
+  
+    // Collect all searchTerms sorted
+    const searchTerms = Object.keys(nestedMap).sort();
+    searchTerms.forEach(term => {
+      const locObj = nestedMap[term];
+      const allLocs = Object.keys(locObj).sort();
+  
+      // Count total device rows across all locations => rowSpan for the Search Term cell
+      let totalRowsForTerm = 0;
+      allLocs.forEach(loc => {
+        totalRowsForTerm += locObj[loc].length; // number of device rows
+      });
+  
+      let termCellUsed = false; // to ensure we only place the searchTerm cell once
+      allLocs.forEach(loc => {
+        const deviceRows = locObj[loc];
+        const deviceCount = deviceRows.length; // rowSpan for location cell
+        let locCellUsed = false;
+  
+        deviceRows.forEach((data, idx) => {
+          const tr = document.createElement("tr");
+          tr.style.height = "50px";
+  
+          // shading if device = mobile
+          if ((data.device || "").toLowerCase() === "mobile") {
+            tr.style.backgroundColor = "#f8f8f8";
+          }
+  
+          // (1) SearchTerm cell
+          if (!termCellUsed) {
+            const tdTerm = document.createElement("td");
+            tdTerm.style.verticalAlign = "middle";
+            tdTerm.style.fontWeight = "bold";
+            tdTerm.rowSpan = totalRowsForTerm;
+            tdTerm.textContent = term;
+            tr.appendChild(tdTerm);
+            termCellUsed = true;
+          }
+  
+          // (2) Location cell
+          if (!locCellUsed) {
+            const tdLoc = document.createElement("td");
+            tdLoc.style.verticalAlign = "middle";
+            tdLoc.rowSpan = deviceCount;
+            // same 2-line approach from your home table:
+            const parts = loc.split(",");
+            const line1 = parts[0] ? parts[0].trim() : "";
+            const line2 = parts.slice(1).map(x => x.trim()).join(", ");
+            tdLoc.innerHTML = `
+              <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
+              <div style="font-size:14px;">${line2}</div>
+            `;
+            tr.appendChild(tdLoc);
+            locCellUsed = true;
+          }
+  
+          // (3) Device
+          const tdDev = document.createElement("td");
+          tdDev.textContent = data.device;
+          tr.appendChild(tdDev);
+  
+          // (4) Avg Rank
+          const tdRank = document.createElement("td");
+          tdRank.style.textAlign = "center";
+          const rankVal = data.avgRank.toFixed(2);
+          let rankHTML = `<div style="font-size:18px; font-weight:bold;">${rankVal}</div>`;
+          if (data.rankChange !== undefined) {
+            let arrow = "±", color = "#444";
+            if (data.rankChange < 0) {
+              arrow = "▲"; color = "green";
+            } else if (data.rankChange > 0) {
+              arrow = "▼"; color = "red";
+            }
+            rankHTML += `
+              <div style="font-size:12px; color:${color};">
+                ${arrow} ${Math.abs(data.rankChange).toFixed(2)}
+              </div>
+            `;
+          }
+          tdRank.innerHTML = rankHTML;
+          tr.appendChild(tdRank);
+  
+          // (5) Market Share & Trend (merged into one cell)
+          const tdShareTrend = document.createElement("td");
+          tdShareTrend.style.textAlign = "center";
+  
+          const sharePct  = data.avgShare.toFixed(1);
+          let arrow       = "±";
+          let arrowColor  = "#333";
+          if (data.trendVal > 0) {
+            arrow      = "▲";
+            arrowColor = "green";
+          } else if (data.trendVal < 0) {
+            arrow      = "▼";
+            arrowColor = "red";
+          }
+  
+          tdShareTrend.innerHTML = `
+            <div class="ms-bar-container"
+                 style="position:relative; width:100px; height:25px; background:#eee; border-radius:4px; margin:0 auto;">
+              <div class="ms-bar-filled"
+                   style="position:absolute; top:0; left:0; bottom:0; width:${sharePct}%; background:#007aff;">
+              </div>
+              <div class="ms-bar-label"
+                   style="position:absolute; left:8px; top:0; bottom:0; display:flex; align-items:center; font-size:13px;">
+                ${sharePct}%
+              </div>
+            </div>
+            <div style="margin-top:4px; text-align:center; color:${arrowColor}; font-weight:bold;">
+              ${arrow} ${Math.abs(data.trendVal).toFixed(2)}%
+            </div>
+          `;
+          tr.appendChild(tdShareTrend);
+  
+          // (6) Rank & Market Share History => single column with 2 sub-rows
+          const tdHist = document.createElement("td");
+          tdHist.style.width = "400px";
+  
+          const histContainer = document.createElement("div");
+          histContainer.style.width = "380px";
+          histContainer.style.overflowX = "auto";
+          histContainer.style.whiteSpace = "nowrap";
+          histContainer.style.display = "flex";
+          histContainer.style.flexDirection = "column";
+          histContainer.style.gap = "4px";
+  
+          // We store rankRowDiv & shareRowDiv, but show rank by default
+          const rankRowDiv = document.createElement("div");
+          rankRowDiv.classList.add("rank-row-div");  // for toggling
+          rankRowDiv.style.display = "inline-block";
+  
+          const shareRowDiv = document.createElement("div");
+          shareRowDiv.classList.add("share-row-div"); // for toggling
+          shareRowDiv.style.display = "none";         // hide by default
+  
+          const endDateMoment = moment(data.endDate, "YYYY-MM-DD");
+          const dateArray = [];
+          for (let i = 0; i < 30; i++) {
+            dateArray.push(endDateMoment.clone().subtract(i, "days").format("YYYY-MM-DD"));
+          }                  
+  
+          // RANK row
+          data.last30ranks.slice().reverse().forEach((rVal, idx2) => {
+            const box = document.createElement("div");
+            box.style.display = "inline-flex";
+            box.style.alignItems = "center";
+            box.style.justifyContent = "center";
+            box.style.width = "38px";
+            box.style.height = "38px";
+            box.style.marginRight = "4px";
+            box.style.borderRadius = "4px";
+            box.title = dateArray[idx2];
+          
+            const span = document.createElement("span");
+            span.style.fontWeight = "bold";
+            span.style.fontSize = "14px";
+            span.style.color = "#333";
+          
+            if (rVal === 40) {
+              box.style.backgroundColor = "#ddd";
+              span.textContent = "";
+            } else {
+              if (rVal <= 1) box.style.backgroundColor = "#dfffd6";
+              else if (rVal <= 3) box.style.backgroundColor = "#fffac2";
+              else if (rVal <= 5) box.style.backgroundColor = "#ffe0bd";
+              else box.style.backgroundColor = "#ffcfcf";
+              span.textContent = rVal;
+            }
+          
+            box.appendChild(span);
+            rankRowDiv.appendChild(box);
+          });          
+  
+          // SHARE row
+          data.last30shares.slice().reverse().forEach((sVal, i2) => {
+            const fillPct = Math.min(100, Math.max(0, sVal));
+            const sBox = document.createElement("div");
+            sBox.style.display     = "inline-block";
+            sBox.style.position    = "relative";
+            sBox.style.width       = "38px";
+            sBox.style.height      = "38px";
+            sBox.style.background  = "#ddd";
+            sBox.style.borderRadius= "4px";
+            sBox.style.marginRight = "4px";
+            sBox.style.overflow    = "hidden";
+  
+            const fillDiv = document.createElement("div");
+            fillDiv.style.position = "absolute";
+            fillDiv.style.left     = "0";
+            fillDiv.style.bottom   = "0";
+            fillDiv.style.width    = "100%";
+            fillDiv.style.height   = fillPct + "%";
+            fillDiv.style.background = "#007aff";
+  
+            const labelSpan = document.createElement("span");
+            labelSpan.style.position    = "relative";
+            labelSpan.style.zIndex      = "2";
+            labelSpan.style.display     = "inline-block";
+            labelSpan.style.width       = "100%";
+            labelSpan.style.textAlign   = "center";
+            labelSpan.style.fontWeight  = "bold";
+            labelSpan.style.fontSize    = "12px";
+            labelSpan.style.lineHeight  = "38px";
+            labelSpan.style.color       = "#333";
+            labelSpan.textContent       = sVal.toFixed(0) + "%";
+  
+            sBox.appendChild(fillDiv);
+            sBox.appendChild(labelSpan);
+            sBox.title = dateArray[i2];
+            shareRowDiv.appendChild(sBox);
+          });
+  
+          // By default rankRowDiv is visible, shareRowDiv is hidden
+          histContainer.appendChild(rankRowDiv);
+          histContainer.appendChild(shareRowDiv);
+          tdHist.appendChild(histContainer);
+          tr.appendChild(tdHist);
+  
+          // Finally add row
+          tbody.appendChild(tr);
+        });
+      });
+    });
+  
+    wrapper.appendChild(table);
+    locListContainer.appendChild(wrapper);
 
+    // Reduce the height of empty history boxes
+document.querySelectorAll('.project-table .rank-row-div div').forEach(box => {
+  const text = box.textContent.trim();
+  if (!text || text === "—" || text === "") {
+    box.classList.add("history-empty-box");
+  }
+});
+
+// Reduce height and hide label of 0% market share boxes
+document.querySelectorAll('.project-table .share-row-div > div').forEach(box => {
+  const label = box.querySelector('span');
+  const value = label?.textContent?.trim();
+
+  if (value === "0%" || value === "0.0%") {
+    box.classList.add("history-empty-share-box");
+    if (label) label.textContent = "";
+  }
+});
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 5) Implement the toggle => if #historyToggle is checked => show “share” hide “rank”, else opposite
+    // ─────────────────────────────────────────────────────────────────────────
+    const historyToggle = table.querySelector("#historyToggle");
+    if (historyToggle) {
+      historyToggle.addEventListener("change", function() {
+        const showShare = this.checked;
+        const allRank  = table.querySelectorAll(".rank-row-div");
+        const allShare = table.querySelectorAll(".share-row-div");
+        if (showShare) {
+          allRank.forEach(el => { el.style.display = "none"; });
+          allShare.forEach(el => { el.style.display= "inline-block"; });
+        } else {
+          allRank.forEach(el => { el.style.display = "inline-block"; });
+          allShare.forEach(el => { el.style.display= "none"; });
+        }
+      });
+    }
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 6) Optionally, let this table’s data also update the info block by reusing homeData
+    // ─────────────────────────────────────────────────────────────────────────
+    window.homeData = projectData;
+    updateInfoBlock();
+    updateHistoryRows();
+  
+    // ─────────────────────────────────────────────────────────────────────────
+    // 7) Finally, draw the map in #projectPage #locMap
+    // ─────────────────────────────────────────────────────────────────────────
+    const mapData = buildProjectDataForMap();
+    const safeCopy = mapData.searches.map(row => ({ ...row }));
+    // Only render map if projectPage is visible
+const projectPageEl = document.getElementById("projectPage");
+if (projectPageEl && projectPageEl.style.display !== "none") {
+  console.log("[SKIP CHECK] ✅ projectPage is visible — drawing map...");
+  const safeCopy = mapData.searches.map(row => ({ ...row }));
+  window.mapHelpers.drawUsMapWithLocations({ searches: safeCopy }, "#projectPage #locMap");
+} else {
+  console.log("[SKIP CHECK] ⛔ projectPage not visible — skipping map render.");
+}  
+    hideFiltersOnProjectAndHome();   
+  }
+  
   function buildProjectDataForMap() {
     console.log("[buildProjectDataForMap()] Debug");
   
@@ -477,663 +847,3 @@
       }
     }
   }
-
-function renderProjectMarketShareChart(projectData) {
-  const chartEl = document.getElementById("projectMarketShareChart");
-  if (!chartEl) return;
-
-  // Destroy any old instance
-  if (window.projectMarketShareChartInstance) {
-    window.projectMarketShareChartInstance.destroy();
-    window.projectMarketShareChartInstance = null;
-  }
-
-  // 1) Build daily data => .deskAvg, .mobAvg, .totalAvg
-  const dailyArr = buildProjectDailyAverages(projectData);
-  if (!Array.isArray(dailyArr) || !dailyArr.length) {
-    chartEl.innerHTML = "<p>No valid daily data for projectMarketShareChart</p>";
-    return;
-  }
-
-  // 2) Create 3 stacked series:
-  //    (index 0) => All Devices, (index 1) => Desktop Only, (index 2) => Mobile Only
-  const allDevices = dailyArr.map(d => ({ x: d.date, y: d.totalAvg }));
-  const deskSeries = dailyArr.map(d => ({ x: d.date, y: d.deskAvg  }));
-  const mobSeries  = dailyArr.map(d => ({ x: d.date, y: d.mobAvg   }));
-
-  const finalSeries = [
-    { name: "All Devices",   data: allDevices },
-    { name: "Desktop Only",  data: deskSeries },
-    { name: "Mobile Only",   data: mobSeries  }
-  ];
-
-  // 3) The same custom tooltip logic
-  function customTooltip({ series, dataPointIndex, w }) {
-    const formattedDate = w.globals.labels[dataPointIndex] || "";
-    let items = [];
-    for (let i = 0; i < series.length; i++) {
-      const label       = w.config.series[i].name;
-      const color       = w.globals.colors?.[i] || "#007aff";
-      const currentVal  = series[i][dataPointIndex];
-      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
-      let diffStr = "";
-      if (prevVal !== null) {
-        const diff = currentVal - prevVal;
-        if (diff > 0) {
-          diffStr = `▲ ${diff.toFixed(2)}%`;
-        } else if (diff < 0) {
-          diffStr = `▼ ${Math.abs(diff).toFixed(2)}%`;
-        } else {
-          diffStr = "±0.00%";
-        }
-      }
-      items.push({ label, color, currentVal, diffStr });
-    }
-
-    // Sort descending by currentVal
-    items.sort((a, b) => b.currentVal - a.currentVal);
-
-    // Build HTML
-    let html = `
-      <div style="
-        padding: 8px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-      ">
-      <div style="margin-bottom:4px; font-size:12px; color:#333;">
-        ${formattedDate}
-      </div>
-      <table style="width:100%; border-collapse:collapse; font-size:12px; color:#333;">
-    `;
-    items.forEach(item => {
-      let diffColor = "#666";
-      if (item.diffStr.startsWith("▲")) diffColor = "green";
-      else if (item.diffStr.startsWith("▼")) diffColor = "red";
-
-      html += `
-        <tr>
-          <td style="padding:2px 4px; vertical-align:middle;">
-            <span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${item.color};margin-right:6px;"></span>
-            <strong>${item.label}</strong>
-          </td>
-          <td style="padding:2px 4px;text-align:right;vertical-align:middle;">
-            ${item.currentVal.toFixed(2)}%
-            <span style="color:${diffColor}; margin-left:6px;">
-              ${item.diffStr}
-            </span>
-          </td>
-        </tr>
-      `;
-    });
-    html += "</table></div>";
-    return html;
-  }
-
-  // 4) ApexCharts config: 
-  const options = {
-    series: finalSeries,
-    chart: {
-      type: "area",
-      stacked: true,
-      width: 920,         // << increased width
-      height: "100%",
-      toolbar: { show: false },
-      zoom: { enabled: true },
-      animations: {
-        enabled: true,
-        speed: 500,
-        animateGradually: { enabled: true, delay: 50 },
-        dynamicAnimation: { enabled: true, speed: 500 }
-      }
-    },
-    title: {
-      text: "Market Share",
-      align: "left",
-      offsetY: 10,
-      margin: 0,
-      style: {
-        fontSize: "14px",
-        color: "#333"
-      }
-    },
-    // -- dataLabels: point labels on seriesIndex=0 only
-    dataLabels: {
-      enabled: true,
-      enabledOnSeries: [0], // only totalAvg line
-      formatter: (val) => val.toFixed(2) + "%",
-      offsetY: -5,
-      style: {
-        fontSize: "12px",
-        colors: ["#000"]
-      }
-    },
-    stroke: {
-      curve: "smooth",
-      width: 2
-    },
-    // -- Markers: bigger marker for totalAvg only
-    markers: {
-      size: [5, 0, 0]
-    },
-    // -- Fill gradient for all, but we override color with array
-    fill: {
-      type: "gradient",
-      gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
-    },
-    // -- Colors: first line is #007aff (blue),
-    //    next two are greys
-    colors: [
-      "#007aff",
-      "rgb(180,180,180)",
-      "rgb(210,210,210)"
-    ],
-    xaxis: {
-      type: "datetime",
-      labels: { show: true }
-    },
-    yaxis: {
-      labels: {
-        show: true,
-        formatter: val => val.toFixed(2)
-      },
-      title: { text: "Market Share (%)" },
-      max: 100
-    },
-    legend: {
-      show: false // no legend on the chart
-    },
-    tooltip: {
-      custom: customTooltip
-    }
-  };
-
-  chartEl.innerHTML = "";
-  window.projectMarketShareChartInstance = new ApexCharts(chartEl, options);
-  window.projectMarketShareChartInstance.render();
-}
-
-      /**
- * Builds daily averages for Desktop / Mobile / All for each day in the last30 range.
- */
-function buildProjectDailyAverages(projectData) {
-  // 1) Identify the max date from projectData
-  let maxDate = null;
-  projectData.forEach(row => {
-    if (!row.endDate) return;
-    const d = moment(row.endDate, "YYYY-MM-DD");
-    if (!maxDate || d.isAfter(maxDate)) {
-      maxDate = d.clone();
-    }
-  });
-  if (!maxDate) {
-    return []; // no valid endDate
-  }
-  
-  // We'll consider the 30 days up to maxDate
-  const periodEnd   = maxDate.clone();
-  const periodStart = maxDate.clone().subtract(29, "days");
-
-  // 2) We’ll store each day’s data in a map: dailyMap[YYYY-MM-DD] = { sumDesk, countDesk, sumMob, countMob }
-  const dailyMap = {};
-  // Make a date array for the entire 30-day window
-  let dayCursor = periodStart.clone();
-  const allDates = [];
-  while (dayCursor.isSameOrBefore(periodEnd, "day")) {
-    const dStr = dayCursor.format("YYYY-MM-DD");
-    dailyMap[dStr] = { sumDesk:0, countDesk:0, sumMob:0, countMob:0 };
-    allDates.push(dStr);
-    dayCursor.add(1, "days");
-  }
-
-  // 3) For each row => use row.last30shares[] + row.device
-  //    We know row.last30shares has 30 data points from oldest to newest or newest to oldest.
-  //    If your code uses the newest as the last array item, we’ll match it carefully:
-  projectData.forEach(row => {
-    const dev = (row.device || "").toLowerCase();
-    if (!row.last30shares || row.last30shares.length !== 30) return;
-
-    // We assume row.endDate is the same maxDate or close. We line up each index with day X in [periodStart..periodEnd].
-    // index 0 => periodStart, index 29 => periodEnd, for example. 
-    // If your code’s indexing is reversed, adjust accordingly.
-    for (let i=0; i<30; i++) {
-      const dayStr = periodStart.clone().add(i, "days").format("YYYY-MM-DD");
-      const shareVal = row.last30shares[i] || 0; // e.g. 14.2 => 14.2% 
-      if (!dailyMap[dayStr]) continue; // safety check
-
-      // Only add if shareVal > 0
-      if (dev === "desktop" && shareVal > 0) {
-        dailyMap[dayStr].sumDesk += shareVal;
-        dailyMap[dayStr].countDesk++;
-      } else if (dev === "mobile" && shareVal > 0) {
-        dailyMap[dayStr].sumMob += shareVal;
-        dailyMap[dayStr].countMob++;
-      }       
-      // else ignore for other devices
-    }
-  });
-
-  // 4) Build a final array with { date, deskAvg, mobAvg, totalAvg }
-  const results = allDates.map(dStr => {
-    const obj = dailyMap[dStr];
-    const deskAvg = obj.countDesk > 0 ? obj.sumDesk / obj.countDesk : 0;
-    const mobAvg  = obj.countMob  > 0 ? obj.sumMob  / obj.countMob  : 0;
-
-    // The “All” average can be the weighted average across (sumDesk+sumMob) / (countDesk+countMob)
-    const totalCount = obj.countDesk + obj.countMob;
-    const totalSum   = obj.sumDesk + obj.sumMob;
-    const totalAvg   = totalCount > 0 ? totalSum / totalCount : 0;
-
-    return {
-      date: dStr,
-      deskAvg,
-      mobAvg,
-      totalAvg
-    };
-  });
-
-  return results;
-}
-
-/**
- * Builds daily average rank for Desktop / Mobile / All for each day in the last30 range.
- * This parallels buildProjectDailyAverages, but uses row.last30ranks instead of row.last30shares.
- */
- function buildProjectDailyRankAverages(projectData) {
-  // 1) Find the maxDate from .endDate
-  let maxDate = null;
-  projectData.forEach(row => {
-    if (!row.endDate) return;
-    const d = moment(row.endDate, "YYYY-MM-DD");
-    if (!maxDate || d.isAfter(maxDate)) {
-      maxDate = d.clone();
-    }
-  });
-  if (!maxDate) return [];
-
-  // 2) The [periodStart .. periodEnd] = last 30 days
-  const periodEnd   = maxDate.clone();
-  const periodStart = maxDate.clone().subtract(29, "days");
-
-  // 3) Make a map of day => { sumDesk, countDesk, sumMob, countMob }
-  const dailyMap = {};
-  let dayCursor = periodStart.clone();
-  const allDates = [];
-  while (dayCursor.isSameOrBefore(periodEnd, "day")) {
-    const dStr = dayCursor.format("YYYY-MM-DD");
-    dailyMap[dStr] = { sumDesk:0, countDesk:0, sumMob:0, countMob:0 };
-    allDates.push(dStr);
-    dayCursor.add(1, "days");
-  }
-
-  // 4) For each row => look at row.last30ranks[] (30 items),
-  //    line them up to the day range, just like buildProjectDailyAverages does.
-  projectData.forEach(row => {
-    const dev = (row.device||"").toLowerCase();
-    if (!row.last30ranks || row.last30ranks.length!==30) return;
-
-    for (let i=0; i<30; i++){
-      const dayStr = periodStart.clone().add(i,"days").format("YYYY-MM-DD");
-      const rankVal = row.last30ranks[i] || 0; 
-      if (!dailyMap[dayStr]) continue;
-
-      // Only add if rankVal>0 (some aggregator uses 40 if missing)
-      if (rankVal>0) {
-        if (dev==="desktop") {
-          dailyMap[dayStr].sumDesk += rankVal;
-          dailyMap[dayStr].countDesk++;
-        } else if (dev==="mobile") {
-          dailyMap[dayStr].sumMob += rankVal;
-          dailyMap[dayStr].countMob++;
-        }
-      }
-    }
-  });
-
-  // 5) Convert dailyMap => an array of { date, deskRank, mobRank, avgRank }
-  return allDates.map(dStr => {
-    const o = dailyMap[dStr];
-    const deskRank = o.countDesk>0 ? (o.sumDesk/o.countDesk) : 40;
-    const mobRank  = o.countMob>0 ? (o.sumMob/o.countMob) : 40;
-    const totalCount = o.countDesk + o.countMob;
-    const totalSum   = o.sumDesk   + o.sumMob;
-    const overall    = totalCount>0 ? (totalSum/totalCount) : 40;
-    return {
-      date:     dStr,
-      deskRank: deskRank,
-      mobRank:  mobRank,
-      avgRank:  overall
-    };
-  });
-}
-
-function renderProjectDailyRankBoxes(projectData) {
-  // 1) Grab the container
-  const container = document.getElementById("projectDailyRankContainer");
-  if (!container) return;
-
-  // Clear any old content
-  container.innerHTML = "";
-
-  // 2) Build the dailyRank array
-  const dailyArr = buildProjectDailyRankAverages(projectData);
-  if (!Array.isArray(dailyArr) || !dailyArr.length) {
-    container.textContent = "No rank data available.";
-    return;
-  }
-
-  // 3) Loop oldest → newest (or reverse if needed)
-  dailyArr.forEach(dayObj => {
-    const rankVal = dayObj.avgRank; 
-    // Round to 1 digit
-    const labelVal = rankVal.toFixed(0);
-
-    // 4) Build a small <div> “box”
-    const box = document.createElement("div");
-    box.style.width        = "28px";
-    box.style.height       = "28px";
-    box.style.display      = "inline-flex";
-    box.style.alignItems   = "center";
-    box.style.justifyContent = "center";
-    box.style.fontSize     = "12px";    // smaller font
-    box.style.borderRadius = "4px";
-    box.style.marginRight  = "3px";
-    
-    // If rankVal===40 => no rank => grey box, empty
-    if (rankVal === 40.0) {
-      box.style.background = "#ddd";
-      box.textContent = "";
-    } else {
-      // else apply color logic based on rankVal
-      if (rankVal <= 1) {
-        box.style.background = "#dfffd6";  // greenish
-      } else if (rankVal <= 3) {
-        box.style.background = "#ffffc2";  // yellowish
-      } else if (rankVal <= 5) {
-        box.style.background = "#ffe0bd";  // orangeish
-      } else {
-        box.style.background = "#ffcfcf";  // redish
-      }
-      // Show the numeric rank
-      box.textContent = labelVal;
-    }
-
-    // optional: set a tooltip
-    box.title = dayObj.date;
-
-    container.appendChild(box);
-  });
-}
-    
-function updateProjectMarketShareChart() {
-  renderProjectMarketShareChart(window.projectTableData);
-  renderProjectPieChart(window.projectTableData);
-  renderProjectDailyRankBoxes(window.projectTableData);
-}
-
- function computeProjectTotalAvgShare(projectData) {
-  // 1) Defensive check
-  if (!Array.isArray(projectData) || !projectData.length) {
-    return 0; // no data
-  }
-
-  // 2) Sum up the .avgShare from your aggregator logic
-  //    The aggregator already gave each row => row.avgShare for the last N days
-  //    If you want “strictly 7 days,” ensure projectData was built for 7 days
-  //    or rely on the standard “buildProjectData()” with filterState.period=7d.
-  let sum = 0, count = 0;
-  projectData.forEach(row => {
-    // row.avgShare is a number
-    sum += row.avgShare;
-    count++;
-  });
-  // 3) average
-  const overallAvg = count > 0 ? (sum / count) : 0;
-  return overallAvg;
-}
-
-function computeProjectShareTrendVal(projectData) {
-  // 1) Build the daily array for up to 30 days
-  const dailyArr = buildProjectDailyAverages(projectData);
-  if (!Array.isArray(dailyArr) || dailyArr.length < 14) {
-    // Not enough data to do a 7-day vs. 7-day comparison
-    return 0;
-  }
-
-  // 2) The last 7 days are dailyArr.slice(-7),
-  //    The previous 7 days are dailyArr.slice(-14, -7).
-  const last7  = dailyArr.slice(-7);
-  const prev7  = dailyArr.slice(-14, -7);
-
-  // 3) Compute averages of .totalAvg
-  const currentAvg = last7.reduce((sum, d) => sum + d.totalAvg, 0) / last7.length;
-  const prevAvg    = prev7.reduce((sum, d) => sum + d.totalAvg, 0) / prev7.length;
-
-  // 4) Return the difference
-  return currentAvg - prevAvg;
-}
-    
-/**
- * renderProjectPieChart
- * ---------------------
- * Renders a single-slice “highlight” pie chart showing the
- * company’s average total share vs the rest of the pie.
- */
- function renderProjectPieChart(projectData) {
-  // 1) Grab the <canvas> element
-  const canvasEl = document.getElementById("projectPieChart");
-  if (!canvasEl) {
-    console.warn("[renderProjectPieChart] #projectPieChart not found in DOM.");
-    return;
-  }
-
-  // 1A) Also grab the container, so we can align/center or place the trend below
-  const containerDiv = document.getElementById("project-pie-chart");
-  if (!containerDiv) {
-    console.warn("[renderProjectPieChart] #project-pie-chart container not found.");
-    return;
-  }
-
-  // Make the container use flex column so the chart is at center, 
-  // and we can place the trend below it
-  containerDiv.style.height = "220px";
-  containerDiv.style.display        = "flex";
-  containerDiv.style.flexDirection  = "column";
-  containerDiv.style.alignItems     = "center";
-  containerDiv.style.justifyContent = "center";
-
-  // 2) If there's an old chart instance, destroy it
-  if (canvasEl._chartInstance) {
-    canvasEl._chartInstance.destroy();
-  }
-
-  // 3) Compute the average share from your aggregator
-  //    and round it to two digits
-  const companyAvgShare = parseFloat(
-    computeProjectTotalAvgShare(projectData).toFixed(2)
-  );
-  const restOfPie = parseFloat((100 - companyAvgShare).toFixed(2));
-
-  // 4) Build the dataset for Chart.js
-  const data = {
-    labels: [ "My Company", "Others" ],
-    datasets: [
-      {
-        data: [ companyAvgShare, restOfPie ],
-        backgroundColor: [ "#007aff", "#ddd" ],
-        borderColor: [ "#fff", "#fff" ],
-        borderWidth: 1,
-        // “offset” pulls out the first slice
-        offset: [ 15, 0 ],
-        // Chart.js DataLabels plugin: show the label only on the first slice
-        datalabels: {
-          color: "#333",
-          font: {
-            size: 18,
-            weight: "bold"
-          },
-          formatter: function(value, ctx) {
-            // Only show text on the first slice (dataIndex===0 => "My Company")
-            if (ctx.dataIndex === 0) {
-              return value.toFixed(2) + "%";
-            }
-            return "";
-          }
-        }
-      }
-    ]
-  };
-
-  // 5) Chart.js config object
-  const config = {
-    type: "pie",
-    data: data,
-    options: {
-      responsive: false,   // because you have a fixed size or parent
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false }
-        // no custom centerText if you're using datalabels
-      },
-      cutout: 0,   // 0 => standard pie, you can adjust
-      animation: {
-        animateScale: true
-      }
-    },
-    // Ensure we load the DataLabels plugin
-    plugins: [ChartDataLabels]
-  };
-
-  // 6) Build the new Chart instance
-  const ctx = canvasEl.getContext("2d");
-  const myPie = new Chart(ctx, config);
-  // Store reference for cleanup later
-  canvasEl._chartInstance = myPie;
-
-  // 7) Compute the “trend arrow + difference” for the last 7 days
-  //    (Assuming you have a function that returns e.g. +2.5 or -1.2)
-  const shareTrendVal = computeProjectShareTrendVal(projectData);
-  let arrow = "", arrowColor="#666";
-  if (shareTrendVal > 0) {
-    arrow = "▲";
-    arrowColor = "green";
-  } else if (shareTrendVal < 0) {
-    arrow = "▼";
-    arrowColor = "red";
-  }
-  const diffVal = Math.abs(shareTrendVal).toFixed(2) + "%";
-
-  // 8) Remove any old trend element
-  const oldTrend = document.getElementById("pieTrendDiv");
-  if (oldTrend) {
-    oldTrend.remove();
-  }
-
-  // 9) Build a new <div> under the chart for arrow + difference
-  const trendDiv = document.createElement("div");
-  trendDiv.id = "pieTrendDiv";
-  trendDiv.style.fontSize  = "14px";
-  trendDiv.style.fontWeight= "bold";
-  trendDiv.style.marginTop = "6px";
-  trendDiv.style.textAlign = "center";
-
-  if (!arrow) {
-    // If shareTrendVal===0
-    trendDiv.textContent = "±0.00%";
-  } else {
-    trendDiv.innerHTML = `<span style="color:${arrowColor};">${arrow} ${diffVal}</span>`;
-  }
-
-  containerDiv.appendChild(trendDiv);
-}
-
-function renderMiniMarketShareBar(containerId, shareValue) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  // destroy prior instance
-  if (container._chartInstance) {
-    container._chartInstance.destroy();
-  }
-
-  // clear out previous content
-  container.innerHTML = "";
-
-  // 1) Determine label based on containerId
-  const isDesktop = containerId.toLowerCase().includes("desktop");
-  const labelText = isDesktop
-    ? "Desktop Market Share (%)"
-    : "Mobile Market Share (%)";
-
-  // 2) Create chart wrapper with minimal dimensions
-  const MIN_WIDTH  = 200;
-  const MIN_HEIGHT = 80;
-  const BAR_HEIGHT = 30;
-
-  const wrapper = document.createElement("div");
-  wrapper.style.width  = MIN_WIDTH + "px";
-  wrapper.style.height = MIN_HEIGHT + "px";
-  wrapper.style.margin = "0 auto";
-  container.appendChild(wrapper);
-
-  // 3) Append the text label *below* the chart
-  const labelDiv = document.createElement("div");
-  labelDiv.textContent     = labelText;
-  labelDiv.style.textAlign = "center";
-  labelDiv.style.fontSize  = "11px";
-  labelDiv.style.fontWeight= "600";
-  labelDiv.style.color     = "#333";
-  labelDiv.style.marginTop = "4px";
-  container.appendChild(labelDiv);
-
-  console.log(`[renderMiniMarketShareBar] ${containerId} → ${shareValue}%`);
-
-  // 4) Build the Apex chart with fixed barHeight & forced category
-  const options = {
-    chart: {
-      type: "bar",
-      width: MIN_WIDTH,
-      height: MIN_HEIGHT,
-      toolbar: { show: false }
-    },
-    series: [{
-      name: "Market Share",
-      data: [ shareValue ]      // single numeric value
-    }],
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        barHeight: `${BAR_HEIGHT}px`,
-        borderRadius: 4
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: v => v.toFixed(2) + "%",
-      offsetX: 6,
-      style: { fontSize: "12px", colors: ["#000"] }
-    },
-    xaxis: {
-      max: 100,
-      labels: { style: { fontSize: "10px", colors: "#666" } },
-      axisTicks: { show: true },
-      axisBorder:{ show: true }
-    },
-    yaxis: {
-      categories: [""],   // ensures the single bar actually renders
-      labels: { show: false }
-    },
-    grid: {
-      xaxis: { lines:{ show: true } },
-      yaxis: { lines:{ show: false } }
-    },
-    tooltip: { enabled: false }
-  };
-
-  const chart = new ApexCharts(wrapper, options);
-  chart.render();
-  container._chartInstance = chart;
-}
