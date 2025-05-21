@@ -847,3 +847,373 @@ if (projectPageEl && projectPageEl.style.display !== "none") {
       }
     }
   }
+
+function renderProjectMarketShareChart(projectData) {
+  const chartEl = document.getElementById("projectMarketShareChart");
+  if (!chartEl) return;
+
+  // Destroy any old instance
+  if (window.projectMarketShareChartInstance) {
+    window.projectMarketShareChartInstance.destroy();
+    window.projectMarketShareChartInstance = null;
+  }
+
+  // 1) Build daily data => .deskAvg, .mobAvg, .totalAvg
+  const dailyArr = buildProjectDailyAverages(projectData);
+  if (!Array.isArray(dailyArr) || !dailyArr.length) {
+    chartEl.innerHTML = "<p>No valid daily data for projectMarketShareChart</p>";
+    return;
+  }
+
+  // 2) Create 3 stacked series:
+  //    (index 0) => All Devices, (index 1) => Desktop Only, (index 2) => Mobile Only
+  const allDevices = dailyArr.map(d => ({ x: d.date, y: d.totalAvg }));
+  const deskSeries = dailyArr.map(d => ({ x: d.date, y: d.deskAvg  }));
+  const mobSeries  = dailyArr.map(d => ({ x: d.date, y: d.mobAvg   }));
+
+  const finalSeries = [
+    { name: "All Devices",   data: allDevices },
+    { name: "Desktop Only",  data: deskSeries },
+    { name: "Mobile Only",   data: mobSeries  }
+  ];
+
+  // 3) The same custom tooltip logic
+  function customTooltip({ series, dataPointIndex, w }) {
+    const formattedDate = w.globals.labels[dataPointIndex] || "";
+    let items = [];
+    for (let i = 0; i < series.length; i++) {
+      const label       = w.config.series[i].name;
+      const color       = w.globals.colors?.[i] || "#007aff";
+      const currentVal  = series[i][dataPointIndex];
+      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
+      let diffStr = "";
+      if (prevVal !== null) {
+        const diff = currentVal - prevVal;
+        if (diff > 0) {
+          diffStr = `▲ ${diff.toFixed(2)}%`;
+        } else if (diff < 0) {
+          diffStr = `▼ ${Math.abs(diff).toFixed(2)}%`;
+        } else {
+          diffStr = "±0.00%";
+        }
+      }
+      items.push({ label, color, currentVal, diffStr });
+    }
+
+    // Sort descending by currentVal
+    items.sort((a, b) => b.currentVal - a.currentVal);
+
+    // Build HTML
+    let html = `
+      <div style="
+        padding: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      ">
+      <div style="margin-bottom:4px; font-size:12px; color:#333;">
+        ${formattedDate}
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; color:#333;">
+    `;
+    items.forEach(item => {
+      let diffColor = "#666";
+      if (item.diffStr.startsWith("▲")) diffColor = "green";
+      else if (item.diffStr.startsWith("▼")) diffColor = "red";
+
+      html += `
+        <tr>
+          <td style="padding:2px 4px; vertical-align:middle;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${item.color};margin-right:6px;"></span>
+            <strong>${item.label}</strong>
+          </td>
+          <td style="padding:2px 4px;text-align:right;vertical-align:middle;">
+            ${item.currentVal.toFixed(2)}%
+            <span style="color:${diffColor}; margin-left:6px;">
+              ${item.diffStr}
+            </span>
+          </td>
+        </tr>
+      `;
+    });
+    html += "</table></div>";
+    return html;
+  }
+
+  // 4) ApexCharts config: 
+  const options = {
+    series: finalSeries,
+    chart: {
+      type: "area",
+      stacked: true,
+      width: 920,         // << increased width
+      height: "100%",
+      toolbar: { show: false },
+      zoom: { enabled: true },
+      animations: {
+        enabled: true,
+        speed: 500,
+        animateGradually: { enabled: true, delay: 50 },
+        dynamicAnimation: { enabled: true, speed: 500 }
+      }
+    },
+    title: {
+      text: "Market Share",
+      align: "left",
+      offsetY: 10,
+      margin: 0,
+      style: {
+        fontSize: "14px",
+        color: "#333"
+      }
+    },
+    // -- dataLabels: point labels on seriesIndex=0 only
+    dataLabels: {
+      enabled: true,
+      enabledOnSeries: [0], // only totalAvg line
+      formatter: (val) => val.toFixed(2) + "%",
+      offsetY: -5,
+      style: {
+        fontSize: "12px",
+        colors: ["#000"]
+      }
+    },
+    stroke: {
+      curve: "smooth",
+      width: 2
+    },
+    // -- Markers: bigger marker for totalAvg only
+    markers: {
+      size: [5, 0, 0]
+    },
+    // -- Fill gradient for all, but we override color with array
+    fill: {
+      type: "gradient",
+      gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
+    },
+    // -- Colors: first line is #007aff (blue),
+    //    next two are greys
+    colors: [
+      "#007aff",
+      "rgb(180,180,180)",
+      "rgb(210,210,210)"
+    ],
+    xaxis: {
+      type: "datetime",
+      labels: { show: true }
+    },
+    yaxis: {
+      labels: {
+        show: true,
+        formatter: val => val.toFixed(2)
+      },
+      title: { text: "Market Share (%)" },
+      max: 100
+    },
+    legend: {
+      show: false // no legend on the chart
+    },
+    tooltip: {
+      custom: customTooltip
+    }
+  };
+
+  chartEl.innerHTML = "";
+  window.projectMarketShareChartInstance = new ApexCharts(chartEl, options);
+  window.projectMarketShareChartInstance.render();
+}
+
+/**
+ * renderProjectPieChart
+ * ---------------------
+ * Renders a single-slice “highlight” pie chart showing the
+ * company’s average total share vs the rest of the pie.
+ */
+ function renderProjectPieChart(projectData) {
+  // 1) Grab the <canvas> element
+  const canvasEl = document.getElementById("projectPieChart");
+  if (!canvasEl) {
+    console.warn("[renderProjectPieChart] #projectPieChart not found in DOM.");
+    return;
+  }
+
+  // 1A) Also grab the container, so we can align/center or place the trend below
+  const containerDiv = document.getElementById("project-pie-chart");
+  if (!containerDiv) {
+    console.warn("[renderProjectPieChart] #project-pie-chart container not found.");
+    return;
+  }
+
+  // Make the container use flex column so the chart is at center, 
+  // and we can place the trend below it
+  containerDiv.style.height = "220px";
+  containerDiv.style.display        = "flex";
+  containerDiv.style.flexDirection  = "column";
+  containerDiv.style.alignItems     = "center";
+  containerDiv.style.justifyContent = "center";
+
+  // 2) If there's an old chart instance, destroy it
+  if (canvasEl._chartInstance) {
+    canvasEl._chartInstance.destroy();
+  }
+
+  // 3) Compute the average share from your aggregator
+  //    and round it to two digits
+  const companyAvgShare = parseFloat(
+    computeProjectTotalAvgShare(projectData).toFixed(2)
+  );
+  const restOfPie = parseFloat((100 - companyAvgShare).toFixed(2));
+
+  // 4) Build the dataset for Chart.js
+  const data = {
+    labels: [ "My Company", "Others" ],
+    datasets: [
+      {
+        data: [ companyAvgShare, restOfPie ],
+        backgroundColor: [ "#007aff", "#ddd" ],
+        borderColor: [ "#fff", "#fff" ],
+        borderWidth: 1,
+        // “offset” pulls out the first slice
+        offset: [ 15, 0 ],
+        // Chart.js DataLabels plugin: show the label only on the first slice
+        datalabels: {
+          color: "#333",
+          font: {
+            size: 18,
+            weight: "bold"
+          },
+          formatter: function(value, ctx) {
+            // Only show text on the first slice (dataIndex===0 => "My Company")
+            if (ctx.dataIndex === 0) {
+              return value.toFixed(2) + "%";
+            }
+            return "";
+          }
+        }
+      }
+    ]
+  };
+
+  // 5) Chart.js config object
+  const config = {
+    type: "pie",
+    data: data,
+    options: {
+      responsive: false,   // because you have a fixed size or parent
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+        // no custom centerText if you're using datalabels
+      },
+      cutout: 0,   // 0 => standard pie, you can adjust
+      animation: {
+        animateScale: true
+      }
+    },
+    // Ensure we load the DataLabels plugin
+    plugins: [ChartDataLabels]
+  };
+
+  // 6) Build the new Chart instance
+  const ctx = canvasEl.getContext("2d");
+  const myPie = new Chart(ctx, config);
+  // Store reference for cleanup later
+  canvasEl._chartInstance = myPie;
+
+  // 7) Compute the “trend arrow + difference” for the last 7 days
+  //    (Assuming you have a function that returns e.g. +2.5 or -1.2)
+  const shareTrendVal = computeProjectShareTrendVal(projectData);
+  let arrow = "", arrowColor="#666";
+  if (shareTrendVal > 0) {
+    arrow = "▲";
+    arrowColor = "green";
+  } else if (shareTrendVal < 0) {
+    arrow = "▼";
+    arrowColor = "red";
+  }
+  const diffVal = Math.abs(shareTrendVal).toFixed(2) + "%";
+
+  // 8) Remove any old trend element
+  const oldTrend = document.getElementById("pieTrendDiv");
+  if (oldTrend) {
+    oldTrend.remove();
+  }
+
+  // 9) Build a new <div> under the chart for arrow + difference
+  const trendDiv = document.createElement("div");
+  trendDiv.id = "pieTrendDiv";
+  trendDiv.style.fontSize  = "14px";
+  trendDiv.style.fontWeight= "bold";
+  trendDiv.style.marginTop = "6px";
+  trendDiv.style.textAlign = "center";
+
+  if (!arrow) {
+    // If shareTrendVal===0
+    trendDiv.textContent = "±0.00%";
+  } else {
+    trendDiv.innerHTML = `<span style="color:${arrowColor};">${arrow} ${diffVal}</span>`;
+  }
+
+  containerDiv.appendChild(trendDiv);
+}
+
+function renderProjectDailyRankBoxes(projectData) {
+  // 1) Grab the container
+  const container = document.getElementById("projectDailyRankContainer");
+  if (!container) return;
+
+  // Clear any old content
+  container.innerHTML = "";
+
+  // 2) Build the dailyRank array
+  const dailyArr = buildProjectDailyRankAverages(projectData);
+  if (!Array.isArray(dailyArr) || !dailyArr.length) {
+    container.textContent = "No rank data available.";
+    return;
+  }
+
+  // 3) Loop oldest → newest (or reverse if needed)
+  dailyArr.forEach(dayObj => {
+    const rankVal = dayObj.avgRank; 
+    // Round to 1 digit
+    const labelVal = rankVal.toFixed(0);
+
+    // 4) Build a small <div> “box”
+    const box = document.createElement("div");
+    box.style.width        = "28px";
+    box.style.height       = "28px";
+    box.style.display      = "inline-flex";
+    box.style.alignItems   = "center";
+    box.style.justifyContent = "center";
+    box.style.fontSize     = "12px";    // smaller font
+    box.style.borderRadius = "4px";
+    box.style.marginRight  = "3px";
+    
+    // If rankVal===40 => no rank => grey box, empty
+    if (rankVal === 40.0) {
+      box.style.background = "#ddd";
+      box.textContent = "";
+    } else {
+      // else apply color logic based on rankVal
+      if (rankVal <= 1) {
+        box.style.background = "#dfffd6";  // greenish
+      } else if (rankVal <= 3) {
+        box.style.background = "#ffffc2";  // yellowish
+      } else if (rankVal <= 5) {
+        box.style.background = "#ffe0bd";  // orangeish
+      } else {
+        box.style.background = "#ffcfcf";  // redish
+      }
+      // Show the numeric rank
+      box.textContent = labelVal;
+    }
+
+    // optional: set a tooltip
+    box.title = dayObj.date;
+
+    container.appendChild(box);
+  });
+}
