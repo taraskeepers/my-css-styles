@@ -1,4 +1,79 @@
 /*******************************************************
+  1.5) Convert raw processed rows to projectData structure
+*******************************************************/
+function convertRowsToProjects(rawRows) {
+  if (!Array.isArray(rawRows) || !rawRows.length) {
+    console.warn("[convertRowsToProjects] No valid rows provided");
+    return [];
+  }
+
+  console.log("[convertRowsToProjects] Processing", rawRows.length, "rows");
+
+  // Group by project_number
+  const projectMap = {};
+  
+  rawRows.forEach(row => {
+    const projNum = row.project_number || 1;
+    
+    if (!projectMap[projNum]) {
+      projectMap[projNum] = {
+        project_number: projNum,
+        project: row.project || `Project ${projNum}`,
+        country: "us", // default
+        searches: []
+      };
+      
+      // Try to extract country from location
+      if (row.location_used || row.location_requested) {
+        const loc = row.location_used || row.location_requested;
+        const parts = loc.split(',');
+        if (parts.length > 2) {
+          // Assume last part is country, get 2-letter code
+          const country = parts[parts.length - 1].trim().toLowerCase();
+          if (country === "united states") projectMap[projNum].country = "us";
+          else if (country === "canada") projectMap[projNum].country = "ca";
+          else if (country === "united kingdom") projectMap[projNum].country = "gb";
+          // Add more country mappings as needed
+        }
+      }
+    }
+
+    // Create unique search key
+    const searchKey = `${row.q}_${row.engine}_${row.device}_${row.location_requested}`;
+    
+    // Check if this search combination already exists
+    let existingSearch = projectMap[projNum].searches.find(s => 
+      s.search === row.q && 
+      s.engine === row.engine
+    );
+
+    if (!existingSearch) {
+      // Create new search entry
+      projectMap[projNum].searches.push({
+        search: row.q || "untitled",
+        engine: row.engine || "search",
+        device: [row.device || "desktop"],
+        location: [row.location_requested || "United States"]
+      });
+    } else {
+      // Add unique devices/locations to existing search
+      if (row.device && !existingSearch.device.includes(row.device)) {
+        existingSearch.device.push(row.device);
+      }
+      if (row.location_requested && !existingSearch.location.includes(row.location_requested)) {
+        existingSearch.location.push(row.location_requested);
+      }
+    }
+  });
+
+  const projects = Object.values(projectMap);
+  console.log("[convertRowsToProjects] Created", projects.length, "projects with total searches:", 
+              projects.reduce((sum, p) => sum + p.searches.length, 0));
+  
+  return projects;
+}
+
+/*******************************************************
   2) Format Helper for Locations
 *******************************************************/
 function formatLocation(loc) {
