@@ -1489,6 +1489,7 @@ deviceHTML += `</div>`; // Close last-tracked-container
                   
                   // Get just the first element (the ad-details div)
                   const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
@@ -1674,6 +1675,7 @@ deviceHTML += `</div>`; // Close last-tracked-container
                   
                   // Get just the first element (the ad-details div)
                   const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
