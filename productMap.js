@@ -105,39 +105,51 @@ productCells.forEach(cell => {
   });
 });
 
-      // Re-render segmentation charts in the cloned table
+// REPLACE the segmentation chart code with this debug version:
+
+// Re-render segmentation charts in the cloned table
 setTimeout(() => {
+  console.log("[DEBUG-FULLSCREEN] Starting segmentation chart recreation...");
+  
   // Get all chart containers in the fullscreen overlay
   const chartContainers = fullscreenOverlay.querySelectorAll('.segmentation-chart-container');
+  console.log("[DEBUG-FULLSCREEN] Found chart containers:", chartContainers.length);
   
-  chartContainers.forEach(container => {
+  chartContainers.forEach((container, index) => {
+    console.log(`[DEBUG-FULLSCREEN] Processing container ${index}:`, container.id);
+    
     const chartId = container.id;
-    if (!chartId) return;
-    
-    // Extract the chart counter from the ID to find the original data
-    const chartIndex = chartId.replace('segmentation-chart-', '');
-    
-    // Find the corresponding row in the original table to get the data context
-    const originalContainer = document.querySelector(`#segmentation-chart-${chartIndex}`);
-    if (!originalContainer) return;
+    if (!chartId) {
+      console.log("[DEBUG-FULLSCREEN] No chart ID found, skipping");
+      return;
+    }
     
     // Get the table row to extract term, location, device info
     const tableRow = container.closest('tr');
-    if (!tableRow) return;
+    if (!tableRow) {
+      console.log("[DEBUG-FULLSCREEN] No table row found for container", chartId);
+      return;
+    }
     
     // Extract search term from the cloned row
     const termElement = tableRow.querySelector('.search-term-tag');
     const term = termElement ? termElement.textContent.trim() : '';
+    console.log("[DEBUG-FULLSCREEN] Extracted term:", term);
     
     // Extract location from the cloned row  
     const locationElement = tableRow.querySelector('.city-line');
     const loc = locationElement ? locationElement.textContent.trim() : '';
+    console.log("[DEBUG-FULLSCREEN] Extracted location:", loc);
     
     // Extract device from the cloned row
     const deviceElement = tableRow.querySelector('.device-icon');
     const device = deviceElement ? deviceElement.alt : '';
+    console.log("[DEBUG-FULLSCREEN] Extracted device:", device);
     
-    if (!term || !loc || !device) return;
+    if (!term || !loc || !device) {
+      console.log("[DEBUG-FULLSCREEN] Missing data - term:", term, "loc:", loc, "device:", device);
+      return;
+    }
     
     // Find matching products for this combination
     const matchingProducts = window.allRows.filter(p => 
@@ -147,7 +159,12 @@ setTimeout(() => {
       p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
     );
     
-    if (matchingProducts.length === 0) return;
+    console.log("[DEBUG-FULLSCREEN] Found matching products:", matchingProducts.length);
+    
+    if (matchingProducts.length === 0) {
+      console.log("[DEBUG-FULLSCREEN] No matching products found");
+      return;
+    }
     
     // Filter active and inactive products
     const activeProducts = matchingProducts.filter(product => 
@@ -158,11 +175,31 @@ setTimeout(() => {
       product.product_status === 'inactive'
     );
     
+    console.log("[DEBUG-FULLSCREEN] Active products:", activeProducts.length, "Inactive:", inactiveProducts.length);
+    
     // Calculate chart data and render
     const chartData = calculateAggregateSegmentData(matchingProducts);
-    createSegmentationChart(chartId, chartData, term, loc, device, window.myCompany, activeProducts.length, inactiveProducts.length);
+    console.log("[DEBUG-FULLSCREEN] Chart data:", chartData);
+    
+    if (!chartData || chartData.length === 0) {
+      console.log("[DEBUG-FULLSCREEN] No chart data generated");
+      return;
+    }
+    
+    console.log("[DEBUG-FULLSCREEN] About to call createSegmentationChart with ID:", chartId);
+    
+    // Before calling createSegmentationChart, let's make sure the container exists
+    const containerCheck = document.getElementById(chartId);
+    console.log("[DEBUG-FULLSCREEN] Container exists in DOM?", !!containerCheck);
+    
+    try {
+      createSegmentationChart(chartId, chartData, term, loc, device, window.myCompany, activeProducts.length, inactiveProducts.length);
+      console.log("[DEBUG-FULLSCREEN] createSegmentationChart called successfully for", chartId);
+    } catch (error) {
+      console.error("[DEBUG-FULLSCREEN] Error calling createSegmentationChart:", error);
+    }
   });
-}, 200);
+}, 500); // Increased timeout to 500ms
       
       // Initialize visibility badges in the cloned table
       setTimeout(() => {
