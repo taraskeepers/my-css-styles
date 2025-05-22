@@ -105,7 +105,7 @@ productCells.forEach(cell => {
   });
 });
 
-// REPLACE your current segmentation chart recreation code with this format-aware version:
+// REPLACE your current segmentation chart recreation code with this final fix:
 
 // Re-render segmentation charts in the cloned table
 setTimeout(() => {
@@ -177,26 +177,9 @@ setTimeout(() => {
     return mappedLocation.toLowerCase() === firstPart.toLowerCase();
   }
   
-  // Helper function to match search terms flexibly  
-  function termMatches(mappedTerm, productTerm) {
-    if (!mappedTerm || !productTerm) return false;
-    
-    // Direct match
-    if (mappedTerm === productTerm) return true;
-    
-    // Remove common prefixes like "buy " and normalize
-    const normalizedMapped = mappedTerm.toLowerCase().replace(/^buy\s+/, '').trim();
-    const normalizedProduct = productTerm.toLowerCase().trim();
-    
-    return normalizedMapped === normalizedProduct;
-  }
-  
   // Now process the cloned chart containers using the mapped data
   chartContainers.forEach((container, index) => {
     console.log(`[DEBUG-FULLSCREEN] Processing container ${index}:`, container.id);
-    
-    const chartId = container.id;
-    if (!chartId) return;
     
     // Get the mapped data
     const mappedData = chartDataMap[index];
@@ -213,58 +196,20 @@ setTimeout(() => {
       return;
     }
     
-    // Find matching products with flexible matching
-    console.log("[DEBUG-FULLSCREEN] Searching in window.allRows with length:", window.allRows?.length || 0);
-    console.log("[DEBUG-FULLSCREEN] Looking for myCompany:", window.myCompany);
-    
+    // Find matching products - EXACT term matching, no normalization
     const matchingProducts = window.allRows.filter(p => {
-      const termMatch = termMatches(term, p.q);
+      const termMatch = p.q === term; // EXACT match only
       const locMatch = locationMatches(location, p.location_requested);
       const deviceMatch = p.device === device;
       const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
-      
-      // Debug the first matching attempt to see what's happening
-      if (index === 0 && window.allRows.indexOf(p) < 5) {
-        console.log(`[DEBUG-FULLSCREEN] Product ${window.allRows.indexOf(p)}:`, {
-          q: p.q,
-          location_requested: p.location_requested,
-          device: p.device,
-          source: p.source,
-          termMatch,
-          locMatch,
-          deviceMatch,
-          companyMatch,
-          normalizedTerm: term.toLowerCase().replace(/^buy\s+/, '').trim(),
-          productTerm: p.q?.toLowerCase()
-        });
-      }
       
       return termMatch && locMatch && deviceMatch && companyMatch;
     });
     
     console.log("[DEBUG-FULLSCREEN] Found matching products:", matchingProducts.length);
     
-    // If no products found, let's debug each criteria separately
     if (matchingProducts.length === 0) {
-      const termMatches_debug = window.allRows.filter(p => termMatches(term, p.q));
-      const locMatches_debug = window.allRows.filter(p => locationMatches(location, p.location_requested));  
-      const deviceMatches_debug = window.allRows.filter(p => p.device === device);
-      const companyMatches_debug = window.allRows.filter(p => p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase());
-      
-      console.log("[DEBUG-FULLSCREEN] Debug breakdown:");
-      console.log("- Term matches:", termMatches_debug.length);
-      console.log("- Location matches:", locMatches_debug.length);  
-      console.log("- Device matches:", deviceMatches_debug.length);
-      console.log("- Company matches:", companyMatches_debug.length);
-      
-      // Show a sample of each type if available
-      if (termMatches_debug.length > 0) {
-        console.log("- Sample term match:", {q: termMatches_debug[0].q, source: termMatches_debug[0].source});
-      }
-      if (companyMatches_debug.length > 0) {
-        console.log("- Sample company match:", {source: companyMatches_debug[0].source, q: companyMatches_debug[0].q});
-      }
-      
+      console.log("[DEBUG-FULLSCREEN] No matching products found");
       return;
     }
     
@@ -288,13 +233,132 @@ setTimeout(() => {
       return;
     }
     
-    console.log("[DEBUG-FULLSCREEN] About to call createSegmentationChart with ID:", chartId);
+    // *** FIX THE REAL ISSUE: Render chart directly to the cloned container ***
+    // Instead of calling createSegmentationChart which uses document.getElementById
     
+    console.log("[DEBUG-FULLSCREEN] Rendering chart directly to cloned container");
+    
+    // Clear and setup the container
+    container.innerHTML = '';
+    container.style.height = '380px';
+    container.style.maxHeight = '380px';
+    container.style.overflowY = 'hidden';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = 'center';
+    
+    // Create canvas wrapper
+    const canvasWrapper = document.createElement('div');
+    canvasWrapper.style.width = '100%';
+    canvasWrapper.style.height = '280px';
+    canvasWrapper.style.maxHeight = '280px';
+    canvasWrapper.style.position = 'relative';
+    canvasWrapper.style.marginBottom = '10px';
+    container.appendChild(canvasWrapper);
+    
+    // Create canvas
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvasWrapper.appendChild(canvas);
+    
+    // Create count container
+    const countContainer = document.createElement('div');
+    countContainer.style.width = '180px';
+    countContainer.style.height = '80px';
+    countContainer.style.maxHeight = '80px';
+    countContainer.style.display = 'grid';
+    countContainer.style.gridTemplateColumns = '1fr 1fr';
+    countContainer.style.gridTemplateRows = 'auto auto';
+    countContainer.style.gap = '4px';
+    countContainer.style.padding = '8px';
+    countContainer.style.backgroundColor = '#f9f9f9';
+    countContainer.style.borderRadius = '8px';
+    countContainer.style.fontSize = '14px';
+    countContainer.style.boxSizing = 'border-box';
+    
+    countContainer.innerHTML = `
+      <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Active:</div>
+      <div style="font-weight: 700; color: #4CAF50;">${activeProducts.length}</div>
+      <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Inactive:</div>
+      <div style="font-weight: 700; color: #9e9e9e;">${inactiveProducts.length}</div>
+    `;
+    
+    container.appendChild(countContainer);
+    
+    // Create the chart directly
     try {
-      createSegmentationChart(chartId, chartData, term, location, device, window.myCompany, activeProducts.length, inactiveProducts.length);
-      console.log("[DEBUG-FULLSCREEN] createSegmentationChart called successfully for", chartId);
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: chartData.map(d => d.label),
+          datasets: [
+            {
+              label: "Current",
+              data: chartData.map(d => d.current),
+              backgroundColor: "#007aff",
+              borderRadius: 4
+            },
+            {
+              label: "Previous",
+              type: "line",
+              data: chartData.map(d => d.previous),
+              borderColor: "rgba(255,0,0,1)",
+              backgroundColor: "rgba(255,0,0,0.2)",
+              fill: true,
+              tension: 0.3,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const val = ctx.parsed.x;
+                  return `${ctx.dataset.label}: ${val.toFixed(2)}%`;
+                }
+              }
+            },
+            datalabels: {
+              display: ctx => ctx.datasetIndex === 0,
+              formatter: (value, context) => {
+                const row = chartData[context.dataIndex];
+                const mainLabel = `${row.current.toFixed(1)}%`;
+                const diff = row.current - row.previous;
+                const absDiff = Math.abs(diff).toFixed(1);
+                const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
+                return [ mainLabel, `${arrow}${absDiff}%` ];
+              },
+              color: ctx => {
+                const row = chartData[ctx.dataIndex];
+                const diff = row.current - row.previous;
+                if (diff > 0) return "green";
+                if (diff < 0) return "red";
+                return "#444";
+              },
+              anchor: "end",
+              align: "end",
+              offset: 8,
+              font: { size: 10 }
+            }
+          },
+          scales: {
+            x: { display: false, min: 0, max: 100 },
+            y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+          },
+          animation: false
+        }
+      });
+      
+      console.log("[DEBUG-FULLSCREEN] Chart rendered successfully to cloned container");
     } catch (error) {
-      console.error("[DEBUG-FULLSCREEN] Error calling createSegmentationChart:", error);
+      console.error("[DEBUG-FULLSCREEN] Error rendering chart:", error);
     }
   });
 }, 500);
