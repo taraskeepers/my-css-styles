@@ -105,7 +105,7 @@ productCells.forEach(cell => {
   });
 });
 
-// REPLACE the segmentation chart code with this debug version:
+// REPLACE your current debug segmentation chart code with this targeted fix:
 
 // Re-render segmentation charts in the cloned table
 setTimeout(() => {
@@ -115,54 +115,122 @@ setTimeout(() => {
   const chartContainers = fullscreenOverlay.querySelectorAll('.segmentation-chart-container');
   console.log("[DEBUG-FULLSCREEN] Found chart containers:", chartContainers.length);
   
+  // Build a map from the original table to get the correct data associations
+  const originalTable = document.querySelector('.product-map-table');
+  const originalRows = originalTable.querySelectorAll('tbody tr');
+  
+  // Create a mapping of chart container index to data
+  const chartDataMap = {};
+  let chartIndex = 0;
+  
+  originalRows.forEach(row => {
+    const originalChartContainer = row.querySelector('.segmentation-chart-container');
+    if (!originalChartContainer) return;
+    
+    // Extract data from the original table structure
+    let term = '';
+    let location = '';
+    let device = '';
+    
+    // Find search term - it might be in this row or a previous row due to rowspan
+    let currentRow = row;
+    while (currentRow && !term) {
+      const termElement = currentRow.querySelector('.search-term-tag');
+      if (termElement) {
+        term = termElement.textContent.trim();
+      }
+      currentRow = currentRow.previousElementSibling;
+    }
+    
+    // Find location - similar logic for rowspan
+    currentRow = row;
+    while (currentRow && !location) {
+      const locationElement = currentRow.querySelector('.city-line');
+      if (locationElement) {
+        location = locationElement.textContent.trim();
+      }
+      currentRow = currentRow.previousElementSibling;
+    }
+    
+    // Device should be in the same row
+    const deviceElement = row.querySelector('.device-icon');
+    if (deviceElement) {
+      device = deviceElement.alt || '';
+    }
+    
+    // Store the mapping
+    chartDataMap[chartIndex] = { term, location, device };
+    console.log(`[DEBUG-FULLSCREEN] Mapped chart ${chartIndex}:`, { term, location, device });
+    
+    chartIndex++;
+  });
+  
+  // Now process the cloned chart containers using the mapped data
   chartContainers.forEach((container, index) => {
     console.log(`[DEBUG-FULLSCREEN] Processing container ${index}:`, container.id);
     
     const chartId = container.id;
-    if (!chartId) {
-      console.log("[DEBUG-FULLSCREEN] No chart ID found, skipping");
+    if (!chartId) return;
+    
+    // Get the mapped data instead of trying to extract from cloned DOM
+    const mappedData = chartDataMap[index];
+    if (!mappedData) {
+      console.log("[DEBUG-FULLSCREEN] No mapped data found for index", index);
       return;
     }
     
-    // Get the table row to extract term, location, device info
-    const tableRow = container.closest('tr');
-    if (!tableRow) {
-      console.log("[DEBUG-FULLSCREEN] No table row found for container", chartId);
+    const { term, location, device } = mappedData;
+    console.log("[DEBUG-FULLSCREEN] Using mapped data - term:", term, "location:", location, "device:", device);
+    
+    if (!term || !location || !device) {
+      console.log("[DEBUG-FULLSCREEN] Incomplete mapped data");
       return;
     }
     
-    // Extract search term from the cloned row
-    const termElement = tableRow.querySelector('.search-term-tag');
-    const term = termElement ? termElement.textContent.trim() : '';
-    console.log("[DEBUG-FULLSCREEN] Extracted term:", term);
+    // Find matching products - let's also debug this step
+    console.log("[DEBUG-FULLSCREEN] Searching in window.allRows with length:", window.allRows?.length || 0);
+    console.log("[DEBUG-FULLSCREEN] Looking for myCompany:", window.myCompany);
     
-    // Extract location from the cloned row  
-    const locationElement = tableRow.querySelector('.city-line');
-    const loc = locationElement ? locationElement.textContent.trim() : '';
-    console.log("[DEBUG-FULLSCREEN] Extracted location:", loc);
-    
-    // Extract device from the cloned row
-    const deviceElement = tableRow.querySelector('.device-icon');
-    const device = deviceElement ? deviceElement.alt : '';
-    console.log("[DEBUG-FULLSCREEN] Extracted device:", device);
-    
-    if (!term || !loc || !device) {
-      console.log("[DEBUG-FULLSCREEN] Missing data - term:", term, "loc:", loc, "device:", device);
-      return;
-    }
-    
-    // Find matching products for this combination
-    const matchingProducts = window.allRows.filter(p => 
-      p.q === term &&
-      p.location_requested === loc &&
-      p.device === device &&
-      p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-    );
+    const matchingProducts = window.allRows.filter(p => {
+      const termMatch = p.q === term;
+      const locMatch = p.location_requested === location;
+      const deviceMatch = p.device === device;
+      const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
+      
+      // Debug the first few products to understand the data structure
+      if (index === 0 && window.allRows.indexOf(p) < 3) {
+        console.log(`[DEBUG-FULLSCREEN] Product ${window.allRows.indexOf(p)}:`, {
+          q: p.q,
+          location_requested: p.location_requested,
+          device: p.device,
+          source: p.source,
+          termMatch,
+          locMatch,
+          deviceMatch,
+          companyMatch
+        });
+      }
+      
+      return termMatch && locMatch && deviceMatch && companyMatch;
+    });
     
     console.log("[DEBUG-FULLSCREEN] Found matching products:", matchingProducts.length);
     
+    // If no products found, let's try a looser search to understand the issue
     if (matchingProducts.length === 0) {
-      console.log("[DEBUG-FULLSCREEN] No matching products found");
+      const looseMatches = window.allRows.filter(p => 
+        p.q && p.q.toLowerCase().includes(term.toLowerCase())
+      );
+      console.log("[DEBUG-FULLSCREEN] Loose term matches found:", looseMatches.length);
+      
+      if (looseMatches.length > 0) {
+        console.log("[DEBUG-FULLSCREEN] Sample loose match:", {
+          q: looseMatches[0].q,
+          location_requested: looseMatches[0].location_requested,
+          device: looseMatches[0].device,
+          source: looseMatches[0].source
+        });
+      }
       return;
     }
     
@@ -177,29 +245,25 @@ setTimeout(() => {
     
     console.log("[DEBUG-FULLSCREEN] Active products:", activeProducts.length, "Inactive:", inactiveProducts.length);
     
-    // Calculate chart data and render
+    // Calculate chart data
     const chartData = calculateAggregateSegmentData(matchingProducts);
     console.log("[DEBUG-FULLSCREEN] Chart data:", chartData);
     
     if (!chartData || chartData.length === 0) {
-      console.log("[DEBUG-FULLSCREEN] No chart data generated");
+      console.log("[DEBUG-FULLSCREEN] No valid chart data generated");
       return;
     }
     
     console.log("[DEBUG-FULLSCREEN] About to call createSegmentationChart with ID:", chartId);
     
-    // Before calling createSegmentationChart, let's make sure the container exists
-    const containerCheck = document.getElementById(chartId);
-    console.log("[DEBUG-FULLSCREEN] Container exists in DOM?", !!containerCheck);
-    
     try {
-      createSegmentationChart(chartId, chartData, term, loc, device, window.myCompany, activeProducts.length, inactiveProducts.length);
+      createSegmentationChart(chartId, chartData, term, location, device, window.myCompany, activeProducts.length, inactiveProducts.length);
       console.log("[DEBUG-FULLSCREEN] createSegmentationChart called successfully for", chartId);
     } catch (error) {
       console.error("[DEBUG-FULLSCREEN] Error calling createSegmentationChart:", error);
     }
   });
-}, 500); // Increased timeout to 500ms
+}, 500);
       
       // Initialize visibility badges in the cloned table
       setTimeout(() => {
