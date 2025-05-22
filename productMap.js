@@ -73,34 +73,96 @@
         }
       });
       
-      // Apply fullscreen styles to the cloned table cells
-      const productCells = fullscreenOverlay.querySelectorAll('.product-cell');
-      productCells.forEach(cell => {
-        cell.style.flexWrap = "wrap";
-        cell.style.justifyContent = "flex-start";
-        
-        // Adjust card widths to maintain consistent size
-        const cards = cell.querySelectorAll('.ad-details');
-        cards.forEach(card => {
-          card.style.width = "150px";
-          card.style.margin = "0 10px 10px 0";
-          
-          // Reattach click handlers to the cloned cards
-          card.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const plaIndex = card.getAttribute('data-pla-index');
-            const rowData = window.globalRows[plaIndex];
-            if (!rowData) {
-              console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
-              return;
-            }
-            
-            openProductMapDetailsPanel(card, rowData, true); // true indicates we're in fullscreen mode
-          });
-        });
-      });
+// Apply fullscreen styles to the cloned table cells
+const productCells = fullscreenOverlay.querySelectorAll('.product-cell');
+productCells.forEach(cell => {
+  // Keep horizontal scrolling, don't wrap
+  cell.style.flexWrap = "nowrap";
+  cell.style.overflowX = "auto";
+  cell.style.minWidth = "100%";
+  
+  // Adjust card widths to maintain consistent size
+  const cards = cell.querySelectorAll('.ad-details');
+  cards.forEach(card => {
+    card.style.width = "150px";
+    card.style.flexShrink = "0";
+    card.style.margin = "0 6px 0 0"; // Keep original horizontal spacing
+    
+    // Reattach click handlers to the cloned cards
+    card.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const plaIndex = card.getAttribute('data-pla-index');
+      const rowData = window.globalRows[plaIndex];
+      if (!rowData) {
+        console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
+        return;
+      }
+      
+      openProductMapDetailsPanel(card, rowData, true); // true indicates we're in fullscreen mode
+    });
+  });
+});
+
+      // Re-render segmentation charts in the cloned table
+setTimeout(() => {
+  // Get all chart containers in the fullscreen overlay
+  const chartContainers = fullscreenOverlay.querySelectorAll('.segmentation-chart-container');
+  
+  chartContainers.forEach(container => {
+    const chartId = container.id;
+    if (!chartId) return;
+    
+    // Extract the chart counter from the ID to find the original data
+    const chartIndex = chartId.replace('segmentation-chart-', '');
+    
+    // Find the corresponding row in the original table to get the data context
+    const originalContainer = document.querySelector(`#segmentation-chart-${chartIndex}`);
+    if (!originalContainer) return;
+    
+    // Get the table row to extract term, location, device info
+    const tableRow = container.closest('tr');
+    if (!tableRow) return;
+    
+    // Extract search term from the cloned row
+    const termElement = tableRow.querySelector('.search-term-tag');
+    const term = termElement ? termElement.textContent.trim() : '';
+    
+    // Extract location from the cloned row  
+    const locationElement = tableRow.querySelector('.city-line');
+    const loc = locationElement ? locationElement.textContent.trim() : '';
+    
+    // Extract device from the cloned row
+    const deviceElement = tableRow.querySelector('.device-icon');
+    const device = deviceElement ? deviceElement.alt : '';
+    
+    if (!term || !loc || !device) return;
+    
+    // Find matching products for this combination
+    const matchingProducts = window.allRows.filter(p => 
+      p.q === term &&
+      p.location_requested === loc &&
+      p.device === device &&
+      p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+    );
+    
+    if (matchingProducts.length === 0) return;
+    
+    // Filter active and inactive products
+    const activeProducts = matchingProducts.filter(product => 
+      product.product_status === 'active' || !product.product_status
+    );
+    
+    const inactiveProducts = matchingProducts.filter(product => 
+      product.product_status === 'inactive'
+    );
+    
+    // Calculate chart data and render
+    const chartData = calculateAggregateSegmentData(matchingProducts);
+    createSegmentationChart(chartId, chartData, term, loc, device, window.myCompany, activeProducts.length, inactiveProducts.length);
+  });
+}, 200);
       
       // Initialize visibility badges in the cloned table
       setTimeout(() => {
@@ -609,7 +671,9 @@
 
 .product-map-fullscreen-overlay .product-cell {
   width: 100%;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 100%;
 }
 
 .fullscreen-toggle {
