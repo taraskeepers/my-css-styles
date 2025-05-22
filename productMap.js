@@ -105,7 +105,7 @@ productCells.forEach(cell => {
   });
 });
 
-// REPLACE your current debug segmentation chart code with this targeted fix:
+// REPLACE your current segmentation chart recreation code with this format-aware version:
 
 // Re-render segmentation charts in the cloned table
 setTimeout(() => {
@@ -160,10 +160,36 @@ setTimeout(() => {
     
     // Store the mapping
     chartDataMap[chartIndex] = { term, location, device };
-    console.log(`[DEBUG-FULLSCREEN] Mapped chart ${chartIndex}:`, { term, location, device });
-    
     chartIndex++;
   });
+  
+  // Helper function to match locations flexibly
+  function locationMatches(mappedLocation, productLocation) {
+    if (!mappedLocation || !productLocation) return false;
+    
+    // Direct match
+    if (mappedLocation === productLocation) return true;
+    
+    // Check if the mapped location is the first part of the product location
+    const productParts = productLocation.split(',');
+    const firstPart = productParts[0] ? productParts[0].trim() : '';
+    
+    return mappedLocation.toLowerCase() === firstPart.toLowerCase();
+  }
+  
+  // Helper function to match search terms flexibly  
+  function termMatches(mappedTerm, productTerm) {
+    if (!mappedTerm || !productTerm) return false;
+    
+    // Direct match
+    if (mappedTerm === productTerm) return true;
+    
+    // Remove common prefixes like "buy " and normalize
+    const normalizedMapped = mappedTerm.toLowerCase().replace(/^buy\s+/, '').trim();
+    const normalizedProduct = productTerm.toLowerCase().trim();
+    
+    return normalizedMapped === normalizedProduct;
+  }
   
   // Now process the cloned chart containers using the mapped data
   chartContainers.forEach((container, index) => {
@@ -172,7 +198,7 @@ setTimeout(() => {
     const chartId = container.id;
     if (!chartId) return;
     
-    // Get the mapped data instead of trying to extract from cloned DOM
+    // Get the mapped data
     const mappedData = chartDataMap[index];
     if (!mappedData) {
       console.log("[DEBUG-FULLSCREEN] No mapped data found for index", index);
@@ -187,18 +213,18 @@ setTimeout(() => {
       return;
     }
     
-    // Find matching products - let's also debug this step
+    // Find matching products with flexible matching
     console.log("[DEBUG-FULLSCREEN] Searching in window.allRows with length:", window.allRows?.length || 0);
     console.log("[DEBUG-FULLSCREEN] Looking for myCompany:", window.myCompany);
     
     const matchingProducts = window.allRows.filter(p => {
-      const termMatch = p.q === term;
-      const locMatch = p.location_requested === location;
+      const termMatch = termMatches(term, p.q);
+      const locMatch = locationMatches(location, p.location_requested);
       const deviceMatch = p.device === device;
       const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
       
-      // Debug the first few products to understand the data structure
-      if (index === 0 && window.allRows.indexOf(p) < 3) {
+      // Debug the first matching attempt to see what's happening
+      if (index === 0 && window.allRows.indexOf(p) < 5) {
         console.log(`[DEBUG-FULLSCREEN] Product ${window.allRows.indexOf(p)}:`, {
           q: p.q,
           location_requested: p.location_requested,
@@ -207,7 +233,9 @@ setTimeout(() => {
           termMatch,
           locMatch,
           deviceMatch,
-          companyMatch
+          companyMatch,
+          normalizedTerm: term.toLowerCase().replace(/^buy\s+/, '').trim(),
+          productTerm: p.q?.toLowerCase()
         });
       }
       
@@ -216,21 +244,27 @@ setTimeout(() => {
     
     console.log("[DEBUG-FULLSCREEN] Found matching products:", matchingProducts.length);
     
-    // If no products found, let's try a looser search to understand the issue
+    // If no products found, let's debug each criteria separately
     if (matchingProducts.length === 0) {
-      const looseMatches = window.allRows.filter(p => 
-        p.q && p.q.toLowerCase().includes(term.toLowerCase())
-      );
-      console.log("[DEBUG-FULLSCREEN] Loose term matches found:", looseMatches.length);
+      const termMatches_debug = window.allRows.filter(p => termMatches(term, p.q));
+      const locMatches_debug = window.allRows.filter(p => locationMatches(location, p.location_requested));  
+      const deviceMatches_debug = window.allRows.filter(p => p.device === device);
+      const companyMatches_debug = window.allRows.filter(p => p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase());
       
-      if (looseMatches.length > 0) {
-        console.log("[DEBUG-FULLSCREEN] Sample loose match:", {
-          q: looseMatches[0].q,
-          location_requested: looseMatches[0].location_requested,
-          device: looseMatches[0].device,
-          source: looseMatches[0].source
-        });
+      console.log("[DEBUG-FULLSCREEN] Debug breakdown:");
+      console.log("- Term matches:", termMatches_debug.length);
+      console.log("- Location matches:", locMatches_debug.length);  
+      console.log("- Device matches:", deviceMatches_debug.length);
+      console.log("- Company matches:", companyMatches_debug.length);
+      
+      // Show a sample of each type if available
+      if (termMatches_debug.length > 0) {
+        console.log("- Sample term match:", {q: termMatches_debug[0].q, source: termMatches_debug[0].source});
       }
+      if (companyMatches_debug.length > 0) {
+        console.log("- Sample company match:", {source: companyMatches_debug[0].source, q: companyMatches_debug[0].q});
+      }
+      
       return;
     }
     
@@ -247,7 +281,7 @@ setTimeout(() => {
     
     // Calculate chart data
     const chartData = calculateAggregateSegmentData(matchingProducts);
-    console.log("[DEBUG-FULLSCREEN] Chart data:", chartData);
+    console.log("[DEBUG-FULLSCREEN] Chart data generated:", !!chartData, "length:", chartData?.length || 0);
     
     if (!chartData || chartData.length === 0) {
       console.log("[DEBUG-FULLSCREEN] No valid chart data generated");
