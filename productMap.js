@@ -2912,6 +2912,7 @@ if (productMapContainer) {
   // Start observing the container for class changes
   observer.observe(productMapContainer, { attributes: true });
 }
+  }
 
 // Function to render average position chart
 function renderAvgPositionChart(container, products) {
