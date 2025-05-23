@@ -264,7 +264,7 @@ setTimeout(() => {
     
     // Create count container
     const countContainer = document.createElement('div');
-    countContainer.style.width = '180px';
+    countContainer.style.width = '250px';
     countContainer.style.height = '80px';
     countContainer.style.maxHeight = '80px';
     countContainer.style.display = 'grid';
@@ -1200,7 +1200,7 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   
   // Create the product count container with fixed height
   const countContainer = document.createElement('div');
-  countContainer.style.width = '180px';
+  countContainer.style.width = '250px';
   countContainer.style.height = '80px'; // Fixed height
   countContainer.style.maxHeight = '80px';
   countContainer.style.display = 'grid';
