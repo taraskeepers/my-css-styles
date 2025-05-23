@@ -1121,6 +1121,12 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   // Create a unique ID for the chart
   const chartContainer = document.getElementById(containerId);
   if (!chartContainer) return;
+
+    console.log(`[DEBUG-CHART] Creating chart for container: ${containerId}`);
+  console.log(`[DEBUG-CHART] segmentCounts parameter:`, segmentCounts);
+  console.log(`[DEBUG-CHART] segmentCounts type:`, typeof segmentCounts);
+  console.log(`[DEBUG-CHART] segmentCounts is array:`, Array.isArray(segmentCounts));
+  console.log(`[DEBUG-CHART] Chart container found:`, !!chartContainer);
   
   if (!chartData || chartData.length === 0) {
     chartContainer.innerHTML = '<div class="no-data-message">No segment data</div>';
@@ -1160,6 +1166,7 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   countsColumn.style.flexDirection = 'column';
   countsColumn.style.justifyContent = 'center';
   countsColumn.style.paddingLeft = '5px';
+  countsColumn.style.border = '2px solid red';
   chartAndCountsWrapper.appendChild(countsColumn);
   
   // Add product count labels for each segment
