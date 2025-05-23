@@ -477,7 +477,7 @@ setTimeout(() => {
         .product-map-table th:nth-child(1), .product-map-table td:nth-child(1) { width: 190px; }
         .product-map-table th:nth-child(2), .product-map-table td:nth-child(2) { width: 120px; }
         .product-map-table th:nth-child(3), .product-map-table td:nth-child(3) { width: 100px; }
-        .product-map-table th:nth-child(4), .product-map-table td:nth-child(4) { width: 210px; }
+        .product-map-table th:nth-child(4), .product-map-table td:nth-child(4) { width: 240px; }
         .product-map-table th:nth-child(5), .product-map-table td:nth-child(5) { 
           width: auto; 
           min-width: 400px; /* Ensure Products column has a reasonable minimum width */
@@ -1116,138 +1116,175 @@ if (!document.getElementById("centered-panel-spinner-style")) {
       ];
     }
     
-    // Function to create segment chart
-    function createSegmentationChart(containerId, chartData, termParam, locParam, deviceParam, myCompanyParam, activeCount, inactiveCount) {
-      // Create a unique ID for the chart
-      const chartContainer = document.getElementById(containerId);
-      if (!chartContainer) return;
-      
-      if (!chartData || chartData.length === 0) {
-        chartContainer.innerHTML = '<div class="no-data-message">No segment data</div>';
-        return;
-      }
-      
-      // Clear the container and set FIXED dimensions
-      chartContainer.innerHTML = '';
-      chartContainer.style.height = '380px'; // Fixed total height
-      chartContainer.style.maxHeight = '380px';
-      chartContainer.style.overflowY = 'hidden';
-      chartContainer.style.display = 'flex';
-      chartContainer.style.flexDirection = 'column';
-      chartContainer.style.alignItems = 'center';
-      
-      // Create canvas wrapper div with fixed height
-      const canvasWrapper = document.createElement('div');
-      canvasWrapper.style.width = '100%';
-      canvasWrapper.style.height = '280px'; // Fixed height for chart area
-      canvasWrapper.style.maxHeight = '280px';
-      canvasWrapper.style.position = 'relative';
-      canvasWrapper.style.marginBottom = '10px';
-      chartContainer.appendChild(canvasWrapper);
-      
-      // Create canvas element inside the wrapper
-      const canvas = document.createElement('canvas');
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvasWrapper.appendChild(canvas);
-      
-      // Create the product count container with fixed height
-      const countContainer = document.createElement('div');
-      countContainer.style.width = '180px';
-      countContainer.style.height = '80px'; // Fixed height
-      countContainer.style.maxHeight = '80px';
-      countContainer.style.display = 'grid';
-      countContainer.style.gridTemplateColumns = '1fr 1fr';
-      countContainer.style.gridTemplateRows = 'auto auto';
-      countContainer.style.gap = '4px';
-      countContainer.style.padding = '8px';
-      countContainer.style.backgroundColor = '#f9f9f9';
-      countContainer.style.borderRadius = '8px';
-      countContainer.style.fontSize = '14px';
-      countContainer.style.boxSizing = 'border-box';
+// Function to create segment chart
+function createSegmentationChart(containerId, chartData, termParam, locParam, deviceParam, myCompanyParam, activeCount, inactiveCount, segmentCounts) {
+  // Create a unique ID for the chart
+  const chartContainer = document.getElementById(containerId);
+  if (!chartContainer) return;
+  
+  if (!chartData || chartData.length === 0) {
+    chartContainer.innerHTML = '<div class="no-data-message">No segment data</div>';
+    return;
+  }
+  
+  // Clear the container and set FIXED dimensions
+  chartContainer.innerHTML = '';
+  chartContainer.style.height = '380px'; // Fixed total height
+  chartContainer.style.maxHeight = '380px';
+  chartContainer.style.overflowY = 'hidden';
+  chartContainer.style.display = 'flex';
+  chartContainer.style.flexDirection = 'column';
+  chartContainer.style.alignItems = 'center';
+  
+  // Create canvas wrapper div with fixed height
+  const canvasWrapper = document.createElement('div');
+  canvasWrapper.style.width = '100%';
+  canvasWrapper.style.height = '280px'; // Fixed height for chart area
+  canvasWrapper.style.maxHeight = '280px';
+  canvasWrapper.style.position = 'relative';
+  canvasWrapper.style.marginBottom = '10px';
+  chartContainer.appendChild(canvasWrapper);
+  
+  // Create canvas element inside the wrapper
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvasWrapper.appendChild(canvas);
+  
+  // Create the product count container with fixed height
+  const countContainer = document.createElement('div');
+  countContainer.style.width = '180px';
+  countContainer.style.height = '80px'; // Fixed height
+  countContainer.style.maxHeight = '80px';
+  countContainer.style.display = 'grid';
+  countContainer.style.gridTemplateColumns = '1fr 1fr';
+  countContainer.style.gridTemplateRows = 'auto auto';
+  countContainer.style.gap = '4px';
+  countContainer.style.padding = '8px';
+  countContainer.style.backgroundColor = '#f9f9f9';
+  countContainer.style.borderRadius = '8px';
+  countContainer.style.fontSize = '14px';
+  countContainer.style.boxSizing = 'border-box';
 
-      console.log(`[DEBUG] Using provided counts - Active: ${activeCount}, Inactive: ${inactiveCount}`);
-      
-      countContainer.innerHTML = `
-      <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Active:</div>
-      <div style="font-weight: 700; color: #4CAF50;">${activeCount}</div>
-      <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Inactive:</div>
-      <div style="font-weight: 700; color: #9e9e9e;">${inactiveCount}</div>
-    `;
-      
-      // Add the count container to the chart container
-      chartContainer.appendChild(countContainer);
-      
-      // Create chart with correct responsiveness settings
-      new Chart(canvas, {
-        type: "bar",
-        data: {
-          labels: chartData.map(d => d.label),
-          datasets: [
-            {
-              label: "Current",
-              data: chartData.map(d => d.current),
-              backgroundColor: "#007aff",
-              borderRadius: 4
-            },
-            {
-              label: "Previous",
-              type: "line",
-              data: chartData.map(d => d.previous),
-              borderColor: "rgba(255,0,0,1)",
-              backgroundColor: "rgba(255,0,0,0.2)",
-              fill: true,
-              tension: 0.3,
-              borderWidth: 2
-            }
-          ]
+  console.log(`[DEBUG] Using provided counts - Active: ${activeCount}, Inactive: ${inactiveCount}`);
+  
+  countContainer.innerHTML = `
+    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Active:</div>
+    <div style="font-weight: 700; color: #4CAF50;">${activeCount}</div>
+    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Inactive:</div>
+    <div style="font-weight: 700; color: #9e9e9e;">${inactiveCount}</div>
+  `;
+  
+  // Add the count container to the chart container
+  chartContainer.appendChild(countContainer);
+  
+  // Create chart with correct responsiveness settings
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: chartData.map(d => d.label),
+      datasets: [
+        {
+          label: "Current",
+          data: chartData.map(d => d.current),
+          backgroundColor: "#007aff",
+          borderRadius: 4
         },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false, // Important
-          onResize: null, // Prevent resize loops
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const val = ctx.parsed.x;
-                  return `${ctx.dataset.label}: ${val.toFixed(2)}%`;
-                }
-              }
-            },
-            datalabels: {
-              display: ctx => ctx.datasetIndex === 0,
-              formatter: (value, context) => {
-                const row = chartData[context.dataIndex];
-                const mainLabel = `${row.current.toFixed(1)}%`;
-                const diff = row.current - row.previous;
-                const absDiff = Math.abs(diff).toFixed(1);
-                const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
-                return [ mainLabel, `${arrow}${absDiff}%` ];
-              },
-              color: ctx => {
-                const row = chartData[ctx.dataIndex];
-                const diff = row.current - row.previous;
-                if (diff > 0) return "green";
-                if (diff < 0) return "red";
-                return "#444";
-              },
-              anchor: "end",
-              align: "end",
-              offset: 8,
-              font: { size: 10 }
+        {
+          label: "Previous",
+          type: "line",
+          data: chartData.map(d => d.previous),
+          borderColor: "rgba(255,0,0,1)",
+          backgroundColor: "rgba(255,0,0,0.2)",
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false, // Important
+      onResize: null, // Prevent resize loops
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.parsed.x;
+              const productCount = segmentCounts ? segmentCounts[ctx.dataIndex] : 0;
+              const productInfo = productCount > 0 ? ` (${productCount} products)` : '';
+              return `${ctx.dataset.label}: ${val.toFixed(2)}%${productInfo}`;
+            }
+          }
+        },
+        datalabels: {
+          display: true,
+          formatter: (value, context) => {
+            if (context.datasetIndex === 0) { // Only for the bar chart
+              const row = chartData[context.dataIndex];
+              const mainLabel = `${row.current.toFixed(1)}%`;
+              const diff = row.current - row.previous;
+              const absDiff = Math.abs(diff).toFixed(1);
+              const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
+              return [ mainLabel, `${arrow}${absDiff}%` ];
+            } else {
+              return ''; // Don't show labels for the line
             }
           },
-          scales: {
-            x: { display: false, min: 0, max: 100 },
-            y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+          color: ctx => {
+            if (ctx.datasetIndex !== 0) return 'transparent';
+            const row = chartData[ctx.dataIndex];
+            const diff = row.current - row.previous;
+            if (diff > 0) return "green";
+            if (diff < 0) return "red";
+            return "#444";
           },
-          animation: false // Disable animations to reduce layout recalculations
+          anchor: "end",
+          align: "end",
+          offset: 8,
+          font: { size: 10 }
         }
-      });
+      },
+      scales: {
+        x: { display: false, min: 0, max: 100 },
+        y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+      },
+      animation: false, // Disable animations to reduce layout recalculations
+      // Add custom draw function to display product counts
+      onComplete: function(animation) {
+        const ctx = animation.chart.ctx;
+        const chart = animation.chart;
+        
+        ctx.save();
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        
+        chart.data.labels.forEach((label, index) => {
+          const productCount = segmentCounts ? segmentCounts[index] : 0;
+          if (productCount > 0) {
+            const meta = chart.getDatasetMeta(0);
+            const bar = meta.data[index];
+            const y = bar.y;
+            const x = chart.chartArea.right - 10; // Position near the right edge
+            
+            // Draw background
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.fillRect(x - 20, y - 10, 20, 20);
+            
+            // Draw count
+            ctx.fillStyle = "#333";
+            ctx.fillText(productCount, x - 5, y);
+          }
+        });
+        
+        ctx.restore();
+      }
     }
+  });
+}
   
     // Process the data into a hierarchical structure
     const nestedMap = {};
@@ -1530,26 +1567,44 @@ deviceHTML += `</div>`; // Close last-tracked-container
             console.log(`[renderProductMapTable] Found ${matchingProducts.length} matching products for ${window.myCompany}`);
   
             // Generate the segmentation chart based on all matching products
-            setTimeout(() => {
-              const chartData = calculateAggregateSegmentData(matchingProducts);
-              
-              // Filter active and inactive products first
-              const activeProducts = matchingProducts.filter(product => 
-                product.product_status === 'active' || !product.product_status
-              );
-              
-              const inactiveProducts = matchingProducts.filter(product => 
-                product.product_status === 'inactive'
-              );
-              
-              // Pass the filtered products to the chart function
-              createSegmentationChart(chartContainerId, chartData, term, loc, rowData.device, window.myCompany, activeProducts.length, inactiveProducts.length);
-              
-              // Create pie chart for market share
-              if (projectData && projectData.avgShare !== undefined) {
-                createMarketSharePieChart(pieChartId, projectData.avgShare);
-              }
-            }, 100);
+setTimeout(() => {
+  const chartData = calculateAggregateSegmentData(matchingProducts);
+  
+  // Filter active and inactive products first
+  const activeProducts = matchingProducts.filter(product => 
+    product.product_status === 'active' || !product.product_status
+  );
+  
+  const inactiveProducts = matchingProducts.filter(product => 
+    product.product_status === 'inactive'
+  );
+  
+  // Calculate product counts for each segment based on pos-badge values
+  const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
+  
+  activeProducts.forEach(product => {
+    const posValue = parseFloat(product.finalPosition);
+    if (!isNaN(posValue) && posValue > 0) {
+      if (posValue <= 3) {
+        segmentCounts[0]++; // Top3
+      } else if (posValue <= 8) {
+        segmentCounts[1]++; // Top4-8
+      } else if (posValue <= 14) {
+        segmentCounts[2]++; // Top9-14
+      } else {
+        segmentCounts[3]++; // Below14
+      }
+    }
+  });
+  
+  // Pass the segment counts to the chart function
+  createSegmentationChart(chartContainerId, chartData, term, loc, rowData.device, window.myCompany, activeProducts.length, inactiveProducts.length, segmentCounts);
+  
+  // Create pie chart for market share
+  if (projectData && projectData.avgShare !== undefined) {
+    createMarketSharePieChart(pieChartId, projectData.avgShare);
+  }
+}, 100);
   
             if (matchingProducts.length === 0) {
               productCellDiv.innerHTML = '<div class="no-products">–</div>';
