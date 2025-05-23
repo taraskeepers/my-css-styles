@@ -1136,14 +1136,55 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   chartContainer.style.flexDirection = 'column';
   chartContainer.style.alignItems = 'center';
   
-  // Create canvas wrapper div with fixed height
+  // Create a wrapper for chart and counts side by side
+  const chartAndCountsWrapper = document.createElement('div');
+  chartAndCountsWrapper.style.width = '100%';
+  chartAndCountsWrapper.style.height = '280px';
+  chartAndCountsWrapper.style.display = 'flex';
+  chartAndCountsWrapper.style.alignItems = 'center';
+  chartAndCountsWrapper.style.marginBottom = '10px';
+  chartContainer.appendChild(chartAndCountsWrapper);
+  
+  // Create canvas wrapper div
   const canvasWrapper = document.createElement('div');
-  canvasWrapper.style.width = '100%';
-  canvasWrapper.style.height = '280px'; // Fixed height for chart area
-  canvasWrapper.style.maxHeight = '280px';
+  canvasWrapper.style.flex = '1';
+  canvasWrapper.style.height = '100%';
   canvasWrapper.style.position = 'relative';
-  canvasWrapper.style.marginBottom = '10px';
-  chartContainer.appendChild(canvasWrapper);
+  chartAndCountsWrapper.appendChild(canvasWrapper);
+  
+  // Create product counts column
+  const countsColumn = document.createElement('div');
+  countsColumn.style.width = '40px';
+  countsColumn.style.height = '100%';
+  countsColumn.style.display = 'flex';
+  countsColumn.style.flexDirection = 'column';
+  countsColumn.style.justifyContent = 'center';
+  countsColumn.style.paddingLeft = '5px';
+  chartAndCountsWrapper.appendChild(countsColumn);
+  
+  // Add product count labels for each segment
+  const segmentLabels = ['Top3', 'Top4-8', 'Top9-14', 'Below14'];
+  segmentLabels.forEach((label, index) => {
+    const countDiv = document.createElement('div');
+    countDiv.style.height = '25%';
+    countDiv.style.display = 'flex';
+    countDiv.style.alignItems = 'center';
+    countDiv.style.justifyContent = 'center';
+    countDiv.style.fontSize = '14px';
+    countDiv.style.fontWeight = 'bold';
+    countDiv.style.color = '#333';
+    
+    const count = segmentCounts ? segmentCounts[index] : 0;
+    if (count > 0) {
+      countDiv.style.backgroundColor = '#f0f0f0';
+      countDiv.style.borderRadius = '4px';
+      countDiv.style.padding = '2px 6px';
+      countDiv.style.margin = '2px 0';
+      countDiv.textContent = count;
+    }
+    
+    countsColumn.appendChild(countDiv);
+  });
   
   // Create canvas element inside the wrapper
   const canvas = document.createElement('canvas');
@@ -1167,7 +1208,6 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   countContainer.style.boxSizing = 'border-box';
 
   console.log(`[DEBUG] Using provided counts - Active: ${activeCount}, Inactive: ${inactiveCount}`);
-  console.log(`[DEBUG] Segment counts:`, segmentCounts);
   
   countContainer.innerHTML = `
     <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Active:</div>
@@ -1179,13 +1219,7 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   // Add the count container to the chart container
   chartContainer.appendChild(countContainer);
   
-  // Add a dummy dataset for product counts (invisible but allows us to use datalabels)
-  const dummyData = chartData.map((d, i) => {
-    // Position the dummy data at 95% of the scale to place labels at the right edge
-    return segmentCounts && segmentCounts[i] > 0 ? 95 : null;
-  });
-  
-  // Create chart with correct responsiveness settings
+  // Create chart with original settings (no modifications for product counts)
   new Chart(canvas, {
     type: "bar",
     data: {
@@ -1206,35 +1240,17 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
           fill: true,
           tension: 0.3,
           borderWidth: 2
-        },
-        {
-          label: "Product Count",
-          data: dummyData,
-          backgroundColor: "transparent",
-          borderColor: "transparent",
-          barThickness: 1,
-          categoryPercentage: 1,
-          barPercentage: 1
         }
       ]
     },
     options: {
       indexAxis: "y",
       responsive: true,
-      maintainAspectRatio: false, // Important
-      onResize: null, // Prevent resize loops
-      layout: {
-        padding: {
-          right: 30 // Add padding to make room for product counts
-        }
-      },
+      maintainAspectRatio: false,
+      onResize: null,
       plugins: {
         legend: { display: false },
         tooltip: {
-          filter: function(tooltipItem) {
-            // Hide tooltip for the dummy dataset
-            return tooltipItem.datasetIndex !== 2;
-          },
           callbacks: {
             label: ctx => {
               const val = ctx.parsed.x;
@@ -1245,110 +1261,33 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
           }
         },
         datalabels: {
-          display: function(context) {
-            if (context.datasetIndex === 0) {
-              // Display percentage labels for the main dataset
-              return true;
-            } else if (context.datasetIndex === 2) {
-              // Display product counts for the dummy dataset
-              return segmentCounts && segmentCounts[context.dataIndex] > 0;
-            }
-            return false;
-          },
+          display: ctx => ctx.datasetIndex === 0,
           formatter: (value, context) => {
-            if (context.datasetIndex === 0) {
-              // Format percentage labels
-              const row = chartData[context.dataIndex];
-              const mainLabel = `${row.current.toFixed(1)}%`;
-              const diff = row.current - row.previous;
-              const absDiff = Math.abs(diff).toFixed(1);
-              const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
-              return [ mainLabel, `${arrow}${absDiff}%` ];
-            } else if (context.datasetIndex === 2) {
-              // Format product count labels
-              return segmentCounts[context.dataIndex];
-            }
-            return '';
+            const row = chartData[context.dataIndex];
+            const mainLabel = `${row.current.toFixed(1)}%`;
+            const diff = row.current - row.previous;
+            const absDiff = Math.abs(diff).toFixed(1);
+            const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
+            return [ mainLabel, `${arrow}${absDiff}%` ];
           },
-          color: function(context) {
-            if (context.datasetIndex === 0) {
-              const row = chartData[context.dataIndex];
-              const diff = row.current - row.previous;
-              if (diff > 0) return "green";
-              if (diff < 0) return "red";
-              return "#444";
-            } else if (context.datasetIndex === 2) {
-              return "#333";
-            }
-            return "transparent";
+          color: ctx => {
+            const row = chartData[ctx.dataIndex];
+            const diff = row.current - row.previous;
+            if (diff > 0) return "green";
+            if (diff < 0) return "red";
+            return "#444";
           },
-          anchor: function(context) {
-            if (context.datasetIndex === 0) {
-              return "end";
-            } else if (context.datasetIndex === 2) {
-              return "start";
-            }
-            return "center";
-          },
-          align: function(context) {
-            if (context.datasetIndex === 0) {
-              return "end";
-            } else if (context.datasetIndex === 2) {
-              return "right";
-            }
-            return "center";
-          },
-          offset: function(context) {
-            if (context.datasetIndex === 0) {
-              return 8;
-            } else if (context.datasetIndex === 2) {
-              return -5;
-            }
-            return 0;
-          },
-          font: function(context) {
-            if (context.datasetIndex === 2) {
-              return { size: 14, weight: 'bold' };
-            }
-            return { size: 10 };
-          },
-          backgroundColor: function(context) {
-            if (context.datasetIndex === 2) {
-              return "rgba(255, 255, 255, 0.8)";
-            }
-            return null;
-          },
-          borderColor: function(context) {
-            if (context.datasetIndex === 2) {
-              return "#ddd";
-            }
-            return null;
-          },
-          borderWidth: function(context) {
-            if (context.datasetIndex === 2) {
-              return 1;
-            }
-            return 0;
-          },
-          borderRadius: function(context) {
-            if (context.datasetIndex === 2) {
-              return 4;
-            }
-            return 0;
-          },
-          padding: function(context) {
-            if (context.datasetIndex === 2) {
-              return { top: 2, bottom: 2, left: 4, right: 4 };
-            }
-            return 0;
-          }
+          anchor: "end",
+          align: "end",
+          offset: 8,
+          font: { size: 10 }
         }
       },
       scales: {
         x: { display: false, min: 0, max: 100 },
         y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
       },
-      animation: false // Disable animations to reduce layout recalculations
+      animation: false
     }
   });
 }
