@@ -1560,12 +1560,57 @@ deviceHTML += `</div>`; // Close last-tracked-container
              console.log("[DEBUG] Product cell has", productCellDiv.querySelectorAll('*').length, "elements,", 
              productCellDiv.querySelectorAll('.ad-details').length, "with class 'ad-details'");
   
-            // Sort products by position (best/lowest position first)
-            matchingProducts.sort((a, b) => {
-            const aPos = parseFloat(a.finalPosition) || 999999;
-            const bPos = parseFloat(b.finalPosition) || 999999;
-            return aPos - bPos; // Sort by ascending position (lowest/best first)
-            });
+// Sort products by average position for the 7-day period (best/lowest position first)
+matchingProducts.forEach(product => {
+  // Calculate the 7-day average position for sorting
+  if (product.historical_data && product.historical_data.length > 0) {
+    // Find the latest date in the historical data
+    let latestDate = null;
+    product.historical_data.forEach(item => {
+      if (item.date && item.date.value) {
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (latestDate === null || itemDate.isAfter(latestDate)) {
+          latestDate = itemDate.clone();
+        }
+      }
+    });
+    
+    if (latestDate) {
+      // Define the 7-day window
+      const endDate = latestDate.clone();
+      const startDate = endDate.clone().subtract(6, 'days');
+      
+      // Filter for current 7-day period
+      const currentPeriodData = product.historical_data.filter(item => {
+        if (!item.date || !item.date.value || !item.avg_position) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+      
+      // Calculate average position
+      let sum = 0;
+      let count = 0;
+      currentPeriodData.forEach(item => {
+        const pos = parseFloat(item.avg_position);
+        if (!isNaN(pos)) {
+          sum += pos;
+          count++;
+        }
+      });
+      
+      product._sortingAvgPos = count > 0 ? sum / count : 999999;
+    } else {
+      product._sortingAvgPos = 999999;
+    }
+  } else {
+    product._sortingAvgPos = 999999;
+  }
+});
+
+// Now sort by the calculated average position
+matchingProducts.sort((a, b) => {
+  return a._sortingAvgPos - b._sortingAvgPos; // Sort by ascending position (lowest/best first)
+});
               
               // Create a floating card for each product
               // In the matchingProducts.forEach loop in renderProductMapTable:
