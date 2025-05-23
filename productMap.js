@@ -1579,45 +1579,89 @@ deviceHTML += `</div>`; // Close last-tracked-container
   
             console.log(`[renderProductMapTable] Found ${matchingProducts.length} matching products for ${window.myCompany}`);
   
-            // Generate the segmentation chart based on all matching products
+// First, just calculate the aggregate data and store references
+const chartData = calculateAggregateSegmentData(matchingProducts);
+
+// Filter active and inactive products
+const activeProducts = matchingProducts.filter(product => 
+  product.product_status === 'active' || !product.product_status
+);
+
+const inactiveProducts = matchingProducts.filter(product => 
+  product.product_status === 'inactive'
+);
+
+// Store the data we'll need later
+const chartInfo = {
+  containerId: chartContainerId,
+  data: chartData,
+  term: term,
+  location: loc,
+  device: rowData.device,
+  company: window.myCompany,
+  activeCount: activeProducts.length,
+  inactiveCount: inactiveProducts.length,
+  pieChartId: pieChartId,
+  projectData: projectData
+};
+
+// Delay chart creation until after products are rendered
 setTimeout(() => {
-  const chartData = calculateAggregateSegmentData(matchingProducts);
-  
-  // Filter active and inactive products first
-  const activeProducts = matchingProducts.filter(product => 
-    product.product_status === 'active' || !product.product_status
-  );
-  
-  const inactiveProducts = matchingProducts.filter(product => 
-    product.product_status === 'inactive'
-  );
-  
-  // Calculate product counts for each segment based on pos-badge values
+  // Now calculate segment counts AFTER products have been processed
   const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
   
-  activeProducts.forEach(product => {
-    const posValue = parseFloat(product.finalPosition);
-    if (!isNaN(posValue) && posValue > 0) {
-      if (posValue <= 3) {
-        segmentCounts[0]++; // Top3
-      } else if (posValue <= 8) {
-        segmentCounts[1]++; // Top4-8
-      } else if (posValue <= 14) {
-        segmentCounts[2]++; // Top9-14
-      } else {
-        segmentCounts[3]++; // Below14
+  // Get the product elements that were just rendered
+  const productCards = productCellDiv.querySelectorAll('.ad-details');
+  console.log(`[DEBUG-SEGMENTS] Found ${productCards.length} product cards`);
+  
+  productCards.forEach(card => {
+    // Skip inactive products
+    if (card.classList.contains('inactive-product')) {
+      return;
+    }
+    
+    // Get the data-pla-index to look up the product data
+    const plaIndex = card.getAttribute('data-pla-index');
+    const product = window.globalRows[plaIndex];
+    
+    if (product) {
+      const posValue = parseFloat(product.finalPosition);
+      console.log(`[DEBUG-SEGMENTS] Product ${product.title}: finalPosition = ${product.finalPosition}, parsed = ${posValue}`);
+      
+      if (!isNaN(posValue) && posValue > 0) {
+        if (posValue <= 3) {
+          segmentCounts[0]++; // Top3
+        } else if (posValue <= 8) {
+          segmentCounts[1]++; // Top4-8
+        } else if (posValue <= 14) {
+          segmentCounts[2]++; // Top9-14
+        } else {
+          segmentCounts[3]++; // Below14
+        }
       }
     }
   });
   
-  // Pass the segment counts to the chart function
-  createSegmentationChart(chartContainerId, chartData, term, loc, rowData.device, window.myCompany, activeProducts.length, inactiveProducts.length, segmentCounts);
+  console.log(`[DEBUG-SEGMENTS] Final segment counts:`, segmentCounts);
+  
+  // Create the segmentation chart with the correct counts
+  createSegmentationChart(
+    chartInfo.containerId, 
+    chartInfo.data, 
+    chartInfo.term, 
+    chartInfo.location, 
+    chartInfo.device, 
+    chartInfo.company, 
+    chartInfo.activeCount, 
+    chartInfo.inactiveCount, 
+    segmentCounts
+  );
   
   // Create pie chart for market share
-  if (projectData && projectData.avgShare !== undefined) {
-    createMarketSharePieChart(pieChartId, projectData.avgShare);
+  if (chartInfo.projectData && chartInfo.projectData.avgShare !== undefined) {
+    createMarketSharePieChart(chartInfo.pieChartId, chartInfo.projectData.avgShare);
   }
-}, 100);
+}, 200); // Increased delay to ensure products are fully rendered
   
             if (matchingProducts.length === 0) {
               productCellDiv.innerHTML = '<div class="no-products">–</div>';
