@@ -1062,6 +1062,7 @@ viewChartsBtn.addEventListener("click", function() {
 
 .chart-avg-position {
   flex: 1;
+  min-width: 300px; /* Add minimum width */
   height: 100%;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -2419,6 +2420,25 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
 // Populate the chart-products container with small product cards
 const allProductsForChart = [...activeProducts, ...inactiveProducts];
 allProductsForChart.forEach((product, index) => {
+  // First, ensure this product has the enhanced data from globalRows
+  // Find the corresponding enhanced product
+  let enhancedProduct = null;
+  const globalRowsKeys = Object.keys(window.globalRows);
+  for (const key of globalRowsKeys) {
+    const globalProduct = window.globalRows[key];
+    if (globalProduct && 
+        globalProduct.title === product.title && 
+        globalProduct.source === product.source &&
+        globalProduct.q === product.q &&
+        globalProduct.location_requested === product.location_requested &&
+        globalProduct.device === product.device) {
+      enhancedProduct = globalProduct;
+      break;
+    }
+  }
+  
+  // Use enhanced product if found, otherwise use original
+  const productToUse = enhancedProduct || product;
   const smallCard = document.createElement('div');
   smallCard.classList.add('small-ad-details');
   smallCard.setAttribute('data-product-index', index);
@@ -2428,11 +2448,11 @@ allProductsForChart.forEach((product, index) => {
     smallCard.classList.add('inactive');
   }
   
-  // Get position and trend values
-  const posValue = product.finalPosition || '-';
-  const trendArrow = product.arrow || '';
-  const trendValue = product.finalSlope || '';
-  const badgeColor = product.posBadgeBackground || 'gray';
+// Get position and trend values from the enhanced product
+  const posValue = productToUse.finalPosition || '-';
+  const trendArrow = productToUse.arrow || '';
+  const trendValue = productToUse.finalSlope || '';
+  const badgeColor = productToUse.posBadgeBackground || 'gray';
   
   // Create the HTML for small card
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
@@ -2466,7 +2486,7 @@ allProductsForChart.forEach((product, index) => {
   
   chartProductsDiv.appendChild(smallCard);
   // Store product reference for chart
-smallCard.productData = product;
+smallCard.productData = productToUse;
 });
 
               // Add direct click handlers to each product card
@@ -2960,12 +2980,17 @@ function renderAvgPositionChart(container, products) {
       return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
     });
     
-    // Generate a color for this product
-    const colors = [
-      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-    ];
-    const color = colors[index % colors.length];
+// Generate a color for this product - grey for inactive
+let color;
+if (product.product_status === 'inactive') {
+  color = '#999999'; // Grey for inactive products
+} else {
+  const colors = [
+    '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+    '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+  ];
+  color = colors[index % colors.length];
+}
     
     return {
       label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
@@ -2976,7 +3001,18 @@ function renderAvgPositionChart(container, products) {
       pointRadius: 3,
       pointHoverRadius: 5,
       tension: 0.3,
-      spanGaps: false // Don't connect null values
+      spanGaps: true, // Connect null values
+segment: {
+  borderDash: (ctx) => {
+    // Check if this segment spans a gap
+    const p0 = ctx.p0;
+    const p1 = ctx.p1;
+    if (p0.skip || p1.skip) {
+      return [5, 5]; // Dotted line for gaps
+    }
+    return undefined; // Solid line
+  }
+}
     };
   });
   
@@ -2995,15 +3031,9 @@ function renderAvgPositionChart(container, products) {
         intersect: false
       },
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            boxWidth: 12,
-            font: { size: 11 },
-            padding: 8
-          }
-        },
+legend: {
+  display: false
+},
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -3016,21 +3046,27 @@ function renderAvgPositionChart(container, products) {
         }
       },
       scales: {
-        x: {
-          type: 'category',
-          title: {
-            display: true,
-            text: 'Date',
-            font: { size: 12 }
-          },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            font: { size: 10 },
-            autoSkip: true,
-            maxTicksLimit: 15
-          }
-        },
+x: {
+  type: 'category',
+  title: {
+    display: true,
+    text: 'Date',
+    font: { size: 12 }
+  },
+  ticks: {
+    maxRotation: 45,
+    minRotation: 45,
+    font: { size: 10 },
+    autoSkip: true,
+    maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50)) // Dynamic based on container width
+  },
+  grid: {
+    display: true,
+    drawBorder: true,
+    drawOnChartArea: true,
+    drawTicks: true
+  }
+},
         y: {
           type: 'linear',
           reverse: true, // Lower position numbers are better
