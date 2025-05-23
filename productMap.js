@@ -3105,6 +3105,7 @@ function renderAvgPositionChart(container, products) {
   });
   
   // Add click handlers to small cards for this specific chart container
+if (container && container.parentElement) {
   const chartProductsDiv = container.parentElement.querySelector('.chart-products');
   if (chartProductsDiv) {
     const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
@@ -3121,29 +3122,31 @@ function renderAvgPositionChart(container, products) {
         }
         
         // Update chart
-        chartInstance.data.datasets.forEach((dataset, idx) => {
-          if (selectedProductIndex === null) {
-            // No selection - restore original colors
-            const isInactive = products[idx]?.product_status === 'inactive';
-            const colors = [
-              '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-              '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-            ];
-            dataset.borderColor = isInactive ? '#999999' : colors[idx % colors.length];
-            dataset.borderWidth = 2;
-            dataset.hidden = false;
-          } else if (idx === selectedProductIndex) {
-            // Selected product - keep color and make bold
-            dataset.borderWidth = 4;
-            dataset.hidden = false;
-          } else {
-            // Other products - make grey
-            dataset.borderColor = '#cccccc';
-            dataset.borderWidth = 1;
-            dataset.hidden = false;
-          }
-        });
-        chartInstance.update();
+        if (chartInstance && chartInstance.data && chartInstance.data.datasets) {
+          chartInstance.data.datasets.forEach((dataset, idx) => {
+            if (selectedProductIndex === null) {
+              // No selection - restore original colors
+              const isInactive = products[idx] && products[idx].product_status === 'inactive';
+              const colors = [
+                '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+                '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+              ];
+              dataset.borderColor = isInactive ? '#999999' : colors[idx % colors.length];
+              dataset.borderWidth = 2;
+              dataset.hidden = false;
+            } else if (idx === selectedProductIndex) {
+              // Selected product - keep color and make bold
+              dataset.borderWidth = 4;
+              dataset.hidden = false;
+            } else {
+              // Other products - make grey
+              dataset.borderColor = '#cccccc';
+              dataset.borderWidth = 1;
+              dataset.hidden = false;
+            }
+          });
+          chartInstance.update();
+        }
       });
     });
   }
