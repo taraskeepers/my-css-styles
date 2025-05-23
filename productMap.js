@@ -497,6 +497,20 @@ viewChartsBtn.addEventListener("click", function() {
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
+  
+  // Render charts for each row
+  document.querySelectorAll('.products-chart-container').forEach(container => {
+    const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+    const chartProductsDiv = container.querySelector('.chart-products');
+    
+    // Get all products for this chart
+    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+    
+    if (products.length > 0 && chartAvgPosDiv) {
+      renderAvgPositionChart(chartAvgPosDiv, products);
+    }
+  });
 });
   
     console.log("[renderProductMapTable] Using myCompany:", window.myCompany);
@@ -1036,7 +1050,7 @@ viewChartsBtn.addEventListener("click", function() {
 }
 
 .chart-products {
-  width: 210px;
+  width: 280px;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1061,7 +1075,7 @@ viewChartsBtn.addEventListener("click", function() {
 
 /* Small ad details for chart view */
 .small-ad-details {
-  width: 200px;
+  width: 270px;
   height: 60px;
   margin-bottom: 5px;
   background-color: white;
@@ -1072,6 +1086,32 @@ viewChartsBtn.addEventListener("click", function() {
   padding: 5px;
   cursor: pointer;
   transition: all 0.2s;
+}
+/* Position badge for small cards */
+.small-ad-pos-badge {
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.small-ad-pos-value {
+  font-size: 18px;
+  line-height: 1;
+  color: white;
+}
+
+.small-ad-pos-trend {
+  font-size: 11px;
+  line-height: 1;
+  margin-top: 2px;
+  color: white;
 }
 
 .small-ad-details:hover {
@@ -2376,7 +2416,7 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                 }
               })
 
-              // Populate the chart-products container with small product cards
+// Populate the chart-products container with small product cards
 const allProductsForChart = [...activeProducts, ...inactiveProducts];
 allProductsForChart.forEach((product, index) => {
   const smallCard = document.createElement('div');
@@ -2388,11 +2428,21 @@ allProductsForChart.forEach((product, index) => {
     smallCard.classList.add('inactive');
   }
   
+  // Get position and trend values
+  const posValue = product.finalPosition || '-';
+  const trendArrow = product.arrow || '';
+  const trendValue = product.finalSlope || '';
+  const badgeColor = product.posBadgeBackground || 'gray';
+  
   // Create the HTML for small card
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
   const title = product.title || 'No title';
   
   smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${posValue}</div>
+      <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+    </div>
     <img class="small-ad-image" 
          src="${imageUrl}" 
          alt="${title}"
@@ -2415,6 +2465,8 @@ allProductsForChart.forEach((product, index) => {
   });
   
   chartProductsDiv.appendChild(smallCard);
+  // Store product reference for chart
+smallCard.productData = product;
 });
 
               // Add direct click handlers to each product card
@@ -2849,3 +2901,152 @@ if (productMapContainer) {
   observer.observe(productMapContainer, { attributes: true });
 }
   }
+
+// Function to render average position chart
+function renderAvgPositionChart(container, products) {
+  // Clear previous content
+  container.innerHTML = '';
+  container.style.padding = '20px';
+  
+  // Create canvas element
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+  
+  // Determine date range from all products
+  let allDates = new Set();
+  let minDate = null;
+  let maxDate = null;
+  
+  products.forEach(product => {
+    if (product.historical_data && product.historical_data.length > 0) {
+      product.historical_data.forEach(item => {
+        if (item.date && item.date.value && item.avg_position) {
+          const dateStr = item.date.value;
+          allDates.add(dateStr);
+          const date = moment(dateStr, 'YYYY-MM-DD');
+          if (!minDate || date.isBefore(minDate)) minDate = date.clone();
+          if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
+        }
+      });
+    }
+  });
+  
+  if (!minDate || !maxDate) {
+    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
+    return;
+  }
+  
+  // Create array of all dates in range
+  const dateArray = [];
+  let currentDate = minDate.clone();
+  while (currentDate.isSameOrBefore(maxDate)) {
+    dateArray.push(currentDate.format('YYYY-MM-DD'));
+    currentDate.add(1, 'day');
+  }
+  
+  // Limit to last 30 days if range is too large
+  if (dateArray.length > 30) {
+    dateArray.splice(0, dateArray.length - 30);
+  }
+  
+  // Create datasets for each product
+  const datasets = products.map((product, index) => {
+    const data = dateArray.map(dateStr => {
+      const histItem = product.historical_data?.find(item => 
+        item.date?.value === dateStr
+      );
+      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
+    });
+    
+    // Generate a color for this product
+    const colors = [
+      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+    ];
+    const color = colors[index % colors.length];
+    
+    return {
+      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+      data: data,
+      borderColor: color,
+      backgroundColor: color + '20',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: false // Don't connect null values
+    };
+  });
+  
+  // Create the chart
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dateArray,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            boxWidth: 12,
+            font: { size: 11 },
+            padding: 8
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              if (context.parsed.y !== null) {
+                return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+              }
+              return context.dataset.label + ': No data';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 },
+            autoSkip: true,
+            maxTicksLimit: 15
+          }
+        },
+        y: {
+          type: 'linear',
+          reverse: true, // Lower position numbers are better
+          min: 1,
+          max: 40,
+          title: {
+            display: true,
+            text: 'Average Position',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 5
+          }
+        }
+      }
+    }
+  });
+}
