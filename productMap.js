@@ -1784,7 +1784,34 @@ matchingProducts.sort((a, b) => {
                     enhancedProduct.posBadgeBackground = "gray";
                   }
               
-                  enhancedProduct.visibilityBarValue = enhancedProduct.visibilityBarValue || 50;
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
                   // 5. Most importantly: Add this FULLY enhanced product to globalRows
                   window.globalRows[pmIndexKey] = enhancedProduct;
@@ -1970,7 +1997,34 @@ matchingProducts.sort((a, b) => {
                     enhancedProduct.posBadgeBackground = "gray";
                   }
               
-                  enhancedProduct.visibilityBarValue = enhancedProduct.visibilityBarValue || 50;
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
                   // 5. Most importantly: Add this FULLY enhanced product to globalRows
                   window.globalRows[pmIndexKey] = enhancedProduct;
