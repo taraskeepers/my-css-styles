@@ -3151,4 +3151,3 @@ if (container && container.parentElement) {
     });
   }
 }
-}
