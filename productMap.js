@@ -4,17 +4,21 @@
     const container = document.getElementById("productMapPage");
     if (!container) return;
   
-    // Setup container with fixed height and scrolling
-    container.innerHTML = `
-    <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
-      <button id="fullscreenToggle" class="fullscreen-toggle">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-        </svg>
-        Full Screen
-      </button>
+// Setup container with fixed height and scrolling
+container.innerHTML = `
+  <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
+    <div class="view-switcher">
+      <button id="viewProducts" class="active">Products</button>
+      <button id="viewCharts">Charts</button>
     </div>
-    `;
+    <button id="fullscreenToggle" class="fullscreen-toggle">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+      </svg>
+      Full Screen
+    </button>
+  </div>
+`;
     
     // Create fullscreen overlay container (hidden initially)
     let fullscreenOverlay = document.getElementById('productMapFullscreenOverlay');
@@ -72,6 +76,41 @@
           detailsPanel.style.transform = 'translateY(-50%)';
         }
       });
+
+      // Clone the view switcher and add it to the overlay
+const originalSwitcher = document.querySelector('.view-switcher');
+if (originalSwitcher) {
+  const switcherClone = originalSwitcher.cloneNode(true);
+  fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
+  
+  // Re-attach event listeners to the cloned switcher
+  const clonedProductsBtn = switcherClone.querySelector('#viewProducts');
+  const clonedChartsBtn = switcherClone.querySelector('#viewCharts');
+  
+  clonedProductsBtn.addEventListener('click', function() {
+    clonedProductsBtn.classList.add('active');
+    clonedChartsBtn.classList.remove('active');
+    
+    fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
+      container.style.display = 'block';
+    });
+    fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+      container.style.display = 'none';
+    });
+  });
+  
+  clonedChartsBtn.addEventListener('click', function() {
+    clonedChartsBtn.classList.add('active');
+    clonedProductsBtn.classList.remove('active');
+    
+    fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
+      container.style.display = 'none';
+    });
+    fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+      container.style.display = 'flex';
+    });
+  });
+}
       
 // Apply fullscreen styles to the cloned table cells
 const productCells = fullscreenOverlay.querySelectorAll('.product-cell');
@@ -427,6 +466,38 @@ setTimeout(() => {
         });
       }, 100);
     });
+
+    // Add view switcher functionality
+const viewProductsBtn = document.getElementById("viewProducts");
+const viewChartsBtn = document.getElementById("viewCharts");
+
+viewProductsBtn.addEventListener("click", function() {
+  // Switch to Products view
+  viewProductsBtn.classList.add("active");
+  viewChartsBtn.classList.remove("active");
+  
+  // Show all product cells, hide all chart containers
+  document.querySelectorAll('.product-cell-container').forEach(container => {
+    container.style.display = 'block';
+  });
+  document.querySelectorAll('.products-chart-container').forEach(container => {
+    container.style.display = 'none';
+  });
+});
+
+viewChartsBtn.addEventListener("click", function() {
+  // Switch to Charts view
+  viewChartsBtn.classList.add("active");
+  viewProductsBtn.classList.remove("active");
+  
+  // Hide all product cells, show all chart containers
+  document.querySelectorAll('.product-cell-container').forEach(container => {
+    container.style.display = 'none';
+  });
+  document.querySelectorAll('.products-chart-container').forEach(container => {
+    container.style.display = 'flex';
+  });
+});
   
     console.log("[renderProductMapTable] Using myCompany:", window.myCompany);
 
@@ -920,6 +991,117 @@ setTimeout(() => {
 .product-map-fullscreen-overlay .product-cell .ad-details {
   margin-bottom: 10px;
   margin-right: 10px;
+}
+/* View switcher styles */
+.view-switcher {
+  position: absolute;
+  top: 10px;
+  right: 140px; /* Positioned before the fullscreen button */
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  z-index: 100;
+}
+
+.view-switcher button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 17px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.view-switcher button.active {
+  background-color: #007aff;
+  color: white;
+}
+
+.view-switcher button:hover:not(.active) {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+/* Products chart container styles */
+.products-chart-container {
+  display: none;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  overflow: hidden;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.chart-products {
+  width: 210px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 5px;
+  scrollbar-width: thin;
+}
+
+.chart-avg-position {
+  flex: 1;
+  height: 100%;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-style: italic;
+}
+
+/* Small ad details for chart view */
+.small-ad-details {
+  width: 200px;
+  height: 60px;
+  margin-bottom: 5px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.small-ad-details:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.small-ad-details.active {
+  border: 2px solid #007aff;
+  box-shadow: 0 2px 6px rgba(0,122,255,0.3);
+}
+
+.small-ad-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  margin-right: 8px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+}
+
+.small-ad-title {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #333;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
       `;
       document.head.appendChild(style);
@@ -1554,16 +1736,39 @@ deviceHTML += `</div>`; // Close last-tracked-container
           tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container"></div>`;
           tr.appendChild(tdSegmentation);
   
-          // Add products cell
-          const tdProducts = document.createElement("td");
-          tdProducts.classList.add("product-cell-container");
-          tdProducts.style.width = "100%";
-          tdProducts.style.minWidth = "400px";
-  
-          // Create product container
-          const productCellDiv = document.createElement("div");
-          productCellDiv.classList.add("product-cell");
-          tdProducts.appendChild(productCellDiv);
+// Add products cell
+const tdProducts = document.createElement("td");
+tdProducts.style.width = "100%";
+tdProducts.style.minWidth = "400px";
+
+// Create product cell container (for Products view)
+const productCellContainer = document.createElement("div");
+productCellContainer.classList.add("product-cell-container");
+productCellContainer.style.width = "100%";
+productCellContainer.style.height = "100%";
+
+// Create product container
+const productCellDiv = document.createElement("div");
+productCellDiv.classList.add("product-cell");
+productCellContainer.appendChild(productCellDiv);
+tdProducts.appendChild(productCellContainer);
+
+// Create products chart container (for Charts view)
+const productsChartContainer = document.createElement("div");
+productsChartContainer.classList.add("products-chart-container");
+
+// Create chart-products container
+const chartProductsDiv = document.createElement("div");
+chartProductsDiv.classList.add("chart-products");
+
+// Create chart-avg-position container
+const chartAvgPositionDiv = document.createElement("div");
+chartAvgPositionDiv.classList.add("chart-avg-position");
+chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>';
+
+productsChartContainer.appendChild(chartProductsDiv);
+productsChartContainer.appendChild(chartAvgPositionDiv);
+tdProducts.appendChild(productsChartContainer);
   
           // Find and display matching products
           if (window.allRows && Array.isArray(window.allRows)) {
@@ -2170,6 +2375,47 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
                 }
               })
+
+              // Populate the chart-products container with small product cards
+const allProductsForChart = [...activeProducts, ...inactiveProducts];
+allProductsForChart.forEach((product, index) => {
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  smallCard.setAttribute('data-product-index', index);
+  
+  // Add inactive class if needed
+  if (product.product_status === 'inactive') {
+    smallCard.classList.add('inactive');
+  }
+  
+  // Create the HTML for small card
+  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = product.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  // Add click handler for small cards
+  smallCard.addEventListener('click', function() {
+    // Remove active class from all small cards
+    chartProductsDiv.querySelectorAll('.small-ad-details').forEach(card => {
+      card.classList.remove('active');
+    });
+    
+    // Add active class to clicked card
+    this.classList.add('active');
+    
+    // You can add logic here to update the chart based on selected product
+    console.log('Selected product for chart:', product.title);
+  });
+  
+  chartProductsDiv.appendChild(smallCard);
+});
 
               // Add direct click handlers to each product card
               productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
