@@ -1166,7 +1166,6 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   countsColumn.style.flexDirection = 'column';
   countsColumn.style.justifyContent = 'center';
   countsColumn.style.paddingLeft = '5px';
-  countsColumn.style.border = '2px solid red';
   chartAndCountsWrapper.appendChild(countsColumn);
   
   // Add product count labels for each segment
