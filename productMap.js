@@ -2416,6 +2416,18 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                 }
               })
 
+// Ensure all products have their position data calculated
+[...activeProducts, ...inactiveProducts].forEach(product => {
+  // Use the already calculated values from the enhanced product
+  if (!product.finalPosition && product._plaIndex && window.globalRows[product._plaIndex]) {
+    const enhancedData = window.globalRows[product._plaIndex];
+    product.finalPosition = enhancedData.finalPosition;
+    product.finalSlope = enhancedData.finalSlope;
+    product.arrow = enhancedData.arrow;
+    product.posBadgeBackground = enhancedData.posBadgeBackground;
+  }
+});
+
 // Populate the chart-products container with small product cards
 const allProductsForChart = [...activeProducts, ...inactiveProducts];
 allProductsForChart.forEach((product, index) => {
@@ -2907,6 +2919,9 @@ function renderAvgPositionChart(container, products) {
   // Clear previous content
   container.innerHTML = '';
   container.style.padding = '20px';
+
+    let selectedProductIndex = null; // Add this line
+  let chartInstance = null; // Add this line
   
   // Create canvas element
   const canvas = document.createElement('canvas');
@@ -2951,37 +2966,70 @@ function renderAvgPositionChart(container, products) {
     dateArray.splice(0, dateArray.length - 30);
   }
   
-  // Create datasets for each product
-  const datasets = products.map((product, index) => {
-    const data = dateArray.map(dateStr => {
-      const histItem = product.historical_data?.find(item => 
-        item.date?.value === dateStr
-      );
-      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
-    });
-    
-    // Generate a color for this product
-    const colors = [
-      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-    ];
-    const color = colors[index % colors.length];
-    
-    return {
-      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
-      data: data,
-      borderColor: color,
-      backgroundColor: color + '20',
-      borderWidth: 2,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      tension: 0.3,
-      spanGaps: false // Don't connect null values
-    };
+// Create datasets for each product
+const datasets = products.map((product, index) => {
+  const data = dateArray.map(dateStr => {
+    const histItem = product.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
   });
   
+  // Check if product is inactive
+  const isInactive = product.product_status === 'inactive';
+  
+  // Generate a color for this product
+  const colors = [
+    '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+    '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+  ];
+  const color = isInactive ? '#999999' : colors[index % colors.length];
+  
+  // Create segments for dotted lines where data is missing
+  const segments = [];
+  for (let i = 0; i < data.length - 1; i++) {
+    if (data[i] !== null && data[i + 1] === null) {
+      // Start of a gap
+      let j = i + 1;
+      while (j < data.length && data[j] === null) j++;
+      if (j < data.length) {
+        segments.push({
+          borderDash: [5, 5],
+          start: i,
+          end: j
+        });
+      }
+    }
+  }
+  
+  return {
+    label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+    data: data,
+    borderColor: color,
+    backgroundColor: color + '20',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: true, // Changed to true to connect gaps
+    segment: segments.length > 0 ? {
+      borderDash: (ctx) => {
+        // Check if this segment should be dashed
+        for (const seg of segments) {
+          if (ctx.p0DataIndex >= seg.start && ctx.p1DataIndex <= seg.end) {
+            return [5, 5];
+          }
+        }
+        return undefined;
+      }
+    } : undefined,
+    hidden: false,
+    productIndex: index // Store index for click handling
+  };
+});
+  
   // Create the chart
-  new Chart(canvas, {
+  chartInstance = new Chart(canvas, {
     type: 'line',
     data: {
       labels: dateArray,
@@ -2996,7 +3044,7 @@ function renderAvgPositionChart(container, products) {
       },
       plugins: {
         legend: {
-          display: true,
+          display: false,
           position: 'top',
           labels: {
             boxWidth: 12,
@@ -3026,11 +3074,24 @@ function renderAvgPositionChart(container, products) {
           ticks: {
             maxRotation: 45,
             minRotation: 45,
-            font: { size: 10 },
+            font: { size: 9 },
             autoSkip: true,
-            maxTicksLimit: 15
-          }
-        },
+    maxTicksLimit: 10,  // Reduced from 15
+    callback: function(value, index) {
+      // Show every 3rd label when space is limited
+      const totalLabels = this.getLabelItems().length;
+      if (totalLabels > 20) {
+        return index % 3 === 0 ? value : '';
+      }
+      return value;
+    }
+  },
+  grid: {
+    display: true,
+    drawOnChartArea: true,
+    drawTicks: true
+  }
+},
         y: {
           type: 'linear',
           reverse: true, // Lower position numbers are better
@@ -3049,4 +3110,47 @@ function renderAvgPositionChart(container, products) {
       }
     }
   });
+  // Add click handlers to small cards for this specific chart container
+  const chartProductsDiv = container.parentElement.querySelector('.chart-products');
+  if (chartProductsDiv) {
+    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+    smallCards.forEach((card, cardIndex) => {
+      card.addEventListener('click', function() {
+        // Toggle selection
+        if (selectedProductIndex === cardIndex) {
+          selectedProductIndex = null;
+          smallCards.forEach(c => c.classList.remove('active'));
+        } else {
+          selectedProductIndex = cardIndex;
+          smallCards.forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
+        }
+        
+        // Update chart
+        chartInstance.data.datasets.forEach((dataset, idx) => {
+          if (selectedProductIndex === null) {
+            // No selection - restore original colors
+            const isInactive = products[idx]?.product_status === 'inactive';
+            const colors = [
+              '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+              '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+            ];
+            dataset.borderColor = isInactive ? '#999999' : colors[idx % colors.length];
+            dataset.borderWidth = 2;
+            dataset.hidden = false;
+          } else if (idx === selectedProductIndex) {
+            // Selected product - keep color and make bold
+            dataset.borderWidth = 4;
+            dataset.hidden = false;
+          } else {
+            // Other products - make grey
+            dataset.borderColor = '#cccccc';
+            dataset.borderWidth = 1;
+            dataset.hidden = false;
+          }
+        });
+        chartInstance.update();
+      });
+    });
+  }
 }
