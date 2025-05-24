@@ -3053,12 +3053,13 @@ products.forEach((product, index) => {
     return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
   });
   
-  // Visibility data
+// Visibility data - use 0 for missing values instead of null
   const visibilityData = dateArray.map(dateStr => {
     const histItem = product.historical_data?.find(item => 
       item.date?.value === dateStr
     );
-    return histItem?.visibility ? parseFloat(histItem.visibility) * 100 : null;
+    // Return 0 if no visibility data exists
+    return histItem?.visibility ? parseFloat(histItem.visibility) * 100 : 0;
   });
     
 // Generate a color for this product - grey for inactive
@@ -3100,7 +3101,7 @@ products.forEach((product, index) => {
     }
   });
   
-  // Add visibility area dataset (initially hidden)
+// Add visibility area dataset (initially hidden)
   datasets.push({
     label: product.title?.substring(0, 30) + ' (Visibility)',
     data: visibilityData,
@@ -3111,7 +3112,7 @@ products.forEach((product, index) => {
     pointRadius: 3,
     pointHoverRadius: 5,
     tension: 0.3,
-    spanGaps: true,
+    spanGaps: false, // Don't span gaps for visibility
     yAxisID: 'y1',
     type: 'line',
     hidden: true, // Initially hidden
