@@ -3041,50 +3041,84 @@ function renderAvgPositionChart(container, products) {
     dateArray.splice(0, dateArray.length - 30);
   }
   
-  // Create datasets for each product
-  const datasets = products.map((product, index) => {
-    const data = dateArray.map(dateStr => {
-      const histItem = product.historical_data?.find(item => 
-        item.date?.value === dateStr
-      );
-      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
-    });
+// Create datasets for each product
+const datasets = [];
+
+products.forEach((product, index) => {
+  // Position data
+  const positionData = dateArray.map(dateStr => {
+    const histItem = product.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
+  });
+  
+  // Visibility data
+  const visibilityData = dateArray.map(dateStr => {
+    const histItem = product.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    return histItem?.visibility ? parseFloat(histItem.visibility) * 100 : null;
+  });
     
 // Generate a color for this product - grey for inactive
-let color;
-if (product.product_status === 'inactive') {
-  color = '#999999'; // Grey for inactive products
-} else {
-  const colors = [
-    '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-    '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-  ];
-  color = colors[index % colors.length];
-}
-    
-    return {
-      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
-      data: data,
-      borderColor: color,
-      backgroundColor: color + '20',
-      borderWidth: 2,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      tension: 0.3,
-      spanGaps: true, // Connect null values
-segment: {
-  borderDash: (ctx) => {
-    // Check if this segment spans a gap
-    const p0 = ctx.p0;
-    const p1 = ctx.p1;
-    if (p0.skip || p1.skip) {
-      return [5, 5]; // Dotted line for gaps
-    }
-    return undefined; // Solid line
+  let color;
+  if (product.product_status === 'inactive') {
+    color = '#999999'; // Grey for inactive products
+  } else {
+    const colors = [
+      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+    ];
+    color = colors[index % colors.length];
   }
-}
-    };
+  
+  // Add position line dataset
+  datasets.push({
+    label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+    data: positionData,
+    borderColor: color,
+    backgroundColor: color + '20',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: true,
+    yAxisID: 'y',
+    type: 'line',
+    productIndex: index, // Store product index for reference
+    dataType: 'position',
+    segment: {
+      borderDash: (ctx) => {
+        const p0 = ctx.p0;
+        const p1 = ctx.p1;
+        if (p0.skip || p1.skip) {
+          return [5, 5];
+        }
+        return undefined;
+      }
+    }
   });
+  
+  // Add visibility area dataset (initially hidden)
+  datasets.push({
+    label: product.title?.substring(0, 30) + ' (Visibility)',
+    data: visibilityData,
+    borderColor: color,
+    backgroundColor: color + '30',
+    borderWidth: 2,
+    fill: true,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: true,
+    yAxisID: 'y1',
+    type: 'line',
+    hidden: true, // Initially hidden
+    productIndex: index, // Store product index for reference
+    dataType: 'visibility'
+  });
+});
   
   // Create the chart
   container.chartInstance = new Chart(canvas, {
@@ -3105,54 +3139,86 @@ legend: {
   display: false
 },
         tooltip: {
-          callbacks: {
-            label: function(context) {
-              if (context.parsed.y !== null) {
-                return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
-              }
-              return context.dataset.label + ': No data';
-            }
-          }
-        }
-      },
-      scales: {
-x: {
-  type: 'category',
-  title: {
-    display: true,
-    text: 'Date',
-    font: { size: 12 }
-  },
-  ticks: {
-    maxRotation: 45,
-    minRotation: 45,
-    font: { size: 10 },
-    autoSkip: true,
-    maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50)) // Dynamic based on container width
-  },
-  grid: {
-    display: true,
-    drawBorder: true,
-    drawOnChartArea: true,
-    drawTicks: true
-  }
-},
-        y: {
-          type: 'linear',
-          reverse: true, // Lower position numbers are better
-          min: 1,
-          max: 40,
-          title: {
-            display: true,
-            text: 'Average Position',
-            font: { size: 12 }
-          },
-          ticks: {
-            font: { size: 10 },
-            stepSize: 5
-          }
+  mode: 'index',
+  intersect: false,
+  callbacks: {
+    label: function(context) {
+      if (context.parsed.y !== null) {
+        if (context.dataset.dataType === 'visibility') {
+          return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+        } else {
+          return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
         }
       }
+      return context.dataset.label + ': No data';
+    },
+    filter: function(tooltipItem) {
+      // Only show visible datasets in tooltip
+      return !tooltipItem.dataset.hidden;
+    }
+  }
+}
+      },
+      scales: {
+  x: {
+    type: 'category',
+    title: {
+      display: true,
+      text: 'Date',
+      font: { size: 12 }
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      font: { size: 10 },
+      autoSkip: true,
+      maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
+    },
+    grid: {
+      display: true,
+      drawBorder: true,
+      drawOnChartArea: true,
+      drawTicks: true
+    }
+  },
+  y: {
+    type: 'linear',
+    position: 'left',
+    reverse: true,
+    min: 1,
+    max: 40,
+    title: {
+      display: true,
+      text: 'Average Position',
+      font: { size: 12 }
+    },
+    ticks: {
+      font: { size: 10 },
+      stepSize: 5
+    }
+  },
+  y1: {
+    type: 'linear',
+    position: 'right',
+    min: 0,
+    max: 100,
+    title: {
+      display: true,
+      text: 'Visibility (%)',
+      font: { size: 12 }
+    },
+    ticks: {
+      font: { size: 10 },
+      stepSize: 20,
+      callback: function(value) {
+        return value + '%';
+      }
+    },
+    grid: {
+      drawOnChartArea: false // Don't draw grid lines for right axis
+    }
+  }
+}
     }
   });
 }
@@ -3162,18 +3228,33 @@ function updateChartLineVisibility(chartContainer, selectedIndex) {
   if (!chart) return;
   
   // Update dataset visibility
-  chart.data.datasets.forEach((dataset, index) => {
-    if (selectedIndex === null) {
-      // Show all lines with normal styling
-      dataset.borderWidth = 2;
-      dataset.hidden = false;
-    } else if (index === selectedIndex) {
-      // Make selected line bold and visible
-      dataset.borderWidth = 4;
-      dataset.hidden = false;
-    } else {
-      // Hide other lines
-      dataset.hidden = true;
+  chart.data.datasets.forEach((dataset) => {
+    if (dataset.dataType === 'position') {
+      // Handle position line datasets
+      if (selectedIndex === null) {
+        // Show all position lines with normal styling
+        dataset.borderWidth = 2;
+        dataset.hidden = false;
+      } else if (dataset.productIndex === selectedIndex) {
+        // Make selected line bold and visible
+        dataset.borderWidth = 4;
+        dataset.hidden = false;
+      } else {
+        // Hide other position lines
+        dataset.hidden = true;
+      }
+    } else if (dataset.dataType === 'visibility') {
+      // Handle visibility area datasets
+      if (selectedIndex === null) {
+        // Hide all visibility areas when nothing is selected
+        dataset.hidden = true;
+      } else if (dataset.productIndex === selectedIndex) {
+        // Show visibility area for selected product
+        dataset.hidden = false;
+      } else {
+        // Hide other visibility areas
+        dataset.hidden = true;
+      }
     }
   });
   
