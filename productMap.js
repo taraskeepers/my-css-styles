@@ -772,16 +772,35 @@ viewChartsBtn.addEventListener("click", function() {
           scrollbar-width: thin;
         }
         
-        /* Segmentation chart container */
-        .segmentation-chart-container {
-          width: 100%;
-          height: 380px !important; /* Fixed height with !important to override inline styles */
-          max-height: 380px !important;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          overflow: hidden;
-        }
+/* Segment count circles */
+.segment-count-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin: 2px auto;
+}
+
+.segment-count-top3 {
+  background-color: #90EE90; /* Light green */
+}
+
+.segment-count-top4-8 {
+  background-color: #FFFFE0; /* Light yellow */
+}
+
+.segment-count-top9-14 {
+  background-color: #FFE4B5; /* Light orange */
+}
+
+.segment-count-below14 {
+  background-color: #FFB6C1; /* Light red */
+}
         
         .no-data-message {
           color: #999;
@@ -1471,25 +1490,23 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   countsColumn.style.paddingLeft = '5px';
   chartAndCountsWrapper.appendChild(countsColumn);
   
-  // Add product count labels for each segment
+// Add product count labels for each segment
   const segmentLabels = ['Top3', 'Top4-8', 'Top9-14', 'Below14'];
+  const segmentClasses = ['segment-count-top3', 'segment-count-top4-8', 'segment-count-top9-14', 'segment-count-below14'];
+  
   segmentLabels.forEach((label, index) => {
     const countDiv = document.createElement('div');
     countDiv.style.height = '25%';
     countDiv.style.display = 'flex';
     countDiv.style.alignItems = 'center';
     countDiv.style.justifyContent = 'center';
-    countDiv.style.fontSize = '14px';
-    countDiv.style.fontWeight = 'bold';
-    countDiv.style.color = '#333';
     
     const count = segmentCounts ? segmentCounts[index] : 0;
     if (count > 0) {
-      countDiv.style.backgroundColor = '#f0f0f0';
-      countDiv.style.borderRadius = '4px';
-      countDiv.style.padding = '2px 6px';
-      countDiv.style.margin = '2px 0';
-      countDiv.textContent = count;
+      const circle = document.createElement('div');
+      circle.className = 'segment-count-circle ' + segmentClasses[index];
+      circle.textContent = count;
+      countDiv.appendChild(circle);
     }
     
     countsColumn.appendChild(countDiv);
@@ -2497,11 +2514,23 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                 }
               })
 
-// Populate the chart-products container with small product cards
-const allProductsForChart = [...activeProducts, ...inactiveProducts];
-allProductsForChart.forEach((product, index) => {
+// Sort products by position value (best to worst)
+const sortByPosition = (a, b) => {
+  const posA = parseFloat(a.finalPosition) || 999;
+  const posB = parseFloat(b.finalPosition) || 999;
+  return posA - posB;
+};
+
+// Sort active and inactive products separately
+const sortedActiveProducts = [...activeProducts].sort(sortByPosition);
+const sortedInactiveProducts = [...inactiveProducts].sort(sortByPosition);
+
+// Clear the container first
+chartProductsDiv.innerHTML = '';
+
+// Add active products
+sortedActiveProducts.forEach((product, index) => {
   // First, ensure this product has the enhanced data from globalRows
-  // Find the corresponding enhanced product
   let enhancedProduct = null;
   const globalRowsKeys = Object.keys(window.globalRows);
   for (const key of globalRowsKeys) {
@@ -2519,24 +2548,20 @@ allProductsForChart.forEach((product, index) => {
   
   // Use enhanced product if found, otherwise use original
   const productToUse = enhancedProduct || product;
+  
   const smallCard = document.createElement('div');
   smallCard.classList.add('small-ad-details');
   smallCard.setAttribute('data-product-index', index);
   
-  // Add inactive class if needed
-  if (product.product_status === 'inactive') {
-    smallCard.classList.add('inactive');
-  }
-  
-// Get position and trend values from the enhanced product
+  // Get position and trend values from the enhanced product
   const posValue = productToUse.finalPosition || '-';
   const trendArrow = productToUse.arrow || '';
   const trendValue = productToUse.finalSlope || '';
   const badgeColor = productToUse.posBadgeBackground || 'gray';
   
   // Create the HTML for small card
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = product.title || 'No title';
+  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = productToUse.title || 'No title';
   
   smallCard.innerHTML = `
     <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
@@ -2550,10 +2575,83 @@ allProductsForChart.forEach((product, index) => {
     <div class="small-ad-title">${title}</div>
   `;
   
+  // Store enhanced product reference for chart
+  smallCard.productData = productToUse;
+  smallCard.productArrayIndex = index; // Store the original index for chart reference
+  
   chartProductsDiv.appendChild(smallCard);
-  // Store product reference for chart
-smallCard.productData = productToUse;
 });
+
+// Add separator for inactive products if they exist
+if (sortedInactiveProducts.length > 0) {
+  const separator = document.createElement('div');
+  separator.style.width = '100%';
+  separator.style.padding = '8px';
+  separator.style.textAlign = 'center';
+  separator.style.fontSize = '12px';
+  separator.style.color = '#666';
+  separator.style.backgroundColor = '#f0f0f0';
+  separator.style.borderTop = '1px solid #ddd';
+  separator.style.borderBottom = '1px solid #ddd';
+  separator.style.marginTop = '5px';
+  separator.style.marginBottom = '5px';
+  separator.innerHTML = '— Inactive Products —';
+  chartProductsDiv.appendChild(separator);
+  
+  // Add inactive products
+  sortedInactiveProducts.forEach((product, index) => {
+    // Same enhanced product logic as above
+    let enhancedProduct = null;
+    const globalRowsKeys = Object.keys(window.globalRows);
+    for (const key of globalRowsKeys) {
+      const globalProduct = window.globalRows[key];
+      if (globalProduct && 
+          globalProduct.title === product.title && 
+          globalProduct.source === product.source &&
+          globalProduct.q === product.q &&
+          globalProduct.location_requested === product.location_requested &&
+          globalProduct.device === product.device) {
+        enhancedProduct = globalProduct;
+        break;
+      }
+    }
+    
+    const productToUse = enhancedProduct || product;
+    
+    const smallCard = document.createElement('div');
+    smallCard.classList.add('small-ad-details');
+    smallCard.classList.add('inactive');
+    smallCard.setAttribute('data-product-index', sortedActiveProducts.length + index);
+    
+    const posValue = productToUse.finalPosition || '-';
+    const trendArrow = productToUse.arrow || '';
+    const trendValue = productToUse.finalSlope || '';
+    const badgeColor = productToUse.posBadgeBackground || 'gray';
+    
+    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+    const title = productToUse.title || 'No title';
+    
+    smallCard.innerHTML = `
+      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+        <div class="small-ad-pos-value">${posValue}</div>
+        <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+      </div>
+      <img class="small-ad-image" 
+           src="${imageUrl}" 
+           alt="${title}"
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+      <div class="small-ad-title">${title}</div>
+    `;
+    
+    smallCard.productData = productToUse;
+    smallCard.productArrayIndex = sortedActiveProducts.length + index;
+    
+    chartProductsDiv.appendChild(smallCard);
+  });
+}
+
+// Now create the combined array for chart rendering
+const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
 
               // Add direct click handlers to each product card
               productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
@@ -2990,6 +3088,9 @@ if (productMapContainer) {
 
 // Function to render average position chart
 function renderAvgPositionChart(container, products) {
+if (!Chart.defaults.plugins.annotation) {
+  console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+}
   // Clear previous content
   container.innerHTML = '';
   container.style.padding = '20px';
@@ -3058,8 +3159,12 @@ products.forEach((product, index) => {
     const histItem = product.historical_data?.find(item => 
       item.date?.value === dateStr
     );
-    // Return 0 if no visibility data exists
-    return histItem?.visibility ? parseFloat(histItem.visibility) * 100 : 0;
+    // Return 0 if no visibility data exists, round to 1 decimal
+    if (histItem?.visibility) {
+      const visValue = parseFloat(histItem.visibility) * 100;
+      return Math.round(visValue * 10) / 10; // Round to 1 decimal place
+    }
+    return 0;
   });
     
 // Generate a color for this product - grey for inactive
@@ -3135,10 +3240,34 @@ products.forEach((product, index) => {
         mode: 'index',
         intersect: false
       },
-      plugins: {
-legend: {
-  display: false
-},
+plugins: {
+  legend: {
+    display: false
+  },
+  annotation: {
+    annotations: {
+      top8Area: {
+        type: 'box',
+        yScaleID: 'y',
+        yMin: 1,
+        yMax: 8,
+        backgroundColor: 'rgba(144, 238, 144, 0.2)', // Light green with transparency
+        borderColor: 'rgba(144, 238, 144, 0.4)',
+        borderWidth: 1,
+        borderDash: [5, 5],
+        label: {
+          content: 'TOP 8',
+          enabled: true,
+          position: 'start',
+          color: '#4CAF50',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      }
+    }
+  },
         tooltip: {
   mode: 'index',
   intersect: false,
