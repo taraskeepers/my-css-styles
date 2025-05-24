@@ -87,17 +87,20 @@ if (originalSwitcher) {
   const clonedProductsBtn = switcherClone.querySelector('#viewProducts');
   const clonedChartsBtn = switcherClone.querySelector('#viewCharts');
   
-  clonedProductsBtn.addEventListener('click', function() {
-    clonedProductsBtn.classList.add('active');
-    clonedChartsBtn.classList.remove('active');
-    
-    fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
-      container.style.display = 'block';
-    });
-    fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
-      container.style.display = 'none';
-    });
+clonedProductsBtn.addEventListener('click', function() {
+  clonedProductsBtn.classList.add('active');
+  clonedChartsBtn.classList.remove('active');
+  
+  fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
+    container.style.display = 'block';
   });
+  fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+    container.style.display = 'none';
+  });
+  
+  // Show segmentation column in fullscreen
+  fullscreenOverlay.classList.remove('hide-segmentation-column');
+});
   
 clonedChartsBtn.addEventListener('click', function() {
   clonedChartsBtn.classList.add('active');
@@ -109,6 +112,9 @@ clonedChartsBtn.addEventListener('click', function() {
   fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
+
+  // Hide segmentation column in fullscreen
+  fullscreenOverlay.classList.add('hide-segmentation-column');
   
   // Render charts for each row in fullscreen
   fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
@@ -530,6 +536,9 @@ viewProductsBtn.addEventListener("click", function() {
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'none';
   });
+  
+  // Show segmentation column
+  document.getElementById('productMapContainer').classList.remove('hide-segmentation-column');
 });
 
 viewChartsBtn.addEventListener("click", function() {
@@ -544,6 +553,9 @@ viewChartsBtn.addEventListener("click", function() {
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
+  
+  // Hide segmentation column
+  document.getElementById('productMapContainer').classList.add('hide-segmentation-column');
   
   // Render charts for each row
   document.querySelectorAll('.products-chart-container').forEach(container => {
@@ -1242,6 +1254,11 @@ viewChartsBtn.addEventListener("click", function() {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+/* Hide segmentation column */
+.hide-segmentation-column .product-map-table th:nth-child(4),
+.hide-segmentation-column .product-map-table td:nth-child(4) {
+  display: none;
 }
       `;
       document.head.appendChild(style);
