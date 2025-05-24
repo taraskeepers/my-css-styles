@@ -116,6 +116,15 @@ clonedChartsBtn.addEventListener('click', function() {
   // Hide segmentation column in fullscreen
   fullscreenOverlay.classList.add('hide-segmentation-column');
   
+  // Force charts to resize after layout change
+  setTimeout(() => {
+    fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+      if (container.chartInstance) {
+        container.chartInstance.resize();
+      }
+    });
+  }, 100);
+  
   // Render charts for each row in fullscreen
   fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
@@ -556,6 +565,15 @@ viewChartsBtn.addEventListener("click", function() {
   
   // Hide segmentation column
   document.getElementById('productMapContainer').classList.add('hide-segmentation-column');
+  
+  // Force charts to resize after layout change
+  setTimeout(() => {
+    document.querySelectorAll('.chart-avg-position').forEach(container => {
+      if (container.chartInstance) {
+        container.chartInstance.resize();
+      }
+    });
+  }, 100);
   
   // Render charts for each row
   document.querySelectorAll('.products-chart-container').forEach(container => {
@@ -1160,6 +1178,12 @@ viewChartsBtn.addEventListener("click", function() {
   gap: 10px;
 }
 
+/* Ensure chart container uses full width when segmentation is hidden */
+.hide-segmentation-column .products-chart-container {
+  width: 100%;
+  min-width: 640px;
+}
+
 .chart-products {
   width: 280px;
   height: 100%;
@@ -1173,7 +1197,7 @@ viewChartsBtn.addEventListener("click", function() {
 
 .chart-avg-position {
   flex: 1;
-  min-width: 300px; /* Add minimum width */
+  min-width: 300px;
   height: 100%;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -1183,6 +1207,11 @@ viewChartsBtn.addEventListener("click", function() {
   justify-content: center;
   color: #999;
   font-style: italic;
+}
+
+/* When segmentation is hidden, give more space to chart */
+.hide-segmentation-column .chart-avg-position {
+  min-width: 400px;
 }
 
 /* Small ad details for chart view */
@@ -1258,7 +1287,19 @@ viewChartsBtn.addEventListener("click", function() {
 /* Hide segmentation column */
 .hide-segmentation-column .product-map-table th:nth-child(4),
 .hide-segmentation-column .product-map-table td:nth-child(4) {
-  display: none;
+  display: none !important;
+}
+
+/* When segmentation column is hidden, let products column expand */
+.hide-segmentation-column .product-map-table th:nth-child(5),
+.hide-segmentation-column .product-map-table td:nth-child(5) {
+  width: auto !important;
+  min-width: 640px !important; /* Increased min-width to use available space */
+}
+
+/* Ensure segmentation charts are hidden */
+.hide-segmentation-column .segmentation-chart-container {
+  display: none !important;
 }
       `;
       document.head.appendChild(style);
