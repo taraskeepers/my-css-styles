@@ -99,17 +99,64 @@ if (originalSwitcher) {
     });
   });
   
-  clonedChartsBtn.addEventListener('click', function() {
-    clonedChartsBtn.classList.add('active');
-    clonedProductsBtn.classList.remove('active');
-    
-    fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
-      container.style.display = 'none';
-    });
-    fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
-      container.style.display = 'flex';
-    });
+clonedChartsBtn.addEventListener('click', function() {
+  clonedChartsBtn.classList.add('active');
+  clonedProductsBtn.classList.remove('active');
+  
+  fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
+    container.style.display = 'none';
   });
+  fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+    container.style.display = 'flex';
+  });
+  
+  // Render charts for each row in fullscreen
+  fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+    const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+    const chartProductsDiv = container.querySelector('.chart-products');
+    
+    // Get all products for this chart
+    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+    
+    if (products.length > 0 && chartAvgPosDiv) {
+      renderAvgPositionChart(chartAvgPosDiv, products);
+      
+      // Add click handlers to small cards for chart interaction
+      smallCards.forEach((card, index) => {
+        // Remove any existing click handler
+        const oldHandler = card._chartClickHandler;
+        if (oldHandler) {
+          card.removeEventListener('click', oldHandler);
+        }
+        
+        // Create new click handler
+        const clickHandler = function() {
+          // Toggle selection
+          if (chartAvgPosDiv.selectedProductIndex === index) {
+            // Deselect if clicking the same product
+            chartAvgPosDiv.selectedProductIndex = null;
+            card.classList.remove('active');
+          } else {
+            // Select this product
+            chartAvgPosDiv.selectedProductIndex = index;
+            // Remove active class from all cards
+            smallCards.forEach(c => c.classList.remove('active'));
+            // Add active class to clicked card
+            card.classList.add('active');
+          }
+          
+          // Update chart visibility
+          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+        };
+        
+        // Store reference to handler for cleanup
+        card._chartClickHandler = clickHandler;
+        card.addEventListener('click', clickHandler);
+      });
+    }
+  });
+});
 }
       
 // Apply fullscreen styles to the cloned table cells
@@ -509,6 +556,39 @@ viewChartsBtn.addEventListener("click", function() {
     
     if (products.length > 0 && chartAvgPosDiv) {
       renderAvgPositionChart(chartAvgPosDiv, products);
+      
+      // Add click handlers to small cards for chart interaction
+      smallCards.forEach((card, index) => {
+        // Remove any existing click handler
+        const oldHandler = card._chartClickHandler;
+        if (oldHandler) {
+          card.removeEventListener('click', oldHandler);
+        }
+        
+        // Create new click handler
+        const clickHandler = function() {
+          // Toggle selection
+          if (chartAvgPosDiv.selectedProductIndex === index) {
+            // Deselect if clicking the same product
+            chartAvgPosDiv.selectedProductIndex = null;
+            card.classList.remove('active');
+          } else {
+            // Select this product
+            chartAvgPosDiv.selectedProductIndex = index;
+            // Remove active class from all cards
+            smallCards.forEach(c => c.classList.remove('active'));
+            // Add active class to clicked card
+            card.classList.add('active');
+          }
+          
+          // Update chart visibility
+          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+        };
+        
+        // Store reference to handler for cleanup
+        card._chartClickHandler = clickHandler;
+        card.addEventListener('click', clickHandler);
+      });
     }
   });
 });
@@ -2470,20 +2550,6 @@ allProductsForChart.forEach((product, index) => {
     <div class="small-ad-title">${title}</div>
   `;
   
-  // Add click handler for small cards
-  smallCard.addEventListener('click', function() {
-    // Remove active class from all small cards
-    chartProductsDiv.querySelectorAll('.small-ad-details').forEach(card => {
-      card.classList.remove('active');
-    });
-    
-    // Add active class to clicked card
-    this.classList.add('active');
-    
-    // You can add logic here to update the chart based on selected product
-    console.log('Selected product for chart:', product.title);
-  });
-  
   chartProductsDiv.appendChild(smallCard);
   // Store product reference for chart
 smallCard.productData = productToUse;
@@ -2928,6 +2994,10 @@ function renderAvgPositionChart(container, products) {
   container.innerHTML = '';
   container.style.padding = '20px';
   
+  // Store reference to track selected product
+  container.selectedProductIndex = null;
+  container.chartInstance = null;
+  
   // Create canvas element
   const canvas = document.createElement('canvas');
   canvas.style.width = '100%';
@@ -3017,7 +3087,7 @@ segment: {
   });
   
   // Create the chart
-  new Chart(canvas, {
+  container.chartInstance = new Chart(canvas, {
     type: 'line',
     data: {
       labels: dateArray,
@@ -3086,3 +3156,29 @@ x: {
     }
   });
 }
+
+function updateChartLineVisibility(chartContainer, selectedIndex) {
+  const chart = chartContainer.chartInstance;
+  if (!chart) return;
+  
+  // Update dataset visibility
+  chart.data.datasets.forEach((dataset, index) => {
+    if (selectedIndex === null) {
+      // Show all lines with normal styling
+      dataset.borderWidth = 2;
+      dataset.hidden = false;
+    } else if (index === selectedIndex) {
+      // Make selected line bold and visible
+      dataset.borderWidth = 4;
+      dataset.hidden = false;
+    } else {
+      // Hide other lines
+      dataset.hidden = true;
+    }
+  });
+  
+  // Update the chart
+  chart.update('none'); // 'none' for no animation
+}
+
+
