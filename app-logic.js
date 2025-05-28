@@ -398,6 +398,65 @@ document.getElementById("locationText").textContent = "(select a location)";
 
 /* specialized helper logic */
 
+async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
+  console.log("[onReceivedRowsWithData] Called with all data directly");
+  console.log("Received", rows.length, "rows");
+  console.log("CompanyStats:", companyStats?.length, "records");
+  console.log("MarketTrends:", marketTrends?.length, "records");
+
+  // Ensure company data is ready
+  if (window.myCompanyReady) {
+    await window.myCompanyReady;
+  }
+
+  // 1) Process data and update filters
+  window.allRows = rows;
+  updateSearchTermDropdown(rows);
+  updateEngineDropdown(rows);
+  updateLocationDropdown(rows);
+  autoPickDefaultFirstGroup(rows);
+
+  // 2) Set default company
+  if (!window.filterState.company || window.filterState.company.trim() === "") {
+    if (window.myCompany && window.myCompany.trim()) {
+      window.filterState.company = window.myCompany.trim();
+    } else {
+      window.filterState.company = "Under Armour";
+    }
+  }
+
+  // 3) Update UI
+  document.getElementById("companyText").textContent = window.filterState.company;
+
+  // 4) Use the passed data directly - DON'T reload from IDB
+  window.companyStatsData = companyStats;
+  window.marketTrendsData = marketTrends;
+  
+  // 5) Process table data (if needed - adjust based on your needs)
+  // Note: You might need to adapt this part
+  processTableData({ data: rows }, "processed");
+  processTableData({ data: companyStats }, "company_serp_stats");
+  processTableData({ data: marketTrends }, "market_trends");
+
+  // 6) Render the data
+  if (typeof renderData === "function") {
+    console.log("[TRACE] renderData() called from onReceivedRowsWithData");
+    renderData();
+  }
+
+  // 7) Force-load the Project page
+  document.getElementById("projectPage").style.display = "block";
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("main").style.display = "none";
+
+  document.getElementById("projectButton").classList.add("selected");
+  document.getElementById("homeButton").classList.remove("selected");
+  document.getElementById("mainButton").classList.remove("selected");
+
+  console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
+  waitForProjectDataThenPopulate();
+}
+
     // Called once we receive rows from parent or IDB
 async function onReceivedRows(rows) {
   console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
