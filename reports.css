@@ -2729,7 +2729,7 @@ body.home-page #layoutCompToggleContainer {
   align-items: center;
   height: 50px;
   width: 100%;
-  padding: 0 15px;
+  /*padding: 0 15px;*/
   box-sizing: border-box;
   cursor: pointer;
   transition: background-color 0.2s;
