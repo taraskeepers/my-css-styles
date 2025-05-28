@@ -19,8 +19,8 @@
     //    BUT we IGNORE the single searchTerm filter – we want all search terms for this project
     const st = window.filterState;
   
-    // 3) Identify which project we are dealing with
-    const projectNum = projectNumber || st.activeProjectNumber;
+// 3) Identify which project we are dealing with
+    // projectNum already declared above, no need to redeclare
     if (!projectNum) {
       console.warn("[buildProjectData] missing projectNumber in filterState.");
       return [];
