@@ -2668,6 +2668,204 @@ body.home-page #layoutCompToggleContainer {
   transform: scale(1.05);
 }
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   B) The project list & “Projects” header area
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+#project-list_container {
+  height: 800px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.projects-header {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  color: #333;
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   C) The navigation container under the project list
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+#navigation-container {
+  height: 300px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 10px;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  width: 100%;
+  padding: 0 15px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background-color: #eee;
+}
+.settings-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  /* optional grayscale filter */
+  filter: grayscale(100%);
+}
+.menu-item span {
+  font-size: 15px;
+  color: #333;
+  font-weight: 600;
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   D) Each project row in the list + sub-menus
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+.project-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.project-number {
+  font-size: 14px;
+  font-weight: 700;
+}
+.project-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.3px;
+}
+.project-country {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+.project-country img {
+  width: 24px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+/* Sub-menu that expands when a project is clicked */
+.sub-menu {
+  overflow: visible !important;
+  max-height: none !important;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  background-color: #fafafa;
+}
+.sub-menu.expanded {
+  max-height: 400px; /* or bigger if needed */
+  /*padding: 10px 15px;*/
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   E) The search cards within each sub-menu
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+.search-card {
+  display: flex;
+  align-items: center;
+  height: auto !important;
+  min-height: 40px;
+  width: 100%;
+  padding: 0 15px;
+  box-sizing: border-box;
+  cursor: pointer;
+  border-bottom: 1px solid #ddd;
+  transition: background-color 0.2s;
+  background-color: #fafafa;
+}
+.search-card:hover {
+  background-color: #eee;
+}
+.search-term {
+  flex-grow: 1;
+  font-size: 14px;
+  color: #222;
+}
+.search-divider {
+  border: none;
+  border-top: 1px dashed #ccc;
+  margin: 8px 0;
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   F) Additional styling for the collapsed state
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+#leftColumn.collapsed .project-container {
+  width: 50px;
+  margin-bottom: 10px;
+  transition: width 0.4s ease;
+}
+#leftColumn.collapsed .project-header {
+  justify-content: center;
+}
+#leftColumn.collapsed .project-title,
+#leftColumn.collapsed .search-cards {
+  display: none;
+}
+#leftColumn.collapsed .project-country span {
+  display: none;
+}
+#leftColumn.collapsed .project-country img {
+  width: 22px;
+  height: auto;
+}
+#leftColumn.collapsed .project-number {
+  display: inline-block;
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   G) Optional: .project-container + .project-header + .search-cards 
+       if you use them for styling “active/paused” search blocks
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+.project-container {
+  margin-bottom: 15px;
+  border-radius: 10px;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.project-container:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #f1f1f1;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.project-header:hover {
+  background: #cccccc;
+}
+.search-cards {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease, padding 0.4s ease;
+  padding: 0 15px;
+  background-color: #fff;
+}
+.search-cards.expanded {
+  max-height: 500px;
+  padding: 8px 15px;
+}
+.location-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+}
 /* 
    Ensures each PLA "card" in list-mode 
    stretches full width and uses a grid layout 
