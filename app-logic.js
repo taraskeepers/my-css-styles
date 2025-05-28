@@ -428,15 +428,23 @@ async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
   // 3) Update UI
   document.getElementById("companyText").textContent = window.filterState.company;
 
+    // 4) Set default active project if not already set
+  if (!window.filterState.activeProjectNumber) {
+    window.filterState.activeProjectNumber = 1;
+  }
+
   // 4) Use the passed data directly - DON'T reload from IDB
   window.companyStatsData = companyStats;
   window.marketTrendsData = marketTrends;
   
-  // 5) Process table data (if needed - adjust based on your needs)
-  // Note: You might need to adapt this part
-  processTableData({ data: rows }, "processed");
-  processTableData({ data: companyStats }, "company_serp_stats");
-  processTableData({ data: marketTrends }, "market_trends");
+  // 6) Process table data ONLY if the function exists
+  if (typeof processTableData === 'function') {
+    processTableData({ data: rows }, "processed");
+    processTableData({ data: companyStats }, "company_serp_stats");
+    processTableData({ data: marketTrends }, "market_trends");
+  } else {
+    console.log("[onReceivedRowsWithData] processTableData not found, skipping table processing");
+  }
 
   // 6) Render the data
   if (typeof renderData === "function") {
