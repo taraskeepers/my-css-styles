@@ -26,8 +26,8 @@
       return [];
     }
   
-    // 4) Filter out rows that belong to this project
-    const filteredRows = window.companyStatsData.filter(row => {
+// 4) Filter out rows that belong to this project
+    const projectFilteredRows = window.companyStatsData.filter(row => {
       // Must match project_number
       if (row.project_number !== projectNum) return false;
   
@@ -50,7 +50,7 @@
     //    We also have row.location_requested, row.device, plus row.historical_data
     //    We group them by (searchTerm, location, device).
     const groupingMap = {};
-    filteredRows.forEach(row => {
+    projectFilteredRows.forEach(row => {
       const searchTerm = row.q || row.search;  // “q” or “search”
       const loc = row.location_requested || "Unknown";
       const dev = row.device || "Unknown";
@@ -711,3 +711,9 @@
           );
         });
       } 
+
+window.filterMarketTrends = filterMarketTrends;
+window.computeMarketShareData = computeMarketShareData;
+window.computeMarketShareStackedSeries = computeMarketShareStackedSeries;
+window.buildProjectData = buildProjectData;
+window.buildHomeData = buildHomeData;
