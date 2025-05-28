@@ -1,9 +1,19 @@
   function buildProjectData(projectNumber) {
+      const projectNum = projectNumber || window.filterState.activeProjectNumber;
+  
+  console.log("[buildProjectData] Building data for project:", projectNum);
     // 1) Defensive check
     if (!Array.isArray(window.companyStatsData)) {
       console.warn("[buildProjectData] No companyStatsData or it’s not an array.");
       return [];
     }
+
+    // Filter strictly by project number
+  const filteredRows = window.companyStatsData.filter(row => {
+    return row.project_number === projectNum;
+  });
+  
+  console.log(`[buildProjectData] Found ${filteredRows.length} rows for project ${projectNum}`);
   
     // 2) We DO still rely on filterState for engine, device, location, etc. 
     //    BUT we IGNORE the single searchTerm filter – we want all search terms for this project
