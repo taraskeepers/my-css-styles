@@ -1,4 +1,7 @@
-  function renderProductExplorerTable() {
+window.pendingExplorerCharts = [];
+window.explorerApexCharts = [];
+
+function renderProductExplorerTable() {
     const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
 if (existingTable) {
   existingTable.remove();
