@@ -1,4 +1,4 @@
-  function renderProductMapTable() {
+  window.renderProductMapTable = function() {
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
     const container = document.getElementById("productMapPage");
