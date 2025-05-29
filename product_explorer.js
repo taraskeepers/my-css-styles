@@ -142,7 +142,7 @@ clonedChartsBtn.addEventListener('click', function() {
     const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
     
     if (products.length > 0 && chartAvgPosDiv) {
-      renderAvgPositionChart(chartAvgPosDiv, products);
+      renderAvgPositionChartExplorer(chartAvgPosDiv, products);
       
       // Add click handlers to small cards for chart interaction
       smallCards.forEach((card, index) => {
@@ -169,7 +169,7 @@ clonedChartsBtn.addEventListener('click', function() {
           }
           
           // Update chart visibility
-          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+          updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);;
         };
         
         // Store reference to handler for cleanup
@@ -208,7 +208,7 @@ productCells.forEach(cell => {
         return;
       }
       
-      openProductExplorerDetailsPanel(card, rowData, true); // true indicates we're in fullscreen mode
+      card.click(); // true indicates we're in fullscreen mode
     });
   });
 });
@@ -577,7 +577,7 @@ viewChartsExplorerBtn.addEventListener("click", function() {
     const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
     
     if (products.length > 0 && chartAvgPosDiv) {
-      renderAvgPositionChart(chartAvgPosDiv, products);
+      renderAvgPositionChartExplorer(chartAvgPosDiv, products);
       
       // Add click handlers to small cards for chart interaction
       smallCards.forEach((card, index) => {
@@ -604,7 +604,7 @@ viewChartsExplorerBtn.addEventListener("click", function() {
           }
           
           // Update chart visibility
-          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+          updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);;
         };
         
         // Store reference to handler for cleanup
@@ -1309,9 +1309,9 @@ window.explorerApexCharts = [];
       document.head.appendChild(style);
     }
     // Add this at the beginning of renderProductExplorerTable after checking for existing product-explorer-table-style
-if (!document.getElementById("centered-panel-spinner-style")) {
+if (!document.getElementById("centered-explorer-panel-spinner-style")) {
   const spinnerStyle = document.createElement("style");
-  spinnerStyle.id = "centered-panel-spinner-style";
+  spinnerStyle.id = "centered-explorer-panel-spinner-style";
   spinnerStyle.textContent = `
     .spinner {
       border: 4px solid rgba(0, 0, 0, 0.1);
@@ -1838,7 +1838,7 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
           }
           
           // 3. Market Share with pie chart - MODIFIED
-          const pieChartId = `market-share-pie-${pieChartCounter++}`;
+          const pieChartId = `explorer-market-share-pie-${pieChartCounter++}`;
           
           deviceHTML += `
             <div class="device-share">
@@ -1939,7 +1939,7 @@ deviceHTML += `</div>`; // Close last-tracked-container
           
           // Add Top 40 Segmentation cell
           const tdSegmentation = document.createElement("td");
-          const chartContainerId = `segmentation-chart-${chartCounter++}`;
+          const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
           tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
           tr.appendChild(tdSegmentation);
   
@@ -2101,7 +2101,7 @@ matchingProducts.sort((a, b) => {
               activeProducts.forEach((product, productIndex) => {
                 try {
                   // Generate a unique ID with the pe_ prefix
-                  const pmIndexKey = 'pe_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  const peIndexKey = 'pe_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
                   
                   // IMPORTANT: Clone the product completely
                   const enhancedProduct = { ...product };
@@ -2314,7 +2314,7 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
               inactiveProducts.forEach((product, productIndex) => {
                 try {
                   // Generate a unique ID with the pe_ prefix
-                  const pmIndexKey = 'pe_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  const peIndexKey = 'pe_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
                   
                   // IMPORTANT: Clone the product completely
                   const enhancedProduct = { ...product };
@@ -2758,7 +2758,7 @@ const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts]
                     detailsPanel.style.backgroundColor = '#fff';
                     detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
                     const contentWrapper = document.createElement('div');
-                    contentWrapper.id = 'panel-content-wrapper';
+                    contentWrapper.id = 'explorer-panel-content-wrapper';
                     contentWrapper.style.position = 'relative';
                     contentWrapper.style.width = '100%';
                     contentWrapper.style.height = '100%';
@@ -2784,10 +2784,10 @@ if (isFullscreen) {
 }
                   
                   // Get the content wrapper
-                  let contentWrapper = document.getElementById('panel-content-wrapper');
+                  let contentWrapper = document.getElementById('explorer-explorer-panel-content-wrapper');
                   if (!contentWrapper) {
                     contentWrapper = document.createElement('div');
-                    contentWrapper.id = 'panel-content-wrapper';
+                    contentWrapper.id = 'explorer-panel-content-wrapper';
                     contentWrapper.style.position = 'relative';
                     contentWrapper.style.width = '100%';
                     contentWrapper.style.height = '100%';
@@ -2795,10 +2795,10 @@ if (isFullscreen) {
                   }
                   
                   // Show the loading overlay
-                  let loadingOverlay = document.getElementById('panel-loading-overlay');
+                  let loadingOverlay = document.getElementById('explorer-explorer-panel-loading-overlay');
                   if (!loadingOverlay) {
                     loadingOverlay = document.createElement('div');
-                    loadingOverlay.id = 'panel-loading-overlay';
+                    loadingOverlay.id = 'explorer-panel-loading-overlay';
                     loadingOverlay.style.position = 'absolute';
                     loadingOverlay.style.top = '0';
                     loadingOverlay.style.left = '0';
@@ -2894,7 +2894,7 @@ if (dateRange && dateRange.end) {
                       const rowDataCopy = { ...rowData };
                       
                       // Get the content wrapper again to ensure it exists
-                      const contentWrapper = document.getElementById('panel-content-wrapper');
+                      const contentWrapper = document.getElementById('explorer-panel-content-wrapper');
                       
                       // Render into the content wrapper instead of detailsPanel
                       ReactDOM.render(
@@ -2913,7 +2913,7 @@ if (dateRange && dateRange.end) {
                       );
                       
                       // Hide the loading overlay
-                      const loadingOverlay = document.getElementById('panel-loading-overlay');
+                      const loadingOverlay = document.getElementById('explorer-panel-loading-overlay');
                       if (loadingOverlay) {
                         loadingOverlay.style.display = 'none';
                       }
@@ -3192,7 +3192,7 @@ requestAnimationFrame(renderBatch);
   }
 
 // Function to render average position chart
-function renderAvgPositionChart(container, products) {
+function renderAvgPositionChartExplorer(container, products) {
 if (!Chart.defaults.plugins.annotation) {
   console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
 }
@@ -3458,7 +3458,7 @@ plugins: {
   });
 }
 
-function updateChartLineVisibility(chartContainer, selectedIndex) {
+function updateChartLineVisibilityExplorer(chartContainer, selectedIndex) {
   const chart = chartContainer.chartInstance;
   if (!chart) return;
   
