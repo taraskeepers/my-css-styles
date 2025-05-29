@@ -1157,7 +1157,7 @@ viewChartsBtn.addEventListener("click", function() {
   background-color: #f9f9f9;
   border-radius: 8px;
   padding: 5px;
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: #ccc #f9f9f9;
 }
 
