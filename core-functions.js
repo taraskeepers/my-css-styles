@@ -2,6 +2,50 @@
 
     // The core rendering logic
 function renderData(skipCompanyStats) {
+      // ====== ADD CACHE CHECK HERE ======
+  // Generate cache key for current filter state
+  const cacheKey = window.dataCache ? 
+    window.dataCache.getCacheKey('render', { skip: skipCompanyStats || false }) : null;
+  
+  // Check if we have cached filtered results
+  if (cacheKey && window.dataCache.filteredResults[cacheKey]) {
+    const cached = window.dataCache.filteredResults[cacheKey];
+    // Check if cache is still fresh (e.g., less than 5 minutes old)
+    const cacheAge = Date.now() - cached.timestamp;
+    if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+      console.log("[renderData] Using cached filtered results");
+      
+      // Apply cached results directly to DOM
+      const outputDiv = document.getElementById("filteredResults");
+      outputDiv.innerHTML = cached.html;
+      
+      // Re-attach event handlers and render charts
+      setupPLAInteractions();
+      attachRowClickHandlers();
+      attachTitleCopyHandlers();
+      attachResizeHandle();
+      
+      // Re-render mini-charts if in list mode
+      if (outputDiv.classList.contains("list-mode")) {
+        document.querySelectorAll(".mini-chart-container").forEach(function(el) {
+          // ... (the mini-chart rendering code already exists in renderData)
+        });
+      }
+      
+      // Update column filters and stats if needed
+      if (!skipCompanyStats) {
+        updateColumnFilterTags();
+        setTimeout(() => {
+          updateMarketShareCharts();
+        }, 100);
+        if (window.marketTrendsData) {
+          updateMarketTrendsUI();
+        }
+      }
+      
+      return;
+    }
+  }
       // Save the currently selected index before re-rendering
   const selectedIndex = currentlySelectedIndex;
   
@@ -978,7 +1022,16 @@ if (resultsEl.classList.contains("list-mode")) {
             renderSerpMarketShareBigChart(window.companyStatsData);
             renderSerpCompaniesTable(window.companyStatsData);
             fixSerpCompaniesTable();
-          }                    
+          }
+            // ====== ADD CACHE SAVE HERE ======
+        // Cache the rendered HTML
+        if (cacheKey && window.dataCache && outputDiv) {
+          window.dataCache.filteredResults[cacheKey] = {
+            html: outputDiv.innerHTML,
+            timestamp: Date.now()
+          };
+          console.log("[renderData] Cached filtered results");
+        }
       } 
 
 
