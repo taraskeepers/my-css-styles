@@ -619,162 +619,162 @@ console.log("[TEST bug 1] All unique dates in windowRows:", [...new Set(windowRo
     }
   }
 
-      function computeMarketShareStackedSeries(fullData, groupSmallCompanies = true) {
-        const fs = window.filterState;
-      
-        // 1) Filter top-level by Q, engine, device, location:
-        const filteredRecs = fullData.filter(r =>
-          (r.q?.toLowerCase() === fs.searchTerm.toLowerCase()) &&
-          (r.engine?.toLowerCase() === fs.engine.toLowerCase()) &&
-          (r.device?.toLowerCase() === fs.device.toLowerCase()) &&
-          (r.location_requested?.toLowerCase() === fs.location.toLowerCase()) &&
-          // Only include records for the selected company if one is set.
-          (!fs.company || (r.source && r.source.toLowerCase() === fs.company.toLowerCase()))
-        );
-        if (!filteredRecs.length) return [];
-      
-        // 2) Decide which market_share field to use (e.g. top3_market_share vs. market_share)
-        let shareField = "market_share";
-        if (
-          fs.serpSegments &&
-          window.serpSegmentMapping &&
-          window.serpSegmentMapping[fs.serpSegments]
-        ) {
-          shareField = window.serpSegmentMapping[fs.serpSegments].share;
-        }
-      
-        // 3) Figure out periodStart & periodEnd from user’s period toggle:
-        let periodStart, periodEnd;
-        if (selectedPeriod === "custom") {
-          periodStart = mainDateRange.start.clone();
-          periodEnd = mainDateRange.end.clone();
-        } else {
-          let days = 7;
-          if (selectedPeriod === "3d") days = 3;
-          if (selectedPeriod === "7d") days = 7;
-          if (selectedPeriod === "30d") days = 30;
-          let maxDate = null;
-          filteredRecs.forEach(r => {
-            if (!r.historical_data) return;
-            r.historical_data.forEach(dayObj => {
-              if (dayObj.date?.value) {
-                const d = moment(dayObj.date.value, "YYYY-MM-DD");
-                if (!maxDate || d.isAfter(maxDate)) {
-                  maxDate = d.clone();
-                }
-              }
-            });
-          });
-          if (!maxDate) return [];
-          periodEnd = maxDate.clone();
-          periodStart = maxDate.clone().subtract(days - 1, "days");
-        }
-        console.log("[TEST bug 1] DEBUG - computeMarketShareData period check:");
-console.log("[TEST bug 1] window.selectedPeriod:", window.selectedPeriod);
-console.log("[TEST bug 1] window.mainDateRange:", window.mainDateRange);
-console.log("[TEST bug 1] periodStart:", periodStart.format("YYYY-MM-DD"));
-console.log("[TEST bug 1] periodEnd:", periodEnd.format("YYYY-MM-DD"));
-      
-        // 4) Build a daily map: dailyMap[date][company] = sumOfShares
-        const dailyMap = {};
-        filteredRecs.forEach(record => {
-          if (!Array.isArray(record.historical_data)) return;
-          const cName = (record.source || "Unknown").trim();
-          record.historical_data.forEach(dayObj => {
-            if (!dayObj.date?.value) return;
-            const dateStr = dayObj.date.value;
-            const val = parseFloat(dayObj[shareField]) || 0;
-            if (!dailyMap[dateStr]) {
-              dailyMap[dateStr] = {};
-            }
-            if (!dailyMap[dateStr][cName]) {
-              dailyMap[dateStr][cName] = 0;
-            }
-            dailyMap[dateStr][cName] += val;
-          });
-        });
-      
-        // 5) Gather all dates in ascending order:
-        let allDates = Object.keys(dailyMap).sort();
-      
-        // 6) Filter out dates that are outside [periodStart..periodEnd]
-        allDates = allDates.filter(dateStr => {
-          const d = moment(dateStr, "YYYY-MM-DD");
-          return d.isBetween(periodStart, periodEnd, "day", "[]");
-        });
-        if (!allDates.length) return [];
-      
-        // 7) Determine each company’s total share over this date window
-        const companyTotals = {};
-        allDates.forEach(d => {
-          const dailyObj = dailyMap[d];
-          for (let comp in dailyObj) {
-            if (!companyTotals[comp]) companyTotals[comp] = 0;
-            companyTotals[comp] += dailyObj[comp];
-          }
-        });
-        const sortedByTotal = Object.entries(companyTotals).sort((a, b) => b[1] - a[1]);
-        const top5 = sortedByTotal.slice(0, 5).map(x => x[0]);
-        const isTop5 = c => top5.includes(c);
-      
-        // 8) Build final series: one for each top-5 company, plus "Other" if grouping
-        const seriesMap = {};
-        top5.forEach(c => { seriesMap[c] = []; });
-        if (groupSmallCompanies) {
-          seriesMap["Other"] = [];
-        }
-      
-        // 9) For each date, push the top5’s share and sum the rest into "Other"
-        allDates.forEach(d => {
-          const dayObj = dailyMap[d];
-          let sumOthers = 0;
-          top5.forEach(c => {
-            const val = dayObj[c] || 0;
-            seriesMap[c].push({ x: d, y: val });
-          });
-          if (groupSmallCompanies) {
-            for (let comp in dayObj) {
-              if (!isTop5(comp)) {
-                sumOthers += dayObj[comp];
-              }
-            }
-            seriesMap["Other"].push({ x: d, y: sumOthers });
-          }
-        });
-      
-        // 10) Convert seriesMap into an array for ApexCharts:
-        let finalSeries = [];
-        for (let compName in seriesMap) {
-          finalSeries.push({
-            name: compName,
-            data: seriesMap[compName]
-          });
-        }
-      
-        // 11) Reorder the series so that "Other" is at the very bottom and
-        // the companies are sorted in ascending order by their average share,
-        // ensuring the highest average appears on top.
-        if (finalSeries && finalSeries.length > 0) {
-          finalSeries.forEach(series => {
-            let total = 0, count = 0;
-            series.data.forEach(point => {
-              total += point.y;
-              count++;
-            });
-            series.avg = count > 0 ? total / count : 0;
-          });
-          const otherSeries = finalSeries.find(s => s.name === "Other");
-          let rest = finalSeries.filter(s => s.name !== "Other");
-          rest.sort((a, b) => a.avg - b.avg);
-          if (otherSeries) {
-            finalSeries = [otherSeries, ...rest];
-          } else {
-            finalSeries = rest;
+function computeMarketShareStackedSeries(fullData, groupSmallCompanies = true) {
+  const fs = window.filterState;
+
+  // 1) Filter top-level by Q, engine, device, location:
+  const filteredRecs = fullData.filter(r =>
+    (r.q?.toLowerCase() === fs.searchTerm.toLowerCase()) &&
+    (r.engine?.toLowerCase() === fs.engine.toLowerCase()) &&
+    (r.device?.toLowerCase() === fs.device.toLowerCase()) &&
+    (r.location_requested?.toLowerCase() === fs.location.toLowerCase()) &&
+    // Only include records for the selected company if one is set.
+    (!fs.company || (r.source && r.source.toLowerCase() === fs.company.toLowerCase()))
+  );
+  if (!filteredRecs.length) return [];
+
+  // 2) Decide which market_share field to use (e.g. top3_market_share vs. market_share)
+  let shareField = "market_share";
+  if (
+    fs.serpSegments &&
+    window.serpSegmentMapping &&
+    window.serpSegmentMapping[fs.serpSegments]
+  ) {
+    shareField = window.serpSegmentMapping[fs.serpSegments].share;
+  }
+
+  // 3) Figure out periodStart & periodEnd from user's period toggle:
+  let periodStart, periodEnd;
+  if (window.selectedPeriod === "custom") {
+    periodStart = window.mainDateRange.start.clone();
+    periodEnd = window.mainDateRange.end.clone();
+  } else {
+    let days = 7;
+    if (window.selectedPeriod === "3d") days = 3;
+    if (window.selectedPeriod === "7d") days = 7;
+    if (window.selectedPeriod === "30d") days = 30;
+    let maxDate = null;
+    filteredRecs.forEach(r => {
+      if (!r.historical_data) return;
+      r.historical_data.forEach(dayObj => {
+        if (dayObj.date?.value) {
+          const d = moment(dayObj.date.value, "YYYY-MM-DD");
+          if (!maxDate || d.isAfter(maxDate)) {
+            maxDate = d.clone();
           }
         }
-      
-        return finalSeries;
+      });
+    });
+    if (!maxDate) return [];
+    periodEnd = maxDate.clone();
+    periodStart = maxDate.clone().subtract(days - 1, "days");
+  }
+  console.log("[TEST bug 1] DEBUG - computeMarketShareStackedSeries period check:");
+  console.log("[TEST bug 1] window.selectedPeriod:", window.selectedPeriod);
+  console.log("[TEST bug 1] window.mainDateRange:", window.mainDateRange);
+  console.log("[TEST bug 1] periodStart:", periodStart.format("YYYY-MM-DD"));
+  console.log("[TEST bug 1] periodEnd:", periodEnd.format("YYYY-MM-DD"));
+
+  // 4) Build a daily map: dailyMap[date][company] = sumOfShares
+  const dailyMap = {};
+  filteredRecs.forEach(record => {
+    if (!Array.isArray(record.historical_data)) return;
+    const cName = (record.source || "Unknown").trim();
+    record.historical_data.forEach(dayObj => {
+      if (!dayObj.date?.value) return;
+      const dateStr = dayObj.date.value;
+      const val = parseFloat(dayObj[shareField]) || 0;
+      if (!dailyMap[dateStr]) {
+        dailyMap[dateStr] = {};
       }
+      if (!dailyMap[dateStr][cName]) {
+        dailyMap[dateStr][cName] = 0;
+      }
+      dailyMap[dateStr][cName] += val;
+    });
+  });
+
+  // 5) Gather all dates in ascending order:
+  let allDates = Object.keys(dailyMap).sort();
+
+  // 6) Filter out dates that are outside [periodStart..periodEnd]
+  allDates = allDates.filter(dateStr => {
+    const d = moment(dateStr, "YYYY-MM-DD");
+    return d.isBetween(periodStart, periodEnd, "day", "[]");
+  });
+  if (!allDates.length) return [];
+
+  // 7) Determine each company's total share over this date window
+  const companyTotals = {};
+  allDates.forEach(d => {
+    const dailyObj = dailyMap[d];
+    for (let comp in dailyObj) {
+      if (!companyTotals[comp]) companyTotals[comp] = 0;
+      companyTotals[comp] += dailyObj[comp];
+    }
+  });
+  const sortedByTotal = Object.entries(companyTotals).sort((a, b) => b[1] - a[1]);
+  const top5 = sortedByTotal.slice(0, 5).map(x => x[0]);
+  const isTop5 = c => top5.includes(c);
+
+  // 8) Build final series: one for each top-5 company, plus "Other" if grouping
+  const seriesMap = {};
+  top5.forEach(c => { seriesMap[c] = []; });
+  if (groupSmallCompanies) {
+    seriesMap["Other"] = [];
+  }
+
+  // 9) For each date, push the top5's share and sum the rest into "Other"
+  allDates.forEach(d => {
+    const dayObj = dailyMap[d];
+    let sumOthers = 0;
+    top5.forEach(c => {
+      const val = dayObj[c] || 0;
+      seriesMap[c].push({ x: d, y: val });
+    });
+    if (groupSmallCompanies) {
+      for (let comp in dayObj) {
+        if (!isTop5(comp)) {
+          sumOthers += dayObj[comp];
+        }
+      }
+      seriesMap["Other"].push({ x: d, y: sumOthers });
+    }
+  });
+
+  // 10) Convert seriesMap into an array for ApexCharts:
+  let finalSeries = [];
+  for (let compName in seriesMap) {
+    finalSeries.push({
+      name: compName,
+      data: seriesMap[compName]
+    });
+  }
+
+  // 11) Reorder the series so that "Other" is at the very bottom and
+  // the companies are sorted in ascending order by their average share,
+  // ensuring the highest average appears on top.
+  if (finalSeries && finalSeries.length > 0) {
+    finalSeries.forEach(series => {
+      let total = 0, count = 0;
+      series.data.forEach(point => {
+        total += point.y;
+        count++;
+      });
+      series.avg = count > 0 ? total / count : 0;
+    });
+    const otherSeries = finalSeries.find(s => s.name === "Other");
+    let rest = finalSeries.filter(s => s.name !== "Other");
+    rest.sort((a, b) => a.avg - b.avg);
+    if (otherSeries) {
+      finalSeries = [otherSeries, ...rest];
+    } else {
+      finalSeries = rest;
+    }
+  }
+
+  return finalSeries;
+}
 
     function filterMarketTrends() {
         // Return an empty array if marketTrendsData is not loaded yet
