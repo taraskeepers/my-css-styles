@@ -421,7 +421,7 @@
   return results;
 } 
 
-  function computeMarketShareData(fullData, groupSmallCompanies = true) {
+function computeMarketShareData(fullData, groupSmallCompanies = true) {
       // Generate cache key
   const cacheKey = window.dataCache ? 
     window.dataCache.getCacheKey('marketShare', { group: groupSmallCompanies }) : null;
@@ -431,6 +431,15 @@
     console.log("[computeMarketShareData] Using cached data");
     return window.dataCache.marketShare[cacheKey];
   }
+    
+    // Initialize globals if they don't exist
+    if (!window.selectedPeriod) {
+      window.selectedPeriod = window.filterState?.period || "7d";
+    }
+    if (!window.mainDateRange) {
+      window.mainDateRange = { start: moment().subtract(6, 'days'), end: moment() };
+    }
+    
     // 1) Filter the top-level records by Q, engine, device, location from filterState
     const fs = window.filterState;
     console.log("[computeMarketShareData] FilterState:", window.filterState);
@@ -502,17 +511,17 @@
       return null;
     }
   
-    // 5) Based on selectedPeriod, define periodStart & periodEnd
+// 5) Based on selectedPeriod, define periodStart & periodEnd
     let periodStart, periodEnd;
-    if (selectedPeriod === "custom") {
+    if (window.selectedPeriod === "custom") {
       // Use mainDateRange for custom
-      periodStart = mainDateRange.start.clone();
-      periodEnd   = mainDateRange.end.clone();
+      periodStart = window.mainDateRange.start.clone();
+      periodEnd   = window.mainDateRange.end.clone();
     } else {
       let days = 7; // default
-      if (selectedPeriod === "3d")  days = 3;
-      if (selectedPeriod === "7d")  days = 7;
-      if (selectedPeriod === "30d") days = 30;
+      if (window.selectedPeriod === "3d")  days = 3;
+      if (window.selectedPeriod === "7d")  days = 7;
+      if (window.selectedPeriod === "30d") days = 30;
       // The current window is (maxDate - (days-1)) to maxDate
       periodEnd   = overallMaxDate.clone();
       periodStart = overallMaxDate.clone().subtract(days - 1, "days");
