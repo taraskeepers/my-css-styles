@@ -1243,6 +1243,18 @@ viewChartsBtn.addEventListener("click", function() {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+.segmentation-chart-container.loading {
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.segmentation-chart-container.loading::after {
+  content: 'Loading chart...';
+  font-size: 12px;
+}
       `;
       document.head.appendChild(style);
     }
@@ -1443,6 +1455,7 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   // Create a unique ID for the chart
   const chartContainer = document.getElementById(containerId);
   if (!chartContainer) return;
+  chartContainer.classList.remove('loading');
 
     console.log(`[DEBUG-CHART] Creating chart for container: ${containerId}`);
   console.log(`[DEBUG-CHART] segmentCounts parameter:`, segmentCounts);
@@ -1871,7 +1884,7 @@ deviceHTML += `</div>`; // Close last-tracked-container
           // Add Top 40 Segmentation cell
           const tdSegmentation = document.createElement("td");
           const chartContainerId = `segmentation-chart-${chartCounter++}`;
-          tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container"></div>`;
+          tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
           tr.appendChild(tdSegmentation);
   
 // Add products cell
@@ -1944,66 +1957,15 @@ const chartInfo = {
   activeCount: activeProducts.length,
   inactiveCount: inactiveProducts.length,
   pieChartId: pieChartId,
-  projectData: projectData
+  projectData: projectData,
+  productCellDiv: productCellDiv // Add reference to the product cell
 };
 
-// Delay chart creation until after products are rendered
-setTimeout(() => {
-  // Now calculate segment counts AFTER products have been processed
-  const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
-  
-  // Get the product elements that were just rendered
-  const productCards = productCellDiv.querySelectorAll('.ad-details');
-  console.log(`[DEBUG-SEGMENTS] Found ${productCards.length} product cards`);
-  
-  productCards.forEach(card => {
-    // Skip inactive products
-    if (card.classList.contains('inactive-product')) {
-      return;
-    }
-    
-    // Get the data-pla-index to look up the product data
-    const plaIndex = card.getAttribute('data-pla-index');
-    const product = window.globalRows[plaIndex];
-    
-    if (product) {
-      const posValue = parseFloat(product.finalPosition);
-      console.log(`[DEBUG-SEGMENTS] Product ${product.title}: finalPosition = ${product.finalPosition}, parsed = ${posValue}`);
-      
-      if (!isNaN(posValue) && posValue > 0) {
-        if (posValue <= 3) {
-          segmentCounts[0]++; // Top3
-        } else if (posValue <= 8) {
-          segmentCounts[1]++; // Top4-8
-        } else if (posValue <= 14) {
-          segmentCounts[2]++; // Top9-14
-        } else {
-          segmentCounts[3]++; // Below14
-        }
-      }
-    }
-  });
-  
-  console.log(`[DEBUG-SEGMENTS] Final segment counts:`, segmentCounts);
-  
-  // Create the segmentation chart with the correct counts
-  createSegmentationChart(
-    chartInfo.containerId, 
-    chartInfo.data, 
-    chartInfo.term, 
-    chartInfo.location, 
-    chartInfo.device, 
-    chartInfo.company, 
-    chartInfo.activeCount, 
-    chartInfo.inactiveCount, 
-    segmentCounts
-  );
-  
-  // Create pie chart for market share
-  if (chartInfo.projectData && chartInfo.projectData.avgShare !== undefined) {
-    createMarketSharePieChart(chartInfo.pieChartId, chartInfo.projectData.avgShare);
-  }
-}, 200); // Increased delay to ensure products are fully rendered
+// Add to pending charts array instead of creating immediately
+if (!window.pendingSegmentationCharts) {
+  window.pendingSegmentationCharts = [];
+}
+window.pendingSegmentationCharts.push(chartInfo);
   
             if (matchingProducts.length === 0) {
               productCellDiv.innerHTML = '<div class="no-products">–</div>';
@@ -3084,6 +3046,97 @@ if (productMapContainer) {
   // Start observing the container for class changes
   observer.observe(productMapContainer, { attributes: true });
 }
+    // Add batch rendering function
+    function renderPendingCharts() {
+      const charts = window.pendingSegmentationCharts;
+      if (!charts || charts.length === 0) return;
+      
+      console.log(`[ProductMap] Starting batch rendering of ${charts.length} charts`);
+      
+      let currentIndex = 0;
+      const batchSize = 3; // Render 3 charts at a time
+      
+      function renderBatch() {
+        const startTime = performance.now();
+        const batch = charts.slice(currentIndex, currentIndex + batchSize);
+        
+        batch.forEach(chartInfo => {
+          // Calculate segment counts from the rendered products
+          const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
+          
+          // Get the product elements that were rendered
+          const productCards = chartInfo.productCellDiv.querySelectorAll('.ad-details');
+          
+          productCards.forEach(card => {
+            // Skip inactive products
+            if (card.classList.contains('inactive-product')) {
+              return;
+            }
+            
+            // Get the data-pla-index to look up the product data
+            const plaIndex = card.getAttribute('data-pla-index');
+            const product = window.globalRows[plaIndex];
+            
+            if (product) {
+              const posValue = parseFloat(product.finalPosition);
+              
+              if (!isNaN(posValue) && posValue > 0) {
+                if (posValue <= 3) {
+                  segmentCounts[0]++; // Top3
+                } else if (posValue <= 8) {
+                  segmentCounts[1]++; // Top4-8
+                } else if (posValue <= 14) {
+                  segmentCounts[2]++; // Top9-14
+                } else {
+                  segmentCounts[3]++; // Below14
+                }
+              }
+            }
+          });
+          
+          // Create the segmentation chart
+          requestAnimationFrame(() => {
+            createSegmentationChart(
+              chartInfo.containerId, 
+              chartInfo.data, 
+              chartInfo.term, 
+              chartInfo.location, 
+              chartInfo.device, 
+              chartInfo.company, 
+              chartInfo.activeCount, 
+              chartInfo.inactiveCount, 
+              segmentCounts
+            );
+            
+            // Create pie chart for market share
+            if (chartInfo.projectData && chartInfo.projectData.avgShare !== undefined) {
+              createMarketSharePieChart(chartInfo.pieChartId, chartInfo.projectData.avgShare);
+            }
+          });
+        });
+        
+        currentIndex += batchSize;
+        console.log(`[ProductMap] Rendered batch ${Math.ceil(currentIndex/batchSize)} of ${Math.ceil(charts.length/batchSize)} in ${(performance.now() - startTime).toFixed(1)}ms`);
+        
+        // If more charts to render, continue after a short delay
+        if (currentIndex < charts.length) {
+          setTimeout(renderBatch, 50); // 50ms delay between batches
+        } else {
+          // Clear the pending charts array
+          window.pendingSegmentationCharts = [];
+          console.log(`[ProductMap] Finished rendering all charts`);
+        }
+      }
+      
+      // Start rendering after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        requestAnimationFrame(renderBatch);
+      }, 100);
+    }
+
+    // Call the batch renderer
+    renderPendingCharts();
+  }
   }
 
 // Function to render average position chart
