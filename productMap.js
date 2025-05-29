@@ -3128,10 +3128,7 @@ if (productMapContainer) {
         }
       }
       
-      // Start rendering after a short delay to ensure DOM is ready
-      setTimeout(() => {
-        requestAnimationFrame(renderBatch);
-      }, 100);
+requestAnimationFrame(renderBatch);
     }
 
     // Call the batch renderer
