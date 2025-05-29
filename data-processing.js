@@ -502,45 +502,67 @@
       return null;
     }
   
-    // 5) Based on selectedPeriod, define periodStart & periodEnd
-    let periodStart, periodEnd;
-    
-if (window.selectedPeriod === "custom") {
-  // Use mainDateRange for custom
-  periodStart = window.mainDateRange.start.clone();
-  periodEnd   = window.mainDateRange.end.clone();
-} else {
-  let days = 7; // default
-  if (window.selectedPeriod === "3d")  days = 3;
-  if (window.selectedPeriod === "7d")  days = 7;
-  if (window.selectedPeriod === "30d") days = 30;
-  // The current window is (maxDate - (days-1)) to maxDate
-  periodEnd   = overallMaxDate.clone();
-  periodStart = overallMaxDate.clone().subtract(days - 1, "days");
-}
+  // 5) Based on selectedPeriod, define periodStart & periodEnd
+  let periodStart, periodEnd;
+  if (window.selectedPeriod === "custom") {
+    // Use mainDateRange for custom
+    periodStart = window.mainDateRange.start.clone();
+    periodEnd   = window.mainDateRange.end.clone();
+  } else {
+    let days = 7; // default
+    if (window.selectedPeriod === "3d")  days = 3;
+    if (window.selectedPeriod === "7d")  days = 7;
+    if (window.selectedPeriod === "30d") days = 30;
+    // The current window is (maxDate - (days-1)) to maxDate
+    periodEnd   = overallMaxDate.clone();
+    periodStart = overallMaxDate.clone().subtract(days - 1, "days");
+  }
+
+  // ⭐ ADD THESE DEBUG LOGS HERE:
+  console.log(`[DEBUG computeMarketShareData] selectedPeriod: ${window.selectedPeriod}`);
+  console.log(`[DEBUG computeMarketShareData] Using date range: ${periodStart.format("YYYY-MM-DD")} to ${periodEnd.format("YYYY-MM-DD")}`);
+  console.log(`[DEBUG computeMarketShareData] Input data length: ${fullData?.length || 0}`);
+
+  // Filter dailyRows to those within the final window
+  const windowRows = dailyRows.filter(dr => {
+    const d = moment(dr.date, "YYYY-MM-DD");
+    return d.isBetween(periodStart, periodEnd, "day", "[]"); // inclusive range
+  });
   
-    // Filter dailyRows to those within the final window
-    const windowRows = dailyRows.filter(dr => {
-      const d = moment(dr.date, "YYYY-MM-DD");
-      return d.isBetween(periodStart, periodEnd, "day", "[]"); // inclusive range
-    });
-    if (!windowRows.length) {
-      return null;
+  // ⭐ ADD MORE DEBUG LOGS AFTER FILTERING:
+  console.log(`[DEBUG computeMarketShareData] dailyRows total: ${dailyRows.length}`);
+  console.log(`[DEBUG computeMarketShareData] windowRows after date filter: ${windowRows.length}`);
+  console.log(`[DEBUG computeMarketShareData] Sample windowRows dates:`, 
+    windowRows.slice(0, 5).map(r => r.date));
+  
+  if (!windowRows.length) {
+    console.log("[DEBUG computeMarketShareData] No data in date window - returning null");
+    return null;
+  }
+
+  // Figure out how many days are in that period
+  const dayCount = periodEnd.diff(periodStart, "days") + 1;
+  console.log(`[DEBUG computeMarketShareData] dayCount: ${dayCount}`);
+
+  // 6) Group by company => sum up share for each day => then average
+  const grouped = {}; // { [companyName]: totalShareOverDays }
+  windowRows.forEach(dr => {
+    const c = dr.source.toLowerCase();
+    const shareVal = parseFloat(dr[shareField]) || 0;
+    if (!grouped[c]) {
+      grouped[c] = 0;
     }
-  
-    // Figure out how many days are in that period
-    const dayCount = periodEnd.diff(periodStart, "days") + 1;
-  
-    // 6) Group by company => sum up share for each day => then average
-    const grouped = {}; // { [companyName]: totalShareOverDays }
-    windowRows.forEach(dr => {
-      const c = dr.source.toLowerCase();
-      const shareVal = parseFloat(dr[shareField]) || 0;
-      if (!grouped[c]) {
-        grouped[c] = 0;
-      }
-      grouped[c] += shareVal;
-    });
+    grouped[c] += shareVal;
+  });
+
+  // ⭐ DEBUG THE GROUPED DATA:
+  console.log(`[DEBUG computeMarketShareData] Grouped companies: ${Object.keys(grouped).length}`);
+  console.log(`[DEBUG computeMarketShareData] Sample grouped data:`, 
+    Object.entries(grouped).slice(0, 3).map(([company, total]) => ({
+      company, 
+      total: total.toFixed(2), 
+      avgPerDay: (total / dayCount).toFixed(2)
+    })));
   
     // Build a result array: { company, marketShare: X }
     const result = [];
