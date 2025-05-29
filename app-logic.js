@@ -427,12 +427,13 @@ subset.forEach(r => {
 });
 const locationArr = Object.keys(locationCounts).map(k=>({ name:k, count:locationCounts[k]}));
 locationArr.sort((a,b)=> b.count - a.count);
-
+// 🚫 Do not auto-set location — let user pick it manually
 // Only reset location if no location is currently selected
 if (!window.filterState.location) {
   window.filterState.location = "";
   document.getElementById("locationText").textContent = "(select a location)";
 }
+// Otherwise, keep the existing location selection
 
 /* specialized helper logic */
 
