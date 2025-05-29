@@ -422,202 +422,203 @@
 } 
 
 function computeMarketShareData(fullData, groupSmallCompanies = true) {
-      // Generate cache key
+  // Generate cache key
   const cacheKey = window.dataCache ? 
     window.dataCache.getCacheKey('marketShare', { group: groupSmallCompanies }) : null;
-
+  
+  // DEBUG: Log function entry
   console.log("[TEST bug 1] DEBUG - computeMarketShareData CALLED");
-console.log("[TEST bug 1] selectedPeriod on entry:", window.selectedPeriod);
-console.log("[TEST bug 1] mainDateRange on entry:", window.mainDateRange);
+  console.log("[TEST bug 1] selectedPeriod on entry:", window.selectedPeriod);
+  console.log("[TEST bug 1] mainDateRange on entry:", window.mainDateRange);
   
   // Check cache
   if (cacheKey && window.dataCache.marketShare[cacheKey]) {
-    console.log("[computeMarketShareData] Using cached data");
+    console.log("[TEST bug 1] [computeMarketShareData] Using cached data");
     return window.dataCache.marketShare[cacheKey];
   }
-    
-    // Initialize globals if they don't exist
-    if (!window.selectedPeriod) {
-      window.selectedPeriod = window.filterState?.period || "7d";
-    }
-    if (!window.mainDateRange) {
-      window.mainDateRange = { start: moment().subtract(6, 'days'), end: moment() };
-    }
-    
-    // 1) Filter the top-level records by Q, engine, device, location from filterState
-    const fs = window.filterState;
-    console.log("[computeMarketShareData] FilterState:", window.filterState);
-  console.log("[computeMarketShareData] Input data length:", fullData?.length || 0);
-  
-    const filteredRecords = fullData.filter(r =>
-      r.q?.toLowerCase() === fs.searchTerm.toLowerCase() &&
-      r.engine?.toLowerCase() === fs.engine.toLowerCase() &&
-      r.device?.toLowerCase() === fs.device.toLowerCase() &&
-      r.location_requested?.toLowerCase() === fs.location.toLowerCase()
-    );
-    console.log("[computeMarketShareData] Filtered records:", filteredRecords.length);
-  
-    // If nothing matches those four filters, return null
-    if (!filteredRecords.length) {
-      return null;
-    }
-  
-    // 2) For each filtered record, unfold its historical_data into dailyRows
-    //    because each day is stored in record.historical_data array
-    const dailyRows = [];
-    filteredRecords.forEach(record => {
-      if (!Array.isArray(record.historical_data)) return;
-      record.historical_data.forEach(dayObj => {
-        // dayObj typically looks like { date: {value:'YYYY-MM-DD'}, market_share:..., top3_market_share:..., etc. }
-        const dateStr = (dayObj.date && dayObj.date.value) ? dayObj.date.value : null;
-        if (!dateStr) return; // skip invalid or missing date
-  
-        // We push a daily object that has “source”, “date”, and whichever share fields we might need.
-        dailyRows.push({
-          source: record.source?.trim() || "Unknown",
-          date: dateStr,
-          // The basic "all positions" share:
-          market_share: parseFloat(dayObj.market_share) || 0,
-          // We can also store top3, below8, etc. if you need them:
-          top3_market_share:    parseFloat(dayObj.top3_market_share)    || 0,
-          top4_8_market_share:  parseFloat(dayObj.top4_8_market_share)  || 0,
-          top9_14_market_share: parseFloat(dayObj.top9_14_market_share) || 0,
-          below14_market_share: parseFloat(dayObj.below14_market_share) || 0,
-          top8_market_share:    parseFloat(dayObj.top8_market_share)    || 0,
-          below8_market_share:  parseFloat(dayObj.below8_market_share)  || 0,
-          // ... and so on
-        });
+  // 1) Filter the top-level records by Q, engine, device, location from filterState
+  const fs = window.filterState;
+  console.log("[TEST bug 1] [computeMarketShareData] FilterState:", window.filterState);
+  console.log("[TEST bug 1] [computeMarketShareData] Input data length:", fullData?.length || 0);
+
+  const filteredRecords = fullData.filter(r =>
+    r.q?.toLowerCase() === fs.searchTerm.toLowerCase() &&
+    r.engine?.toLowerCase() === fs.engine.toLowerCase() &&
+    r.device?.toLowerCase() === fs.device.toLowerCase() &&
+    r.location_requested?.toLowerCase() === fs.location.toLowerCase()
+  );
+  console.log("[TEST bug 1] [computeMarketShareData] Filtered records:", filteredRecords.length);
+
+  // If nothing matches those four filters, return null
+  if (!filteredRecords.length) {
+    return null;
+  }
+
+  // 2) For each filtered record, unfold its historical_data into dailyRows
+  //    because each day is stored in record.historical_data array
+  const dailyRows = [];
+  filteredRecords.forEach(record => {
+    if (!Array.isArray(record.historical_data)) return;
+    record.historical_data.forEach(dayObj => {
+      // dayObj typically looks like { date: {value:'YYYY-MM-DD'}, market_share:..., top3_market_share:..., etc. }
+      const dateStr = (dayObj.date && dayObj.date.value) ? dayObj.date.value : null;
+      if (!dateStr) return; // skip invalid or missing date
+
+      // We push a daily object that has "source", "date", and whichever share fields we might need.
+      dailyRows.push({
+        source: record.source?.trim() || "Unknown",
+        date: dateStr,
+        // The basic "all positions" share:
+        market_share: parseFloat(dayObj.market_share) || 0,
+        // We can also store top3, below8, etc. if you need them:
+        top3_market_share:    parseFloat(dayObj.top3_market_share)    || 0,
+        top4_8_market_share:  parseFloat(dayObj.top4_8_market_share)  || 0,
+        top9_14_market_share: parseFloat(dayObj.top9_14_market_share) || 0,
+        below14_market_share: parseFloat(dayObj.below14_market_share) || 0,
+        top8_market_share:    parseFloat(dayObj.top8_market_share)    || 0,
+        below8_market_share:  parseFloat(dayObj.below8_market_share)  || 0,
+        // ... and so on
       });
     });
-  
-    // If still no dailyRows, return null
-    if (!dailyRows.length) {
-      return null;
+  });
+
+  // If still no dailyRows, return null
+  if (!dailyRows.length) {
+    return null;
+  }
+
+  // 3) Figure out which field to sum up: default is "market_share"
+  //    but if filterState.serpSegments is "top3", we might use "top3_market_share", etc.
+  const mapping = window.serpSegmentMapping || {};
+  let shareField = "market_share"; // fallback
+  if (fs.serpSegments && mapping[fs.serpSegments]) {
+    shareField = mapping[fs.serpSegments].share; 
+  }
+
+  // 4) Find the overall max date among dailyRows
+  let overallMaxDate = null;
+  dailyRows.forEach(dr => {
+    const d = moment(dr.date, "YYYY-MM-DD");
+    if (!overallMaxDate || d.isAfter(overallMaxDate)) {
+      overallMaxDate = d.clone();
     }
-  
-    // 3) Figure out which field to sum up: default is "market_share"
-    //    but if filterState.serpSegments is “top3”, we might use “top3_market_share”, etc.
-    const mapping = window.serpSegmentMapping || {};
-    let shareField = "market_share"; // fallback
-    if (fs.serpSegments && mapping[fs.serpSegments]) {
-      shareField = mapping[fs.serpSegments].share; 
-    }
-  
-    // 4) Find the overall max date among dailyRows
-    let overallMaxDate = null;
-    dailyRows.forEach(dr => {
-      const d = moment(dr.date, "YYYY-MM-DD");
-      if (!overallMaxDate || d.isAfter(overallMaxDate)) {
-        overallMaxDate = d.clone();
-      }
-    });
-    if (!overallMaxDate) {
-      return null;
-    }
-  
-// 5) Based on selectedPeriod, define periodStart & periodEnd
-    let periodStart, periodEnd;
-    if (window.selectedPeriod === "custom") {
-      // Use mainDateRange for custom
-      periodStart = window.mainDateRange.start.clone();
-      periodEnd   = window.mainDateRange.end.clone();
-    } else {
-      let days = 7; // default
-      if (window.selectedPeriod === "3d")  days = 3;
-      if (window.selectedPeriod === "7d")  days = 7;
-      if (window.selectedPeriod === "30d") days = 30;
-      // The current window is (maxDate - (days-1)) to maxDate
-      periodEnd   = overallMaxDate.clone();
-      periodStart = overallMaxDate.clone().subtract(days - 1, "days");
-    }
-  
-    // Filter dailyRows to those within the final window
-    const windowRows = dailyRows.filter(dr => {
-      const d = moment(dr.date, "YYYY-MM-DD");
-      return d.isBetween(periodStart, periodEnd, "day", "[]"); // inclusive range
-    });
-    if (!windowRows.length) {
-      return null;
-    }
+  });
+  if (!overallMaxDate) {
+    return null;
+  }
+
+  // 5) Based on selectedPeriod, define periodStart & periodEnd
+  let periodStart, periodEnd;
+  console.log("[TEST bug 1] DEBUG - INSIDE computeMarketShareData period decision:");
+  console.log("[TEST bug 1] window.selectedPeriod:", window.selectedPeriod);
+  console.log("[TEST bug 1] window.mainDateRange start:", window.mainDateRange?.start?.format("YYYY-MM-DD"));
+  console.log("[TEST bug 1] window.mainDateRange end:", window.mainDateRange?.end?.format("YYYY-MM-DD"));
+
+  if (window.selectedPeriod === "custom" && window.mainDateRange) {
+    // Use mainDateRange for custom
+    periodStart = window.mainDateRange.start.clone();
+    periodEnd   = window.mainDateRange.end.clone();
+    console.log("[TEST bug 1] DEBUG - Using CUSTOM period:");
+    console.log("[TEST bug 1] Custom periodStart:", periodStart.format("YYYY-MM-DD"));
+    console.log("[TEST bug 1] Custom periodEnd:", periodEnd.format("YYYY-MM-DD"));
+  } else {
+    let days = 7; // default
+    if (window.selectedPeriod === "3d")  days = 3;
+    if (window.selectedPeriod === "7d")  days = 7;
+    if (window.selectedPeriod === "30d") days = 30;
+    // The current window is (maxDate - (days-1)) to maxDate
+    periodEnd   = overallMaxDate.clone();
+    periodStart = overallMaxDate.clone().subtract(days - 1, "days");
+    console.log("[TEST bug 1] DEBUG - Using STANDARD period:", window.selectedPeriod);
+    console.log("[TEST bug 1] Standard periodStart:", periodStart.format("YYYY-MM-DD"));
+    console.log("[TEST bug 1] Standard periodEnd:", periodEnd.format("YYYY-MM-DD"));
+  }
+
+  // Filter dailyRows to those within the final window
+  const windowRows = dailyRows.filter(dr => {
+    const d = moment(dr.date, "YYYY-MM-DD");
+    return d.isBetween(periodStart, periodEnd, "day", "[]"); // inclusive range
+  });
+  if (!windowRows.length) {
+    return null;
+  }
 
   // DEBUG: Check filtered data
-console.log("[TEST bug 1] DEBUG - Window filtering:");
-console.log("[TEST bug 1] Total dailyRows:", dailyRows.length);
-console.log("[TEST bug 1] Filtered windowRows:", windowRows.length);
-console.log("[TEST bug 1] Sample dates in windowRows:", windowRows.slice(0, 3).map(r => r.date));
-console.log("[TEST bug 1] All unique dates in windowRows:", [...new Set(windowRows.map(r => r.date))].sort());
-  
-    // Figure out how many days are in that period
-    const dayCount = periodEnd.diff(periodStart, "days") + 1;
-  
-    // 6) Group by company => sum up share for each day => then average
-    const grouped = {}; // { [companyName]: totalShareOverDays }
-    windowRows.forEach(dr => {
-      const c = dr.source.toLowerCase();
-      const shareVal = parseFloat(dr[shareField]) || 0;
-      if (!grouped[c]) {
-        grouped[c] = 0;
-      }
-      grouped[c] += shareVal;
+  console.log("[TEST bug 1] DEBUG - Window filtering:");
+  console.log("[TEST bug 1] Total dailyRows:", dailyRows.length);
+  console.log("[TEST bug 1] Filtered windowRows:", windowRows.length);
+  console.log("[TEST bug 1] Sample dates in windowRows:", windowRows.slice(0, 3).map(r => r.date));
+  console.log("[TEST bug 1] All unique dates in windowRows:", [...new Set(windowRows.map(r => r.date))].sort());
+
+  // Figure out how many days are in that period
+  const dayCount = periodEnd.diff(periodStart, "days") + 1;
+
+  // 6) Group by company => sum up share for each day => then average
+  const grouped = {}; // { [companyName]: totalShareOverDays }
+  windowRows.forEach(dr => {
+    const c = dr.source.toLowerCase();
+    const shareVal = parseFloat(dr[shareField]) || 0;
+    if (!grouped[c]) {
+      grouped[c] = 0;
+    }
+    grouped[c] += shareVal;
+  });
+
+  // Build a result array: { company, marketShare: X }
+  const result = [];
+  for (let c in grouped) {
+    // Average share over dayCount, then *100 to get a percentage
+    const avgShare = (grouped[c] / dayCount) * 100;
+    result.push({
+      company: c,
+      marketShare: parseFloat(avgShare.toFixed(2))
     });
-  
-    // Build a result array: { company, marketShare: X }
-    const result = [];
-    for (let c in grouped) {
-      // Average share over dayCount, then *100 to get a percentage
-      const avgShare = (grouped[c] / dayCount) * 100;
-      result.push({
-        company: c,
-        marketShare: parseFloat(avgShare.toFixed(2))
-      });
-    }
-  
-// Sort descending by marketShare
-    result.sort((a, b) => b.marketShare - a.marketShare);
-  
-    // 7) If groupSmallCompanies => keep top 5, the rest is "Other"
-    if (groupSmallCompanies && result.length > 5) {
-      const top5 = result.slice(0, 5);
-      const sumTop5 = top5.reduce((sum, r) => sum + r.marketShare, 0);
-      const fullSum = result.reduce((sum, r) => sum + r.marketShare, 0);
-      const other = fullSum - sumTop5;
-  
-      const finalCompanies = top5.map(r => r.company);
-      const finalShares = top5.map(r => r.marketShare);
-  
-      if (other > 0) {
-        finalCompanies.push("Other");
-        finalShares.push(parseFloat(other.toFixed(2)));
-      }
-      
-      // Cache and return result
-      const finalResult = {
-        companies: finalCompanies,
-        marketShares: finalShares,
-        totalMarketShare: parseFloat(fullSum.toFixed(2))
-      };
-      if (cacheKey && window.dataCache) {
-        window.dataCache.marketShare[cacheKey] = finalResult;
-      }
-      return finalResult;
-    } else {
-      // Return all companies without grouping
-      const companies = result.map(item => item.company);
-      const marketShares = result.map(item => item.marketShare);
-      const total = result.reduce((sum, item) => sum + item.marketShare, 0);
-      
-      // Cache and return result
-      const finalResult = {
-        companies,
-        marketShares,
-        totalMarketShare: parseFloat(total.toFixed(2))
-      };
-      if (cacheKey && window.dataCache) {
-        window.dataCache.marketShare[cacheKey] = finalResult;
-      }
-      return finalResult;
-    }
   }
+
+  // Sort descending by marketShare
+  result.sort((a, b) => b.marketShare - a.marketShare);
+
+  // 7) If groupSmallCompanies => keep top 5, the rest is "Other"
+  if (groupSmallCompanies && result.length > 5) {
+    const top5 = result.slice(0, 5);
+    const sumTop5 = top5.reduce((sum, r) => sum + r.marketShare, 0);
+    const fullSum = result.reduce((sum, r) => sum + r.marketShare, 0);
+    const other = fullSum - sumTop5;
+
+    const finalCompanies = top5.map(r => r.company);
+    const finalShares = top5.map(r => r.marketShare);
+
+    if (other > 0) {
+      finalCompanies.push("Other");
+      finalShares.push(parseFloat(other.toFixed(2)));
+    }
+    // Cache and return result
+    const result = {
+      companies: finalCompanies,
+      marketShares: finalShares,
+      totalMarketShare: parseFloat(fullSum.toFixed(2))
+    };
+    if (cacheKey && window.dataCache) {
+      window.dataCache.marketShare[cacheKey] = result;
+    }
+    return result;
+  } else {
+    // Return all companies without grouping
+    const companies = result.map(item => item.company);
+    const marketShares = result.map(item => item.marketShare);
+    const total = result.reduce((sum, item) => sum + item.marketShare, 0);
+    // Cache and return result
+    const result = {
+      companies,
+      marketShares,
+      totalMarketShare: parseFloat(total.toFixed(2))
+    };
+    if (cacheKey && window.dataCache) {
+      window.dataCache.marketShare[cacheKey] = result;
+    }
+    return result;
+  }
+}
 
 function computeMarketShareStackedSeries(fullData, groupSmallCompanies = true) {
   const fs = window.filterState;
