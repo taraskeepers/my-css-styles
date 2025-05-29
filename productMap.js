@@ -3137,7 +3137,6 @@ if (productMapContainer) {
     // Call the batch renderer
     renderPendingCharts();
   }
-  }
 
 // Function to render average position chart
 function renderAvgPositionChart(container, products) {
