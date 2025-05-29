@@ -1,7 +1,14 @@
   function buildProjectData(projectNumber) {
       const projectNum = projectNumber || window.filterState.activeProjectNumber;
   
-  console.log("[buildProjectData] Building data for project:", projectNum);
+  // Check cache first
+  const cacheKey = `project_${projectNum}_${window.filterState.engine}_${window.filterState.company}`;
+  if (window.dataCache && window.dataCache.projectData[cacheKey]) {
+    console.log("[buildProjectData] Using cached data for key:", cacheKey);
+    return window.dataCache.projectData[cacheKey];
+  }
+  
+  console.log("[buildProjectData] Building fresh data for project:", projectNum);
     // 1) Defensive check
     if (!Array.isArray(window.companyStatsData)) {
       console.warn("[buildProjectData] No companyStatsData or it’s not an array.");
@@ -201,6 +208,11 @@
         endDate: end.format("YYYY-MM-DD")
       });
     });
+
+      if (window.dataCache) {
+    window.dataCache.projectData[cacheKey] = results;
+    console.log("[buildProjectData] Cached results for key:", cacheKey);
+  }
   
     return results;
   } 
@@ -232,6 +244,17 @@
       // Otherwise, just skip the source filter. We'll decide below.
     }
   }
+
+     // ====== ADD CACHE CHECK HERE ======
+  // Check cache
+  const cacheKey = `home_${companyName || 'all'}_${st.searchTerm}_${st.engine}_${st.period}`;
+  if (window.dataCache && window.dataCache.homeData[cacheKey]) {
+    console.log("[buildHomeData] Using cached data for key:", cacheKey);
+    return window.dataCache.homeData[cacheKey];
+  }
+  
+  console.log("[buildHomeData] Building fresh data for company:", companyName || 'all');
+  // ====== END OF CACHE CHECK ======
 
   // 2) Build a subset filter that merges old & new checks
   //    (Remove or comment out any lines you do *not* want.)
@@ -387,10 +410,27 @@
     });
   });
 
+     // ====== ADD CACHE SAVE HERE ======
+  // Cache the results before returning
+  if (window.dataCache) {
+    window.dataCache.homeData[cacheKey] = results;
+    console.log("[buildHomeData] Cached results for key:", cacheKey);
+  }
+  // ====== END OF CACHE SAVE ======
+
   return results;
 } 
 
   function computeMarketShareData(fullData, groupSmallCompanies = true) {
+      // Generate cache key
+  const cacheKey = window.dataCache ? 
+    window.dataCache.getCacheKey('marketShare', { group: groupSmallCompanies }) : null;
+  
+  // Check cache
+  if (cacheKey && window.dataCache.marketShare[cacheKey]) {
+    console.log("[computeMarketShareData] Using cached data");
+    return window.dataCache.marketShare[cacheKey];
+  }
     // 1) Filter the top-level records by Q, engine, device, location from filterState
     const fs = window.filterState;
     const filteredRecords = fullData.filter(r =>
@@ -525,21 +565,31 @@
         finalCompanies.push("Other");
         finalShares.push(parseFloat(other.toFixed(2)));
       }
-      return {
+// Cache and return result
+      const result = {
         companies: finalCompanies,
         marketShares: finalShares,
         totalMarketShare: parseFloat(fullSum.toFixed(2))
       };
+      if (cacheKey && window.dataCache) {
+        window.dataCache.marketShare[cacheKey] = result;
+      }
+      return result;
     } else {
       // Return all companies without grouping
       const companies = result.map(item => item.company);
       const marketShares = result.map(item => item.marketShare);
       const total = result.reduce((sum, item) => sum + item.marketShare, 0);
-      return {
+// Cache and return result
+      const result = {
         companies,
         marketShares,
         totalMarketShare: parseFloat(total.toFixed(2))
       };
+      if (cacheKey && window.dataCache) {
+        window.dataCache.marketShare[cacheKey] = result;
+      }
+      return result;
     }
   }
 
