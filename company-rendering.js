@@ -390,6 +390,193 @@ console.log("[TEST bug 1] Previous unified shares:", prevUnified?.marketShares);
           });          
       } 
 
+function buildTableViewHTML() {
+  return `
+    <div class="insights-close-button">×</div>
+    <div class="insights-content">
+      <div class="insights-table-container">
+        <table class="company-insights-table">
+          <thead>
+            <tr>
+              <th>Segment</th>
+              <th style="width:500px;">Market Share, Rank &amp; Product Trend</th>
+              <th>Market Trends</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 5 data rows -->
+            <tr>
+              <td class="segment-title" style="text-align:center;">TOP 40</td>
+              <td><!-- bars go here --> </td>
+              <td><!-- trend or arrow --> </td>
+            </tr>
+            <tr>
+              <td class="segment-title" style="text-align:center;">TOP 3</td>
+              <td><!-- bars --> </td>
+              <td><!-- trend --> </td>
+            </tr>
+            <tr>
+              <td class="segment-title" style="text-align:center;">TOP 4-8</td>
+              <td><!-- bars --> </td>
+              <td><!-- trend --> </td>
+            </tr>
+            <tr>
+              <td class="segment-title" style="text-align:center;">TOP 9-14</td>
+              <td><!-- bars --> </td>
+              <td><!-- trend --> </td>
+            </tr>
+            <tr>
+              <td class="segment-title" style="text-align:center;">BELOW 14</td>
+              <td><!-- bars --> </td>
+              <td><!-- trend --> </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+} 
+
+function buildRankViewHTML() {
+    return `
+      <div class="insights-close-button">×</div>
+      <div class="insights-content" style="padding-left: 40px;">
+        <div class="company-insights-ranking">
+  
+          <!-- TABLE #1 (TOP 40) -->
+          <div class="rank-table-container" id="rankTable_1"
+               style="
+                 margin: 20px 0; 
+                 width: 1100px;
+                 overflow-x: auto; 
+                 white-space: nowrap;
+               ">
+            <table class="apple-table rank-table"
+                   style="min-width:1100px; table-layout: fixed;">
+              <colgroup>
+                <!-- Segment col => 60px -->
+                <col style="width:90px; min-width:90px; max-width:90px;">
+                <!-- Market share col => 70px -->
+                <col style="width:130px; min-width:130px; max-width:130px;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Segment</th>
+                  <th>Market Share</th>
+                  <!-- date columns appended in populateRankData(...) -->
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-segment="top40">
+                  <td class="segment-title" style="font-weight:bold;">TOP 40</td>
+                  <td class="ms-cell"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+  
+          <!-- TABLE #2 (TOP 3, TOP 4-8, TOP 9-14, BELOW 14) -->
+          <div class="rank-table-container" id="rankTable_2"
+               style="
+                 margin: 20px 0; 
+                 width: 1100px;
+                 overflow-x: auto; 
+                 white-space: nowrap;
+               ">
+            <table class="apple-table rank-table"
+                   style="min-width:1100px; table-layout: fixed;">
+              <colgroup>
+                <col style="width:90px; min-width:90px; max-width:90px;">
+                <col style="width:130px; min-width:130px; max-width:130px;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Segment</th>
+                  <th>Market Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-segment="top3">
+                  <td class="segment-title" style="font-weight:bold;">TOP 3</td>
+                  <td class="ms-cell"></td>
+                </tr>
+                <tr data-segment="top4-8">
+                  <td class="segment-title" style="font-weight:bold;">TOP 4-8</td>
+                  <td class="ms-cell"></td>
+                </tr>
+                <tr data-segment="top9-14">
+                  <td class="segment-title" style="font-weight:bold;">TOP 9-14</td>
+                  <td class="ms-cell"></td>
+                </tr>
+                <tr data-segment="below14">
+                  <td class="segment-title" style="font-weight:bold;">BELOW 14</td>
+                  <td class="ms-cell"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+  
+          <!-- TABLE #3 (TOP 8, BELOW 8) -->
+          <div class="rank-table-container" id="rankTable_3"
+               style="
+                 margin: 20px 0; 
+                 width: 1100px;
+                 overflow-x: auto; 
+                 white-space: nowrap;
+               ">
+            <table class="apple-table rank-table"
+                   style="min-width:1100px; table-layout: fixed;">
+              <colgroup>
+                <col style="width:90px; min-width:90px; max-width:90px;">
+                <col style="width:130px; min-width:130px; max-width:130px;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Segment</th>
+                  <th>Market Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-segment="top8">
+                  <td class="segment-title" style="font-weight:bold;">TOP 8</td>
+                  <td class="ms-cell"></td>
+                </tr>
+                <tr data-segment="below8">
+                  <td class="segment-title" style="font-weight:bold;">BELOW 8</td>
+                  <td class="ms-cell"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Sync horizontal scroll across all three .rank-table-container elements -->
+      <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const c1 = document.getElementById("rankTable_1");
+        const c2 = document.getElementById("rankTable_2");
+        const c3 = document.getElementById("rankTable_3");
+        if (!c1 || !c2 || !c3) return;
+  
+        let isSyncing = false;
+        function syncScroll(source, other1, other2) {
+          if (!isSyncing) {
+            isSyncing = true;
+            const scrollLeft = source.scrollLeft;
+            other1.scrollLeft = scrollLeft;
+            other2.scrollLeft = scrollLeft;
+            setTimeout(() => { isSyncing = false; }, 20);
+          }
+        }
+        c1.addEventListener("scroll", () => syncScroll(c1, c2, c3));
+        c2.addEventListener("scroll", () => syncScroll(c2, c1, c3));
+        c3.addEventListener("scroll", () => syncScroll(c3, c1, c2));
+      });
+      <\/script>
+    `;
+  }
+
 /********************************************************************
   4) The “populate” functions for each mode
 ********************************************************************/
