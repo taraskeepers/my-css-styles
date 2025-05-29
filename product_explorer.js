@@ -9,7 +9,7 @@ if (existingTable) {
     if (!container) return;
 
     // Clear any existing segmentation charts and reset the array
-window.pendingSegmentationCharts = [];
+window.pendingExplorerCharts = [];
 
 // Destroy any existing ApexCharts instances
 if (window.explorerApexCharts) {
@@ -614,7 +614,7 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   
     console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
     // CRITICAL: Clear and reset chart arrays to prevent conflicts with productMap
-window.pendingSegmentationCharts = [];
+window.pendingExplorerCharts = [];
 if (window.explorerApexCharts) {
   window.explorerApexCharts.forEach(chart => {
     try { chart.destroy(); } catch (e) {}
@@ -1504,7 +1504,7 @@ if (!document.getElementById("centered-panel-spinner-style")) {
     }
     
 // Function to create segment chart
-function createSegmentationChart(containerId, chartData, termParam, locParam, deviceParam, myCompanyParam, activeCount, inactiveCount, segmentCounts) {
+function createSegmentationChartExplorer(containerId, chartData, termParam, locParam, deviceParam, myCompanyParam, activeCount, inactiveCount, segmentCounts) {
   // Create a unique ID for the chart
   const chartContainer = document.getElementById(containerId);
   if (!chartContainer) return;
@@ -2015,10 +2015,10 @@ const chartInfo = {
 };
 
 // Add to pending charts array instead of creating immediately
-if (!window.pendingSegmentationCharts) {
-  window.pendingSegmentationCharts = [];
+if (!window.pendingExplorerCharts) {
+  window.pendingExplorerCharts = [];
 }
-window.pendingSegmentationCharts.push(chartInfo);
+window.pendingExplorerCharts.push(chartInfo);
   
             if (matchingProducts.length === 0) {
               productCellDiv.innerHTML = '<div class="no-products">–</div>';
@@ -3100,8 +3100,8 @@ if (productExplorerContainer) {
   observer.observe(productExplorerContainer, { attributes: true });
 }
     // Add batch rendering function
-    function renderPendingCharts() {
-      const charts = window.pendingSegmentationCharts;
+    function renderPendingExplorerCharts() {
+      const charts = window.pendingExplorerCharts;
       if (!charts || charts.length === 0) return;
       
       console.log(`[ProductMap] Starting batch rendering of ${charts.length} charts`);
@@ -3149,7 +3149,7 @@ if (productExplorerContainer) {
           
           // Create the segmentation chart
           requestAnimationFrame(() => {
-            createSegmentationChart(
+            createSegmentationChartExplorer(
               chartInfo.containerId, 
               chartInfo.data, 
               chartInfo.term, 
@@ -3176,7 +3176,7 @@ if (productExplorerContainer) {
           setTimeout(renderBatch, 50); // 50ms delay between batches
         } else {
           // Clear the pending charts array
-          window.pendingSegmentationCharts = [];
+          window.pendingExplorerCharts = [];
           console.log(`[ProductMap] Finished rendering all charts`);
         }
       }
@@ -3185,7 +3185,7 @@ requestAnimationFrame(renderBatch);
     }
 
     // Call the batch renderer
-    renderPendingCharts();
+    renderPendingExplorerCharts();
   }
 
 // Function to render average position chart
