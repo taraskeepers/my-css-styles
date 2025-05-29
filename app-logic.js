@@ -23,6 +23,45 @@ let loadingCount = 0;
     activeProjectNumber: 1
   };
   window.localEmbedToggles = {};
+
+// ====== ADD THIS CACHE INVALIDATION FUNCTION ======
+// Smart cache invalidation based on filter changes
+window.onFilterChange = function(filterType) {
+  if (!window.dataCache) return;
+  
+  // Determine what to clear based on filter type
+  switch(filterType) {
+    case 'searchTerm':
+    case 'engine':
+    case 'device':
+    case 'location':
+      // Major filter change - clear everything
+      window.dataCache.clear();
+      break;
+      
+    case 'company':
+      // Company change - clear home and company-specific data
+      window.dataCache.clearType('homeData');
+      window.dataCache.clearType('companyStats');
+      window.dataCache.clearType('filteredResults');
+      break;
+      
+    case 'period':
+    case 'serpSegments':
+      // Time period change - clear time-sensitive data
+      window.dataCache.clearType('marketShare');
+      window.dataCache.clearType('filteredResults');
+      break;
+      
+    case 'visibilityRange':
+    case 'avgPosRange':
+      // Slider change - only clear filtered results
+      window.dataCache.clearType('filteredResults');
+      break;
+  }
+};
+// ====== END CACHE INVALIDATION FUNCTION ======
+
 let db = null;
     const DB_NAME = "myReportsDB";
     const DB_VERSION = 1;
@@ -1196,6 +1235,7 @@ const raw = buildHomeData(fallbackCo);
                 window.filterState.searchTerm = item.name;
               document.getElementById("searchTermValue").textContent = item.name;
               dropdown.style.display = "none";
+              window.onFilterChange('searchTerm');
               window.filterState.visibilityRange = { min: 0, max: 100 };
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
@@ -1269,6 +1309,7 @@ const raw = buildHomeData(fallbackCo);
                 window.filterState.engine = item.name;
               document.getElementById("engineOptionsRow").textContent = item.name;
               dropdown.style.display = "none";
+              window.onFilterChange('engine');
               window.filterState.visibilityRange = { min: 0, max: 100 };
               const visSlider = document.querySelector('#visibilityRange');
               visSlider.value = { lower: 0, upper: 100 };
