@@ -2696,7 +2696,7 @@ body.home-page #layoutCompToggleContainer {
   justify-content: flex-start;
   padding-top: 10px;
 }
-.menu-item {
+/*.menu-item {
   display: flex;
   align-items: center;
   height: 50px;
@@ -2713,13 +2713,13 @@ body.home-page #layoutCompToggleContainer {
   height: 24px;
   margin-right: 10px;
   /* optional grayscale filter */
-  filter: grayscale(100%);
+ /* filter: grayscale(100%);
 }
 .menu-item span {
   font-size: 15px;
   color: #333;
   font-weight: 600;
-}
+}*/
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    D) Each project row in the list + sub-menus
