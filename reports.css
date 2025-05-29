@@ -2688,14 +2688,14 @@ body.home-page #layoutCompToggleContainer {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    C) The navigation container under the project list
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-#navigation-container {
+/*#navigation-container {
   height: 300px;
   border-top: 1px solid #ddd;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   padding-top: 10px;
-}
+}*/
 .menu-item {
   display: flex;
   align-items: center;
