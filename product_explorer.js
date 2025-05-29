@@ -2107,7 +2107,7 @@ matchingProducts.sort((a, b) => {
                   const enhancedProduct = { ...product };
                   
                   // 1. Make sure it has the _plaIndex property
-                  enhancedProduct._plaIndex = pmIndexKey;
+                  enhancedProduct._plaIndex = peIndexKey;
                   
                   // 2. Make sure the stars array is properly formatted
                   enhancedProduct.stars = [];
@@ -2286,8 +2286,8 @@ if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 
 enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
                   // 5. Most importantly: Add this FULLY enhanced product to globalRows
-                  window.globalRows[pmIndexKey] = enhancedProduct;
-                  console.log(`[DEBUG] Added product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
                   
                   // Now render the product with the same enhanced data
                   const html = compiledTemplate(enhancedProduct);
@@ -2320,7 +2320,7 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   const enhancedProduct = { ...product };
                   
                   // 1. Make sure it has the _plaIndex property
-                  enhancedProduct._plaIndex = pmIndexKey;
+                  enhancedProduct._plaIndex = peIndexKey;
                   
                   // 2. Make sure the stars array is properly formatted
                   enhancedProduct.stars = [];
@@ -2499,8 +2499,8 @@ if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 
 enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
                   // 5. Most importantly: Add this FULLY enhanced product to globalRows
-                  window.globalRows[pmIndexKey] = enhancedProduct;
-                  console.log(`[DEBUG] Added inactive product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added inactive product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
                   
                   // Now render the product with the same enhanced data
                   const html = compiledTemplate(enhancedProduct);
