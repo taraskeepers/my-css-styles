@@ -552,10 +552,10 @@
       });
     }
   
-    // Sort descending by marketShare
+// Sort descending by marketShare
     result.sort((a, b) => b.marketShare - a.marketShare);
   
-    // 7) If groupSmallCompanies => keep top 5, the rest is “Other”
+    // 7) If groupSmallCompanies => keep top 5, the rest is "Other"
     if (groupSmallCompanies && result.length > 5) {
       const top5 = result.slice(0, 5);
       const sumTop5 = top5.reduce((sum, r) => sum + r.marketShare, 0);
@@ -569,31 +569,33 @@
         finalCompanies.push("Other");
         finalShares.push(parseFloat(other.toFixed(2)));
       }
-// Cache and return result
-      const result = {
+      
+      // Cache and return result
+      const finalResult = {
         companies: finalCompanies,
         marketShares: finalShares,
         totalMarketShare: parseFloat(fullSum.toFixed(2))
       };
       if (cacheKey && window.dataCache) {
-        window.dataCache.marketShare[cacheKey] = result;
+        window.dataCache.marketShare[cacheKey] = finalResult;
       }
-      return result;
+      return finalResult;
     } else {
       // Return all companies without grouping
       const companies = result.map(item => item.company);
       const marketShares = result.map(item => item.marketShare);
       const total = result.reduce((sum, item) => sum + item.marketShare, 0);
-// Cache and return result
-      const result = {
+      
+      // Cache and return result
+      const finalResult = {
         companies,
         marketShares,
         totalMarketShare: parseFloat(total.toFixed(2))
       };
       if (cacheKey && window.dataCache) {
-        window.dataCache.marketShare[cacheKey] = result;
+        window.dataCache.marketShare[cacheKey] = finalResult;
       }
-      return result;
+      return finalResult;
     }
   }
 
