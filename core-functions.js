@@ -865,12 +865,12 @@ if (resultsEl.classList.contains("list-mode")) {
             tooltip.className = 'copied-tooltip';
             tooltip.textContent = 'copied';
             this.appendChild(tooltip);
-            setTimeout(() => { tooltip.style.opacity = '0'; }, 1000);
+            setTimeout(() => { tooltip.style.opacity = '0'; }, 200);
             setTimeout(() => {
               if (tooltip.parentNode) {
                 tooltip.parentNode.removeChild(tooltip);
               }
-            }, 2300);
+            }, 200);
           });
         });
       
