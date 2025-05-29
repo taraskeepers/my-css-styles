@@ -1959,3 +1959,40 @@ if (resultsEl.classList.contains("list-mode")) {
         window.parent.postMessage(JSON.stringify(msgPayload), "*");
     }
 
+function isToday(timestamp) {
+  if (!timestamp) return false;
+  const saved = new Date(timestamp);
+  const now = new Date();
+  return (
+    saved.getFullYear() === now.getFullYear() &&
+    saved.getMonth() === now.getMonth() &&
+    saved.getDate() === now.getDate()
+  );
+}
+
+/*******************************************************
+  2) Format Helper for Locations
+*******************************************************/
+function formatLocation(loc) {
+  // Example: "New York, NY, US" => strip last element => "New York, NY"
+  let parts = loc.split(',');
+  if (parts.length > 1) {
+    parts.pop();
+  }
+  return parts.map(part => part.trim()).join(', ');
+}
+
+function getAllCompaniesFromStats() {
+  if (!window.companyStatsData || !Array.isArray(window.companyStatsData)) {
+    return [];
+  }
+  // Extract unique company names from companyStatsData
+  const names = new Set();
+  window.companyStatsData.forEach(row => {
+    if (row.source) {
+      names.add(row.source.trim());
+    }
+  });
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
+}
+
