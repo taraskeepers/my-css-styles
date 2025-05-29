@@ -428,11 +428,12 @@ subset.forEach(r => {
 const locationArr = Object.keys(locationCounts).map(k=>({ name:k, count:locationCounts[k]}));
 locationArr.sort((a,b)=> b.count - a.count);
 // 🚫 Do not auto-set location — let user pick it manually
-// Only reset location if no location is currently selected
-if (!window.filterState.location) {
-  window.filterState.location = "";
-  document.getElementById("locationText").textContent = "(select a location)";
-}
+window.filterState.location = "";
+document.getElementById("locationText").textContent = "(select a location)";
+  
+    // At this point, filterState.searchTerm, engine, device, location are set
+    // and we've updated subset. That subset is your final "default" subset.
+  } 
 
 /* specialized helper logic */
 
