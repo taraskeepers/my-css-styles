@@ -681,3 +681,84 @@ function populateRankData(insightsEl, companyCard) {
     updateHistoryRows();
     hideFiltersOnProjectAndHome();
   } 
+
+ function buildGainersLosersHtml(allCompanies, currentCompanyId, segmentName) {
+    let trendValueField, trendArrowField;
+    
+    // Decide which fields to read
+    switch (segmentName) {
+      case "top3":
+        trendValueField = "top3TrendValue";
+        trendArrowField = "top3TrendArrow";
+        break;
+      case "top4-8":
+        trendValueField = "top4_8TrendValue";
+        trendArrowField = "top4_8TrendArrow";
+        break;
+      case "top9-14":
+        trendValueField = "top9_14TrendValue";
+        trendArrowField = "top9_14TrendArrow";
+        break;
+      case "below14":
+        trendValueField = "below14TrendValue";
+        trendArrowField = "below14TrendArrow";
+        break;
+      default:
+        // e.g. top40 fallback
+        trendValueField = "top40TrendValue";
+        trendArrowField = "top40TrendArrow";
+    }
+    
+    // Filter out the current company
+    const others = allCompanies.filter(c => c.companyId !== currentCompanyId);
+    
+    // Convert each to an object with numeric trendValue
+    // and the arrow (▲ or ▼).
+    const parsed = others.map(c => {
+      const arrow = c[trendArrowField] || "";
+      const rawVal = c[trendValueField] || "0";
+      // In case it's stored as a string with extra text:
+      const numVal = parseFloat(rawVal) || 0;
+      return {
+        companyId:   c.companyId,
+        displayName: c.companyName || c.companyId,
+        trendValue:  numVal,
+        trendArrow:  arrow
+      };
+    });
+    
+    // 1) Gainers => arrow === "▲"
+    const gainers = parsed.filter(item => item.trendArrow.includes("▲"));
+    // Sort descending by trendValue
+    gainers.sort((a,b) => Math.abs(b.trendValue) - Math.abs(a.trendValue));
+    // Take top 3
+    const top3Gainers = gainers.slice(0,3);
+  
+    // 2) Losers => arrow === "▼"
+    const losers = parsed.filter(item => item.trendArrow.includes("▼"));
+    // Sort ascending by trendValue (lowest first => biggest negative)
+    losers.sort((a, b) => Math.abs(b.trendValue) - Math.abs(a.trendValue));
+    // Take top 3
+    const top3Losers = losers.slice(0,3);
+    
+    // Build sub-HTML
+    function groupHtml(list, color) {
+      return list.map(item => {
+        const valStr = item.trendValue.toFixed(1);
+        // e.g. "RivalName: ▲ 3.2%"
+        return `<div style="color:${color};">
+                  ${item.displayName}: ${item.trendArrow} ${valStr}%
+                </div>`;
+      }).join("");
+    }
+  
+    // Combine
+    return `
+      <div style="margin-top:6px; font-size:13px;">
+        <div style="font-weight:bold;">Gainers:</div>
+        ${groupHtml(top3Gainers, "green")}
+        <div style="margin-top:4px; font-weight:bold;">Losers:</div>
+        ${groupHtml(top3Losers, "red")}
+      </div>
+    `;
+  }
