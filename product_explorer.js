@@ -1,4 +1,8 @@
   function renderProductExplorerTable() {
+    const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
+if (existingTable) {
+  existingTable.remove();
+}
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductExplorerTable] Starting to build product map table");
     const container = document.getElementById("productExplorerPage");
@@ -609,6 +613,14 @@ viewChartsExplorerBtn.addEventListener("click", function() {
 });
   
     console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
+    // CRITICAL: Clear and reset chart arrays to prevent conflicts with productMap
+window.pendingSegmentationCharts = [];
+if (window.explorerApexCharts) {
+  window.explorerApexCharts.forEach(chart => {
+    try { chart.destroy(); } catch (e) {}
+  });
+}
+window.explorerApexCharts = [];
 
     if (!window.globalRows || typeof window.globalRows !== 'object') {
       window.globalRows = {};
@@ -1344,6 +1356,8 @@ if (!document.getElementById("centered-panel-spinner-style")) {
     function createMarketSharePieChartExplorer(containerId, shareValue) {
       const container = document.getElementById(containerId);
       if (!container) return;
+
+      container.innerHTML = '';
       
       // Use ApexCharts to create a donut chart with improved styling
       const options = {
@@ -1398,6 +1412,10 @@ if (!document.getElementById("centered-panel-spinner-style")) {
       // Create chart instance
       const chart = new ApexCharts(container, options);
       chart.render();
+        if (!window.explorerApexCharts) {
+    window.explorerApexCharts = [];
+  }
+  window.explorerApexCharts.push(chart);
     }
   
     // Function to calculate aggregate segment data for a set of products
