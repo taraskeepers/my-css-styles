@@ -425,6 +425,10 @@ function computeMarketShareData(fullData, groupSmallCompanies = true) {
       // Generate cache key
   const cacheKey = window.dataCache ? 
     window.dataCache.getCacheKey('marketShare', { group: groupSmallCompanies }) : null;
+
+  console.log("[TEST bug 1] DEBUG - computeMarketShareData CALLED");
+console.log("[TEST bug 1] selectedPeriod on entry:", window.selectedPeriod);
+console.log("[TEST bug 1] mainDateRange on entry:", window.mainDateRange);
   
   // Check cache
   if (cacheKey && window.dataCache.marketShare[cacheKey]) {
@@ -666,8 +670,8 @@ console.log("[TEST bug 1] All unique dates in windowRows:", [...new Set(windowRo
           periodStart = maxDate.clone().subtract(days - 1, "days");
         }
         console.log("[TEST bug 1] DEBUG - computeMarketShareData period check:");
-console.log("[TEST bug 1] selectedPeriod:", selectedPeriod);
-console.log("[TEST bug 1] mainDateRange:", mainDateRange);
+console.log("[TEST bug 1] window.selectedPeriod:", window.selectedPeriod);
+console.log("[TEST bug 1] window.mainDateRange:", window.mainDateRange);
 console.log("[TEST bug 1] periodStart:", periodStart.format("YYYY-MM-DD"));
 console.log("[TEST bug 1] periodEnd:", periodEnd.format("YYYY-MM-DD"));
       
