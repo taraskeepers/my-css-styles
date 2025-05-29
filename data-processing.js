@@ -433,12 +433,16 @@
   }
     // 1) Filter the top-level records by Q, engine, device, location from filterState
     const fs = window.filterState;
+    console.log("[computeMarketShareData] FilterState:", window.filterState);
+  console.log("[computeMarketShareData] Input data length:", fullData?.length || 0);
+  
     const filteredRecords = fullData.filter(r =>
       r.q?.toLowerCase() === fs.searchTerm.toLowerCase() &&
       r.engine?.toLowerCase() === fs.engine.toLowerCase() &&
       r.device?.toLowerCase() === fs.device.toLowerCase() &&
       r.location_requested?.toLowerCase() === fs.location.toLowerCase()
     );
+    console.log("[computeMarketShareData] Filtered records:", filteredRecords.length);
   
     // If nothing matches those four filters, return null
     if (!filteredRecords.length) {
