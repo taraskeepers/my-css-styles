@@ -1151,12 +1151,33 @@ viewChartsBtn.addEventListener("click", function() {
 .chart-products {
   width: 280px;
   height: 100%;
+  max-height: 575px;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: #f9f9f9;
   border-radius: 8px;
   padding: 5px;
   scrollbar-width: thin;
+  scrollbar-color: #ccc #f9f9f9;
+}
+
+/* Add custom scrollbar styling for webkit browsers */
+.chart-products::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chart-products::-webkit-scrollbar-track {
+  background: #f9f9f9;
+  border-radius: 3px;
+}
+
+.chart-products::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.chart-products::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .chart-avg-position {
