@@ -504,19 +504,20 @@
   
     // 5) Based on selectedPeriod, define periodStart & periodEnd
     let periodStart, periodEnd;
-    if (selectedPeriod === "custom") {
-      // Use mainDateRange for custom
-      periodStart = mainDateRange.start.clone();
-      periodEnd   = mainDateRange.end.clone();
-    } else {
-      let days = 7; // default
-      if (selectedPeriod === "3d")  days = 3;
-      if (selectedPeriod === "7d")  days = 7;
-      if (selectedPeriod === "30d") days = 30;
-      // The current window is (maxDate - (days-1)) to maxDate
-      periodEnd   = overallMaxDate.clone();
-      periodStart = overallMaxDate.clone().subtract(days - 1, "days");
-    }
+    
+if (window.selectedPeriod === "custom") {
+  // Use mainDateRange for custom
+  periodStart = window.mainDateRange.start.clone();
+  periodEnd   = window.mainDateRange.end.clone();
+} else {
+  let days = 7; // default
+  if (window.selectedPeriod === "3d")  days = 3;
+  if (window.selectedPeriod === "7d")  days = 7;
+  if (window.selectedPeriod === "30d") days = 30;
+  // The current window is (maxDate - (days-1)) to maxDate
+  periodEnd   = overallMaxDate.clone();
+  periodStart = overallMaxDate.clone().subtract(days - 1, "days");
+}
   
     // Filter dailyRows to those within the final window
     const windowRows = dailyRows.filter(dr => {
