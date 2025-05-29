@@ -3,6 +3,21 @@
     console.log("[renderProductExplorerTable] Starting to build product map table");
     const container = document.getElementById("productExplorerPage");
     if (!container) return;
+
+    // Clear any existing segmentation charts and reset the array
+window.pendingSegmentationCharts = [];
+
+// Destroy any existing ApexCharts instances
+if (window.explorerApexCharts) {
+  window.explorerApexCharts.forEach(chart => {
+    try {
+      chart.destroy();
+    } catch (e) {
+      console.warn("Error destroying ApexChart:", e);
+    }
+  });
+}
+window.explorerApexCharts = [];
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
@@ -1326,7 +1341,7 @@ if (!document.getElementById("centered-panel-spinner-style")) {
     }
   
     // Function to create market share pie chart
-    function createMarketSharePieChart(containerId, shareValue) {
+    function createMarketSharePieChartExplorer(containerId, shareValue) {
       const container = document.getElementById(containerId);
       if (!container) return;
       
@@ -3130,7 +3145,7 @@ if (productExplorerContainer) {
             
             // Create pie chart for market share
             if (chartInfo.projectData && chartInfo.projectData.avgShare !== undefined) {
-              createMarketSharePieChart(chartInfo.pieChartId, chartInfo.projectData.avgShare);
+              createMarketSharePieChartExplorer(chartInfo.pieChartId, chartInfo.projectData.avgShare);
             }
           });
         });
