@@ -657,7 +657,7 @@ function populateHomePage(triggeredByClick = false) {
   // 1) Check that mapHelpers is ready
   if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
     console.warn("mapsLib.js not loaded yet. Retrying in 500ms.");
-    setTimeout(populateHomePage, 500);
+    setTimeout(populateHomePage, 200);
     return;
   }
 
