@@ -433,7 +433,6 @@ if (!window.filterState.location) {
   window.filterState.location = "";
   document.getElementById("locationText").textContent = "(select a location)";
 }
-// Otherwise, keep the existing location selection
 
 /* specialized helper logic */
 
