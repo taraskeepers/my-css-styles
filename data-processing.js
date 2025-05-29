@@ -535,6 +535,13 @@ function computeMarketShareData(fullData, groupSmallCompanies = true) {
     if (!windowRows.length) {
       return null;
     }
+
+  // DEBUG: Check filtered data
+console.log("[TEST bug 1] DEBUG - Window filtering:");
+console.log("[TEST bug 1] Total dailyRows:", dailyRows.length);
+console.log("[TEST bug 1] Filtered windowRows:", windowRows.length);
+console.log("[TEST bug 1] Sample dates in windowRows:", windowRows.slice(0, 3).map(r => r.date));
+console.log("[TEST bug 1] All unique dates in windowRows:", [...new Set(windowRows.map(r => r.date))].sort());
   
     // Figure out how many days are in that period
     const dayCount = periodEnd.diff(periodStart, "days") + 1;
@@ -658,6 +665,11 @@ function computeMarketShareData(fullData, groupSmallCompanies = true) {
           periodEnd = maxDate.clone();
           periodStart = maxDate.clone().subtract(days - 1, "days");
         }
+        console.log("[TEST bug 1] DEBUG - computeMarketShareData period check:");
+console.log("[TEST bug 1] selectedPeriod:", selectedPeriod);
+console.log("[TEST bug 1] mainDateRange:", mainDateRange);
+console.log("[TEST bug 1] periodStart:", periodStart.format("YYYY-MM-DD"));
+console.log("[TEST bug 1] periodEnd:", periodEnd.format("YYYY-MM-DD"));
       
         // 4) Build a daily map: dailyMap[date][company] = sumOfShares
         const dailyMap = {};
