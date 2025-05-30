@@ -1807,15 +1807,35 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
   });
 }
   
-    // Process the data into a hierarchical structure
-    const nestedMap = {};
-    window.projectTableData.forEach(item => {
-      const term = item.searchTerm || "(no term)";
-      const loc  = item.location   || "(no loc)";
-      if (!nestedMap[term]) nestedMap[term] = {};
-      if (!nestedMap[term][loc]) nestedMap[term][loc] = [];
-      nestedMap[term][loc].push(item);
-    });
+// Process the data into a hierarchical structure with proper sorting
+const nestedMap = {};
+
+// First, sort the projectTableData to ensure consistent ordering
+const sortedData = [...window.projectTableData].sort((a, b) => {
+  // Primary sort by search term
+  const termCompare = (a.searchTerm || "(no term)").localeCompare(b.searchTerm || "(no term)");
+  if (termCompare !== 0) return termCompare;
+  
+  // Secondary sort by location
+  const locCompare = (a.location || "(no loc)").localeCompare(b.location || "(no loc)");
+  if (locCompare !== 0) return locCompare;
+  
+  // Tertiary sort by device (desktop before mobile)
+  const aDevice = (a.device || "").toLowerCase();
+  const bDevice = (b.device || "").toLowerCase();
+  if (aDevice.includes('desktop') && bDevice.includes('mobile')) return -1;
+  if (aDevice.includes('mobile') && bDevice.includes('desktop')) return 1;
+  return aDevice.localeCompare(bDevice);
+});
+
+// Build the nested map from sorted data
+sortedData.forEach(item => {
+  const term = item.searchTerm || "(no term)";
+  const loc  = item.location   || "(no loc)";
+  if (!nestedMap[term]) nestedMap[term] = {};
+  if (!nestedMap[term][loc]) nestedMap[term][loc] = [];
+  nestedMap[term][loc].push(item);
+});
   
 // Create new table with proper structure
 const table = document.createElement("table");
