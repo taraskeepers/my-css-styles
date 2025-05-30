@@ -8,6 +8,41 @@ if (existingTable) {
 }
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductExplorerTable] Starting to build product map table");
+
+    window.selectedExplorerProduct = null;
+
+// Function to get all records for a specific product
+function getProductRecords(product) {
+  if (!window.allRows || !product) return [];
+  
+  return window.allRows.filter(record => 
+    record.title === product.title && 
+    record.source === product.source
+  );
+}
+
+// Function to get unique combinations for a product
+function getProductCombinations(product) {
+  const records = getProductRecords(product);
+  const combinations = [];
+  const seen = new Set();
+  
+  records.forEach(record => {
+    const key = `${record.q}|${record.location_requested}|${record.device}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      combinations.push({
+        searchTerm: record.q,
+        location: record.location_requested,
+        device: record.device,
+        record: record // Keep reference to original record
+      });
+    }
+  });
+  
+  console.log(`[getProductCombinations] Found ${combinations.length} combinations for product: ${product.title}`);
+  return combinations;
+}
     
     const container = document.getElementById("productExplorerPage");
     if (!container) return;
@@ -2102,22 +2137,582 @@ allCompanyProducts.forEach((product, index) => {
   
   navItem.appendChild(smallCard);
   
-  // Add click handler
-  navItem.addEventListener('click', function() {
-    // Remove selected class from all items
-    document.querySelectorAll('.nav-product-item').forEach(item => {
-      item.classList.remove('selected');
-    });
-    
-    // Add selected class to this item
-    navItem.classList.add('selected');
-    
-    // Store selected product for future use
-    window.selectedExplorerProduct = product;
-    
-    console.log('[ProductExplorer] Selected product:', product.title);
-    // TODO: Update table based on selected product
+navItem.addEventListener('click', function() {
+  console.log('[ProductExplorer] Product clicked:', product.title);
+  selectProduct(product, navItem);
+});
+
+    function selectProduct(product, navItemElement) {
+  console.log('[selectProduct] Selecting product:', product.title);
+  
+  // Update visual selection
+  document.querySelectorAll('.nav-product-item').forEach(item => {
+    item.classList.remove('selected');
   });
+  
+  if (navItemElement) {
+    navItemElement.classList.add('selected');
+  }
+  
+  // Update global state
+  window.selectedExplorerProduct = product;
+  
+  // Get combinations for this product
+  const combinations = getProductCombinations(product);
+  console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
+  
+  // Rebuild table with filtered data
+  renderTableForSelectedProduct(combinations);
+}
+
+// ADD this function right after selectProduct function:
+
+function renderTableForSelectedProduct(combinations) {
+  console.log('[renderTableForSelectedProduct] Starting with', combinations.length, 'combinations');
+  
+  // Clear existing table content
+  const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
+  if (existingTable) {
+    existingTable.remove();
+  }
+  
+  // Clear pending charts
+  window.pendingExplorerCharts = [];
+  
+  // Destroy existing ApexCharts
+  if (window.explorerApexCharts) {
+    window.explorerApexCharts.forEach(chart => {
+      try { chart.destroy(); } catch (e) {}
+    });
+  }
+  window.explorerApexCharts = [];
+  
+  // Create new table
+  const table = document.createElement("table");
+  table.classList.add("product-explorer-table");
+  
+  // Create header
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th>Search Term</th>
+      <th>Location</th>
+      <th>Device</th>
+      <th>Top 40 Segmentation</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  
+  // Counter for unique chart IDs
+  let chartCounter = 0;
+  let pieChartCounter = 0;
+  
+  // Create location color mapping
+  const locationColorMap = {};
+  const allLocationsList = [...new Set(combinations.map(c => c.location))];
+  allLocationsList.sort().forEach((loc, index) => {
+    const colorIndex = (index % 10) + 1;
+    locationColorMap[loc] = `location-bg-${colorIndex}`;
+  });
+  
+  // Group combinations by search term for rowspan logic
+  const termGroups = {};
+  combinations.forEach(combo => {
+    if (!termGroups[combo.searchTerm]) {
+      termGroups[combo.searchTerm] = [];
+    }
+    termGroups[combo.searchTerm].push(combo);
+  });
+  
+  // Render each combination as a table row
+  Object.keys(termGroups).sort().forEach(searchTerm => {
+    const termCombinations = termGroups[searchTerm];
+    let termCellUsed = false;
+    
+    termCombinations.forEach(combination => {
+      const tr = document.createElement("tr");
+      
+      // Search term cell (with rowspan)
+      if (!termCellUsed) {
+        const tdTerm = document.createElement("td");
+        tdTerm.rowSpan = termCombinations.length;
+        tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
+        tr.appendChild(tdTerm);
+        termCellUsed = true;
+      }
+      
+      // Location cell
+      const tdLoc = document.createElement("td");
+      tdLoc.innerHTML = formatLocationCell(combination.location);
+      tdLoc.classList.add(locationColorMap[combination.location]);
+      tr.appendChild(tdLoc);
+      
+      // Device cell
+      const tdDev = document.createElement("td");
+      tdDev.innerHTML = createDeviceCell(combination);
+      tr.appendChild(tdDev);
+      
+      // Segmentation cell
+      const tdSegmentation = document.createElement("td");
+      const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+      tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+      tr.appendChild(tdSegmentation);
+      
+      // Add to pending charts with product-specific data
+      const chartInfo = {
+        containerId: chartContainerId,
+        combination: combination,
+        selectedProduct: window.selectedExplorerProduct
+      };
+      
+      if (!window.pendingExplorerCharts) {
+        window.pendingExplorerCharts = [];
+      }
+      window.pendingExplorerCharts.push(chartInfo);
+      
+      tbody.appendChild(tr);
+    });
+  });
+  
+  // Add table to container
+  const container = document.querySelector("#productExplorerTableContainer");
+  container.appendChild(table);
+  
+  console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
+  
+  // Render pending charts
+  renderPendingExplorerChartsForProduct();
+}
+
+    // ADD these helper functions right after renderTableForSelectedProduct:
+
+function createDeviceCell(combination) {
+  const record = combination.record;
+  
+  // Create device container with three sections
+  let deviceHTML = `<div class="device-container">`;
+  
+  // 1. Device type with icon
+  const deviceIcon = record.device.toLowerCase().includes('mobile') 
+    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
+    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+  
+  deviceHTML += `<div class="device-type">
+    <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
+  </div>`;
+  
+  // 2. Calculate average rank from historical data
+  const avgRank = calculateAvgRankFromHistorical(record);
+  deviceHTML += `
+    <div class="device-rank">
+      <div class="section-header">Avg Rank</div>
+      <div class="device-rank-value">${avgRank.value}</div>
+      <div class="device-trend" style="color:${avgRank.color};">
+        ${avgRank.arrow} ${avgRank.change}
+      </div>
+    </div>
+  `;
+  
+  // 3. Market Share (placeholder for now)
+  deviceHTML += `
+    <div class="device-share">
+      <div class="section-header">Market Share</div>
+      <div class="pie-chart-container">
+        <div style="font-size: 14px; font-weight: bold;">--%</div>
+      </div>
+    </div>
+  `;
+  
+  // 4. Last tracked info
+  const lastTracked = getLastTrackedInfo(record);
+  deviceHTML += `
+    <div class="last-tracked-container">
+      <div class="last-tracked-label">Last time tracked:</div>
+      <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
+    </div>
+  `;
+  
+  deviceHTML += `</div>`; // Close device-container
+  
+  return deviceHTML;
+}
+
+function calculateAvgRankFromHistorical(record) {
+  if (!record.historical_data || record.historical_data.length === 0) {
+    return { value: '-', arrow: '', change: '', color: '#444' };
+  }
+  
+  // Find latest date and calculate 7-day window
+  let latestDate = null;
+  record.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (!latestDate || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
+      }
+    }
+  });
+  
+  if (!latestDate) {
+    return { value: '-', arrow: '', change: '', color: '#444' };
+  }
+  
+  // Current and previous 7-day periods
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const prevEndDate = startDate.clone().subtract(1, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+  
+  // Calculate current period average
+  const currentData = record.historical_data.filter(item => {
+    if (!item.date || !item.date.value || !item.avg_position) return false;
+    const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+    return itemDate.isBetween(startDate, endDate, 'day', '[]');
+  });
+  
+  // Calculate previous period average
+  const prevData = record.historical_data.filter(item => {
+    if (!item.date || !item.date.value || !item.avg_position) return false;
+    const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+    return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+  });
+  
+  if (currentData.length === 0) {
+    return { value: '-', arrow: '', change: '', color: '#444' };
+  }
+  
+  // Calculate averages
+  const currentAvg = currentData.reduce((sum, item) => sum + parseFloat(item.avg_position), 0) / currentData.length;
+  
+  if (prevData.length === 0) {
+    return { 
+      value: currentAvg.toFixed(1), 
+      arrow: '', 
+      change: '', 
+      color: '#444' 
+    };
+  }
+  
+  const prevAvg = prevData.reduce((sum, item) => sum + parseFloat(item.avg_position), 0) / prevData.length;
+  const change = currentAvg - prevAvg;
+  
+  // For position: lower is better, so negative change is good (▲), positive change is bad (▼)
+  let arrow, color;
+  if (change < 0) {
+    arrow = '▲'; // Position improved
+    color = 'green';
+  } else if (change > 0) {
+    arrow = '▼'; // Position worsened
+    color = 'red';
+  } else {
+    arrow = '±'; // No change
+    color = '#444';
+  }
+  
+  return {
+    value: currentAvg.toFixed(1),
+    arrow: arrow,
+    change: Math.abs(change).toFixed(1),
+    color: color
+  };
+}
+
+function getLastTrackedInfo(record) {
+  if (!record.historical_data || record.historical_data.length === 0) {
+    return { text: 'Not tracked', class: '' };
+  }
+  
+  // Find latest date
+  let latestDate = null;
+  record.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (!latestDate || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
+      }
+    }
+  });
+  
+  if (!latestDate) {
+    return { text: 'Not tracked', class: '' };
+  }
+  
+  const today = moment().startOf('day');
+  const daysDiff = today.diff(latestDate, 'days');
+  
+  if (daysDiff === 0) {
+    return { text: 'Today', class: 'recent-tracking' };
+  } else if (daysDiff === 1) {
+    return { text: 'Yesterday', class: 'recent-tracking' };
+  } else if (daysDiff <= 7) {
+    return { text: `${daysDiff} days ago`, class: 'moderate-tracking' };
+  } else {
+    return { text: `${daysDiff} days ago`, class: 'old-tracking' };
+  }
+}
+
+    // ADD this function right after the helper functions:
+
+function renderPendingExplorerChartsForProduct() {
+  const charts = window.pendingExplorerCharts;
+  if (!charts || charts.length === 0) return;
+  
+  console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
+  
+  charts.forEach(chartInfo => {
+    const { containerId, combination, selectedProduct } = chartInfo;
+    
+    // Get the specific record for this combination and product
+    const productRecords = getProductRecords(selectedProduct);
+    const specificRecord = productRecords.find(record => 
+      record.q === combination.searchTerm &&
+      record.location_requested === combination.location &&
+      record.device === combination.device
+    );
+    
+    if (!specificRecord) {
+      console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '<div class="no-data-message">No data for this product</div>';
+        container.classList.remove('loading');
+      }
+      return;
+    }
+    
+    // Calculate segmentation data for this specific product
+    const chartData = calculateProductSegmentData(specificRecord);
+    
+    if (!chartData || chartData.length === 0) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '<div class="no-data-message">No segment data</div>';
+        container.classList.remove('loading');
+      }
+      return;
+    }
+    
+    // Create the chart with product-specific data
+    createProductSegmentationChart(
+      containerId,
+      chartData,
+      combination.searchTerm,
+      combination.location,
+      combination.device,
+      selectedProduct.source,
+      specificRecord
+    );
+  });
+  
+  // Clear pending charts
+  window.pendingExplorerCharts = [];
+  console.log('[renderPendingExplorerChartsForProduct] All charts rendered');
+}
+
+function calculateProductSegmentData(record) {
+  if (!record.historical_data || record.historical_data.length === 0) {
+    return null;
+  }
+  
+  // Find latest date and calculate periods
+  let latestDate = null;
+  record.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (!latestDate || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
+      }
+    }
+  });
+  
+  if (!latestDate) return null;
+  
+  // Define periods
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const prevEnd = startDate.clone().subtract(1, 'days');
+  const prevStart = prevEnd.clone().subtract(6, 'days');
+  
+  // Filter data for periods
+  const currentData = record.historical_data.filter(item => {
+    if (!item.date || !item.date.value) return false;
+    const d = moment(item.date.value, "YYYY-MM-DD");
+    return d.isBetween(startDate, endDate, "day", "[]");
+  });
+  
+  const prevData = record.historical_data.filter(item => {
+    if (!item.date || !item.date.value) return false;
+    const d = moment(item.date.value, "YYYY-MM-DD");
+    return d.isBetween(prevStart, prevEnd, "day", "[]");
+  });
+  
+  // Calculate averages
+  function avg(arr, field, multiplier = 1) {
+    if (!arr.length) return 0;
+    let sum = 0, count = 0;
+    arr.forEach(x => {
+      if (x[field] != null) {
+        sum += parseFloat(x[field]) * multiplier;
+        count++;
+      }
+    });
+    return count > 0 ? sum / count : 0;
+  }
+  
+  // Current period averages
+  const currTop3 = avg(currentData, "top3_visibility", 100);
+  const currTop8 = avg(currentData, "top8_visibility", 100);
+  const currTop14 = avg(currentData, "top14_visibility", 100);
+  const currTop40 = avg(currentData, "top40_visibility", 100) || avg(currentData, "market_share", 100);
+  
+  // Previous period averages
+  const prevTop3 = avg(prevData, "top3_visibility", 100);
+  const prevTop8 = avg(prevData, "top8_visibility", 100);
+  const prevTop14 = avg(prevData, "top14_visibility", 100);
+  const prevTop40 = avg(prevData, "top40_visibility", 100) || avg(prevData, "market_share", 100);
+  
+  return [
+    { label: "Top3", current: currTop3, previous: prevTop3 },
+    { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
+    { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
+    { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
+  ];
+}
+
+function createProductSegmentationChart(containerId, chartData, term, location, device, company, record) {
+  const chartContainer = document.getElementById(containerId);
+  if (!chartContainer) return;
+  
+  chartContainer.classList.remove('loading');
+  console.log(`[createProductSegmentationChart] Creating chart for ${term} - ${location} - ${device}`);
+  
+  // Clear and setup container
+  chartContainer.innerHTML = '';
+  chartContainer.style.height = '380px';
+  chartContainer.style.maxHeight = '380px';
+  chartContainer.style.overflowY = 'hidden';
+  chartContainer.style.display = 'flex';
+  chartContainer.style.flexDirection = 'column';
+  chartContainer.style.alignItems = 'center';
+  
+  // Create canvas wrapper
+  const canvasWrapper = document.createElement('div');
+  canvasWrapper.style.width = '100%';
+  canvasWrapper.style.height = '280px';
+  canvasWrapper.style.maxHeight = '280px';
+  canvasWrapper.style.position = 'relative';
+  canvasWrapper.style.marginBottom = '10px';
+  chartContainer.appendChild(canvasWrapper);
+  
+  // Create canvas
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvasWrapper.appendChild(canvas);
+  
+  // Create product info container
+  const infoContainer = document.createElement('div');
+  infoContainer.style.width = '300px';
+  infoContainer.style.height = '80px';
+  infoContainer.style.maxHeight = '80px';
+  infoContainer.style.display = 'grid';
+  infoContainer.style.gridTemplateColumns = '1fr 1fr';
+  infoContainer.style.gridTemplateRows = 'auto auto';
+  infoContainer.style.gap = '8px';
+  infoContainer.style.padding = '8px';
+  infoContainer.style.backgroundColor = '#f9f9f9';
+  infoContainer.style.borderRadius = '8px';
+  infoContainer.style.fontSize = '14px';
+  infoContainer.style.boxSizing = 'border-box';
+  
+  // Show product status and tracking info
+  const isActive = record.product_status === 'active' || !record.product_status;
+  const lastTracked = getLastTrackedInfo(record);
+  
+  infoContainer.innerHTML = `
+    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Status:</div>
+    <div style="font-weight: 700; color: ${isActive ? '#4CAF50' : '#9e9e9e'};">${isActive ? 'Active' : 'Inactive'}</div>
+    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Last Tracked:</div>
+    <div style="font-weight: 700;" class="${lastTracked.class}">${lastTracked.text}</div>
+  `;
+  
+  chartContainer.appendChild(infoContainer);
+  
+  // Create the chart
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: chartData.map(d => d.label),
+      datasets: [
+        {
+          label: "Current",
+          data: chartData.map(d => d.current),
+          backgroundColor: "#007aff",
+          borderRadius: 4
+        },
+        {
+          label: "Previous",
+          type: "line",
+          data: chartData.map(d => d.previous),
+          borderColor: "rgba(255,0,0,1)",
+          backgroundColor: "rgba(255,0,0,0.2)",
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.parsed.x;
+              return `${ctx.dataset.label}: ${val.toFixed(2)}%`;
+            }
+          }
+        },
+        datalabels: {
+          display: ctx => ctx.datasetIndex === 0,
+          formatter: (value, context) => {
+            const row = chartData[context.dataIndex];
+            const mainLabel = `${row.current.toFixed(1)}%`;
+            const diff = row.current - row.previous;
+            const absDiff = Math.abs(diff).toFixed(1);
+            const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
+            return [ mainLabel, `${arrow}${absDiff}%` ];
+          },
+          color: ctx => {
+            const row = chartData[ctx.dataIndex];
+            const diff = row.current - row.previous;
+            if (diff > 0) return "green";
+            if (diff < 0) return "red";
+            return "#444";
+          },
+          anchor: "end",
+          align: "end",
+          offset: 8,
+          font: { size: 10 }
+        }
+      },
+      scales: {
+        x: { display: false, min: 0, max: 100 },
+        y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+      },
+      animation: false
+    }
+  });
+}
+
+    
   
   productsNavContainer.appendChild(navItem);
 });
@@ -2126,163 +2721,32 @@ productsNavPanel.appendChild(productsNavContainer);
   
     container.querySelector("#productExplorerTableContainer").appendChild(table);
     console.log("[renderProductExplorerTable] Table rendering complete");
-    
-    // Add a resize observer to ensure product cells maintain proper width after DOM updates
+
     setTimeout(() => {
-      const productCells = document.querySelectorAll('.product-cell');
-      console.log(`[renderProductExplorerTable] Found ${productCells.length} product cells to observe`);
-      
-      if (window.ResizeObserver) {
-        const resizeObserver = new ResizeObserver(entries => {
-          for (let entry of entries) {
-            const width = entry.contentRect.width;
-            console.log(`[renderProductExplorerTable] Product cell resized to ${width}px`);
-            
-            // If width is too small, force a minimum width
-            if (width < 400) {
-              entry.target.style.minWidth = "400px";
-            }
-          }
-        });
-        
-        productCells.forEach(cell => {
-          resizeObserver.observe(cell);
-        });
-      }
-      
-      // Setup click handlers for product cards (similar to main page)
-      console.log("[DEBUG] Using custom click handlers for product map items");
-    }, 200);
-
-    // Add observer for full-screen mode changes
-const productExplorerContainer = document.getElementById("productExplorerContainer");
-if (productExplorerContainer) {
-  // Create a mutation observer to monitor when the container enters or exits full-screen mode
-  const observer = new MutationObserver(function(mutations) {
-    for (let mutation of mutations) {
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        const isFullscreen = productExplorerContainer.classList.contains("product-map-fullscreen");
-        
-        // Adjust product cells in full-screen mode
-        const productCells = document.querySelectorAll('.product-cell');
-        productCells.forEach(cell => {
-          if (isFullscreen) {
-            // In full-screen mode, allow products to wrap and fill available space
-            cell.style.flexWrap = "wrap";
-            cell.style.justifyContent = "flex-start";
-            
-            // Adjust card widths to maintain consistent size
-            const cards = cell.querySelectorAll('.ad-details');
-            cards.forEach(card => {
-              card.style.width = "150px";
-              card.style.margin = "0 10px 10px 0";
-            });
-          } else {
-            // In normal mode, revert to horizontal scrolling
-            cell.style.flexWrap = "nowrap";
-            cell.style.justifyContent = "";
-            
-            const cards = cell.querySelectorAll('.ad-details');
-            cards.forEach(card => {
-              card.style.width = "150px";
-              card.style.margin = "";
-            });
-          }
-        });
-      }
-    }
-  });
+  console.log('[renderProductExplorerTable] Auto-selecting first product...');
   
-  // Start observing the container for class changes
-  observer.observe(productExplorerContainer, { attributes: true });
-}
-    // Add batch rendering function
-    function renderPendingExplorerCharts() {
-      const charts = window.pendingExplorerCharts;
-      if (!charts || charts.length === 0) return;
-      
-      console.log(`[ProductMap] Starting batch rendering of ${charts.length} charts`);
-      
-      let currentIndex = 0;
-      const batchSize = 3; // Render 3 charts at a time
-      
-      function renderBatch() {
-        const startTime = performance.now();
-        const batch = charts.slice(currentIndex, currentIndex + batchSize);
-        
-        batch.forEach(chartInfo => {
-          // Calculate segment counts from the rendered products
-          const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
-          
-          // Get the product elements that were rendered
-          const productCards = chartInfo.productCellDiv.querySelectorAll('.ad-details');
-          
-          productCards.forEach(card => {
-            // Skip inactive products
-            if (card.classList.contains('inactive-product')) {
-              return;
-            }
-            
-            // Get the data-pla-index to look up the product data
-            const plaIndex = card.getAttribute('data-pla-index');
-            const product = window.globalRows[plaIndex];
-            
-            if (product) {
-              const posValue = parseFloat(product.finalPosition);
-              
-              if (!isNaN(posValue) && posValue > 0) {
-                if (posValue <= 3) {
-                  segmentCounts[0]++; // Top3
-                } else if (posValue <= 8) {
-                  segmentCounts[1]++; // Top4-8
-                } else if (posValue <= 14) {
-                  segmentCounts[2]++; // Top9-14
-                } else {
-                  segmentCounts[3]++; // Below14
-                }
-              }
-            }
-          });
-          
-          // Create the segmentation chart
-          requestAnimationFrame(() => {
-            createSegmentationChartExplorer(
-              chartInfo.containerId, 
-              chartInfo.data, 
-              chartInfo.term, 
-              chartInfo.location, 
-              chartInfo.device, 
-              chartInfo.company, 
-              chartInfo.activeCount, 
-              chartInfo.inactiveCount, 
-              segmentCounts
-            );
-            
-            // Create pie chart for market share
-            if (chartInfo.projectData && chartInfo.projectData.avgShare !== undefined) {
-              createMarketSharePieChartExplorer(chartInfo.pieChartId, chartInfo.projectData.avgShare);
-            }
-          });
-        });
-        
-        currentIndex += batchSize;
-        console.log(`[ProductMap] Rendered batch ${Math.ceil(currentIndex/batchSize)} of ${Math.ceil(charts.length/batchSize)} in ${(performance.now() - startTime).toFixed(1)}ms`);
-        
-        // If more charts to render, continue after a short delay
-        if (currentIndex < charts.length) {
-          setTimeout(renderBatch, 50); // 50ms delay between batches
-        } else {
-          // Clear the pending charts array
-          window.pendingExplorerCharts = [];
-          console.log(`[ProductMap] Finished rendering all charts`);
-        }
-      }
-      
-requestAnimationFrame(renderBatch);
-    }
-
-    // Call the batch renderer
-    renderPendingExplorerCharts();
+  // Find first navigation item
+  const firstNavItem = document.querySelector('.nav-product-item');
+  
+  if (firstNavItem && allCompanyProducts.length > 0) {
+    const firstProduct = allCompanyProducts[0];
+    console.log('[renderProductExplorerTable] Auto-selecting:', firstProduct.title);
+    
+    // Trigger selection
+    selectProduct(firstProduct, firstNavItem);
+  } else {
+    console.warn('[renderProductExplorerTable] No products found for auto-selection');
+    
+    // Show empty state in table
+    const container = document.querySelector("#productExplorerTableContainer");
+    const emptyMessage = document.createElement('div');
+    emptyMessage.style.padding = '40px';
+    emptyMessage.style.textAlign = 'center';
+    emptyMessage.style.color = '#666';
+    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+    container.appendChild(emptyMessage);
+  }
+}, 100);
   }
 
 // Function to render average position chart
