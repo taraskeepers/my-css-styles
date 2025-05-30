@@ -2058,6 +2058,23 @@ deviceHTML += `</div>`; // Close last-tracked-container
           const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
           tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
           tr.appendChild(tdSegmentation);
+  
+// Add products cell
+const tdProducts = document.createElement("td");
+tdProducts.style.width = "100%";
+tdProducts.style.minWidth = "400px";
+
+// Create product cell container (for Products view)
+const productCellContainer = document.createElement("div");
+productCellContainer.classList.add("product-cell-container");
+productCellContainer.style.width = "100%";
+productCellContainer.style.height = "100%";
+
+// Create product container
+const productCellDiv = document.createElement("div");
+productCellDiv.classList.add("product-cell");
+productCellContainer.appendChild(productCellDiv);
+tdProducts.appendChild(productCellContainer);
 
 // Create products chart container (for Charts view)
 const productsChartContainer = document.createElement("div");
@@ -2121,6 +2138,515 @@ if (!window.pendingExplorerCharts) {
   window.pendingExplorerCharts = [];
 }
 window.pendingExplorerCharts.push(chartInfo);
+  
+            if (matchingProducts.length === 0) {
+              productCellDiv.innerHTML = '<div class="no-products">–</div>';
+            } else {
+              // Debug: Log product cell width
+              console.log(`[renderProductExplorerTable] Product cell width for ${term}/${loc}/${rowData.device}: ${productCellDiv.offsetWidth}px`);
+              console.log("[DEBUG] Product cell HTML structure:", productCellDiv.innerHTML.substring(0, 200) + "...");
+             console.log("[DEBUG] Product cell has", productCellDiv.querySelectorAll('*').length, "elements,", 
+             productCellDiv.querySelectorAll('.ad-details').length, "with class 'ad-details'");
+  
+// Sort products by average position for the 7-day period (best/lowest position first)
+matchingProducts.forEach(product => {
+  // Calculate the 7-day average position for sorting
+  if (product.historical_data && product.historical_data.length > 0) {
+    // Find the latest date in the historical data
+    let latestDate = null;
+    product.historical_data.forEach(item => {
+      if (item.date && item.date.value) {
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (latestDate === null || itemDate.isAfter(latestDate)) {
+          latestDate = itemDate.clone();
+        }
+      }
+    });
+    
+    if (latestDate) {
+      // Define the 7-day window
+      const endDate = latestDate.clone();
+      const startDate = endDate.clone().subtract(6, 'days');
+      
+      // Filter for current 7-day period
+      const currentPeriodData = product.historical_data.filter(item => {
+        if (!item.date || !item.date.value || !item.avg_position) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+      
+      // Calculate average position
+      let sum = 0;
+      let count = 0;
+      currentPeriodData.forEach(item => {
+        const pos = parseFloat(item.avg_position);
+        if (!isNaN(pos)) {
+          sum += pos;
+          count++;
+        }
+      });
+      
+      product._sortingAvgPos = count > 0 ? sum / count : 999999;
+    } else {
+      product._sortingAvgPos = 999999;
+    }
+  } else {
+    product._sortingAvgPos = 999999;
+  }
+});
+
+// Now sort by the calculated average position
+matchingProducts.sort((a, b) => {
+  return a._sortingAvgPos - b._sortingAvgPos; // Sort by ascending position (lowest/best first)
+});
+              
+              // Create a floating card for each product
+              // In the matchingProducts.forEach loop in renderProductExplorerTable:
+
+              // First sort products by status (active first, then inactive)
+              const activeProducts = matchingProducts.filter(product => 
+                product.product_status === 'active' || !product.product_status
+              );
+              const inactiveProducts = matchingProducts.filter(product => 
+                product.product_status === 'inactive'
+              );
+              
+              console.log(`[DEBUG] Products sorted: ${activeProducts.length} active, ${inactiveProducts.length} inactive`);
+              
+              // Process active products first
+              activeProducts.forEach((product, productIndex) => {
+                try {
+                  // Generate a unique ID with the pe_ prefix
+                  const peIndexKey = 'pe_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  
+                  // IMPORTANT: Clone the product completely
+                  const enhancedProduct = { ...product };
+                  
+                  // 1. Make sure it has the _plaIndex property
+                  enhancedProduct._plaIndex = peIndexKey;
+                  
+                  // 2. Make sure the stars array is properly formatted
+                  enhancedProduct.stars = [];
+                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
+                  for (let i = 0; i < 5; i++) {
+                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+                    enhancedProduct.stars.push({ fill });
+                  }
+                  
+                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
+                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
+                    enhancedProduct.historical_data = [];
+                  } else {
+                    // Fix any data parsing issues in the original historical data
+                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
+                      if (entry.avg_position) {
+                        // Ensure avg_position is a valid number by parsing and formatting
+                        const cleanPosition = parseFloat(entry.avg_position);
+                        if (!isNaN(cleanPosition)) {
+                          entry.avg_position = cleanPosition.toFixed(2);
+                        }
+                      }
+                      return entry;
+                    });
+                  }
+                  
+                  // Log the actual historical data count
+                  console.log(`[DEBUG] Product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
+                  
+                  // 4. Ensure other required fields are present
+                  // Calculate real position and trend using historical data
+                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
+                    // Find the latest date in the historical data
+                    let latestDate = null;
+                    enhancedProduct.historical_data.forEach(item => {
+                      if (item.date && item.date.value) {
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        if (latestDate === null || itemDate.isAfter(latestDate)) {
+                          latestDate = itemDate.clone();
+                        }
+                      }
+                    });
+                  
+                    // If no valid dates found, we can't calculate anything
+                    if (!latestDate) {
+                      enhancedProduct.finalPosition = "-";
+                      enhancedProduct.finalSlope = "";
+                      enhancedProduct.arrow = "";
+                      enhancedProduct.posBadgeBackground = "gray";
+                    } else {
+                      // Define the 7-day time windows based on the latest available date
+                      const endDate = latestDate.clone();
+                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
+                      
+                      // Previous period
+                      const prevEndDate = startDate.clone().subtract(1, 'days');
+                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+                      
+                      // Filter for current 7-day period
+                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+                      });
+                      
+                      // Filter for previous 7-day period
+                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+                      });
+                      
+                      // Calculate average position for current period
+                      let currentAvgPos = 0;
+                      if (currentPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        currentPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        currentAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate average position for previous period
+                      let prevAvgPos = 0;
+                      if (prevPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        prevPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        prevAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate trend (change in position)
+                      let slope = 0;
+                      if (currentAvgPos > 0 && prevAvgPos > 0) {
+                        slope = currentAvgPos - prevAvgPos;
+                      }
+                      
+                      // Set the badge values
+                      if (currentAvgPos > 0) {
+                        // Format to 1 decimal place, avoid .0 suffix
+                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
+                        enhancedProduct.finalPosition = formattedPos;
+                        
+                        if (slope !== 0) {
+                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
+                          if (slope > 0) {
+                            enhancedProduct.arrow = "▼"; // Position got worse
+                            enhancedProduct.posBadgeBackground = "red";
+                          } else {
+                            enhancedProduct.arrow = "▲"; // Position improved
+                            enhancedProduct.posBadgeBackground = "green";
+                          }
+                          
+                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
+                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
+                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
+                        } else {
+                          enhancedProduct.arrow = "";
+                          enhancedProduct.finalSlope = "";
+                          enhancedProduct.posBadgeBackground = "gray";
+                        }
+                      } else {
+                        // No valid position data
+                        enhancedProduct.finalPosition = "-";
+                        enhancedProduct.finalSlope = "";
+                        enhancedProduct.arrow = "";
+                        enhancedProduct.posBadgeBackground = "gray";
+                      }
+                    }
+                  } else {
+                    // No historical data available
+                    enhancedProduct.finalPosition = "-";
+                    enhancedProduct.finalSlope = "";
+                    enhancedProduct.arrow = "";
+                    enhancedProduct.posBadgeBackground = "gray";
+                  }
+              
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
+                  
+                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  
+                  // Now render the product with the same enhanced data
+                  const html = compiledTemplate(enhancedProduct);
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  
+                  // Get just the first element (the ad-details div)
+                  const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
+                  
+                  // Set explicit width as a safeguard
+                  adCard.style.width = "150px";
+                  adCard.style.flexShrink = "0";
+                  
+                  // Add to the products cell
+                  productCellDiv.appendChild(adCard);
+                } catch (error) {
+                  console.error("[renderProductExplorerTable] Error rendering product:", error);
+                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
+                }
+              });
+              
+              // Then process inactive products with the same detailed logic
+              inactiveProducts.forEach((product, productIndex) => {
+                try {
+                  // Generate a unique ID with the pe_ prefix
+                  const peIndexKey = 'pe_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  
+                  // IMPORTANT: Clone the product completely
+                  const enhancedProduct = { ...product };
+                  
+                  // 1. Make sure it has the _plaIndex property
+                  enhancedProduct._plaIndex = peIndexKey;
+                  
+                  // 2. Make sure the stars array is properly formatted
+                  enhancedProduct.stars = [];
+                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
+                  for (let i = 0; i < 5; i++) {
+                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+                    enhancedProduct.stars.push({ fill });
+                  }
+                  
+                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
+                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
+                    enhancedProduct.historical_data = [];
+                  } else {
+                    // Fix any data parsing issues in the original historical data
+                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
+                      if (entry.avg_position) {
+                        // Ensure avg_position is a valid number by parsing and formatting
+                        const cleanPosition = parseFloat(entry.avg_position);
+                        if (!isNaN(cleanPosition)) {
+                          entry.avg_position = cleanPosition.toFixed(2);
+                        }
+                      }
+                      return entry;
+                    });
+                  }
+                  
+                  // Log the actual historical data count
+                  console.log(`[DEBUG] Inactive product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
+                  
+                  // 4. Ensure other required fields are present
+                  // Calculate real position and trend using historical data
+                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
+                    // Find the latest date in the historical data
+                    let latestDate = null;
+                    enhancedProduct.historical_data.forEach(item => {
+                      if (item.date && item.date.value) {
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        if (latestDate === null || itemDate.isAfter(latestDate)) {
+                          latestDate = itemDate.clone();
+                        }
+                      }
+                    });
+                  
+                    // If no valid dates found, we can't calculate anything
+                    if (!latestDate) {
+                      enhancedProduct.finalPosition = "-";
+                      enhancedProduct.finalSlope = "";
+                      enhancedProduct.arrow = "";
+                      enhancedProduct.posBadgeBackground = "gray";
+                    } else {
+                      // Define the 7-day time windows based on the latest available date
+                      const endDate = latestDate.clone();
+                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
+                      
+                      // Previous period
+                      const prevEndDate = startDate.clone().subtract(1, 'days');
+                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+                      
+                      // Filter for current 7-day period
+                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+                      });
+                      
+                      // Filter for previous 7-day period
+                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+                      });
+                      
+                      // Calculate average position for current period
+                      let currentAvgPos = 0;
+                      if (currentPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        currentPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        currentAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate average position for previous period
+                      let prevAvgPos = 0;
+                      if (prevPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        prevPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        prevAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate trend (change in position)
+                      let slope = 0;
+                      if (currentAvgPos > 0 && prevAvgPos > 0) {
+                        slope = currentAvgPos - prevAvgPos;
+                      }
+                      
+                      // Set the badge values
+                      if (currentAvgPos > 0) {
+                        // Format to 1 decimal place, avoid .0 suffix
+                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
+                        enhancedProduct.finalPosition = formattedPos;
+                        
+                        if (slope !== 0) {
+                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
+                          if (slope > 0) {
+                            enhancedProduct.arrow = "▼"; // Position got worse
+                            enhancedProduct.posBadgeBackground = "red";
+                          } else {
+                            enhancedProduct.arrow = "▲"; // Position improved
+                            enhancedProduct.posBadgeBackground = "green";
+                          }
+                          
+                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
+                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
+                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
+                        } else {
+                          enhancedProduct.arrow = "";
+                          enhancedProduct.finalSlope = "";
+                          enhancedProduct.posBadgeBackground = "gray";
+                        }
+                      } else {
+                        // No valid position data
+                        enhancedProduct.finalPosition = "-";
+                        enhancedProduct.finalSlope = "";
+                        enhancedProduct.arrow = "";
+                        enhancedProduct.posBadgeBackground = "gray";
+                      }
+                    }
+                  } else {
+                    // No historical data available
+                    enhancedProduct.finalPosition = "-";
+                    enhancedProduct.finalSlope = "";
+                    enhancedProduct.arrow = "";
+                    enhancedProduct.posBadgeBackground = "gray";
+                  }
+              
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
+                  
+                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added inactive product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  
+                  // Now render the product with the same enhanced data
+                  const html = compiledTemplate(enhancedProduct);
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  
+                  // Get just the first element (the ad-details div)
+                  const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
+                  
+                  // Set explicit width as a safeguard
+                  adCard.style.width = "150px";
+                  adCard.style.flexShrink = "0";
+                  
+                  // Add inactive class for styling
+                  adCard.classList.add('inactive-product');
+                  
+                  // Add status indicator
+                  const statusIndicator = document.createElement('div');
+                  statusIndicator.className = 'product-status-indicator product-status-inactive';
+                  statusIndicator.textContent = 'Inactive';
+                  adCard.appendChild(statusIndicator);
+                  
+                  // Add to the products cell (after active products)
+                  productCellDiv.appendChild(adCard);
+                } catch (error) {
+                  console.error("[renderProductExplorerTable] Error rendering inactive product:", error);
+                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
+                }
+              })
 
 // Sort products by position value (best to worst)
 const sortByPosition = (a, b) => {
