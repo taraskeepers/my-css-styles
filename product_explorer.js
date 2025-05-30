@@ -1307,20 +1307,22 @@ window.explorerApexCharts = [];
   font-size: 12px;
 }
 /* Products navigation column styles */
+/* Products navigation column styles */
 .products-nav-cell {
   vertical-align: top;
-  padding: 15px !important;
-  background-color: #f8f9fa;
+  padding: 8px !important;
+  background-color: #f9f9f9;
   border-right: 2px solid #dee2e6;
-  height: auto !important;
-  max-height: none !important;
 }
 
 .products-nav-container {
-  max-height: calc(100vh - 250px);
+  width: 280px;
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 10px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 5px;
 }
 
 .products-nav-container::-webkit-scrollbar {
@@ -1328,46 +1330,46 @@ window.explorerApexCharts = [];
 }
 
 .products-nav-container::-webkit-scrollbar-track {
-  background: #e9ecef;
+  background: #e0e0e0;
   border-radius: 4px;
 }
 
 .products-nav-container::-webkit-scrollbar-thumb {
-  background: #adb5bd;
+  background: #888;
   border-radius: 4px;
 }
 
 .products-nav-container::-webkit-scrollbar-thumb:hover {
-  background: #868e96;
+  background: #666;
 }
 
+/* Use exact same styles as chart products */
 .nav-product-item {
-  width: 100%;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
-}
-
-.nav-product-item:hover {
-  transform: translateX(5px);
-  border-color: #007aff;
-}
-
-.nav-product-item.selected {
-  border-color: #007aff;
-  background-color: #e7f0ff;
-  transform: translateX(5px);
+  margin-bottom: 5px;
 }
 
 .nav-product-item .small-ad-details {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  padding: 8px;
+  width: 270px;
+  height: 60px;
+  margin-bottom: 0;
   background-color: white;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-product-item .small-ad-details:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.nav-product-item.selected .small-ad-details {
+  border: 2px solid #007aff;
+  box-shadow: 0 2px 6px rgba(0,122,255,0.3);
 }
 
 .nav-product-item .small-ad-image {
@@ -1883,11 +1885,12 @@ let productsNavRendered = false;
         deviceRows.forEach(rowData => {
           const tr = document.createElement("tr");
 
-            // Add Products navigation cell (only once, spanning all rows)
-          if (!productsNavRendered) {
-            const tdProducts = document.createElement("td");
-            tdProducts.rowSpan = totalRows;
-            tdProducts.classList.add('products-nav-cell');
+// Add Products navigation cell for first row only
+if (!productsNavRendered) {
+  const tdProducts = document.createElement("td");
+  tdProducts.classList.add('products-nav-cell');
+  tdProducts.style.verticalAlign = 'top';
+  tdProducts.style.position = 'relative';
             
             // Create products navigation container
             const productsNavContainer = document.createElement('div');
@@ -1910,16 +1913,17 @@ let productsNavRendered = false;
               const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
               const title = product.title || 'No title';
               
-              smallCard.innerHTML = `
-                <img class="small-ad-image" 
-                     src="${imageUrl}" 
-                     alt="${title}"
-                     onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-                <div class="small-ad-title">${title}</div>
-                <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-                  <div class="small-ad-pos-value">${posValue}</div>
-                </div>
-              `;
+smallCard.innerHTML = `
+  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+    <div class="small-ad-pos-value">${posValue}</div>
+    <div class="small-ad-pos-trend"></div>
+  </div>
+  <img class="small-ad-image" 
+       src="${imageUrl}" 
+       alt="${title}"
+       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+  <div class="small-ad-title">${title}</div>
+`;
               
               navItem.appendChild(smallCard);
               
@@ -1946,6 +1950,11 @@ let productsNavRendered = false;
             tdProducts.appendChild(productsNavContainer);
             tr.appendChild(tdProducts);
             productsNavRendered = true;
+          } else {
+            // Add empty cell for products column in other rows
+            const tdEmpty = document.createElement("td");
+            tdEmpty.classList.add('products-nav-cell');
+            tr.appendChild(tdEmpty);
           }
   
           // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
