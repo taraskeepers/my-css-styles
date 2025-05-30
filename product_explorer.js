@@ -2312,7 +2312,7 @@ Object.keys(termGroups).sort().forEach(searchTerm => {
       // Search term cell (with rowspan)
       if (!termCellUsed) {
         const tdTerm = document.createElement("td");
-        tdTerm.rowSpan = termCombinations.length;
+        tdTerm.rowSpan = totalRowsForTerm;
         tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
         tr.appendChild(tdTerm);
         termCellUsed = true;
