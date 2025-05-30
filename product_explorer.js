@@ -668,9 +668,8 @@ window.explorerApexCharts = [];
           box-sizing: border-box;
           overflow: hidden;
         }
-/* Fixed column widths - MODIFIED */
 .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { 
-  width: 300px; /* Products navigation column */
+  width: 300px; 
   background-color: #f8f9fa;
   border-right: 2px solid #dee2e6;
 }
@@ -678,6 +677,52 @@ window.explorerApexCharts = [];
 .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
 .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 100px; }
 .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: 240px; }
+
+/* Products navigation column styling */
+.products-navigation-cell {
+  background-color: #f8f9fa !important;
+  border-right: 2px solid #dee2e6 !important;
+  padding: 10px !important;
+  vertical-align: top !important;
+}
+
+.products-navigation-container {
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.products-navigation-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #495057;
+  margin-bottom: 10px;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.product-nav-item {
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.product-nav-item:hover {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.product-nav-item.selected {
+  background-color: rgba(0, 122, 255, 0.2);
+  border: 1px solid #007aff;
+}
+
+.product-nav-item .small-ad-details {
+  margin-bottom: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
         
 /* Search term tag styling - NEW */
 .search-term-tag {
@@ -1306,85 +1351,6 @@ window.explorerApexCharts = [];
   content: 'Loading chart...';
   font-size: 12px;
 }
-/* Products navigation column styles */
-.products-nav-cell {
-  vertical-align: top;
-  padding: 15px !important;
-  background-color: #f8f9fa;
-  border-right: 2px solid #dee2e6;
-  height: auto !important;
-  max-height: none !important;
-}
-
-.products-nav-container {
-  max-height: calc(100vh - 250px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 10px;
-}
-
-.products-nav-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.products-nav-container::-webkit-scrollbar-track {
-  background: #e9ecef;
-  border-radius: 4px;
-}
-
-.products-nav-container::-webkit-scrollbar-thumb {
-  background: #adb5bd;
-  border-radius: 4px;
-}
-
-.products-nav-container::-webkit-scrollbar-thumb:hover {
-  background: #868e96;
-}
-
-.nav-product-item {
-  width: 100%;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
-}
-
-.nav-product-item:hover {
-  transform: translateX(5px);
-  border-color: #007aff;
-}
-
-.nav-product-item.selected {
-  border-color: #007aff;
-  background-color: #e7f0ff;
-  transform: translateX(5px);
-}
-
-.nav-product-item .small-ad-details {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  padding: 8px;
-  background-color: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.nav-product-item .small-ad-image {
-  width: 50px;
-  height: 50px;
-  margin-right: 10px;
-}
-
-.nav-product-item .small-ad-title {
-  flex: 1;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.nav-product-item .small-ad-pos-badge {
-  margin-left: auto;
-}
       `;
       document.head.appendChild(style);
     }
@@ -1822,1392 +1788,369 @@ thead.innerHTML = `
     let chartCounter = 0;
     // Counter for unique pie chart IDs
     let pieChartCounter = 0;
+    
+// Collect all unique products for this company
+console.log("[renderProductExplorerTable] Collecting unique products for company:", window.myCompany);
 
-    // First, collect all unique products for this company
-const allCompanyProducts = [];
-const productMap = new Map(); // To track unique products
+const allUniqueProducts = [];
+const seenProducts = new Set();
 
 if (window.allRows && Array.isArray(window.allRows)) {
   window.allRows.forEach(product => {
     if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-      // Create a unique key for the product
-      const productKey = `${product.title}_${product.link || ''}`;
+      // Create a unique key based on title and other identifying info
+      const productKey = `${product.title}_${product.source}_${product.gtin || product.id || ''}`;
       
-      if (!productMap.has(productKey)) {
-        productMap.set(productKey, product);
-        allCompanyProducts.push(product);
+      if (!seenProducts.has(productKey)) {
+        seenProducts.add(productKey);
+        allUniqueProducts.push(product);
       }
     }
   });
 }
 
-console.log(`[renderProductExplorerTable] Found ${allCompanyProducts.length} unique products for ${window.myCompany}`);
+console.log(`[renderProductExplorerTable] Found ${allUniqueProducts.length} unique products`);
 
-// Sort products alphabetically by title
-allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-
-// Calculate total rows needed for the table
-let totalRows = 0;
-Object.values(nestedMap).forEach(locObj => {
-  Object.values(locObj).forEach(deviceRows => {
-    totalRows += deviceRows.length;
+// Calculate total rows needed for all term/location/device combinations
+let totalDataRows = 0;
+const searchTerms = Object.keys(nestedMap).sort();
+searchTerms.forEach(term => {
+  const locObj = nestedMap[term];
+  const allLocs = Object.keys(locObj).sort();
+  allLocs.forEach(loc => {
+    totalDataRows += locObj[loc].length;
   });
 });
 
-// Create the Products navigation cell (spans all rows)
-let productsNavRendered = false;
-    
-    // Iterate through search terms
-    const searchTerms = Object.keys(nestedMap).sort();
-    searchTerms.forEach(term => {
-      const locObj = nestedMap[term];
-      const allLocs = Object.keys(locObj).sort();
-  
-      // Calculate total rows needed for this search term
-      let totalRowsForTerm = 0;
-      allLocs.forEach(loc => {
-        totalRowsForTerm += locObj[loc].length;
-      });
-  
-      let termCellUsed = false;
-      
-      // Iterate through locations for this search term
-      allLocs.forEach(loc => {
-        const deviceRows = locObj[loc];
-        let locCellUsed = false;
-        
-        // Get the color class for this location
-        const locationColorClass = locationColorMap[loc];
-  
-        // Iterate through devices for this location
-        deviceRows.forEach(rowData => {
-          const tr = document.createElement("tr");
+console.log(`[renderProductExplorerTable] Total data rows needed: ${totalDataRows}`);
 
-            // Add Products navigation cell (only once, spanning all rows)
-          if (!productsNavRendered) {
-            const tdProducts = document.createElement("td");
-            tdProducts.rowSpan = totalRows;
-            tdProducts.classList.add('products-nav-cell');
+// Create the products navigation cell (spans all rows)
+let productsNavigationCellAdded = false;
+
+// Iterate through search terms to create data rows
+searchTerms.forEach(term => {
+  const locObj = nestedMap[term];
+  const allLocs = Object.keys(locObj).sort();
+
+  // Calculate total rows needed for this search term
+  let totalRowsForTerm = 0;
+  allLocs.forEach(loc => {
+    totalRowsForTerm += locObj[loc].length;
+  });
+
+  let termCellUsed = false;
+  
+  // Iterate through locations for this search term
+  allLocs.forEach(loc => {
+    const deviceRows = locObj[loc];
+    let locCellUsed = false;
+    
+    // Get the color class for this location
+    const locationColorClass = locationColorMap[loc];
+
+    // Iterate through devices for this location
+    deviceRows.forEach(rowData => {
+      const tr = document.createElement("tr");
+
+      // Add products navigation cell ONLY ONCE (with rowspan for all rows)
+      if (!productsNavigationCellAdded) {
+        const tdProducts = document.createElement("td");
+        tdProducts.rowSpan = totalDataRows;
+        tdProducts.classList.add("products-navigation-cell");
+        
+        // Create navigation container
+        const navContainer = document.createElement("div");
+        navContainer.classList.add("products-navigation-container");
+        
+        // Add title
+        const navTitle = document.createElement("div");
+        navTitle.classList.add("products-navigation-title");
+        navTitle.textContent = `${window.myCompany} Products (${allUniqueProducts.length})`;
+        navContainer.appendChild(navTitle);
+        
+        // Add each unique product
+        allUniqueProducts.forEach((product, productIndex) => {
+          // Generate a unique ID for this product
+          const peIndexKey = 'nav_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+          
+          // Enhanced product setup (similar to original but simplified)
+          const enhancedProduct = { ...product };
+          enhancedProduct._plaIndex = peIndexKey;
+          
+          // Setup stars array
+          enhancedProduct.stars = [];
+          const rating = parseFloat(enhancedProduct.rating) || 4.5;
+          for (let i = 0; i < 5; i++) {
+            let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+            enhancedProduct.stars.push({ fill });
+          }
+          
+          // Preserve historical data
+          if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
+            enhancedProduct.historical_data = [];
+          }
+          
+          // Set placeholder position values
+          enhancedProduct.finalPosition = "TBD";
+          enhancedProduct.finalSlope = "";
+          enhancedProduct.arrow = "";
+          enhancedProduct.posBadgeBackground = "#6c757d"; // Gray placeholder
+          enhancedProduct.visibilityBarValue = 50; // Placeholder visibility
+          
+          // Add to globalRows
+          window.globalRows[peIndexKey] = enhancedProduct;
+          
+          // Create navigation item
+          const navItem = document.createElement("div");
+          navItem.classList.add("product-nav-item");
+          navItem.setAttribute("data-product-id", peIndexKey);
+          
+          // Render the product card
+          const html = compiledTemplate(enhancedProduct);
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          
+          const adCard = tempDiv.firstElementChild;
+          adCard.classList.remove('my-company');
+          adCard.style.width = "100%";
+          adCard.style.margin = "0";
+          
+          navItem.appendChild(adCard);
+          
+          // Add click handler for navigation
+          navItem.addEventListener('click', function(e) {
+            e.stopPropagation();
             
-            // Create products navigation container
-            const productsNavContainer = document.createElement('div');
-            productsNavContainer.classList.add('products-nav-container');
-            
-            // Add all unique products
-            allCompanyProducts.forEach((product, index) => {
-              const navItem = document.createElement('div');
-              navItem.classList.add('nav-product-item');
-              navItem.setAttribute('data-product-index', index);
-              
-              // Create small ad details container
-              const smallCard = document.createElement('div');
-              smallCard.classList.add('small-ad-details');
-              
-              // Use placeholder values for now
-              const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
-              const badgeColor = '#007aff'; // Placeholder color
-              
-              const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-              const title = product.title || 'No title';
-              
-              smallCard.innerHTML = `
-                <img class="small-ad-image" 
-                     src="${imageUrl}" 
-                     alt="${title}"
-                     onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-                <div class="small-ad-title">${title}</div>
-                <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-                  <div class="small-ad-pos-value">${posValue}</div>
-                </div>
-              `;
-              
-              navItem.appendChild(smallCard);
-              
-              // Add click handler
-              navItem.addEventListener('click', function() {
-                // Remove selected class from all items
-                document.querySelectorAll('.nav-product-item').forEach(item => {
-                  item.classList.remove('selected');
-                });
-                
-                // Add selected class to this item
-                navItem.classList.add('selected');
-                
-                // Store selected product for future use
-                window.selectedExplorerProduct = product;
-                
-                console.log('[ProductExplorer] Selected product:', product.title);
-                // TODO: Update other columns based on selected product
-              });
-              
-              productsNavContainer.appendChild(navItem);
+            // Remove selected class from all nav items
+            document.querySelectorAll('.product-nav-item').forEach(item => {
+              item.classList.remove('selected');
             });
             
-            tdProducts.appendChild(productsNavContainer);
-            tr.appendChild(tdProducts);
-            productsNavRendered = true;
-          }
-  
-          // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
-          if (!termCellUsed) {
-            const tdTerm = document.createElement("td");
-            tdTerm.rowSpan = totalRowsForTerm;
-            tdTerm.innerHTML = `<div class="search-term-tag">${term}</div>`;
-            tr.appendChild(tdTerm);
-            termCellUsed = true;
-          }
-  
-          // Add location cell (with rowspan for all device rows in this location)
-          if (!locCellUsed) {
-            const tdLoc = document.createElement("td");
-            tdLoc.rowSpan = deviceRows.length;
-            tdLoc.innerHTML = formatLocationCell(loc);
-            tdLoc.classList.add(locationColorClass);
-            tr.appendChild(tdLoc);
-            locCellUsed = true;
-          }
-  
-          // Add device cell with pie chart for market share
-          const tdDev = document.createElement("td");
-          
-          // Find the corresponding data in projectTableData for this term, location, device
-          const projectData = window.projectTableData.find(item => 
-            item.searchTerm === term && 
-            item.location === loc &&
-            item.device === rowData.device
-          );
-          
-          // Create device container with three sections
-          let deviceHTML = `<div class="device-container">`;
-          
-          // 1. Device type
-          deviceHTML += `<div class="device-type"><img src="${rowData.device.toLowerCase().includes('mobile') ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png'}" alt="${rowData.device}" class="device-icon" /></div>`;
-          
-          // 2. Avg Rank with header
-          if (projectData && projectData.avgRank !== undefined) {
-            const rankVal = projectData.avgRank.toFixed(2);
-            let rankArrow = "±", rankColor = "#444";
+            // Add selected class to clicked item
+            navItem.classList.add('selected');
             
-            if (projectData.rankChange !== undefined) {
-              if (projectData.rankChange < 0) {
-                rankArrow = "▲"; 
-                rankColor = "green";
-              } else if (projectData.rankChange > 0) {
-                rankArrow = "▼"; 
-                rankColor = "red";
+            console.log(`[ProductExplorer] Selected product: ${enhancedProduct.title}`);
+            
+            // TODO: Here we'll add logic to refresh other columns based on selected product
+            // For now, just log the selection
+            window.selectedExplorerProduct = enhancedProduct;
+          });
+          
+          navContainer.appendChild(navItem);
+        });
+        
+        tdProducts.appendChild(navContainer);
+        tr.appendChild(tdProducts);
+        productsNavigationCellAdded = true;
+      }
+
+      // Add search term cell (with rowspan for all rows in this term)
+      if (!termCellUsed) {
+        const tdTerm = document.createElement("td");
+        tdTerm.rowSpan = totalRowsForTerm;
+        tdTerm.innerHTML = `<div class="search-term-tag">${term}</div>`;
+        tr.appendChild(tdTerm);
+        termCellUsed = true;
+      }
+
+      // Add location cell (with rowspan for all device rows in this location)
+      if (!locCellUsed) {
+        const tdLoc = document.createElement("td");
+        tdLoc.rowSpan = deviceRows.length;
+        tdLoc.innerHTML = formatLocationCell(loc);
+        tdLoc.classList.add(locationColorClass);
+        tr.appendChild(tdLoc);
+        locCellUsed = true;
+      }
+
+      // Add device cell with pie chart for market share
+      const tdDev = document.createElement("td");
+      
+      // Find the corresponding data in projectTableData for this term, location, device
+      const projectData = window.projectTableData.find(item => 
+        item.searchTerm === term && 
+        item.location === loc &&
+        item.device === rowData.device
+      );
+      
+      // Create device container with three sections (same as before)
+      let deviceHTML = `<div class="device-container">`;
+      
+      // 1. Device type
+      deviceHTML += `<div class="device-type"><img src="${rowData.device.toLowerCase().includes('mobile') ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png'}" alt="${rowData.device}" class="device-icon" /></div>`;
+      
+      // 2. Avg Rank with header
+      if (projectData && projectData.avgRank !== undefined) {
+        const rankVal = projectData.avgRank.toFixed(2);
+        let rankArrow = "±", rankColor = "#444";
+        
+        if (projectData.rankChange !== undefined) {
+          if (projectData.rankChange < 0) {
+            rankArrow = "▲"; 
+            rankColor = "green";
+          } else if (projectData.rankChange > 0) {
+            rankArrow = "▼"; 
+            rankColor = "red";
+          }
+        }
+        
+        deviceHTML += `
+          <div class="device-rank">
+            <div class="section-header">Avg Rank</div>
+            <div class="device-rank-value">${rankVal}</div>
+            <div class="device-trend" style="color:${rankColor};">
+              ${rankArrow} ${Math.abs(projectData.rankChange || 0).toFixed(2)}
+            </div>
+          </div>
+        `;
+      } else {
+        deviceHTML += `
+          <div class="device-rank">
+            <div class="section-header">Avg Rank</div>
+            <div class="device-rank-value">-</div>
+          </div>
+        `;
+      }
+      
+      // 3. Market Share with pie chart
+      const pieChartId = `explorer-market-share-pie-${pieChartCounter++}`;
+      
+      deviceHTML += `
+        <div class="device-share">
+          <div class="section-header">Market Share</div>
+          <div id="${pieChartId}" class="pie-chart-container"></div>
+      `;
+      
+      // Add trend below pie chart
+      if (projectData && projectData.trendVal !== undefined) {
+        let shareArrow = "±", shareColor = "#333";
+        
+        if (projectData.trendVal > 0) {
+          shareArrow = "▲";
+          shareColor = "green";
+        } else if (projectData.trendVal < 0) {
+          shareArrow = "▼";
+          shareColor = "red";
+        }
+        
+        deviceHTML += `
+          <div class="device-trend" style="color:${shareColor};">
+            ${shareArrow} ${Math.abs(projectData.trendVal || 0).toFixed(1)}%
+          </div>
+        `;
+      }
+      
+      deviceHTML += `</div>`; // Close device-share
+      
+      // Add last tracked container (same as before)
+      let latestDate = null;
+      const allProductsForDevice = window.allRows.filter(p => 
+        p.q === term &&
+        p.location_requested === loc &&
+        p.device === rowData.device &&
+        p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+      );
+
+      allProductsForDevice.forEach(product => {
+        if (product.historical_data && Array.isArray(product.historical_data)) {
+          product.historical_data.forEach(item => {
+            if (item.date && item.date.value) {
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              if (latestDate === null || itemDate.isAfter(latestDate)) {
+                latestDate = itemDate.clone();
               }
             }
-            
-            deviceHTML += `
-              <div class="device-rank">
-                <div class="section-header">Avg Rank</div>
-                <div class="device-rank-value">${rankVal}</div>
-                <div class="device-trend" style="color:${rankColor};">
-                  ${rankArrow} ${Math.abs(projectData.rankChange || 0).toFixed(2)}
-                </div>
-              </div>
-            `;
-          } else {
-            deviceHTML += `
-              <div class="device-rank">
-                <div class="section-header">Avg Rank</div>
-                <div class="device-rank-value">-</div>
-              </div>
-            `;
-          }
-          
-          // 3. Market Share with pie chart - MODIFIED
-          const pieChartId = `explorer-market-share-pie-${pieChartCounter++}`;
-          
-          deviceHTML += `
-            <div class="device-share">
-              <div class="section-header">Market Share</div>
-              <div id="${pieChartId}" class="pie-chart-container"></div>
-          `;
-          
-          // Add trend below pie chart
-          if (projectData && projectData.trendVal !== undefined) {
-            let shareArrow = "±", shareColor = "#333";
-            
-            if (projectData.trendVal > 0) {
-              shareArrow = "▲";
-              shareColor = "green";
-            } else if (projectData.trendVal < 0) {
-              shareArrow = "▼";
-              shareColor = "red";
-            }
-            
-            deviceHTML += `
-              <div class="device-trend" style="color:${shareColor};">
-                ${shareArrow} ${Math.abs(projectData.trendVal || 0).toFixed(1)}%
-              </div>
-            `;
-          }
-          
-          deviceHTML += `</div>`; // Close device-share
-          // Find the latest tracking date from all active products
-let latestDate = null;
-
-// Find ALL products for this term/location/device combination, regardless of status
-const allProductsForDevice = window.allRows.filter(p => 
-  p.q === term &&
-  p.location_requested === loc &&
-  p.device === rowData.device &&
-  p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-);
-
-// Find the latest date in all historical data
-allProductsForDevice.forEach(product => {
-  if (product.historical_data && Array.isArray(product.historical_data)) {
-    product.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
-        }
-      }
-    });
-  }
-});
-
-// Add last tracked container
-deviceHTML += `<div class="last-tracked-container">
-  <div class="last-tracked-label">Last time tracked:</div>`;
-
-if (latestDate) {
-  const today = moment().startOf('day');
-  const yesterday = moment().subtract(1, 'days').startOf('day');
-  const daysDiff = today.diff(latestDate, 'days');
-  
-  let lastTrackedText = '';
-  let trackingClass = '';
-  
-  if (daysDiff === 0) {
-    lastTrackedText = 'Today';
-    trackingClass = 'recent-tracking';
-  } else if (daysDiff === 1) {
-    lastTrackedText = 'Yesterday';
-    trackingClass = 'recent-tracking';
-  } else if (daysDiff <= 7) {
-    lastTrackedText = `${daysDiff} days ago`;
-    trackingClass = 'moderate-tracking';
-  } else {
-    lastTrackedText = `${daysDiff} days ago`;
-    trackingClass = 'old-tracking';
-  }
-  
-  deviceHTML += `<div class="last-tracked-value ${trackingClass}">${lastTrackedText}</div>`;
-} else {
-  deviceHTML += `<div class="last-tracked-value">Not tracked</div>`;
-}
-
-deviceHTML += `</div>`; // Close last-tracked-container
-          deviceHTML += `</div>`; // Close device-container
-          
-          tdDev.innerHTML = deviceHTML;
-          
-          // Apply background based on device type
-          const deviceLower = rowData.device.toLowerCase();
-          if (deviceLower.includes('desktop')) {
-            tdDev.classList.add('device-desktop');
-          } else if (deviceLower.includes('mobile')) {
-            tdDev.classList.add('device-mobile');
-          }
-          
-          tr.appendChild(tdDev);
-          
-          // Add Top 40 Segmentation cell
-          const tdSegmentation = document.createElement("td");
-          const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-          tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
-          tr.appendChild(tdSegmentation);
-  
-// Add products cell
-const tdProducts = document.createElement("td");
-tdProducts.style.width = "100%";
-tdProducts.style.minWidth = "400px";
-
-// Create product cell container (for Products view)
-const productCellContainer = document.createElement("div");
-productCellContainer.classList.add("product-cell-container");
-productCellContainer.style.width = "100%";
-productCellContainer.style.height = "100%";
-
-// Create product container
-const productCellDiv = document.createElement("div");
-productCellDiv.classList.add("product-cell");
-productCellContainer.appendChild(productCellDiv);
-tdProducts.appendChild(productCellContainer);
-
-// Create products chart container (for Charts view)
-const productsChartContainer = document.createElement("div");
-productsChartContainer.classList.add("products-chart-container");
-
-// Create chart-products container
-const chartProductsDiv = document.createElement("div");
-chartProductsDiv.classList.add("chart-products");
-
-// Create chart-avg-position container
-const chartAvgPositionDiv = document.createElement("div");
-chartAvgPositionDiv.classList.add("chart-avg-position");
-chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>';
-
-productsChartContainer.appendChild(chartProductsDiv);
-productsChartContainer.appendChild(chartAvgPositionDiv);
-tdProducts.appendChild(productsChartContainer);
-  
-          // Find and display matching products
-          if (window.allRows && Array.isArray(window.allRows)) {
-            console.log(`[renderProductExplorerTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
-            
-            const matchingProducts = window.allRows.filter(p => 
-              p.q === term &&
-              p.location_requested === loc &&
-              p.device === rowData.device &&
-              p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-            );
-  
-            console.log(`[renderProductExplorerTable] Found ${matchingProducts.length} matching products for ${window.myCompany}`);
-  
-// First, just calculate the aggregate data and store references
-const chartData = calculateAggregateSegmentData(matchingProducts);
-
-// Filter active and inactive products
-const activeProducts = matchingProducts.filter(product => 
-  product.product_status === 'active' || !product.product_status
-);
-
-const inactiveProducts = matchingProducts.filter(product => 
-  product.product_status === 'inactive'
-);
-
-// Store the data we'll need later
-const chartInfo = {
-  containerId: chartContainerId,
-  data: chartData,
-  term: term,
-  location: loc,
-  device: rowData.device,
-  company: window.myCompany,
-  activeCount: activeProducts.length,
-  inactiveCount: inactiveProducts.length,
-  pieChartId: pieChartId,
-  projectData: projectData,
-  productCellDiv: productCellDiv // Add reference to the product cell
-};
-
-// Add to pending charts array instead of creating immediately
-if (!window.pendingExplorerCharts) {
-  window.pendingExplorerCharts = [];
-}
-window.pendingExplorerCharts.push(chartInfo);
-  
-            if (matchingProducts.length === 0) {
-              productCellDiv.innerHTML = '<div class="no-products">–</div>';
-            } else {
-              // Debug: Log product cell width
-              console.log(`[renderProductExplorerTable] Product cell width for ${term}/${loc}/${rowData.device}: ${productCellDiv.offsetWidth}px`);
-              console.log("[DEBUG] Product cell HTML structure:", productCellDiv.innerHTML.substring(0, 200) + "...");
-             console.log("[DEBUG] Product cell has", productCellDiv.querySelectorAll('*').length, "elements,", 
-             productCellDiv.querySelectorAll('.ad-details').length, "with class 'ad-details'");
-  
-// Sort products by average position for the 7-day period (best/lowest position first)
-matchingProducts.forEach(product => {
-  // Calculate the 7-day average position for sorting
-  if (product.historical_data && product.historical_data.length > 0) {
-    // Find the latest date in the historical data
-    let latestDate = null;
-    product.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
-        }
-      }
-    });
-    
-    if (latestDate) {
-      // Define the 7-day window
-      const endDate = latestDate.clone();
-      const startDate = endDate.clone().subtract(6, 'days');
-      
-      // Filter for current 7-day period
-      const currentPeriodData = product.historical_data.filter(item => {
-        if (!item.date || !item.date.value || !item.avg_position) return false;
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        return itemDate.isBetween(startDate, endDate, 'day', '[]');
-      });
-      
-      // Calculate average position
-      let sum = 0;
-      let count = 0;
-      currentPeriodData.forEach(item => {
-        const pos = parseFloat(item.avg_position);
-        if (!isNaN(pos)) {
-          sum += pos;
-          count++;
+          });
         }
       });
+
+      deviceHTML += `<div class="last-tracked-container">
+        <div class="last-tracked-label">Last time tracked:</div>`;
+
+      if (latestDate) {
+        const today = moment().startOf('day');
+        const daysDiff = today.diff(latestDate, 'days');
+        
+        let lastTrackedText = '';
+        let trackingClass = '';
+        
+        if (daysDiff === 0) {
+          lastTrackedText = 'Today';
+          trackingClass = 'recent-tracking';
+        } else if (daysDiff === 1) {
+          lastTrackedText = 'Yesterday';
+          trackingClass = 'recent-tracking';
+        } else if (daysDiff <= 7) {
+          lastTrackedText = `${daysDiff} days ago`;
+          trackingClass = 'moderate-tracking';
+        } else {
+          lastTrackedText = `${daysDiff} days ago`;
+          trackingClass = 'old-tracking';
+        }
+        
+        deviceHTML += `<div class="last-tracked-value ${trackingClass}">${lastTrackedText}</div>`;
+      } else {
+        deviceHTML += `<div class="last-tracked-value">Not tracked</div>`;
+      }
+
+      deviceHTML += `</div></div>`; // Close last-tracked-container and device-container
       
-      product._sortingAvgPos = count > 0 ? sum / count : 999999;
-    } else {
-      product._sortingAvgPos = 999999;
-    }
-  } else {
-    product._sortingAvgPos = 999999;
-  }
-});
-
-// Now sort by the calculated average position
-matchingProducts.sort((a, b) => {
-  return a._sortingAvgPos - b._sortingAvgPos; // Sort by ascending position (lowest/best first)
-});
-              
-              // Create a floating card for each product
-              // In the matchingProducts.forEach loop in renderProductExplorerTable:
-
-              // First sort products by status (active first, then inactive)
-              const activeProducts = matchingProducts.filter(product => 
-                product.product_status === 'active' || !product.product_status
-              );
-              const inactiveProducts = matchingProducts.filter(product => 
-                product.product_status === 'inactive'
-              );
-              
-              console.log(`[DEBUG] Products sorted: ${activeProducts.length} active, ${inactiveProducts.length} inactive`);
-              
-              // Process active products first
-              activeProducts.forEach((product, productIndex) => {
-                try {
-                  // Generate a unique ID with the pe_ prefix
-                  const peIndexKey = 'pe_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
-                  
-                  // IMPORTANT: Clone the product completely
-                  const enhancedProduct = { ...product };
-                  
-                  // 1. Make sure it has the _plaIndex property
-                  enhancedProduct._plaIndex = peIndexKey;
-                  
-                  // 2. Make sure the stars array is properly formatted
-                  enhancedProduct.stars = [];
-                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
-                  for (let i = 0; i < 5; i++) {
-                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
-                    enhancedProduct.stars.push({ fill });
-                  }
-                  
-                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
-                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
-                    enhancedProduct.historical_data = [];
-                  } else {
-                    // Fix any data parsing issues in the original historical data
-                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
-                      if (entry.avg_position) {
-                        // Ensure avg_position is a valid number by parsing and formatting
-                        const cleanPosition = parseFloat(entry.avg_position);
-                        if (!isNaN(cleanPosition)) {
-                          entry.avg_position = cleanPosition.toFixed(2);
-                        }
-                      }
-                      return entry;
-                    });
-                  }
-                  
-                  // Log the actual historical data count
-                  console.log(`[DEBUG] Product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
-                  
-                  // 4. Ensure other required fields are present
-                  // Calculate real position and trend using historical data
-                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
-                    // Find the latest date in the historical data
-                    let latestDate = null;
-                    enhancedProduct.historical_data.forEach(item => {
-                      if (item.date && item.date.value) {
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        if (latestDate === null || itemDate.isAfter(latestDate)) {
-                          latestDate = itemDate.clone();
-                        }
-                      }
-                    });
-                  
-                    // If no valid dates found, we can't calculate anything
-                    if (!latestDate) {
-                      enhancedProduct.finalPosition = "-";
-                      enhancedProduct.finalSlope = "";
-                      enhancedProduct.arrow = "";
-                      enhancedProduct.posBadgeBackground = "gray";
-                    } else {
-                      // Define the 7-day time windows based on the latest available date
-                      const endDate = latestDate.clone();
-                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
-                      
-                      // Previous period
-                      const prevEndDate = startDate.clone().subtract(1, 'days');
-                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
-                      
-                      // Filter for current 7-day period
-                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
-                        if (!item.date || !item.date.value || !item.avg_position) return false;
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
-                      });
-                      
-                      // Filter for previous 7-day period
-                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
-                        if (!item.date || !item.date.value || !item.avg_position) return false;
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
-                      });
-                      
-                      // Calculate average position for current period
-                      let currentAvgPos = 0;
-                      if (currentPeriodData.length > 0) {
-                        let sum = 0;
-                        let count = 0;
-                        currentPeriodData.forEach(item => {
-                          const pos = parseFloat(item.avg_position);
-                          if (!isNaN(pos)) {
-                            sum += pos;
-                            count++;
-                          }
-                        });
-                        currentAvgPos = count > 0 ? sum / count : 0;
-                      }
-                      
-                      // Calculate average position for previous period
-                      let prevAvgPos = 0;
-                      if (prevPeriodData.length > 0) {
-                        let sum = 0;
-                        let count = 0;
-                        prevPeriodData.forEach(item => {
-                          const pos = parseFloat(item.avg_position);
-                          if (!isNaN(pos)) {
-                            sum += pos;
-                            count++;
-                          }
-                        });
-                        prevAvgPos = count > 0 ? sum / count : 0;
-                      }
-                      
-                      // Calculate trend (change in position)
-                      let slope = 0;
-                      if (currentAvgPos > 0 && prevAvgPos > 0) {
-                        slope = currentAvgPos - prevAvgPos;
-                      }
-                      
-                      // Set the badge values
-                      if (currentAvgPos > 0) {
-                        // Format to 1 decimal place, avoid .0 suffix
-                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
-                        enhancedProduct.finalPosition = formattedPos;
-                        
-                        if (slope !== 0) {
-                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
-                          if (slope > 0) {
-                            enhancedProduct.arrow = "▼"; // Position got worse
-                            enhancedProduct.posBadgeBackground = "red";
-                          } else {
-                            enhancedProduct.arrow = "▲"; // Position improved
-                            enhancedProduct.posBadgeBackground = "green";
-                          }
-                          
-                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
-                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
-                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
-                        } else {
-                          enhancedProduct.arrow = "";
-                          enhancedProduct.finalSlope = "";
-                          enhancedProduct.posBadgeBackground = "gray";
-                        }
-                      } else {
-                        // No valid position data
-                        enhancedProduct.finalPosition = "-";
-                        enhancedProduct.finalSlope = "";
-                        enhancedProduct.arrow = "";
-                        enhancedProduct.posBadgeBackground = "gray";
-                      }
-                    }
-                  } else {
-                    // No historical data available
-                    enhancedProduct.finalPosition = "-";
-                    enhancedProduct.finalSlope = "";
-                    enhancedProduct.arrow = "";
-                    enhancedProduct.posBadgeBackground = "gray";
-                  }
-              
-                  // Calculate visibility for the 7-day period
-let visibilityBarValue = 0;
-if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
-  // Use the same date range as position calculation
-  const endDate = latestDate.clone();
-  const startDate = endDate.clone().subtract(6, 'days');
-  const periodDays = 7;
-  
-  // Sum visibility for the period
-  let sum = 0;
-  enhancedProduct.historical_data.forEach((item) => {
-    if (item.date && item.date.value) {
-      const d = moment(item.date.value, "YYYY-MM-DD");
-      if (d.isBetween(startDate, endDate, "day", "[]")) {
-        if (item.visibility != null) {
-          sum += parseFloat(item.visibility);
-        }
+      tdDev.innerHTML = deviceHTML;
+      
+      // Apply background based on device type
+      const deviceLower = rowData.device.toLowerCase();
+      if (deviceLower.includes('desktop')) {
+        tdDev.classList.add('device-desktop');
+      } else if (deviceLower.includes('mobile')) {
+        tdDev.classList.add('device-mobile');
       }
-    }
-  });
-  
-  // Average is sum divided by number of days (not number of records)
-  let avgDailyVis = sum / periodDays;
-  
-  // Convert to 0-100 integer
-  visibilityBarValue = Math.round(avgDailyVis * 100);
-}
-enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
-                  
-                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
-                  window.globalRows[peIndexKey] = enhancedProduct;
-                  console.log(`[DEBUG] Added product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
-                  
-                  // Now render the product with the same enhanced data
-                  const html = compiledTemplate(enhancedProduct);
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = html;
-                  
-                  // Get just the first element (the ad-details div)
-                  const adCard = tempDiv.firstElementChild;
-                  adCard.classList.remove('my-company');
-                  
-                  // Set explicit width as a safeguard
-                  adCard.style.width = "150px";
-                  adCard.style.flexShrink = "0";
-                  
-                  // Add to the products cell
-                  productCellDiv.appendChild(adCard);
-                } catch (error) {
-                  console.error("[renderProductExplorerTable] Error rendering product:", error);
-                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
-                }
-              });
-              
-              // Then process inactive products with the same detailed logic
-              inactiveProducts.forEach((product, productIndex) => {
-                try {
-                  // Generate a unique ID with the pe_ prefix
-                  const peIndexKey = 'pe_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
-                  
-                  // IMPORTANT: Clone the product completely
-                  const enhancedProduct = { ...product };
-                  
-                  // 1. Make sure it has the _plaIndex property
-                  enhancedProduct._plaIndex = peIndexKey;
-                  
-                  // 2. Make sure the stars array is properly formatted
-                  enhancedProduct.stars = [];
-                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
-                  for (let i = 0; i < 5; i++) {
-                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
-                    enhancedProduct.stars.push({ fill });
-                  }
-                  
-                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
-                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
-                    enhancedProduct.historical_data = [];
-                  } else {
-                    // Fix any data parsing issues in the original historical data
-                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
-                      if (entry.avg_position) {
-                        // Ensure avg_position is a valid number by parsing and formatting
-                        const cleanPosition = parseFloat(entry.avg_position);
-                        if (!isNaN(cleanPosition)) {
-                          entry.avg_position = cleanPosition.toFixed(2);
-                        }
-                      }
-                      return entry;
-                    });
-                  }
-                  
-                  // Log the actual historical data count
-                  console.log(`[DEBUG] Inactive product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
-                  
-                  // 4. Ensure other required fields are present
-                  // Calculate real position and trend using historical data
-                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
-                    // Find the latest date in the historical data
-                    let latestDate = null;
-                    enhancedProduct.historical_data.forEach(item => {
-                      if (item.date && item.date.value) {
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        if (latestDate === null || itemDate.isAfter(latestDate)) {
-                          latestDate = itemDate.clone();
-                        }
-                      }
-                    });
-                  
-                    // If no valid dates found, we can't calculate anything
-                    if (!latestDate) {
-                      enhancedProduct.finalPosition = "-";
-                      enhancedProduct.finalSlope = "";
-                      enhancedProduct.arrow = "";
-                      enhancedProduct.posBadgeBackground = "gray";
-                    } else {
-                      // Define the 7-day time windows based on the latest available date
-                      const endDate = latestDate.clone();
-                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
-                      
-                      // Previous period
-                      const prevEndDate = startDate.clone().subtract(1, 'days');
-                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
-                      
-                      // Filter for current 7-day period
-                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
-                        if (!item.date || !item.date.value || !item.avg_position) return false;
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
-                      });
-                      
-                      // Filter for previous 7-day period
-                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
-                        if (!item.date || !item.date.value || !item.avg_position) return false;
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
-                      });
-                      
-                      // Calculate average position for current period
-                      let currentAvgPos = 0;
-                      if (currentPeriodData.length > 0) {
-                        let sum = 0;
-                        let count = 0;
-                        currentPeriodData.forEach(item => {
-                          const pos = parseFloat(item.avg_position);
-                          if (!isNaN(pos)) {
-                            sum += pos;
-                            count++;
-                          }
-                        });
-                        currentAvgPos = count > 0 ? sum / count : 0;
-                      }
-                      
-                      // Calculate average position for previous period
-                      let prevAvgPos = 0;
-                      if (prevPeriodData.length > 0) {
-                        let sum = 0;
-                        let count = 0;
-                        prevPeriodData.forEach(item => {
-                          const pos = parseFloat(item.avg_position);
-                          if (!isNaN(pos)) {
-                            sum += pos;
-                            count++;
-                          }
-                        });
-                        prevAvgPos = count > 0 ? sum / count : 0;
-                      }
-                      
-                      // Calculate trend (change in position)
-                      let slope = 0;
-                      if (currentAvgPos > 0 && prevAvgPos > 0) {
-                        slope = currentAvgPos - prevAvgPos;
-                      }
-                      
-                      // Set the badge values
-                      if (currentAvgPos > 0) {
-                        // Format to 1 decimal place, avoid .0 suffix
-                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
-                        enhancedProduct.finalPosition = formattedPos;
-                        
-                        if (slope !== 0) {
-                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
-                          if (slope > 0) {
-                            enhancedProduct.arrow = "▼"; // Position got worse
-                            enhancedProduct.posBadgeBackground = "red";
-                          } else {
-                            enhancedProduct.arrow = "▲"; // Position improved
-                            enhancedProduct.posBadgeBackground = "green";
-                          }
-                          
-                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
-                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
-                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
-                        } else {
-                          enhancedProduct.arrow = "";
-                          enhancedProduct.finalSlope = "";
-                          enhancedProduct.posBadgeBackground = "gray";
-                        }
-                      } else {
-                        // No valid position data
-                        enhancedProduct.finalPosition = "-";
-                        enhancedProduct.finalSlope = "";
-                        enhancedProduct.arrow = "";
-                        enhancedProduct.posBadgeBackground = "gray";
-                      }
-                    }
-                  } else {
-                    // No historical data available
-                    enhancedProduct.finalPosition = "-";
-                    enhancedProduct.finalSlope = "";
-                    enhancedProduct.arrow = "";
-                    enhancedProduct.posBadgeBackground = "gray";
-                  }
-              
-                  // Calculate visibility for the 7-day period
-let visibilityBarValue = 0;
-if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
-  // Use the same date range as position calculation
-  const endDate = latestDate.clone();
-  const startDate = endDate.clone().subtract(6, 'days');
-  const periodDays = 7;
-  
-  // Sum visibility for the period
-  let sum = 0;
-  enhancedProduct.historical_data.forEach((item) => {
-    if (item.date && item.date.value) {
-      const d = moment(item.date.value, "YYYY-MM-DD");
-      if (d.isBetween(startDate, endDate, "day", "[]")) {
-        if (item.visibility != null) {
-          sum += parseFloat(item.visibility);
-        }
+      
+      tr.appendChild(tdDev);
+      
+      // Add Top 40 Segmentation cell (same as before)
+      const tdSegmentation = document.createElement("td");
+      const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+      tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+      tr.appendChild(tdSegmentation);
+
+      // Store chart info for batch rendering (modified to work with selected product)
+      const matchingProducts = window.allRows.filter(p => 
+        p.q === term &&
+        p.location_requested === loc &&
+        p.device === rowData.device &&
+        p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+      );
+
+      const chartData = calculateAggregateSegmentData(matchingProducts);
+      const activeProducts = matchingProducts.filter(product => 
+        product.product_status === 'active' || !product.product_status
+      );
+      const inactiveProducts = matchingProducts.filter(product => 
+        product.product_status === 'inactive'
+      );
+
+      const chartInfo = {
+        containerId: chartContainerId,
+        data: chartData,
+        term: term,
+        location: loc,
+        device: rowData.device,
+        company: window.myCompany,
+        activeCount: activeProducts.length,
+        inactiveCount: inactiveProducts.length,
+        pieChartId: pieChartId,
+        projectData: projectData
+      };
+
+      if (!window.pendingExplorerCharts) {
+        window.pendingExplorerCharts = [];
       }
-    }
-  });
-  
-  // Average is sum divided by number of days (not number of records)
-  let avgDailyVis = sum / periodDays;
-  
-  // Convert to 0-100 integer
-  visibilityBarValue = Math.round(avgDailyVis * 100);
-}
-enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
-                  
-                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
-                  window.globalRows[peIndexKey] = enhancedProduct;
-                  console.log(`[DEBUG] Added inactive product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
-                  
-                  // Now render the product with the same enhanced data
-                  const html = compiledTemplate(enhancedProduct);
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = html;
-                  
-                  // Get just the first element (the ad-details div)
-                  const adCard = tempDiv.firstElementChild;
-                  adCard.classList.remove('my-company');
-                  
-                  // Set explicit width as a safeguard
-                  adCard.style.width = "150px";
-                  adCard.style.flexShrink = "0";
-                  
-                  // Add inactive class for styling
-                  adCard.classList.add('inactive-product');
-                  
-                  // Add status indicator
-                  const statusIndicator = document.createElement('div');
-                  statusIndicator.className = 'product-status-indicator product-status-inactive';
-                  statusIndicator.textContent = 'Inactive';
-                  adCard.appendChild(statusIndicator);
-                  
-                  // Add to the products cell (after active products)
-                  productCellDiv.appendChild(adCard);
-                } catch (error) {
-                  console.error("[renderProductExplorerTable] Error rendering inactive product:", error);
-                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
-                }
-              })
+      window.pendingExplorerCharts.push(chartInfo);
 
-// Sort products by position value (best to worst)
-const sortByPosition = (a, b) => {
-  const posA = parseFloat(a.finalPosition) || 999;
-  const posB = parseFloat(b.finalPosition) || 999;
-  return posA - posB;
-};
-
-// Sort active and inactive products separately
-const sortedActiveProducts = [...activeProducts].sort(sortByPosition);
-const sortedInactiveProducts = [...inactiveProducts].sort(sortByPosition);
-
-// Clear the container first
-chartProductsDiv.innerHTML = '';
-
-// Add active products
-sortedActiveProducts.forEach((product, index) => {
-  // First, ensure this product has the enhanced data from globalRows
-  let enhancedProduct = null;
-  const globalRowsKeys = Object.keys(window.globalRows);
-  for (const key of globalRowsKeys) {
-    const globalProduct = window.globalRows[key];
-    if (globalProduct && 
-        globalProduct.title === product.title && 
-        globalProduct.source === product.source &&
-        globalProduct.q === product.q &&
-        globalProduct.location_requested === product.location_requested &&
-        globalProduct.device === product.device) {
-      enhancedProduct = globalProduct;
-      break;
-    }
-  }
-  
-  // Use enhanced product if found, otherwise use original
-  const productToUse = enhancedProduct || product;
-  
-  const smallCard = document.createElement('div');
-  smallCard.classList.add('small-ad-details');
-  smallCard.setAttribute('data-product-index', index);
-  
-  // Get position and trend values from the enhanced product
-  const posValue = productToUse.finalPosition || '-';
-  const trendArrow = productToUse.arrow || '';
-  const trendValue = productToUse.finalSlope || '';
-  const badgeColor = productToUse.posBadgeBackground || 'gray';
-  
-  // Create the HTML for small card
-  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = productToUse.title || 'No title';
-  
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${posValue}</div>
-      <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-  `;
-  
-  // Store enhanced product reference for chart
-  smallCard.productData = productToUse;
-  smallCard.productArrayIndex = index; // Store the original index for chart reference
-  
-  chartProductsDiv.appendChild(smallCard);
-});
-
-// Add separator for inactive products if they exist
-if (sortedInactiveProducts.length > 0) {
-  const separator = document.createElement('div');
-  separator.style.width = '100%';
-  separator.style.padding = '8px';
-  separator.style.textAlign = 'center';
-  separator.style.fontSize = '12px';
-  separator.style.color = '#666';
-  separator.style.backgroundColor = '#f0f0f0';
-  separator.style.borderTop = '1px solid #ddd';
-  separator.style.borderBottom = '1px solid #ddd';
-  separator.style.marginTop = '5px';
-  separator.style.marginBottom = '5px';
-  separator.innerHTML = '— Inactive Products —';
-  chartProductsDiv.appendChild(separator);
-  
-  // Add inactive products
-  sortedInactiveProducts.forEach((product, index) => {
-    // Same enhanced product logic as above
-    let enhancedProduct = null;
-    const globalRowsKeys = Object.keys(window.globalRows);
-    for (const key of globalRowsKeys) {
-      const globalProduct = window.globalRows[key];
-      if (globalProduct && 
-          globalProduct.title === product.title && 
-          globalProduct.source === product.source &&
-          globalProduct.q === product.q &&
-          globalProduct.location_requested === product.location_requested &&
-          globalProduct.device === product.device) {
-        enhancedProduct = globalProduct;
-        break;
-      }
-    }
-    
-    const productToUse = enhancedProduct || product;
-    
-    const smallCard = document.createElement('div');
-    smallCard.classList.add('small-ad-details');
-    smallCard.classList.add('inactive');
-    smallCard.setAttribute('data-product-index', sortedActiveProducts.length + index);
-    
-    const posValue = productToUse.finalPosition || '-';
-    const trendArrow = productToUse.arrow || '';
-    const trendValue = productToUse.finalSlope || '';
-    const badgeColor = productToUse.posBadgeBackground || 'gray';
-    
-    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-    const title = productToUse.title || 'No title';
-    
-    smallCard.innerHTML = `
-      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-        <div class="small-ad-pos-value">${posValue}</div>
-        <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
-      </div>
-      <img class="small-ad-image" 
-           src="${imageUrl}" 
-           alt="${title}"
-           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-      <div class="small-ad-title">${title}</div>
-    `;
-    
-    smallCard.productData = productToUse;
-    smallCard.productArrayIndex = sortedActiveProducts.length + index;
-    
-    chartProductsDiv.appendChild(smallCard);
-  });
-}
-
-// Now create the combined array for chart rendering
-const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
-
-              // Add direct click handlers to each product card
-              productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
-                const plaIndex = adCard.getAttribute('data-pla-index');
-                console.log(`[DEBUG] Attaching click handler to card: ${plaIndex}`);
-                
-                adCard.addEventListener('click', function(e) {
-                  // Prevent default and stop propagation
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.stopImmediatePropagation();
-                  
-                  console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
-                  console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
-                  
-                  // Get the product data
-                  const rowData = window.globalRows[plaIndex];
-                  if (!rowData) {
-                    console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
-                    return;
-                  }
-                  
-                  console.log(`[DEBUG] Found data for product: ${rowData.title}`);
-                  
-                  // DEEP DEBUG OF HISTORICAL DATA
-                  console.log(`[DEBUG] Historical data exists: ${Array.isArray(rowData.historical_data)}`);
-                  console.log(`[DEBUG] Historical data length: ${rowData.historical_data?.length || 0}`);
-                  
-                  if (rowData.historical_data && rowData.historical_data.length > 0) {
-                    // Log each historical entry in a structured way
-                    console.log(`[DEBUG] === FULL HISTORICAL DATA (${rowData.historical_data.length} entries) ===`);
-                    
-                    // Sort by date first to ensure they're in chronological order
-                    const sortedHistData = [...rowData.historical_data].sort((a, b) => {
-                      if (!a.date || !a.date.value) return -1;
-                      if (!b.date || !b.date.value) return 1;
-                      return a.date.value.localeCompare(b.date.value);
-                    });
-                    
-                    // Format the data as a table
-                    console.table(sortedHistData.map(entry => ({
-                      date: entry.date?.value || 'unknown',
-                      avg_position: entry.avg_position,
-                      visibility: entry.visibility,
-                      top3: entry.top3_visibility,
-                      top8: entry.top8_visibility,
-                      top14: entry.top14_visibility,
-                      top40: entry.top40_visibility
-                    })));
-                    
-                    // Show date coverage
-                    const dates = sortedHistData
-                      .filter(entry => entry.date && entry.date.value)
-                      .map(entry => entry.date.value);
-                    
-                    const uniqueDates = [...new Set(dates)];
-                    console.log(`[DEBUG] Date coverage: ${uniqueDates.length} unique dates out of ${dates.length} entries`);
-                    console.log(`[DEBUG] Date range: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length-1]}`);
-                    
-                    // Check for any data anomalies
-                    const missingPosition = sortedHistData.filter(entry => !entry.avg_position).length;
-                    const missingVisibility = sortedHistData.filter(entry => !entry.visibility).length;
-                    
-                    console.log(`[DEBUG] Data quality check:
-                      - Entries missing position: ${missingPosition}
-                      - Entries missing visibility: ${missingVisibility}
-                    `);
-                  }
-                  
-                  // Create or get the panel container
-                  let detailsPanel = document.getElementById('product-explorer-details-panel');
-                  if (!detailsPanel) {
-                    detailsPanel = document.createElement('div');
-                    detailsPanel.id = 'product-explorer-details-panel';
-                    detailsPanel.style.position = 'fixed';
-                    detailsPanel.style.top = '40%';
-                    detailsPanel.style.left = 'auto';
-                    detailsPanel.style.right = '10px';
-                    detailsPanel.style.transform = 'translateY(-50%)';
-                    detailsPanel.style.zIndex = '1000';
-                    detailsPanel.style.width = '1255px';
-                    detailsPanel.style.maxWidth = '1255px';
-                    detailsPanel.style.maxHeight = '80vh';
-                    detailsPanel.style.overflow = 'auto';
-                    detailsPanel.style.borderRadius = '8px';
-                    detailsPanel.style.backgroundColor = '#fff';
-                    detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
-                    const contentWrapper = document.createElement('div');
-                    contentWrapper.id = 'explorer-panel-content-wrapper';
-                    contentWrapper.style.position = 'relative';
-                    contentWrapper.style.width = '100%';
-                    contentWrapper.style.height = '100%';
-                    detailsPanel.appendChild(contentWrapper);
-                    document.body.appendChild(detailsPanel);
-                  }
-
-                  // Adjust panel positioning based on fullscreen state
-const isFullscreen = document.getElementById("productExplorerContainer").classList.contains("product-map-fullscreen");
-if (isFullscreen) {
-  detailsPanel.style.position = 'absolute';
-  detailsPanel.style.top = '50%';
-  detailsPanel.style.left = '50%';
-  detailsPanel.style.transform = 'translate(-50%, -50%)';
-  detailsPanel.style.right = 'auto';
-  detailsPanel.style.zIndex = '10001'; // Ensure it's above the fullscreen container
-} else {
-  detailsPanel.style.position = 'fixed';
-  detailsPanel.style.top = '40%';
-  detailsPanel.style.left = 'auto';
-  detailsPanel.style.right = '10px';
-  detailsPanel.style.transform = 'translateY(-50%)';
-}
-                  
-                  // Get the content wrapper
-                  let contentWrapper = document.getElementById('explorer-explorer-panel-content-wrapper');
-                  if (!contentWrapper) {
-                    contentWrapper = document.createElement('div');
-                    contentWrapper.id = 'explorer-panel-content-wrapper';
-                    contentWrapper.style.position = 'relative';
-                    contentWrapper.style.width = '100%';
-                    contentWrapper.style.height = '100%';
-                    detailsPanel.appendChild(contentWrapper);
-                  }
-                  
-                  // Show the loading overlay
-                  let loadingOverlay = document.getElementById('explorer-explorer-panel-loading-overlay');
-                  if (!loadingOverlay) {
-                    loadingOverlay = document.createElement('div');
-                    loadingOverlay.id = 'explorer-panel-loading-overlay';
-                    loadingOverlay.style.position = 'absolute';
-                    loadingOverlay.style.top = '0';
-                    loadingOverlay.style.left = '0';
-                    loadingOverlay.style.width = '100%';
-                    loadingOverlay.style.height = '100%';
-                    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-                    loadingOverlay.style.display = 'flex';
-                    loadingOverlay.style.justifyContent = 'center';
-                    loadingOverlay.style.alignItems = 'center';
-                    loadingOverlay.style.zIndex = '2000';
-                    loadingOverlay.innerHTML = '<div class="spinner"></div>';
-                    detailsPanel.appendChild(loadingOverlay);
-                  } else {
-                    loadingOverlay.style.display = 'flex';
-                  }
-                  
-                  // Make sure panel is visible
-                  detailsPanel.style.display = 'block';
-                  
-                  // Important debug approach - make a copy of the DetailsPanel component
-                  const originalDetailsPanel = window.DetailsPanel;
-                  
-                  // Create a debug version that tells us what's happening
-                  window.DetailsPanel = function(props) {
-                    // Log incoming props
-                    console.log("[DEBUG-INJECTION] DetailsPanel received props:", {
-                      has_rowData: !!props.rowData,
-                      rowData_title: props.rowData?.title,
-                      rowData_historical_length: props.rowData?.historical_data?.length,
-                      start_date: props.start?.format('YYYY-MM-DD'),
-                      end_date: props.end?.format('YYYY-MM-DD')
-                    });
-                    
-                    // Check if the PLAChart component is available to debug
-                    const originalPLAChart = window.PLAChart;
-                    if (originalPLAChart) {
-                      // Override PLAChart to debug what happens with the historical data
-                      window.PLAChart = function(plaProps) {
-                        console.log("[DEBUG-CHART] PLAChart received historical_data length:", 
-                          plaProps.rowData?.historical_data?.length || 0);
-                        
-                        // Check prepareChartData function which might be generating synthetic data
-                        const original_prepareChartData = originalPLAChart.prototype.prepareChartData;
-                        if (typeof original_prepareChartData === 'function') {
-                          originalPLAChart.prototype.prepareChartData = function(rowData, startDate, endDate) {
-                            console.log("[DEBUG-CHART] prepareChartData called with:", {
-                              has_rowData: !!rowData,
-                              historical_length: rowData?.historical_data?.length || 0,
-                              startDate: startDate?.format('YYYY-MM-DD'),
-                              endDate: endDate?.format('YYYY-MM-DD')
-                            });
-                            
-                            // Call original and log result
-                            const result = original_prepareChartData.call(this, rowData, startDate, endDate);
-                            console.log("[DEBUG-CHART] prepareChartData returned:", result.length, "data points");
-                            return result;
-                          };
-                        }
-                        
-                        // Return the original component with our debug version
-                        return originalPLAChart(plaProps);
-                      };
-                      
-                      // Restore the original after a delay
-                      setTimeout(() => {
-                        window.PLAChart = originalPLAChart;
-                      }, 2000);
-                    }
-                    
-                    // Call the original component
-                    return originalDetailsPanel(props);
-                  };
-                  
-                  // Render with our debug version
-                  setTimeout(() => {
-                    try {
-                      // Get date range
-                      // Get the original date range first
-let dateRange = getDataRange(rowData);
-
-// Override with a 7-day range specifically for product map page
-if (dateRange && dateRange.end) {
-  // Keep the same end date but set start to 7 days before
-  dateRange = {
-    end: dateRange.end.clone(),
-    start: dateRange.end.clone().subtract(6, "days") // 7 days including end date
-  };
-}
-                      console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
-                      
-                      // Create a copy of rowData to pass to the component
-                      // This ensures we're passing exactly what we have in window.globalRows
-                      const rowDataCopy = { ...rowData };
-                      
-                      // Get the content wrapper again to ensure it exists
-                      const contentWrapper = document.getElementById('explorer-panel-content-wrapper');
-                      
-                      // Render into the content wrapper instead of detailsPanel
-                      ReactDOM.render(
-                        React.createElement(window.DetailsPanel, {
-                          key: plaIndex,
-                          rowData: rowDataCopy,
-                          start: dateRange.start,
-                          end: dateRange.end,
-                          activeTab: window.savedActiveTab || 1,
-                          onClose: () => {
-                            detailsPanel.style.display = 'none';
-                            document.body.style.overflow = 'auto';
-                          }
-                        }),
-                        contentWrapper
-                      );
-                      
-                      // Hide the loading overlay
-                      const loadingOverlay = document.getElementById('explorer-panel-loading-overlay');
-                      if (loadingOverlay) {
-                        loadingOverlay.style.display = 'none';
-                      }
-                      
-                      // Restore original component
-                      window.DetailsPanel = originalDetailsPanel;
-                    } catch (error) {
-                      console.error("[DEBUG] Error rendering panel:", error);
-                      detailsPanel.innerHTML = `
-                        <div style="padding: 20px; text-align: center;">
-                          <h3>Error displaying product details</h3>
-                          <p>${error.message}</p>
-                          <pre style="text-align:left; max-height:200px; overflow:auto;">${error.stack}</pre>
-                          <button onclick="document.getElementById('product-explorer-details-panel').style.display='none';">
-                            Close
-                          </button>
-                        </div>
-                      `;
-                      
-                      // Restore original component
-                      window.DetailsPanel = originalDetailsPanel;
-                    }
-                  }, 100);
-                  
-                  return false;
-                }, true);
-              });
-
-// Add this right after adding products to window.globalRows 
-// (after the matchingProducts.forEach loop)
-console.log("[DEBUG] Product Map - globalRows keys:", Object.keys(window.globalRows || {}));
-console.log("[DEBUG] Product Map - First few globalRows entries:", 
-  Object.keys(window.globalRows || {}).slice(0, 3).map(key => ({
-    key,
-    title: window.globalRows[key]?.title,
-    hasHistoricalData: Array.isArray(window.globalRows[key]?.historical_data)
-  }))
-);
-              
-              // After adding all products, add visibility badges
-              setTimeout(() => {
-                productCellDiv.querySelectorAll('.vis-badge').forEach(function(el) {
-                  const parts = el.id.split('-');
-                  const index = parts[2];
-                  const row = window.globalRows[index];
-                  if (!row) return;
-                  
-                  let visValue = parseFloat(row.visibilityBarValue) || 0;
-                  if (visValue === 0) {
-                    visValue = 0.1;
-                  }
-              
-                  var options = {
-                    series: [visValue],
-                    chart: {
-                      height: 80,
-                      width: 80,
-                      type: 'radialBar',
-                      sparkline: { enabled: false },
-                      offsetY: 0
-                    },
-                    plotOptions: {
-                      radialBar: {
-                        startAngle: -90,
-                        endAngle: 90,
-                        hollow: { size: '50%' },
-                        track: { strokeDashArray: 8, margin:2 },
-                        dataLabels: {
-                          name: { show: false },
-                          value: {
-                            show: true,
-                            offsetY: 0,
-                            fontSize: '14px',
-                            formatter: function(val){
-                              return Math.round(val) + "%";
-                            }
-                          }
-                        }
-                      }
-                    },
-                    fill: {
-                      type: 'gradient',
-                      gradient: {
-                        shade: 'dark',
-                        shadeIntensity: 0.15,
-                        inverseColors: false,
-                        opacityFrom: 1,
-                        opacityTo: 1,
-                        stops: [0,50,100]
-                      }
-                    },
-                    stroke: { lineCap:'butt', dashArray:4 },
-                    labels: []
-                  };
-                  
-                  // Check if ApexCharts is available
-                  if (typeof ApexCharts !== 'undefined') {
-                    var chart = new ApexCharts(el, options);
-                    chart.render();
-                  } else {
-                    console.warn("[renderProductExplorerTable] ApexCharts not available for visibility badges");
-                  }
-                });
-              }, 100);
-            }
-          } else {
-            productCellDiv.textContent = "No product data available";
-            console.warn("[renderProductExplorerTable] allRows data not available");
-          }
-          
-          tr.appendChild(tdProducts);
-          tbody.appendChild(tr);
-        });
-      });
+      tbody.appendChild(tr);
     });
+  });
+});
   
     container.querySelector("#productExplorerContainer").appendChild(table);
     console.log("[renderProductExplorerTable] Table rendering complete");
