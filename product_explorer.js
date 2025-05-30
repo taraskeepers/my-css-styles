@@ -2371,6 +2371,7 @@ Object.keys(termGroups).sort().forEach(searchTerm => {
   // Render pending charts
   renderPendingExplorerChartsForProduct();
 }
+}
 
     // ADD these helper functions right after renderTableForSelectedProduct:
 
