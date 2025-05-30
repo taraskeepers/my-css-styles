@@ -2340,7 +2340,6 @@ function createDeviceCell(combination) {
   `;
   
 // 3. Visibility with round chart
-const record = combination.record;
 let avgVisibility = 0;
 if (record.avg_visibility) {
   avgVisibility = parseFloat(record.avg_visibility) * 100;
