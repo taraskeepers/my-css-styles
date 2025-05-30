@@ -1817,20 +1817,23 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
       nestedMap[term][loc].push(item);
     });
   
-    const table = document.createElement("table");
-    table.classList.add("product-explorer-table");
-  
-    const thead = document.createElement("thead");
+// Create new table with proper structure
+const table = document.createElement("table");
+table.classList.add("product-explorer-table");
+table.style.tableLayout = "fixed"; // Ensure fixed layout
+
+// Create header
+const thead = document.createElement("thead");
 thead.innerHTML = `
   <tr>
-    <th>Search Term</th>
-    <th>Location</th>
-    <th>Device</th>
-    <th>Top 40 Segmentation</th>
-    <th>Charts</th>
+    <th style="width: 190px;">Search Term</th>
+    <th style="width: 150px;">Location</th>
+    <th style="width: 120px;">Device</th>
+    <th style="width: 300px;">Top 40 Segmentation</th>
+    <th style="width: auto;">Charts</th>
   </tr>
 `;
-    table.appendChild(thead);
+table.appendChild(thead);
   
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -2267,11 +2270,19 @@ function renderTableForSelectedProduct(combinations) {
       tdDev.innerHTML = createDeviceCell(combination);
       tr.appendChild(tdDev);
       
-      // Segmentation cell
+// Segmentation cell
       const tdSegmentation = document.createElement("td");
       const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
       tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
       tr.appendChild(tdSegmentation);
+      
+      // Add Charts cell - NEW
+      const tdCharts = document.createElement("td");
+      tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
+        <div class="chart-products"></div>
+        <div class="chart-avg-position">Click "Charts" view to see position trends</div>
+      </div>`;
+      tr.appendChild(tdCharts);
       
       // Add to pending charts with product-specific data
       const chartInfo = {
@@ -2328,15 +2339,25 @@ function createDeviceCell(combination) {
     </div>
   `;
   
-  // 3. Market Share (placeholder for now)
-  deviceHTML += `
-    <div class="device-share">
-      <div class="section-header">Market Share</div>
-      <div class="pie-chart-container">
-        <div style="font-size: 14px; font-weight: bold;">--%</div>
-      </div>
-    </div>
-  `;
+// 3. Visibility with round chart
+const record = combination.record;
+let avgVisibility = 0;
+if (record.avg_visibility) {
+  avgVisibility = parseFloat(record.avg_visibility) * 100;
+}
+
+const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+deviceHTML += `
+  <div class="device-share">
+    <div class="section-header">Visibility</div>
+    <div id="${visChartId}" class="pie-chart-container"></div>
+  </div>
+`;
+
+// Create the visibility chart after HTML is added
+setTimeout(() => {
+  createMarketSharePieChartExplorer(visChartId, avgVisibility);
+}, 50);
   
   // 4. Last tracked info
   const lastTracked = getLastTrackedInfo(record);
@@ -2466,62 +2487,68 @@ function getLastTrackedInfo(record) {
   }
 }
 
-    // ADD this function right after the helper functions:
-
 function renderPendingExplorerChartsForProduct() {
-  const charts = window.pendingExplorerCharts;
-  if (!charts || charts.length === 0) return;
-  
-  console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
-  
-  charts.forEach(chartInfo => {
-    const { containerId, combination, selectedProduct } = chartInfo;
-    
-    // Get the specific record for this combination and product
-    const productRecords = getProductRecords(selectedProduct);
-    const specificRecord = productRecords.find(record => 
-      record.q === combination.searchTerm &&
-      record.location_requested === combination.location &&
-      record.device === combination.device
-    );
-    
-    if (!specificRecord) {
-      console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.innerHTML = '<div class="no-data-message">No data for this product</div>';
-        container.classList.remove('loading');
-      }
+  // Add a small delay to ensure DOM elements are ready
+  setTimeout(() => {
+    const charts = window.pendingExplorerCharts;
+    if (!charts || charts.length === 0) {
+      console.log('[renderPendingExplorerChartsForProduct] No charts to render');
       return;
     }
     
-    // Calculate segmentation data for this specific product
-    const chartData = calculateProductSegmentData(specificRecord);
+    console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
     
-    if (!chartData || chartData.length === 0) {
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.innerHTML = '<div class="no-data-message">No segment data</div>';
-        container.classList.remove('loading');
+    charts.forEach((chartInfo, index) => {
+      const { containerId, combination, selectedProduct } = chartInfo;
+      console.log(`[renderPendingExplorerChartsForProduct] Processing chart ${index + 1}/${charts.length}: ${containerId}`);
+      
+      // Get the specific record for this combination and product
+      const productRecords = getProductRecords(selectedProduct);
+      const specificRecord = productRecords.find(record => 
+        record.q === combination.searchTerm &&
+        record.location_requested === combination.location &&
+        record.device === combination.device
+      );
+      
+      if (!specificRecord) {
+        console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
+        const container = document.getElementById(containerId);
+        if (container) {
+          container.innerHTML = '<div class="no-data-message">No data for this product</div>';
+          container.classList.remove('loading');
+        }
+        return;
       }
-      return;
-    }
+      
+      // Calculate segmentation data for this specific product
+      const chartData = calculateProductSegmentData(specificRecord);
+      
+      if (!chartData || chartData.length === 0) {
+        console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
+        const container = document.getElementById(containerId);
+        if (container) {
+          container.innerHTML = '<div class="no-data-message">No segment data</div>';
+          container.classList.remove('loading');
+        }
+        return;
+      }
+      
+      // Create the chart with product-specific data
+      createProductSegmentationChart(
+        containerId,
+        chartData,
+        combination.searchTerm,
+        combination.location,
+        combination.device,
+        selectedProduct.source,
+        specificRecord
+      );
+    });
     
-    // Create the chart with product-specific data
-    createProductSegmentationChart(
-      containerId,
-      chartData,
-      combination.searchTerm,
-      combination.location,
-      combination.device,
-      selectedProduct.source,
-      specificRecord
-    );
-  });
-  
-  // Clear pending charts
-  window.pendingExplorerCharts = [];
-  console.log('[renderPendingExplorerChartsForProduct] All charts rendered');
+    // Clear pending charts
+    window.pendingExplorerCharts = [];
+    console.log('[renderPendingExplorerChartsForProduct] All charts rendered');
+  }, 100);
 }
 
 function calculateProductSegmentData(record) {
@@ -2733,7 +2760,7 @@ productsNavPanel.appendChild(productsNavContainer);
     container.querySelector("#productExplorerTableContainer").appendChild(table);
     console.log("[renderProductExplorerTable] Table rendering complete");
 
-    setTimeout(() => {
+setTimeout(() => {
   console.log('[renderProductExplorerTable] Auto-selecting first product...');
   
   // Find first navigation item
@@ -2743,8 +2770,8 @@ productsNavPanel.appendChild(productsNavContainer);
     const firstProduct = allCompanyProducts[0];
     console.log('[renderProductExplorerTable] Auto-selecting:', firstProduct.title);
     
-    // Trigger selection
-    selectProduct(firstProduct, firstNavItem);
+    // Trigger click event to ensure proper selection
+    firstNavItem.click();
   } else {
     console.warn('[renderProductExplorerTable] No products found for auto-selection');
     
@@ -2757,7 +2784,7 @@ productsNavPanel.appendChild(productsNavContainer);
     emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
     container.appendChild(emptyMessage);
   }
-}, 100);
+}, 500); // Increased timeout to ensure DOM is ready
   }
 
 // Function to render average position chart
