@@ -575,7 +575,6 @@ setTimeout(() => {
           }
         });
       }, 100);
-    });
 
     // Add view switcher functionality
 const viewProductsExplorerBtn = document.getElementById("viewProductsExplorer");
