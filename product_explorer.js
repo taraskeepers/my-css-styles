@@ -1914,7 +1914,7 @@ chartAvgPositionDiv.style.width = '100%'; // Take full width
 chartAvgPositionDiv.style.minWidth = '600px'; // Ensure minimum width
 
 productsChartContainer.appendChild(chartAvgPositionDiv);
-tdCharts.appendChild(productsChartContainer);
+tdProducts.appendChild(productsChartContainer);  // ← CORRECTED: tdProducts, not tdCharts
   
           // Find and display matching products
           if (window.allRows && Array.isArray(window.allRows)) {
