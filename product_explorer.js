@@ -509,13 +509,6 @@ tdCharts.appendChild(productsChartContainer);
 
 tr.appendChild(tdCharts);
         
-        const tdCharts = document.createElement("td");
-        tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
-          <div class="chart-products"></div>
-          <div class="chart-avg-position">Click "Charts" view to see position trends</div>
-        </div>`;
-        tr.appendChild(tdCharts);
-        
         const chartInfo = {
           containerId: chartContainerId,
           combination: combination,
