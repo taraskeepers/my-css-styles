@@ -2259,14 +2259,35 @@ function renderTableForSelectedProduct(combinations) {
     locationColorMap[loc] = `location-bg-${colorIndex}`;
   });
   
-  // Group combinations by search term for rowspan logic
-  const termGroups = {};
-  combinations.forEach(combo => {
-    if (!termGroups[combo.searchTerm]) {
-      termGroups[combo.searchTerm] = [];
-    }
-    termGroups[combo.searchTerm].push(combo);
-  });
+// First sort all combinations
+combinations.sort((a, b) => {
+  // Primary sort by search term
+  const termCompare = (a.searchTerm || "").localeCompare(b.searchTerm || "");
+  if (termCompare !== 0) return termCompare;
+  
+  // Secondary sort by location
+  const locCompare = (a.location || "").localeCompare(b.location || "");
+  if (locCompare !== 0) return locCompare;
+  
+  // Tertiary sort by device (desktop before mobile)
+  const aDevice = (a.device || "").toLowerCase();
+  const bDevice = (b.device || "").toLowerCase();
+  if (aDevice.includes('desktop') && bDevice.includes('mobile')) return -1;
+  if (aDevice.includes('mobile') && bDevice.includes('desktop')) return 1;
+  return aDevice.localeCompare(bDevice);
+});
+
+// Group combinations by search term and location for rowspan logic
+const termGroups = {};
+combinations.forEach(combo => {
+  if (!termGroups[combo.searchTerm]) {
+    termGroups[combo.searchTerm] = {};
+  }
+  if (!termGroups[combo.searchTerm][combo.location]) {
+    termGroups[combo.searchTerm][combo.location] = [];
+  }
+  termGroups[combo.searchTerm][combo.location].push(combo);
+});
   
   // Render each combination as a table row
   Object.keys(termGroups).sort().forEach(searchTerm => {
