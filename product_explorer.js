@@ -714,7 +714,7 @@ window.explorerApexCharts = [];
 .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
 .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
 .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
-.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 300px; }
+.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 230px; }
 .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; }
         
 /* Search term tag styling - NEW */
@@ -1829,7 +1829,7 @@ thead.innerHTML = `
     <th style="width: 190px;">Search Term</th>
     <th style="width: 150px;">Location</th>
     <th style="width: 120px;">Device</th>
-    <th style="width: 300px;">Top 40 Segmentation</th>
+    <th style="width: 230px;">Top 40 Segmentation</th>
     <th style="width: auto;">Charts</th>
   </tr>
 `;
@@ -1900,12 +1900,9 @@ Object.values(nestedMap).forEach(locObj => {
 // Create the Products navigation cell (spans all rows)
 let productsNavRendered = false;
     
-    // Iterate through search terms
-// Iterate through search terms
-const searchTerms = Object.keys(nestedMap).sort();
 searchTerms.forEach(term => {
   const locObj = nestedMap[term];
-  const allLocs = Object.keys(locObj).sort();
+  const allLocs = Object.keys(locObj).sort(); // Already sorted
 
   // Calculate total rows needed for this search term
   let totalRowsForTerm = 0;
@@ -1915,9 +1912,17 @@ searchTerms.forEach(term => {
 
   let termCellUsed = false;
   
-  // Iterate through locations for this search term
+  // Iterate through locations for this search term (already sorted)
   allLocs.forEach(loc => {
     const deviceRows = locObj[loc];
+    
+    // Sort device rows to ensure consistent ordering (desktop first, then mobile)
+    deviceRows.sort((a, b) => {
+      if (a.device.toLowerCase().includes('desktop') && b.device.toLowerCase().includes('mobile')) return -1;
+      if (a.device.toLowerCase().includes('mobile') && b.device.toLowerCase().includes('desktop')) return 1;
+      return a.device.localeCompare(b.device);
+    });
+    
     let locCellUsed = false;
     
     // Get the color class for this location
@@ -1927,7 +1932,7 @@ searchTerms.forEach(term => {
     deviceRows.forEach((rowData, deviceIndex) => {
       const tr = document.createElement("tr");
 
-      // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
+      // Add search term cell (with rowspan for all rows in this term)
       if (!termCellUsed) {
         const tdTerm = document.createElement("td");
         tdTerm.rowSpan = totalRowsForTerm;
@@ -1939,178 +1944,178 @@ searchTerms.forEach(term => {
       // Add location cell (with rowspan for all device rows in this location)
       if (!locCellUsed) {
         const tdLoc = document.createElement("td");
-        tdLoc.rowSpan = deviceRows.length;
+        tdLoc.rowSpan = deviceRows.length; // Merge cells for same location
         tdLoc.innerHTML = formatLocationCell(loc);
         tdLoc.classList.add(locationColorClass);
         tr.appendChild(tdLoc);
         locCellUsed = true;
       }
-  
-          // Add device cell with pie chart for market share
-          const tdDev = document.createElement("td");
-          
-          // Find the corresponding data in projectTableData for this term, location, device
-          const projectData = window.projectTableData.find(item => 
-            item.searchTerm === term && 
-            item.location === loc &&
-            item.device === rowData.device
-          );
-          
-          // Create device container with three sections
-          let deviceHTML = `<div class="device-container">`;
-          
-          // 1. Device type
-          deviceHTML += `<div class="device-type"><img src="${rowData.device.toLowerCase().includes('mobile') ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png'}" alt="${rowData.device}" class="device-icon" /></div>`;
-          
-          // 2. Avg Rank with header
-          if (projectData && projectData.avgRank !== undefined) {
-            const rankVal = projectData.avgRank.toFixed(2);
-            let rankArrow = "±", rankColor = "#444";
-            
-            if (projectData.rankChange !== undefined) {
-              if (projectData.rankChange < 0) {
-                rankArrow = "▲"; 
-                rankColor = "green";
-              } else if (projectData.rankChange > 0) {
-                rankArrow = "▼"; 
-                rankColor = "red";
+
+      // Add device cell with visibility metrics
+      const tdDev = document.createElement("td");
+      
+      // Find the corresponding data in projectTableData for this term, location, device
+      const projectData = window.projectTableData.find(item => 
+        item.searchTerm === term && 
+        item.location === loc &&
+        item.device === rowData.device
+      );
+      
+      // Create device container with three sections
+      let deviceHTML = `<div class="device-container">`;
+      
+      // 1. Device type
+      deviceHTML += `<div class="device-type"><img src="${rowData.device.toLowerCase().includes('mobile') ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png'}" alt="${rowData.device}" class="device-icon" /></div>`;
+      
+      // 2. Avg Rank with header
+      if (projectData && projectData.avgRank !== undefined) {
+        const rankVal = projectData.avgRank.toFixed(2);
+        let rankArrow = "±", rankColor = "#444";
+        
+        if (projectData.rankChange !== undefined) {
+          if (projectData.rankChange < 0) {
+            rankArrow = "▲"; 
+            rankColor = "green";
+          } else if (projectData.rankChange > 0) {
+            rankArrow = "▼"; 
+            rankColor = "red";
+          }
+        }
+        
+        deviceHTML += `
+          <div class="device-rank">
+            <div class="section-header">Avg Rank</div>
+            <div class="device-rank-value">${rankVal}</div>
+            <div class="device-trend" style="color:${rankColor};">
+              ${rankArrow} ${Math.abs(projectData.rankChange || 0).toFixed(2)}
+            </div>
+          </div>
+        `;
+      } else {
+        deviceHTML += `
+          <div class="device-rank">
+            <div class="section-header">Avg Rank</div>
+            <div class="device-rank-value">-</div>
+          </div>
+        `;
+      }
+      
+      // 3. Visibility metric
+      const matchingProducts = window.allRows.filter(p => 
+        p.q === term &&
+        p.location_requested === loc &&
+        p.device === rowData.device &&
+        p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+      );
+
+      let avgVisibility = 0;
+      if (matchingProducts.length > 0) {
+        const visSum = matchingProducts.reduce((sum, product) => {
+          const vis = parseFloat(product.avg_visibility) || 0;
+          return sum + vis;
+        }, 0);
+        avgVisibility = visSum / matchingProducts.length;
+      }
+
+      deviceHTML += `
+        <div class="device-share">
+          <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
+          <div class="visibility-display" style="text-align: center; padding: 10px;">
+            <div style="font-size: 24px; font-weight: bold; color: #007aff;">
+              ${(avgVisibility * 100).toFixed(1)}%
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Find the latest tracking date from all active products
+      let latestDate = null;
+
+      // Find ALL products for this term/location/device combination, regardless of status
+      const allProductsForDevice = window.allRows.filter(p => 
+        p.q === term &&
+        p.location_requested === loc &&
+        p.device === rowData.device &&
+        p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+      );
+
+      // Find the latest date in all historical data
+      allProductsForDevice.forEach(product => {
+        if (product.historical_data && Array.isArray(product.historical_data)) {
+          product.historical_data.forEach(item => {
+            if (item.date && item.date.value) {
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              if (latestDate === null || itemDate.isAfter(latestDate)) {
+                latestDate = itemDate.clone();
               }
             }
-            
-            deviceHTML += `
-              <div class="device-rank">
-                <div class="section-header">Avg Rank</div>
-                <div class="device-rank-value">${rankVal}</div>
-                <div class="device-trend" style="color:${rankColor};">
-                  ${rankArrow} ${Math.abs(projectData.rankChange || 0).toFixed(2)}
-                </div>
-              </div>
-            `;
-          } else {
-            deviceHTML += `
-              <div class="device-rank">
-                <div class="section-header">Avg Rank</div>
-                <div class="device-rank-value">-</div>
-              </div>
-            `;
-          }
-          
-// 3. Visibility metric
-const matchingProducts = window.allRows.filter(p => 
-  p.q === term &&
-  p.location_requested === loc &&
-  p.device === rowData.device &&
-  p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-);
-
-let avgVisibility = 0;
-if (matchingProducts.length > 0) {
-  const visSum = matchingProducts.reduce((sum, product) => {
-    const vis = parseFloat(product.avg_visibility) || 0;
-    return sum + vis;
-  }, 0);
-  avgVisibility = visSum / matchingProducts.length;
-}
-
-deviceHTML += `
-  <div class="device-share">
-    <div class="section-header">Visibility</div>
-    <div class="visibility-display" style="text-align: center; padding: 10px;">
-      <div style="font-size: 24px; font-weight: bold; color: #007aff;">
-        ${(avgVisibility * 100).toFixed(1)}%
-      </div>
-    </div>
-  </div>
-`;
-          // Find the latest tracking date from all active products
-let latestDate = null;
-
-// Find ALL products for this term/location/device combination, regardless of status
-const allProductsForDevice = window.allRows.filter(p => 
-  p.q === term &&
-  p.location_requested === loc &&
-  p.device === rowData.device &&
-  p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-);
-
-// Find the latest date in all historical data
-allProductsForDevice.forEach(product => {
-  if (product.historical_data && Array.isArray(product.historical_data)) {
-    product.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
+          });
         }
-      }
-    });
-  }
-});
-
-// Add last tracked container
-deviceHTML += `<div class="last-tracked-container">
-  <div class="last-tracked-label">Last time tracked:</div>`;
-
-if (latestDate) {
-  const today = moment().startOf('day');
-  const yesterday = moment().subtract(1, 'days').startOf('day');
-  const daysDiff = today.diff(latestDate, 'days');
-  
-  let lastTrackedText = '';
-  let trackingClass = '';
-  
-  if (daysDiff === 0) {
-    lastTrackedText = 'Today';
-    trackingClass = 'recent-tracking';
-  } else if (daysDiff === 1) {
-    lastTrackedText = 'Yesterday';
-    trackingClass = 'recent-tracking';
-  } else if (daysDiff <= 7) {
-    lastTrackedText = `${daysDiff} days ago`;
-    trackingClass = 'moderate-tracking';
-  } else {
-    lastTrackedText = `${daysDiff} days ago`;
-    trackingClass = 'old-tracking';
-  }
-  
-  deviceHTML += `<div class="last-tracked-value ${trackingClass}">${lastTrackedText}</div>`;
-} else {
-  deviceHTML += `<div class="last-tracked-value">Not tracked</div>`;
-}
-
-deviceHTML += `</div>`; // Close last-tracked-container
-          deviceHTML += `</div>`; // Close device-container
-          
-          tdDev.innerHTML = deviceHTML;
-          
-          // Apply background based on device type
-          const deviceLower = rowData.device.toLowerCase();
-          if (deviceLower.includes('desktop')) {
-            tdDev.classList.add('device-desktop');
-          } else if (deviceLower.includes('mobile')) {
-            tdDev.classList.add('device-mobile');
-          }
-          
-          tr.appendChild(tdDev);
-          
-// Add Top 40 Segmentation cell
-const tdSegmentation = document.createElement("td");
-const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
-tr.appendChild(tdSegmentation);
-
-// Add Charts cell
-const tdCharts = document.createElement("td");
-tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
-  <div class="chart-products"></div>
-  <div class="chart-avg-position">Click "Charts" view to see position trends</div>
-</div>`;
-tr.appendChild(tdCharts);
-
-tbody.appendChild(tr);
-        });
       });
+
+      // Add last tracked container
+      deviceHTML += `<div class="last-tracked-container">
+        <div class="last-tracked-label">Last time tracked:</div>`;
+
+      if (latestDate) {
+        const today = moment().startOf('day');
+        const daysDiff = today.diff(latestDate, 'days');
+        
+        let lastTrackedText = '';
+        let trackingClass = '';
+        
+        if (daysDiff === 0) {
+          lastTrackedText = 'Today';
+          trackingClass = 'recent-tracking';
+        } else if (daysDiff === 1) {
+          lastTrackedText = 'Yesterday';
+          trackingClass = 'recent-tracking';
+        } else if (daysDiff <= 7) {
+          lastTrackedText = `${daysDiff} days ago`;
+          trackingClass = 'moderate-tracking';
+        } else {
+          lastTrackedText = `${daysDiff} days ago`;
+          trackingClass = 'old-tracking';
+        }
+        
+        deviceHTML += `<div class="last-tracked-value ${trackingClass}">${lastTrackedText}</div>`;
+      } else {
+        deviceHTML += `<div class="last-tracked-value">Not tracked</div>`;
+      }
+
+      deviceHTML += `</div>`; // Close last-tracked-container
+      deviceHTML += `</div>`; // Close device-container
+      
+      tdDev.innerHTML = deviceHTML;
+      
+      // Apply background based on device type
+      const deviceLower = rowData.device.toLowerCase();
+      if (deviceLower.includes('desktop')) {
+        tdDev.classList.add('device-desktop');
+      } else if (deviceLower.includes('mobile')) {
+        tdDev.classList.add('device-mobile');
+      }
+      
+      tr.appendChild(tdDev);
+      
+      // Add Top 40 Segmentation cell
+      const tdSegmentation = document.createElement("td");
+      const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+      tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+      tr.appendChild(tdSegmentation);
+
+      // Add Charts cell
+      const tdCharts = document.createElement("td");
+      tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
+        <div class="chart-products"></div>
+        <div class="chart-avg-position">Click "Charts" view to see position trends</div>
+      </div>`;
+      tr.appendChild(tdCharts);
+
+      tbody.appendChild(tr);
     });
+  });
+});
 
     // Create products navigation panel
 const productsNavPanel = document.getElementById('productsNavPanel');
@@ -2348,7 +2353,7 @@ if (record.avg_visibility) {
 const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
 deviceHTML += `
   <div class="device-share">
-    <div class="section-header">Visibility</div>
+    <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
     <div id="${visChartId}" class="pie-chart-container"></div>
   </div>
 `;
