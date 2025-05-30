@@ -28,22 +28,17 @@ window.explorerApexCharts = [];
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
-  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
-    <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
-      <!-- Products navigation will be inserted here -->
+  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
+    <div class="view-switcher">
+      <button id="viewProductsExplorer" class="active">Products</button>
+      <button id="viewChartsExplorer">Charts</button>
     </div>
-    <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-      <div class="view-switcher">
-        <button id="viewProductsExplorer" class="active">Products</button>
-        <button id="viewChartsExplorer">Charts</button>
-      </div>
-      <button id="fullscreenToggleExplorer" class="fullscreen-toggle">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-        </svg>
-        Full Screen
-      </button>
-    </div>
+    <button id="fullscreenToggleExplorer" class="fullscreen-toggle">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+      </svg>
+      Full Screen
+    </button>
   </div>
 `;
     
@@ -674,8 +669,12 @@ window.explorerApexCharts = [];
           overflow: hidden;
         }
 /* Fixed column widths - MODIFIED */
-.product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
-.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 120px; }
+.product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { 
+  width: 300px; /* Products navigation column */
+  background-color: #f8f9fa;
+  border-right: 2px solid #dee2e6;
+}
+.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 190px; }
 .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
 .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 100px; }
 .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: 240px; }
@@ -1786,6 +1785,7 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
     const thead = document.createElement("thead");
 thead.innerHTML = `
   <tr>
+    <th>Products</th>
     <th>Search Term</th>
     <th>Location</th>
     <th>Device</th>
@@ -1832,8 +1832,8 @@ const productMap = new Map(); // To track unique products
 if (window.allRows && Array.isArray(window.allRows)) {
   window.allRows.forEach(product => {
     if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-      // Use only title for uniqueness
-const productKey = product.title || '';
+      // Create a unique key for the product
+      const productKey = `${product.title}_${product.link || ''}`;
       
       if (!productMap.has(productKey)) {
         productMap.set(productKey, product);
@@ -1884,6 +1884,78 @@ let productsNavRendered = false;
         // Iterate through devices for this location
         deviceRows.forEach(rowData => {
           const tr = document.createElement("tr");
+
+// Add Products navigation cell for first row only
+if (!productsNavRendered) {
+  const tdProducts = document.createElement("td");
+  tdProducts.classList.add('products-nav-cell');
+  tdProducts.style.verticalAlign = 'top';
+  tdProducts.style.position = 'relative';
+            
+            // Create products navigation container
+            const productsNavContainer = document.createElement('div');
+            productsNavContainer.classList.add('products-nav-container');
+            
+            // Add all unique products
+            allCompanyProducts.forEach((product, index) => {
+              const navItem = document.createElement('div');
+              navItem.classList.add('nav-product-item');
+              navItem.setAttribute('data-product-index', index);
+              
+              // Create small ad details container
+              const smallCard = document.createElement('div');
+              smallCard.classList.add('small-ad-details');
+              
+              // Use placeholder values for now
+              const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
+              const badgeColor = '#007aff'; // Placeholder color
+              
+              const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+              const title = product.title || 'No title';
+              
+smallCard.innerHTML = `
+  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+    <div class="small-ad-pos-value">${posValue}</div>
+    <div class="small-ad-pos-trend"></div>
+  </div>
+  <img class="small-ad-image" 
+       src="${imageUrl}" 
+       alt="${title}"
+       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+  <div class="small-ad-title">${title}</div>
+`;
+              
+              navItem.appendChild(smallCard);
+              
+              // Add click handler
+              navItem.addEventListener('click', function() {
+                // Remove selected class from all items
+                document.querySelectorAll('.nav-product-item').forEach(item => {
+                  item.classList.remove('selected');
+                });
+                
+                // Add selected class to this item
+                navItem.classList.add('selected');
+                
+                // Store selected product for future use
+                window.selectedExplorerProduct = product;
+                
+                console.log('[ProductExplorer] Selected product:', product.title);
+                // TODO: Update other columns based on selected product
+              });
+              
+              productsNavContainer.appendChild(navItem);
+            });
+            
+            tdProducts.appendChild(productsNavContainer);
+            tr.appendChild(tdProducts);
+            productsNavRendered = true;
+          } else {
+            // Add empty cell for products column in other rows
+            const tdEmpty = document.createElement("td");
+            tdEmpty.classList.add('products-nav-cell');
+            tr.appendChild(tdEmpty);
+          }
   
           // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
           if (!termCellUsed) {
@@ -2064,6 +2136,18 @@ const tdProducts = document.createElement("td");
 tdProducts.style.width = "100%";
 tdProducts.style.minWidth = "400px";
 
+// Create product cell container (for Products view)
+const productCellContainer = document.createElement("div");
+productCellContainer.classList.add("product-cell-container");
+productCellContainer.style.width = "100%";
+productCellContainer.style.height = "100%";
+
+// Create product container
+const productCellDiv = document.createElement("div");
+productCellDiv.classList.add("product-cell");
+productCellContainer.appendChild(productCellDiv);
+tdProducts.appendChild(productCellContainer);
+
 // Create products chart container (for Charts view)
 const productsChartContainer = document.createElement("div");
 productsChartContainer.classList.add("products-chart-container");
@@ -2079,7 +2163,7 @@ chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>
 
 productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
-tdProducts.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Select a product to view data</div>';
+tdProducts.appendChild(productsChartContainer);
   
           // Find and display matching products
           if (window.allRows && Array.isArray(window.allRows)) {
@@ -2117,7 +2201,8 @@ const chartInfo = {
   activeCount: activeProducts.length,
   inactiveCount: inactiveProducts.length,
   pieChartId: pieChartId,
-  projectData: projectData
+  projectData: projectData,
+  productCellDiv: productCellDiv // Add reference to the product cell
 };
 
 // Add to pending charts array instead of creating immediately
@@ -2125,6 +2210,925 @@ if (!window.pendingExplorerCharts) {
   window.pendingExplorerCharts = [];
 }
 window.pendingExplorerCharts.push(chartInfo);
+  
+            if (matchingProducts.length === 0) {
+              productCellDiv.innerHTML = '<div class="no-products">–</div>';
+            } else {
+              // Debug: Log product cell width
+              console.log(`[renderProductExplorerTable] Product cell width for ${term}/${loc}/${rowData.device}: ${productCellDiv.offsetWidth}px`);
+              console.log("[DEBUG] Product cell HTML structure:", productCellDiv.innerHTML.substring(0, 200) + "...");
+             console.log("[DEBUG] Product cell has", productCellDiv.querySelectorAll('*').length, "elements,", 
+             productCellDiv.querySelectorAll('.ad-details').length, "with class 'ad-details'");
+  
+// Sort products by average position for the 7-day period (best/lowest position first)
+matchingProducts.forEach(product => {
+  // Calculate the 7-day average position for sorting
+  if (product.historical_data && product.historical_data.length > 0) {
+    // Find the latest date in the historical data
+    let latestDate = null;
+    product.historical_data.forEach(item => {
+      if (item.date && item.date.value) {
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (latestDate === null || itemDate.isAfter(latestDate)) {
+          latestDate = itemDate.clone();
+        }
+      }
+    });
+    
+    if (latestDate) {
+      // Define the 7-day window
+      const endDate = latestDate.clone();
+      const startDate = endDate.clone().subtract(6, 'days');
+      
+      // Filter for current 7-day period
+      const currentPeriodData = product.historical_data.filter(item => {
+        if (!item.date || !item.date.value || !item.avg_position) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+      
+      // Calculate average position
+      let sum = 0;
+      let count = 0;
+      currentPeriodData.forEach(item => {
+        const pos = parseFloat(item.avg_position);
+        if (!isNaN(pos)) {
+          sum += pos;
+          count++;
+        }
+      });
+      
+      product._sortingAvgPos = count > 0 ? sum / count : 999999;
+    } else {
+      product._sortingAvgPos = 999999;
+    }
+  } else {
+    product._sortingAvgPos = 999999;
+  }
+});
+
+// Now sort by the calculated average position
+matchingProducts.sort((a, b) => {
+  return a._sortingAvgPos - b._sortingAvgPos; // Sort by ascending position (lowest/best first)
+});
+              
+              // Create a floating card for each product
+              // In the matchingProducts.forEach loop in renderProductExplorerTable:
+
+              // First sort products by status (active first, then inactive)
+              const activeProducts = matchingProducts.filter(product => 
+                product.product_status === 'active' || !product.product_status
+              );
+              const inactiveProducts = matchingProducts.filter(product => 
+                product.product_status === 'inactive'
+              );
+              
+              console.log(`[DEBUG] Products sorted: ${activeProducts.length} active, ${inactiveProducts.length} inactive`);
+              
+              // Process active products first
+              activeProducts.forEach((product, productIndex) => {
+                try {
+                  // Generate a unique ID with the pe_ prefix
+                  const peIndexKey = 'pe_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  
+                  // IMPORTANT: Clone the product completely
+                  const enhancedProduct = { ...product };
+                  
+                  // 1. Make sure it has the _plaIndex property
+                  enhancedProduct._plaIndex = peIndexKey;
+                  
+                  // 2. Make sure the stars array is properly formatted
+                  enhancedProduct.stars = [];
+                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
+                  for (let i = 0; i < 5; i++) {
+                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+                    enhancedProduct.stars.push({ fill });
+                  }
+                  
+                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
+                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
+                    enhancedProduct.historical_data = [];
+                  } else {
+                    // Fix any data parsing issues in the original historical data
+                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
+                      if (entry.avg_position) {
+                        // Ensure avg_position is a valid number by parsing and formatting
+                        const cleanPosition = parseFloat(entry.avg_position);
+                        if (!isNaN(cleanPosition)) {
+                          entry.avg_position = cleanPosition.toFixed(2);
+                        }
+                      }
+                      return entry;
+                    });
+                  }
+                  
+                  // Log the actual historical data count
+                  console.log(`[DEBUG] Product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
+                  
+                  // 4. Ensure other required fields are present
+                  // Calculate real position and trend using historical data
+                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
+                    // Find the latest date in the historical data
+                    let latestDate = null;
+                    enhancedProduct.historical_data.forEach(item => {
+                      if (item.date && item.date.value) {
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        if (latestDate === null || itemDate.isAfter(latestDate)) {
+                          latestDate = itemDate.clone();
+                        }
+                      }
+                    });
+                  
+                    // If no valid dates found, we can't calculate anything
+                    if (!latestDate) {
+                      enhancedProduct.finalPosition = "-";
+                      enhancedProduct.finalSlope = "";
+                      enhancedProduct.arrow = "";
+                      enhancedProduct.posBadgeBackground = "gray";
+                    } else {
+                      // Define the 7-day time windows based on the latest available date
+                      const endDate = latestDate.clone();
+                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
+                      
+                      // Previous period
+                      const prevEndDate = startDate.clone().subtract(1, 'days');
+                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+                      
+                      // Filter for current 7-day period
+                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+                      });
+                      
+                      // Filter for previous 7-day period
+                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+                      });
+                      
+                      // Calculate average position for current period
+                      let currentAvgPos = 0;
+                      if (currentPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        currentPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        currentAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate average position for previous period
+                      let prevAvgPos = 0;
+                      if (prevPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        prevPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        prevAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate trend (change in position)
+                      let slope = 0;
+                      if (currentAvgPos > 0 && prevAvgPos > 0) {
+                        slope = currentAvgPos - prevAvgPos;
+                      }
+                      
+                      // Set the badge values
+                      if (currentAvgPos > 0) {
+                        // Format to 1 decimal place, avoid .0 suffix
+                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
+                        enhancedProduct.finalPosition = formattedPos;
+                        
+                        if (slope !== 0) {
+                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
+                          if (slope > 0) {
+                            enhancedProduct.arrow = "▼"; // Position got worse
+                            enhancedProduct.posBadgeBackground = "red";
+                          } else {
+                            enhancedProduct.arrow = "▲"; // Position improved
+                            enhancedProduct.posBadgeBackground = "green";
+                          }
+                          
+                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
+                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
+                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
+                        } else {
+                          enhancedProduct.arrow = "";
+                          enhancedProduct.finalSlope = "";
+                          enhancedProduct.posBadgeBackground = "gray";
+                        }
+                      } else {
+                        // No valid position data
+                        enhancedProduct.finalPosition = "-";
+                        enhancedProduct.finalSlope = "";
+                        enhancedProduct.arrow = "";
+                        enhancedProduct.posBadgeBackground = "gray";
+                      }
+                    }
+                  } else {
+                    // No historical data available
+                    enhancedProduct.finalPosition = "-";
+                    enhancedProduct.finalSlope = "";
+                    enhancedProduct.arrow = "";
+                    enhancedProduct.posBadgeBackground = "gray";
+                  }
+              
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
+                  
+                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  
+                  // Now render the product with the same enhanced data
+                  const html = compiledTemplate(enhancedProduct);
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  
+                  // Get just the first element (the ad-details div)
+                  const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
+                  
+                  // Set explicit width as a safeguard
+                  adCard.style.width = "150px";
+                  adCard.style.flexShrink = "0";
+                  
+                  // Add to the products cell
+                  productCellDiv.appendChild(adCard);
+                } catch (error) {
+                  console.error("[renderProductExplorerTable] Error rendering product:", error);
+                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
+                }
+              });
+              
+              // Then process inactive products with the same detailed logic
+              inactiveProducts.forEach((product, productIndex) => {
+                try {
+                  // Generate a unique ID with the pe_ prefix
+                  const peIndexKey = 'pe_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
+                  
+                  // IMPORTANT: Clone the product completely
+                  const enhancedProduct = { ...product };
+                  
+                  // 1. Make sure it has the _plaIndex property
+                  enhancedProduct._plaIndex = peIndexKey;
+                  
+                  // 2. Make sure the stars array is properly formatted
+                  enhancedProduct.stars = [];
+                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
+                  for (let i = 0; i < 5; i++) {
+                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+                    enhancedProduct.stars.push({ fill });
+                  }
+                  
+                  // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
+                  if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
+                    enhancedProduct.historical_data = [];
+                  } else {
+                    // Fix any data parsing issues in the original historical data
+                    enhancedProduct.historical_data = enhancedProduct.historical_data.map(entry => {
+                      if (entry.avg_position) {
+                        // Ensure avg_position is a valid number by parsing and formatting
+                        const cleanPosition = parseFloat(entry.avg_position);
+                        if (!isNaN(cleanPosition)) {
+                          entry.avg_position = cleanPosition.toFixed(2);
+                        }
+                      }
+                      return entry;
+                    });
+                  }
+                  
+                  // Log the actual historical data count
+                  console.log(`[DEBUG] Inactive product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
+                  
+                  // 4. Ensure other required fields are present
+                  // Calculate real position and trend using historical data
+                  if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
+                    // Find the latest date in the historical data
+                    let latestDate = null;
+                    enhancedProduct.historical_data.forEach(item => {
+                      if (item.date && item.date.value) {
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        if (latestDate === null || itemDate.isAfter(latestDate)) {
+                          latestDate = itemDate.clone();
+                        }
+                      }
+                    });
+                  
+                    // If no valid dates found, we can't calculate anything
+                    if (!latestDate) {
+                      enhancedProduct.finalPosition = "-";
+                      enhancedProduct.finalSlope = "";
+                      enhancedProduct.arrow = "";
+                      enhancedProduct.posBadgeBackground = "gray";
+                    } else {
+                      // Define the 7-day time windows based on the latest available date
+                      const endDate = latestDate.clone();
+                      const startDate = endDate.clone().subtract(6, 'days'); // Last 7 days including end date
+                      
+                      // Previous period
+                      const prevEndDate = startDate.clone().subtract(1, 'days');
+                      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+                      
+                      // Filter for current 7-day period
+                      const currentPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+                      });
+                      
+                      // Filter for previous 7-day period
+                      const prevPeriodData = enhancedProduct.historical_data.filter(item => {
+                        if (!item.date || !item.date.value || !item.avg_position) return false;
+                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+                      });
+                      
+                      // Calculate average position for current period
+                      let currentAvgPos = 0;
+                      if (currentPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        currentPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        currentAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate average position for previous period
+                      let prevAvgPos = 0;
+                      if (prevPeriodData.length > 0) {
+                        let sum = 0;
+                        let count = 0;
+                        prevPeriodData.forEach(item => {
+                          const pos = parseFloat(item.avg_position);
+                          if (!isNaN(pos)) {
+                            sum += pos;
+                            count++;
+                          }
+                        });
+                        prevAvgPos = count > 0 ? sum / count : 0;
+                      }
+                      
+                      // Calculate trend (change in position)
+                      let slope = 0;
+                      if (currentAvgPos > 0 && prevAvgPos > 0) {
+                        slope = currentAvgPos - prevAvgPos;
+                      }
+                      
+                      // Set the badge values
+                      if (currentAvgPos > 0) {
+                        // Format to 1 decimal place, avoid .0 suffix
+                        const formattedPos = currentAvgPos.toFixed(1).replace(/\.0$/, '');
+                        enhancedProduct.finalPosition = formattedPos;
+                        
+                        if (slope !== 0) {
+                          // For position, DOWN (▼) is GOOD, UP (▲) is BAD
+                          if (slope > 0) {
+                            enhancedProduct.arrow = "▼"; // Position got worse
+                            enhancedProduct.posBadgeBackground = "red";
+                          } else {
+                            enhancedProduct.arrow = "▲"; // Position improved
+                            enhancedProduct.posBadgeBackground = "green";
+                          }
+                          
+                          // Format slope to 1 decimal place, remove negative sign for improved, add for worsened
+                          const slopeAbs = Math.abs(slope).toFixed(1).replace(/\.0$/, '');
+                          enhancedProduct.finalSlope = slope < 0 ? slopeAbs : `-${slopeAbs}`;
+                        } else {
+                          enhancedProduct.arrow = "";
+                          enhancedProduct.finalSlope = "";
+                          enhancedProduct.posBadgeBackground = "gray";
+                        }
+                      } else {
+                        // No valid position data
+                        enhancedProduct.finalPosition = "-";
+                        enhancedProduct.finalSlope = "";
+                        enhancedProduct.arrow = "";
+                        enhancedProduct.posBadgeBackground = "gray";
+                      }
+                    }
+                  } else {
+                    // No historical data available
+                    enhancedProduct.finalPosition = "-";
+                    enhancedProduct.finalSlope = "";
+                    enhancedProduct.arrow = "";
+                    enhancedProduct.posBadgeBackground = "gray";
+                  }
+              
+                  // Calculate visibility for the 7-day period
+let visibilityBarValue = 0;
+if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
+  // Use the same date range as position calculation
+  const endDate = latestDate.clone();
+  const startDate = endDate.clone().subtract(6, 'days');
+  const periodDays = 7;
+  
+  // Sum visibility for the period
+  let sum = 0;
+  enhancedProduct.historical_data.forEach((item) => {
+    if (item.date && item.date.value) {
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      if (d.isBetween(startDate, endDate, "day", "[]")) {
+        if (item.visibility != null) {
+          sum += parseFloat(item.visibility);
+        }
+      }
+    }
+  });
+  
+  // Average is sum divided by number of days (not number of records)
+  let avgDailyVis = sum / periodDays;
+  
+  // Convert to 0-100 integer
+  visibilityBarValue = Math.round(avgDailyVis * 100);
+}
+enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
+                  
+                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
+                  window.globalRows[peIndexKey] = enhancedProduct;
+                  console.log(`[DEBUG] Added inactive product to globalRows[${peIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+                  
+                  // Now render the product with the same enhanced data
+                  const html = compiledTemplate(enhancedProduct);
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  
+                  // Get just the first element (the ad-details div)
+                  const adCard = tempDiv.firstElementChild;
+                  adCard.classList.remove('my-company');
+                  
+                  // Set explicit width as a safeguard
+                  adCard.style.width = "150px";
+                  adCard.style.flexShrink = "0";
+                  
+                  // Add inactive class for styling
+                  adCard.classList.add('inactive-product');
+                  
+                  // Add status indicator
+                  const statusIndicator = document.createElement('div');
+                  statusIndicator.className = 'product-status-indicator product-status-inactive';
+                  statusIndicator.textContent = 'Inactive';
+                  adCard.appendChild(statusIndicator);
+                  
+                  // Add to the products cell (after active products)
+                  productCellDiv.appendChild(adCard);
+                } catch (error) {
+                  console.error("[renderProductExplorerTable] Error rendering inactive product:", error);
+                  console.error("[renderProductExplorerTable] Problem product:", JSON.stringify(product));
+                }
+              })
+
+// Sort products by position value (best to worst)
+const sortByPosition = (a, b) => {
+  const posA = parseFloat(a.finalPosition) || 999;
+  const posB = parseFloat(b.finalPosition) || 999;
+  return posA - posB;
+};
+
+// Sort active and inactive products separately
+const sortedActiveProducts = [...activeProducts].sort(sortByPosition);
+const sortedInactiveProducts = [...inactiveProducts].sort(sortByPosition);
+
+// Clear the container first
+chartProductsDiv.innerHTML = '';
+
+// Add active products
+sortedActiveProducts.forEach((product, index) => {
+  // First, ensure this product has the enhanced data from globalRows
+  let enhancedProduct = null;
+  const globalRowsKeys = Object.keys(window.globalRows);
+  for (const key of globalRowsKeys) {
+    const globalProduct = window.globalRows[key];
+    if (globalProduct && 
+        globalProduct.title === product.title && 
+        globalProduct.source === product.source &&
+        globalProduct.q === product.q &&
+        globalProduct.location_requested === product.location_requested &&
+        globalProduct.device === product.device) {
+      enhancedProduct = globalProduct;
+      break;
+    }
+  }
+  
+  // Use enhanced product if found, otherwise use original
+  const productToUse = enhancedProduct || product;
+  
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  smallCard.setAttribute('data-product-index', index);
+  
+  // Get position and trend values from the enhanced product
+  const posValue = productToUse.finalPosition || '-';
+  const trendArrow = productToUse.arrow || '';
+  const trendValue = productToUse.finalSlope || '';
+  const badgeColor = productToUse.posBadgeBackground || 'gray';
+  
+  // Create the HTML for small card
+  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = productToUse.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${posValue}</div>
+      <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  // Store enhanced product reference for chart
+  smallCard.productData = productToUse;
+  smallCard.productArrayIndex = index; // Store the original index for chart reference
+  
+  chartProductsDiv.appendChild(smallCard);
+});
+
+// Add separator for inactive products if they exist
+if (sortedInactiveProducts.length > 0) {
+  const separator = document.createElement('div');
+  separator.style.width = '100%';
+  separator.style.padding = '8px';
+  separator.style.textAlign = 'center';
+  separator.style.fontSize = '12px';
+  separator.style.color = '#666';
+  separator.style.backgroundColor = '#f0f0f0';
+  separator.style.borderTop = '1px solid #ddd';
+  separator.style.borderBottom = '1px solid #ddd';
+  separator.style.marginTop = '5px';
+  separator.style.marginBottom = '5px';
+  separator.innerHTML = '— Inactive Products —';
+  chartProductsDiv.appendChild(separator);
+  
+  // Add inactive products
+  sortedInactiveProducts.forEach((product, index) => {
+    // Same enhanced product logic as above
+    let enhancedProduct = null;
+    const globalRowsKeys = Object.keys(window.globalRows);
+    for (const key of globalRowsKeys) {
+      const globalProduct = window.globalRows[key];
+      if (globalProduct && 
+          globalProduct.title === product.title && 
+          globalProduct.source === product.source &&
+          globalProduct.q === product.q &&
+          globalProduct.location_requested === product.location_requested &&
+          globalProduct.device === product.device) {
+        enhancedProduct = globalProduct;
+        break;
+      }
+    }
+    
+    const productToUse = enhancedProduct || product;
+    
+    const smallCard = document.createElement('div');
+    smallCard.classList.add('small-ad-details');
+    smallCard.classList.add('inactive');
+    smallCard.setAttribute('data-product-index', sortedActiveProducts.length + index);
+    
+    const posValue = productToUse.finalPosition || '-';
+    const trendArrow = productToUse.arrow || '';
+    const trendValue = productToUse.finalSlope || '';
+    const badgeColor = productToUse.posBadgeBackground || 'gray';
+    
+    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+    const title = productToUse.title || 'No title';
+    
+    smallCard.innerHTML = `
+      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+        <div class="small-ad-pos-value">${posValue}</div>
+        <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+      </div>
+      <img class="small-ad-image" 
+           src="${imageUrl}" 
+           alt="${title}"
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+      <div class="small-ad-title">${title}</div>
+    `;
+    
+    smallCard.productData = productToUse;
+    smallCard.productArrayIndex = sortedActiveProducts.length + index;
+    
+    chartProductsDiv.appendChild(smallCard);
+  });
+}
+
+// Now create the combined array for chart rendering
+const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
+
+              // Add direct click handlers to each product card
+              productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
+                const plaIndex = adCard.getAttribute('data-pla-index');
+                console.log(`[DEBUG] Attaching click handler to card: ${plaIndex}`);
+                
+                adCard.addEventListener('click', function(e) {
+                  // Prevent default and stop propagation
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.stopImmediatePropagation();
+                  
+                  console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
+                  console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
+                  
+                  // Get the product data
+                  const rowData = window.globalRows[plaIndex];
+                  if (!rowData) {
+                    console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
+                    return;
+                  }
+                  
+                  console.log(`[DEBUG] Found data for product: ${rowData.title}`);
+                  
+                  // DEEP DEBUG OF HISTORICAL DATA
+                  console.log(`[DEBUG] Historical data exists: ${Array.isArray(rowData.historical_data)}`);
+                  console.log(`[DEBUG] Historical data length: ${rowData.historical_data?.length || 0}`);
+                  
+                  if (rowData.historical_data && rowData.historical_data.length > 0) {
+                    // Log each historical entry in a structured way
+                    console.log(`[DEBUG] === FULL HISTORICAL DATA (${rowData.historical_data.length} entries) ===`);
+                    
+                    // Sort by date first to ensure they're in chronological order
+                    const sortedHistData = [...rowData.historical_data].sort((a, b) => {
+                      if (!a.date || !a.date.value) return -1;
+                      if (!b.date || !b.date.value) return 1;
+                      return a.date.value.localeCompare(b.date.value);
+                    });
+                    
+                    // Format the data as a table
+                    console.table(sortedHistData.map(entry => ({
+                      date: entry.date?.value || 'unknown',
+                      avg_position: entry.avg_position,
+                      visibility: entry.visibility,
+                      top3: entry.top3_visibility,
+                      top8: entry.top8_visibility,
+                      top14: entry.top14_visibility,
+                      top40: entry.top40_visibility
+                    })));
+                    
+                    // Show date coverage
+                    const dates = sortedHistData
+                      .filter(entry => entry.date && entry.date.value)
+                      .map(entry => entry.date.value);
+                    
+                    const uniqueDates = [...new Set(dates)];
+                    console.log(`[DEBUG] Date coverage: ${uniqueDates.length} unique dates out of ${dates.length} entries`);
+                    console.log(`[DEBUG] Date range: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length-1]}`);
+                    
+                    // Check for any data anomalies
+                    const missingPosition = sortedHistData.filter(entry => !entry.avg_position).length;
+                    const missingVisibility = sortedHistData.filter(entry => !entry.visibility).length;
+                    
+                    console.log(`[DEBUG] Data quality check:
+                      - Entries missing position: ${missingPosition}
+                      - Entries missing visibility: ${missingVisibility}
+                    `);
+                  }
+                  
+                  // Create or get the panel container
+                  let detailsPanel = document.getElementById('product-explorer-details-panel');
+                  if (!detailsPanel) {
+                    detailsPanel = document.createElement('div');
+                    detailsPanel.id = 'product-explorer-details-panel';
+                    detailsPanel.style.position = 'fixed';
+                    detailsPanel.style.top = '40%';
+                    detailsPanel.style.left = 'auto';
+                    detailsPanel.style.right = '10px';
+                    detailsPanel.style.transform = 'translateY(-50%)';
+                    detailsPanel.style.zIndex = '1000';
+                    detailsPanel.style.width = '1255px';
+                    detailsPanel.style.maxWidth = '1255px';
+                    detailsPanel.style.maxHeight = '80vh';
+                    detailsPanel.style.overflow = 'auto';
+                    detailsPanel.style.borderRadius = '8px';
+                    detailsPanel.style.backgroundColor = '#fff';
+                    detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
+                    const contentWrapper = document.createElement('div');
+                    contentWrapper.id = 'explorer-panel-content-wrapper';
+                    contentWrapper.style.position = 'relative';
+                    contentWrapper.style.width = '100%';
+                    contentWrapper.style.height = '100%';
+                    detailsPanel.appendChild(contentWrapper);
+                    document.body.appendChild(detailsPanel);
+                  }
+
+                  // Adjust panel positioning based on fullscreen state
+const isFullscreen = document.getElementById("productExplorerContainer").classList.contains("product-map-fullscreen");
+if (isFullscreen) {
+  detailsPanel.style.position = 'absolute';
+  detailsPanel.style.top = '50%';
+  detailsPanel.style.left = '50%';
+  detailsPanel.style.transform = 'translate(-50%, -50%)';
+  detailsPanel.style.right = 'auto';
+  detailsPanel.style.zIndex = '10001'; // Ensure it's above the fullscreen container
+} else {
+  detailsPanel.style.position = 'fixed';
+  detailsPanel.style.top = '40%';
+  detailsPanel.style.left = 'auto';
+  detailsPanel.style.right = '10px';
+  detailsPanel.style.transform = 'translateY(-50%)';
+}
+                  
+                  // Get the content wrapper
+                  let contentWrapper = document.getElementById('explorer-explorer-panel-content-wrapper');
+                  if (!contentWrapper) {
+                    contentWrapper = document.createElement('div');
+                    contentWrapper.id = 'explorer-panel-content-wrapper';
+                    contentWrapper.style.position = 'relative';
+                    contentWrapper.style.width = '100%';
+                    contentWrapper.style.height = '100%';
+                    detailsPanel.appendChild(contentWrapper);
+                  }
+                  
+                  // Show the loading overlay
+                  let loadingOverlay = document.getElementById('explorer-explorer-panel-loading-overlay');
+                  if (!loadingOverlay) {
+                    loadingOverlay = document.createElement('div');
+                    loadingOverlay.id = 'explorer-panel-loading-overlay';
+                    loadingOverlay.style.position = 'absolute';
+                    loadingOverlay.style.top = '0';
+                    loadingOverlay.style.left = '0';
+                    loadingOverlay.style.width = '100%';
+                    loadingOverlay.style.height = '100%';
+                    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                    loadingOverlay.style.display = 'flex';
+                    loadingOverlay.style.justifyContent = 'center';
+                    loadingOverlay.style.alignItems = 'center';
+                    loadingOverlay.style.zIndex = '2000';
+                    loadingOverlay.innerHTML = '<div class="spinner"></div>';
+                    detailsPanel.appendChild(loadingOverlay);
+                  } else {
+                    loadingOverlay.style.display = 'flex';
+                  }
+                  
+                  // Make sure panel is visible
+                  detailsPanel.style.display = 'block';
+                  
+                  // Important debug approach - make a copy of the DetailsPanel component
+                  const originalDetailsPanel = window.DetailsPanel;
+                  
+                  // Create a debug version that tells us what's happening
+                  window.DetailsPanel = function(props) {
+                    // Log incoming props
+                    console.log("[DEBUG-INJECTION] DetailsPanel received props:", {
+                      has_rowData: !!props.rowData,
+                      rowData_title: props.rowData?.title,
+                      rowData_historical_length: props.rowData?.historical_data?.length,
+                      start_date: props.start?.format('YYYY-MM-DD'),
+                      end_date: props.end?.format('YYYY-MM-DD')
+                    });
+                    
+                    // Check if the PLAChart component is available to debug
+                    const originalPLAChart = window.PLAChart;
+                    if (originalPLAChart) {
+                      // Override PLAChart to debug what happens with the historical data
+                      window.PLAChart = function(plaProps) {
+                        console.log("[DEBUG-CHART] PLAChart received historical_data length:", 
+                          plaProps.rowData?.historical_data?.length || 0);
+                        
+                        // Check prepareChartData function which might be generating synthetic data
+                        const original_prepareChartData = originalPLAChart.prototype.prepareChartData;
+                        if (typeof original_prepareChartData === 'function') {
+                          originalPLAChart.prototype.prepareChartData = function(rowData, startDate, endDate) {
+                            console.log("[DEBUG-CHART] prepareChartData called with:", {
+                              has_rowData: !!rowData,
+                              historical_length: rowData?.historical_data?.length || 0,
+                              startDate: startDate?.format('YYYY-MM-DD'),
+                              endDate: endDate?.format('YYYY-MM-DD')
+                            });
+                            
+                            // Call original and log result
+                            const result = original_prepareChartData.call(this, rowData, startDate, endDate);
+                            console.log("[DEBUG-CHART] prepareChartData returned:", result.length, "data points");
+                            return result;
+                          };
+                        }
+                        
+                        // Return the original component with our debug version
+                        return originalPLAChart(plaProps);
+                      };
+                      
+                      // Restore the original after a delay
+                      setTimeout(() => {
+                        window.PLAChart = originalPLAChart;
+                      }, 2000);
+                    }
+                    
+                    // Call the original component
+                    return originalDetailsPanel(props);
+                  };
+                  
+                  // Render with our debug version
+                  setTimeout(() => {
+                    try {
+                      // Get date range
+                      // Get the original date range first
+let dateRange = getDataRange(rowData);
+
+// Override with a 7-day range specifically for product map page
+if (dateRange && dateRange.end) {
+  // Keep the same end date but set start to 7 days before
+  dateRange = {
+    end: dateRange.end.clone(),
+    start: dateRange.end.clone().subtract(6, "days") // 7 days including end date
+  };
+}
+                      console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
+                      
+                      // Create a copy of rowData to pass to the component
+                      // This ensures we're passing exactly what we have in window.globalRows
+                      const rowDataCopy = { ...rowData };
+                      
+                      // Get the content wrapper again to ensure it exists
+                      const contentWrapper = document.getElementById('explorer-panel-content-wrapper');
+                      
+                      // Render into the content wrapper instead of detailsPanel
+                      ReactDOM.render(
+                        React.createElement(window.DetailsPanel, {
+                          key: plaIndex,
+                          rowData: rowDataCopy,
+                          start: dateRange.start,
+                          end: dateRange.end,
+                          activeTab: window.savedActiveTab || 1,
+                          onClose: () => {
+                            detailsPanel.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                          }
+                        }),
+                        contentWrapper
+                      );
+                      
+                      // Hide the loading overlay
+                      const loadingOverlay = document.getElementById('explorer-panel-loading-overlay');
+                      if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                      }
+                      
+                      // Restore original component
+                      window.DetailsPanel = originalDetailsPanel;
+                    } catch (error) {
+                      console.error("[DEBUG] Error rendering panel:", error);
+                      detailsPanel.innerHTML = `
+                        <div style="padding: 20px; text-align: center;">
+                          <h3>Error displaying product details</h3>
+                          <p>${error.message}</p>
+                          <pre style="text-align:left; max-height:200px; overflow:auto;">${error.stack}</pre>
+                          <button onclick="document.getElementById('product-explorer-details-panel').style.display='none';">
+                            Close
+                          </button>
+                        </div>
+                      `;
+                      
+                      // Restore original component
+                      window.DetailsPanel = originalDetailsPanel;
+                    }
+                  }, 100);
+                  
+                  return false;
+                }, true);
+              });
 
 // Add this right after adding products to window.globalRows 
 // (after the matchingProducts.forEach loop)
@@ -2136,72 +3140,85 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
     hasHistoricalData: Array.isArray(window.globalRows[key]?.historical_data)
   }))
 );
+              
+              // After adding all products, add visibility badges
+              setTimeout(() => {
+                productCellDiv.querySelectorAll('.vis-badge').forEach(function(el) {
+                  const parts = el.id.split('-');
+                  const index = parts[2];
+                  const row = window.globalRows[index];
+                  if (!row) return;
+                  
+                  let visValue = parseFloat(row.visibilityBarValue) || 0;
+                  if (visValue === 0) {
+                    visValue = 0.1;
+                  }
+              
+                  var options = {
+                    series: [visValue],
+                    chart: {
+                      height: 80,
+                      width: 80,
+                      type: 'radialBar',
+                      sparkline: { enabled: false },
+                      offsetY: 0
+                    },
+                    plotOptions: {
+                      radialBar: {
+                        startAngle: -90,
+                        endAngle: 90,
+                        hollow: { size: '50%' },
+                        track: { strokeDashArray: 8, margin:2 },
+                        dataLabels: {
+                          name: { show: false },
+                          value: {
+                            show: true,
+                            offsetY: 0,
+                            fontSize: '14px',
+                            formatter: function(val){
+                              return Math.round(val) + "%";
+                            }
+                          }
+                        }
+                      }
+                    },
+                    fill: {
+                      type: 'gradient',
+                      gradient: {
+                        shade: 'dark',
+                        shadeIntensity: 0.15,
+                        inverseColors: false,
+                        opacityFrom: 1,
+                        opacityTo: 1,
+                        stops: [0,50,100]
+                      }
+                    },
+                    stroke: { lineCap:'butt', dashArray:4 },
+                    labels: []
+                  };
+                  
+                  // Check if ApexCharts is available
+                  if (typeof ApexCharts !== 'undefined') {
+                    var chart = new ApexCharts(el, options);
+                    chart.render();
+                  } else {
+                    console.warn("[renderProductExplorerTable] ApexCharts not available for visibility badges");
+                  }
+                });
+              }, 100);
+            }
+          } else {
+            productCellDiv.textContent = "No product data available";
+            console.warn("[renderProductExplorerTable] allRows data not available");
+          }
           
           tr.appendChild(tdProducts);
           tbody.appendChild(tr);
-
-    // Create products navigation panel
-const productsNavPanel = document.getElementById('productsNavPanel');
-productsNavPanel.innerHTML = '<h3 style="padding: 15px; margin: 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #dee2e6;">Products</h3>';
-
-const productsNavContainer = document.createElement('div');
-productsNavContainer.classList.add('products-nav-container');
-productsNavContainer.style.padding = '10px';
-
-// Add all unique products
-allCompanyProducts.forEach((product, index) => {
-  const navItem = document.createElement('div');
-  navItem.classList.add('nav-product-item');
-  navItem.setAttribute('data-product-index', index);
-  
-  // Create small ad details container
-  const smallCard = document.createElement('div');
-  smallCard.classList.add('small-ad-details');
-  
-  // Use placeholder values for now
-  const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
-  const badgeColor = '#007aff'; // Placeholder color
-  
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = product.title || 'No title';
-  
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${posValue}</div>
-      <div class="small-ad-pos-trend"></div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-  `;
-  
-  navItem.appendChild(smallCard);
-  
-  // Add click handler
-  navItem.addEventListener('click', function() {
-    // Remove selected class from all items
-    document.querySelectorAll('.nav-product-item').forEach(item => {
-      item.classList.remove('selected');
+        });
+      });
     });
-    
-    // Add selected class to this item
-    navItem.classList.add('selected');
-    
-    // Store selected product for future use
-    window.selectedExplorerProduct = product;
-    
-    console.log('[ProductExplorer] Selected product:', product.title);
-    // TODO: Update table based on selected product
-  });
   
-  productsNavContainer.appendChild(navItem);
-});
-
-productsNavPanel.appendChild(productsNavContainer);
-  
-    container.querySelector("#productExplorerTableContainer").appendChild(table);
+    container.querySelector("#productExplorerContainer").appendChild(table);
     console.log("[renderProductExplorerTable] Table rendering complete");
     
     // Add a resize observer to ensure product cells maintain proper width after DOM updates
@@ -2287,16 +3304,39 @@ if (productExplorerContainer) {
         const startTime = performance.now();
         const batch = charts.slice(currentIndex, currentIndex + batchSize);
         
-batch.forEach(chartInfo => {
-  // Calculate segment counts from the rendered products
-  const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
-  
-  // Since we don't have product cards anymore, use placeholder values
-  // TODO: Implement proper calculation when product selection is added
-  segmentCounts[0] = 2; // Top3
-  segmentCounts[1] = 3; // Top4-8
-  segmentCounts[2] = 2; // Top9-14
-  segmentCounts[3] = 1; // Below14
+        batch.forEach(chartInfo => {
+          // Calculate segment counts from the rendered products
+          const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
+          
+          // Get the product elements that were rendered
+          const productCards = chartInfo.productCellDiv.querySelectorAll('.ad-details');
+          
+          productCards.forEach(card => {
+            // Skip inactive products
+            if (card.classList.contains('inactive-product')) {
+              return;
+            }
+            
+            // Get the data-pla-index to look up the product data
+            const plaIndex = card.getAttribute('data-pla-index');
+            const product = window.globalRows[plaIndex];
+            
+            if (product) {
+              const posValue = parseFloat(product.finalPosition);
+              
+              if (!isNaN(posValue) && posValue > 0) {
+                if (posValue <= 3) {
+                  segmentCounts[0]++; // Top3
+                } else if (posValue <= 8) {
+                  segmentCounts[1]++; // Top4-8
+                } else if (posValue <= 14) {
+                  segmentCounts[2]++; // Top9-14
+                } else {
+                  segmentCounts[3]++; // Below14
+                }
+              }
+            }
+          });
           
           // Create the segmentation chart
           requestAnimationFrame(() => {
