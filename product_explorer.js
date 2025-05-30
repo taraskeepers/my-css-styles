@@ -542,20 +542,53 @@ viewChartsBtn.addEventListener("click", function() {
     container.style.display = 'none';
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
-    container.style.display = 'block';
+    container.style.display = 'flex';
   });
   
   // Render charts for each row
   document.querySelectorAll('.products-chart-container').forEach(container => {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+    const chartProductsDiv = container.querySelector('.chart-products');
     
-    // Get stored products for this chart
-    const products = chartAvgPosDiv.storedProducts || [];
+    // Get all products for this chart
+    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
     
     if (products.length > 0 && chartAvgPosDiv) {
       renderAvgPositionChart(chartAvgPosDiv, products);
-    } else {
-      chartAvgPosDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">No position data available</div>';
+      
+      // Add click handlers to small cards for chart interaction
+      smallCards.forEach((card, index) => {
+        // Remove any existing click handler
+        const oldHandler = card._chartClickHandler;
+        if (oldHandler) {
+          card.removeEventListener('click', oldHandler);
+        }
+        
+        // Create new click handler
+        const clickHandler = function() {
+          // Toggle selection
+          if (chartAvgPosDiv.selectedProductIndex === index) {
+            // Deselect if clicking the same product
+            chartAvgPosDiv.selectedProductIndex = null;
+            card.classList.remove('active');
+          } else {
+            // Select this product
+            chartAvgPosDiv.selectedProductIndex = index;
+            // Remove active class from all cards
+            smallCards.forEach(c => c.classList.remove('active'));
+            // Add active class to clicked card
+            card.classList.add('active');
+          }
+          
+          // Update chart visibility
+          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+        };
+        
+        // Store reference to handler for cleanup
+        card._chartClickHandler = clickHandler;
+        card.addEventListener('click', clickHandler);
+      });
     }
   });
 });
@@ -1895,13 +1928,17 @@ tdProducts.appendChild(productCellContainer);
 const productsChartContainer = document.createElement("div");
 productsChartContainer.classList.add("products-chart-container");
 
-// Create chart-avg-position container (only this one, no chart-products)
+// Create chart-products container
+const chartProductsDiv = document.createElement("div");
+chartProductsDiv.classList.add("chart-products");
+
+// Create chart-avg-position container
 const chartAvgPositionDiv = document.createElement("div");
 chartAvgPositionDiv.classList.add("chart-avg-position");
-chartAvgPositionDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">Switch to Charts view to see position trends</div>';
+chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>';
 
+productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
-          
 tdProducts.appendChild(productsChartContainer);
   
           // Find and display matching products
@@ -2470,9 +2507,133 @@ const sortByPosition = (a, b) => {
 const sortedActiveProducts = [...activeProducts].sort(sortByPosition);
 const sortedInactiveProducts = [...inactiveProducts].sort(sortByPosition);
 
-// Store all products on the chart container for later chart rendering
+// Clear the container first
+chartProductsDiv.innerHTML = '';
+
+// Add active products
+sortedActiveProducts.forEach((product, index) => {
+  // First, ensure this product has the enhanced data from globalRows
+  let enhancedProduct = null;
+  const globalRowsKeys = Object.keys(window.globalRows);
+  for (const key of globalRowsKeys) {
+    const globalProduct = window.globalRows[key];
+    if (globalProduct && 
+        globalProduct.title === product.title && 
+        globalProduct.source === product.source &&
+        globalProduct.q === product.q &&
+        globalProduct.location_requested === product.location_requested &&
+        globalProduct.device === product.device) {
+      enhancedProduct = globalProduct;
+      break;
+    }
+  }
+  
+  // Use enhanced product if found, otherwise use original
+  const productToUse = enhancedProduct || product;
+  
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  smallCard.setAttribute('data-product-index', index);
+  
+  // Get position and trend values from the enhanced product
+  const posValue = productToUse.finalPosition || '-';
+  const trendArrow = productToUse.arrow || '';
+  const trendValue = productToUse.finalSlope || '';
+  const badgeColor = productToUse.posBadgeBackground || 'gray';
+  
+  // Create the HTML for small card
+  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = productToUse.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${posValue}</div>
+      <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  // Store enhanced product reference for chart
+  smallCard.productData = productToUse;
+  smallCard.productArrayIndex = index; // Store the original index for chart reference
+  
+  chartProductsDiv.appendChild(smallCard);
+});
+
+// Add separator for inactive products if they exist
+if (sortedInactiveProducts.length > 0) {
+  const separator = document.createElement('div');
+  separator.style.width = '100%';
+  separator.style.padding = '8px';
+  separator.style.textAlign = 'center';
+  separator.style.fontSize = '12px';
+  separator.style.color = '#666';
+  separator.style.backgroundColor = '#f0f0f0';
+  separator.style.borderTop = '1px solid #ddd';
+  separator.style.borderBottom = '1px solid #ddd';
+  separator.style.marginTop = '5px';
+  separator.style.marginBottom = '5px';
+  separator.innerHTML = '— Inactive Products —';
+  chartProductsDiv.appendChild(separator);
+  
+  // Add inactive products
+  sortedInactiveProducts.forEach((product, index) => {
+    // Same enhanced product logic as above
+    let enhancedProduct = null;
+    const globalRowsKeys = Object.keys(window.globalRows);
+    for (const key of globalRowsKeys) {
+      const globalProduct = window.globalRows[key];
+      if (globalProduct && 
+          globalProduct.title === product.title && 
+          globalProduct.source === product.source &&
+          globalProduct.q === product.q &&
+          globalProduct.location_requested === product.location_requested &&
+          globalProduct.device === product.device) {
+        enhancedProduct = globalProduct;
+        break;
+      }
+    }
+    
+    const productToUse = enhancedProduct || product;
+    
+    const smallCard = document.createElement('div');
+    smallCard.classList.add('small-ad-details');
+    smallCard.classList.add('inactive');
+    smallCard.setAttribute('data-product-index', sortedActiveProducts.length + index);
+    
+    const posValue = productToUse.finalPosition || '-';
+    const trendArrow = productToUse.arrow || '';
+    const trendValue = productToUse.finalSlope || '';
+    const badgeColor = productToUse.posBadgeBackground || 'gray';
+    
+    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+    const title = productToUse.title || 'No title';
+    
+    smallCard.innerHTML = `
+      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+        <div class="small-ad-pos-value">${posValue}</div>
+        <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
+      </div>
+      <img class="small-ad-image" 
+           src="${imageUrl}" 
+           alt="${title}"
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+      <div class="small-ad-title">${title}</div>
+    `;
+    
+    smallCard.productData = productToUse;
+    smallCard.productArrayIndex = sortedActiveProducts.length + index;
+    
+    chartProductsDiv.appendChild(smallCard);
+  });
+}
+
+// Now create the combined array for chart rendering
 const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
-chartAvgPositionDiv.storedProducts = allProductsForChart;
 
               // Add direct click handlers to each product card
               productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
@@ -2994,12 +3155,11 @@ requestAnimationFrame(renderBatch);
     renderPendingCharts();
   }
 
-// Function to render average position chart (copied from productMap.js)
+// Function to render average position chart
 function renderAvgPositionChart(container, products) {
-  if (!Chart.defaults.plugins.annotation) {
-    console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
-  }
-  
+if (!Chart.defaults.plugins.annotation) {
+  console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+}
   // Clear previous content
   container.innerHTML = '';
   container.style.padding = '20px';
@@ -3034,7 +3194,7 @@ function renderAvgPositionChart(container, products) {
   });
   
   if (!minDate || !maxDate) {
-    container.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">No position data available</div>';
+    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
     return;
   }
   
@@ -3051,57 +3211,89 @@ function renderAvgPositionChart(container, products) {
     dateArray.splice(0, dateArray.length - 30);
   }
   
-  // Create datasets for each product
-  const datasets = [];
+// Create datasets for each product
+const datasets = [];
 
-  products.forEach((product, index) => {
-    // Position data
-    const positionData = dateArray.map(dateStr => {
-      const histItem = product.historical_data?.find(item => 
-        item.date?.value === dateStr
-      );
-      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
-    });
-    
-    // Generate a color for this product - grey for inactive
-    let color;
-    if (product.product_status === 'inactive') {
-      color = '#999999'; // Grey for inactive products
-    } else {
-      const colors = [
-        '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-        '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-      ];
-      color = colors[index % colors.length];
-    }
-    
-    // Add position line dataset
-    datasets.push({
-      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
-      data: positionData,
-      borderColor: color,
-      backgroundColor: color + '20',
-      borderWidth: 2,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      tension: 0.3,
-      spanGaps: true,
-      yAxisID: 'y',
-      type: 'line',
-      productIndex: index,
-      dataType: 'position',
-      segment: {
-        borderDash: (ctx) => {
-          const p0 = ctx.p0;
-          const p1 = ctx.p1;
-          if (p0.skip || p1.skip) {
-            return [5, 5];
-          }
-          return undefined;
-        }
-      }
-    });
+products.forEach((product, index) => {
+  // Position data
+  const positionData = dateArray.map(dateStr => {
+    const histItem = product.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
   });
+  
+// Visibility data - use 0 for missing values instead of null
+  const visibilityData = dateArray.map(dateStr => {
+    const histItem = product.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    // Return 0 if no visibility data exists, round to 1 decimal
+    if (histItem?.visibility) {
+      const visValue = parseFloat(histItem.visibility) * 100;
+      return Math.round(visValue * 10) / 10; // Round to 1 decimal place
+    }
+    return 0;
+  });
+    
+// Generate a color for this product - grey for inactive
+  let color;
+  if (product.product_status === 'inactive') {
+    color = '#999999'; // Grey for inactive products
+  } else {
+    const colors = [
+      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+    ];
+    color = colors[index % colors.length];
+  }
+  
+  // Add position line dataset
+  datasets.push({
+    label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+    data: positionData,
+    borderColor: color,
+    backgroundColor: color + '20',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: true,
+    yAxisID: 'y',
+    type: 'line',
+    productIndex: index, // Store product index for reference
+    dataType: 'position',
+    segment: {
+      borderDash: (ctx) => {
+        const p0 = ctx.p0;
+        const p1 = ctx.p1;
+        if (p0.skip || p1.skip) {
+          return [5, 5];
+        }
+        return undefined;
+      }
+    }
+  });
+  
+// Add visibility area dataset (initially hidden)
+  datasets.push({
+    label: product.title?.substring(0, 30) + ' (Visibility)',
+    data: visibilityData,
+    borderColor: color,
+    backgroundColor: color + '30',
+    borderWidth: 2,
+    fill: true,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: false, // Don't span gaps for visibility
+    yAxisID: 'y1',
+    type: 'line',
+    hidden: true, // Initially hidden
+    productIndex: index, // Store product index for reference
+    dataType: 'visibility'
+  });
+});
   
   // Create the chart
   container.chartInstance = new Chart(canvas, {
@@ -3117,92 +3309,115 @@ function renderAvgPositionChart(container, products) {
         mode: 'index',
         intersect: false
       },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 20,
-            font: { size: 12 }
-          }
-        },
-        annotation: {
-          annotations: {
-            top8Area: {
-              type: 'box',
-              yScaleID: 'y',
-              yMin: 1,
-              yMax: 8,
-              backgroundColor: 'rgba(144, 238, 144, 0.2)',
-              borderColor: 'rgba(144, 238, 144, 0.4)',
-              borderWidth: 1,
-              borderDash: [5, 5],
-              label: {
-                content: 'TOP 8',
-                enabled: true,
-                position: 'start',
-                color: '#4CAF50',
-                font: {
-                  size: 12,
-                  weight: 'bold'
-                }
-              }
-            }
-          }
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: function(context) {
-              if (context.parsed.y !== null) {
-                return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
-              }
-              return context.dataset.label + ': No data';
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          type: 'category',
-          title: {
-            display: true,
-            text: 'Date',
-            font: { size: 12 }
-          },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            font: { size: 10 },
-            autoSkip: true,
-            maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
-          },
-          grid: {
-            display: true,
-            drawBorder: true,
-            drawOnChartArea: true,
-            drawTicks: true
-          }
-        },
-        y: {
-          type: 'linear',
-          position: 'left',
-          reverse: true,
-          min: 1,
-          max: 40,
-          title: {
-            display: true,
-            text: 'Average Position',
-            font: { size: 12 }
-          },
-          ticks: {
-            font: { size: 10 },
-            stepSize: 5
+plugins: {
+  legend: {
+    display: false
+  },
+  annotation: {
+    annotations: {
+      top8Area: {
+        type: 'box',
+        yScaleID: 'y',
+        yMin: 1,
+        yMax: 8,
+        backgroundColor: 'rgba(144, 238, 144, 0.2)', // Light green with transparency
+        borderColor: 'rgba(144, 238, 144, 0.4)',
+        borderWidth: 1,
+        borderDash: [5, 5],
+        label: {
+          content: 'TOP 8',
+          enabled: true,
+          position: 'start',
+          color: '#4CAF50',
+          font: {
+            size: 12,
+            weight: 'bold'
           }
         }
       }
+    }
+  },
+        tooltip: {
+  mode: 'index',
+  intersect: false,
+  callbacks: {
+    label: function(context) {
+      if (context.parsed.y !== null) {
+        if (context.dataset.dataType === 'visibility') {
+          return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+        } else {
+          return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+        }
+      }
+      return context.dataset.label + ': No data';
+    },
+    filter: function(tooltipItem) {
+      // Only show visible datasets in tooltip
+      return !tooltipItem.dataset.hidden;
+    }
+  }
+}
+      },
+      scales: {
+  x: {
+    type: 'category',
+    title: {
+      display: true,
+      text: 'Date',
+      font: { size: 12 }
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      font: { size: 10 },
+      autoSkip: true,
+      maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
+    },
+    grid: {
+      display: true,
+      drawBorder: true,
+      drawOnChartArea: true,
+      drawTicks: true
+    }
+  },
+  y: {
+    type: 'linear',
+    position: 'left',
+    reverse: true,
+    min: 1,
+    max: 40,
+    title: {
+      display: true,
+      text: 'Average Position',
+      font: { size: 12 }
+    },
+    ticks: {
+      font: { size: 10 },
+      stepSize: 5
+    }
+  },
+  y1: {
+    type: 'linear',
+    position: 'right',
+    min: 0,
+    max: 100,
+    title: {
+      display: true,
+      text: 'Visibility (%)',
+      font: { size: 12 }
+    },
+    ticks: {
+      font: { size: 10 },
+      stepSize: 20,
+      callback: function(value) {
+        return value + '%';
+      }
+    },
+    grid: {
+      drawOnChartArea: false // Don't draw grid lines for right axis
+    }
+  }
+}
     }
   });
 }
