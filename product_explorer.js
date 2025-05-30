@@ -2847,7 +2847,7 @@ setTimeout(() => {
     container.appendChild(emptyMessage);
   }
 }, 500); // Increased timeout to ensure DOM is ready
-  }
+}
 
 // Function to render average position chart
 function renderAvgPositionChartExplorer(container, products) {
