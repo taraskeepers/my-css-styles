@@ -405,6 +405,7 @@ function renderTableForSelectedProduct(combinations) {
       <th>Location</th>
       <th>Device</th>
       <th>Top 40 Segmentation</th>
+      <th>Position Chart</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -489,15 +490,15 @@ function renderTableForSelectedProduct(combinations) {
         tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
         tr.appendChild(tdSegmentation);
         
-        const tdCharts = document.createElement("td");
-        tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
-          <div class="chart-products"></div>
-          <div class="chart-avg-position">Click "Charts" view to see position trends</div>
-        </div>`;
-        tr.appendChild(tdCharts);
+        // NEW: Position Chart column - removed chart-products, only chart-avg-position
+        const tdPositionChart = document.createElement("td");
+        const positionChartId = `explorer-position-chart-${chartCounter}`;
+        tdPositionChart.innerHTML = `<div id="${positionChartId}" class="chart-avg-position">Click "Charts" view to see position trends</div>`;
+        tr.appendChild(tdPositionChart);
         
         const chartInfo = {
           containerId: chartContainerId,
+          positionChartId: positionChartId,
           combination: combination,
           selectedProduct: window.selectedExplorerProduct
         };
@@ -692,7 +693,7 @@ function renderPendingExplorerChartsForProduct() {
     console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
     
     charts.forEach((chartInfo, index) => {
-      const { containerId, combination, selectedProduct } = chartInfo;
+      const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
       console.log(`[renderPendingExplorerChartsForProduct] Processing chart ${index + 1}/${charts.length}: ${containerId}`);
       
       const productRecords = getProductRecords(selectedProduct);
@@ -733,6 +734,13 @@ function renderPendingExplorerChartsForProduct() {
         selectedProduct.source,
         specificRecord
       );
+      
+      // Store reference to the record for position chart rendering
+      const positionChartContainer = document.getElementById(positionChartId);
+      if (positionChartContainer) {
+        positionChartContainer.combinationRecord = specificRecord;
+        positionChartContainer.combinationInfo = combination;
+      }
     });
     
     window.pendingExplorerCharts = [];
@@ -923,6 +931,270 @@ function createProductSegmentationChart(containerId, chartData, term, location, 
         y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
       },
       animation: false
+    }
+  });
+}
+
+// NEW: Position chart function adapted from productMap.js
+function renderProductPositionChart(container, record) {
+  if (!Chart.defaults.plugins.annotation) {
+    console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+  }
+  
+  // Clear previous content
+  container.innerHTML = '';
+  container.style.padding = '20px';
+  
+  // Store reference to track selected product
+  container.selectedProductIndex = null;
+  container.chartInstance = null;
+  
+  // Create canvas element
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+  
+  // Check if record has historical data
+  if (!record || !record.historical_data || record.historical_data.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
+    return;
+  }
+  
+  // Determine date range from the product's historical data
+  let allDates = new Set();
+  let minDate = null;
+  let maxDate = null;
+  
+  record.historical_data.forEach(item => {
+    if (item.date && item.date.value && item.avg_position) {
+      const dateStr = item.date.value;
+      allDates.add(dateStr);
+      const date = moment(dateStr, 'YYYY-MM-DD');
+      if (!minDate || date.isBefore(minDate)) minDate = date.clone();
+      if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
+    }
+  });
+  
+  if (!minDate || !maxDate) {
+    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
+    return;
+  }
+  
+  // Create array of all dates in range
+  const dateArray = [];
+  let currentDate = minDate.clone();
+  while (currentDate.isSameOrBefore(maxDate)) {
+    dateArray.push(currentDate.format('YYYY-MM-DD'));
+    currentDate.add(1, 'day');
+  }
+  
+  // Limit to last 30 days if range is too large
+  if (dateArray.length > 30) {
+    dateArray.splice(0, dateArray.length - 30);
+  }
+  
+  // Create datasets for the single product
+  const datasets = [];
+  
+  // Position data
+  const positionData = dateArray.map(dateStr => {
+    const histItem = record.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
+  });
+  
+  // Visibility data - use 0 for missing values instead of null
+  const visibilityData = dateArray.map(dateStr => {
+    const histItem = record.historical_data?.find(item => 
+      item.date?.value === dateStr
+    );
+    // Return 0 if no visibility data exists, round to 1 decimal
+    if (histItem?.visibility) {
+      const visValue = parseFloat(histItem.visibility) * 100;
+      return Math.round(visValue * 10) / 10; // Round to 1 decimal place
+    }
+    return 0;
+  });
+  
+  // Generate color for this product - grey for inactive
+  let color;
+  if (record.product_status === 'inactive') {
+    color = '#999999'; // Grey for inactive products
+  } else {
+    color = '#007aff'; // Blue for active products
+  }
+  
+  // Add position line dataset
+  datasets.push({
+    label: record.title?.substring(0, 30) + (record.title?.length > 30 ? '...' : ''),
+    data: positionData,
+    borderColor: color,
+    backgroundColor: color + '20',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: true,
+    yAxisID: 'y',
+    type: 'line',
+    productIndex: 0, // Store product index for reference
+    dataType: 'position',
+    segment: {
+      borderDash: (ctx) => {
+        const p0 = ctx.p0;
+        const p1 = ctx.p1;
+        if (p0.skip || p1.skip) {
+          return [5, 5];
+        }
+        return undefined;
+      }
+    }
+  });
+  
+  // Add visibility area dataset (initially hidden)
+  datasets.push({
+    label: record.title?.substring(0, 30) + ' (Visibility)',
+    data: visibilityData,
+    borderColor: color,
+    backgroundColor: color + '30',
+    borderWidth: 2,
+    fill: true,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: false, // Don't span gaps for visibility
+    yAxisID: 'y1',
+    type: 'line',
+    hidden: true, // Initially hidden
+    productIndex: 0, // Store product index for reference
+    dataType: 'visibility'
+  });
+  
+  // Create the chart
+  container.chartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dateArray,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        annotation: {
+          annotations: {
+            top8Area: {
+              type: 'box',
+              yScaleID: 'y',
+              yMin: 1,
+              yMax: 8,
+              backgroundColor: 'rgba(144, 238, 144, 0.2)', // Light green with transparency
+              borderColor: 'rgba(144, 238, 144, 0.4)',
+              borderWidth: 1,
+              borderDash: [5, 5],
+              label: {
+                content: 'TOP 8',
+                enabled: true,
+                position: 'start',
+                color: '#4CAF50',
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              if (context.parsed.y !== null) {
+                if (context.dataset.dataType === 'visibility') {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                } else {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+                }
+              }
+              return context.dataset.label + ': No data';
+            },
+            filter: function(tooltipItem) {
+              // Only show visible datasets in tooltip
+              return !tooltipItem.dataset.hidden;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 },
+            autoSkip: true,
+            maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
+          },
+          grid: {
+            display: true,
+            drawBorder: true,
+            drawOnChartArea: true,
+            drawTicks: true
+          }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          reverse: true,
+          min: 1,
+          max: 40,
+          title: {
+            display: true,
+            text: 'Average Position',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 5
+          }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Visibility (%)',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 20,
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            drawOnChartArea: false // Don't draw grid lines for right axis
+          }
+        }
+      }
     }
   });
 }
@@ -1319,7 +1591,7 @@ function renderProductExplorerTable() {
         fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
           container.style.display = 'block';
         });
-        fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+        fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
           container.style.display = 'none';
         });
       });
@@ -1331,42 +1603,12 @@ function renderProductExplorerTable() {
         fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
           container.style.display = 'none';
         });
-        fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
+        fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
           container.style.display = 'flex';
-        });
-        
-        fullscreenOverlay.querySelectorAll('.products-chart-container').forEach(container => {
-          const chartAvgPosDiv = container.querySelector('.chart-avg-position');
-          const chartProductsDiv = container.querySelector('.chart-products');
           
-          const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-          const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
-          
-          if (products.length > 0 && chartAvgPosDiv) {
-            renderAvgPositionChartExplorer(chartAvgPosDiv, products);
-            
-            smallCards.forEach((card, index) => {
-              const oldHandler = card._chartClickHandler;
-              if (oldHandler) {
-                card.removeEventListener('click', oldHandler);
-              }
-              
-              const clickHandler = function() {
-                if (chartAvgPosDiv.selectedProductIndex === index) {
-                  chartAvgPosDiv.selectedProductIndex = null;
-                  card.classList.remove('active');
-                } else {
-                  chartAvgPosDiv.selectedProductIndex = index;
-                  smallCards.forEach(c => c.classList.remove('active'));
-                  card.classList.add('active');
-                }
-                
-                updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
-              };
-              
-              card._chartClickHandler = clickHandler;
-              card.addEventListener('click', clickHandler);
-            });
+          // Render position chart if record data is available
+          if (container.combinationRecord) {
+            renderProductPositionChart(container, container.combinationRecord);
           }
         });
       });
@@ -1694,7 +1936,7 @@ function renderProductExplorerTable() {
     }, 100);
   });
 
-  // Add view switcher functionality
+  // Add view switcher functionality - UPDATED to handle new structure
   const viewProductsExplorerBtn = document.getElementById("viewProductsExplorer");
   const viewChartsExplorerBtn = document.getElementById("viewChartsExplorer");
 
@@ -1702,11 +1944,12 @@ function renderProductExplorerTable() {
     viewProductsExplorerBtn.classList.add("active");
     viewChartsExplorerBtn.classList.remove("active");
     
-    document.querySelectorAll('.product-cell-container').forEach(container => {
-      container.style.display = 'block';
-    });
-    document.querySelectorAll('.products-chart-container').forEach(container => {
+    // Hide position charts, show segmentation charts
+    document.querySelectorAll('.chart-avg-position').forEach(container => {
       container.style.display = 'none';
+    });
+    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+      container.style.display = 'flex';
     });
   });
 
@@ -1714,45 +1957,16 @@ function renderProductExplorerTable() {
     viewChartsExplorerBtn.classList.add("active");
     viewProductsExplorerBtn.classList.remove("active");
     
-    document.querySelectorAll('.product-cell-container').forEach(container => {
+    // Hide segmentation charts, show position charts
+    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
       container.style.display = 'none';
     });
-    document.querySelectorAll('.products-chart-container').forEach(container => {
+    document.querySelectorAll('.chart-avg-position').forEach(container => {
       container.style.display = 'flex';
-    });
-    
-    document.querySelectorAll('.products-chart-container').forEach(container => {
-      const chartAvgPosDiv = container.querySelector('.chart-avg-position');
-      const chartProductsDiv = container.querySelector('.chart-products');
       
-      const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-      const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
-      
-      if (products.length > 0 && chartAvgPosDiv) {
-        renderAvgPositionChartExplorer(chartAvgPosDiv, products);
-        
-        smallCards.forEach((card, index) => {
-          const oldHandler = card._chartClickHandler;
-          if (oldHandler) {
-            card.removeEventListener('click', oldHandler);
-          }
-          
-          const clickHandler = function() {
-            if (chartAvgPosDiv.selectedProductIndex === index) {
-              chartAvgPosDiv.selectedProductIndex = null;
-              card.classList.remove('active');
-            } else {
-              chartAvgPosDiv.selectedProductIndex = index;
-              smallCards.forEach(c => c.classList.remove('active'));
-              card.classList.add('active');
-            }
-            
-            updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
-          };
-          
-          card._chartClickHandler = clickHandler;
-          card.addEventListener('click', clickHandler);
-        });
+      // Render position chart if record data is available
+      if (container.combinationRecord) {
+        renderProductPositionChart(container, container.combinationRecord);
       }
     });
   });
@@ -1815,7 +2029,7 @@ function renderProductExplorerTable() {
       .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
       .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
       .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 230px; }
-      .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; }
+      .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
       
       .search-term-tag {
         display: inline-block;
@@ -1923,17 +2137,6 @@ function renderProductExplorerTable() {
         color: #444;
       }
       
-      .product-cell {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 6px;
-        overflow-x: auto;
-        width: 100%;
-        min-width: 100%;
-        min-height: 280px;
-        scrollbar-width: thin;
-      }
-      
       .segment-count-circle {
         width: 32px;
         height: 32px;
@@ -1967,195 +2170,6 @@ function renderProductExplorerTable() {
         color: #999;
         font-style: italic;
         text-align: center;
-      }
-      
-      .product-cell .ad-details {
-        flex: 0 0 auto;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        background-color: white;
-        transition: transform 0.2s, box-shadow 0.2s;
-        overflow: hidden;
-      }
-      
-      .product-cell .ad-details:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      }
-      
-      .product-cell .ad-thumbnail-container {
-        position: relative;
-        width: 100%;
-        text-align: center;
-        margin-bottom: 8px;
-      }
-      
-      .product-cell .ad-thumbnail {
-        max-width: 100%;
-        height: auto;
-        max-height: 170px;
-        object-fit: contain;
-        border-radius: 4px;
-      }
-      
-      .product-cell .ad-info {
-        padding: 0 4px;
-      }
-      
-      .product-cell .ad-title {
-        font-size: 13px;
-        line-height: 1.3;
-        font-weight: 500;
-        margin-bottom: 4px;
-        max-height: 2.6em;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-      
-      .product-cell .ad-price {
-        font-weight: 600;
-        color: #111;
-        font-size: 14px;
-        margin-bottom: 2px;
-      }
-      
-      .product-cell .ad-merchant {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 4px;
-      }
-      
-      .product-cell .ad-rating {
-        display: flex;
-        align-items: center;
-        font-size: 12px;
-        color: #666;
-      }
-      
-      .product-cell .star-container {
-        display: inline-flex;
-        margin: 0 4px;
-      }
-      
-      .product-cell .review-count {
-        color: #777;
-        font-size: 11px;
-      }
-      
-      .product-cell .ad-extensions {
-        margin-top: 4px;
-        font-size: 11px;
-        color: #666;
-      }
-      
-      .product-cell .ad-extension {
-        margin-bottom: 2px;
-        line-height: 1.2;
-      }
-      
-      .product-cell .trend-box {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: auto auto;
-        gap: 2px;
-        font-size: 11px;
-        margin-top: 6px;
-        background-color: #f9f9f9;
-        border-radius: 4px;
-      }
-      
-      .product-cell .trend-header {
-        text-align: center;
-        font-weight: 500;
-        color: #555;
-      }
-      
-      .product-cell .trend-data {
-        text-align: center;
-      }
-      
-      .product-cell .trend-up {
-        color: green;
-      }
-      
-      .product-cell .trend-down {
-        color: red;
-      }
-      
-      .product-cell .sale-badge {
-        position: absolute;
-        top: 5px;
-        left: 5px;
-        background-color: #e53935;
-        color: white;
-        padding: 2px 6px;
-        font-size: 10px;
-        border-radius: 3px;
-        font-weight: bold;
-      }
-      
-      .product-cell .pos-badge {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        background-color: #4CAF50;
-        color: white;
-        padding: 2px 6px;
-        font-size: 10px;
-        border-radius: 3px;
-        font-weight: bold;
-      }
-      
-      .product-cell .vis-badge {
-        position: absolute;
-        bottom: 5px;
-        right: 5px;
-        width: 60px;
-        height: 60px;
-      }
-      
-      .no-products {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        width: 100%;
-        color: #999;
-        font-style: italic;
-      }
-
-      .device-icon {
-        max-height: 40px;
-        max-width: 40px;
-        object-fit: contain;
-      }
-      
-      .inactive-product {
-        filter: grayscale(100%);
-        opacity: 0.8;
-      }
-
-      .product-status-indicator {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        background-color: #555;
-        color: white;
-        padding: 2px 6px;
-        font-size: 10px;
-        border-radius: 3px;
-        font-weight: bold;
-        z-index: 10;
-      }
-
-      .product-status-active {
-        background-color: #4CAF50;
-      }
-
-      .product-status-inactive {
-        background-color: #9e9e9e;
       }
       
       .last-tracked-container {
@@ -2214,13 +2228,6 @@ function renderProductExplorerTable() {
         min-width: 600px;
       }
 
-      .product-explorer-fullscreen-overlay .product-cell {
-        width: 100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        min-width: 100%;
-      }
-
       .fullscreen-toggle {
         position: absolute;
         top: 10px;
@@ -2262,11 +2269,6 @@ function renderProductExplorerTable() {
       .fullscreen-close:hover {
         background-color: #d9342c;
       }
-
-      .product-explorer-fullscreen-overlay .product-cell .ad-details {
-        margin-bottom: 10px;
-        margin-right: 10px;
-      }
       
       .view-switcher {
         position: absolute;
@@ -2299,129 +2301,18 @@ function renderProductExplorerTable() {
         background-color: rgba(0, 122, 255, 0.1);
       }
 
-      .products-chart-container {
-        display: none;
+      .chart-avg-position {
         width: 100%;
         height: 100%;
-        min-height: 280px;
-        overflow: hidden;
-        flex-direction: row;
-        gap: 10px;
-      }
-
-      .chart-products {
-        width: 280px;
-        height: 100%;
-        max-height: 575px;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        background-color: #f9f9f9;
-        border-radius: 8px;
-        padding: 5px;
-        scrollbar-width: auto;
-        scrollbar-color: #ccc #f9f9f9;
-      }
-
-      .chart-products::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      .chart-products::-webkit-scrollbar-track {
-        background: #e0e0e0;
-        border-radius: 4px;
-      }
-
-      .chart-products::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-      }
-
-      .chart-products::-webkit-scrollbar-thumb:hover {
-        background: #666;
-      }
-
-      .chart-avg-position {
-        flex: 1;
-        min-width: 300px;
-        height: 100%;
+        min-height: 380px;
         background-color: #f9f9f9;
         border-radius: 8px;
         padding: 10px;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
         color: #999;
         font-style: italic;
-      }
-
-      .small-ad-details {
-        width: 270px;
-        height: 60px;
-        margin-bottom: 5px;
-        background-color: white;
-        border-radius: 6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        padding: 5px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      
-      .small-ad-pos-badge {
-        width: 50px;
-        min-width: 50px;
-        height: 50px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        margin-right: 8px;
-        font-weight: bold;
-      }
-
-      .small-ad-pos-value {
-        font-size: 18px;
-        line-height: 1;
-        color: white;
-      }
-
-      .small-ad-pos-trend {
-        font-size: 11px;
-        line-height: 1;
-        margin-top: 2px;
-        color: white;
-      }
-
-      .small-ad-details:hover {
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        transform: translateY(-1px);
-      }
-
-      .small-ad-details.active {
-        border: 2px solid #007aff;
-        box-shadow: 0 2px 6px rgba(0,122,255,0.3);
-      }
-
-      .small-ad-image {
-        width: 50px;
-        height: 50px;
-        object-fit: contain;
-        margin-right: 8px;
-        border-radius: 4px;
-        background-color: #f5f5f5;
-      }
-
-      .small-ad-title {
-        flex: 1;
-        font-size: 12px;
-        line-height: 1.3;
-        color: #333;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
       }
       
       .segmentation-chart-container.loading {
@@ -2514,6 +2405,52 @@ function renderProductExplorerTable() {
 
       .nav-product-item .small-ad-pos-badge {
         margin-left: auto;
+      }
+      
+      .small-ad-pos-badge {
+        width: 50px;
+        min-width: 50px;
+        height: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        margin-right: 8px;
+        font-weight: bold;
+      }
+
+      .small-ad-pos-value {
+        font-size: 18px;
+        line-height: 1;
+        color: white;
+      }
+
+      .small-ad-pos-trend {
+        font-size: 11px;
+        line-height: 1;
+        margin-top: 2px;
+        color: white;
+      }
+
+      .small-ad-image {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+        margin-right: 8px;
+        border-radius: 4px;
+        background-color: #f5f5f5;
+      }
+
+      .small-ad-title {
+        flex: 1;
+        font-size: 12px;
+        line-height: 1.3;
+        color: #333;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
       }
     `;
     document.head.appendChild(style);
@@ -2635,4 +2572,5 @@ if (typeof window !== 'undefined') {
   window.renderProductExplorerTable = renderProductExplorerTable;
   window.renderAvgPositionChartExplorer = renderAvgPositionChartExplorer;
   window.updateChartLineVisibilityExplorer = updateChartLineVisibilityExplorer;
+  window.renderProductPositionChart = renderProductPositionChart;
 }
