@@ -2137,7 +2137,6 @@ searchTerms.forEach(term => {
     });
   });
 });
-});
 
     // Create products navigation panel
 const productsNavPanel = document.getElementById('productsNavPanel');
