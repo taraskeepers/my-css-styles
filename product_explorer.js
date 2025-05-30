@@ -2137,6 +2137,7 @@ searchTerms.forEach(term => {
     });
   });
 });
+});
 
     // Create products navigation panel
 const productsNavPanel = document.getElementById('productsNavPanel');
@@ -2289,12 +2290,23 @@ combinations.forEach(combo => {
   termGroups[combo.searchTerm][combo.location].push(combo);
 });
   
-  // Render each combination as a table row
-  Object.keys(termGroups).sort().forEach(searchTerm => {
-    const termCombinations = termGroups[searchTerm];
-    let termCellUsed = false;
+// Render each combination as a table row
+Object.keys(termGroups).sort().forEach(searchTerm => {
+  const locationGroups = termGroups[searchTerm];
+  let termCellUsed = false;
+  
+  // Calculate total rows for this search term
+  let totalRowsForTerm = 0;
+  Object.values(locationGroups).forEach(devices => {
+    totalRowsForTerm += devices.length;
+  });
+  
+  // Sort locations and iterate through them
+  Object.keys(locationGroups).sort().forEach(location => {
+    const deviceCombinations = locationGroups[location];
+    let locCellUsed = false;
     
-    termCombinations.forEach(combination => {
+    deviceCombinations.forEach(combination => {
       const tr = document.createElement("tr");
       
       // Search term cell (with rowspan)
@@ -2306,11 +2318,15 @@ combinations.forEach(combo => {
         termCellUsed = true;
       }
       
-      // Location cell
-      const tdLoc = document.createElement("td");
-      tdLoc.innerHTML = formatLocationCell(combination.location);
-      tdLoc.classList.add(locationColorMap[combination.location]);
-      tr.appendChild(tdLoc);
+// Location cell (with rowspan for multiple devices in same location)
+      if (!locCellUsed) {
+        const tdLoc = document.createElement("td");
+        tdLoc.rowSpan = deviceCombinations.length;
+        tdLoc.innerHTML = formatLocationCell(combination.location);
+        tdLoc.classList.add(locationColorMap[combination.location]);
+        tr.appendChild(tdLoc);
+        locCellUsed = true;
+      }
       
       // Device cell
       const tdDev = document.createElement("td");
