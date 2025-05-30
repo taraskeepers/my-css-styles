@@ -668,15 +668,16 @@ window.explorerApexCharts = [];
           box-sizing: border-box;
           overflow: hidden;
         }
-        /* Fixed column widths - MODIFIED */
-        .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
-        .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 120px; }
-        .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 100px; }
-        .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 240px; }
-        .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { 
-          width: auto; 
-          min-width: 400px; /* Ensure Products column has a reasonable minimum width */
-        }
+/* Fixed column widths - MODIFIED */
+.product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { 
+  width: 300px; /* Products navigation column */
+  background-color: #f8f9fa;
+  border-right: 2px solid #dee2e6;
+}
+.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 190px; }
+.product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
+.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 100px; }
+.product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: 240px; }
         
 /* Search term tag styling - NEW */
 .search-term-tag {
@@ -1305,6 +1306,85 @@ window.explorerApexCharts = [];
   content: 'Loading chart...';
   font-size: 12px;
 }
+/* Products navigation column styles */
+.products-nav-cell {
+  vertical-align: top;
+  padding: 15px !important;
+  background-color: #f8f9fa;
+  border-right: 2px solid #dee2e6;
+  height: auto !important;
+  max-height: none !important;
+}
+
+.products-nav-container {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+}
+
+.products-nav-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.products-nav-container::-webkit-scrollbar-track {
+  background: #e9ecef;
+  border-radius: 4px;
+}
+
+.products-nav-container::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 4px;
+}
+
+.products-nav-container::-webkit-scrollbar-thumb:hover {
+  background: #868e96;
+}
+
+.nav-product-item {
+  width: 100%;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.nav-product-item:hover {
+  transform: translateX(5px);
+  border-color: #007aff;
+}
+
+.nav-product-item.selected {
+  border-color: #007aff;
+  background-color: #e7f0ff;
+  transform: translateX(5px);
+}
+
+.nav-product-item .small-ad-details {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.nav-product-item .small-ad-image {
+  width: 50px;
+  height: 50px;
+  margin-right: 10px;
+}
+
+.nav-product-item .small-ad-title {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.nav-product-item .small-ad-pos-badge {
+  margin-left: auto;
+}
       `;
       document.head.appendChild(style);
     }
@@ -1701,15 +1781,15 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
     table.classList.add("product-explorer-table");
   
     const thead = document.createElement("thead");
-    thead.innerHTML = `
-      <tr>
-        <th>Search Term</th>
-        <th>Location</th>
-        <th>Device</th>
-        <th>Top 40 Segmentation</th>
-        <th>Products</th>
-      </tr>
-    `;
+thead.innerHTML = `
+  <tr>
+    <th>Products</th>
+    <th>Search Term</th>
+    <th>Location</th>
+    <th>Device</th>
+    <th>Top 40 Segmentation</th>
+  </tr>
+`;
     table.appendChild(thead);
   
     const tbody = document.createElement("tbody");
@@ -1742,6 +1822,40 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
     let chartCounter = 0;
     // Counter for unique pie chart IDs
     let pieChartCounter = 0;
+
+    // First, collect all unique products for this company
+const allCompanyProducts = [];
+const productMap = new Map(); // To track unique products
+
+if (window.allRows && Array.isArray(window.allRows)) {
+  window.allRows.forEach(product => {
+    if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+      // Create a unique key for the product
+      const productKey = `${product.title}_${product.link || ''}`;
+      
+      if (!productMap.has(productKey)) {
+        productMap.set(productKey, product);
+        allCompanyProducts.push(product);
+      }
+    }
+  });
+}
+
+console.log(`[renderProductExplorerTable] Found ${allCompanyProducts.length} unique products for ${window.myCompany}`);
+
+// Sort products alphabetically by title
+allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+// Calculate total rows needed for the table
+let totalRows = 0;
+Object.values(nestedMap).forEach(locObj => {
+  Object.values(locObj).forEach(deviceRows => {
+    totalRows += deviceRows.length;
+  });
+});
+
+// Create the Products navigation cell (spans all rows)
+let productsNavRendered = false;
     
     // Iterate through search terms
     const searchTerms = Object.keys(nestedMap).sort();
@@ -1768,6 +1882,71 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
         // Iterate through devices for this location
         deviceRows.forEach(rowData => {
           const tr = document.createElement("tr");
+
+            // Add Products navigation cell (only once, spanning all rows)
+          if (!productsNavRendered) {
+            const tdProducts = document.createElement("td");
+            tdProducts.rowSpan = totalRows;
+            tdProducts.classList.add('products-nav-cell');
+            
+            // Create products navigation container
+            const productsNavContainer = document.createElement('div');
+            productsNavContainer.classList.add('products-nav-container');
+            
+            // Add all unique products
+            allCompanyProducts.forEach((product, index) => {
+              const navItem = document.createElement('div');
+              navItem.classList.add('nav-product-item');
+              navItem.setAttribute('data-product-index', index);
+              
+              // Create small ad details container
+              const smallCard = document.createElement('div');
+              smallCard.classList.add('small-ad-details');
+              
+              // Use placeholder values for now
+              const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
+              const badgeColor = '#007aff'; // Placeholder color
+              
+              const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+              const title = product.title || 'No title';
+              
+              smallCard.innerHTML = `
+                <img class="small-ad-image" 
+                     src="${imageUrl}" 
+                     alt="${title}"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+                <div class="small-ad-title">${title}</div>
+                <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+                  <div class="small-ad-pos-value">${posValue}</div>
+                </div>
+              `;
+              
+              navItem.appendChild(smallCard);
+              
+              // Add click handler
+              navItem.addEventListener('click', function() {
+                // Remove selected class from all items
+                document.querySelectorAll('.nav-product-item').forEach(item => {
+                  item.classList.remove('selected');
+                });
+                
+                // Add selected class to this item
+                navItem.classList.add('selected');
+                
+                // Store selected product for future use
+                window.selectedExplorerProduct = product;
+                
+                console.log('[ProductExplorer] Selected product:', product.title);
+                // TODO: Update other columns based on selected product
+              });
+              
+              productsNavContainer.appendChild(navItem);
+            });
+            
+            tdProducts.appendChild(productsNavContainer);
+            tr.appendChild(tdProducts);
+            productsNavRendered = true;
+          }
   
           // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
           if (!termCellUsed) {
