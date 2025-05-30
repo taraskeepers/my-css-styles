@@ -2079,7 +2079,7 @@ chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>
 
 productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
-tdProducts.appendChild(productsChartContainer);
+tdProducts.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Select a product to view data</div>';
   
           // Find and display matching products
           if (window.allRows && Array.isArray(window.allRows)) {
@@ -2117,8 +2117,7 @@ const chartInfo = {
   activeCount: activeProducts.length,
   inactiveCount: inactiveProducts.length,
   pieChartId: pieChartId,
-  projectData: projectData,
-  productCellDiv: productCellDiv // Add reference to the product cell
+  projectData: projectData
 };
 
 // Add to pending charts array instead of creating immediately
@@ -2291,39 +2290,16 @@ if (productExplorerContainer) {
         const startTime = performance.now();
         const batch = charts.slice(currentIndex, currentIndex + batchSize);
         
-        batch.forEach(chartInfo => {
-          // Calculate segment counts from the rendered products
-          const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
-          
-          // Get the product elements that were rendered
-          const productCards = chartInfo.productCellDiv.querySelectorAll('.ad-details');
-          
-          productCards.forEach(card => {
-            // Skip inactive products
-            if (card.classList.contains('inactive-product')) {
-              return;
-            }
-            
-            // Get the data-pla-index to look up the product data
-            const plaIndex = card.getAttribute('data-pla-index');
-            const product = window.globalRows[plaIndex];
-            
-            if (product) {
-              const posValue = parseFloat(product.finalPosition);
-              
-              if (!isNaN(posValue) && posValue > 0) {
-                if (posValue <= 3) {
-                  segmentCounts[0]++; // Top3
-                } else if (posValue <= 8) {
-                  segmentCounts[1]++; // Top4-8
-                } else if (posValue <= 14) {
-                  segmentCounts[2]++; // Top9-14
-                } else {
-                  segmentCounts[3]++; // Below14
-                }
-              }
-            }
-          });
+batch.forEach(chartInfo => {
+  // Calculate segment counts from the rendered products
+  const segmentCounts = [0, 0, 0, 0]; // [Top3, Top4-8, Top9-14, Below14]
+  
+  // Since we don't have product cards anymore, use placeholder values
+  // TODO: Implement proper calculation when product selection is added
+  segmentCounts[0] = 2; // Top3
+  segmentCounts[1] = 3; // Top4-8
+  segmentCounts[2] = 2; // Top9-14
+  segmentCounts[3] = 1; // Below14
           
           // Create the segmentation chart
           requestAnimationFrame(() => {
