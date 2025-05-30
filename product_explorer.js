@@ -698,22 +698,24 @@ window.explorerApexCharts = [];
           top: 0;
           z-index: 10;
         }
-        .product-explorer-table td {
-          padding: 8px;
-          font-size: 14px;
-          color: #333;
-          vertical-align: middle;
-          border-bottom: 1px solid #eee;
-          height: 380px; /* Fixed height */
-          max-height: 380px;
-          box-sizing: border-box;
-          overflow: hidden;
-        }
+.product-explorer-table td {
+  padding: 8px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  height: 400px; /* Fixed height */
+  max-height: 400px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
 /* Fixed column widths - MODIFIED */
+.product-explorer-table { table-layout: fixed; }
 .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
-.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 120px; }
+.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
 .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
-.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 300px; } // Make segmentation column wider
+.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 300px; }
+.product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; }
         
 /* Search term tag styling - NEW */
 .search-term-tag {
@@ -1825,6 +1827,7 @@ thead.innerHTML = `
     <th>Location</th>
     <th>Device</th>
     <th>Top 40 Segmentation</th>
+    <th>Charts</th>
   </tr>
 `;
     table.appendChild(thead);
@@ -1894,50 +1897,50 @@ Object.values(nestedMap).forEach(locObj => {
 // Create the Products navigation cell (spans all rows)
 let productsNavRendered = false;
     
-    // Iterate through search terms
-    const searchTerms = Object.keys(nestedMap).sort();
-    searchTerms.forEach(term => {
-      const locObj = nestedMap[term];
-      const allLocs = Object.keys(locObj).sort();
+// Iterate through search terms
+const searchTerms = Object.keys(nestedMap).sort();
+searchTerms.forEach(term => {
+  const locObj = nestedMap[term];
+  const allLocs = Object.keys(locObj).sort();
+
+  // Calculate total rows needed for this search term
+  let totalRowsForTerm = 0;
+  allLocs.forEach(loc => {
+    totalRowsForTerm += locObj[loc].length;
+  });
+
+  let termCellUsed = false;
   
-      // Calculate total rows needed for this search term
-      let totalRowsForTerm = 0;
-      allLocs.forEach(loc => {
-        totalRowsForTerm += locObj[loc].length;
-      });
-  
-      let termCellUsed = false;
-      
-      // Iterate through locations for this search term
-      allLocs.forEach(loc => {
-        const deviceRows = locObj[loc];
-        let locCellUsed = false;
-        
-        // Get the color class for this location
-        const locationColorClass = locationColorMap[loc];
-  
-        // Iterate through devices for this location
-        deviceRows.forEach(rowData => {
-          const tr = document.createElement("tr");
-  
-          // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
-          if (!termCellUsed) {
-            const tdTerm = document.createElement("td");
-            tdTerm.rowSpan = totalRowsForTerm;
-            tdTerm.innerHTML = `<div class="search-term-tag">${term}</div>`;
-            tr.appendChild(tdTerm);
-            termCellUsed = true;
-          }
-  
-          // Add location cell (with rowspan for all device rows in this location)
-          if (!locCellUsed) {
-            const tdLoc = document.createElement("td");
-            tdLoc.rowSpan = deviceRows.length;
-            tdLoc.innerHTML = formatLocationCell(loc);
-            tdLoc.classList.add(locationColorClass);
-            tr.appendChild(tdLoc);
-            locCellUsed = true;
-          }
+  // Iterate through locations for this search term
+  allLocs.forEach(loc => {
+    const deviceRows = locObj[loc];
+    let locCellUsed = false;
+    
+    // Get the color class for this location
+    const locationColorClass = locationColorMap[loc];
+
+    // Iterate through devices for this location
+    deviceRows.forEach((rowData, deviceIndex) => {
+      const tr = document.createElement("tr");
+
+      // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
+      if (!termCellUsed) {
+        const tdTerm = document.createElement("td");
+        tdTerm.rowSpan = totalRowsForTerm;
+        tdTerm.innerHTML = `<div class="search-term-tag">${term}</div>`;
+        tr.appendChild(tdTerm);
+        termCellUsed = true;
+      }
+
+      // Add location cell (with rowspan for all device rows in this location)
+      if (!locCellUsed) {
+        const tdLoc = document.createElement("td");
+        tdLoc.rowSpan = deviceRows.length;
+        tdLoc.innerHTML = formatLocationCell(loc);
+        tdLoc.classList.add(locationColorClass);
+        tr.appendChild(tdLoc);
+        locCellUsed = true;
+      }
   
           // Add device cell with pie chart for market share
           const tdDev = document.createElement("td");
@@ -1988,35 +1991,34 @@ let productsNavRendered = false;
             `;
           }
           
-          // 3. Market Share with pie chart - MODIFIED
-          const pieChartId = `explorer-market-share-pie-${pieChartCounter++}`;
-          
-          deviceHTML += `
-            <div class="device-share">
-              <div class="section-header">Market Share</div>
-              <div id="${pieChartId}" class="pie-chart-container"></div>
-          `;
-          
-          // Add trend below pie chart
-          if (projectData && projectData.trendVal !== undefined) {
-            let shareArrow = "±", shareColor = "#333";
-            
-            if (projectData.trendVal > 0) {
-              shareArrow = "▲";
-              shareColor = "green";
-            } else if (projectData.trendVal < 0) {
-              shareArrow = "▼";
-              shareColor = "red";
-            }
-            
-            deviceHTML += `
-              <div class="device-trend" style="color:${shareColor};">
-                ${shareArrow} ${Math.abs(projectData.trendVal || 0).toFixed(1)}%
-              </div>
-            `;
-          }
-          
-          deviceHTML += `</div>`; // Close device-share
+// 3. Visibility metric - MODIFIED
+// Find matching product data for visibility
+const matchingProducts = window.allRows.filter(p => 
+  p.q === term &&
+  p.location_requested === loc &&
+  p.device === rowData.device &&
+  p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+);
+
+let avgVisibility = 0;
+if (matchingProducts.length > 0) {
+  const visSum = matchingProducts.reduce((sum, product) => {
+    const vis = parseFloat(product.avg_visibility) || 0;
+    return sum + vis;
+  }, 0);
+  avgVisibility = visSum / matchingProducts.length;
+}
+
+deviceHTML += `
+  <div class="device-share">
+    <div class="section-header">Visibility</div>
+    <div class="visibility-display" style="text-align: center; padding: 10px;">
+      <div style="font-size: 24px; font-weight: bold; color: #007aff;">
+        ${(avgVisibility * 100).toFixed(1)}%
+      </div>
+    </div>
+  </div>
+`;
           // Find the latest tracking date from all active products
 let latestDate = null;
 
@@ -2273,6 +2275,21 @@ function renderTableForSelectedProduct(combinations) {
         window.pendingExplorerCharts = [];
       }
       window.pendingExplorerCharts.push(chartInfo);
+
+        // Add Top 40 Segmentation cell
+const tdSegmentation = document.createElement("td");
+const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+tr.appendChild(tdSegmentation);
+
+// Add Charts cell - NEW
+const tdCharts = document.createElement("td");
+const chartsContainerId = `explorer-charts-${chartCounter}`;
+tdCharts.innerHTML = `<div id="${chartsContainerId}" class="products-chart-container" style="display: none;">
+  <div class="chart-products"></div>
+  <div class="chart-avg-position">Click "Charts" view to see position trends</div>
+</div>`;
+tr.appendChild(tdCharts);
       
       tbody.appendChild(tr);
     });
@@ -2592,8 +2609,8 @@ function createProductSegmentationChart(containerId, chartData, term, location, 
   
   // Clear and setup container
   chartContainer.innerHTML = '';
-  chartContainer.style.height = '380px';
-  chartContainer.style.maxHeight = '380px';
+chartContainer.style.height = '390px';
+chartContainer.style.maxHeight = '390px';
   chartContainer.style.overflowY = 'hidden';
   chartContainer.style.display = 'flex';
   chartContainer.style.flexDirection = 'column';
