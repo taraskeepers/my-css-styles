@@ -2095,7 +2095,14 @@ deviceHTML += `</div>`; // Close last-tracked-container
           const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
           tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
           tr.appendChild(tdSegmentation);
-          tbody.appendChild(tr);
+          // Add Charts cell - NEW
+const tdCharts = document.createElement("td");
+const chartsContainerId = `explorer-charts-${chartCounter}`;
+tdCharts.innerHTML = `<div id="${chartsContainerId}" class="products-chart-container" style="display: none;">
+  <div class="chart-products"></div>
+  <div class="chart-avg-position">Click "Charts" view to see position trends</div>
+</div>`;
+tr.appendChild(tdCharts);
         });
       });
     });
@@ -2275,21 +2282,6 @@ function renderTableForSelectedProduct(combinations) {
         window.pendingExplorerCharts = [];
       }
       window.pendingExplorerCharts.push(chartInfo);
-
-        // Add Top 40 Segmentation cell
-const tdSegmentation = document.createElement("td");
-const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
-tr.appendChild(tdSegmentation);
-
-// Add Charts cell - NEW
-const tdCharts = document.createElement("td");
-const chartsContainerId = `explorer-charts-${chartCounter}`;
-tdCharts.innerHTML = `<div id="${chartsContainerId}" class="products-chart-container" style="display: none;">
-  <div class="chart-products"></div>
-  <div class="chart-avg-position">Click "Charts" view to see position trends</div>
-</div>`;
-tr.appendChild(tdCharts);
       
       tbody.appendChild(tr);
     });
