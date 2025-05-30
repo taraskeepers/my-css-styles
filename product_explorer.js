@@ -2139,9 +2139,6 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
           
           tr.appendChild(tdProducts);
           tbody.appendChild(tr);
-        });
-      });
-    });
 
     // Create products navigation panel
 const productsNavPanel = document.getElementById('productsNavPanel');
