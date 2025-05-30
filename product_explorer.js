@@ -698,17 +698,17 @@ window.explorerApexCharts = [];
           top: 0;
           z-index: 10;
         }
-.product-explorer-table td {
-  padding: 8px;
-  font-size: 14px;
-  color: #333;
-  vertical-align: middle;
-  border-bottom: 1px solid #eee;
-  height: 400px; /* Fixed height */
-  max-height: 400px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
+        .product-explorer-table td {
+          padding: 8px;
+          font-size: 14px;
+          color: #333;
+          vertical-align: middle;
+          border-bottom: 1px solid #eee;
+          height: 400px; /* Fixed height */
+          max-height: 400px;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
 /* Fixed column widths - MODIFIED */
 .product-explorer-table { table-layout: fixed; }
 .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
@@ -1897,6 +1897,7 @@ Object.values(nestedMap).forEach(locObj => {
 // Create the Products navigation cell (spans all rows)
 let productsNavRendered = false;
     
+    // Iterate through search terms
 // Iterate through search terms
 const searchTerms = Object.keys(nestedMap).sort();
 searchTerms.forEach(term => {
@@ -1991,8 +1992,7 @@ searchTerms.forEach(term => {
             `;
           }
           
-// 3. Visibility metric - MODIFIED
-// Find matching product data for visibility
+// 3. Visibility metric
 const matchingProducts = window.allRows.filter(p => 
   p.q === term &&
   p.location_requested === loc &&
@@ -2090,19 +2090,21 @@ deviceHTML += `</div>`; // Close last-tracked-container
           
           tr.appendChild(tdDev);
           
-          // Add Top 40 Segmentation cell
-          const tdSegmentation = document.createElement("td");
-          const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-          tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
-          tr.appendChild(tdSegmentation);
-          // Add Charts cell - NEW
+// Add Top 40 Segmentation cell
+const tdSegmentation = document.createElement("td");
+const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+tr.appendChild(tdSegmentation);
+
+// Add Charts cell
 const tdCharts = document.createElement("td");
-const chartsContainerId = `explorer-charts-${chartCounter}`;
-tdCharts.innerHTML = `<div id="${chartsContainerId}" class="products-chart-container" style="display: none;">
+tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
   <div class="chart-products"></div>
   <div class="chart-avg-position">Click "Charts" view to see position trends</div>
 </div>`;
 tr.appendChild(tdCharts);
+
+tbody.appendChild(tr);
         });
       });
     });
@@ -2114,30 +2116,6 @@ productsNavPanel.innerHTML = '<h3 style="padding: 15px; margin: 0; font-size: 16
 const productsNavContainer = document.createElement('div');
 productsNavContainer.classList.add('products-nav-container');
 productsNavContainer.style.padding = '10px';
-
-    // Define selectProduct function BEFORE the forEach loop
-function selectProduct(product, navItemElement) {
-  console.log('[selectProduct] Selecting product:', product.title);
-  
-  // Update visual selection
-  document.querySelectorAll('.nav-product-item').forEach(item => {
-    item.classList.remove('selected');
-  });
-  
-  if (navItemElement) {
-    navItemElement.classList.add('selected');
-  }
-  
-  // Update global state
-  window.selectedExplorerProduct = product;
-  
-  // Get combinations for this product
-  const combinations = getProductCombinations(product);
-  console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
-  
-  // Rebuild table with filtered data
-  renderTableForSelectedProduct(combinations);
-}
 
 // Add all unique products
 allCompanyProducts.forEach((product, index) => {
@@ -2169,11 +2147,34 @@ allCompanyProducts.forEach((product, index) => {
   `;
   
   navItem.appendChild(smallCard);
-
+  
 navItem.addEventListener('click', function() {
   console.log('[ProductExplorer] Product clicked:', product.title);
   selectProduct(product, navItem);
 });
+
+    function selectProduct(product, navItemElement) {
+  console.log('[selectProduct] Selecting product:', product.title);
+  
+  // Update visual selection
+  document.querySelectorAll('.nav-product-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  
+  if (navItemElement) {
+    navItemElement.classList.add('selected');
+  }
+  
+  // Update global state
+  window.selectedExplorerProduct = product;
+  
+  // Get combinations for this product
+  const combinations = getProductCombinations(product);
+  console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
+  
+  // Rebuild table with filtered data
+  renderTableForSelectedProduct(combinations);
+}
 
 // ADD this function right after selectProduct function:
 
@@ -2602,8 +2603,8 @@ function createProductSegmentationChart(containerId, chartData, term, location, 
   
   // Clear and setup container
   chartContainer.innerHTML = '';
-chartContainer.style.height = '390px';
-chartContainer.style.maxHeight = '390px';
+  chartContainer.style.height = '380px';
+  chartContainer.style.maxHeight = '380px';
   chartContainer.style.overflowY = 'hidden';
   chartContainer.style.display = 'flex';
   chartContainer.style.flexDirection = 'column';
