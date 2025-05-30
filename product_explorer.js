@@ -2146,12 +2146,8 @@ allCompanyProducts.forEach((product, index) => {
   
   navItem.appendChild(smallCard);
   
-navItem.addEventListener('click', function() {
-  console.log('[ProductExplorer] Product clicked:', product.title);
-  selectProduct(product, navItem);
-});
-
-    function selectProduct(product, navItemElement) {
+// Move selectProduct function definition BEFORE the event listener
+function selectProduct(product, navItemElement) {
   console.log('[selectProduct] Selecting product:', product.title);
   
   // Update visual selection
@@ -2173,6 +2169,11 @@ navItem.addEventListener('click', function() {
   // Rebuild table with filtered data
   renderTableForSelectedProduct(combinations);
 }
+
+navItem.addEventListener('click', function() {
+  console.log('[ProductExplorer] Product clicked:', product.title);
+  selectProduct(product, navItem);
+});
 
 // ADD this function right after selectProduct function:
 
