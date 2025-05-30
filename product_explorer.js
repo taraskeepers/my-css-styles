@@ -405,6 +405,7 @@ function renderTableForSelectedProduct(combinations) {
       <th>Location</th>
       <th>Device</th>
       <th>Top 40 Segmentation</th>
+      <th>Charts</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -488,6 +489,25 @@ function renderTableForSelectedProduct(combinations) {
         const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
         tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
         tr.appendChild(tdSegmentation);
+        // Add charts cell
+const tdCharts = document.createElement("td");
+
+// Create products chart container (for Charts view)
+const productsChartContainer = document.createElement("div");
+productsChartContainer.classList.add("products-chart-container");
+productsChartContainer.style.display = 'none'; // Hidden by default
+
+// Create chart-avg-position container
+const chartAvgPositionDiv = document.createElement("div");
+chartAvgPositionDiv.classList.add("chart-avg-position");
+
+// Store reference to the combination for later use
+chartAvgPositionDiv.setAttribute('data-combination', JSON.stringify(combination));
+
+productsChartContainer.appendChild(chartAvgPositionDiv);
+tdCharts.appendChild(productsChartContainer);
+
+tr.appendChild(tdCharts);
         
         const tdCharts = document.createElement("td");
         tdCharts.innerHTML = `<div class="products-chart-container" style="display: none;">
@@ -1236,15 +1256,15 @@ function renderProductExplorerTable() {
   }
   window.explorerApexCharts = [];
   
-  container.innerHTML = `
-    <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
-      <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
+container.innerHTML = `
+  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+    <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
+    </div>
+    <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
+      <div class="view-switcher">
+        <button id="viewProductsExplorer" class="active">Products</button>
+        <button id="viewChartsExplorer">Charts</button>
       </div>
-      <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-        <div class="view-switcher">
-          <button id="viewProductsExplorer" class="active">Products</button>
-          <button id="viewChartsExplorer">Charts</button>
-        </div>
         <button id="fullscreenToggleExplorer" class="fullscreen-toggle">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
@@ -1815,7 +1835,7 @@ function renderProductExplorerTable() {
       .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
       .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
       .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 230px; }
-      .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; }
+      .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
       
       .search-term-tag {
         display: inline-block;
@@ -2515,6 +2535,21 @@ function renderProductExplorerTable() {
       .nav-product-item .small-ad-pos-badge {
         margin-left: auto;
       }
+      .products-chart-container {
+  display: none;
+  width: 100%;
+  height: 350px;
+  overflow: hidden;
+}
+
+.chart-avg-position {
+  width: 100%;
+  height: 100%;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  box-sizing: border-box;
+}
     `;
     document.head.appendChild(style);
   }
@@ -2604,10 +2639,66 @@ function renderProductExplorerTable() {
     productsNavContainer.appendChild(navItem);
   });
 
-  productsNavPanel.appendChild(productsNavContainer);
+productsNavPanel.appendChild(productsNavContainer);
 
-  setTimeout(() => {
-    console.log('[renderProductExplorerTable] Auto-selecting first product...');
+// Add view switcher functionality
+const viewProductsExplorerBtn = document.getElementById("viewProductsExplorer");
+const viewChartsExplorerBtn = document.getElementById("viewChartsExplorer");
+
+if (viewProductsExplorerBtn && viewChartsExplorerBtn) {
+  viewProductsExplorerBtn.addEventListener("click", function() {
+    viewProductsExplorerBtn.classList.add("active");
+    viewChartsExplorerBtn.classList.remove("active");
+    
+    // Hide all chart containers
+    document.querySelectorAll('.products-chart-container').forEach(container => {
+      container.style.display = 'none';
+    });
+  });
+
+  viewChartsExplorerBtn.addEventListener("click", function() {
+    viewChartsExplorerBtn.classList.add("active");
+    viewProductsExplorerBtn.classList.remove("active");
+    
+    // Show all chart containers
+    document.querySelectorAll('.products-chart-container').forEach(container => {
+      container.style.display = 'block';
+    });
+    
+    // Render charts for the selected product
+    if (window.selectedExplorerProduct) {
+      const combinations = getProductCombinations(window.selectedExplorerProduct);
+      
+      document.querySelectorAll('.chart-avg-position').forEach((chartDiv, index) => {
+        const combinationStr = chartDiv.getAttribute('data-combination');
+        if (combinationStr) {
+          const combination = JSON.parse(combinationStr);
+          
+          // Find the specific record for this combination
+          const records = getProductRecords(window.selectedExplorerProduct);
+          const specificRecord = records.find(record => 
+            record.q === combination.searchTerm &&
+            record.location_requested === combination.location &&
+            record.device === combination.device
+          );
+          
+          if (specificRecord && specificRecord.historical_data && specificRecord.historical_data.length > 0) {
+            // Clear any existing content
+            chartDiv.innerHTML = '';
+            
+            // Render the chart for this single product
+            renderSingleProductChart(chartDiv, specificRecord);
+          } else {
+            chartDiv.innerHTML = '<div style="text-align: center; color: #999;">No historical data available</div>';
+          }
+        }
+      });
+    }
+  });
+}
+
+setTimeout(() => {
+  console.log('[renderProductExplorerTable] Auto-selecting first product...');
     
     const firstNavItem = document.querySelector('.nav-product-item');
     
@@ -2630,9 +2721,218 @@ function renderProductExplorerTable() {
   }, 500);
 }
 
+function renderSingleProductChart(container, product) {
+  if (!Chart.defaults.plugins.annotation) {
+    console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+  }
+
+  // Create canvas element
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+  
+  // Extract dates and positions from historical data
+  const dateArray = [];
+  const positionData = [];
+  const visibilityData = [];
+  
+  // Sort historical data by date
+  const sortedData = [...product.historical_data].sort((a, b) => {
+    if (!a.date || !a.date.value) return -1;
+    if (!b.date || !b.date.value) return 1;
+    return a.date.value.localeCompare(b.date.value);
+  });
+  
+  // Process historical data
+  sortedData.forEach(item => {
+    if (item.date && item.date.value) {
+      dateArray.push(item.date.value);
+      
+      // Position data
+      positionData.push(item.avg_position ? parseFloat(item.avg_position) : null);
+      
+      // Visibility data (convert to percentage)
+      if (item.visibility) {
+        const visValue = parseFloat(item.visibility) * 100;
+        visibilityData.push(Math.round(visValue * 10) / 10);
+      } else {
+        visibilityData.push(0);
+      }
+    }
+  });
+  
+  // Limit to last 30 days if needed
+  if (dateArray.length > 30) {
+    const startIndex = dateArray.length - 30;
+    dateArray.splice(0, startIndex);
+    positionData.splice(0, startIndex);
+    visibilityData.splice(0, startIndex);
+  }
+  
+  // Determine color based on product status
+  let color;
+  if (product.product_status === 'inactive') {
+    color = '#999999';
+  } else {
+    color = '#007aff';
+  }
+  
+  // Create the chart
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dateArray,
+      datasets: [
+        {
+          label: 'Average Position',
+          data: positionData,
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          spanGaps: true,
+          yAxisID: 'y',
+          type: 'line'
+        },
+        {
+          label: 'Visibility (%)',
+          data: visibilityData,
+          borderColor: color,
+          backgroundColor: color + '30',
+          borderWidth: 2,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          spanGaps: false,
+          yAxisID: 'y1',
+          type: 'line',
+          hidden: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            font: { size: 11 },
+            usePointStyle: true
+          }
+        },
+        annotation: {
+          annotations: {
+            top8Area: {
+              type: 'box',
+              yScaleID: 'y',
+              yMin: 1,
+              yMax: 8,
+              backgroundColor: 'rgba(144, 238, 144, 0.2)',
+              borderColor: 'rgba(144, 238, 144, 0.4)',
+              borderWidth: 1,
+              borderDash: [5, 5],
+              label: {
+                content: 'TOP 8',
+                enabled: true,
+                position: 'start',
+                color: '#4CAF50',
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              if (context.parsed.y !== null) {
+                if (context.dataset.label === 'Visibility (%)') {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                } else {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+                }
+              }
+              return context.dataset.label + ': No data';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 },
+            autoSkip: true,
+            maxTicksLimit: 15
+          }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          reverse: true,
+          min: 1,
+          max: 40,
+          title: {
+            display: true,
+            text: 'Average Position',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 5
+          }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Visibility (%)',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 20,
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            drawOnChartArea: false
+          }
+        }
+      }
+    }
+  });
+}
+
 // Export the function
 if (typeof window !== 'undefined') {
   window.renderProductExplorerTable = renderProductExplorerTable;
   window.renderAvgPositionChartExplorer = renderAvgPositionChartExplorer;
   window.updateChartLineVisibilityExplorer = updateChartLineVisibilityExplorer;
+  window.renderSingleProductChart = renderSingleProductChart;
 }
