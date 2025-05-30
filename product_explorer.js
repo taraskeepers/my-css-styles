@@ -2115,6 +2115,30 @@ const productsNavContainer = document.createElement('div');
 productsNavContainer.classList.add('products-nav-container');
 productsNavContainer.style.padding = '10px';
 
+    // Define selectProduct function BEFORE the forEach loop
+function selectProduct(product, navItemElement) {
+  console.log('[selectProduct] Selecting product:', product.title);
+  
+  // Update visual selection
+  document.querySelectorAll('.nav-product-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  
+  if (navItemElement) {
+    navItemElement.classList.add('selected');
+  }
+  
+  // Update global state
+  window.selectedExplorerProduct = product;
+  
+  // Get combinations for this product
+  const combinations = getProductCombinations(product);
+  console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
+  
+  // Rebuild table with filtered data
+  renderTableForSelectedProduct(combinations);
+}
+
 // Add all unique products
 allCompanyProducts.forEach((product, index) => {
   const navItem = document.createElement('div');
@@ -2145,30 +2169,6 @@ allCompanyProducts.forEach((product, index) => {
   `;
   
   navItem.appendChild(smallCard);
-  
-// Move selectProduct function definition BEFORE the event listener
-function selectProduct(product, navItemElement) {
-  console.log('[selectProduct] Selecting product:', product.title);
-  
-  // Update visual selection
-  document.querySelectorAll('.nav-product-item').forEach(item => {
-    item.classList.remove('selected');
-  });
-  
-  if (navItemElement) {
-    navItemElement.classList.add('selected');
-  }
-  
-  // Update global state
-  window.selectedExplorerProduct = product;
-  
-  // Get combinations for this product
-  const combinations = getProductCombinations(product);
-  console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
-  
-  // Rebuild table with filtered data
-  renderTableForSelectedProduct(combinations);
-}
 
 navItem.addEventListener('click', function() {
   console.log('[ProductExplorer] Product clicked:', product.title);
