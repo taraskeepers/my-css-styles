@@ -1899,7 +1899,8 @@ Object.values(nestedMap).forEach(locObj => {
 
 // Create the Products navigation cell (spans all rows)
 let productsNavRendered = false;
-    
+
+const searchTerms = Object.keys(nestedMap).sort();
 searchTerms.forEach(term => {
   const locObj = nestedMap[term];
   const allLocs = Object.keys(locObj).sort(); // Already sorted
