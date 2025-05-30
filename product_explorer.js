@@ -28,17 +28,22 @@ window.explorerApexCharts = [];
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
-  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
-    <div class="view-switcher">
-      <button id="viewProductsExplorer" class="active">Products</button>
-      <button id="viewChartsExplorer">Charts</button>
+  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+    <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
+      <!-- Products navigation will be inserted here -->
     </div>
-    <button id="fullscreenToggleExplorer" class="fullscreen-toggle">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-      </svg>
-      Full Screen
-    </button>
+    <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
+      <div class="view-switcher">
+        <button id="viewProductsExplorer" class="active">Products</button>
+        <button id="viewChartsExplorer">Charts</button>
+      </div>
+      <button id="fullscreenToggleExplorer" class="fullscreen-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+        Full Screen
+      </button>
+    </div>
   </div>
 `;
     
@@ -669,12 +674,8 @@ window.explorerApexCharts = [];
           overflow: hidden;
         }
 /* Fixed column widths - MODIFIED */
-.product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { 
-  width: 300px; /* Products navigation column */
-  background-color: #f8f9fa;
-  border-right: 2px solid #dee2e6;
-}
-.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 190px; }
+.product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
+.product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 120px; }
 .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
 .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 100px; }
 .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: 240px; }
@@ -1785,7 +1786,6 @@ function createSegmentationChartExplorer(containerId, chartData, termParam, locP
     const thead = document.createElement("thead");
 thead.innerHTML = `
   <tr>
-    <th>Products</th>
     <th>Search Term</th>
     <th>Location</th>
     <th>Device</th>
@@ -1832,8 +1832,8 @@ const productMap = new Map(); // To track unique products
 if (window.allRows && Array.isArray(window.allRows)) {
   window.allRows.forEach(product => {
     if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-      // Create a unique key for the product
-      const productKey = `${product.title}_${product.link || ''}`;
+      // Use only title for uniqueness
+const productKey = product.title || '';
       
       if (!productMap.has(productKey)) {
         productMap.set(productKey, product);
@@ -1884,78 +1884,6 @@ let productsNavRendered = false;
         // Iterate through devices for this location
         deviceRows.forEach(rowData => {
           const tr = document.createElement("tr");
-
-// Add Products navigation cell for first row only
-if (!productsNavRendered) {
-  const tdProducts = document.createElement("td");
-  tdProducts.classList.add('products-nav-cell');
-  tdProducts.style.verticalAlign = 'top';
-  tdProducts.style.position = 'relative';
-            
-            // Create products navigation container
-            const productsNavContainer = document.createElement('div');
-            productsNavContainer.classList.add('products-nav-container');
-            
-            // Add all unique products
-            allCompanyProducts.forEach((product, index) => {
-              const navItem = document.createElement('div');
-              navItem.classList.add('nav-product-item');
-              navItem.setAttribute('data-product-index', index);
-              
-              // Create small ad details container
-              const smallCard = document.createElement('div');
-              smallCard.classList.add('small-ad-details');
-              
-              // Use placeholder values for now
-              const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
-              const badgeColor = '#007aff'; // Placeholder color
-              
-              const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-              const title = product.title || 'No title';
-              
-smallCard.innerHTML = `
-  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-    <div class="small-ad-pos-value">${posValue}</div>
-    <div class="small-ad-pos-trend"></div>
-  </div>
-  <img class="small-ad-image" 
-       src="${imageUrl}" 
-       alt="${title}"
-       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-  <div class="small-ad-title">${title}</div>
-`;
-              
-              navItem.appendChild(smallCard);
-              
-              // Add click handler
-              navItem.addEventListener('click', function() {
-                // Remove selected class from all items
-                document.querySelectorAll('.nav-product-item').forEach(item => {
-                  item.classList.remove('selected');
-                });
-                
-                // Add selected class to this item
-                navItem.classList.add('selected');
-                
-                // Store selected product for future use
-                window.selectedExplorerProduct = product;
-                
-                console.log('[ProductExplorer] Selected product:', product.title);
-                // TODO: Update other columns based on selected product
-              });
-              
-              productsNavContainer.appendChild(navItem);
-            });
-            
-            tdProducts.appendChild(productsNavContainer);
-            tr.appendChild(tdProducts);
-            productsNavRendered = true;
-          } else {
-            // Add empty cell for products column in other rows
-            const tdEmpty = document.createElement("td");
-            tdEmpty.classList.add('products-nav-cell');
-            tr.appendChild(tdEmpty);
-          }
   
           // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
           if (!termCellUsed) {
@@ -3217,8 +3145,69 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
         });
       });
     });
+
+    // Create products navigation panel
+const productsNavPanel = document.getElementById('productsNavPanel');
+productsNavPanel.innerHTML = '<h3 style="padding: 15px; margin: 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #dee2e6;">Products</h3>';
+
+const productsNavContainer = document.createElement('div');
+productsNavContainer.classList.add('products-nav-container');
+productsNavContainer.style.padding = '10px';
+
+// Add all unique products
+allCompanyProducts.forEach((product, index) => {
+  const navItem = document.createElement('div');
+  navItem.classList.add('nav-product-item');
+  navItem.setAttribute('data-product-index', index);
   
-    container.querySelector("#productExplorerContainer").appendChild(table);
+  // Create small ad details container
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  
+  // Use placeholder values for now
+  const posValue = Math.floor(Math.random() * 20) + 1; // Placeholder: random 1-20
+  const badgeColor = '#007aff'; // Placeholder color
+  
+  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = product.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${posValue}</div>
+      <div class="small-ad-pos-trend"></div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  navItem.appendChild(smallCard);
+  
+  // Add click handler
+  navItem.addEventListener('click', function() {
+    // Remove selected class from all items
+    document.querySelectorAll('.nav-product-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    
+    // Add selected class to this item
+    navItem.classList.add('selected');
+    
+    // Store selected product for future use
+    window.selectedExplorerProduct = product;
+    
+    console.log('[ProductExplorer] Selected product:', product.title);
+    // TODO: Update table based on selected product
+  });
+  
+  productsNavContainer.appendChild(navItem);
+});
+
+productsNavPanel.appendChild(productsNavContainer);
+  
+    container.querySelector("#productExplorerTableContainer").appendChild(table);
     console.log("[renderProductExplorerTable] Table rendering complete");
     
     // Add a resize observer to ensure product cells maintain proper width after DOM updates
