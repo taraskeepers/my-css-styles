@@ -533,73 +533,62 @@ viewProductsBtn.addEventListener("click", function() {
 });
 
 viewChartsBtn.addEventListener("click", function() {
+  // Switch to Charts view
   viewChartsBtn.classList.add("active");
   viewProductsBtn.classList.remove("active");
   
+  // Hide all product cells, show all chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
     container.style.display = 'none';
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
-    container.style.display = 'block'; // Changed from 'flex' to 'block'
+    container.style.display = 'flex';
   });
   
   // Render charts for each row
   document.querySelectorAll('.products-chart-container').forEach(container => {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+    const chartProductsDiv = container.querySelector('.chart-products');
     
-    // Get the row element to find the search term, location, and device
-    const row = container.closest('tr');
-    if (!row || !chartAvgPosDiv) return;
+    // Get all products for this chart
+    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
     
-    // Extract search term, location, and device from the row
-    let searchTerm = '';
-    let location = '';
-    let device = '';
-    
-    // Find search term
-    let currentRow = row;
-    while (currentRow && !searchTerm) {
-      const termElement = currentRow.querySelector('.search-term-tag');
-      if (termElement) {
-        searchTerm = termElement.textContent.trim();
-      }
-      currentRow = currentRow.previousElementSibling;
-    }
-    
-    // Find location
-    currentRow = row;
-    while (currentRow && !location) {
-      const cityElement = currentRow.querySelector('.city-line');
-      if (cityElement) {
-        const stateElement = currentRow.querySelector('.state-line');
-        const countryElement = currentRow.querySelector('.country-line');
-        location = cityElement.textContent.trim();
-        if (stateElement) location += ',' + stateElement.textContent.trim();
-        if (countryElement) location += ',' + countryElement.textContent.trim();
-      }
-      currentRow = currentRow.previousElementSibling;
-    }
-    
-    // Find device
-    const deviceIcon = row.querySelector('.device-icon');
-    if (deviceIcon) {
-      device = deviceIcon.alt || '';
-    }
-    
-    // Get products for this specific combination
-    const products = getProductRecords({
-      title: window.selectedExplorerProduct?.title,
-      source: window.selectedExplorerProduct?.source
-    }).filter(p => 
-      p.q === searchTerm &&
-      p.location_requested === location &&
-      p.device === device
-    );
-    
-    if (products.length > 0) {
-      renderAvgPositionChartExplorer(chartAvgPosDiv, products);
-    } else {
-      chartAvgPosDiv.innerHTML = '<div style="text-align: center; color: #999;">No data available for chart</div>';
+    if (products.length > 0 && chartAvgPosDiv) {
+      renderAvgPositionChart(chartAvgPosDiv, products);
+      
+      // Add click handlers to small cards for chart interaction
+      smallCards.forEach((card, index) => {
+        // Remove any existing click handler
+        const oldHandler = card._chartClickHandler;
+        if (oldHandler) {
+          card.removeEventListener('click', oldHandler);
+        }
+        
+        // Create new click handler
+        const clickHandler = function() {
+          // Toggle selection
+          if (chartAvgPosDiv.selectedProductIndex === index) {
+            // Deselect if clicking the same product
+            chartAvgPosDiv.selectedProductIndex = null;
+            card.classList.remove('active');
+          } else {
+            // Select this product
+            chartAvgPosDiv.selectedProductIndex = index;
+            // Remove active class from all cards
+            smallCards.forEach(c => c.classList.remove('active'));
+            // Add active class to clicked card
+            card.classList.add('active');
+          }
+          
+          // Update chart visibility
+          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+        };
+        
+        // Store reference to handler for cleanup
+        card._chartClickHandler = clickHandler;
+        card.addEventListener('click', clickHandler);
+      });
     }
   });
 });
@@ -1153,14 +1142,47 @@ viewChartsBtn.addEventListener("click", function() {
   display: none;
   width: 100%;
   height: 100%;
-  min-height: 350px;
+  min-height: 280px;
   overflow: hidden;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.chart-products {
+  width: 280px;
+  height: 100%;
+  max-height: 575px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 5px;
+  scrollbar-width: auto;
+  scrollbar-color: #ccc #f9f9f9;
+}
+
+.chart-products::-webkit-scrollbar {
+  width: 8px;  /* Increased from 6px */
+}
+
+.chart-products::-webkit-scrollbar-track {
+  background: #e0e0e0;  /* Made darker than #f9f9f9 */
+  border-radius: 4px;
+}
+
+.chart-products::-webkit-scrollbar-thumb {
+  background: #888;  /* Made darker than #ccc */
+  border-radius: 4px;
+}
+
+.chart-products::-webkit-scrollbar-thumb:hover {
+  background: #666;  /* Made darker than #999 */
 }
 
 .chart-avg-position {
-  width: 100%;
+  flex: 1;
+  min-width: 300px; /* Add minimum width */
   height: 100%;
-  min-height: 350px;
   background-color: #f9f9f9;
   border-radius: 8px;
   padding: 10px;
@@ -1906,15 +1928,18 @@ tdProducts.appendChild(productCellContainer);
 const productsChartContainer = document.createElement("div");
 productsChartContainer.classList.add("products-chart-container");
 
-// Create chart-avg-position container ONLY (no chart-products)
+// Create chart-products container
+const chartProductsDiv = document.createElement("div");
+chartProductsDiv.classList.add("chart-products");
+
+// Create chart-avg-position container
 const chartAvgPositionDiv = document.createElement("div");
 chartAvgPositionDiv.classList.add("chart-avg-position");
-chartAvgPositionDiv.innerHTML = 'Click "Charts" view to see position trends';
-chartAvgPositionDiv.style.width = '100%'; // Take full width
-chartAvgPositionDiv.style.minWidth = '600px'; // Ensure minimum width
+chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>';
 
+productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
-tdProducts.appendChild(productsChartContainer);  // ← CORRECTED: tdProducts, not tdCharts
+tdProducts.appendChild(productsChartContainer);
   
           // Find and display matching products
           if (window.allRows && Array.isArray(window.allRows)) {
