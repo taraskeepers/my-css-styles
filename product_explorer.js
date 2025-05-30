@@ -210,7 +210,7 @@ clonedChartsBtn.addEventListener('click', function() {
           }
           
           // Update chart visibility
-          updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);;
+          updateChartLineVisibilityExplorer(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
         };
         
         // Store reference to handler for cleanup
