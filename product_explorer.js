@@ -371,11 +371,18 @@ function selectProduct(product, navItemElement) {
   }
   
   window.selectedExplorerProduct = product;
+  const currentViewMode = document.querySelector('.view-switcher .active')?.id || 'viewRankingExplorer';
   
   const combinations = getProductCombinations(product);
   console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
   
   renderTableForSelectedProduct(combinations);
+  setTimeout(() => {
+  const targetButton = document.getElementById(currentViewMode);
+  if (targetButton) {
+    targetButton.click();
+  }
+}, 200);
 }
 
 function renderTableForSelectedProduct(combinations) {
@@ -562,13 +569,28 @@ function createDeviceCell(combination) {
     createMarketSharePieChartExplorer(visChartId, avgVisibility);
   }, 50);
   
-  const lastTracked = getLastTrackedInfo(record);
-  deviceHTML += `
-    <div class="last-tracked-container">
-      <div class="last-tracked-label">Last time tracked:</div>
-      <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
-    </div>
-  `;
+const lastTracked = getLastTrackedInfo(record);
+
+// Determine if product is active based on last tracked date
+let isActive = record.product_status === 'active' || !record.product_status;
+if (lastTracked.text && lastTracked.text.includes('days ago')) {
+  const daysMatch = lastTracked.text.match(/(\d+) days ago/);
+  if (daysMatch) {
+    const daysAgo = parseInt(daysMatch[1]);
+    if (daysAgo > 7) {
+      isActive = false;
+    }
+  }
+}
+
+deviceHTML += `
+  <div class="last-tracked-container">
+    <div class="last-tracked-label">Status:</div>
+    <div class="last-tracked-value"><span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></div>
+    <div class="last-tracked-label" style="margin-top: 8px;">Last time tracked:</div>
+    <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
+  </div>
+`;
   
   deviceHTML += `</div>`;
   
@@ -857,12 +879,12 @@ function createProductSegmentationChart(containerId, chartData, term, location, 
   const isActive = record.product_status === 'active' || !record.product_status;
   const lastTracked = getLastTrackedInfo(record);
   
-  infoContainer.innerHTML = `
-    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Status:</div>
-    <div style="font-weight: 700; color: ${isActive ? '#4CAF50' : '#9e9e9e'};">${isActive ? 'Active' : 'Inactive'}</div>
-    <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Last Tracked:</div>
-    <div style="font-weight: 700;" class="${lastTracked.class}">${lastTracked.text}</div>
-  `;
+infoContainer.innerHTML = `
+  <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Status:</div>
+  <div><span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></div>
+  <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Last Tracked:</div>
+  <div style="font-weight: 700;" class="${lastTracked.class}">${lastTracked.text}</div>
+`;
   
   chartContainer.appendChild(infoContainer);
   
@@ -961,20 +983,20 @@ function renderProductPositionChart(container, record) {
     return;
   }
   
-  // Determine date range from the product's historical data
-  let allDates = new Set();
-  let minDate = null;
-  let maxDate = null;
-  
-  record.historical_data.forEach(item => {
-    if (item.date && item.date.value && item.avg_position) {
-      const dateStr = item.date.value;
-      allDates.add(dateStr);
-      const date = moment(dateStr, 'YYYY-MM-DD');
-      if (!minDate || date.isBefore(minDate)) minDate = date.clone();
-      if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
-    }
-  });
+// Determine date range from the specific record's historical data
+let allDates = new Set();
+let minDate = null;
+let maxDate = null;
+
+record.historical_data.forEach(item => {
+  if (item.date && item.date.value && item.avg_position) {
+    const dateStr = item.date.value;
+    allDates.add(dateStr);
+    const date = moment(dateStr, 'YYYY-MM-DD');
+    if (!minDate || date.isBefore(minDate)) minDate = date.clone();
+    if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
+  }
+});
   
   if (!minDate || !maxDate) {
     container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
@@ -1215,21 +1237,20 @@ function renderAvgPositionChartExplorer(container, products) {
   canvas.style.height = '100%';
   container.appendChild(canvas);
   
-  let allDates = new Set();
-  let minDate = null;
-  let maxDate = null;
-  
-  products.forEach(product => {
-    if (product.historical_data && product.historical_data.length > 0) {
-      product.historical_data.forEach(item => {
-        if (item.date && item.date.value && item.avg_position) {
-          const dateStr = item.date.value;
-          allDates.add(dateStr);
-          const date = moment(dateStr, 'YYYY-MM-DD');
-          if (!minDate || date.isBefore(minDate)) minDate = date.clone();
-          if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
-        }
-      });
+// Determine date range from the specific record's historical data
+let allDates = new Set();
+let minDate = null;
+let maxDate = null;
+
+record.historical_data.forEach(item => {
+  if (item.date && item.date.value && item.avg_position) {
+    const dateStr = item.date.value;
+    allDates.add(dateStr);
+    const date = moment(dateStr, 'YYYY-MM-DD');
+    if (!minDate || date.isBefore(minDate)) minDate = date.clone();
+    if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
+  }
+});
     }
   });
   
@@ -1562,6 +1583,18 @@ function renderProductExplorerTable() {
     
     fullscreenOverlay.style.display = 'block';
     document.body.style.overflow = 'hidden';
+
+    // Preserve current view state in fullscreen
+const currentActiveButton = document.querySelector('.view-switcher .active');
+if (currentActiveButton && switcherClone) {
+  const activeId = currentActiveButton.id;
+  const clonedActiveButton = switcherClone.querySelector(`#${activeId}`);
+  if (clonedActiveButton) {
+    setTimeout(() => {
+      clonedActiveButton.click();
+    }, 100);
+  }
+}
     
     closeBtn.addEventListener("click", function() {
       fullscreenOverlay.style.display = 'none';
@@ -2510,6 +2543,25 @@ viewMapExplorerBtn.addEventListener("click", function() {
   cursor: pointer;
   transition: all 0.2s ease;
   color: #666;
+}
+.status-active {
+  background-color: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-inactive {
+  background-color: #FF9800;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
 }
     `;
     document.head.appendChild(style);
