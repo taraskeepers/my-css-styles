@@ -570,24 +570,9 @@ function createDeviceCell(combination) {
   }, 50);
   
 const lastTracked = getLastTrackedInfo(record);
-
-// Determine if product is active based on last tracked date
-let isActive = record.product_status === 'active' || !record.product_status;
-if (lastTracked.text && lastTracked.text.includes('days ago')) {
-  const daysMatch = lastTracked.text.match(/(\d+) days ago/);
-  if (daysMatch) {
-    const daysAgo = parseInt(daysMatch[1]);
-    if (daysAgo > 7) {
-      isActive = false;
-    }
-  }
-}
-
 deviceHTML += `
   <div class="last-tracked-container">
-    <div class="last-tracked-label">Status:</div>
-    <div class="last-tracked-value"><span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></div>
-    <div class="last-tracked-label" style="margin-top: 8px;">Last time tracked:</div>
+    <div class="last-tracked-label">Last time tracked:</div>
     <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
   </div>
 `;
@@ -983,38 +968,62 @@ function renderProductPositionChart(container, record) {
     return;
   }
   
-// Determine date range from the specific record's historical data
-let allDates = new Set();
-let minDate = null;
-let maxDate = null;
+// Find the latest date this product appeared for this search term across ALL locations/devices
+let maxDateForTerm = null;
+const selectedProduct = window.selectedExplorerProduct;
+const currentSearchTerm = record.q;
 
-record.historical_data.forEach(item => {
-  if (item.date && item.date.value && item.avg_position) {
-    const dateStr = item.date.value;
-    allDates.add(dateStr);
-    const date = moment(dateStr, 'YYYY-MM-DD');
-    if (!minDate || date.isBefore(minDate)) minDate = date.clone();
-    if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
-  }
-});
+// Get all records for this product and search term
+if (window.allRows && selectedProduct) {
+  const allRecordsForTerm = window.allRows.filter(r => 
+    r.title === selectedProduct.title && 
+    r.source === selectedProduct.source &&
+    r.q === currentSearchTerm
+  );
   
-  if (!minDate || !maxDate) {
-    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
-    return;
-  }
+  // Find the maximum date across all records for this term
+  allRecordsForTerm.forEach(r => {
+    if (r.historical_data && r.historical_data.length > 0) {
+      r.historical_data.forEach(item => {
+        if (item.date && item.date.value && item.avg_position) {
+          const date = moment(item.date.value, 'YYYY-MM-DD');
+          if (!maxDateForTerm || date.isAfter(maxDateForTerm)) {
+            maxDateForTerm = date.clone();
+          }
+        }
+      });
+    }
+  });
+}
+
+// If no max date found, fall back to this record's data
+if (!maxDateForTerm && record.historical_data && record.historical_data.length > 0) {
+  record.historical_data.forEach(item => {
+    if (item.date && item.date.value && item.avg_position) {
+      const date = moment(item.date.value, 'YYYY-MM-DD');
+      if (!maxDateForTerm || date.isAfter(maxDateForTerm)) {
+        maxDateForTerm = date.clone();
+      }
+    }
+  });
+}
+
+if (!maxDateForTerm) {
+  container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
+  return;
+}
+
+// Use the last 30 days from the maximum date
+const maxDate = maxDateForTerm.clone();
+const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including maxDate
   
-  // Create array of all dates in range
-  const dateArray = [];
-  let currentDate = minDate.clone();
-  while (currentDate.isSameOrBefore(maxDate)) {
-    dateArray.push(currentDate.format('YYYY-MM-DD'));
-    currentDate.add(1, 'day');
-  }
-  
-  // Limit to last 30 days if range is too large
-  if (dateArray.length > 30) {
-    dateArray.splice(0, dateArray.length - 30);
-  }
+  // Create array of exactly 30 dates
+const dateArray = [];
+let currentDate = minDate.clone();
+while (currentDate.isSameOrBefore(maxDate)) {
+  dateArray.push(currentDate.format('YYYY-MM-DD'));
+  currentDate.add(1, 'day');
+}
   
   // Create datasets for the single product
   const datasets = [];
@@ -2560,6 +2569,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
   font-size: 12px;
   font-weight: 600;
   display: inline-block;
+}
+.device-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
     `;
     document.head.appendChild(style);
