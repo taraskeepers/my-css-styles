@@ -521,12 +521,17 @@ tr.appendChild(tdRankMarketShare);
     });
   });
   
-  const container = document.querySelector("#productExplorerTableContainer");
-  container.appendChild(table);
-  
+const container = document.querySelector("#productExplorerTableContainer");
+container.appendChild(table);
+
 console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
-  
-  renderPendingExplorerChartsForProduct();
+
+// Set visibility fill heights for water effect
+setTimeout(() => {
+  setVisibilityFillHeights();
+}, 100);
+
+renderPendingExplorerChartsForProduct();
   
 // Apply initial view mode immediately after table creation
 if (initialViewMode === 'viewRankingExplorer') {
@@ -1001,13 +1006,13 @@ function createProductRankMarketShareHistory(record) {
   const maxDate = moment().startOf('day');
   const minDate = maxDate.clone().subtract(29, 'days');
   
-  // Create array of exactly 30 dates
-  const dateArray = [];
-  let currentDate = minDate.clone();
-  while (currentDate.isSameOrBefore(maxDate)) {
-    dateArray.push(currentDate.format('YYYY-MM-DD'));
-    currentDate.add(1, 'day');
-  }
+// Create array of exactly 30 dates (newest first, oldest last)
+const dateArray = [];
+let currentDate = maxDate.clone(); // Start from newest date
+while (currentDate.isSameOrAfter(minDate)) {
+  dateArray.push(currentDate.format('YYYY-MM-DD'));
+  currentDate.subtract(1, 'day'); // Go backwards
+}
   
   // Check if there's any historical data at all
   const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
@@ -1056,20 +1061,28 @@ function createProductRankMarketShareHistory(record) {
         item.date?.value === dateStr
       );
       
-      if (histItem?.visibility != null) {
-        // Data exists - show actual visibility percentage
-        const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10; // Round to 1 decimal
-        html += `<div class="visibility-box">${visibility}%</div>`;
-      } else {
-        // Missing data for this date - show 0%
-        html += '<div class="visibility-box">0%</div>';
-      }
+if (histItem?.visibility != null) {
+  // Data exists - show actual visibility percentage with fill effect
+  const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10; // Round to 1 decimal
+  html += `<div class="visibility-box" data-fill="${visibility}">${visibility}%</div>`;
+} else {
+  // Missing data for this date - show 0%
+  html += '<div class="visibility-box" data-fill="0">0%</div>';
+}
     });
     html += '</div>';
   }
   
   html += '</div>';
   return html;
+}
+
+// Add this function to set dynamic fill heights
+function setVisibilityFillHeights() {
+  document.querySelectorAll('.visibility-box[data-fill]').forEach(box => {
+    const fillPercent = parseFloat(box.getAttribute('data-fill')) || 0;
+    box.style.setProperty('--fill-height', `${Math.min(fillPercent, 100)}%`);
+  });
 }
 
 // Helper function for rank color coding (same logic as company version)
@@ -2806,7 +2819,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 10px;
   box-sizing: border-box;
 }
@@ -2815,24 +2828,26 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .visibility-history-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
-  margin-bottom: 8px;
-  justify-content: center;
+  gap: 3px;
+  margin-bottom: 10px;
+  justify-content: flex-start; /* Align to left */
 }
 
 .rank-box,
 .visibility-box {
-  width: 32px;
-  height: 24px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: 4px;
   color: #333;
   border: 1px solid #ddd;
-  background-color: #fff; /* Default background for missing data */
+  background-color: #fff;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Color coding for ranks when data exists */
@@ -2901,6 +2916,76 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .product-explorer-table:not(.ranking-mode) .rank-market-share-history {
   display: none !important;
 }
+/* Water-filling effect for visibility boxes */
+.visibility-box::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, 
+    rgba(30, 136, 229, 0.3) 0%, 
+    rgba(30, 136, 229, 0.6) 100%);
+  transition: height 0.3s ease;
+  height: var(--fill-height, 0%);
+  z-index: 1;
+}
+
+.visibility-box[data-fill="0"]::before { height: 0%; }
+.visibility-box[data-fill*="1"]::before { height: calc(var(--fill-percent) * 1%); }
+
+/* Dynamic fill heights based on data-fill attribute */
+.visibility-box { --fill-percent: attr(data-fill number, 0); }
+
+/* Alternative approach using specific ranges */
+.visibility-box[data-fill="0"]::before { height: 0%; }
+.visibility-box:not([data-fill="0"])::before { 
+  height: calc(var(--fill-percent) * 1%); 
+}
+
+/* Text should be above the fill */
+.visibility-box {
+  z-index: 2;
+  position: relative;
+}
+
+/* Enhanced water effect with animation */
+.visibility-box::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, 
+    #1e88e5 0%, 
+    rgba(30, 136, 229, 0.7) 50%,
+    rgba(30, 136, 229, 0.3) 100%);
+  border-radius: 0 0 3px 3px;
+  transition: height 0.5s ease-in-out;
+}
+
+/* Specific fill percentages - you'll need JavaScript to set these */
+.visibility-box[data-fill="0"]::before { height: 0%; }
+.visibility-box[data-fill*="5"]::before { height: 5%; }
+.visibility-box[data-fill*="10"]::before { height: 10%; }
+.visibility-box[data-fill*="15"]::before { height: 15%; }
+.visibility-box[data-fill*="20"]::before { height: 20%; }
+.visibility-box[data-fill*="25"]::before { height: 25%; }
+.visibility-box[data-fill*="30"]::before { height: 30%; }
+.visibility-box[data-fill*="35"]::before { height: 35%; }
+.visibility-box[data-fill*="40"]::before { height: 40%; }
+.visibility-box[data-fill*="45"]::before { height: 45%; }
+.visibility-box[data-fill*="50"]::before { height: 50%; }
+.visibility-box[data-fill*="55"]::before { height: 55%; }
+.visibility-box[data-fill*="60"]::before { height: 60%; }
+.visibility-box[data-fill*="65"]::before { height: 65%; }
+.visibility-box[data-fill*="70"]::before { height: 70%; }
+.visibility-box[data-fill*="75"]::before { height: 75%; }
+.visibility-box[data-fill*="80"]::before { height: 80%; }
+.visibility-box[data-fill*="85"]::before { height: 85%; }
+.visibility-box[data-fill*="90"]::before { height: 90%; }
+.visibility-box[data-fill*="95"]::before { height: 95%; }
+.visibility-box[data-fill="100"]::before { height: 100%; }
     `;
     document.head.appendChild(style);
   }
