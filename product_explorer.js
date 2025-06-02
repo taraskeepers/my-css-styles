@@ -1251,8 +1251,6 @@ record.historical_data.forEach(item => {
     if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
   }
 });
-    }
-  });
   
   if (!minDate || !maxDate) {
     container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
