@@ -406,15 +406,15 @@ function renderTableForSelectedProduct(combinations) {
   table.classList.add("product-explorer-table");
   
   const thead = document.createElement("thead");
-  thead.innerHTML = `
-    <tr>
-      <th>Search Term</th>
-      <th>Location</th>
-      <th>Device</th>
-      <th>Top 40 Segmentation</th>
-      <th>Position Chart</th>
-    </tr>
-  `;
+thead.innerHTML = `
+  <tr>
+    <th>Search Term</th>
+    <th>Location</th>
+    <th>Device</th>
+    <th class="segmentation-column">Top 40 Segmentation</th>
+    <th>Rank & Market Share</th>
+  </tr>
+`;
   table.appendChild(thead);
   
   const tbody = document.createElement("tbody");
@@ -492,16 +492,17 @@ function renderTableForSelectedProduct(combinations) {
         tdDev.innerHTML = createDeviceCell(combination);
         tr.appendChild(tdDev);
         
-        const tdSegmentation = document.createElement("td");
-        const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-        tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
-        tr.appendChild(tdSegmentation);
-        
-        // NEW: Position Chart column - removed chart-products, only chart-avg-position
-        const tdPositionChart = document.createElement("td");
-        const positionChartId = `explorer-position-chart-${chartCounter}`;
-        tdPositionChart.innerHTML = `<div id="${positionChartId}" class="chart-avg-position">Click "Charts" view to see position trends</div>`;
-        tr.appendChild(tdPositionChart);
+const tdSegmentation = document.createElement("td");
+tdSegmentation.classList.add("segmentation-column");
+const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+tr.appendChild(tdSegmentation);
+
+// NEW: Rank & Market Share column
+const tdRankMarketShare = document.createElement("td");
+const positionChartId = `explorer-position-chart-${chartCounter}`;
+tdRankMarketShare.innerHTML = `<div id="${positionChartId}" class="chart-avg-position">Click "Charts" view to see position trends</div>`;
+tr.appendChild(tdRankMarketShare);
         
         const chartInfo = {
           containerId: chartContainerId,
@@ -1950,12 +1951,22 @@ viewRankingExplorerBtn.addEventListener("click", function() {
   viewChartsExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
   
-  // Hide position charts, show segmentation charts
+  // Add ranking mode to table and device containers
+  const table = document.querySelector('.product-explorer-table');
+  if (table) {
+    table.classList.add('ranking-mode');
+  }
+  
+  document.querySelectorAll('.device-container').forEach(container => {
+    container.classList.add('ranking-mode');
+  });
+  
+  // Hide position charts and segmentation column
   document.querySelectorAll('.chart-avg-position').forEach(container => {
     container.style.display = 'none';
   });
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
-    container.style.display = 'flex';
+    container.style.display = 'none';
   });
 });
 
@@ -1964,6 +1975,16 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   viewChartsExplorerBtn.classList.add("active");
   viewRankingExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
+  
+  // Remove ranking mode from table and device containers
+  const table = document.querySelector('.product-explorer-table');
+  if (table) {
+    table.classList.remove('ranking-mode');
+  }
+  
+  document.querySelectorAll('.device-container').forEach(container => {
+    container.classList.remove('ranking-mode');
+  });
   
   // Show BOTH segmentation charts AND position charts
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
@@ -1984,6 +2005,16 @@ viewMapExplorerBtn.addEventListener("click", function() {
   viewMapExplorerBtn.classList.add("active");
   viewRankingExplorerBtn.classList.remove("active");
   viewChartsExplorerBtn.classList.remove("active");
+  
+  // Remove ranking mode from table and device containers
+  const table = document.querySelector('.product-explorer-table');
+  if (table) {
+    table.classList.remove('ranking-mode');
+  }
+  
+  document.querySelectorAll('.device-container').forEach(container => {
+    container.classList.remove('ranking-mode');
+  });
   
   // Hide segmentation charts, show only position charts
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
@@ -2055,9 +2086,14 @@ viewMapExplorerBtn.addEventListener("click", function() {
       .product-explorer-table { table-layout: fixed; }
       .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
       .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
-      .product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 120px; }
-      .product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 230px; }
-      .product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
+.product-explorer-table th:nth-child(3), .product-explorer-table td:nth-child(3) { width: 200px; }
+.product-explorer-table th:nth-child(4), .product-explorer-table td:nth-child(4) { width: 230px; }
+.product-explorer-table th:nth-child(5), .product-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
+
+/* Hide segmentation column in ranking mode */
+.ranking-mode .segmentation-column {
+  display: none !important;
+}
       
       .search-term-tag {
         display: inline-block;
@@ -2113,6 +2149,30 @@ viewMapExplorerBtn.addEventListener("click", function() {
         height: 100%;
         justify-content: space-between;
       }
+      .device-container.ranking-mode {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.device-container.ranking-mode .device-type, 
+.device-container.ranking-mode .device-rank, 
+.device-container.ranking-mode .device-share {
+  flex: 1;
+  padding: 4px;
+  min-width: 0;
+}
+
+.device-container.ranking-mode .device-rank-value {
+  font-size: 20px;
+}
+
+.device-container.ranking-mode .pie-chart-container {
+  width: 60px;
+  height: 60px;
+}
       
       .device-type, .device-rank, .device-share {
         display: flex;
