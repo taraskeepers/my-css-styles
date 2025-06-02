@@ -2619,6 +2619,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
   border-radius: 4px;
   background-color: #fafafa;
 }
+/* Increase Device column width in ranking mode */
+.product-explorer-table.ranking-mode th:nth-child(3), 
+.product-explorer-table.ranking-mode td:nth-child(3) { 
+  width: 380px !important; 
+}
     `;
     document.head.appendChild(style);
   }
