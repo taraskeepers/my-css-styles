@@ -658,7 +658,7 @@ function calculateAvgRankFromHistorical(record) {
 
 function getLastTrackedInfo(record) {
   if (!record.historical_data || record.historical_data.length === 0) {
-    return { text: 'Not tracked', class: '' };
+    return { text: 'Not tracked', class: '', isActive: false };
   }
   
   let latestDate = null;
@@ -672,20 +672,23 @@ function getLastTrackedInfo(record) {
   });
   
   if (!latestDate) {
-    return { text: 'Not tracked', class: '' };
+    return { text: 'Not tracked', class: '', isActive: false };
   }
   
   const today = moment().startOf('day');
   const daysDiff = today.diff(latestDate, 'days');
   
+  // Determine if active (last appeared within 7 days from today)
+  const isActive = daysDiff <= 7;
+  
   if (daysDiff === 0) {
-    return { text: 'Today', class: 'recent-tracking' };
+    return { text: 'Today', class: 'recent-tracking', isActive: true };
   } else if (daysDiff === 1) {
-    return { text: 'Yesterday', class: 'recent-tracking' };
+    return { text: 'Yesterday', class: 'recent-tracking', isActive: true };
   } else if (daysDiff <= 7) {
-    return { text: `${daysDiff} days ago`, class: 'moderate-tracking' };
+    return { text: `${daysDiff} days ago`, class: 'moderate-tracking', isActive: true };
   } else {
-    return { text: `${daysDiff} days ago`, class: 'old-tracking' };
+    return { text: `${daysDiff} days ago`, class: 'old-tracking', isActive: false };
   }
 }
 
@@ -861,8 +864,8 @@ function createProductSegmentationChart(containerId, chartData, term, location, 
   infoContainer.style.fontSize = '14px';
   infoContainer.style.boxSizing = 'border-box';
   
-  const isActive = record.product_status === 'active' || !record.product_status;
-  const lastTracked = getLastTrackedInfo(record);
+const lastTracked = getLastTrackedInfo(record);
+const isActive = lastTracked.isActive;
   
 infoContainer.innerHTML = `
   <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Status:</div>
@@ -968,54 +971,9 @@ function renderProductPositionChart(container, record) {
     return;
   }
   
-// Find the latest date this product appeared for this search term across ALL locations/devices
-let maxDateForTerm = null;
-const selectedProduct = window.selectedExplorerProduct;
-const currentSearchTerm = record.q;
-
-// Get all records for this product and search term
-if (window.allRows && selectedProduct) {
-  const allRecordsForTerm = window.allRows.filter(r => 
-    r.title === selectedProduct.title && 
-    r.source === selectedProduct.source &&
-    r.q === currentSearchTerm
-  );
-  
-  // Find the maximum date across all records for this term
-  allRecordsForTerm.forEach(r => {
-    if (r.historical_data && r.historical_data.length > 0) {
-      r.historical_data.forEach(item => {
-        if (item.date && item.date.value && item.avg_position) {
-          const date = moment(item.date.value, 'YYYY-MM-DD');
-          if (!maxDateForTerm || date.isAfter(maxDateForTerm)) {
-            maxDateForTerm = date.clone();
-          }
-        }
-      });
-    }
-  });
-}
-
-// If no max date found, fall back to this record's data
-if (!maxDateForTerm && record.historical_data && record.historical_data.length > 0) {
-  record.historical_data.forEach(item => {
-    if (item.date && item.date.value && item.avg_position) {
-      const date = moment(item.date.value, 'YYYY-MM-DD');
-      if (!maxDateForTerm || date.isAfter(maxDateForTerm)) {
-        maxDateForTerm = date.clone();
-      }
-    }
-  });
-}
-
-if (!maxDateForTerm) {
-  container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
-  return;
-}
-
-// Use the last 30 days from the maximum date
-const maxDate = maxDateForTerm.clone();
-const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including maxDate
+// Use today's date as the latest date, always show last 30 days
+const maxDate = moment().startOf('day');
+const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including today
   
   // Create array of exactly 30 dates
 const dateArray = [];
@@ -1246,36 +1204,17 @@ function renderAvgPositionChartExplorer(container, products) {
   canvas.style.height = '100%';
   container.appendChild(canvas);
   
-// Determine date range from the specific record's historical data
-let allDates = new Set();
-let minDate = null;
-let maxDate = null;
+// Use today's date as the latest date, always show last 30 days
+const maxDate = moment().startOf('day');
+const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including today
 
-record.historical_data.forEach(item => {
-  if (item.date && item.date.value && item.avg_position) {
-    const dateStr = item.date.value;
-    allDates.add(dateStr);
-    const date = moment(dateStr, 'YYYY-MM-DD');
-    if (!minDate || date.isBefore(minDate)) minDate = date.clone();
-    if (!maxDate || date.isAfter(maxDate)) maxDate = date.clone();
-  }
-});
-  
-  if (!minDate || !maxDate) {
-    container.innerHTML = '<div style="text-align: center; color: #999;">No position data available</div>';
-    return;
-  }
-  
-  const dateArray = [];
-  let currentDate = minDate.clone();
-  while (currentDate.isSameOrBefore(maxDate)) {
-    dateArray.push(currentDate.format('YYYY-MM-DD'));
-    currentDate.add(1, 'day');
-  }
-  
-  if (dateArray.length > 30) {
-    dateArray.splice(0, dateArray.length - 30);
-  }
+// Create array of exactly 30 dates
+const dateArray = [];
+let currentDate = minDate.clone();
+while (currentDate.isSameOrBefore(maxDate)) {
+  dateArray.push(currentDate.format('YYYY-MM-DD'));
+  currentDate.add(1, 'day');
+}
   
   const datasets = [];
 
