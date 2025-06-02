@@ -524,33 +524,33 @@ console.log('[renderTableForSelectedProduct] Table created, rendering charts...'
   
 // Apply initial view mode immediately after table creation
 if (initialViewMode === 'viewRankingExplorer') {
-  // Apply ranking mode immediately for initial load
+  // Apply ranking mode immediately without delay
+  const table = document.querySelector('.product-explorer-table');
+  if (table) {
+    table.classList.add('ranking-mode');
+  }
+  
+  // Ensure the ranking button is active immediately
+  const rankingBtn = document.getElementById('viewRankingExplorer');
+  const chartsBtn = document.getElementById('viewChartsExplorer');
+  const mapBtn = document.getElementById('viewMapExplorer');
+  if (rankingBtn) rankingBtn.classList.add('active');
+  if (chartsBtn) chartsBtn.classList.remove('active');
+  if (mapBtn) mapBtn.classList.remove('active');
+  
+  // Apply to device containers and hide charts immediately
   setTimeout(() => {
-    const table = document.querySelector('.product-explorer-table');
-    if (table) {
-      table.classList.add('ranking-mode');
-    }
-    
     document.querySelectorAll('.device-container').forEach(container => {
       container.classList.add('ranking-mode');
     });
     
-    // Hide position charts and segmentation column
     document.querySelectorAll('.chart-avg-position').forEach(container => {
       container.style.display = 'none';
     });
     document.querySelectorAll('.segmentation-chart-container').forEach(container => {
       container.style.display = 'none';
     });
-    
-    // Ensure the ranking button is active
-    const rankingBtn = document.getElementById('viewRankingExplorer');
-    const chartsBtn = document.getElementById('viewChartsExplorer');
-    const mapBtn = document.getElementById('viewMapExplorer');
-    if (rankingBtn) rankingBtn.classList.add('active');
-    if (chartsBtn) chartsBtn.classList.remove('active');
-    if (mapBtn) mapBtn.classList.remove('active');
-  }, 50);
+  }, 10); // Minimal delay just for DOM elements to be created
 } else {
   setTimeout(() => {
     const targetButton = document.getElementById(initialViewMode);
