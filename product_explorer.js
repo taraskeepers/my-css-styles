@@ -522,7 +522,36 @@ console.log('[renderTableForSelectedProduct] Table created, rendering charts...'
   
   renderPendingExplorerChartsForProduct();
   
-  // Apply initial view mode immediately after table creation
+// Apply initial view mode immediately after table creation
+if (initialViewMode === 'viewRankingExplorer') {
+  // Apply ranking mode immediately for initial load
+  setTimeout(() => {
+    const table = document.querySelector('.product-explorer-table');
+    if (table) {
+      table.classList.add('ranking-mode');
+    }
+    
+    document.querySelectorAll('.device-container').forEach(container => {
+      container.classList.add('ranking-mode');
+    });
+    
+    // Hide position charts and segmentation column
+    document.querySelectorAll('.chart-avg-position').forEach(container => {
+      container.style.display = 'none';
+    });
+    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+      container.style.display = 'none';
+    });
+    
+    // Ensure the ranking button is active
+    const rankingBtn = document.getElementById('viewRankingExplorer');
+    const chartsBtn = document.getElementById('viewChartsExplorer');
+    const mapBtn = document.getElementById('viewMapExplorer');
+    if (rankingBtn) rankingBtn.classList.add('active');
+    if (chartsBtn) chartsBtn.classList.remove('active');
+    if (mapBtn) mapBtn.classList.remove('active');
+  }, 50);
+} else {
   setTimeout(() => {
     const targetButton = document.getElementById(initialViewMode);
     if (targetButton && !targetButton.classList.contains('active')) {
@@ -530,29 +559,20 @@ console.log('[renderTableForSelectedProduct] Table created, rendering charts...'
     }
   }, 100);
 }
+}
 
 function createDeviceCell(combination) {
   const record = combination.record;
   
-let deviceHTML = `<div class="device-container">`;
-
-const deviceIcon = record.device.toLowerCase().includes('mobile') 
-  ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
-  : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
-
-deviceHTML += `<div class="device-type">
-  <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
-</div>`;
-
-// Add Status container
-const lastTracked = getLastTrackedInfo(record);
-const isActive = lastTracked.isActive;
-deviceHTML += `
-  <div class="device-status">
-    <div class="section-header">Status</div>
-    <div><span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></div>
-  </div>
-`;
+  let deviceHTML = `<div class="device-container">`;
+  
+  const deviceIcon = record.device.toLowerCase().includes('mobile') 
+    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
+    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+  
+  deviceHTML += `<div class="device-type">
+    <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
+  </div>`;
   
   const avgRank = calculateAvgRankFromHistorical(record);
   deviceHTML += `
@@ -570,19 +590,30 @@ deviceHTML += `
     avgVisibility = parseFloat(record.avg_visibility) * 100;
   }
 
-  const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
-  deviceHTML += `
-    <div class="device-share">
-      <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
-      <div id="${visChartId}" class="pie-chart-container"></div>
-    </div>
-  `;
+const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+deviceHTML += `
+  <div class="device-share">
+    <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
+    <div id="${visChartId}" class="pie-chart-container"></div>
+  </div>
+`;
 
-  setTimeout(() => {
-    createMarketSharePieChartExplorer(visChartId, avgVisibility);
-  }, 50);
-  
+setTimeout(() => {
+  createMarketSharePieChartExplorer(visChartId, avgVisibility);
+}, 50);
+
+// Add status section for ranking mode
 const lastTracked = getLastTrackedInfo(record);
+const isActive = lastTracked.isActive;
+deviceHTML += `
+  <div class="device-status">
+    <div class="section-header">Status</div>
+    <div class="device-status-value">
+      <span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
+    </div>
+  </div>
+`;
+
 deviceHTML += `
   <div class="last-tracked-container">
     <div class="last-tracked-label">Last time tracked:</div>
@@ -2170,23 +2201,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   padding: 8px !important;
   gap: 8px !important;
 }
-.device-container.ranking-mode .device-status {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 4px !important;
-  min-width: 60px !important;
-  text-align: center !important;
-}
-
-.device-container.ranking-mode .device-status .status-active,
-.device-container.ranking-mode .device-status .status-inactive {
-  font-size: 11px !important;
-  padding: 2px 6px !important;
-  border-radius: 8px !important;
-}
 
 .device-container.ranking-mode .device-type, 
 .device-container.ranking-mode .device-rank, 
@@ -2651,6 +2665,37 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .product-explorer-table.ranking-mode td:nth-child(3) { 
   width: 380px !important; 
 }
+.device-container.ranking-mode .device-type, 
+.device-container.ranking-mode .device-rank, 
+.device-container.ranking-mode .device-share,
+.device-container.ranking-mode .device-status {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 4px !important;
+  min-width: 60px !important;
+  text-align: center !important;
+}
+
+.device-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.device-status-value {
+  margin-top: 4px;
+}
+
+.device-container.ranking-mode .device-status-value {
+  margin-top: 2px !important;
+}
     `;
     document.head.appendChild(style);
   }
@@ -2742,43 +2787,28 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
   productsNavPanel.appendChild(productsNavContainer);
 
-setTimeout(() => {
-  console.log('[renderProductExplorerTable] Auto-selecting first product...');
-  
-  const firstNavItem = document.querySelector('.nav-product-item');
-  
-  if (firstNavItem && allCompanyProducts.length > 0) {
-    const firstProduct = allCompanyProducts[0];
-    console.log('[renderProductExplorerTable] Auto-selecting:', firstProduct.title);
+  setTimeout(() => {
+    console.log('[renderProductExplorerTable] Auto-selecting first product...');
     
-    // Select product and immediately apply ranking mode
-    const combinations = getProductCombinations(firstProduct);
-    firstNavItem.classList.add('selected');
-    window.selectedExplorerProduct = firstProduct;
-    renderTableForSelectedProduct(combinations, 'viewRankingExplorer');
+    const firstNavItem = document.querySelector('.nav-product-item');
     
-    // Ensure ranking mode is applied immediately
-    setTimeout(() => {
-      const table = document.querySelector('.product-explorer-table');
-      if (table) {
-        table.classList.add('ranking-mode');
-      }
-      document.querySelectorAll('.device-container').forEach(container => {
-        container.classList.add('ranking-mode');
-      });
-    }, 50);
-  } else {
-    console.warn('[renderProductExplorerTable] No products found for auto-selection');
-    
-    const container = document.querySelector("#productExplorerTableContainer");
-    const emptyMessage = document.createElement('div');
-    emptyMessage.style.padding = '40px';
-    emptyMessage.style.textAlign = 'center';
-    emptyMessage.style.color = '#666';
-    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
-    container.appendChild(emptyMessage);
-  }
-}, 500);
+    if (firstNavItem && allCompanyProducts.length > 0) {
+      const firstProduct = allCompanyProducts[0];
+      console.log('[renderProductExplorerTable] Auto-selecting:', firstProduct.title);
+      
+      firstNavItem.click();
+    } else {
+      console.warn('[renderProductExplorerTable] No products found for auto-selection');
+      
+      const container = document.querySelector("#productExplorerTableContainer");
+      const emptyMessage = document.createElement('div');
+      emptyMessage.style.padding = '40px';
+      emptyMessage.style.textAlign = 'center';
+      emptyMessage.style.color = '#666';
+      emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+      container.appendChild(emptyMessage);
+    }
+  }, 500);
 }
 
 // Export the function
