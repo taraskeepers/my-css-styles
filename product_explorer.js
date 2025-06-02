@@ -376,16 +376,10 @@ function selectProduct(product, navItemElement) {
   const combinations = getProductCombinations(product);
   console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
   
-  renderTableForSelectedProduct(combinations);
-  setTimeout(() => {
-  const targetButton = document.getElementById(currentViewMode);
-  if (targetButton) {
-    targetButton.click();
-  }
-}, 200);
+  renderTableForSelectedProduct(combinations, currentViewMode);
 }
 
-function renderTableForSelectedProduct(combinations) {
+function renderTableForSelectedProduct(combinations, initialViewMode = 'viewRankingExplorer') {
   console.log('[renderTableForSelectedProduct] Starting with', combinations.length, 'combinations');
   
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
@@ -524,9 +518,17 @@ tr.appendChild(tdRankMarketShare);
   const container = document.querySelector("#productExplorerTableContainer");
   container.appendChild(table);
   
-  console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
+console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
   
   renderPendingExplorerChartsForProduct();
+  
+  // Apply initial view mode immediately after table creation
+  setTimeout(() => {
+    const targetButton = document.getElementById(initialViewMode);
+    if (targetButton && !targetButton.classList.contains('active')) {
+      targetButton.click();
+    }
+  }, 100);
 }
 
 function createDeviceCell(combination) {
@@ -2149,29 +2151,57 @@ viewMapExplorerBtn.addEventListener("click", function() {
         height: 100%;
         justify-content: space-between;
       }
-      .device-container.ranking-mode {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-  justify-content: space-around;
-  align-items: center;
+.device-container.ranking-mode {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 100% !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 8px !important;
+  gap: 8px !important;
 }
 
 .device-container.ranking-mode .device-type, 
 .device-container.ranking-mode .device-rank, 
 .device-container.ranking-mode .device-share {
-  flex: 1;
-  padding: 4px;
-  min-width: 0;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 4px !important;
+  min-width: 60px !important;
+  text-align: center !important;
 }
 
 .device-container.ranking-mode .device-rank-value {
-  font-size: 20px;
+  font-size: 18px !important;
+  margin: 2px 0 !important;
+}
+
+.device-container.ranking-mode .device-trend {
+  font-size: 10px !important;
+  margin: 0 !important;
 }
 
 .device-container.ranking-mode .pie-chart-container {
-  width: 60px;
-  height: 60px;
+  width: 50px !important;
+  height: 50px !important;
+  margin: 0 !important;
+}
+
+.device-container.ranking-mode .section-header {
+  font-size: 9px !important;
+  margin-bottom: 2px !important;
+}
+
+.device-container.ranking-mode .last-tracked-container {
+  display: none !important;
+}
+
+.device-container.ranking-mode .device-icon {
+  width: 40px !important;
+  height: 40px !important;
 }
       
       .device-type, .device-rank, .device-share {
@@ -2573,6 +2603,21 @@ viewMapExplorerBtn.addEventListener("click", function() {
   width: 50px;
   height: 50px;
   object-fit: contain;
+}
+/* Fix row height in ranking mode */
+.product-explorer-table.ranking-mode td {
+  height: 90px !important;
+  max-height: 90px !important;
+}
+/* Ensure proper spacing and alignment in ranking mode */
+.product-explorer-table.ranking-mode .device-container .last-tracked-container {
+  display: none !important;
+}
+
+.product-explorer-table.ranking-mode .device-container {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #fafafa;
 }
     `;
     document.head.appendChild(style);
