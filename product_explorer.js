@@ -2622,7 +2622,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
 /* Increase Device column width in ranking mode */
 .product-explorer-table.ranking-mode th:nth-child(3), 
 .product-explorer-table.ranking-mode td:nth-child(3) { 
-  width: 380px !important; 
+  width: 300px !important; 
 }
     `;
     document.head.appendChild(style);
