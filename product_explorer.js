@@ -492,10 +492,16 @@ const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
 tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
 tr.appendChild(tdSegmentation);
 
-// NEW: Rank & Market Share column
 const tdRankMarketShare = document.createElement("td");
 const positionChartId = `explorer-position-chart-${chartCounter}`;
-tdRankMarketShare.innerHTML = `<div id="${positionChartId}" class="chart-avg-position">Click "Charts" view to see position trends</div>`;
+
+// Create rank & market share history
+const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
+
+tdRankMarketShare.innerHTML = `
+  <div id="${positionChartId}" class="chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+  <div class="rank-market-share-history">${rankMarketShareHistory}</div>
+`;
 tr.appendChild(tdRankMarketShare);
         
         const chartInfo = {
@@ -987,6 +993,91 @@ infoContainer.innerHTML = `
       animation: false
     }
   });
+}
+
+// Add this function after createProductSegmentationChart (around line 850)
+function createProductRankMarketShareHistory(record) {
+  // Use last 30 days like in position charts
+  const maxDate = moment().startOf('day');
+  const minDate = maxDate.clone().subtract(29, 'days');
+  
+  // Create array of exactly 30 dates
+  const dateArray = [];
+  let currentDate = minDate.clone();
+  while (currentDate.isSameOrBefore(maxDate)) {
+    dateArray.push(currentDate.format('YYYY-MM-DD'));
+    currentDate.add(1, 'day');
+  }
+  
+  // Check if there's any historical data at all
+  const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
+  
+  let html = '<div class="rank-history-container">';
+  
+  if (!hasHistoricalData) {
+    // Completely missing data - show gray empty boxes
+    html += '<div class="rank-history-row">';
+    dateArray.forEach(() => {
+      html += '<div class="history-empty-box"></div>';
+    });
+    html += '</div>';
+    
+    html += '<div class="visibility-history-row">';
+    dateArray.forEach(() => {
+      html += '<div class="history-empty-box"></div>';
+    });
+    html += '</div>';
+  } else {
+    // Has some historical data - process normally
+    
+    // First row: Rank positions
+    html += '<div class="rank-history-row">';
+    dateArray.forEach(dateStr => {
+      const histItem = record.historical_data.find(item => 
+        item.date?.value === dateStr
+      );
+      
+      if (histItem?.avg_position != null) {
+        // Data exists - show actual rank with color coding
+        const rank = Math.round(parseFloat(histItem.avg_position));
+        const colorClass = getRankColorClass(rank);
+        html += `<div class="rank-box ${colorClass}">${rank}</div>`;
+      } else {
+        // Missing data for this date - empty box with no background color
+        html += '<div class="rank-box"></div>';
+      }
+    });
+    html += '</div>';
+    
+    // Second row: Visibility percentages
+    html += '<div class="visibility-history-row">';
+    dateArray.forEach(dateStr => {
+      const histItem = record.historical_data.find(item => 
+        item.date?.value === dateStr
+      );
+      
+      if (histItem?.visibility != null) {
+        // Data exists - show actual visibility percentage
+        const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10; // Round to 1 decimal
+        html += `<div class="visibility-box">${visibility}%</div>`;
+      } else {
+        // Missing data for this date - show 0%
+        html += '<div class="visibility-box">0%</div>';
+      }
+    });
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+// Helper function for rank color coding (same logic as company version)
+function getRankColorClass(rank) {
+  if (rank === 1) return "rank-green";
+  if (rank <= 3) return "rank-yellow";
+  if (rank <= 5) return "rank-orange";
+  return "rank-red";
 }
 
 // NEW: Position chart function adapted from productMap.js
@@ -2011,6 +2102,10 @@ viewRankingExplorerBtn.addEventListener("click", function() {
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
   });
+  // Show rank-market-share history in ranking mode
+  document.querySelectorAll('.rank-market-share-history').forEach(container => {
+    container.style.display = 'block';
+  });
 });
 
 viewChartsExplorerBtn.addEventListener("click", function() {
@@ -2033,6 +2128,11 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
+
+  document.querySelectorAll('.rank-market-share-history').forEach(container => {
+    container.style.display = 'none';
+  });
+  
   document.querySelectorAll('.chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
@@ -2063,6 +2163,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
   document.querySelectorAll('.segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
   });
+
+  document.querySelectorAll('.rank-market-share-history').forEach(container => {
+    container.style.display = 'none';
+  });
+  
   document.querySelectorAll('.chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
@@ -2695,6 +2800,106 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 .device-container.ranking-mode .device-status-value {
   margin-top: 2px !important;
+}
+.rank-history-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.rank-history-row,
+.visibility-history-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 8px;
+  justify-content: center;
+}
+
+.rank-box,
+.visibility-box {
+  width: 32px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+  color: #333;
+  border: 1px solid #ddd;
+  background-color: #fff; /* Default background for missing data */
+}
+
+/* Color coding for ranks when data exists */
+.rank-box.rank-green {
+  background-color: #dfffd6 !important;
+  color: #2e7d32;
+}
+
+.rank-box.rank-yellow {
+  background-color: #ffffc2 !important;
+  color: #f57f17;
+}
+
+.rank-box.rank-orange {
+  background-color: #ffe0bd !important;
+  color: #ef6c00;
+}
+
+.rank-box.rank-red {
+  background-color: #ffcfcf !important;
+  color: #c62828;
+}
+
+.visibility-box {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  font-size: 10px;
+}
+
+/* Empty state for completely missing data (when no historical data at all) */
+.history-empty-box,
+.history-empty-share-box {
+  height: 24px !important;
+  min-height: 24px !important;
+  width: 32px;
+  background-color: #e0e0e0 !important;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  border: 1px solid #ccc;
+}
+
+.rank-history-container .no-data-message {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 20px;
+}
+
+/* Hide rank history in Charts and Map modes, show position charts */
+.chart-avg-position {
+  display: none;
+}
+
+.rank-market-share-history {
+  display: block;
+}
+
+/* Show position charts and hide rank history in Charts/Map modes */
+.product-explorer-table:not(.ranking-mode) .chart-avg-position {
+  display: flex !important;
+}
+
+.product-explorer-table:not(.ranking-mode) .rank-market-share-history {
+  display: none !important;
 }
     `;
     document.head.appendChild(style);
