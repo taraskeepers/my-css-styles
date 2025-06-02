@@ -1582,37 +1582,60 @@ function renderProductExplorerTable() {
       const switcherClone = originalSwitcher.cloneNode(true);
       fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
       
-      const clonedProductsBtn = switcherClone.querySelector('#viewProductsExplorer');
-      const clonedChartsBtn = switcherClone.querySelector('#viewChartsExplorer');
-      
-      clonedProductsBtn.addEventListener('click', function() {
-        clonedProductsBtn.classList.add('active');
-        clonedChartsBtn.classList.remove('active');
-        
-        fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
-          container.style.display = 'block';
-        });
-        fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
-          container.style.display = 'none';
-        });
-      });
-      
-      clonedChartsBtn.addEventListener('click', function() {
-        clonedChartsBtn.classList.add('active');
-        clonedProductsBtn.classList.remove('active');
-        
-        fullscreenOverlay.querySelectorAll('.product-cell-container').forEach(container => {
-          container.style.display = 'none';
-        });
-        fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
-          container.style.display = 'flex';
-          
-          // Render position chart if record data is available
-          if (container.combinationRecord) {
-            renderProductPositionChart(container, container.combinationRecord);
-          }
-        });
-      });
+const clonedRankingBtn = switcherClone.querySelector('#viewRankingExplorer');
+const clonedChartsBtn = switcherClone.querySelector('#viewChartsExplorer');
+const clonedMapBtn = switcherClone.querySelector('#viewMapExplorer');
+
+clonedRankingBtn.addEventListener('click', function() {
+  clonedRankingBtn.classList.add('active');
+  clonedChartsBtn.classList.remove('active');
+  clonedMapBtn.classList.remove('active');
+  
+  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'flex';
+  });
+  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'none';
+  });
+});
+
+clonedChartsBtn.addEventListener('click', function() {
+  clonedChartsBtn.classList.add('active');
+  clonedRankingBtn.classList.remove('active');
+  clonedMapBtn.classList.remove('active');
+  
+  // Show BOTH segmentation charts AND position charts
+  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'flex';
+  });
+  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'flex';
+    
+    // Render position chart if record data is available
+    if (container.combinationRecord) {
+      renderProductPositionChart(container, container.combinationRecord);
+    }
+  });
+});
+
+clonedMapBtn.addEventListener('click', function() {
+  clonedMapBtn.classList.add('active');
+  clonedRankingBtn.classList.remove('active');
+  clonedChartsBtn.classList.remove('active');
+  
+  // Hide segmentation charts, show only position charts
+  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'none';
+  });
+  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'flex';
+    
+    // Render position chart if record data is available
+    if (container.combinationRecord) {
+      renderProductPositionChart(container, container.combinationRecord);
+    }
+  });
+});
     }
     
     const productCells = fullscreenOverlay.querySelectorAll('.product-cell');
@@ -1937,40 +1960,65 @@ function renderProductExplorerTable() {
     }, 100);
   });
 
-  // Add view switcher functionality - UPDATED to handle new structure
-  const viewProductsExplorerBtn = document.getElementById("viewProductsExplorer");
-  const viewChartsExplorerBtn = document.getElementById("viewChartsExplorer");
+// Add view switcher functionality - UPDATED to handle new structure
+const viewRankingExplorerBtn = document.getElementById("viewRankingExplorer");
+const viewChartsExplorerBtn = document.getElementById("viewChartsExplorer");
+const viewMapExplorerBtn = document.getElementById("viewMapExplorer");
 
-  viewProductsExplorerBtn.addEventListener("click", function() {
-    viewProductsExplorerBtn.classList.add("active");
-    viewChartsExplorerBtn.classList.remove("active");
-    
-    // Hide position charts, show segmentation charts
-    document.querySelectorAll('.chart-avg-position').forEach(container => {
-      container.style.display = 'none';
-    });
-    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
-      container.style.display = 'flex';
-    });
+viewRankingExplorerBtn.addEventListener("click", function() {
+  // Clear all active states
+  viewRankingExplorerBtn.classList.add("active");
+  viewChartsExplorerBtn.classList.remove("active");
+  viewMapExplorerBtn.classList.remove("active");
+  
+  // Hide position charts, show segmentation charts
+  document.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'none';
   });
+  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'flex';
+  });
+});
 
-  viewChartsExplorerBtn.addEventListener("click", function() {
-    viewChartsExplorerBtn.classList.add("active");
-    viewProductsExplorerBtn.classList.remove("active");
-    
-    // Hide segmentation charts, show position charts
-    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
-      container.style.display = 'none';
-    });
-    document.querySelectorAll('.chart-avg-position').forEach(container => {
-      container.style.display = 'flex';
-      
-      // Render position chart if record data is available
-      if (container.combinationRecord) {
-        renderProductPositionChart(container, container.combinationRecord);
-      }
-    });
+viewChartsExplorerBtn.addEventListener("click", function() {
+  // Clear all active states
+  viewChartsExplorerBtn.classList.add("active");
+  viewRankingExplorerBtn.classList.remove("active");
+  viewMapExplorerBtn.classList.remove("active");
+  
+  // Show BOTH segmentation charts AND position charts
+  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'flex';
   });
+  document.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'flex';
+    
+    // Render position chart if record data is available
+    if (container.combinationRecord) {
+      renderProductPositionChart(container, container.combinationRecord);
+    }
+  });
+});
+
+viewMapExplorerBtn.addEventListener("click", function() {
+  // Clear all active states
+  viewMapExplorerBtn.classList.add("active");
+  viewRankingExplorerBtn.classList.remove("active");
+  viewChartsExplorerBtn.classList.remove("active");
+  
+  // Hide segmentation charts, show only position charts
+  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'none';
+  });
+  document.querySelectorAll('.chart-avg-position').forEach(container => {
+    container.style.display = 'flex';
+    
+    // Render position chart if record data is available
+    if (container.combinationRecord) {
+      renderProductPositionChart(container, container.combinationRecord);
+    }
+  });
+});
   
   console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
   
@@ -2453,6 +2501,16 @@ function renderProductExplorerTable() {
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
       }
+      .view-switcher button {
+  padding: 6px 12px;  /* Reduce padding for 3 buttons */
+  border: none;
+  background: transparent;
+  border-radius: 17px;
+  font-size: 12px;  /* Slightly smaller font */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
     `;
     document.head.appendChild(style);
   }
