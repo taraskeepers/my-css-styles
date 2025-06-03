@@ -1062,12 +1062,10 @@ while (currentDate.isSameOrAfter(minDate)) {
       );
       
 if (histItem?.visibility != null) {
-  // Data exists - show actual visibility percentage with fill effect
-  const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10; // Round to 1 decimal
-  html += `<div class="visibility-box" data-fill="${visibility}">${visibility}%</div>`;
+  const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
+  html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
 } else {
-  // Missing data for this date - show 0%
-  html += '<div class="visibility-box" data-fill="0">0%</div>';
+  html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
 }
     });
     html += '</div>';
@@ -1081,7 +1079,11 @@ if (histItem?.visibility != null) {
 function setVisibilityFillHeights() {
   document.querySelectorAll('.visibility-box[data-fill]').forEach(box => {
     const fillPercent = parseFloat(box.getAttribute('data-fill')) || 0;
+    // Ensure we set the CSS custom property correctly
     box.style.setProperty('--fill-height', `${Math.min(fillPercent, 100)}%`);
+    
+    // Debug logging for troubleshooting
+    console.log(`Setting fill height for box with ${fillPercent}% to ${Math.min(fillPercent, 100)}%`);
   });
 }
 
@@ -2334,19 +2336,24 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 .device-container.ranking-mode .device-rank-value {
-  font-size: 18px !important;
+  font-size: 24px !important;
   margin: 2px 0 !important;
+  font-weight: bold !important;
 }
 
 .device-container.ranking-mode .device-trend {
-  font-size: 10px !important;
+  font-size: 18px !important;
   margin: 0 !important;
+  font-weight: 600 !important;
 }
 
 .device-container.ranking-mode .pie-chart-container {
-  width: 50px !important;
-  height: 50px !important;
-  margin: 0 !important;
+  width: 60px !important;
+  height: 60px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .device-container.ranking-mode .section-header {
@@ -2359,8 +2366,8 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 .device-container.ranking-mode .device-icon {
-  width: 40px !important;
-  height: 40px !important;
+  width: 50px !important;
+  height: 50px !important;
 }
       
       .device-type, .device-rank, .device-share {
@@ -2822,15 +2829,43 @@ viewMapExplorerBtn.addEventListener("click", function() {
   justify-content: flex-start;
   padding: 10px;
   box-sizing: border-box;
+  min-width: 0; /* Allow container to shrink */
 }
 
 .rank-history-row,
 .visibility-history-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Prevent wrapping */
   gap: 3px;
   margin-bottom: 10px;
-  justify-content: flex-start; /* Align to left */
+  justify-content: flex-start;
+  overflow-x: auto; /* Add horizontal scrolling */
+  overflow-y: hidden;
+  min-height: 60px; /* Ensure consistent height */
+  padding-bottom: 5px; /* Space for scrollbar */
+}
+
+/* Custom scrollbar styling */
+.rank-history-row::-webkit-scrollbar,
+.visibility-history-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.rank-history-row::-webkit-scrollbar-track,
+.visibility-history-row::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.rank-history-row::-webkit-scrollbar-thumb,
+.visibility-history-row::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.rank-history-row::-webkit-scrollbar-thumb:hover,
+.visibility-history-row::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .rank-box,
@@ -2840,8 +2875,8 @@ viewMapExplorerBtn.addEventListener("click", function() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   border-radius: 4px;
   color: #333;
   border: 1px solid #ddd;
@@ -2924,11 +2959,26 @@ viewMapExplorerBtn.addEventListener("click", function() {
   left: 0;
   right: 0;
   background: linear-gradient(to top, 
-    rgba(30, 136, 229, 0.3) 0%, 
-    rgba(30, 136, 229, 0.6) 100%);
-  transition: height 0.3s ease;
+    #1e88e5 0%, 
+    rgba(30, 136, 229, 0.7) 50%,
+    rgba(30, 136, 229, 0.3) 100%);
+  border-radius: 0 0 3px 3px;
+  transition: height 0.5s ease-in-out;
   height: var(--fill-height, 0%);
   z-index: 1;
+}
+
+.visibility-box {
+  z-index: 2;
+  position: relative;
+  color: #1565c0 !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure text is always visible above the fill */
+.visibility-box span {
+  position: relative;
+  z-index: 3;
 }
 
 .visibility-box[data-fill="0"]::before { height: 0%; }
