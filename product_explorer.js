@@ -3089,6 +3089,25 @@ viewMapExplorerBtn.addEventListener("click", function() {
   z-index: 3;
   color: #1565c0 !important;
 }
+/* Force row height in ranking mode - most specific rule */
+table.product-explorer-table.ranking-mode tbody tr td {
+  height: 110px !important;
+  max-height: 110px !important;
+  min-height: 110px !important;
+  line-height: normal !important;
+}
+
+table.product-explorer-table.ranking-mode tbody tr {
+  height: 110px !important;
+  max-height: 110px !important;
+}
+
+/* Ensure device container fits within the reduced height */
+.product-explorer-table.ranking-mode .device-container {
+  height: 94px !important;
+  max-height: 94px !important;
+  padding: 4px !important;
+}
     `;
     document.head.appendChild(style);
   }
