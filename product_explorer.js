@@ -2264,6 +2264,14 @@ viewMapExplorerBtn.addEventListener("click", function() {
         box-sizing: border-box;
         overflow: hidden;
       }
+      .product-explorer-table.ranking-mode td {
+  height: 110px !important;
+  max-height: 110px !important;
+  min-height: 110px !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
+  overflow: hidden !important;
+}
       .product-explorer-table { table-layout: fixed; }
       .product-explorer-table th:nth-child(1), .product-explorer-table td:nth-child(1) { width: 190px; }
       .product-explorer-table th:nth-child(2), .product-explorer-table td:nth-child(2) { width: 150px; }
@@ -2793,6 +2801,19 @@ viewMapExplorerBtn.addEventListener("click", function() {
   height: 110px !important;
   max-height: 110px !important;
   min-height: 110px !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
+}
+
+.product-explorer-table.ranking-mode tbody td {
+  height: 110px !important;
+  max-height: 110px !important;
+  min-height: 110px !important;
+}
+
+.product-explorer-table.ranking-mode tr {
+  height: 110px !important;
+  max-height: 110px !important;
 }
 /* Ensure proper spacing and alignment in ranking mode */
 .product-explorer-table.ranking-mode .device-container .last-tracked-container {
