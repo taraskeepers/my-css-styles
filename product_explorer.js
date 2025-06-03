@@ -1075,15 +1075,33 @@ if (histItem?.visibility != null) {
   return html;
 }
 
-// Add this function to set dynamic fill heights
 function setVisibilityFillHeights() {
   document.querySelectorAll('.visibility-box[data-fill]').forEach(box => {
     const fillPercent = parseFloat(box.getAttribute('data-fill')) || 0;
-    // Ensure we set the CSS custom property correctly
-    box.style.setProperty('--fill-height', `${Math.min(fillPercent, 100)}%`);
     
-    // Debug logging for troubleshooting
-    console.log(`Setting fill height for box with ${fillPercent}% to ${Math.min(fillPercent, 100)}%`);
+    // Remove existing ::before if any and create a new one
+    const existingFill = box.querySelector('.water-fill');
+    if (existingFill) {
+      existingFill.remove();
+    }
+    
+    // Create water fill element
+    const waterFill = document.createElement('div');
+    waterFill.className = 'water-fill';
+    waterFill.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: ${fillPercent}%;
+      background: linear-gradient(to top, #1e88e5 0%, rgba(30, 136, 229, 0.7) 50%, rgba(30, 136, 229, 0.3) 100%);
+      border-radius: 0 0 3px 3px;
+      transition: height 0.3s ease-in-out;
+      z-index: 1;
+      pointer-events: none;
+    `;
+    
+    box.appendChild(waterFill);
   });
 }
 
@@ -2342,7 +2360,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 .device-container.ranking-mode .device-trend {
-  font-size: 18px !important;
+  font-size: 14px !important;
   margin: 0 !important;
   font-weight: 600 !important;
 }
@@ -2772,8 +2790,9 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 /* Fix row height in ranking mode */
 .product-explorer-table.ranking-mode td {
-  height: 90px !important;
-  max-height: 90px !important;
+  height: 110px !important;
+  max-height: 110px !important;
+  min-height: 110px !important;
 }
 /* Ensure proper spacing and alignment in ranking mode */
 .product-explorer-table.ranking-mode .device-container .last-tracked-container {
@@ -2829,20 +2848,23 @@ viewMapExplorerBtn.addEventListener("click", function() {
   justify-content: flex-start;
   padding: 10px;
   box-sizing: border-box;
-  min-width: 0; /* Allow container to shrink */
+  min-width: 0;
+  overflow: hidden; /* Prevent container overflow */
 }
 
 .rank-history-row,
 .visibility-history-row {
   display: flex;
-  flex-wrap: nowrap; /* Prevent wrapping */
+  flex-wrap: nowrap;
   gap: 3px;
   margin-bottom: 10px;
   justify-content: flex-start;
-  overflow-x: auto; /* Add horizontal scrolling */
+  overflow-x: auto;
   overflow-y: hidden;
-  min-height: 60px; /* Ensure consistent height */
-  padding-bottom: 5px; /* Space for scrollbar */
+  min-height: 60px;
+  padding-bottom: 5px;
+  width: 100%;
+  min-width: 0; /* Allow container to shrink and trigger scrolling */
 }
 
 /* Custom scrollbar styling */
@@ -2872,6 +2894,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .visibility-box {
   width: 50px;
   height: 50px;
+  min-width: 50px; /* Prevent shrinking */
+  min-height: 50px; /* Prevent shrinking */
+  max-width: 50px; /* Prevent growing */
+  max-height: 50px; /* Prevent growing */
+  flex-shrink: 0; /* Prevent flex shrinking */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2883,27 +2910,28 @@ viewMapExplorerBtn.addEventListener("click", function() {
   background-color: #fff;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* Color coding for ranks when data exists */
 .rank-box.rank-green {
   background-color: #dfffd6 !important;
-  color: #2e7d32;
+  color: #000000 !important;
 }
 
 .rank-box.rank-yellow {
   background-color: #ffffc2 !important;
-  color: #f57f17;
+  color: #000000 !important;
 }
 
 .rank-box.rank-orange {
   background-color: #ffe0bd !important;
-  color: #ef6c00;
+  color: #000000 !important;
 }
 
 .rank-box.rank-red {
   background-color: #ffcfcf !important;
-  color: #c62828;
+  color: #000000 !important;
 }
 
 .visibility-box {
@@ -2999,7 +3027,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   position: relative;
 }
 
-/* Enhanced water effect with animation */
+/* Water-filling effect for visibility boxes */
 .visibility-box::before {
   content: '';
   position: absolute;
@@ -3011,31 +3039,35 @@ viewMapExplorerBtn.addEventListener("click", function() {
     rgba(30, 136, 229, 0.7) 50%,
     rgba(30, 136, 229, 0.3) 100%);
   border-radius: 0 0 3px 3px;
-  transition: height 0.5s ease-in-out;
+  transition: height 0.3s ease-in-out;
+  z-index: 1;
+  height: 0%; /* Default height */
 }
 
-/* Specific fill percentages - you'll need JavaScript to set these */
-.visibility-box[data-fill="0"]::before { height: 0%; }
-.visibility-box[data-fill*="5"]::before { height: 5%; }
-.visibility-box[data-fill*="10"]::before { height: 10%; }
-.visibility-box[data-fill*="15"]::before { height: 15%; }
-.visibility-box[data-fill*="20"]::before { height: 20%; }
-.visibility-box[data-fill*="25"]::before { height: 25%; }
-.visibility-box[data-fill*="30"]::before { height: 30%; }
-.visibility-box[data-fill*="35"]::before { height: 35%; }
-.visibility-box[data-fill*="40"]::before { height: 40%; }
-.visibility-box[data-fill*="45"]::before { height: 45%; }
-.visibility-box[data-fill*="50"]::before { height: 50%; }
-.visibility-box[data-fill*="55"]::before { height: 55%; }
-.visibility-box[data-fill*="60"]::before { height: 60%; }
-.visibility-box[data-fill*="65"]::before { height: 65%; }
-.visibility-box[data-fill*="70"]::before { height: 70%; }
-.visibility-box[data-fill*="75"]::before { height: 75%; }
-.visibility-box[data-fill*="80"]::before { height: 80%; }
-.visibility-box[data-fill*="85"]::before { height: 85%; }
-.visibility-box[data-fill*="90"]::before { height: 90%; }
-.visibility-box[data-fill*="95"]::before { height: 95%; }
-.visibility-box[data-fill="100"]::before { height: 100%; }
+/* Dynamic height setting for different percentage ranges */
+.visibility-box[data-fill="0"]::before { height: 0% !important; }
+.visibility-box[data-fill*="1"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="2"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="3"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="4"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="5"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="6"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="7"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="8"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+.visibility-box[data-fill*="9"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
+
+.visibility-box {
+  z-index: 2;
+  position: relative;
+  color: #1565c0 !important;
+  font-weight: 700 !important;
+}
+
+.visibility-box span {
+  position: relative;
+  z-index: 3;
+  color: #1565c0 !important;
+}
     `;
     document.head.appendChild(style);
   }
