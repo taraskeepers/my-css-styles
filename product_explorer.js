@@ -2872,7 +2872,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 10px;
   box-sizing: border-box;
   min-width: 0;
   overflow: hidden;
@@ -2882,7 +2881,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .product-explorer-table.ranking-mode .rank-history-container {
   height: 104px !important;
   max-height: 104px !important;
-  padding: 5px !important;
   overflow: hidden !important;
   justify-content: flex-start !important;
 }
@@ -2905,8 +2903,8 @@ viewMapExplorerBtn.addEventListener("click", function() {
 /* Reduce row heights in ranking mode */
 .product-explorer-table.ranking-mode .rank-history-row,
 .product-explorer-table.ranking-mode .visibility-history-row {
-  min-height: 50px !important;
-  height: 50px !important;
+  min-height: 55px !important;
+  height: 55px !important;
   margin-bottom: 4px !important;
   padding-bottom: 0px !important;
   align-items: center !important;
