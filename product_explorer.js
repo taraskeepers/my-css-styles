@@ -1274,16 +1274,16 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       searchTermGroups.get(termIndex)[deviceType] = search;
     });
     
-    // Calculate block dimensions
+    // Calculate compact block dimensions
     const searchTermCount = searchTermGroups.size;
-    const blockWidth = 280;
-    const rowHeight = 56;
-    const headerHeight = 36;
-    const padding = 24;
+    const blockWidth = 180;
+    const rowHeight = 36; // Reduced from 56
+    const headerHeight = 26; // Reduced from 36
+    const padding = 12; // Reduced from 24
     const blockHeight = headerHeight + (searchTermCount * rowHeight * 2) + padding;
     
-    // Position block (left side if location is on right half, right side if on left half)
-    const offsetX = coords[0] < 487.5 ? 50 : -blockWidth - 50;
+    // Position block
+    const offsetX = coords[0] < 487.5 ? 40 : -blockWidth - 40;
     const offsetY = -blockHeight / 2;
     
     // Create block container
@@ -1317,18 +1317,18 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       
       // Desktop row
       if (devices.desktop) {
-        createDeviceRowHTML(bodyDiv, devices.desktop, termIndex, 'desktop');
+        createCompactDeviceRow(bodyDiv, devices.desktop, termIndex, 'desktop');
       }
       
       // Mobile row
       if (devices.mobile) {
-        createDeviceRowHTML(bodyDiv, devices.mobile, termIndex, 'mobile');
+        createCompactDeviceRow(bodyDiv, devices.mobile, termIndex, 'mobile');
       }
     });
   });
 }
 
-function createDeviceRowHTML(parentDiv, deviceData, termIndex, deviceType) {
+function createCompactDeviceRow(parentDiv, deviceData, termIndex, deviceType) {
   const safeDeviceData = {
     avgRank: deviceData.avgRank != null ? deviceData.avgRank : 40,
     rankChange: deviceData.rankChange != null ? deviceData.rankChange : 0,
@@ -1345,9 +1345,9 @@ function createDeviceRowHTML(parentDiv, deviceData, termIndex, deviceType) {
       .attr('class', 'search-term-circle')
       .text(termIndex);
   } else {
-    // Empty space for mobile rows to align with desktop
+    // Empty space for mobile rows to align
     rowDiv.append('xhtml:div')
-      .style('width', '38px');
+      .style('width', '26px'); // 20px circle + 6px margin
   }
   
   // Device icon
@@ -1367,46 +1367,40 @@ function createDeviceRowHTML(parentDiv, deviceData, termIndex, deviceType) {
   const metricsDiv = rowDiv.append('xhtml:div')
     .attr('class', 'device-metrics');
   
-  // Rank metric
-  const rankDiv = metricsDiv.append('xhtml:div')
+  // Rank value and trend
+  const rankMetric = metricsDiv.append('xhtml:div')
     .attr('class', 'metric-item');
   
-  rankDiv.append('xhtml:div')
-    .attr('class', 'metric-label')
-    .text('Rank');
-  
-  rankDiv.append('xhtml:div')
+  rankMetric.append('xhtml:span')
     .attr('class', 'metric-value')
     .text(safeDeviceData.avgRank.toFixed(1));
   
-  // Trend
+  // Trend arrow
   const trendValue = Math.abs(safeDeviceData.rankChange).toFixed(1);
   const trendClass = safeDeviceData.rankChange < 0 ? 'trend-positive' : 
                      safeDeviceData.rankChange > 0 ? 'trend-negative' : 'trend-neutral';
   const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : 
                       safeDeviceData.rankChange > 0 ? '▼' : '—';
   
-  const trendDiv = rankDiv.append('xhtml:div')
-    .attr('class', `metric-trend ${trendClass}`);
+  rankMetric.append('xhtml:span')
+    .attr('class', `metric-trend ${trendClass}`)
+    .text(`${trendSymbol}${trendValue}`);
   
-  trendDiv.append('xhtml:span')
-    .text(`${trendSymbol} ${trendValue}`);
+  // Divider
+  metricsDiv.append('xhtml:div')
+    .attr('class', 'metric-divider');
   
-  // Visibility metric
-  const visDiv = metricsDiv.append('xhtml:div')
+  // Visibility percentage
+  const visMetric = metricsDiv.append('xhtml:div')
     .attr('class', 'metric-item');
   
-  visDiv.append('xhtml:div')
-    .attr('class', 'metric-label')
-    .text('Share');
-  
-  visDiv.append('xhtml:div')
+  visMetric.append('xhtml:span')
     .attr('class', 'metric-value')
     .text(`${safeDeviceData.visibility.toFixed(1)}%`);
   
-  // Status indicator
+  // Status dot
   rowDiv.append('xhtml:div')
-    .attr('class', `device-status-indicator ${safeDeviceData.isActive ? 'status-active' : 'status-inactive'}`);
+    .attr('class', `device-status-dot ${safeDeviceData.isActive ? 'status-active' : 'status-inactive'}`);
 }
 
 function setVisibilityFillHeights() {
@@ -3534,67 +3528,60 @@ viewMapExplorerBtn.addEventListener("click", function() {
   background-color: #ccc;
   color: #666;
 }
-/* Add these new styles for the location blocks */
+/* Compact location blocks */
 .location-block {
   pointer-events: all;
   cursor: default;
 }
 
 .location-block-content {
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(0, 122, 255, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid rgba(0, 122, 255, 0.2);
 }
 
 .location-block-header {
-  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
-  padding: 10px 16px;
+  background: #007aff;
+  padding: 4px 12px;
   color: white;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 13px;
   text-align: center;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .location-block-body {
-  padding: 12px;
-  background: #fafbfc;
+  padding: 6px;
+  background: white;
 }
 
 .location-device-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  height: 32px;
 }
 
 .location-device-row:last-child {
   margin-bottom: 0;
 }
 
-.location-device-row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-}
-
 .device-row-desktop {
-  background: linear-gradient(to right, #f0f8ff 0%, white 50%);
+  background: #f0f8ff;
 }
 
 .device-row-mobile {
-  background: linear-gradient(to right, #fff5f5 0%, white 50%);
+  background: #fff5f5;
 }
 
 .search-term-circle {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   background: #007aff;
   color: white;
   border-radius: 50%;
@@ -3602,66 +3589,49 @@ viewMapExplorerBtn.addEventListener("click", function() {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 14px;
-  margin-right: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 11px;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
 .device-icon-wrapper {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .map-device-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
 .device-metrics {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
 }
 
 .metric-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 0 8px;
-  border-right: 1px solid #e0e0e0;
-}
-
-.metric-item:last-child {
-  border-right: none;
-}
-
-.metric-label {
-  font-size: 10px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 2px;
+  gap: 4px;
 }
 
 .metric-value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #333;
 }
 
 .metric-trend {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  margin-top: 2px;
 }
 
 .trend-positive {
@@ -3673,26 +3643,30 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 .trend-neutral {
-  color: #666;
+  color: #999;
 }
 
-.device-status-indicator {
-  width: 10px;
-  height: 10px;
+.metric-divider {
+  width: 1px;
+  height: 16px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+.device-status-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   margin-left: auto;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .status-active {
   background: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
 }
 
 .status-inactive {
   background: #F44336;
-  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.2);
 }
     `;
     document.head.appendChild(style);
