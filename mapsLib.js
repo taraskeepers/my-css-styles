@@ -411,14 +411,15 @@ testStates.forEach(st => {
     const path = d3.geoPath();
 
     // 5B) Build a color scale for states based on combined market share
-    let maxShare = 0;
-    Object.values(stateShareMap).forEach(stData => {
-      const c = computeCombinedShare(stData);
-      if (c > maxShare) maxShare = c;
-    });
-    const colorScale = d3.scaleSequential()
-      .domain([0, maxShare || 1])
-      .interpolator(d3.interpolateBlues);
+let maxShare = 0;
+Object.values(stateShareMap).forEach(stData => {
+  const c = computeCombinedShare(stData);
+  if (c > maxShare) maxShare = c;
+});
+// Always use 100% as maximum for consistent color scaling
+const colorScale = d3.scaleSequential()
+  .domain([0, 100])
+  .interpolator(d3.interpolateBlues);
 
     console.log("[drawUsMapWithLocations] maxShare =", maxShare);
 
