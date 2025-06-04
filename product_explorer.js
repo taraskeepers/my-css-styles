@@ -1276,7 +1276,7 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
     
     // Calculate compact block dimensions
     const searchTermCount = searchTermGroups.size;
-    const blockWidth = 180;
+    const blockWidth = 250;
     const rowHeight = 36; // Reduced from 56
     const headerHeight = 26; // Reduced from 36
     const padding = 12; // Reduced from 24
