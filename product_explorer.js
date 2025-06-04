@@ -1615,194 +1615,6 @@ function updateChartLineVisibilityExplorer(chartContainer, selectedIndex) {
   chart.update('none');
 }
 
-function renderUSMap() {
-  const container = document.querySelector("#productExplorerTableContainer");
-  if (!container) return;
-
-  // Hide the existing table
-  const existingTable = container.querySelector('.product-explorer-table');
-  if (existingTable) {
-    existingTable.style.display = 'none';
-  }
-
-  // Remove existing map if it exists
-  const existingMap = container.querySelector('#us-map-container');
-  if (existingMap) {
-    existingMap.remove();
-  }
-
-  // Create map container
-  const mapContainer = document.createElement('div');
-  mapContainer.id = 'us-map-container';
-  mapContainer.innerHTML = `
-    <div class="map-header">
-      <h2>United States - Product Performance by State</h2>
-      <p>Click on any state to view detailed product performance data</p>
-    </div>
-    <div class="map-wrapper">
-      <svg viewBox="0 0 1000 600" class="us-map-svg">
-        <!-- Alaska -->
-        <path class="state" data-state="AK" data-name="Alaska" d="M158,458l-21-24l-9-9l-12,4l-10-14l-13-15l-7-17l-14-17l-3-11l-4-7l-6-5l-5-9l-3-10l0-12l3-10l5-8l7-5l9-1l11,3l13,6l15,10l16,13l15,16l13,18l10,20l6,21l1,23l-4,24l-8,24l-12,23l-16,21l-20,18L158,458z"/>
-        
-        <!-- Hawaii -->
-        <circle class="state" data-state="HI" data-name="Hawaii" cx="250" cy="450" r="8"/>
-        <circle class="state" data-state="HI" data-name="Hawaii" cx="265" cy="455" r="6"/>
-        <circle class="state" data-state="HI" data-name="Hawaii" cx="275" cy="460" r="5"/>
-        <circle class="state" data-state="HI" data-name="Hawaii" cx="285" cy="465" r="4"/>
-
-        <!-- Continental US States -->
-        <path class="state" data-state="WA" data-name="Washington" d="M158,158l0,-21l21,0l21,0l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="OR" data-name="Oregon" d="M158,200l0,-21l21,0l21,0l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="CA" data-name="California" d="M158,242l0,-21l21,0l21,0l21,0l21,0l0,21l0,21l0,21l0,21l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="NV" data-name="Nevada" d="M242,200l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="ID" data-name="Idaho" d="M263,158l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="UT" data-name="Utah" d="M284,200l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="AZ" data-name="Arizona" d="M284,284l0,-21l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MT" data-name="Montana" d="M305,158l0,-21l21,0l21,0l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="WY" data-name="Wyoming" d="M326,200l0,-21l21,0l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="CO" data-name="Colorado" d="M326,242l0,-21l21,0l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="NM" data-name="New Mexico" d="M326,284l0,-21l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="ND" data-name="North Dakota" d="M389,158l0,-21l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="SD" data-name="South Dakota" d="M389,200l0,-21l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="NE" data-name="Nebraska" d="M389,242l0,-21l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="KS" data-name="Kansas" d="M389,284l0,-21l21,0l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="OK" data-name="Oklahoma" d="M389,326l0,-21l21,0l21,0l21,0l21,0l0,21l0,21l-21,0l-21,0l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="TX" data-name="Texas" d="M347,347l0,-21l21,0l21,0l21,0l21,0l21,0l0,21l0,21l0,21l0,21l0,21l-21,0l-21,0l-21,0l-21,0l-21,0l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MN" data-name="Minnesota" d="M452,158l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="IA" data-name="Iowa" d="M452,242l0,-21l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MO" data-name="Missouri" d="M452,284l0,-21l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="AR" data-name="Arkansas" d="M452,326l0,-21l21,0l21,0l0,21l0,21l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="LA" data-name="Louisiana" d="M452,368l0,-21l21,0l21,0l0,21l0,21l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="WI" data-name="Wisconsin" d="M494,179l0,-21l21,0l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="IL" data-name="Illinois" d="M494,242l0,-21l21,0l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MS" data-name="Mississippi" d="M494,326l0,-21l21,0l0,21l0,21l0,21l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="AL" data-name="Alabama" d="M515,326l0,-21l21,0l0,21l0,21l0,21l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="TN" data-name="Tennessee" d="M515,284l0,-21l21,0l21,0l21,0l0,21l0,21l-21,0l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="KY" data-name="Kentucky" d="M515,263l0,-21l21,0l21,0l21,0l0,21l-21,0l-21,0l-21,0Z"/>
-        
-        <path class="state" data-state="IN" data-name="Indiana" d="M515,221l0,-21l21,0l0,21l0,21l0,21l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MI" data-name="Michigan" d="M515,158l0,-21l21,0l0,21l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="OH" data-name="Ohio" d="M557,200l0,-21l21,0l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="WV" data-name="West Virginia" d="M578,242l0,-21l21,0l0,21l0,21l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="VA" data-name="Virginia" d="M578,263l0,-21l21,0l21,0l21,0l0,21l0,21l-21,0l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="NC" data-name="North Carolina" d="M578,305l0,-21l21,0l21,0l21,0l0,21l0,21l-21,0l-21,0l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="SC" data-name="South Carolina" d="M599,326l0,-21l21,0l0,21l0,21l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="GA" data-name="Georgia" d="M578,347l0,-21l21,0l0,21l0,21l0,21l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="FL" data-name="Florida" d="M620,368l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="PA" data-name="Pennsylvania" d="M599,200l0,-21l21,0l21,0l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="NY" data-name="New York" d="M620,158l0,-21l21,0l21,0l0,21l0,21l0,21l0,21l-21,0l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="VT" data-name="Vermont" d="M662,158l0,-21l21,0l0,21l0,21l0,21l-21,0l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="NH" data-name="New Hampshire" d="M683,158l0,-21l21,0l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="ME" data-name="Maine" d="M704,137l0,-21l21,0l0,21l0,21l0,21l0,21l0,21l-21,0l0,-21l0,-21l0,-21l0,-21Z"/>
-        
-        <path class="state" data-state="MA" data-name="Massachusetts" d="M683,200l0,-21l21,0l21,0l0,21l-21,0l-21,0Z"/>
-        
-        <path class="state" data-state="RI" data-name="Rhode Island" d="M704,200l0,-21l21,0l0,21l-21,0Z"/>
-        
-        <path class="state" data-state="CT" data-name="Connecticut" d="M662,200l0,-21l21,0l0,21l-21,0Z"/>
-        
-        <path class="state" data-state="NJ" data-name="New Jersey" d="M641,221l0,-21l21,0l0,21l0,21l-21,0l0,-21Z"/>
-        
-        <path class="state" data-state="DE" data-name="Delaware" d="M641,242l0,-21l21,0l0,21l-21,0Z"/>
-        
-        <path class="state" data-state="MD" data-name="Maryland" d="M620,242l0,-21l21,0l0,21l-21,0Z"/>
-        
-        <path class="state" data-state="DC" data-name="Washington DC" d="M625,248l0,-5l5,0l0,5l-5,0Z"/>
-      </svg>
-    </div>
-    <div class="map-footer">
-      <div class="state-info">
-        <span id="selected-state-name">Hover over a state to see details</span>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(mapContainer);
-
-  // Add event listeners for state interactions
-  setupMapInteractions();
-}
-
-function setupMapInteractions() {
-  const states = document.querySelectorAll('.state');
-  const stateInfo = document.getElementById('selected-state-name');
-
-  states.forEach(state => {
-    state.addEventListener('mouseenter', function() {
-      const stateName = this.getAttribute('data-name');
-      const stateCode = this.getAttribute('data-state');
-      
-      // Highlight the state
-      this.classList.add('state-hovered');
-      
-      // Update info display
-      stateInfo.textContent = `${stateName} (${stateCode}) - Click to view product data`;
-    });
-
-    state.addEventListener('mouseleave', function() {
-      this.classList.remove('state-hovered');
-      stateInfo.textContent = 'Hover over a state to see details';
-    });
-
-    state.addEventListener('click', function() {
-      const stateName = this.getAttribute('data-name');
-      const stateCode = this.getAttribute('data-state');
-      
-      // Remove previous selections
-      document.querySelectorAll('.state-selected').forEach(s => s.classList.remove('state-selected'));
-      
-      // Select this state
-      this.classList.add('state-selected');
-      
-      stateInfo.textContent = `${stateName} (${stateCode}) selected - Data will be loaded here`;
-      
-      // TODO: Add functionality here later
-      console.log('State clicked:', stateName, stateCode);
-    });
-  });
-}
-
-
 // Main function definition
 function renderProductExplorerTable() {
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
@@ -2370,13 +2182,17 @@ viewMapExplorerBtn.addEventListener("click", function() {
   viewRankingExplorerBtn.classList.remove("active");
   viewChartsExplorerBtn.classList.remove("active");
   
-  // Hide the table completely
+  // Remove ranking mode from table and device containers
   const table = document.querySelector('.product-explorer-table');
   if (table) {
-    table.style.display = 'none';
+    table.classList.remove('ranking-mode');
   }
   
-  // Hide all other chart elements
+  document.querySelectorAll('.device-container').forEach(container => {
+    container.classList.remove('ranking-mode');
+  });
+  
+  // Hide segmentation charts, show only position charts
   document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
   });
@@ -2386,11 +2202,13 @@ viewMapExplorerBtn.addEventListener("click", function() {
   });
   
   document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
-    container.style.display = 'none';
+    container.style.display = 'flex';
+    
+    // Render position chart if record data is available
+    if (container.combinationRecord) {
+      renderProductPositionChart(container, container.combinationRecord);
+    }
   });
-  
-  // Render the US map
-  renderUSMap();
 });
   
   console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
@@ -3292,120 +3110,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   z-index: 3;
   color: #1565c0 !important;
 }
-#us-map-container {
-    width: 100%;
-    height: 100%;
-    padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .map-header {
-    text-align: center;
-    margin-bottom: 20px;
-    color: white;
-  }
-
-  .map-header h2 {
-    margin: 0 0 10px 0;
-    font-size: 28px;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  }
-
-  .map-header p {
-    margin: 0;
-    font-size: 16px;
-    opacity: 0.9;
-  }
-
-  .map-wrapper {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-
-  .us-map-svg {
-    width: 100%;
-    height: 100%;
-    max-width: 900px;
-    max-height: 500px;
-  }
-
-  .state {
-    fill: #e8f4f8;
-    stroke: #2c5aa0;
-    stroke-width: 1;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-  }
-
-  .state:hover,
-  .state.state-hovered {
-    fill: #4CAF50;
-    stroke: #2e7d32;
-    stroke-width: 2;
-    transform: scale(1.02);
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-  }
-
-  .state.state-selected {
-    fill: #2196F3;
-    stroke: #1565c0;
-    stroke-width: 3;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-  }
-
-  .map-footer {
-    background: rgba(255,255,255,0.95);
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  }
-
-  .state-info {
-    font-size: 16px;
-    font-weight: 500;
-    color: #333;
-  }
-
-  #selected-state-name {
-    color: #2c5aa0;
-    font-weight: 600;
-  }
-
-  @media (max-width: 768px) {
-    .map-header h2 {
-      font-size: 22px;
-    }
-    
-    .map-header p {
-      font-size: 14px;
-    }
-    
-    #us-map-container {
-      padding: 10px;
-    }
-    
-    .map-wrapper {
-      padding: 10px;
-    }
     `;
     document.head.appendChild(style);
   }
