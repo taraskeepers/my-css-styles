@@ -377,13 +377,35 @@ function selectProduct(product, navItemElement) {
   console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
   
   renderTableForSelectedProduct(combinations, currentViewMode);
-    if (currentViewMode === 'viewMapExplorer') {
+  
+  // Rebuild map if currently in map view
+  if (currentViewMode === 'viewMapExplorer') {
     const mapContainer = document.getElementById('productExplorerMapContainer');
     if (mapContainer && mapContainer.style.display !== 'none') {
       console.log('[selectProduct] Rebuilding map for new product');
+      
+      // Clear existing map and blocks
+      const mapWrapper = document.getElementById('mapWrapper');
+      if (mapWrapper) {
+        mapWrapper.innerHTML = '';
+      }
+      
       const mapProject = buildMapDataForSelectedProduct();
       if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
-        window.mapHelpers.drawUsMapWithLocations(mapProject, '#productExplorerMapContainer', 'explorer');
+        window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'explorer');
+        
+        // Add location blocks after map is drawn
+        setTimeout(() => {
+          addLocationBlocksToMap(mapProject, '#mapWrapper');
+          
+          // Maintain toggle state
+          const toggleButton = document.getElementById('toggleLocationBlocks');
+          if (toggleButton && toggleButton.classList.contains('inactive')) {
+            document.querySelectorAll('.location-block').forEach(block => {
+              block.style.display = 'none';
+            });
+          }
+        }, 500);
       }
     }
   }
@@ -1146,6 +1168,172 @@ function buildMapDataForSelectedProduct() {
   
   console.log('[buildMapDataForSelectedProduct] Built', searches.length, 'search entries for map');
   return { searches: searches };
+}
+
+function addLocationBlocksToMap(mapProject, containerSelector) {
+  const svg = d3.select(containerSelector + ' svg');
+  if (!svg.node()) return;
+  
+  if (!window.cityLookup) {
+    console.warn('cityLookup not available for location blocks');
+    return;
+  }
+  
+  // Group data by location
+  const locationGroups = new Map();
+  
+  mapProject.searches.forEach(search => {
+    const location = search.location.toLowerCase();
+    if (!locationGroups.has(location)) {
+      locationGroups.set(location, []);
+    }
+    locationGroups.get(location).push(search);
+  });
+  
+  // Use AlbersUSA projection (same as in mapsLib)
+  const projection = d3.geoAlbersUsa()
+    .scale(1300)
+    .translate([487.5, 305]);
+  
+  locationGroups.forEach((searches, location) => {
+    const cityObj = window.cityLookup.get(location);
+    if (!cityObj) return;
+    
+    const coords = projection([cityObj.lng, cityObj.lat]);
+    if (!coords) return;
+    
+    // Group by search term, then by device
+    const searchTermGroups = new Map();
+    searches.forEach(search => {
+      const termIndex = search.searchTermIndex || 1;
+      if (!searchTermGroups.has(termIndex)) {
+        searchTermGroups.set(termIndex, { desktop: null, mobile: null });
+      }
+      
+      const deviceType = search.device.toLowerCase().includes('mobile') ? 'mobile' : 'desktop';
+      searchTermGroups.get(termIndex)[deviceType] = search;
+    });
+    
+    // Calculate block dimensions
+    const searchTermCount = searchTermGroups.size;
+    const blockWidth = 200;
+    const rowHeight = 16;
+    const blockHeight = searchTermCount * (rowHeight * 2) + 10; // 2 rows per search term
+    
+    // Position block (left side if location is on right half, right side if on left half)
+    const offsetX = coords[0] < 487.5 ? 50 : -blockWidth - 50;
+    const offsetY = -blockHeight / 2;
+    
+    // Create block container
+    const blockGroup = svg.append('g')
+      .attr('class', 'location-block')
+      .attr('transform', `translate(${coords[0] + offsetX}, ${coords[1] + offsetY})`);
+    
+    // Background
+    blockGroup.append('rect')
+      .attr('width', blockWidth)
+      .attr('height', blockHeight)
+      .attr('fill', 'rgba(255, 255, 255, 0.95)')
+      .attr('stroke', '#007aff')
+      .attr('stroke-width', 1)
+      .attr('rx', 4)
+      .attr('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.1))');
+    
+    let yOffset = 8;
+    
+    // Create rows for each search term
+    Array.from(searchTermGroups.keys()).sort().forEach(termIndex => {
+      const devices = searchTermGroups.get(termIndex);
+      
+      // Desktop row
+      if (devices.desktop) {
+        createDeviceRow(blockGroup, devices.desktop, termIndex, 'desktop', yOffset, blockWidth);
+      }
+      yOffset += rowHeight;
+      
+      // Mobile row
+      if (devices.mobile) {
+        createDeviceRow(blockGroup, devices.mobile, termIndex, 'mobile', yOffset, blockWidth);
+      }
+      yOffset += rowHeight;
+    });
+  });
+}
+
+function createDeviceRow(parentGroup, deviceData, termIndex, deviceType, yOffset, blockWidth) {
+  const row = parentGroup.append('g')
+    .attr('class', 'device-row')
+    .attr('transform', `translate(5, ${yOffset})`);
+  
+  let xOffset = 0;
+  
+  // Circle with search term number (only for desktop rows)
+  if (deviceType === 'desktop') {
+    row.append('circle')
+      .attr('cx', xOffset + 8)
+      .attr('cy', 8)
+      .attr('r', 6)
+      .attr('fill', '#007aff')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 1);
+    
+    row.append('text')
+      .attr('x', xOffset + 8)
+      .attr('y', 11)
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'white')
+      .attr('font-size', '8px')
+      .attr('font-weight', 'bold')
+      .text(termIndex);
+  }
+  xOffset += 20;
+  
+  // Device icon
+  const deviceIcon = deviceType === 'mobile' ? '📱' : '🖥️';
+  row.append('text')
+    .attr('x', xOffset)
+    .attr('y', 11)
+    .attr('font-size', '10px')
+    .text(deviceIcon);
+  xOffset += 18;
+  
+  // Rank value
+  row.append('text')
+    .attr('x', xOffset)
+    .attr('y', 11)
+    .attr('font-size', '10px')
+    .attr('font-weight', 'bold')
+    .attr('fill', '#333')
+    .text(deviceData.avgRank.toFixed(1));
+  xOffset += 25;
+  
+  // Trend (arrow with number)
+  const trendColor = deviceData.rankChange < 0 ? '#4CAF50' : deviceData.rankChange > 0 ? '#F44336' : '#666';
+  const trendSymbol = deviceData.rankChange < 0 ? '▲' : deviceData.rankChange > 0 ? '▼' : '±';
+  row.append('text')
+    .attr('x', xOffset)
+    .attr('y', 11)
+    .attr('font-size', '9px')
+    .attr('fill', trendColor)
+    .attr('font-weight', 'bold')
+    .text(`${trendSymbol}${Math.abs(deviceData.rankChange).toFixed(1)}`);
+  xOffset += 30;
+  
+  // Visibility percentage
+  row.append('text')
+    .attr('x', xOffset)
+    .attr('y', 11)
+    .attr('font-size', '10px')
+    .attr('fill', '#333')
+    .text(`${deviceData.visibility.toFixed(1)}%`);
+  xOffset += 35;
+  
+  // Status circle
+  row.append('circle')
+    .attr('cx', xOffset + 6)
+    .attr('cy', 8)
+    .attr('r', 4)
+    .attr('fill', deviceData.isActive ? '#4CAF50' : '#F44336');
 }
 
 function setVisibilityFillHeights() {
@@ -2282,17 +2470,62 @@ viewMapExplorerBtn.addEventListener("click", function() {
   if (mapContainer) {
     mapContainer.style.display = 'block';
     
+    // Clear existing content
+    mapContainer.innerHTML = '';
+    
+    // Create map wrapper
+    const mapWrapper = document.createElement('div');
+    mapWrapper.id = 'mapWrapper';
+    mapWrapper.style.width = '100%';
+    mapWrapper.style.height = 'calc(100% - 60px)';
+    mapContainer.appendChild(mapWrapper);
+    
+    // Create toggle button
+    const toggleContainer = document.createElement('div');
+    toggleContainer.className = 'location-blocks-toggle';
+    toggleContainer.innerHTML = `
+      <button id="toggleLocationBlocks" class="active">
+        Hide Location Details
+      </button>
+    `;
+    mapContainer.appendChild(toggleContainer);
+    
     // Build map data for the selected product
     const mapProject = buildMapDataForSelectedProduct();
     
     // Draw the US map using the mapsLib function
     if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
       console.log('[Map View] Drawing map with project data:', mapProject);
-      window.mapHelpers.drawUsMapWithLocations(mapProject, '#productExplorerMapContainer', 'explorer');
+      window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'explorer');
+      
+      // Add location blocks after map is drawn
+      setTimeout(() => {
+        addLocationBlocksToMap(mapProject, '#mapWrapper');
+      }, 500);
     } else {
       console.error('[Map View] mapHelpers not available');
       mapContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Map functionality not available</div>';
     }
+    
+    // Add toggle functionality
+    document.getElementById('toggleLocationBlocks').addEventListener('click', function() {
+      const blocks = document.querySelectorAll('.location-block');
+      const button = this;
+      
+      if (button.classList.contains('active')) {
+        // Hide blocks
+        blocks.forEach(block => block.style.display = 'none');
+        button.textContent = 'Show Location Details';
+        button.classList.remove('active');
+        button.classList.add('inactive');
+      } else {
+        // Show blocks
+        blocks.forEach(block => block.style.display = 'block');
+        button.textContent = 'Hide Location Details';
+        button.classList.add('active');
+        button.classList.remove('inactive');
+      }
+    });
   }
 });
   
