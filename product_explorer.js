@@ -377,6 +377,16 @@ function selectProduct(product, navItemElement) {
   console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
   
   renderTableForSelectedProduct(combinations, currentViewMode);
+    if (currentViewMode === 'viewMapExplorer') {
+    const mapContainer = document.getElementById('productExplorerMapContainer');
+    if (mapContainer && mapContainer.style.display !== 'none') {
+      console.log('[selectProduct] Rebuilding map for new product');
+      const mapProject = buildMapDataForSelectedProduct();
+      if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
+        window.mapHelpers.drawUsMapWithLocations(mapProject, '#productExplorerMapContainer', 'explorer');
+      }
+    }
+  }
 }
 
 function renderTableForSelectedProduct(combinations, initialViewMode = 'viewRankingExplorer') {
@@ -3185,6 +3195,40 @@ viewMapExplorerBtn.addEventListener("click", function() {
   z-index: 3;
   color: #1565c0 !important;
 }
+#productExplorerMapContainer {
+  padding-left: 40px !important;
+  text-align: left !important;
+}
+
+#productExplorerMapContainer svg {
+  margin-left: 0 !important;
+}
+
+.location-blocks-toggle {
+  margin-top: 15px;
+  text-align: center;
+  padding: 10px;
+}
+
+.location-blocks-toggle button {
+  background-color: #007aff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.location-blocks-toggle button:hover {
+  background-color: #0056b3;
+}
+
+.location-blocks-toggle button.inactive {
+  background-color: #ccc;
+  color: #666;
+}
+
     `;
     document.head.appendChild(style);
   }
