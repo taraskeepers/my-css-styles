@@ -2651,7 +2651,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
       }
 
       .products-nav-container {
-        width: 280px;
         max-height: calc(100vh - 200px);
         overflow-y: auto;
         overflow-x: hidden;
