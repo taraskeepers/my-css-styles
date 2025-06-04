@@ -2271,9 +2271,9 @@ viewMapExplorerBtn.addEventListener("click", function() {
   color: #333;
   vertical-align: middle;
   border-bottom: 1px solid #eee;
-  height: 110px !important;
-  max-height: 110px !important;
-  min-height: 110px !important;
+  height: 120px !important;
+  max-height: 120px !important;
+  min-height: 120px !important;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -2880,10 +2880,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 /* Constrain rank history container height in ranking mode */
 .product-explorer-table.ranking-mode .rank-history-container {
-  height: 94px !important;
-  max-height: 94px !important;
+  height: 104px !important;
+  max-height: 104px !important;
   padding: 5px !important;
   overflow: hidden !important;
+  justify-content: flex-start !important;
 }
 
 .rank-history-row,
@@ -2904,9 +2905,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
 /* Reduce row heights in ranking mode */
 .product-explorer-table.ranking-mode .rank-history-row,
 .product-explorer-table.ranking-mode .visibility-history-row {
-  min-height: 35px !important;
-  margin-bottom: 5px !important;
-  padding-bottom: 2px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  margin-bottom: 4px !important;
+  padding-bottom: 0px !important;
+  align-items: center !important;
 }
 
 /* Custom scrollbar styling */
