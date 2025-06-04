@@ -410,16 +410,25 @@ testStates.forEach(st => {
 
     const path = d3.geoPath();
 
-    // 5B) Build a color scale for states based on combined market share
+// 5B) Build a color scale for states based on combined market share
 let maxShare = 0;
 Object.values(stateShareMap).forEach(stData => {
   const c = computeCombinedShare(stData);
   if (c > maxShare) maxShare = c;
 });
-// Always use 100% as maximum for consistent color scaling
+// Create color scale with minimum 20% visibility for states with data
 const colorScale = d3.scaleSequential()
   .domain([0, 100])
   .interpolator(d3.interpolateBlues);
+
+// Custom color function that ensures minimum visibility
+function getStateColor(shareValue) {
+  if (shareValue <= 0) return "#f5fcff"; // No data color
+  // Map any positive value to 20-100% of the color scale
+  const minColorValue = 20;
+  const adjustedValue = minColorValue + (shareValue / 100) * (100 - minColorValue);
+  return colorScale(adjustedValue);
+}
 
     console.log("[drawUsMapWithLocations] maxShare =", maxShare);
 
@@ -430,12 +439,12 @@ const colorScale = d3.scaleSequential()
       .append("path")
       .attr("class", "state")
       .attr("stroke", "#999")
-      .attr("fill", d => {
-        const stPostal = FIPS_TO_POSTAL[d.id] || null;
-        if (!stPostal || !stateShareMap[stPostal]) return "#f5fcff";
-        const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
-        return (combinedShare <= 0) ? "#f5fcff" : colorScale(combinedShare);
-      })
+.attr("fill", d => {
+  const stPostal = FIPS_TO_POSTAL[d.id] || null;
+  if (!stPostal || !stateShareMap[stPostal]) return "#f5fcff";
+  const combinedShare = computeCombinedShare(stateShareMap[stPostal]);
+  return getStateColor(combinedShare);
+})
       .attr("d", path);
 
     // 6A) Create clip paths so state labels are confined within each state
