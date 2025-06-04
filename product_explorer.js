@@ -1643,7 +1643,7 @@ function renderProductExplorerTable() {
   }
   window.explorerApexCharts = [];
   
-  container.innerHTML = `
+container.innerHTML = `
     <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
       <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
@@ -1659,6 +1659,8 @@ function renderProductExplorerTable() {
           </svg>
           Full Screen
         </button>
+        <div id="productExplorerMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
+        </div>
       </div>
     </div>
   `;
@@ -1859,6 +1861,69 @@ clonedMapBtn.addEventListener('click', function() {
         chartDataMap[chartIndex] = { term, location, device };
         chartIndex++;
       });
+
+      function buildMapDataForSelectedProduct() {
+  if (!window.selectedExplorerProduct) {
+    console.warn('[buildMapDataForSelectedProduct] No product selected');
+    return { searches: [] };
+  }
+  
+  const productRecords = getProductRecords(window.selectedExplorerProduct);
+  console.log('[buildMapDataForSelectedProduct] Found', productRecords.length, 'records for product');
+  
+  const searches = [];
+  
+  // Group by unique combinations of search term, location, and device
+  const combinations = new Map();
+  
+  productRecords.forEach(record => {
+    const key = `${record.q}|${record.location_requested}|${record.device}`;
+    if (!combinations.has(key)) {
+      // Calculate average visibility as share value
+      const shareVal = record.avg_visibility ? parseFloat(record.avg_visibility) * 100 : 0;
+      
+      // Calculate average rank from recent historical data
+      let avgRank = 40; // default
+      if (record.historical_data && record.historical_data.length > 0) {
+        // Get last 7 days of data
+        const endDate = moment().startOf('day');
+        const startDate = endDate.clone().subtract(6, 'days');
+        
+        const recentData = record.historical_data.filter(item => {
+          if (!item.date || !item.date.value || !item.avg_position) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+        
+        if (recentData.length > 0) {
+          const sum = recentData.reduce((acc, item) => acc + parseFloat(item.avg_position), 0);
+          avgRank = sum / recentData.length;
+        }
+      }
+      
+      combinations.set(key, {
+        location: record.location_requested,
+        device: record.device,
+        searchTerm: record.q,
+        shareVal: shareVal,
+        avgRank: avgRank,
+        computedAvgRank: avgRank,
+        rankChange: 0, // Could be calculated from historical data if needed
+        hideRank: false,
+        hideShare: false,
+        status: 'active'
+      });
+    }
+  });
+  
+  // Convert map to array
+  combinations.forEach(searchData => {
+    searches.push(searchData);
+  });
+  
+  console.log('[buildMapDataForSelectedProduct] Built', searches.length, 'search entries for map');
+  return { searches: searches };
+}
       
       function locationMatches(mappedLocation, productLocation) {
         if (!mappedLocation || !productLocation) return false;
@@ -2118,12 +2183,19 @@ viewRankingExplorerBtn.addEventListener("click", function() {
   viewChartsExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
   
-  // Add ranking mode to table and device containers
+  // Show the table and hide map  // ADD THIS
   const table = document.querySelector('.product-explorer-table');
   if (table) {
+    table.style.display = 'table';
     table.classList.add('ranking-mode');
   }
+  const mapContainer = document.getElementById('productExplorerMapContainer');
+  if (mapContainer) {
+    mapContainer.style.display = 'none';
+  }
+  // END ADD
   
+  // Add ranking mode to table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
     container.classList.add('ranking-mode');
   });
@@ -2147,12 +2219,19 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   viewRankingExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
   
-  // Remove ranking mode from table and device containers
+  // Show the table and hide map  // ADD THIS
   const table = document.querySelector('.product-explorer-table');
   if (table) {
+    table.style.display = 'table';
     table.classList.remove('ranking-mode');
   }
+  const mapContainer = document.getElementById('productExplorerMapContainer');
+  if (mapContainer) {
+    mapContainer.style.display = 'none';
+  }
+  // END ADD
   
+  // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
     container.classList.remove('ranking-mode');
   });
@@ -2182,33 +2261,29 @@ viewMapExplorerBtn.addEventListener("click", function() {
   viewRankingExplorerBtn.classList.remove("active");
   viewChartsExplorerBtn.classList.remove("active");
   
-  // Remove ranking mode from table and device containers
+  // Hide the product table
   const table = document.querySelector('.product-explorer-table');
   if (table) {
-    table.classList.remove('ranking-mode');
+    table.style.display = 'none';
   }
   
-  document.querySelectorAll('.device-container').forEach(container => {
-    container.classList.remove('ranking-mode');
-  });
-  
-  // Hide segmentation charts, show only position charts
-  document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
-    container.style.display = 'none';
-  });
-
-  document.querySelectorAll('.rank-market-share-history').forEach(container => {
-    container.style.display = 'none';
-  });
-  
-  document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
-    container.style.display = 'flex';
+  // Show the map container
+  const mapContainer = document.getElementById('productExplorerMapContainer');
+  if (mapContainer) {
+    mapContainer.style.display = 'block';
     
-    // Render position chart if record data is available
-    if (container.combinationRecord) {
-      renderProductPositionChart(container, container.combinationRecord);
+    // Build map data for the selected product
+    const mapProject = buildMapDataForSelectedProduct();
+    
+    // Draw the US map using the mapsLib function
+    if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
+      console.log('[Map View] Drawing map with project data:', mapProject);
+      window.mapHelpers.drawUsMapWithLocations(mapProject, '#productExplorerMapContainer', 'explorer');
+    } else {
+      console.error('[Map View] mapHelpers not available');
+      mapContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Map functionality not available</div>';
     }
-  });
+  }
 });
   
   console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
