@@ -1118,56 +1118,108 @@ function buildMapDataForSelectedProduct() {
   
   const searches = [];
   
-  // Group by unique combinations of search term, location, and device
-  const combinations = new Map();
+  // Group by location first, then by search term, then by device
+  const locationGroups = new Map();
   
   productRecords.forEach(record => {
-    const key = `${record.q}|${record.location_requested}|${record.device}`;
-    if (!combinations.has(key)) {
-      // Calculate average visibility as share value
-      const shareVal = record.avg_visibility ? parseFloat(record.avg_visibility) * 100 : 0;
+    const location = record.location_requested;
+    const searchTerm = record.q;
+    const device = record.device;
+    
+    if (!location || !searchTerm || !device) {
+      console.warn('[buildMapDataForSelectedProduct] Skipping record with missing data:', record);
+      return;
+    }
+    
+    if (!locationGroups.has(location)) {
+      locationGroups.set(location, new Map());
+    }
+    
+    const searchTerms = locationGroups.get(location);
+    if (!searchTerms.has(searchTerm)) {
+      searchTerms.set(searchTerm, new Map());
+    }
+    
+    const devices = searchTerms.get(searchTerm);
+    
+    // Calculate metrics for this specific record with defaults
+    const shareVal = record.avg_visibility ? parseFloat(record.avg_visibility) * 100 : 0;
+    
+    let avgRank = 40;
+    let rankChange = 0;
+    let isActive = false;
+    
+    if (record.historical_data && Array.isArray(record.historical_data) && record.historical_data.length > 0) {
+      // Get last 7 days for current average
+      const endDate = moment().startOf('day');
+      const startDate = endDate.clone().subtract(6, 'days');
       
-      // Calculate average rank from recent historical data
-      let avgRank = 40; // default
-      if (record.historical_data && record.historical_data.length > 0) {
-        // Get last 7 days of data
-        const endDate = moment().startOf('day');
-        const startDate = endDate.clone().subtract(6, 'days');
+      const recentData = record.historical_data.filter(item => {
+        if (!item.date || !item.date.value || item.avg_position == null) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+      
+      if (recentData.length > 0) {
+        const sum = recentData.reduce((acc, item) => acc + parseFloat(item.avg_position || 40), 0);
+        avgRank = sum / recentData.length;
         
-        const recentData = record.historical_data.filter(item => {
-          if (!item.date || !item.date.value || !item.avg_position) return false;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-        
-        if (recentData.length > 0) {
-          const sum = recentData.reduce((acc, item) => acc + parseFloat(item.avg_position), 0);
-          avgRank = sum / recentData.length;
-        }
+        // Check if active (data within last 7 days)
+        const today = moment().startOf('day');
+        const lastDataDate = moment(recentData[recentData.length - 1].date.value, 'YYYY-MM-DD');
+        isActive = today.diff(lastDataDate, 'days') <= 7;
       }
       
-      combinations.set(key, {
-        location: record.location_requested,
-        device: record.device,
-        searchTerm: record.q,
-        shareVal: shareVal,
-        avgRank: avgRank,
-        computedAvgRank: avgRank,
-        rankChange: 0, // Could be calculated from historical data if needed
-        hideRank: false,
-        hideShare: false,
-        status: 'active'
+      // Calculate rank change (current vs previous week)
+      const prevEndDate = startDate.clone().subtract(1, 'days');
+      const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+      
+      const prevData = record.historical_data.filter(item => {
+        if (!item.date || !item.date.value || item.avg_position == null) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
       });
+      
+      if (prevData.length > 0) {
+        const prevSum = prevData.reduce((acc, item) => acc + parseFloat(item.avg_position || 40), 0);
+        const prevAvgRank = prevSum / prevData.length;
+        rankChange = avgRank - prevAvgRank; // Negative = improvement
+      }
     }
+    
+    devices.set(device, {
+      location: location,
+      device: device,
+      searchTerm: searchTerm,
+      shareVal: shareVal,
+      avgRank: avgRank,
+      computedAvgRank: avgRank,
+      rankChange: rankChange,
+      hideRank: false,
+      hideShare: false,
+      status: 'active',
+      isActive: isActive,
+      visibility: shareVal
+    });
   });
   
-  // Convert map to array
-  combinations.forEach(searchData => {
-    searches.push(searchData);
+  // Convert to flat array for map consumption and assign search term indices
+  locationGroups.forEach((searchTermsMap, location) => {
+    const searchTermsArray = Array.from(searchTermsMap.keys()).sort();
+    
+    searchTermsArray.forEach((searchTerm, termIndex) => {
+      const devicesMap = searchTermsMap.get(searchTerm);
+      devicesMap.forEach((deviceData) => {
+        // Add search term index for the circle number
+        deviceData.searchTermIndex = termIndex + 1;
+        deviceData.totalSearchTerms = searchTermsArray.length;
+        searches.push(deviceData);
+      });
+    });
   });
   
   console.log('[buildMapDataForSelectedProduct] Built', searches.length, 'search entries for map');
-  return { searches: searches };
+  return { searches: searches, locationGroups: locationGroups };
 }
 
 function addLocationBlocksToMap(mapProject, containerSelector) {
@@ -1190,6 +1242,8 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
     locationGroups.get(location).push(search);
   });
   
+  console.log('[addLocationBlocksToMap] Processing', locationGroups.size, 'locations');
+  
   // Use AlbersUSA projection (same as in mapsLib)
   const projection = d3.geoAlbersUsa()
     .scale(1300)
@@ -1197,10 +1251,16 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
   
   locationGroups.forEach((searches, location) => {
     const cityObj = window.cityLookup.get(location);
-    if (!cityObj) return;
+    if (!cityObj) {
+      console.warn('[addLocationBlocksToMap] City not found:', location);
+      return;
+    }
     
     const coords = projection([cityObj.lng, cityObj.lat]);
-    if (!coords) return;
+    if (!coords) {
+      console.warn('[addLocationBlocksToMap] Invalid coordinates for:', location);
+      return;
+    }
     
     // Group by search term, then by device
     const searchTermGroups = new Map();
@@ -1216,12 +1276,12 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
     
     // Calculate block dimensions
     const searchTermCount = searchTermGroups.size;
-    const blockWidth = 200;
-    const rowHeight = 16;
-    const blockHeight = searchTermCount * (rowHeight * 2) + 10; // 2 rows per search term
+    const blockWidth = 220;
+    const rowHeight = 20;
+    const blockHeight = searchTermCount * (rowHeight * 2) + 16; // 2 rows per search term + padding
     
     // Position block (left side if location is on right half, right side if on left half)
-    const offsetX = coords[0] < 487.5 ? 50 : -blockWidth - 50;
+    const offsetX = coords[0] < 487.5 ? 60 : -blockWidth - 60;
     const offsetY = -blockHeight / 2;
     
     // Create block container
@@ -1229,17 +1289,60 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       .attr('class', 'location-block')
       .attr('transform', `translate(${coords[0] + offsetX}, ${coords[1] + offsetY})`);
     
+    // Add drop shadow filter
+    const defs = svg.select('defs').empty() ? svg.append('defs') : svg.select('defs');
+    if (defs.select('#drop-shadow').empty()) {
+      const filter = defs.append('filter')
+        .attr('id', 'drop-shadow')
+        .attr('x', '-20%')
+        .attr('y', '-20%')
+        .attr('width', '140%')
+        .attr('height', '140%');
+      
+      filter.append('feDropShadow')
+        .attr('dx', 2)
+        .attr('dy', 2)
+        .attr('stdDeviation', 3)
+        .attr('flood-color', 'rgba(0,0,0,0.3)');
+    }
+    
     // Background
     blockGroup.append('rect')
       .attr('width', blockWidth)
       .attr('height', blockHeight)
-      .attr('fill', 'rgba(255, 255, 255, 0.95)')
+      .attr('fill', 'rgba(255, 255, 255, 0.98)')
       .attr('stroke', '#007aff')
-      .attr('stroke-width', 1)
-      .attr('rx', 4)
-      .attr('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.1))');
+      .attr('stroke-width', 2)
+      .attr('rx', 8)
+      .attr('filter', 'url(#drop-shadow)');
     
-    let yOffset = 8;
+    // Header background
+    blockGroup.append('rect')
+      .attr('width', blockWidth)
+      .attr('height', 24)
+      .attr('fill', '#007aff')
+      .attr('rx', 8)
+      .attr('ry', 8);
+    
+    blockGroup.append('rect')
+      .attr('width', blockWidth)
+      .attr('height', 12)
+      .attr('y', 12)
+      .attr('fill', '#007aff');
+    
+    // Location title
+    const cityName = cityObj.city || location.split(',')[0] || 'Unknown';
+    blockGroup.append('text')
+      .attr('x', blockWidth / 2)
+      .attr('y', 16)
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'white')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .attr('font-family', 'Arial, sans-serif')
+      .text(cityName);
+    
+    let yOffset = 32;
     
     // Create rows for each search term
     Array.from(searchTermGroups.keys()).sort().forEach(termIndex => {
@@ -1248,92 +1351,159 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       // Desktop row
       if (devices.desktop) {
         createDeviceRow(blockGroup, devices.desktop, termIndex, 'desktop', yOffset, blockWidth);
+        yOffset += rowHeight;
       }
-      yOffset += rowHeight;
       
       // Mobile row
       if (devices.mobile) {
         createDeviceRow(blockGroup, devices.mobile, termIndex, 'mobile', yOffset, blockWidth);
+        yOffset += rowHeight;
       }
-      yOffset += rowHeight;
     });
   });
 }
 
 function createDeviceRow(parentGroup, deviceData, termIndex, deviceType, yOffset, blockWidth) {
+  // Ensure all required properties exist with defaults
+  const safeDeviceData = {
+    avgRank: deviceData.avgRank != null ? deviceData.avgRank : 40,
+    rankChange: deviceData.rankChange != null ? deviceData.rankChange : 0,
+    visibility: deviceData.visibility != null ? deviceData.visibility : 0,
+    isActive: deviceData.isActive != null ? deviceData.isActive : false
+  };
+  
   const row = parentGroup.append('g')
     .attr('class', 'device-row')
-    .attr('transform', `translate(5, ${yOffset})`);
+    .attr('transform', `translate(8, ${yOffset})`);
   
-  let xOffset = 0;
+  // Row background (alternate colors for better readability)
+  row.append('rect')
+    .attr('width', blockWidth - 16)
+    .attr('height', 18)
+    .attr('y', -1)
+    .attr('fill', deviceType === 'desktop' ? 'rgba(240, 248, 255, 0.8)' : 'rgba(248, 248, 248, 0.8)')
+    .attr('rx', 3);
+  
+  let xOffset = 2;
   
   // Circle with search term number (only for desktop rows)
   if (deviceType === 'desktop') {
     row.append('circle')
       .attr('cx', xOffset + 8)
-      .attr('cy', 8)
-      .attr('r', 6)
+      .attr('cy', 9)
+      .attr('r', 7)
       .attr('fill', '#007aff')
       .attr('stroke', 'white')
-      .attr('stroke-width', 1);
+      .attr('stroke-width', 1.5);
     
     row.append('text')
       .attr('x', xOffset + 8)
-      .attr('y', 11)
+      .attr('y', 13)
       .attr('text-anchor', 'middle')
       .attr('fill', 'white')
-      .attr('font-size', '8px')
+      .attr('font-size', '10px')
       .attr('font-weight', 'bold')
+      .attr('font-family', 'Arial, sans-serif')
       .text(termIndex);
   }
-  xOffset += 20;
+  xOffset += deviceType === 'desktop' ? 20 : 6;
+  
+  // Device icon background
+  row.append('rect')
+    .attr('x', xOffset - 1)
+    .attr('y', 2)
+    .attr('width', 16)
+    .attr('height', 14)
+    .attr('fill', deviceType === 'mobile' ? '#FF6B6B' : '#4ECDC4')
+    .attr('rx', 2);
   
   // Device icon
-  const deviceIcon = deviceType === 'mobile' ? '📱' : '🖥️';
+  const deviceIcon = deviceType === 'mobile' ? '📱' : '💻';
   row.append('text')
-    .attr('x', xOffset)
-    .attr('y', 11)
-    .attr('font-size', '10px')
+    .attr('x', xOffset + 7)
+    .attr('y', 13)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '12px')
     .text(deviceIcon);
-  xOffset += 18;
+  xOffset += 22;
   
-  // Rank value
+  // Rank value with background
+  row.append('rect')
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 28)
+    .attr('height', 14)
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 2);
+  
   row.append('text')
-    .attr('x', xOffset)
-    .attr('y', 11)
-    .attr('font-size', '10px')
+    .attr('x', xOffset + 12)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '11px')
     .attr('font-weight', 'bold')
     .attr('fill', '#333')
-    .text(deviceData.avgRank.toFixed(1));
-  xOffset += 25;
+    .attr('font-family', 'Arial, sans-serif')
+    .text(safeDeviceData.avgRank.toFixed(1));
+  xOffset += 32;
   
   // Trend (arrow with number)
-  const trendColor = deviceData.rankChange < 0 ? '#4CAF50' : deviceData.rankChange > 0 ? '#F44336' : '#666';
-  const trendSymbol = deviceData.rankChange < 0 ? '▲' : deviceData.rankChange > 0 ? '▼' : '±';
+  const trendColor = safeDeviceData.rankChange < 0 ? '#4CAF50' : safeDeviceData.rankChange > 0 ? '#F44336' : '#666';
+  const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : safeDeviceData.rankChange > 0 ? '▼' : '±';
+  
+  row.append('rect')
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 32)
+    .attr('height', 14)
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 2);
+  
   row.append('text')
-    .attr('x', xOffset)
-    .attr('y', 11)
-    .attr('font-size', '9px')
+    .attr('x', xOffset + 14)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '10px')
     .attr('fill', trendColor)
     .attr('font-weight', 'bold')
-    .text(`${trendSymbol}${Math.abs(deviceData.rankChange).toFixed(1)}`);
-  xOffset += 30;
+    .attr('font-family', 'Arial, sans-serif')
+    .text(`${trendSymbol}${Math.abs(safeDeviceData.rankChange).toFixed(1)}`);
+  xOffset += 36;
   
   // Visibility percentage
+  row.append('rect')
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 38)
+    .attr('height', 14)
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 2);
+  
   row.append('text')
-    .attr('x', xOffset)
-    .attr('y', 11)
-    .attr('font-size', '10px')
+    .attr('x', xOffset + 17)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '11px')
     .attr('fill', '#333')
-    .text(`${deviceData.visibility.toFixed(1)}%`);
-  xOffset += 35;
+    .attr('font-weight', 'bold')
+    .attr('font-family', 'Arial, sans-serif')
+    .text(`${safeDeviceData.visibility.toFixed(1)}%`);
+  xOffset += 42;
   
   // Status circle
   row.append('circle')
     .attr('cx', xOffset + 6)
-    .attr('cy', 8)
-    .attr('r', 4)
-    .attr('fill', deviceData.isActive ? '#4CAF50' : '#F44336');
+    .attr('cy', 9)
+    .attr('r', 5)
+    .attr('fill', safeDeviceData.isActive ? '#4CAF50' : '#F44336')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1);
 }
 
 function setVisibilityFillHeights() {
