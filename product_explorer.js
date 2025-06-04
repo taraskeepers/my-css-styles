@@ -1075,6 +1075,69 @@ if (histItem?.visibility != null) {
   return html;
 }
 
+function buildMapDataForSelectedProduct() {
+  if (!window.selectedExplorerProduct) {
+    console.warn('[buildMapDataForSelectedProduct] No product selected');
+    return { searches: [] };
+  }
+  
+  const productRecords = getProductRecords(window.selectedExplorerProduct);
+  console.log('[buildMapDataForSelectedProduct] Found', productRecords.length, 'records for product');
+  
+  const searches = [];
+  
+  // Group by unique combinations of search term, location, and device
+  const combinations = new Map();
+  
+  productRecords.forEach(record => {
+    const key = `${record.q}|${record.location_requested}|${record.device}`;
+    if (!combinations.has(key)) {
+      // Calculate average visibility as share value
+      const shareVal = record.avg_visibility ? parseFloat(record.avg_visibility) * 100 : 0;
+      
+      // Calculate average rank from recent historical data
+      let avgRank = 40; // default
+      if (record.historical_data && record.historical_data.length > 0) {
+        // Get last 7 days of data
+        const endDate = moment().startOf('day');
+        const startDate = endDate.clone().subtract(6, 'days');
+        
+        const recentData = record.historical_data.filter(item => {
+          if (!item.date || !item.date.value || !item.avg_position) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+        
+        if (recentData.length > 0) {
+          const sum = recentData.reduce((acc, item) => acc + parseFloat(item.avg_position), 0);
+          avgRank = sum / recentData.length;
+        }
+      }
+      
+      combinations.set(key, {
+        location: record.location_requested,
+        device: record.device,
+        searchTerm: record.q,
+        shareVal: shareVal,
+        avgRank: avgRank,
+        computedAvgRank: avgRank,
+        rankChange: 0, // Could be calculated from historical data if needed
+        hideRank: false,
+        hideShare: false,
+        status: 'active'
+      });
+    }
+  });
+  
+  // Convert map to array
+  combinations.forEach(searchData => {
+    searches.push(searchData);
+  });
+  
+  console.log('[buildMapDataForSelectedProduct] Built', searches.length, 'search entries for map');
+  return { searches: searches };
+}
+
 function setVisibilityFillHeights() {
   document.querySelectorAll('.visibility-box[data-fill]').forEach(box => {
     const fillPercent = parseFloat(box.getAttribute('data-fill')) || 0;
@@ -1861,69 +1924,6 @@ clonedMapBtn.addEventListener('click', function() {
         chartDataMap[chartIndex] = { term, location, device };
         chartIndex++;
       });
-
-      function buildMapDataForSelectedProduct() {
-  if (!window.selectedExplorerProduct) {
-    console.warn('[buildMapDataForSelectedProduct] No product selected');
-    return { searches: [] };
-  }
-  
-  const productRecords = getProductRecords(window.selectedExplorerProduct);
-  console.log('[buildMapDataForSelectedProduct] Found', productRecords.length, 'records for product');
-  
-  const searches = [];
-  
-  // Group by unique combinations of search term, location, and device
-  const combinations = new Map();
-  
-  productRecords.forEach(record => {
-    const key = `${record.q}|${record.location_requested}|${record.device}`;
-    if (!combinations.has(key)) {
-      // Calculate average visibility as share value
-      const shareVal = record.avg_visibility ? parseFloat(record.avg_visibility) * 100 : 0;
-      
-      // Calculate average rank from recent historical data
-      let avgRank = 40; // default
-      if (record.historical_data && record.historical_data.length > 0) {
-        // Get last 7 days of data
-        const endDate = moment().startOf('day');
-        const startDate = endDate.clone().subtract(6, 'days');
-        
-        const recentData = record.historical_data.filter(item => {
-          if (!item.date || !item.date.value || !item.avg_position) return false;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-        
-        if (recentData.length > 0) {
-          const sum = recentData.reduce((acc, item) => acc + parseFloat(item.avg_position), 0);
-          avgRank = sum / recentData.length;
-        }
-      }
-      
-      combinations.set(key, {
-        location: record.location_requested,
-        device: record.device,
-        searchTerm: record.q,
-        shareVal: shareVal,
-        avgRank: avgRank,
-        computedAvgRank: avgRank,
-        rankChange: 0, // Could be calculated from historical data if needed
-        hideRank: false,
-        hideShare: false,
-        status: 'active'
-      });
-    }
-  });
-  
-  // Convert map to array
-  combinations.forEach(searchData => {
-    searches.push(searchData);
-  });
-  
-  console.log('[buildMapDataForSelectedProduct] Built', searches.length, 'search entries for map');
-  return { searches: searches };
-}
       
       function locationMatches(mappedLocation, productLocation) {
         if (!mappedLocation || !productLocation) return false;
