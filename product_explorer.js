@@ -1274,15 +1274,14 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       searchTermGroups.get(termIndex)[deviceType] = search;
     });
     
-    // Calculate block dimensions - much larger and better spaced
+    // Calculate block dimensions
     const searchTermCount = searchTermGroups.size;
-    const blockWidth = 320;
-    const rowHeight = 35;
-    const headerHeight = 32;
-    const blockHeight = headerHeight + (searchTermCount * (rowHeight * 2)) + 16;
+    const blockWidth = 220;
+    const rowHeight = 20;
+    const blockHeight = searchTermCount * (rowHeight * 2) + 16; // 2 rows per search term + padding
     
     // Position block (left side if location is on right half, right side if on left half)
-    const offsetX = coords[0] < 487.5 ? 70 : -blockWidth - 70;
+    const offsetX = coords[0] < 487.5 ? 60 : -blockWidth - 60;
     const offsetY = -blockHeight / 2;
     
     // Create block container
@@ -1301,69 +1300,49 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
         .attr('height', '140%');
       
       filter.append('feDropShadow')
-        .attr('dx', 3)
-        .attr('dy', 3)
-        .attr('stdDeviation', 4)
-        .attr('flood-color', 'rgba(0,0,0,0.25)');
+        .attr('dx', 2)
+        .attr('dy', 2)
+        .attr('stdDeviation', 3)
+        .attr('flood-color', 'rgba(0,0,0,0.3)');
     }
     
-    // Main background with rounded corners
+    // Background
     blockGroup.append('rect')
       .attr('width', blockWidth)
       .attr('height', blockHeight)
-      .attr('fill', 'white')
-      .attr('stroke', '#e0e7ff')
+      .attr('fill', 'rgba(255, 255, 255, 0.98)')
+      .attr('stroke', '#007aff')
       .attr('stroke-width', 2)
-      .attr('rx', 12)
+      .attr('rx', 8)
       .attr('filter', 'url(#drop-shadow)');
     
-    // Header background with gradient
-    const gradient = defs.select('#headerGradient').empty() ? 
-      defs.append('linearGradient')
-        .attr('id', 'headerGradient')
-        .attr('x1', '0%').attr('y1', '0%')
-        .attr('x2', '0%').attr('y2', '100%') : 
-      defs.select('#headerGradient');
-    
-    gradient.selectAll('stop').remove();
-    gradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', '#3b82f6');
-    gradient.append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', '#1d4ed8');
-    
+    // Header background
     blockGroup.append('rect')
       .attr('width', blockWidth)
-      .attr('height', headerHeight)
-      .attr('fill', 'url(#headerGradient)')
-      .attr('rx', 12)
-      .attr('ry', 12);
+      .attr('height', 24)
+      .attr('fill', '#007aff')
+      .attr('rx', 8)
+      .attr('ry', 8);
     
-    // Cover bottom corners of header
     blockGroup.append('rect')
       .attr('width', blockWidth)
       .attr('height', 12)
-      .attr('y', headerHeight - 12)
-      .attr('fill', 'url(#headerGradient)');
+      .attr('y', 12)
+      .attr('fill', '#007aff');
     
-    // Location title with better typography
-    const cityName = (cityObj.city || location.split(',')[0] || 'Unknown').toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    
+    // Location title
+    const cityName = cityObj.city || location.split(',')[0] || 'Unknown';
     blockGroup.append('text')
       .attr('x', blockWidth / 2)
-      .attr('y', headerHeight / 2 + 6)
+      .attr('y', 16)
       .attr('text-anchor', 'middle')
       .attr('fill', 'white')
-      .attr('font-size', '16px')
-      .attr('font-weight', '600')
-      .attr('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .attr('font-family', 'Arial, sans-serif')
       .text(cityName);
     
-    let yOffset = headerHeight + 12;
+    let yOffset = 32;
     
     // Create rows for each search term
     Array.from(searchTermGroups.keys()).sort().forEach(termIndex => {
@@ -1395,186 +1374,136 @@ function createDeviceRow(parentGroup, deviceData, termIndex, deviceType, yOffset
   
   const row = parentGroup.append('g')
     .attr('class', 'device-row')
-    .attr('transform', `translate(12, ${yOffset})`);
+    .attr('transform', `translate(8, ${yOffset})`);
   
-  // Row background with subtle alternating colors
+  // Row background (alternate colors for better readability)
   row.append('rect')
-    .attr('width', blockWidth - 24)
-    .attr('height', 32)
-    .attr('y', -2)
-    .attr('fill', deviceType === 'desktop' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(236, 72, 153, 0.05)')
-    .attr('stroke', deviceType === 'desktop' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(236, 72, 153, 0.1)')
-    .attr('stroke-width', 1)
-    .attr('rx', 6);
+    .attr('width', blockWidth - 16)
+    .attr('height', 18)
+    .attr('y', -1)
+    .attr('fill', deviceType === 'desktop' ? 'rgba(240, 248, 255, 0.8)' : 'rgba(248, 248, 248, 0.8)')
+    .attr('rx', 3);
   
-  let xOffset = 8;
+  let xOffset = 2;
   
   // Circle with search term number (only for desktop rows)
   if (deviceType === 'desktop') {
     row.append('circle')
-      .attr('cx', xOffset + 10)
-      .attr('cy', 14)
-      .attr('r', 10)
-      .attr('fill', '#3b82f6')
+      .attr('cx', xOffset + 8)
+      .attr('cy', 9)
+      .attr('r', 7)
+      .attr('fill', '#007aff')
       .attr('stroke', 'white')
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 1.5);
     
     row.append('text')
-      .attr('x', xOffset + 10)
-      .attr('y', 18)
+      .attr('x', xOffset + 8)
+      .attr('y', 13)
       .attr('text-anchor', 'middle')
       .attr('fill', 'white')
-      .attr('font-size', '12px')
-      .attr('font-weight', '700')
-      .attr('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+      .attr('font-size', '10px')
+      .attr('font-weight', 'bold')
+      .attr('font-family', 'Arial, sans-serif')
       .text(termIndex);
   }
-  xOffset += deviceType === 'desktop' ? 28 : 8;
-  
-  // Device icon using the actual URLs from the existing code
-  const deviceIconUrl = deviceType === 'mobile' 
-    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png'
-    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+  xOffset += deviceType === 'desktop' ? 20 : 6;
   
   // Device icon background
   row.append('rect')
-    .attr('x', xOffset - 2)
-    .attr('y', 4)
-    .attr('width', 24)
-    .attr('height', 20)
-    .attr('fill', deviceType === 'mobile' ? '#fdf2f8' : '#eff6ff')
-    .attr('stroke', deviceType === 'mobile' ? '#ec4899' : '#3b82f6')
-    .attr('stroke-width', 1)
-    .attr('rx', 4);
+    .attr('x', xOffset - 1)
+    .attr('y', 2)
+    .attr('width', 16)
+    .attr('height', 14)
+    .attr('fill', deviceType === 'mobile' ? '#FF6B6B' : '#4ECDC4')
+    .attr('rx', 2);
   
-  // Create foreignObject for device icon image
-  row.append('foreignObject')
-    .attr('x', xOffset)
-    .attr('y', 6)
-    .attr('width', 20)
-    .attr('height', 16)
-    .html(`<img src="${deviceIconUrl}" style="width: 20px; height: 16px; object-fit: contain;" />`);
-  
-  xOffset += 32;
-  
-  // Rank value with enhanced styling
-  row.append('rect')
-    .attr('x', xOffset - 3)
-    .attr('y', 4)
-    .attr('width', 42)
-    .attr('height', 20)
-    .attr('fill', '#f8fafc')
-    .attr('stroke', '#e2e8f0')
-    .attr('stroke-width', 1)
-    .attr('rx', 4);
-  
+  // Device icon
+  const deviceIcon = deviceType === 'mobile' ? '📱' : '💻';
   row.append('text')
-    .attr('x', xOffset + 18)
-    .attr('y', 17)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '14px')
-    .attr('font-weight', '700')
-    .attr('fill', '#1e293b')
-    .attr('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-    .text(safeDeviceData.avgRank.toFixed(1));
-  xOffset += 48;
-  
-  // Trend with better styling
-  const trendColor = safeDeviceData.rankChange < 0 ? '#10b981' : safeDeviceData.rankChange > 0 ? '#ef4444' : '#6b7280';
-  const trendBgColor = safeDeviceData.rankChange < 0 ? '#ecfdf5' : safeDeviceData.rankChange > 0 ? '#fef2f2' : '#f9fafb';
-  const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : safeDeviceData.rankChange > 0 ? '▼' : '±';
-  
-  row.append('rect')
-    .attr('x', xOffset - 3)
-    .attr('y', 4)
-    .attr('width', 48)
-    .attr('height', 20)
-    .attr('fill', trendBgColor)
-    .attr('stroke', trendColor)
-    .attr('stroke-width', 1)
-    .attr('rx', 4);
-  
-  row.append('text')
-    .attr('x', xOffset + 21)
-    .attr('y', 17)
+    .attr('x', xOffset + 7)
+    .attr('y', 13)
     .attr('text-anchor', 'middle')
     .attr('font-size', '12px')
-    .attr('fill', trendColor)
-    .attr('font-weight', '700')
-    .attr('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-    .text(`${trendSymbol}${Math.abs(safeDeviceData.rankChange).toFixed(1)}`);
-  xOffset += 54;
+    .text(deviceIcon);
+  xOffset += 22;
   
-  // Visibility percentage with bar background
+  // Rank value with background
   row.append('rect')
-    .attr('x', xOffset - 3)
-    .attr('y', 4)
-    .attr('width', 52)
-    .attr('height', 20)
-    .attr('fill', '#f0f9ff')
-    .attr('stroke', '#0ea5e9')
-    .attr('stroke-width', 1)
-    .attr('rx', 4);
-  
-  // Visibility progress bar
-  const visibilityPercent = Math.max(0, Math.min(100, safeDeviceData.visibility));
-  const barWidth = (visibilityPercent / 100) * 46;
-  
-  row.append('rect')
-    .attr('x', xOffset)
-    .attr('y', 7)
-    .attr('width', barWidth)
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 28)
     .attr('height', 14)
-    .attr('fill', '#0ea5e9')
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
     .attr('rx', 2);
   
   row.append('text')
-    .attr('x', xOffset + 23)
-    .attr('y', 17)
+    .attr('x', xOffset + 12)
+    .attr('y', 12)
     .attr('text-anchor', 'middle')
     .attr('font-size', '11px')
-    .attr('fill', '#0c4a6e')
-    .attr('font-weight', '700')
-    .attr('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-    .text(`${safeDeviceData.visibility.toFixed(1)}%`);
-  xOffset += 58;
+    .attr('font-weight', 'bold')
+    .attr('fill', '#333')
+    .attr('font-family', 'Arial, sans-serif')
+    .text(safeDeviceData.avgRank.toFixed(1));
+  xOffset += 32;
   
-  // Status indicator with better design
-  const statusColor = safeDeviceData.isActive ? '#10b981' : '#ef4444';
-  const statusBg = safeDeviceData.isActive ? '#ecfdf5' : '#fef2f2';
+  // Trend (arrow with number)
+  const trendColor = safeDeviceData.rankChange < 0 ? '#4CAF50' : safeDeviceData.rankChange > 0 ? '#F44336' : '#666';
+  const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : safeDeviceData.rankChange > 0 ? '▼' : '±';
   
   row.append('rect')
-    .attr('x', xOffset - 3)
-    .attr('y', 4)
-    .attr('width', 24)
-    .attr('height', 20)
-    .attr('fill', statusBg)
-    .attr('stroke', statusColor)
-    .attr('stroke-width', 1)
-    .attr('rx', 4);
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 32)
+    .attr('height', 14)
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 2);
   
+  row.append('text')
+    .attr('x', xOffset + 14)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '10px')
+    .attr('fill', trendColor)
+    .attr('font-weight', 'bold')
+    .attr('font-family', 'Arial, sans-serif')
+    .text(`${trendSymbol}${Math.abs(safeDeviceData.rankChange).toFixed(1)}`);
+  xOffset += 36;
+  
+  // Visibility percentage
+  row.append('rect')
+    .attr('x', xOffset - 2)
+    .attr('y', 2)
+    .attr('width', 38)
+    .attr('height', 14)
+    .attr('fill', 'rgba(255, 255, 255, 0.9)')
+    .attr('stroke', '#ddd')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 2);
+  
+  row.append('text')
+    .attr('x', xOffset + 17)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '11px')
+    .attr('fill', '#333')
+    .attr('font-weight', 'bold')
+    .attr('font-family', 'Arial, sans-serif')
+    .text(`${safeDeviceData.visibility.toFixed(1)}%`);
+  xOffset += 42;
+  
+  // Status circle
   row.append('circle')
-    .attr('cx', xOffset + 9)
-    .attr('cy', 14)
-    .attr('r', 6)
-    .attr('fill', statusColor);
-  
-  // Add subtle pulse animation for active status
-  if (safeDeviceData.isActive) {
-    row.append('circle')
-      .attr('cx', xOffset + 9)
-      .attr('cy', 14)
-      .attr('r', 6)
-      .attr('fill', 'none')
-      .attr('stroke', statusColor)
-      .attr('stroke-width', 2)
-      .attr('opacity', 0.6)
-      .append('animate')
-      .attr('attributeName', 'r')
-      .attr('values', '6;10;6')
-      .attr('dur', '2s')
-      .attr('repeatCount', 'indefinite');
-  }
+    .attr('cx', xOffset + 6)
+    .attr('cy', 9)
+    .attr('r', 5)
+    .attr('fill', safeDeviceData.isActive ? '#4CAF50' : '#F44336')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1);
 }
 
 function setVisibilityFillHeights() {
