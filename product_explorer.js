@@ -371,7 +371,7 @@ function selectProduct(product, navItemElement) {
   }
   
   window.selectedExplorerProduct = product;
-  const currentViewMode = document.querySelector('.view-switcher .active')?.id || 'viewRankingExplorer';
+  const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
   
   const combinations = getProductCombinations(product);
   console.log(`[selectProduct] Found ${combinations.length} combinations for ${product.title}`);
@@ -489,7 +489,7 @@ thead.innerHTML = `
 const tdSegmentation = document.createElement("td");
 tdSegmentation.classList.add("segmentation-column");
 const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="segmentation-chart-container loading"></div>`;
+tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
 tr.appendChild(tdSegmentation);
 
 const tdRankMarketShare = document.createElement("td");
@@ -499,7 +499,7 @@ const positionChartId = `explorer-position-chart-${chartCounter}`;
 const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
 
 tdRankMarketShare.innerHTML = `
-  <div id="${positionChartId}" class="chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+  <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
   <div class="rank-market-share-history">${rankMarketShareHistory}</div>
 `;
 tr.appendChild(tdRankMarketShare);
@@ -555,10 +555,10 @@ if (initialViewMode === 'viewRankingExplorer') {
       container.classList.add('ranking-mode');
     });
     
-    document.querySelectorAll('.chart-avg-position').forEach(container => {
+    document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
       container.style.display = 'none';
     });
-    document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
       container.style.display = 'none';
     });
   }, 10); // Minimal delay just for DOM elements to be created
@@ -1648,7 +1648,7 @@ function renderProductExplorerTable() {
       <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-<div class="view-switcher">
+<div class="explorer-view-switcher">
   <button id="viewRankingExplorer" class="active">Ranking</button>
   <button id="viewChartsExplorer">Charts</button>
   <button id="viewMapExplorer">Map</button>
@@ -1699,7 +1699,7 @@ function renderProductExplorerTable() {
     document.body.style.overflow = 'hidden';
 
     // Preserve current view state in fullscreen
-const currentActiveButton = document.querySelector('.view-switcher .active');
+const currentActiveButton = document.querySelector('.explorer-view-switcher .active');
 if (currentActiveButton && switcherClone) {
   const activeId = currentActiveButton.id;
   const clonedActiveButton = switcherClone.querySelector(`#${activeId}`);
@@ -1724,7 +1724,7 @@ if (currentActiveButton && switcherClone) {
       }
     });
 
-    const originalSwitcher = document.querySelector('.view-switcher');
+    const originalSwitcher = document.querySelector('.explorer-view-switcher');
     if (originalSwitcher) {
       const switcherClone = originalSwitcher.cloneNode(true);
       fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
@@ -1738,10 +1738,10 @@ clonedRankingBtn.addEventListener('click', function() {
   clonedChartsBtn.classList.remove('active');
   clonedMapBtn.classList.remove('active');
   
-  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
-  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'none';
   });
 });
@@ -1752,10 +1752,10 @@ clonedChartsBtn.addEventListener('click', function() {
   clonedMapBtn.classList.remove('active');
   
   // Show BOTH segmentation charts AND position charts
-  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
-  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
     // Render position chart if record data is available
@@ -1771,10 +1771,10 @@ clonedMapBtn.addEventListener('click', function() {
   clonedChartsBtn.classList.remove('active');
   
   // Hide segmentation charts, show only position charts
-  fullscreenOverlay.querySelectorAll('.segmentation-chart-container').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
   });
-  fullscreenOverlay.querySelectorAll('.chart-avg-position').forEach(container => {
+  fullscreenOverlay.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
     // Render position chart if record data is available
@@ -1816,7 +1816,7 @@ clonedMapBtn.addEventListener('click', function() {
     setTimeout(() => {
       console.log("[DEBUG-FULLSCREEN] Starting segmentation chart recreation...");
       
-      const chartContainers = fullscreenOverlay.querySelectorAll('.segmentation-chart-container');
+      const chartContainers = fullscreenOverlay.querySelectorAll('.explorer-segmentation-chart-container');
       console.log("[DEBUG-FULLSCREEN] Found chart containers:", chartContainers.length);
       
       const originalTable = document.querySelector('.product-explorer-table');
@@ -1826,7 +1826,7 @@ clonedMapBtn.addEventListener('click', function() {
       let chartIndex = 0;
       
       originalRows.forEach(row => {
-        const originalChartContainer = row.querySelector('.segmentation-chart-container');
+        const originalChartContainer = row.querySelector('.explorer-segmentation-chart-container');
         if (!originalChartContainer) return;
         
         let term = '';
@@ -2129,12 +2129,12 @@ viewRankingExplorerBtn.addEventListener("click", function() {
   });
   
   // Hide position charts and segmentation column
-  document.querySelectorAll('.chart-avg-position').forEach(container => {
+document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'none';
-  });
-  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+});
+document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
-  });
+});
   // Show rank-market-share history in ranking mode
   document.querySelectorAll('.rank-market-share-history').forEach(container => {
     container.style.display = 'block';
@@ -2158,7 +2158,7 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   });
   
   // Show BOTH segmentation charts AND position charts
-  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+  document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'flex';
   });
 
@@ -2166,7 +2166,7 @@ viewChartsExplorerBtn.addEventListener("click", function() {
     container.style.display = 'none';
   });
   
-  document.querySelectorAll('.chart-avg-position').forEach(container => {
+  document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
     // Render position chart if record data is available
@@ -2193,7 +2193,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   });
   
   // Hide segmentation charts, show only position charts
-  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+  document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
   });
 
@@ -2201,7 +2201,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
     container.style.display = 'none';
   });
   
-  document.querySelectorAll('.chart-avg-position').forEach(container => {
+  document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'flex';
     
     // Render position chart if record data is available
@@ -2585,7 +2585,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
         background-color: #d9342c;
       }
       
-      .view-switcher {
+      .explorer-view-switcher {
         position: absolute;
         top: 10px;
         right: 140px;
@@ -2596,7 +2596,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
         z-index: 100;
       }
 
-      .view-switcher button {
+      .explorer-view-switcher button {
         padding: 6px 16px;
         border: none;
         background: transparent;
@@ -2607,16 +2607,16 @@ viewMapExplorerBtn.addEventListener("click", function() {
         color: #666;
       }
 
-      .view-switcher button.active {
+      .explorer-view-switcher button.active {
         background-color: #007aff;
         color: white;
       }
 
-      .view-switcher button:hover:not(.active) {
+      .explorer-view-switcher button:hover:not(.active) {
         background-color: rgba(0, 122, 255, 0.1);
       }
 
-      .chart-avg-position {
+      .explorer-chart-avg-position {
         width: 100%;
         height: 100%;
         min-height: 380px;
@@ -2630,7 +2630,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
         font-style: italic;
       }
       
-      .segmentation-chart-container.loading {
+      .explorer-segmentation-chart-container.loading {
         background: #f5f5f5;
         display: flex;
         align-items: center;
@@ -2638,7 +2638,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
         color: #999;
       }
 
-      .segmentation-chart-container.loading::after {
+      .explorer-segmentation-chart-container.loading::after {
         content: 'Loading chart...';
         font-size: 12px;
       }
@@ -2766,7 +2766,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
       }
-      .view-switcher button {
+      .explorer-view-switcher button {
   padding: 6px 12px;  /* Reduce padding for 3 buttons */
   border: none;
   background: transparent;
@@ -3005,7 +3005,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 /* Hide rank history in Charts and Map modes, show position charts */
-.chart-avg-position {
+.explorer-chart-avg-position {
   display: none;
 }
 
@@ -3014,7 +3014,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 /* Show position charts and hide rank history in Charts/Map modes */
-.product-explorer-table:not(.ranking-mode) .chart-avg-position {
+.product-explorer-table:not(.ranking-mode) .explorer-chart-avg-position {
   display: flex !important;
 }
 
