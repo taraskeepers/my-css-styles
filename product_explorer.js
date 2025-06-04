@@ -1276,12 +1276,14 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
     
     // Calculate block dimensions
     const searchTermCount = searchTermGroups.size;
-    const blockWidth = 220;
-    const rowHeight = 20;
-    const blockHeight = searchTermCount * (rowHeight * 2) + 16; // 2 rows per search term + padding
+    const blockWidth = 280;
+    const rowHeight = 56;
+    const headerHeight = 36;
+    const padding = 24;
+    const blockHeight = headerHeight + (searchTermCount * rowHeight * 2) + padding;
     
     // Position block (left side if location is on right half, right side if on left half)
-    const offsetX = coords[0] < 487.5 ? 60 : -blockWidth - 60;
+    const offsetX = coords[0] < 487.5 ? 50 : -blockWidth - 50;
     const offsetY = -blockHeight / 2;
     
     // Create block container
@@ -1289,60 +1291,25 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       .attr('class', 'location-block')
       .attr('transform', `translate(${coords[0] + offsetX}, ${coords[1] + offsetY})`);
     
-    // Add drop shadow filter
-    const defs = svg.select('defs').empty() ? svg.append('defs') : svg.select('defs');
-    if (defs.select('#drop-shadow').empty()) {
-      const filter = defs.append('filter')
-        .attr('id', 'drop-shadow')
-        .attr('x', '-20%')
-        .attr('y', '-20%')
-        .attr('width', '140%')
-        .attr('height', '140%');
-      
-      filter.append('feDropShadow')
-        .attr('dx', 2)
-        .attr('dy', 2)
-        .attr('stdDeviation', 3)
-        .attr('flood-color', 'rgba(0,0,0,0.3)');
-    }
-    
-    // Background
-    blockGroup.append('rect')
+    // Add foreignObject for HTML content
+    const foreignObject = blockGroup.append('foreignObject')
       .attr('width', blockWidth)
-      .attr('height', blockHeight)
-      .attr('fill', 'rgba(255, 255, 255, 0.98)')
-      .attr('stroke', '#007aff')
-      .attr('stroke-width', 2)
-      .attr('rx', 8)
-      .attr('filter', 'url(#drop-shadow)');
+      .attr('height', blockHeight);
     
-    // Header background
-    blockGroup.append('rect')
-      .attr('width', blockWidth)
-      .attr('height', 24)
-      .attr('fill', '#007aff')
-      .attr('rx', 8)
-      .attr('ry', 8);
+    const blockDiv = foreignObject.append('xhtml:div')
+      .attr('class', 'location-block-content')
+      .style('width', '100%')
+      .style('height', '100%');
     
-    blockGroup.append('rect')
-      .attr('width', blockWidth)
-      .attr('height', 12)
-      .attr('y', 12)
-      .attr('fill', '#007aff');
-    
-    // Location title
+    // Header
     const cityName = cityObj.city || location.split(',')[0] || 'Unknown';
-    blockGroup.append('text')
-      .attr('x', blockWidth / 2)
-      .attr('y', 16)
-      .attr('text-anchor', 'middle')
-      .attr('fill', 'white')
-      .attr('font-size', '12px')
-      .attr('font-weight', 'bold')
-      .attr('font-family', 'Arial, sans-serif')
+    blockDiv.append('xhtml:div')
+      .attr('class', 'location-block-header')
       .text(cityName);
     
-    let yOffset = 32;
+    // Body
+    const bodyDiv = blockDiv.append('xhtml:div')
+      .attr('class', 'location-block-body');
     
     // Create rows for each search term
     Array.from(searchTermGroups.keys()).sort().forEach(termIndex => {
@@ -1350,21 +1317,18 @@ function addLocationBlocksToMap(mapProject, containerSelector) {
       
       // Desktop row
       if (devices.desktop) {
-        createDeviceRow(blockGroup, devices.desktop, termIndex, 'desktop', yOffset, blockWidth);
-        yOffset += rowHeight;
+        createDeviceRowHTML(bodyDiv, devices.desktop, termIndex, 'desktop');
       }
       
       // Mobile row
       if (devices.mobile) {
-        createDeviceRow(blockGroup, devices.mobile, termIndex, 'mobile', yOffset, blockWidth);
-        yOffset += rowHeight;
+        createDeviceRowHTML(bodyDiv, devices.mobile, termIndex, 'mobile');
       }
     });
   });
 }
 
-function createDeviceRow(parentGroup, deviceData, termIndex, deviceType, yOffset, blockWidth) {
-  // Ensure all required properties exist with defaults
+function createDeviceRowHTML(parentDiv, deviceData, termIndex, deviceType) {
   const safeDeviceData = {
     avgRank: deviceData.avgRank != null ? deviceData.avgRank : 40,
     rankChange: deviceData.rankChange != null ? deviceData.rankChange : 0,
@@ -1372,138 +1336,77 @@ function createDeviceRow(parentGroup, deviceData, termIndex, deviceType, yOffset
     isActive: deviceData.isActive != null ? deviceData.isActive : false
   };
   
-  const row = parentGroup.append('g')
-    .attr('class', 'device-row')
-    .attr('transform', `translate(8, ${yOffset})`);
+  const rowDiv = parentDiv.append('xhtml:div')
+    .attr('class', `location-device-row device-row-${deviceType}`);
   
-  // Row background (alternate colors for better readability)
-  row.append('rect')
-    .attr('width', blockWidth - 16)
-    .attr('height', 18)
-    .attr('y', -1)
-    .attr('fill', deviceType === 'desktop' ? 'rgba(240, 248, 255, 0.8)' : 'rgba(248, 248, 248, 0.8)')
-    .attr('rx', 3);
-  
-  let xOffset = 2;
-  
-  // Circle with search term number (only for desktop rows)
+  // Search term circle (only for desktop rows)
   if (deviceType === 'desktop') {
-    row.append('circle')
-      .attr('cx', xOffset + 8)
-      .attr('cy', 9)
-      .attr('r', 7)
-      .attr('fill', '#007aff')
-      .attr('stroke', 'white')
-      .attr('stroke-width', 1.5);
-    
-    row.append('text')
-      .attr('x', xOffset + 8)
-      .attr('y', 13)
-      .attr('text-anchor', 'middle')
-      .attr('fill', 'white')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .attr('font-family', 'Arial, sans-serif')
+    rowDiv.append('xhtml:div')
+      .attr('class', 'search-term-circle')
       .text(termIndex);
+  } else {
+    // Empty space for mobile rows to align with desktop
+    rowDiv.append('xhtml:div')
+      .style('width', '38px');
   }
-  xOffset += deviceType === 'desktop' ? 20 : 6;
-  
-  // Device icon background
-  row.append('rect')
-    .attr('x', xOffset - 1)
-    .attr('y', 2)
-    .attr('width', 16)
-    .attr('height', 14)
-    .attr('fill', deviceType === 'mobile' ? '#FF6B6B' : '#4ECDC4')
-    .attr('rx', 2);
   
   // Device icon
-  const deviceIcon = deviceType === 'mobile' ? '📱' : '💻';
-  row.append('text')
-    .attr('x', xOffset + 7)
-    .attr('y', 13)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '12px')
-    .text(deviceIcon);
-  xOffset += 22;
+  const iconWrapper = rowDiv.append('xhtml:div')
+    .attr('class', 'device-icon-wrapper');
   
-  // Rank value with background
-  row.append('rect')
-    .attr('x', xOffset - 2)
-    .attr('y', 2)
-    .attr('width', 28)
-    .attr('height', 14)
-    .attr('fill', 'rgba(255, 255, 255, 0.9)')
-    .attr('stroke', '#ddd')
-    .attr('stroke-width', 0.5)
-    .attr('rx', 2);
+  const deviceIcon = deviceType === 'mobile' 
+    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
+    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
   
-  row.append('text')
-    .attr('x', xOffset + 12)
-    .attr('y', 12)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '11px')
-    .attr('font-weight', 'bold')
-    .attr('fill', '#333')
-    .attr('font-family', 'Arial, sans-serif')
+  iconWrapper.append('xhtml:img')
+    .attr('class', 'map-device-icon')
+    .attr('src', deviceIcon)
+    .attr('alt', deviceType);
+  
+  // Metrics container
+  const metricsDiv = rowDiv.append('xhtml:div')
+    .attr('class', 'device-metrics');
+  
+  // Rank metric
+  const rankDiv = metricsDiv.append('xhtml:div')
+    .attr('class', 'metric-item');
+  
+  rankDiv.append('xhtml:div')
+    .attr('class', 'metric-label')
+    .text('Rank');
+  
+  rankDiv.append('xhtml:div')
+    .attr('class', 'metric-value')
     .text(safeDeviceData.avgRank.toFixed(1));
-  xOffset += 32;
   
-  // Trend (arrow with number)
-  const trendColor = safeDeviceData.rankChange < 0 ? '#4CAF50' : safeDeviceData.rankChange > 0 ? '#F44336' : '#666';
-  const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : safeDeviceData.rankChange > 0 ? '▼' : '±';
+  // Trend
+  const trendValue = Math.abs(safeDeviceData.rankChange).toFixed(1);
+  const trendClass = safeDeviceData.rankChange < 0 ? 'trend-positive' : 
+                     safeDeviceData.rankChange > 0 ? 'trend-negative' : 'trend-neutral';
+  const trendSymbol = safeDeviceData.rankChange < 0 ? '▲' : 
+                      safeDeviceData.rankChange > 0 ? '▼' : '—';
   
-  row.append('rect')
-    .attr('x', xOffset - 2)
-    .attr('y', 2)
-    .attr('width', 32)
-    .attr('height', 14)
-    .attr('fill', 'rgba(255, 255, 255, 0.9)')
-    .attr('stroke', '#ddd')
-    .attr('stroke-width', 0.5)
-    .attr('rx', 2);
+  const trendDiv = rankDiv.append('xhtml:div')
+    .attr('class', `metric-trend ${trendClass}`);
   
-  row.append('text')
-    .attr('x', xOffset + 14)
-    .attr('y', 12)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '10px')
-    .attr('fill', trendColor)
-    .attr('font-weight', 'bold')
-    .attr('font-family', 'Arial, sans-serif')
-    .text(`${trendSymbol}${Math.abs(safeDeviceData.rankChange).toFixed(1)}`);
-  xOffset += 36;
+  trendDiv.append('xhtml:span')
+    .text(`${trendSymbol} ${trendValue}`);
   
-  // Visibility percentage
-  row.append('rect')
-    .attr('x', xOffset - 2)
-    .attr('y', 2)
-    .attr('width', 38)
-    .attr('height', 14)
-    .attr('fill', 'rgba(255, 255, 255, 0.9)')
-    .attr('stroke', '#ddd')
-    .attr('stroke-width', 0.5)
-    .attr('rx', 2);
+  // Visibility metric
+  const visDiv = metricsDiv.append('xhtml:div')
+    .attr('class', 'metric-item');
   
-  row.append('text')
-    .attr('x', xOffset + 17)
-    .attr('y', 12)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '11px')
-    .attr('fill', '#333')
-    .attr('font-weight', 'bold')
-    .attr('font-family', 'Arial, sans-serif')
+  visDiv.append('xhtml:div')
+    .attr('class', 'metric-label')
+    .text('Share');
+  
+  visDiv.append('xhtml:div')
+    .attr('class', 'metric-value')
     .text(`${safeDeviceData.visibility.toFixed(1)}%`);
-  xOffset += 42;
   
-  // Status circle
-  row.append('circle')
-    .attr('cx', xOffset + 6)
-    .attr('cy', 9)
-    .attr('r', 5)
-    .attr('fill', safeDeviceData.isActive ? '#4CAF50' : '#F44336')
-    .attr('stroke', 'white')
-    .attr('stroke-width', 1);
+  // Status indicator
+  rowDiv.append('xhtml:div')
+    .attr('class', `device-status-indicator ${safeDeviceData.isActive ? 'status-active' : 'status-inactive'}`);
 }
 
 function setVisibilityFillHeights() {
@@ -3631,7 +3534,166 @@ viewMapExplorerBtn.addEventListener("click", function() {
   background-color: #ccc;
   color: #666;
 }
+/* Add these new styles for the location blocks */
+.location-block {
+  pointer-events: all;
+  cursor: default;
+}
 
+.location-block-content {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(0, 122, 255, 0.2);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.location-block-header {
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
+  padding: 10px 16px;
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.location-block-body {
+  padding: 12px;
+  background: #fafbfc;
+}
+
+.location-device-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.location-device-row:last-child {
+  margin-bottom: 0;
+}
+
+.location-device-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.device-row-desktop {
+  background: linear-gradient(to right, #f0f8ff 0%, white 50%);
+}
+
+.device-row-mobile {
+  background: linear-gradient(to right, #fff5f5 0%, white 50%);
+}
+
+.search-term-circle {
+  width: 28px;
+  height: 28px;
+  background: #007aff;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin-right: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.device-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.map-device-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.device-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.metric-item:last-child {
+  border-right: none;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.metric-trend {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.trend-positive {
+  color: #4CAF50;
+}
+
+.trend-negative {
+  color: #F44336;
+}
+
+.trend-neutral {
+  color: #666;
+}
+
+.device-status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.status-active {
+  background: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.status-inactive {
+  background: #F44336;
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.2);
+}
     `;
     document.head.appendChild(style);
   }
