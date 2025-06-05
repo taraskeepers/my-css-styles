@@ -3230,18 +3230,23 @@ viewMapExplorerBtn.addEventListener("click", function() {
   height: 50px;
   display: flex;
   border-radius: 4px;
+  margin-left: 8px;
   overflow: hidden;
   border: 1px solid #ddd;
 }
 
 .vis-status-left {
-  width: 50%;
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #e3f2fd;
   position: relative;
+}
+
+.vis-status-right {
+  display: none !important;
 }
 
 .vis-water-container {
@@ -3269,24 +3274,11 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .vis-percentage {
   position: relative;
   z-index: 2;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: bold;
   color: #1565c0;
   text-align: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.small-ad-vis-status:hover .vis-percentage {
   opacity: 1;
-}
-
-.vis-status-right {
-  width: 50%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid #ddd;
 }
 
 .active-locations-count {
@@ -3935,6 +3927,23 @@ viewMapExplorerBtn.addEventListener("click", function() {
   background-color: #f5f5f5;
   border: 1px solid #ddd;
 }
+.product-counter-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  min-width: 45px;
+}
+
+.active-badge {
+  background-color: #4CAF50;
+}
+
+.inactive-badge {
+  background-color: #F44336;
+}
     `;
     document.head.appendChild(style);
   }
@@ -3982,8 +3991,16 @@ viewMapExplorerBtn.addEventListener("click", function() {
   allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
   const productsNavPanel = document.getElementById('productsNavPanel');
-  productsNavPanel.innerHTML = '<h3 style="padding: 15px; margin: 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #dee2e6;">Products</h3>';
-
+ productsNavPanel.innerHTML = `
+  <div style="padding: 15px; margin: 0; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Products</h3>
+    <div id="productsCounter" style="display: flex; gap: 8px;">
+      <span class="product-counter-badge active-badge">0 Active</span>
+      <span class="product-counter-badge inactive-badge">0 Inactive</span>
+    </div>
+  </div>
+`;
+  
   const productsNavContainer = document.createElement('div');
   productsNavContainer.classList.add('products-nav-container');
   productsNavContainer.style.padding = '10px';
@@ -4048,6 +4065,14 @@ activeProducts.forEach(({ product, index, metrics }) => {
   
   productsNavContainer.appendChild(navItem);
 });
+
+  // Update the counter display
+const activeCountBadge = document.querySelector('.active-badge');
+const inactiveCountBadge = document.querySelector('.inactive-badge');
+if (activeCountBadge && inactiveCountBadge) {
+  activeCountBadge.textContent = `${activeProducts.length} Active`;
+  inactiveCountBadge.textContent = `${inactiveProducts.length} Inactive`;
+}
 
 // Add separator if there are inactive products
 if (inactiveProducts.length > 0) {
