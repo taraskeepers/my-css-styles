@@ -1,5 +1,6 @@
 window.pendingExplorerCharts = [];
 window.explorerApexCharts = [];
+window.currentProductFilter = 'all';
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
@@ -2081,6 +2082,75 @@ function calculateProductMetrics(product) {
   };
 }
 
+function rebuildProductsList(allCompanyProducts, productsNavContainer, filter = 'all') {
+  // Clear existing products
+  productsNavContainer.innerHTML = '';
+  
+// Use the new rebuild function
+rebuildProductsList(allCompanyProducts, productsNavContainer, window.currentProductFilter);
+
+// Add filter event listeners
+document.querySelectorAll('.product-counter-badge').forEach(badge => {
+  badge.addEventListener('click', function() {
+    const filter = this.getAttribute('data-filter');
+    window.currentProductFilter = filter;
+    
+    // Update active filter styling
+    document.querySelectorAll('.product-counter-badge').forEach(b => b.classList.remove('active-filter'));
+    this.classList.add('active-filter');
+    
+    // Rebuild products list with new filter
+    rebuildProductsList(allCompanyProducts, productsNavContainer, filter);
+  });
+});
+}
+
+function createProductNavItem(product, index, metrics, isInactive) {
+  const navItem = document.createElement('div');
+  navItem.classList.add('nav-product-item');
+  if (isInactive) navItem.classList.add('inactive-product');
+  navItem.setAttribute('data-product-index', index);
+  
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  
+  const badgeColor = getRatingBadgeColor(metrics.avgRating);
+  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = product.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${metrics.avgRating}</div>
+      <div class="small-ad-pos-trend"></div>
+    </div>
+    <div class="small-ad-vis-status">
+      <div class="vis-status-left">
+        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="vis-status-right">
+        <div class="active-locations-count">${metrics.activeLocations}</div>
+        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+      </div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  navItem.appendChild(smallCard);
+  
+  navItem.addEventListener('click', function() {
+    console.log('[ProductExplorer] Product clicked:', product.title);
+    selectProduct(product, navItem);
+  });
+  
+  return navItem;
+}
+
 function getRatingBadgeColor(rating) {
   if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
   if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
@@ -3944,6 +4014,46 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .inactive-badge {
   background-color: #F44336;
 }
+.product-counter-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  min-width: 45px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.product-counter-badge:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.product-counter-badge.active-filter {
+  opacity: 1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.all-badge {
+  background-color: #2196F3;
+}
+
+.active-badge {
+  background-color: #4CAF50;
+}
+
+.inactive-badge {
+  background-color: #F44336;
+}
+
+.nav-product-item.filtered-out {
+  filter: grayscale(100%) brightness(0.6);
+  opacity: 0.3;
+  pointer-events: none;
+}
     `;
     document.head.appendChild(style);
   }
@@ -3991,12 +4101,13 @@ viewMapExplorerBtn.addEventListener("click", function() {
   allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
   const productsNavPanel = document.getElementById('productsNavPanel');
- productsNavPanel.innerHTML = `
+productsNavPanel.innerHTML = `
   <div style="padding: 15px; margin: 0; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
     <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Products</h3>
-    <div id="productsCounter" style="display: flex; gap: 8px;">
-      <span class="product-counter-badge active-badge">0 Active</span>
-      <span class="product-counter-badge inactive-badge">0 Inactive</span>
+    <div id="productsCounter" style="display: flex; gap: 6px;">
+      <span class="product-counter-badge all-badge active-filter" data-filter="all">0 All</span>
+      <span class="product-counter-badge active-badge" data-filter="active">0 Active</span>
+      <span class="product-counter-badge inactive-badge" data-filter="inactive">0 Inactive</span>
     </div>
   </div>
 `;
