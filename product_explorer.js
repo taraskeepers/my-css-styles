@@ -1943,6 +1943,81 @@ function updateChartLineVisibilityExplorer(chartContainer, selectedIndex) {
   chart.update('none');
 }
 
+function calculateProductMetrics(product) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0 };
+  }
+  
+  // Get all records for this product
+  const productRecords = window.allRows.filter(record => 
+    record.title === product.title && 
+    record.source === product.source
+  );
+  
+  // Calculate average rating from active records
+  const activeRecords = productRecords.filter(record => 
+    record.product_status === 'active' || !record.product_status
+  );
+  
+  let avgRating = 40;
+  if (activeRecords.length > 0) {
+    const ratingSum = activeRecords.reduce((sum, record) => {
+      const position = record.avg_position || record.finalPosition || 40;
+      return sum + parseFloat(position);
+    }, 0);
+    avgRating = ratingSum / activeRecords.length;
+  }
+  
+  // Calculate average visibility from active records
+  let avgVisibility = 0;
+  if (activeRecords.length > 0) {
+    const visibilitySum = activeRecords.reduce((sum, record) => {
+      const visibility = record.avg_visibility || record.visibility || record.visibilityBarValue || 0;
+      return sum + (parseFloat(visibility) * (visibility < 1 ? 100 : 1)); // Handle both decimal and percentage formats
+    }, 0);
+    avgVisibility = visibilitySum / activeRecords.length;
+  }
+  
+  // Count unique active and inactive locations
+  const locationStatusMap = new Map();
+  productRecords.forEach(record => {
+    const location = record.location_requested;
+    if (!location) return;
+    
+    const isActive = record.product_status === 'active' || !record.product_status;
+    if (!locationStatusMap.has(location)) {
+      locationStatusMap.set(location, { hasActive: false, hasInactive: false });
+    }
+    
+    if (isActive) {
+      locationStatusMap.get(location).hasActive = true;
+    } else {
+      locationStatusMap.get(location).hasInactive = true;
+    }
+  });
+  
+  let activeLocations = 0;
+  let inactiveLocations = 0;
+  locationStatusMap.forEach(status => {
+    if (status.hasActive) activeLocations++;
+    if (status.hasInactive) inactiveLocations++;
+  });
+  
+  return {
+    avgRating: Math.round(avgRating),
+    avgVisibility: Math.min(100, Math.max(0, avgVisibility)),
+    activeLocations,
+    inactiveLocations
+  };
+}
+
+function getRatingBadgeColor(rating) {
+  if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
+  if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
+  if (rating >= 9 && rating <= 14) return '#FF9800'; // Orange
+  return '#F44336'; // Red (above 14)
+}
+
 // Main function definition
 function renderProductExplorerTable() {
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
@@ -1973,7 +2048,7 @@ function renderProductExplorerTable() {
   
 container.innerHTML = `
     <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
-      <div id="productsNavPanel" style="width: 300px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
+      <div id="productsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
 <div class="explorer-view-switcher">
@@ -3066,20 +3141,101 @@ viewMapExplorerBtn.addEventListener("click", function() {
         margin-bottom: 5px;
       }
 
-      .nav-product-item .small-ad-details {
-        width: 270px;
-        height: 60px;
-        margin-bottom: 0;
-        background-color: white;
-        border-radius: 6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        padding: 5px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
+.nav-product-item .small-ad-details {
+  width: 370px;
+  height: 60px;
+  margin-bottom: 0;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.small-ad-vis-status {
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+  display: flex;
+  border-radius: 4px;
+  margin-left: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
 
+.vis-status-left {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e3f2fd;
+  position: relative;
+}
+
+.vis-water-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vis-water-container::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, #1e88e5 0%, rgba(30, 136, 229, 0.7) 50%, rgba(30, 136, 229, 0.3) 100%);
+  transition: height 0.3s ease-in-out;
+  z-index: 1;
+  height: var(--fill-height, 0%);
+}
+
+.vis-percentage {
+  position: relative;
+  z-index: 2;
+  font-size: 8px;
+  font-weight: bold;
+  color: #1565c0;
+  text-align: center;
+}
+
+.vis-status-right {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #ddd;
+}
+
+.active-locations-count {
+  height: 50%;
+  background-color: #4CAF50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.inactive-locations-count {
+  height: 50%;
+  background-color: #F44336;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  border-top: 1px solid #ddd;
+}
       .nav-product-item .small-ad-details:hover {
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         transform: translateY(-1px);
@@ -3721,43 +3877,63 @@ viewMapExplorerBtn.addEventListener("click", function() {
   productsNavContainer.classList.add('products-nav-container');
   productsNavContainer.style.padding = '10px';
 
-  allCompanyProducts.forEach((product, index) => {
-    const navItem = document.createElement('div');
-    navItem.classList.add('nav-product-item');
-    navItem.setAttribute('data-product-index', index);
-    
-    const smallCard = document.createElement('div');
-    smallCard.classList.add('small-ad-details');
-    
-    const posValue = Math.floor(Math.random() * 20) + 1;
-    const badgeColor = '#007aff';
-    
-    const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-    const title = product.title || 'No title';
-    
-    smallCard.innerHTML = `
-      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-        <div class="small-ad-pos-value">${posValue}</div>
-        <div class="small-ad-pos-trend"></div>
+allCompanyProducts.forEach((product, index) => {
+  const navItem = document.createElement('div');
+  navItem.classList.add('nav-product-item');
+  navItem.setAttribute('data-product-index', index);
+  
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  
+  // Calculate product metrics
+  const metrics = calculateProductMetrics(product);
+  const badgeColor = getRatingBadgeColor(metrics.avgRating);
+  
+  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = product.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${metrics.avgRating}</div>
+      <div class="small-ad-pos-trend">Avg Rank</div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+    <div class="small-ad-vis-status">
+      <div class="vis-status-left">
+        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        </div>
       </div>
-      <img class="small-ad-image" 
-           src="${imageUrl}" 
-           alt="${title}"
-           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-      <div class="small-ad-title">${title}</div>
-    `;
-    
-    navItem.appendChild(smallCard);
-    
-    navItem.addEventListener('click', function() {
-      console.log('[ProductExplorer] Product clicked:', product.title);
-      selectProduct(product, navItem);
-    });
-    
-    productsNavContainer.appendChild(navItem);
+      <div class="vis-status-right">
+        <div class="active-locations-count">${metrics.activeLocations}</div>
+        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+      </div>
+    </div>
+  `;
+  
+  navItem.appendChild(smallCard);
+  
+  navItem.addEventListener('click', function() {
+    console.log('[ProductExplorer] Product clicked:', product.title);
+    selectProduct(product, navItem);
   });
+  
+  productsNavContainer.appendChild(navItem);
+});
 
   productsNavPanel.appendChild(productsNavContainer);
+
+    // Set water fill heights for visibility indicators
+  setTimeout(() => {
+    document.querySelectorAll('.vis-water-container[data-fill]').forEach(container => {
+      const fillPercent = parseFloat(container.getAttribute('data-fill')) || 0;
+      container.style.setProperty('--fill-height', fillPercent + '%');
+    });
+  }, 100);
 
   setTimeout(() => {
     console.log('[renderProductExplorerTable] Auto-selecting first product...');
@@ -3780,7 +3956,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
       emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
       container.appendChild(emptyMessage);
     }
-  }, 500);
+  }, 100);
 }
 
 // Export the function
