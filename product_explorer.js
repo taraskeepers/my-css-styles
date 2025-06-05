@@ -1945,7 +1945,7 @@ function updateChartLineVisibilityExplorer(chartContainer, selectedIndex) {
 
 function calculateProductMetrics(product) {
   if (!window.allRows || !Array.isArray(window.allRows)) {
-    return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0 };
+    return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0, isFullyInactive: true };
   }
   
   // Get all records for this product
@@ -1957,6 +1957,7 @@ function calculateProductMetrics(product) {
   // Group by unique combinations of search term + location + device
   const combinationMetrics = new Map();
   const locationStatusMap = new Map();
+  let hasAnyActiveLocation = false;
   
   productRecords.forEach(record => {
     const searchTerm = record.q || '';
@@ -1967,6 +1968,8 @@ function calculateProductMetrics(product) {
     // Track location status
     if (location) {
       const isActive = record.product_status === 'active' || !record.product_status;
+      if (isActive) hasAnyActiveLocation = true;
+      
       if (!locationStatusMap.has(location)) {
         locationStatusMap.set(location, { hasActive: false, hasInactive: false });
       }
@@ -1977,23 +1980,21 @@ function calculateProductMetrics(product) {
       }
     }
     
-    // Skip inactive records for metrics calculation
-    const isActive = record.product_status === 'active' || !record.product_status;
-    if (!isActive) return;
-    
+    // Process ALL records (both active and inactive) for metrics calculation
     if (!combinationMetrics.has(comboKey)) {
       combinationMetrics.set(comboKey, { 
         rankSum: 0, 
         rankCount: 0, 
         visibilitySum: 0, 
         visibilityCount: 0,
-        record: record
+        record: record,
+        isActive: record.product_status === 'active' || !record.product_status
       });
     }
     
     const combo = combinationMetrics.get(comboKey);
     
-    // Calculate rank from historical data (similar to existing logic)
+    // Calculate rank from historical data
     if (record.historical_data && Array.isArray(record.historical_data)) {
       let latestDate = null;
       record.historical_data.forEach(item => {
@@ -2021,20 +2022,22 @@ function calculateProductMetrics(product) {
           combo.rankCount++;
         }
         
-        // Calculate visibility
-        const visibilityData = record.historical_data.filter(item => {
-          if (!item.date || !item.date.value) return false;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-        
-        if (visibilityData.length > 0) {
-          const avgVis = visibilityData.reduce((sum, item) => {
-            const vis = item.visibility || item.top40_visibility || 0;
-            return sum + (parseFloat(vis) * 100);
-          }, 0) / visibilityData.length;
-          combo.visibilitySum += avgVis;
-          combo.visibilityCount++;
+        // Calculate visibility only for active combinations
+        if (combo.isActive) {
+          const visibilityData = record.historical_data.filter(item => {
+            if (!item.date || !item.date.value) return false;
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            return itemDate.isBetween(startDate, endDate, 'day', '[]');
+          });
+          
+          if (visibilityData.length > 0) {
+            const avgVis = visibilityData.reduce((sum, item) => {
+              const vis = item.visibility || item.top40_visibility || 0;
+              return sum + (parseFloat(vis) * 100);
+            }, 0) / visibilityData.length;
+            combo.visibilitySum += avgVis;
+            combo.visibilityCount++;
+          }
         }
       }
     }
@@ -2046,7 +2049,8 @@ function calculateProductMetrics(product) {
       combo.rankCount++;
     }
     
-    if (combo.visibilityCount === 0) {
+    // Fallback for visibility only for active combinations
+    if (combo.visibilityCount === 0 && combo.isActive) {
       const directVis = record.avg_visibility || record.visibility || record.visibilityBarValue || 0;
       const visValue = parseFloat(directVis) * (directVis < 1 ? 100 : 1);
       combo.visibilitySum += visValue;
@@ -2065,7 +2069,8 @@ function calculateProductMetrics(product) {
       totalRankSum += (combo.rankSum / combo.rankCount);
       totalRankCount++;
     }
-    if (combo.visibilityCount > 0) {
+    // Only count visibility for active combinations
+    if (combo.visibilityCount > 0 && combo.isActive) {
       totalVisibilitySum += (combo.visibilitySum / combo.visibilityCount);
       totalVisibilityCount++;
     }
@@ -2086,9 +2091,11 @@ function calculateProductMetrics(product) {
     avgRating: Math.round(avgRating),
     avgVisibility: Math.min(100, Math.max(0, avgVisibility)),
     activeLocations,
-    inactiveLocations
+    inactiveLocations,
+    isFullyInactive: !hasAnyActiveLocation
   };
 }
+
 function getRatingBadgeColor(rating) {
   if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
   if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
@@ -3902,6 +3909,41 @@ viewMapExplorerBtn.addEventListener("click", function() {
 .status-inactive {
   background: #F44336;
 }
+.products-separator {
+  display: flex;
+  align-items: center;
+  margin: 20px 10px;
+  opacity: 0.6;
+}
+
+.separator-line {
+  flex: 1;
+  height: 1px;
+  background-color: #ccc;
+}
+
+.separator-text {
+  padding: 0 15px;
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.nav-product-item.inactive-product {
+  filter: grayscale(100%) brightness(0.8);
+  opacity: 0.7;
+}
+
+.nav-product-item.inactive-product:hover {
+  filter: grayscale(70%) brightness(0.9);
+  opacity: 0.9;
+}
+
+.nav-product-item.inactive-product .small-ad-details {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
     `;
     document.head.appendChild(style);
   }
@@ -3955,7 +3997,23 @@ viewMapExplorerBtn.addEventListener("click", function() {
   productsNavContainer.classList.add('products-nav-container');
   productsNavContainer.style.padding = '10px';
 
-allCompanyProducts.forEach((product, index) => {
+// Calculate metrics for all products and separate active/inactive
+const productsWithMetrics = allCompanyProducts.map((product, index) => ({
+  product,
+  index,
+  metrics: calculateProductMetrics(product)
+}));
+
+// Separate active and inactive products
+const activeProducts = productsWithMetrics.filter(item => !item.metrics.isFullyInactive);
+const inactiveProducts = productsWithMetrics.filter(item => item.metrics.isFullyInactive);
+
+// Sort both groups by rank (lower rank = better = higher in list)
+activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
+inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
+
+// Create active products
+activeProducts.forEach(({ product, index, metrics }) => {
   const navItem = document.createElement('div');
   navItem.classList.add('nav-product-item');
   navItem.setAttribute('data-product-index', index);
@@ -3963,35 +4021,90 @@ allCompanyProducts.forEach((product, index) => {
   const smallCard = document.createElement('div');
   smallCard.classList.add('small-ad-details');
   
-  // Calculate product metrics
-  const metrics = calculateProductMetrics(product);
   const badgeColor = getRatingBadgeColor(metrics.avgRating);
-  
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
   const title = product.title || 'No title';
   
-smallCard.innerHTML = `
-  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-    <div class="small-ad-pos-value">${metrics.avgRating}</div>
-    <div class="small-ad-pos-trend"></div>
-  </div>
-  <div class="small-ad-vis-status">
-    <div class="vis-status-left">
-      <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${metrics.avgRating}</div>
+      <div class="small-ad-pos-trend"></div>
+    </div>
+    <div class="small-ad-vis-status">
+      <div class="vis-status-left">
+        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="vis-status-right">
+        <div class="active-locations-count">${metrics.activeLocations}</div>
+        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
       </div>
     </div>
-    <div class="vis-status-right">
-      <div class="active-locations-count">${metrics.activeLocations}</div>
-      <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
+  
+  navItem.appendChild(smallCard);
+  
+  navItem.addEventListener('click', function() {
+    console.log('[ProductExplorer] Product clicked:', product.title);
+    selectProduct(product, navItem);
+  });
+  
+  productsNavContainer.appendChild(navItem);
+});
+
+// Add separator if there are inactive products
+if (inactiveProducts.length > 0) {
+  const separator = document.createElement('div');
+  separator.classList.add('products-separator');
+  separator.innerHTML = `
+    <div class="separator-line"></div>
+    <div class="separator-text">Inactive Products</div>
+    <div class="separator-line"></div>
+  `;
+  productsNavContainer.appendChild(separator);
+}
+
+// Create inactive products with grayscale filter
+inactiveProducts.forEach(({ product, index, metrics }) => {
+  const navItem = document.createElement('div');
+  navItem.classList.add('nav-product-item', 'inactive-product');
+  navItem.setAttribute('data-product-index', index);
+  
+  const smallCard = document.createElement('div');
+  smallCard.classList.add('small-ad-details');
+  
+  const badgeColor = getRatingBadgeColor(metrics.avgRating);
+  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const title = product.title || 'No title';
+  
+  smallCard.innerHTML = `
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+      <div class="small-ad-pos-value">${metrics.avgRating}</div>
+      <div class="small-ad-pos-trend"></div>
     </div>
-  </div>
-  <img class="small-ad-image" 
-       src="${imageUrl}" 
-       alt="${title}"
-       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-  <div class="small-ad-title">${title}</div>
-`;
+    <div class="small-ad-vis-status">
+      <div class="vis-status-left">
+        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="vis-status-right">
+        <div class="active-locations-count">${metrics.activeLocations}</div>
+        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+      </div>
+    </div>
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+    <div class="small-ad-title">${title}</div>
+  `;
   
   navItem.appendChild(smallCard);
   
