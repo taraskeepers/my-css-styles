@@ -2022,23 +2022,15 @@ function calculateProductMetrics(product) {
           combo.rankCount++;
         }
         
-// Calculate visibility only for active combinations using the same logic as the table
+// Calculate visibility using the exact same logic as the table
         if (combo.isActive) {
-          const visibilityData = record.historical_data.filter(item => {
-            if (!item.date || !item.date.value) return false;
-            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-            return itemDate.isBetween(startDate, endDate, 'day', '[]');
-          });
-          
-          if (visibilityData.length > 0) {
-            const avgVis = visibilityData.reduce((sum, item) => {
-              // Use the same field that's used in the table display
-              const vis = item.visibility || 0;
-              return sum + parseFloat(vis);
-            }, 0) / visibilityData.length;
-            combo.visibilitySum += (avgVis * 100); // Convert to percentage
-            combo.visibilityCount++;
+          // Use the same calculation as in createDeviceCell function
+          let avgVisibility = 0;
+          if (record.avg_visibility) {
+            avgVisibility = parseFloat(record.avg_visibility) * 100;
           }
+          combo.visibilitySum += avgVisibility;
+          combo.visibilityCount++;
         }
       }
     }
@@ -2048,15 +2040,6 @@ function calculateProductMetrics(product) {
       const directRank = record.avg_position || record.finalPosition || 40;
       combo.rankSum += parseFloat(directRank);
       combo.rankCount++;
-    }
-    
-// Fallback for visibility only for active combinations
-    if (combo.visibilityCount === 0 && combo.isActive) {
-      // Use avg_visibility which should match the table's calculation
-      const directVis = record.avg_visibility || 0;
-      const visValue = parseFloat(directVis) * 100; // Convert to percentage
-      combo.visibilitySum += visValue;
-      combo.visibilityCount++;
     }
   });
   
