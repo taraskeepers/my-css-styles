@@ -4005,23 +4005,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   color: white;
   text-align: center;
   min-width: 45px;
-}
-
-.active-badge {
-  background-color: #4CAF50;
-}
-
-.inactive-badge {
-  background-color: #F44336;
-}
-.product-counter-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: white;
-  text-align: center;
-  min-width: 45px;
   cursor: pointer;
   transition: all 0.2s ease;
   opacity: 0.6;
@@ -4115,75 +4098,27 @@ productsNavPanel.innerHTML = `
   const productsNavContainer = document.createElement('div');
   productsNavContainer.classList.add('products-nav-container');
   productsNavContainer.style.padding = '10px';
+  window.currentAllCompanyProducts = allCompanyProducts;
 
-// Calculate metrics for all products and separate active/inactive
-const productsWithMetrics = allCompanyProducts.map((product, index) => ({
-  product,
-  index,
-  metrics: calculateProductMetrics(product)
-}));
+// Use the new rebuild function
+rebuildProductsList(allCompanyProducts, productsNavContainer, window.currentProductFilter);
 
-// Separate active and inactive products
-const activeProducts = productsWithMetrics.filter(item => !item.metrics.isFullyInactive);
-const inactiveProducts = productsWithMetrics.filter(item => item.metrics.isFullyInactive);
-
-// Sort both groups by rank (lower rank = better = higher in list)
-activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
-inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
-
-// Create active products
-activeProducts.forEach(({ product, index, metrics }) => {
-  const navItem = document.createElement('div');
-  navItem.classList.add('nav-product-item');
-  navItem.setAttribute('data-product-index', index);
-  
-  const smallCard = document.createElement('div');
-  smallCard.classList.add('small-ad-details');
-  
-  const badgeColor = getRatingBadgeColor(metrics.avgRating);
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = product.title || 'No title';
-  
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${metrics.avgRating}</div>
-      <div class="small-ad-pos-trend"></div>
-    </div>
-    <div class="small-ad-vis-status">
-      <div class="vis-status-left">
-        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        </div>
-      </div>
-      <div class="vis-status-right">
-        <div class="active-locations-count">${metrics.activeLocations}</div>
-        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
-      </div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-  `;
-  
-  navItem.appendChild(smallCard);
-  
-  navItem.addEventListener('click', function() {
-    console.log('[ProductExplorer] Product clicked:', product.title);
-    selectProduct(product, navItem);
+// Add filter event listeners
+setTimeout(() => {
+  document.querySelectorAll('.product-counter-badge').forEach(badge => {
+    badge.addEventListener('click', function() {
+      const filter = this.getAttribute('data-filter');
+      window.currentProductFilter = filter;
+      
+      // Update active filter styling
+      document.querySelectorAll('.product-counter-badge').forEach(b => b.classList.remove('active-filter'));
+      this.classList.add('active-filter');
+      
+      // Rebuild products list with new filter
+      rebuildProductsList(window.currentAllCompanyProducts, productsNavContainer, filter);
+    });
   });
-  
-  productsNavContainer.appendChild(navItem);
-});
-
-  // Update the counter display
-const activeCountBadge = document.querySelector('.active-badge');
-const inactiveCountBadge = document.querySelector('.inactive-badge');
-if (activeCountBadge && inactiveCountBadge) {
-  activeCountBadge.textContent = `${activeProducts.length} Active`;
-  inactiveCountBadge.textContent = `${inactiveProducts.length} Inactive`;
-}
+}, 100);
 
 // Add separator if there are inactive products
 if (inactiveProducts.length > 0) {
