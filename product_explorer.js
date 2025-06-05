@@ -1954,48 +1954,127 @@ function calculateProductMetrics(product) {
     record.source === product.source
   );
   
-  // Calculate average rating from active records
-  const activeRecords = productRecords.filter(record => 
-    record.product_status === 'active' || !record.product_status
-  );
-  
-  let avgRating = 40;
-  if (activeRecords.length > 0) {
-    const ratingSum = activeRecords.reduce((sum, record) => {
-      const position = record.avg_position || record.finalPosition || 40;
-      return sum + parseFloat(position);
-    }, 0);
-    avgRating = ratingSum / activeRecords.length;
-  }
-  
-  // Calculate average visibility from active records
-  let avgVisibility = 0;
-  if (activeRecords.length > 0) {
-    const visibilitySum = activeRecords.reduce((sum, record) => {
-      const visibility = record.avg_visibility || record.visibility || record.visibilityBarValue || 0;
-      return sum + (parseFloat(visibility) * (visibility < 1 ? 100 : 1)); // Handle both decimal and percentage formats
-    }, 0);
-    avgVisibility = visibilitySum / activeRecords.length;
-  }
-  
-  // Count unique active and inactive locations
+  // Group by unique combinations of search term + location + device
+  const combinationMetrics = new Map();
   const locationStatusMap = new Map();
+  
   productRecords.forEach(record => {
-    const location = record.location_requested;
-    if (!location) return;
+    const searchTerm = record.q || '';
+    const location = record.location_requested || '';
+    const device = record.device || '';
+    const comboKey = `${searchTerm}|${location}|${device}`;
     
-    const isActive = record.product_status === 'active' || !record.product_status;
-    if (!locationStatusMap.has(location)) {
-      locationStatusMap.set(location, { hasActive: false, hasInactive: false });
+    // Track location status
+    if (location) {
+      const isActive = record.product_status === 'active' || !record.product_status;
+      if (!locationStatusMap.has(location)) {
+        locationStatusMap.set(location, { hasActive: false, hasInactive: false });
+      }
+      if (isActive) {
+        locationStatusMap.get(location).hasActive = true;
+      } else {
+        locationStatusMap.get(location).hasInactive = true;
+      }
     }
     
-    if (isActive) {
-      locationStatusMap.get(location).hasActive = true;
-    } else {
-      locationStatusMap.get(location).hasInactive = true;
+    // Skip inactive records for metrics calculation
+    const isActive = record.product_status === 'active' || !record.product_status;
+    if (!isActive) return;
+    
+    if (!combinationMetrics.has(comboKey)) {
+      combinationMetrics.set(comboKey, { 
+        rankSum: 0, 
+        rankCount: 0, 
+        visibilitySum: 0, 
+        visibilityCount: 0,
+        record: record
+      });
+    }
+    
+    const combo = combinationMetrics.get(comboKey);
+    
+    // Calculate rank from historical data (similar to existing logic)
+    if (record.historical_data && Array.isArray(record.historical_data)) {
+      let latestDate = null;
+      record.historical_data.forEach(item => {
+        if (item.date && item.date.value) {
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          if (!latestDate || itemDate.isAfter(latestDate)) {
+            latestDate = itemDate.clone();
+          }
+        }
+      });
+      
+      if (latestDate) {
+        const endDate = latestDate.clone();
+        const startDate = endDate.clone().subtract(6, 'days');
+        
+        const recentData = record.historical_data.filter(item => {
+          if (!item.date || !item.date.value || item.avg_position == null) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+        
+        if (recentData.length > 0) {
+          const avgRank = recentData.reduce((sum, item) => sum + parseFloat(item.avg_position), 0) / recentData.length;
+          combo.rankSum += avgRank;
+          combo.rankCount++;
+        }
+        
+        // Calculate visibility
+        const visibilityData = record.historical_data.filter(item => {
+          if (!item.date || !item.date.value) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+        
+        if (visibilityData.length > 0) {
+          const avgVis = visibilityData.reduce((sum, item) => {
+            const vis = item.visibility || item.top40_visibility || 0;
+            return sum + (parseFloat(vis) * 100);
+          }, 0) / visibilityData.length;
+          combo.visibilitySum += avgVis;
+          combo.visibilityCount++;
+        }
+      }
+    }
+    
+    // Fallback to direct values if no historical data
+    if (combo.rankCount === 0) {
+      const directRank = record.avg_position || record.finalPosition || 40;
+      combo.rankSum += parseFloat(directRank);
+      combo.rankCount++;
+    }
+    
+    if (combo.visibilityCount === 0) {
+      const directVis = record.avg_visibility || record.visibility || record.visibilityBarValue || 0;
+      const visValue = parseFloat(directVis) * (directVis < 1 ? 100 : 1);
+      combo.visibilitySum += visValue;
+      combo.visibilityCount++;
     }
   });
   
+  // Calculate averages across all combinations
+  let totalRankSum = 0;
+  let totalRankCount = 0;
+  let totalVisibilitySum = 0;
+  let totalVisibilityCount = 0;
+  
+  combinationMetrics.forEach(combo => {
+    if (combo.rankCount > 0) {
+      totalRankSum += (combo.rankSum / combo.rankCount);
+      totalRankCount++;
+    }
+    if (combo.visibilityCount > 0) {
+      totalVisibilitySum += (combo.visibilitySum / combo.visibilityCount);
+      totalVisibilityCount++;
+    }
+  });
+  
+  const avgRating = totalRankCount > 0 ? (totalRankSum / totalRankCount) : 40;
+  const avgVisibility = totalVisibilityCount > 0 ? (totalVisibilitySum / totalVisibilityCount) : 0;
+  
+  // Count locations
   let activeLocations = 0;
   let inactiveLocations = 0;
   locationStatusMap.forEach(status => {
@@ -2010,7 +2089,6 @@ function calculateProductMetrics(product) {
     inactiveLocations
   };
 }
-
 function getRatingBadgeColor(rating) {
   if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
   if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
@@ -3892,28 +3970,28 @@ allCompanyProducts.forEach((product, index) => {
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
   const title = product.title || 'No title';
   
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${metrics.avgRating}</div>
-      <div class="small-ad-pos-trend">Avg Rank</div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-    <div class="small-ad-vis-status">
-      <div class="vis-status-left">
-        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        </div>
-      </div>
-      <div class="vis-status-right">
-        <div class="active-locations-count">${metrics.activeLocations}</div>
-        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+smallCard.innerHTML = `
+  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+    <div class="small-ad-pos-value">${metrics.avgRating}</div>
+    <div class="small-ad-pos-trend"></div>
+  </div>
+  <div class="small-ad-vis-status">
+    <div class="vis-status-left">
+      <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
       </div>
     </div>
-  `;
+    <div class="vis-status-right">
+      <div class="active-locations-count">${metrics.activeLocations}</div>
+      <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+    </div>
+  </div>
+  <img class="small-ad-image" 
+       src="${imageUrl}" 
+       alt="${title}"
+       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+  <div class="small-ad-title">${title}</div>
+`;
   
   navItem.appendChild(smallCard);
   
