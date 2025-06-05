@@ -2081,6 +2081,101 @@ function calculateProductMetrics(product) {
   };
 }
 
+function renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
+  // Clear container
+  productsNavContainer.innerHTML = '';
+  
+  // Function to create product item
+  function createProductItem({ product, index, metrics }, isInactive = false) {
+    const navItem = document.createElement('div');
+    navItem.classList.add('nav-product-item');
+    if (isInactive) {
+      navItem.classList.add('inactive-product');
+    }
+    navItem.setAttribute('data-product-index', index);
+    
+    const smallCard = document.createElement('div');
+    smallCard.classList.add('small-ad-details');
+    
+    const badgeColor = getRatingBadgeColor(metrics.avgRating);
+    const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+    const title = product.title || 'No title';
+    
+    smallCard.innerHTML = `
+      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+        <div class="small-ad-pos-value">${metrics.avgRating}</div>
+        <div class="small-ad-pos-trend"></div>
+      </div>
+      <div class="small-ad-vis-status">
+        <div class="vis-status-left">
+          <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+            <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+          </div>
+        </div>
+        <div class="vis-status-right">
+          <div class="active-locations-count">${metrics.activeLocations}</div>
+          <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+        </div>
+      </div>
+      <img class="small-ad-image" 
+           src="${imageUrl}" 
+           alt="${title}"
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+      <div class="small-ad-title">${title}</div>
+    `;
+    
+    navItem.appendChild(smallCard);
+    
+    navItem.addEventListener('click', function() {
+      console.log('[ProductExplorer] Product clicked:', product.title);
+      selectProduct(product, navItem);
+    });
+    
+    return navItem;
+  }
+  
+  // Render based on filter
+  if (filter === 'all') {
+    // Render active products
+    activeProducts.forEach(item => {
+      productsNavContainer.appendChild(createProductItem(item, false));
+    });
+    
+    // Add separator if there are inactive products
+    if (inactiveProducts.length > 0) {
+      const separator = document.createElement('div');
+      separator.classList.add('products-separator');
+      separator.innerHTML = `
+        <div class="separator-line"></div>
+        <div class="separator-text">Inactive Products</div>
+        <div class="separator-line"></div>
+      `;
+      productsNavContainer.appendChild(separator);
+    }
+    
+    // Render inactive products
+    inactiveProducts.forEach(item => {
+      productsNavContainer.appendChild(createProductItem(item, true));
+    });
+  } else if (filter === 'active') {
+    activeProducts.forEach(item => {
+      productsNavContainer.appendChild(createProductItem(item, false));
+    });
+  } else if (filter === 'inactive') {
+    inactiveProducts.forEach(item => {
+      productsNavContainer.appendChild(createProductItem(item, true));
+    });
+  }
+  
+  // Update water fill heights
+  setTimeout(() => {
+    document.querySelectorAll('.vis-water-container[data-fill]').forEach(container => {
+      const fillPercent = parseFloat(container.getAttribute('data-fill')) || 0;
+      container.style.setProperty('--fill-height', fillPercent + '%');
+    });
+  }, 100);
+}
+
 function getRatingBadgeColor(rating) {
   if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
   if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
@@ -3935,6 +4030,18 @@ viewMapExplorerBtn.addEventListener("click", function() {
   color: white;
   text-align: center;
   min-width: 45px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.product-counter-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.all-badge {
+  background-color: #2196F3;
 }
 
 .active-badge {
@@ -3943,6 +4050,16 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 .inactive-badge {
   background-color: #F44336;
+}
+
+.product-counter-badge.disabled {
+  filter: grayscale(100%);
+  opacity: 0.6;
+}
+
+.product-counter-badge.disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
     `;
     document.head.appendChild(style);
@@ -3991,12 +4108,13 @@ viewMapExplorerBtn.addEventListener("click", function() {
   allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
   const productsNavPanel = document.getElementById('productsNavPanel');
- productsNavPanel.innerHTML = `
+productsNavPanel.innerHTML = `
   <div style="padding: 15px; margin: 0; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
     <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Products</h3>
     <div id="productsCounter" style="display: flex; gap: 8px;">
-      <span class="product-counter-badge active-badge">0 Active</span>
-      <span class="product-counter-badge inactive-badge">0 Inactive</span>
+      <span class="product-counter-badge all-badge" data-filter="all">0 All</span>
+      <span class="product-counter-badge active-badge disabled" data-filter="active">0 Active</span>
+      <span class="product-counter-badge inactive-badge disabled" data-filter="inactive">0 Inactive</span>
     </div>
   </div>
 `;
@@ -4020,117 +4138,39 @@ const inactiveProducts = productsWithMetrics.filter(item => item.metrics.isFully
 activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 
-// Create active products
-activeProducts.forEach(({ product, index, metrics }) => {
-  const navItem = document.createElement('div');
-  navItem.classList.add('nav-product-item');
-  navItem.setAttribute('data-product-index', index);
-  
-  const smallCard = document.createElement('div');
-  smallCard.classList.add('small-ad-details');
-  
-  const badgeColor = getRatingBadgeColor(metrics.avgRating);
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = product.title || 'No title';
-  
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${metrics.avgRating}</div>
-      <div class="small-ad-pos-trend"></div>
-    </div>
-    <div class="small-ad-vis-status">
-      <div class="vis-status-left">
-        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        </div>
-      </div>
-      <div class="vis-status-right">
-        <div class="active-locations-count">${metrics.activeLocations}</div>
-        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
-      </div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-  `;
-  
-  navItem.appendChild(smallCard);
-  
-  navItem.addEventListener('click', function() {
-    console.log('[ProductExplorer] Product clicked:', product.title);
-    selectProduct(product, navItem);
-  });
-  
-  productsNavContainer.appendChild(navItem);
-});
+// Initial render with all products
+renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, 'all');
 
-  // Update the counter display
+// Update the counter display
+const allCountBadge = document.querySelector('.all-badge');
 const activeCountBadge = document.querySelector('.active-badge');
 const inactiveCountBadge = document.querySelector('.inactive-badge');
-if (activeCountBadge && inactiveCountBadge) {
+
+if (allCountBadge && activeCountBadge && inactiveCountBadge) {
+  const totalCount = activeProducts.length + inactiveProducts.length;
+  allCountBadge.textContent = `${totalCount} All`;
   activeCountBadge.textContent = `${activeProducts.length} Active`;
   inactiveCountBadge.textContent = `${inactiveProducts.length} Inactive`;
-}
-
-// Add separator if there are inactive products
-if (inactiveProducts.length > 0) {
-  const separator = document.createElement('div');
-  separator.classList.add('products-separator');
-  separator.innerHTML = `
-    <div class="separator-line"></div>
-    <div class="separator-text">Inactive Products</div>
-    <div class="separator-line"></div>
-  `;
-  productsNavContainer.appendChild(separator);
-}
-
-// Create inactive products with grayscale filter
-inactiveProducts.forEach(({ product, index, metrics }) => {
-  const navItem = document.createElement('div');
-  navItem.classList.add('nav-product-item', 'inactive-product');
-  navItem.setAttribute('data-product-index', index);
   
-  const smallCard = document.createElement('div');
-  smallCard.classList.add('small-ad-details');
-  
-  const badgeColor = getRatingBadgeColor(metrics.avgRating);
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-  const title = product.title || 'No title';
-  
-  smallCard.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-      <div class="small-ad-pos-value">${metrics.avgRating}</div>
-      <div class="small-ad-pos-trend"></div>
-    </div>
-    <div class="small-ad-vis-status">
-      <div class="vis-status-left">
-        <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        </div>
-      </div>
-      <div class="vis-status-right">
-        <div class="active-locations-count">${metrics.activeLocations}</div>
-        <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
-      </div>
-    </div>
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-    <div class="small-ad-title">${title}</div>
-  `;
-  
-  navItem.appendChild(smallCard);
-  
-  navItem.addEventListener('click', function() {
-    console.log('[ProductExplorer] Product clicked:', product.title);
-    selectProduct(product, navItem);
+  // Add click handlers
+  [allCountBadge, activeCountBadge, inactiveCountBadge].forEach(badge => {
+    badge.addEventListener('click', function() {
+      const filter = this.getAttribute('data-filter');
+      
+      // Update badge styles
+      document.querySelectorAll('.product-counter-badge').forEach(b => {
+        if (b === this) {
+          b.classList.remove('disabled');
+        } else {
+          b.classList.add('disabled');
+        }
+      });
+      
+      // Re-render products with filter
+      renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter);
+    });
   });
-  
-  productsNavContainer.appendChild(navItem);
-});
+}
 
   productsNavPanel.appendChild(productsNavContainer);
 
