@@ -112,7 +112,7 @@ function createMarketSharePieChartGoogleAds(containerId, shareValue) {
   chart.render();
   
   if (!window.explorerApexCharts) {
-    window.explorerApexCharts = [];
+    window.googleAdsApexCharts = [];
   }
   window.explorerApexCharts.push(chart);
 }
@@ -371,7 +371,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
     navItemElement.classList.add('selected');
   }
   
-  window.selectedExplorerProduct = product;
+  window.selectedGoogleAdsProduct = product;
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewRankingGoogleAds';
   
   const combinations = getProductCombinations(product);
@@ -420,17 +420,17 @@ function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 
     existingTable.remove();
   }
   
-  window.pendingExplorerCharts = [];
+  window.pendingGoogleAdsCharts = [];
   
-  if (window.explorerApexCharts) {
-    window.explorerApexCharts.forEach(chart => {
+if (window.googleAdsApexCharts) {
+    window.googleAdsApexCharts.forEach(chart => {
       try { chart.destroy(); } catch (e) {}
     });
   }
-  window.explorerApexCharts = [];
+  window.googleAdsApexCharts = [];
   
   const table = document.createElement("table");
-  table.classList.add("product-explorer-table");
+  table.classList.add("google-ads-table");
   
   const thead = document.createElement("thead");
 thead.innerHTML = `
@@ -541,13 +541,13 @@ tr.appendChild(tdRankMarketShare);
           containerId: chartContainerId,
           positionChartId: positionChartId,
           combination: combination,
-          selectedProduct: window.selectedExplorerProduct
+          selectedProduct: window.selectedGoogleAdsProduct
         };
         
-        if (!window.pendingExplorerCharts) {
-          window.pendingExplorerCharts = [];
+        if (!window.pendingGoogleAdsCharts) {
+          window.pendingGoogleAdsCharts = [];
         }
-        window.pendingExplorerCharts.push(chartInfo);
+        window.pendingGoogleAdsCharts.push(chartInfo);
         
         tbody.appendChild(tr);
       });
@@ -782,7 +782,7 @@ function getLastTrackedInfo(record) {
 
 function renderPendingGoogleAdsChartsForProduct() {
   setTimeout(() => {
-    const charts = window.pendingExplorerCharts;
+    const charts = window.pendingGoogleAdsCharts;
     if (!charts || charts.length === 0) {
       console.log('[renderPendingGoogleAdsChartsForProduct] No charts to render');
       return;
@@ -841,7 +841,7 @@ function renderPendingGoogleAdsChartsForProduct() {
       }
     });
     
-    window.pendingExplorerCharts = [];
+    window.pendingGoogleAdsCharts = [];
     console.log('[renderPendingGoogleAdsChartsForProduct] All charts rendered');
   }, 100);
 }
@@ -2197,10 +2197,10 @@ function renderGoogleAdsTable() {
   const container = document.getElementById("googleAdsPage");
   if (!container) return;
 
-  window.pendingExplorerCharts = [];
+  window.pendingGoogleAdsCharts = [];
 
-  if (window.explorerApexCharts) {
-    window.explorerApexCharts.forEach(chart => {
+if (window.googleAdsApexCharts) {
+    window.googleAdsApexCharts.forEach(chart => {
       try {
         chart.destroy();
       } catch (e) {
@@ -2208,7 +2208,7 @@ function renderGoogleAdsTable() {
       }
     });
   }
-  window.explorerApexCharts = [];
+  window.googleAdsApexCharts = [];
   
 container.innerHTML = `
     <div id="googleAdsContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
@@ -2837,13 +2837,13 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   
   console.log("[renderGoogleAdsTable] Using myCompany:", window.myCompany);
   
-  window.pendingExplorerCharts = [];
-  if (window.explorerApexCharts) {
-    window.explorerApexCharts.forEach(chart => {
+  window.pendingGoogleAdsCharts = [];
+if (window.googleAdsApexCharts) {
+    window.googleAdsApexCharts.forEach(chart => {
       try { chart.destroy(); } catch (e) {}
     });
   }
-  window.explorerApexCharts = [];
+  window.googleAdsApexCharts = [];
 
   if (!window.globalRows || typeof window.globalRows !== 'object') {
     window.globalRows = {};
