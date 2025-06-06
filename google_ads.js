@@ -419,6 +419,12 @@ function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 
   if (existingTable) {
     existingTable.remove();
   }
+
+  // Remove the "No products found" message if it exists
+  const emptyMessage = document.getElementById('googleAdsEmptyMessage');
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
   
   window.pendingGoogleAdsCharts = [];
   
@@ -532,7 +538,7 @@ const positionChartId = `google-ads-position-chart-${chartCounter}`;
 const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
 
 tdRankMarketShare.innerHTML = `
-  <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+  <div id="${positionChartId}" class="google-ads-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
   <div class="rank-market-share-history">${rankMarketShareHistory}</div>
 `;
 tr.appendChild(tdRankMarketShare);
@@ -2089,7 +2095,7 @@ function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, i
   // Function to create product item
   function createProductItem({ product, index, metrics }, isInactive = false) {
     const navItem = document.createElement('div');
-    navItem.classList.add('nav-product-item');
+    navItem.classList.add('nav-google-ads-item');
     if (isInactive) {
       navItem.classList.add('inactive-product');
     }
@@ -4194,13 +4200,14 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
     } else {
       console.warn('[renderGoogleAdsTable] No products found for auto-selection');
       
-      const container = document.querySelector("#googleAdsTableContainer");
-      const emptyMessage = document.createElement('div');
-      emptyMessage.style.padding = '40px';
-      emptyMessage.style.textAlign = 'center';
-      emptyMessage.style.color = '#666';
-      emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
-      container.appendChild(emptyMessage);
+const tableContainer = document.querySelector("#googleAdsTableContainer");
+const emptyMessage = document.createElement('div');
+emptyMessage.id = 'googleAdsEmptyMessage';
+emptyMessage.style.padding = '40px';
+emptyMessage.style.textAlign = 'center';
+emptyMessage.style.color = '#666';
+emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+tableContainer.appendChild(emptyMessage);
     }
   }, 100);
 }
