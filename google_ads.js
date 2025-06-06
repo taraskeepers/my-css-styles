@@ -2221,7 +2221,7 @@ container.innerHTML = `
       <div id="googleAdsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-<div class="explorer-view-switcher">
+<div class="google-ads-view-switcher">
   <button id="viewRankingGoogleAds" class="active">Ranking</button>
   <button id="viewChartsGoogleAds">Charts</button>
   <button id="viewMapGoogleAds">Map</button>
