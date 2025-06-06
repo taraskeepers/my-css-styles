@@ -111,10 +111,10 @@ function createMarketSharePieChartGoogleAds(containerId, shareValue) {
   const chart = new ApexCharts(container, options);
   chart.render();
   
-  if (!window.explorerApexCharts) {
-    window.googleAdsApexCharts = [];
-  }
-  window.explorerApexCharts.push(chart);
+if (!window.googleAdsApexCharts) {
+  window.googleAdsApexCharts = [];
+}
+window.googleAdsApexCharts.push(chart);
 }
 
 function calculateAggregateSegmentDataGoogleAds(products) {
@@ -393,7 +393,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
       
       const mapProject = buildMapDataForSelectedGoogleAdsProduct();
       if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
-        window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'explorer');
+        window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'google-ads');
         
         // Add location blocks after map is drawn
         setTimeout(() => {
@@ -1115,12 +1115,12 @@ if (histItem?.visibility != null) {
 }
 
 function buildMapDataForSelectedGoogleAdsProduct() {
-  if (!window.selectedExplorerProduct) {
+  if (!window.selectedGoogleAdsProduct) {
     console.warn('[buildMapDataForSelectedGoogleAdsProduct] No product selected');
     return { searches: [] };
   }
   
-  const productRecords = getProductRecords(window.selectedExplorerProduct);
+  const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
   console.log('[buildMapDataForSelectedGoogleAdsProduct] Found', productRecords.length, 'records for product');
   
   const searches = [];
@@ -2134,7 +2134,6 @@ function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, i
     navItem.appendChild(smallCard);
     
     navItem.addEventListener('click', function() {
-      console.log('[ProductExplorer] Product clicked:', product.title);
       selectGoogleAdsProduct(product, navItem);
     });
     
@@ -2289,7 +2288,7 @@ if (currentActiveButton && switcherClone) {
       fullscreenOverlay.style.display = 'none';
       document.body.style.overflow = 'auto';
       
-      const detailsPanel = document.getElementById('product-explorer-details-panel');
+      const detailsPanel = document.getElementById('google-ads-details-panel');
       if (detailsPanel && detailsPanel.style.display !== 'none') {
         detailsPanel.style.position = 'fixed';
         detailsPanel.style.top = '40%';
@@ -2808,7 +2807,7 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
     // Draw the US map using the mapsLib function
     if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
       console.log('[Map View] Drawing map with project data:', mapProject);
-      window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'explorer');
+      window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'google-ads');
       
       // Add location blocks after map is drawn
       setTimeout(() => {
