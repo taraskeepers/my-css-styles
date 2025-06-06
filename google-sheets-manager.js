@@ -112,7 +112,7 @@ window.googleSheetsManager = {
   },
   
   // Main function to fetch and store data from URL
-  fetchAndStoreFromUrl: async function(url) {
+  fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     const loader = document.getElementById("overlayLoader");
     try {
       // Show loader
@@ -176,16 +176,16 @@ window.googleSheetsManager = {
         this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
       ]);
       
-      // Store in IDB
-      await Promise.all([
-        window.embedIDB.setData("googleSheets_productPerformance", productData),
-        window.embedIDB.setData("googleSheets_locationRevenue", locationData),
-        window.embedIDB.setData("googleSheets_config", {
-          url: url,
-          sheetId: sheetId,
-          lastUpdated: Date.now()
-        })
-      ]);
+// Store in IDB
+await Promise.all([
+  window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
+  window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
+  window.embedIDB.setData(prefix + "googleSheets_config", {
+    url: url,
+    sheetId: sheetId,
+    lastUpdated: Date.now()
+  })
+]);
       
       console.log('[Google Sheets] ✅ All data fetched and stored successfully');
       
@@ -260,26 +260,36 @@ window.googleSheetsManager = {
   },
   
   // Optional: Method to check if data exists in IDB
-  hasStoredData: async function() {
-    try {
-      const [products, locations] = await Promise.all([
-        window.embedIDB.getData("googleSheets_productPerformance"),
-        window.embedIDB.getData("googleSheets_locationRevenue")
-      ]);
-      
-      return products?.data?.length > 0 && locations?.data?.length > 0;
-    } catch (error) {
-      return false;
-    }
-  },
+hasStoredData: async function(prefix = 'acc1_') {
+  try {
+    const [products, locations] = await Promise.all([
+      window.embedIDB.getData(prefix + "googleSheets_productPerformance"),
+      window.embedIDB.getData(prefix + "googleSheets_locationRevenue")
+    ]);
+    
+    return products?.data?.length > 0 && locations?.data?.length > 0;
+  } catch (error) {
+    return false;
+  }
+},
   
   // Optional: Method to get stored configuration
-  getStoredConfig: async function() {
-    try {
-      const config = await window.embedIDB.getData("googleSheets_config");
-      return config?.data || null;
-    } catch (error) {
-      return null;
-    }
+getStoredConfig: async function(prefix = 'acc1_') {
+  try {
+    const config = await window.embedIDB.getData(prefix + "googleSheets_config");
+    return config?.data || null;
+  } catch (error) {
+    return null;
   }
+},
+  // Add a fetchAndStoreAll method that was referenced in the embed code
+fetchAndStoreAll: async function(prefix = 'acc1_') {
+  // Check if we have stored config to get the URL
+  const config = await this.getStoredConfig(prefix);
+  if (config && config.url) {
+    return await this.fetchAndStoreFromUrl(config.url, prefix);
+  } else {
+    throw new Error('No stored Google Sheets configuration found');
+  }
+}
 };
