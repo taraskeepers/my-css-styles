@@ -1443,7 +1443,7 @@ function getRankColorClass(rank) {
 }
 
 // NEW: Position chart function adapted from productMap.js
-function renderProductPositionChart(container, record) {
+function renderGoogleAdsPositionChart(container, record) {
   if (!Chart.defaults.plugins.annotation) {
     console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
   }
@@ -2329,7 +2329,7 @@ clonedChartsBtn.addEventListener('click', function() {
     
     // Render position chart if record data is available
     if (container.combinationRecord) {
-      renderProductPositionChart(container, container.combinationRecord);
+      renderGoogleAdsPositionChart(container, container.combinationRecord);
     }
   });
 });
@@ -2348,7 +2348,7 @@ clonedMapBtn.addEventListener('click', function() {
     
     // Render position chart if record data is available
     if (container.combinationRecord) {
-      renderProductPositionChart(container, container.combinationRecord);
+      renderGoogleAdsPositionChart(container, container.combinationRecord);
     }
   });
 });
@@ -2754,7 +2754,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
     
     // Render position chart if record data is available
     if (container.combinationRecord) {
-      renderProductPositionChart(container, container.combinationRecord);
+      renderGoogleAdsPositionChart(container, container.combinationRecord);
     }
   });
 });
