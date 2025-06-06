@@ -521,12 +521,12 @@ thead.innerHTML = `
         
 const tdSegmentation = document.createElement("td");
 tdSegmentation.classList.add("segmentation-column");
-const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
+const chartContainerId = `google-ads-segmentation-chart-${chartCounter++}`;
+tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="google-ads-segmentation-chart-container loading"></div>`;
 tr.appendChild(tdSegmentation);
 
 const tdRankMarketShare = document.createElement("td");
-const positionChartId = `explorer-position-chart-${chartCounter}`;
+const positionChartId = `google-ads-position-chart-${chartCounter}`;
 
 // Create rank & market share history
 const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
@@ -2093,7 +2093,7 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
     if (isInactive) {
       navItem.classList.add('inactive-product');
     }
-    navItem.setAttribute('data-product-index', index);
+    navItem.setAttribute('data-google-ads-index', index);
     
     const smallCard = document.createElement('div');
     smallCard.classList.add('small-ad-details');
@@ -2850,9 +2850,9 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
     console.log("[DEBUG] Created new globalRows object");
   }
 
-  if (!document.getElementById("product-explorer-table-style")) {
+  if (!document.getElementById("google-ads-table-style")) {
     const style = document.createElement("style");
-    style.id = "product-explorer-table-style";
+    style.id = "google-ads-table-style";
     style.textContent = `
       .google-ads-table {
         width: calc(100% - 40px);
@@ -4064,9 +4064,9 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
     document.head.appendChild(style);
   }
 
-  if (!document.getElementById("centered-explorer-panel-spinner-style")) {
+  if (!document.getElementById("centered-google-ads-panel-spinner-style")) {
     const spinnerStyle = document.createElement("style");
-    spinnerStyle.id = "centered-explorer-panel-spinner-style";
+    spinnerStyle.id = "centered-google-ads-panel-spinner-style";
     spinnerStyle.textContent = `
       .spinner {
         border: 4px solid rgba(0, 0, 0, 0.1);
@@ -4207,8 +4207,8 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 
 // Export the function
 if (typeof window !== 'undefined') {
-  window.renderGoogleAdsTable = renderGoogleAdsTable;
-  window.renderAvgPositionChartGoogleAds = renderAvgPositionChartGoogleAds;
-  window.updateChartLineVisibilityGoogleAds = updateChartLineVisibilityGoogleAds;
-  window.renderProductPositionChart = renderProductPositionChart;
+window.renderGoogleAdsTable = renderGoogleAdsTable;
+window.renderAvgPositionChartGoogleAds = renderAvgPositionChartGoogleAds;
+window.updateChartLineVisibilityGoogleAds = updateChartLineVisibilityGoogleAds;
+window.renderGoogleAdsPositionChart = renderGoogleAdsPositionChart;
 }
