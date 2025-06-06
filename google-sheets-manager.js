@@ -284,12 +284,27 @@ getStoredConfig: async function(prefix = 'acc1_') {
 },
   // Add a fetchAndStoreAll method that was referenced in the embed code
 fetchAndStoreAll: async function(prefix = 'acc1_') {
-  // Check if we have stored config to get the URL
-  const config = await this.getStoredConfig(prefix);
-  if (config && config.url) {
-    return await this.fetchAndStoreFromUrl(config.url, prefix);
-  } else {
-    throw new Error('No stored Google Sheets configuration found');
+  try {
+    // Check if we have stored config to get the URL
+    const config = await this.getStoredConfig(prefix);
+    if (config && config.url) {
+      console.log('[Google Sheets] Refreshing existing data from stored config');
+      return await this.fetchAndStoreFromUrl(config.url, prefix);
+    } else {
+      console.log('[Google Sheets] No stored configuration found - user has not uploaded sheets yet');
+      // Return empty data structure instead of throwing error
+      return { 
+        productData: [], 
+        locationData: [] 
+      };
+    }
+  } catch (error) {
+    console.log('[Google Sheets] No Google Sheets data available:', error.message);
+    // Return empty data structure on any error
+    return { 
+      productData: [], 
+      locationData: [] 
+    };
   }
 }
 };
