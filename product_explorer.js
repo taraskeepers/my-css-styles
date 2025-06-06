@@ -3325,7 +3325,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   height: 50px;
   display: flex;
   border-radius: 4px;
-  margin-left: 8px;
   overflow: hidden;
   border: 1px solid #ddd;
 }
