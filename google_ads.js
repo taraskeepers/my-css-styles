@@ -1944,7 +1944,7 @@ function updateChartLineVisibilityGoogleAds(chartContainer, selectedIndex) {
   chart.update('none');
 }
 
-function calculateProductMetrics(product) {
+function calculateGoogleAdsProductMetrics(product) {
   if (!window.allRows || !Array.isArray(window.allRows)) {
     return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0, isFullyInactive: true };
   }
@@ -2082,7 +2082,7 @@ function calculateProductMetrics(product) {
   };
 }
 
-function renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
+function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
   // Clear container
   productsNavContainer.innerHTML = '';
   
@@ -2098,7 +2098,7 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
     const smallCard = document.createElement('div');
     smallCard.classList.add('small-ad-details');
     
-    const badgeColor = getRatingBadgeColor(metrics.avgRating);
+    const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
     const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
     const title = product.title || 'No title';
     
@@ -2177,7 +2177,7 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
   }, 100);
 }
 
-function getRatingBadgeColor(rating) {
+function getGoogleAdsRatingBadgeColor(rating) {
   if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
   if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
   if (rating >= 9 && rating <= 14) return '#FF9800'; // Orange
@@ -4126,7 +4126,7 @@ googleAdsNavPanel.innerHTML = `
 const productsWithMetrics = allCompanyProducts.map((product, index) => ({
   product,
   index,
-  metrics: calculateProductMetrics(product)
+  metrics: calculateGoogleAdsProductMetrics(product)
 }));
 
 // Separate active and inactive products
@@ -4138,7 +4138,7 @@ activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 
 // Initial render with all products
-renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, 'all');
+renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, 'all');
 
 // Update the counter display
 const allCountBadge = document.querySelector('.all-badge');
@@ -4166,7 +4166,7 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
       });
       
       // Re-render products with filter
-      renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter);
+      renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter);
     });
   });
 }
