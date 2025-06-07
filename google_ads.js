@@ -2220,11 +2220,11 @@ container.innerHTML = `
       <div id="googleAdsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-<div class="google-ads-view-switcher">
-  <button id="viewRankingGoogleAds" class="active">Ranking</button>
-  <button id="viewChartsGoogleAds">Charts</button>
-  <button id="viewMapGoogleAds">Map</button>
-</div>
+        <div class="google-ads-view-switcher">
+          <button id="viewRankingGoogleAds" class="active">Overview</button>
+          <button id="viewChartsGoogleAds">Performance</button>
+          <button id="viewMapGoogleAds">Map</button>
+        </div>
         <button id="fullscreenToggleGoogleAds" class="fullscreen-toggle">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
