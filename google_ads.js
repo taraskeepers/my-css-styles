@@ -475,11 +475,11 @@ async function loadProductMetricsData(productTitle) {
     const tableName = `${accountPrefix}_googleSheets_productPerformance`;
     
     // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('marketAnalyzer');
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+const db = await new Promise((resolve, reject) => {
+  const request = indexedDB.open('myAppDB - projectData');
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
     
     // Get data from the table
     const transaction = db.transaction([tableName], 'readonly');
@@ -919,7 +919,7 @@ productInfoContainer.className = 'google-ads-info-container';
 productInfoContainer.style.cssText = `
   width: 1195px;
   height: 250px;
-  margin: 20px auto;
+  margin: 20px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
@@ -934,7 +934,7 @@ productMetricsContainer.className = 'google-ads-metrics-container';
 productMetricsContainer.style.cssText = `
   width: 1195px;
   height: 550px;
-  margin: 20px auto;
+  margin: 20px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
