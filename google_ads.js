@@ -503,9 +503,9 @@ async function loadProductMetricsData(productTitle) {
     
     console.log(`[loadProductMetricsData] Attempting to load data from table: ${tableName}`);
     
-    // Open IndexedDB
+    // Open IndexedDB with version
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB - projectData');
+      const request = indexedDB.open('myAppDB - projectData', 1); // Add version number
       request.onsuccess = () => {
         console.log('[loadProductMetricsData] Database opened successfully');
         resolve(request.result);
@@ -514,7 +514,13 @@ async function loadProductMetricsData(productTitle) {
         console.error('[loadProductMetricsData] Failed to open database:', request.error);
         reject(request.error);
       };
+      request.onupgradeneeded = (event) => {
+        console.log('[loadProductMetricsData] Database upgrade needed');
+      };
     });
+    
+    // Small delay to ensure database is ready
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Log available object stores
     console.log('[loadProductMetricsData] Available object stores:', Array.from(db.objectStoreNames));
