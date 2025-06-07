@@ -737,6 +737,8 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
         roas: 0,
         aov: 0,
         cpa: 0,
+        ranking: 0,
+        visibility: 0,
         count: 0
       };
     }
@@ -752,25 +754,43 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     group.count++;
   });
   
-  // Calculate derived metrics
-  Object.keys(groupedData).forEach(date => {
-    const group = groupedData[date];
+  // Get ranking and visibility data from the same source as overview mode
+  if (window.selectedGoogleAdsProduct) {
+    const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
     
-    // CTR = (Clicks / Impressions) * 100
-    group.ctr = group.impressions > 0 ? (group.clicks / group.impressions) * 100 : 0;
-    
-    // CVR = (Conversions / Clicks) * 100
-    group.cvr = group.clicks > 0 ? (group.conversions / group.clicks) * 100 : 0;
-    
-    // ROAS = Conversion Value / Cost
-    group.roas = group.cost > 0 ? group.conversionValue / group.cost : 0;
-    
-    // AOV = Conversion Value / Conversions
-    group.aov = group.conversions > 0 ? group.conversionValue / group.conversions : 0;
-    
-    // CPA = Cost / Conversions
-    group.cpa = group.conversions > 0 ? group.cost / group.conversions : 0;
-  });
+    Object.keys(groupedData).forEach(date => {
+      const group = groupedData[date];
+      
+      // Calculate derived metrics
+      group.ctr = group.impressions > 0 ? (group.clicks / group.impressions) * 100 : 0;
+      group.cvr = group.clicks > 0 ? (group.conversions / group.clicks) * 100 : 0;
+      group.roas = group.cost > 0 ? group.conversionValue / group.cost : 0;
+      group.aov = group.conversions > 0 ? group.conversionValue / group.conversions : 0;
+      group.cpa = group.conversions > 0 ? group.cost / group.conversions : 0;
+      
+      // Get ranking and visibility from product records (averaged across all combinations)
+      let totalRank = 0, totalVis = 0, recordCount = 0;
+      
+      productRecords.forEach(record => {
+        // Calculate average rank from historical data for this date
+        if (record.historical_data && Array.isArray(record.historical_data)) {
+          const histItem = record.historical_data.find(item => item.date?.value === date);
+          if (histItem?.avg_position) {
+            totalRank += parseFloat(histItem.avg_position);
+            recordCount++;
+          }
+        }
+        
+        // Get visibility (use avg_visibility like in overview mode)
+        if (record.avg_visibility) {
+          totalVis += parseFloat(record.avg_visibility) * 100;
+        }
+      });
+      
+      group.ranking = recordCount > 0 ? totalRank / recordCount : 40;
+      group.visibility = productRecords.length > 0 ? totalVis / productRecords.length : 0;
+    });
+  }
   
   // Convert to sorted array
   const sortedDates = Object.keys(groupedData).sort();
@@ -785,7 +805,9 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     cvr: [],
     roas: [],
     aov: [],
-    cpa: []
+    cpa: [],
+    ranking: [],
+    visibility: []
   };
   
   sortedDates.forEach(date => {
@@ -800,6 +822,8 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     chartData.roas.push(group.roas);
     chartData.aov.push(group.aov);
     chartData.cpa.push(group.cpa);
+    chartData.ranking.push(group.ranking);
+    chartData.visibility.push(group.visibility);
   });
   
   return chartData;
@@ -810,25 +834,76 @@ function renderProductMetricsChart(containerId, chartData) {
   if (!container) return;
   
   container.innerHTML = '';
-  const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  container.appendChild(canvas);
   
-  // Define metrics configuration
+  // Create metric toggle buttons
+  const toggleContainer = document.createElement('div');
+  toggleContainer.style.cssText = `
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  `;
+  
+  // Define metrics configuration with the new metrics
   const metricsConfig = [
-    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y' },
-    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y' },
-    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y1' },
-    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y' },
-    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y1' },
-    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y2', hidden: true },
-    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y2', hidden: true },
-    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y2', hidden: true },
-    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y1', hidden: true },
-    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y1', hidden: true }
+    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y', active: true },
+    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y', active: true },
+    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y1', active: true },
+    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y', active: true },
+    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y1', active: true },
+    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y2', active: false },
+    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y2', active: false },
+    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y2', active: false },
+    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y1', active: false },
+    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y1', active: false },
+    { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y3', active: false },
+    { key: 'visibility', label: 'Visibility (%)', color: '#e67e22', yAxisID: 'y2', active: false }
   ];
   
+  // Create toggle buttons
+  metricsConfig.forEach(metric => {
+    const button = document.createElement('button');
+    button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
+    button.textContent = metric.label;
+    button.style.cssText = `
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 2px solid ${metric.color};
+      background-color: ${metric.active ? metric.color : 'white'};
+      color: ${metric.active ? 'white' : metric.color};
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      user-select: none;
+    `;
+    
+    button.addEventListener('click', () => {
+      metric.active = !metric.active;
+      button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
+      button.style.backgroundColor = metric.active ? metric.color : 'white';
+      button.style.color = metric.active ? 'white' : metric.color;
+      
+      // Update chart
+      updateChartVisibility();
+    });
+    
+    toggleContainer.appendChild(button);
+  });
+  
+  container.appendChild(toggleContainer);
+  
+  // Create canvas for chart
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = 'calc(100% - 100px)';
+  container.appendChild(canvas);
+  
+  // Create datasets
   const datasets = metricsConfig.map(metric => ({
     label: metric.label,
     data: chartData[metric.key],
@@ -839,10 +914,12 @@ function renderProductMetricsChart(containerId, chartData) {
     pointHoverRadius: 5,
     tension: 0.3,
     yAxisID: metric.yAxisID,
-    hidden: metric.hidden || false
+    hidden: !metric.active,
+    metricKey: metric.key
   }));
   
-  new Chart(canvas, {
+  // Create chart instance
+  const chartInstance = new Chart(canvas, {
     type: 'line',
     data: {
       labels: chartData.dates,
@@ -857,13 +934,7 @@ function renderProductMetricsChart(containerId, chartData) {
       },
       plugins: {
         legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 15,
-            font: { size: 12 }
-          }
+          display: false  // Hide the default legend
         },
         tooltip: {
           mode: 'index',
@@ -876,14 +947,20 @@ function renderProductMetricsChart(containerId, chartData) {
               }
               const value = context.parsed.y;
               
+              // Round all values to 2 decimal places
               if (label.includes('$')) {
                 label += '$' + value.toFixed(2);
               } else if (label.includes('%')) {
                 label += value.toFixed(2) + '%';
               } else if (label === 'ROAS: ') {
                 label += value.toFixed(2);
+              } else if (label === 'Avg Ranking: ') {
+                label += value.toFixed(2);
               } else {
-                label += value.toLocaleString();
+                label += value.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                });
               }
               
               return label;
@@ -940,10 +1017,38 @@ function renderProductMetricsChart(containerId, chartData) {
           grid: {
             drawOnChartArea: false
           }
+        },
+        y3: {
+          type: 'linear',
+          display: false,
+          position: 'left',
+          reverse: true,  // Reverse for ranking (lower is better)
+          title: {
+            display: true,
+            text: 'Ranking',
+            font: { size: 12 }
+          },
+          grid: {
+            drawOnChartArea: false
+          }
         }
       }
     }
   });
+  
+  // Function to update chart visibility
+  function updateChartVisibility() {
+    chartInstance.data.datasets.forEach((dataset, index) => {
+      const metric = metricsConfig.find(m => m.key === dataset.metricKey);
+      if (metric) {
+        dataset.hidden = !metric.active;
+      }
+    });
+    chartInstance.update('none');
+  }
+  
+  // Store chart instance for potential future access
+  container.chartInstance = chartInstance;
 }
 
 function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewOverviewGoogleAds') {
@@ -4686,6 +4791,25 @@ if (window.googleAdsApexCharts) {
 .product-counter-badge.disabled:hover {
   transform: none;
   box-shadow: none;
+}
+.metric-toggle-btn {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+  border: 2px solid;
+}
+
+.metric-toggle-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.metric-toggle-btn.active {
+  transform: scale(1.02);
 }
     `;
     document.head.appendChild(style);
