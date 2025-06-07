@@ -379,10 +379,17 @@ function selectGoogleAdsProduct(product, navItemElement) {
   
   renderTableForSelectedGoogleAdsProduct(combinations, currentViewMode);
 
-  // Load and display product metrics if in overview mode
+// Load and display product metrics if in overview mode
 if (currentViewMode === 'viewOverviewGoogleAds') {
   loadProductMetricsData(product.title).then(result => {
-    if (result) {
+    const productMetricsContainer = document.getElementById('product_metrics');
+    
+    if (result && result.productData.length > 0) {
+      // Show the container
+      if (productMetricsContainer) {
+        productMetricsContainer.style.display = 'block';
+      }
+      
       // Populate campaign filter
       const campaignFilter = document.getElementById('campaignNameFilter');
       if (campaignFilter) {
@@ -417,6 +424,26 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
       // Add event listeners for filters
       campaignFilter.addEventListener('change', updateProductMetricsChart);
       channelFilter.addEventListener('change', updateProductMetricsChart);
+    } else {
+      // No data available - show message
+      if (productMetricsContainer) {
+        productMetricsContainer.style.display = 'block';
+        const chartContainer = document.getElementById('productMetricsChart');
+        if (chartContainer) {
+          chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>No performance data available for this product</h3><p>Performance metrics will appear here once data is available in the Google Sheets integration.</p></div>';
+        }
+      }
+    }
+  }).catch(error => {
+    console.error('[selectGoogleAdsProduct] Failed to load product metrics:', error);
+    // Show error message
+    const productMetricsContainer = document.getElementById('product_metrics');
+    if (productMetricsContainer) {
+      productMetricsContainer.style.display = 'block';
+      const chartContainer = document.getElementById('productMetricsChart');
+      if (chartContainer) {
+        chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>Unable to load performance data</h3><p>Please check if the Google Sheets integration is properly configured.</p></div>';
+      }
     }
   });
 }
@@ -474,12 +501,40 @@ async function loadProductMetricsData(productTitle) {
     const accountPrefix = window.currentAccount || 'acc1';
     const tableName = `${accountPrefix}_googleSheets_productPerformance`;
     
+    console.log(`[loadProductMetricsData] Attempting to load data from table: ${tableName}`);
+    
     // Open IndexedDB
-const db = await new Promise((resolve, reject) => {
-  const request = indexedDB.open('myAppDB - projectData');
-  request.onsuccess = () => resolve(request.result);
-  request.onerror = () => reject(request.error);
-});
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB - projectData');
+      request.onsuccess = () => {
+        console.log('[loadProductMetricsData] Database opened successfully');
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        console.error('[loadProductMetricsData] Failed to open database:', request.error);
+        reject(request.error);
+      };
+    });
+    
+    // Log available object stores
+    console.log('[loadProductMetricsData] Available object stores:', Array.from(db.objectStoreNames));
+    
+    // Check if the object store exists
+    if (!db.objectStoreNames.contains(tableName)) {
+      console.warn(`[loadProductMetricsData] Object store '${tableName}' not found in database`);
+      
+      // Try to find a similar object store
+      const similarStores = Array.from(db.objectStoreNames).filter(name => 
+        name.includes('googleSheets_productPerformance')
+      );
+      
+      if (similarStores.length > 0) {
+        console.log('[loadProductMetricsData] Found similar object stores:', similarStores);
+        // You might want to use the first similar store or handle this differently
+      }
+      
+      return null;
+    }
     
     // Get data from the table
     const transaction = db.transaction([tableName], 'readonly');
@@ -487,23 +542,56 @@ const db = await new Promise((resolve, reject) => {
     const getAllRequest = objectStore.getAll();
     
     const data = await new Promise((resolve, reject) => {
-      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
-      getAllRequest.onerror = () => reject(getAllRequest.error);
+      getAllRequest.onsuccess = () => {
+        console.log('[loadProductMetricsData] Data retrieved successfully');
+        resolve(getAllRequest.result);
+      };
+      getAllRequest.onerror = () => {
+        console.error('[loadProductMetricsData] Failed to get data:', getAllRequest.error);
+        reject(getAllRequest.error);
+      };
     });
     
-    if (!data || !data[0] || !data[0].data) {
-      console.warn('No product performance data found');
+    if (!data || data.length === 0) {
+      console.warn('[loadProductMetricsData] No data found in object store');
+      return null;
+    }
+    
+    // Check data structure
+    console.log('[loadProductMetricsData] Data structure:', data.length, 'items');
+    console.log('[loadProductMetricsData] First item sample:', data[0]);
+    
+    // Handle different data structures
+    let actualData;
+    if (data[0] && data[0].data && Array.isArray(data[0].data)) {
+      // Data is wrapped in an object with 'data' property
+      actualData = data[0].data;
+    } else if (Array.isArray(data)) {
+      // Data is directly an array
+      actualData = data;
+    } else {
+      console.error('[loadProductMetricsData] Unexpected data structure');
       return null;
     }
     
     // Filter data for the selected product
-    const productData = data[0].data.filter(row => 
+    const productData = actualData.filter(row => 
       row['Product Title'] === productTitle
     );
+    
+    console.log(`[loadProductMetricsData] Found ${productData.length} records for product: ${productTitle}`);
+    
+    if (productData.length === 0) {
+      console.warn('[loadProductMetricsData] No data found for this product');
+      return null;
+    }
     
     // Get unique campaign names and channel types
     const campaignNames = [...new Set(productData.map(row => row['Campaign Name']))].filter(Boolean);
     const channelTypes = [...new Set(productData.map(row => row['Channel Type']))].filter(Boolean);
+    
+    console.log('[loadProductMetricsData] Campaign names:', campaignNames);
+    console.log('[loadProductMetricsData] Channel types:', channelTypes);
     
     return {
       productData,
@@ -511,7 +599,7 @@ const db = await new Promise((resolve, reject) => {
       channelTypes
     };
   } catch (error) {
-    console.error('Error loading product metrics data:', error);
+    console.error('[loadProductMetricsData] Error:', error);
     return null;
   }
 }
