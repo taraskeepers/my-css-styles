@@ -372,12 +372,68 @@ function selectGoogleAdsProduct(product, navItemElement) {
   }
   
   window.selectedGoogleAdsProduct = product;
-  const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewRankingGoogleAds';
+  const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
   console.log(`[selectGoogleAdsProduct] Found ${combinations.length} combinations for ${product.title}`);
   
   renderTableForSelectedGoogleAdsProduct(combinations, currentViewMode);
+
+  // Load and display product metrics if in overview mode
+if (currentViewMode === 'viewOverviewGoogleAds') {
+  loadProductMetricsData(product.title).then(result => {
+    if (result) {
+      // Populate campaign filter
+      const campaignFilter = document.getElementById('campaignNameFilter');
+      if (campaignFilter) {
+        campaignFilter.innerHTML = '<option value="all">All</option>';
+        result.campaignNames.forEach(campaign => {
+          const option = document.createElement('option');
+          option.value = campaign;
+          option.textContent = campaign;
+          campaignFilter.appendChild(option);
+        });
+      }
+      
+      // Populate channel type filter
+      const channelFilter = document.getElementById('channelTypeFilter');
+      if (channelFilter) {
+        channelFilter.innerHTML = '<option value="all">All</option>';
+        result.channelTypes.forEach(channel => {
+          const option = document.createElement('option');
+          option.value = channel;
+          option.textContent = channel;
+          channelFilter.appendChild(option);
+        });
+      }
+      
+      // Store data for filtering
+      window.currentProductMetricsData = result.productData;
+      
+      // Initial chart render
+      const chartData = processMetricsData(result.productData);
+      renderProductMetricsChart('productMetricsChart', chartData);
+      
+      // Add event listeners for filters
+      campaignFilter.addEventListener('change', updateProductMetricsChart);
+      channelFilter.addEventListener('change', updateProductMetricsChart);
+    }
+  });
+}
+
+function updateProductMetricsChart() {
+  const campaignFilter = document.getElementById('campaignNameFilter').value;
+  const channelFilter = document.getElementById('channelTypeFilter').value;
+  
+  if (window.currentProductMetricsData) {
+    const chartData = processMetricsData(
+      window.currentProductMetricsData,
+      campaignFilter,
+      channelFilter
+    );
+    renderProductMetricsChart('productMetricsChart', chartData);
+  }
+}
   
   // Rebuild map if currently in map view
   if (currentViewMode === 'viewMapGoogleAds') {
@@ -412,7 +468,293 @@ function selectGoogleAdsProduct(product, navItemElement) {
   }
 }
 
-function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewRankingGoogleAds') {
+async function loadProductMetricsData(productTitle) {
+  try {
+    // Get current account prefix
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('marketAnalyzer');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Get data from the table
+    const transaction = db.transaction([tableName], 'readonly');
+    const objectStore = transaction.objectStore(tableName);
+    const getAllRequest = objectStore.getAll();
+    
+    const data = await new Promise((resolve, reject) => {
+      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+      getAllRequest.onerror = () => reject(getAllRequest.error);
+    });
+    
+    if (!data || !data[0] || !data[0].data) {
+      console.warn('No product performance data found');
+      return null;
+    }
+    
+    // Filter data for the selected product
+    const productData = data[0].data.filter(row => 
+      row['Product Title'] === productTitle
+    );
+    
+    // Get unique campaign names and channel types
+    const campaignNames = [...new Set(productData.map(row => row['Campaign Name']))].filter(Boolean);
+    const channelTypes = [...new Set(productData.map(row => row['Channel Type']))].filter(Boolean);
+    
+    return {
+      productData,
+      campaignNames,
+      channelTypes
+    };
+  } catch (error) {
+    console.error('Error loading product metrics data:', error);
+    return null;
+  }
+}
+
+function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
+  // Filter data based on selections
+  let filteredData = productData;
+  if (campaignFilter !== 'all') {
+    filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
+  }
+  if (channelFilter !== 'all') {
+    filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
+  }
+  
+  // Group by date and sum metrics
+  const groupedData = {};
+  
+  filteredData.forEach(row => {
+    const date = row.Date;
+    if (!date) return;
+    
+    if (!groupedData[date]) {
+      groupedData[date] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        ctr: 0,
+        cvr: 0,
+        roas: 0,
+        aov: 0,
+        cpa: 0,
+        count: 0
+      };
+    }
+    
+    const group = groupedData[date];
+    
+    // Parse and sum numeric values
+    group.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    group.clicks += parseInt(row.Clicks) || 0;
+    group.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    group.conversions += parseFloat(row.Conversions) || 0;
+    group.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    group.count++;
+  });
+  
+  // Calculate derived metrics
+  Object.keys(groupedData).forEach(date => {
+    const group = groupedData[date];
+    
+    // CTR = (Clicks / Impressions) * 100
+    group.ctr = group.impressions > 0 ? (group.clicks / group.impressions) * 100 : 0;
+    
+    // CVR = (Conversions / Clicks) * 100
+    group.cvr = group.clicks > 0 ? (group.conversions / group.clicks) * 100 : 0;
+    
+    // ROAS = Conversion Value / Cost
+    group.roas = group.cost > 0 ? group.conversionValue / group.cost : 0;
+    
+    // AOV = Conversion Value / Conversions
+    group.aov = group.conversions > 0 ? group.conversionValue / group.conversions : 0;
+    
+    // CPA = Cost / Conversions
+    group.cpa = group.conversions > 0 ? group.cost / group.conversions : 0;
+  });
+  
+  // Convert to sorted array
+  const sortedDates = Object.keys(groupedData).sort();
+  const chartData = {
+    dates: sortedDates,
+    impressions: [],
+    clicks: [],
+    cost: [],
+    conversions: [],
+    conversionValue: [],
+    ctr: [],
+    cvr: [],
+    roas: [],
+    aov: [],
+    cpa: []
+  };
+  
+  sortedDates.forEach(date => {
+    const group = groupedData[date];
+    chartData.impressions.push(group.impressions);
+    chartData.clicks.push(group.clicks);
+    chartData.cost.push(group.cost);
+    chartData.conversions.push(group.conversions);
+    chartData.conversionValue.push(group.conversionValue);
+    chartData.ctr.push(group.ctr);
+    chartData.cvr.push(group.cvr);
+    chartData.roas.push(group.roas);
+    chartData.aov.push(group.aov);
+    chartData.cpa.push(group.cpa);
+  });
+  
+  return chartData;
+}
+
+function renderProductMetricsChart(containerId, chartData) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  container.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+  
+  // Define metrics configuration
+  const metricsConfig = [
+    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y' },
+    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y' },
+    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y1' },
+    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y' },
+    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y1' },
+    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y2', hidden: true },
+    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y2', hidden: true },
+    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y2', hidden: true },
+    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y1', hidden: true },
+    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y1', hidden: true }
+  ];
+  
+  const datasets = metricsConfig.map(metric => ({
+    label: metric.label,
+    data: chartData[metric.key],
+    borderColor: metric.color,
+    backgroundColor: metric.color + '20',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    yAxisID: metric.yAxisID,
+    hidden: metric.hidden || false
+  }));
+  
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartData.dates,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15,
+            font: { size: 12 }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              const value = context.parsed.y;
+              
+              if (label.includes('$')) {
+                label += '$' + value.toFixed(2);
+              } else if (label.includes('%')) {
+                label += value.toFixed(2) + '%';
+              } else if (label === 'ROAS: ') {
+                label += value.toFixed(2);
+              } else {
+                label += value.toLocaleString();
+              }
+              
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 }
+          }
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Count',
+            font: { size: 12 }
+          }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Value ($)',
+            font: { size: 12 }
+          },
+          grid: {
+            drawOnChartArea: false
+          }
+        },
+        y2: {
+          type: 'linear',
+          display: false,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Rate (%)',
+            font: { size: 12 }
+          },
+          grid: {
+            drawOnChartArea: false
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewOverviewGoogleAds') {
   console.log('[renderTableForSelectedGoogleAdsProduct] Starting with', combinations.length, 'combinations');
   
   const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
@@ -561,6 +903,88 @@ tr.appendChild(tdRankMarketShare);
   });
   
 const container = document.querySelector("#googleAdsTableContainer");
+
+// Create wrapper for table and additional containers
+const contentWrapper = document.createElement('div');
+contentWrapper.id = 'googleAdsContentWrapper';
+contentWrapper.style.width = '100%';
+
+// Add the table to wrapper
+contentWrapper.appendChild(table);
+
+// Create product_info container
+const productInfoContainer = document.createElement('div');
+productInfoContainer.id = 'product_info';
+productInfoContainer.className = 'google-ads-info-container';
+productInfoContainer.style.cssText = `
+  width: 1195px;
+  height: 250px;
+  margin: 20px auto;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+// Create product_metrics container
+const productMetricsContainer = document.createElement('div');
+productMetricsContainer.id = 'product_metrics';
+productMetricsContainer.className = 'google-ads-metrics-container';
+productMetricsContainer.style.cssText = `
+  width: 1195px;
+  height: 550px;
+  margin: 20px auto;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+// Add filter controls to metrics container
+const filterControls = document.createElement('div');
+filterControls.style.cssText = `
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+`;
+
+filterControls.innerHTML = `
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <label style="font-weight: 600; font-size: 14px;">Campaign:</label>
+    <select id="campaignNameFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+      <option value="all">All</option>
+    </select>
+  </div>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <label style="font-weight: 600; font-size: 14px;">Channel Type:</label>
+    <select id="channelTypeFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+      <option value="all">All</option>
+    </select>
+  </div>
+`;
+
+productMetricsContainer.appendChild(filterControls);
+
+// Add chart container
+const chartContainer = document.createElement('div');
+chartContainer.id = 'productMetricsChart';
+chartContainer.style.cssText = `
+  width: 100%;
+  height: calc(100% - 80px);
+  position: relative;
+`;
+productMetricsContainer.appendChild(chartContainer);
+
+contentWrapper.appendChild(productInfoContainer);
+contentWrapper.appendChild(productMetricsContainer);
+
+// Replace the original append
+container.appendChild(contentWrapper);
+
 container.appendChild(table);
 
 console.log('[renderTableForSelectedGoogleAdsProduct] Table created, rendering charts...');
@@ -573,15 +997,15 @@ setTimeout(() => {
 renderPendingGoogleAdsChartsForProduct();
   
 // Apply initial view mode immediately after table creation
-if (initialViewMode === 'viewRankingGoogleAds') {
+if (initialViewMode === 'viewOverviewGoogleAds') {
   // Apply ranking mode immediately without delay
   const table = document.querySelector('.google-ads-table');
   if (table) {
-    table.classList.add('ranking-mode');
+    table.classList.add('overview-mode');
   }
   
   // Ensure the ranking button is active immediately
-  const rankingBtn = document.getElementById('viewRankingGoogleAds');
+  const rankingBtn = document.getElementById('viewOverviewGoogleAds');
   const chartsBtn = document.getElementById('viewChartsGoogleAds');
   const mapBtn = document.getElementById('viewMapGoogleAds');
   if (rankingBtn) rankingBtn.classList.add('active');
@@ -591,7 +1015,7 @@ if (initialViewMode === 'viewRankingGoogleAds') {
   // Apply to device containers and hide charts immediately
   setTimeout(() => {
     document.querySelectorAll('.device-container').forEach(container => {
-      container.classList.add('ranking-mode');
+      container.classList.add('overview-mode');
     });
     
     document.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
@@ -2221,7 +2645,7 @@ container.innerHTML = `
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="google-ads-view-switcher">
-          <button id="viewRankingGoogleAds" class="active">Overview</button>
+          <button id="viewOverviewGoogleAds" class="active">Overview</button>
           <button id="viewChartsGoogleAds">Performance</button>
           <button id="viewMapGoogleAds">Map</button>
         </div>
@@ -2303,7 +2727,7 @@ if (currentActiveButton && switcherClone) {
       const switcherClone = originalSwitcher.cloneNode(true);
       fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
       
-const clonedRankingBtn = switcherClone.querySelector('#viewRankingGoogleAds');
+const clonedRankingBtn = switcherClone.querySelector('#viewOverviewGoogleAds');
 const clonedChartsBtn = switcherClone.querySelector('#viewChartsGoogleAds');
 const clonedMapBtn = switcherClone.querySelector('#viewMapGoogleAds');
 
@@ -2682,41 +3106,48 @@ clonedMapBtn.addEventListener('click', function() {
   });
 
 // Add view switcher functionality - UPDATED to handle new structure
-const viewRankingGoogleAdsBtn = document.getElementById("viewRankingGoogleAds");
+const viewOverviewGoogleAdsBtn = document.getElementById("viewOverviewGoogleAds");
 const viewChartsGoogleAdsBtn = document.getElementById("viewChartsGoogleAds");
 const viewMapGoogleAdsBtn = document.getElementById("viewMapGoogleAds");
 
-viewRankingGoogleAdsBtn.addEventListener("click", function() {
+viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Clear all active states
-  viewRankingGoogleAdsBtn.classList.add("active");
+  viewOverviewGoogleAdsBtn.classList.add("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   
-  // Show the table and hide map  // ADD THIS
+  // Show the table and additional containers
   const table = document.querySelector('.google-ads-table');
   if (table) {
     table.style.display = 'table';
-    table.classList.add('ranking-mode');
+    table.classList.add('overview-mode');
+    table.classList.remove('charts-mode', 'map-mode');
   }
+  
+  // Show additional containers
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  if (productInfo) productInfo.style.display = 'block';
+  if (productMetrics) productMetrics.style.display = 'block';
+  
+  // Hide map
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
-  // END ADD
   
-  // Add ranking mode to table and device containers
+  // Update table display
   document.querySelectorAll('.device-container').forEach(container => {
-    container.classList.add('ranking-mode');
+    container.classList.add('overview-mode');
   });
   
-  // Hide position charts and segmentation column
-document.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
+  // Hide charts, show rank history
+  document.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
     container.style.display = 'none';
-});
-document.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
+  });
+  document.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
-});
-  // Show rank-market-share history in ranking mode
+  });
   document.querySelectorAll('.rank-market-share-history').forEach(container => {
     container.style.display = 'block';
   });
@@ -2725,14 +3156,14 @@ document.querySelectorAll('.google-ads-segmentation-chart-container').forEach(co
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
   // Clear all active states
   viewChartsGoogleAdsBtn.classList.add("active");
-  viewRankingGoogleAdsBtn.classList.remove("active");
+  viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   
   // Show the table and hide map  // ADD THIS
   const table = document.querySelector('.google-ads-table');
   if (table) {
     table.style.display = 'table';
-    table.classList.remove('ranking-mode');
+    table.classList.remove('overview-mode');
   }
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) {
@@ -2742,7 +3173,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   
   // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
-    container.classList.remove('ranking-mode');
+    container.classList.remove('overview-mode');
   });
   
   // Show BOTH segmentation charts AND position charts
@@ -2767,7 +3198,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
 viewMapGoogleAdsBtn.addEventListener("click", function() {
   // Clear all active states
   viewMapGoogleAdsBtn.classList.add("active");
-  viewRankingGoogleAdsBtn.classList.remove("active");
+  viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
   
   // Hide the product table
@@ -2882,7 +3313,7 @@ if (window.googleAdsApexCharts) {
         top: 0;
         z-index: 10;
       }
-.google-ads-table:not(.ranking-mode) td {
+.google-ads-table:not(.overview-mode) td {
   padding: 8px;
   font-size: 14px;
   color: #333;
@@ -2894,7 +3325,7 @@ if (window.googleAdsApexCharts) {
   overflow: hidden;
 }
 
-.google-ads-table.ranking-mode td {
+.google-ads-table.overview-mode td {
   padding: 8px;
   font-size: 14px;
   color: #333;
@@ -2914,7 +3345,7 @@ if (window.googleAdsApexCharts) {
 .google-ads-table th:nth-child(5), .google-ads-table td:nth-child(5) { width: auto; min-width: 400px; }
 
 /* Hide segmentation column in ranking mode */
-.ranking-mode .segmentation-column {
+.overview-mode .segmentation-column {
   display: none !important;
 }
       
@@ -2972,7 +3403,7 @@ if (window.googleAdsApexCharts) {
         height: 100%;
         justify-content: space-between;
       }
-.device-container.ranking-mode {
+.device-container.overview-mode {
   display: flex !important;
   flex-direction: row !important;
   height: 100% !important;
@@ -2982,9 +3413,9 @@ if (window.googleAdsApexCharts) {
   gap: 8px !important;
 }
 
-.device-container.ranking-mode .device-type, 
-.device-container.ranking-mode .device-rank, 
-.device-container.ranking-mode .device-share {
+.device-container.overview-mode .device-type, 
+.device-container.overview-mode .device-rank, 
+.device-container.overview-mode .device-share {
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -2995,19 +3426,19 @@ if (window.googleAdsApexCharts) {
   text-align: center !important;
 }
 
-.device-container.ranking-mode .device-rank-value {
+.device-container.overview-mode .device-rank-value {
   font-size: 24px !important;
   margin: 2px 0 !important;
   font-weight: bold !important;
 }
 
-.device-container.ranking-mode .device-trend {
+.device-container.overview-mode .device-trend {
   font-size: 14px !important;
   margin: 0 !important;
   font-weight: 600 !important;
 }
 
-.device-container.ranking-mode .pie-chart-container {
+.device-container.overview-mode .pie-chart-container {
   width: 60px !important;
   height: 60px !important;
   margin: 0 auto !important;
@@ -3016,16 +3447,16 @@ if (window.googleAdsApexCharts) {
   justify-content: center !important;
 }
 
-.device-container.ranking-mode .section-header {
+.device-container.overview-mode .section-header {
   font-size: 9px !important;
   margin-bottom: 2px !important;
 }
 
-.device-container.ranking-mode .last-tracked-container {
+.device-container.overview-mode .last-tracked-container {
   display: none !important;
 }
 
-.device-container.ranking-mode .device-icon {
+.device-container.overview-mode .device-icon {
   width: 50px !important;
   height: 50px !important;
 }
@@ -3508,7 +3939,7 @@ if (window.googleAdsApexCharts) {
   object-fit: contain;
 }
 /* Fix row height in ranking mode */
-.google-ads-table.ranking-mode td {
+.google-ads-table.overview-mode td {
   height: 110px !important;
   max-height: 110px !important;
   min-height: 110px !important;
@@ -3516,35 +3947,35 @@ if (window.googleAdsApexCharts) {
   vertical-align: middle !important;
 }
 
-.google-ads-table.ranking-mode tbody td {
+.google-ads-table.overview-mode tbody td {
   height: 110px !important;
   max-height: 110px !important;
   min-height: 110px !important;
 }
 
-.google-ads-table.ranking-mode tr {
+.google-ads-table.overview-mode tr {
   height: 110px !important;
   max-height: 110px !important;
 }
 /* Ensure proper spacing and alignment in ranking mode */
-.google-ads-table.ranking-mode .device-container .last-tracked-container {
+.google-ads-table.overview-mode .device-container .last-tracked-container {
   display: none !important;
 }
 
-.google-ads-table.ranking-mode .device-container {
+.google-ads-table.overview-mode .device-container {
   border: 1px solid #eee;
   border-radius: 4px;
   background-color: #fafafa;
 }
 /* Increase Device column width in ranking mode */
-.google-ads-table.ranking-mode th:nth-child(3), 
-.google-ads-table.ranking-mode td:nth-child(3) { 
+.google-ads-table.overview-mode th:nth-child(3), 
+.google-ads-table.overview-mode td:nth-child(3) { 
   width: 380px !important; 
 }
-.device-container.ranking-mode .device-type, 
-.device-container.ranking-mode .device-rank, 
-.device-container.ranking-mode .device-share,
-.device-container.ranking-mode .device-status {
+.device-container.overview-mode .device-type, 
+.device-container.overview-mode .device-rank, 
+.device-container.overview-mode .device-share,
+.device-container.overview-mode .device-status {
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -3569,7 +4000,7 @@ if (window.googleAdsApexCharts) {
   margin-top: 4px;
 }
 
-.device-container.ranking-mode .device-status-value {
+.device-container.overview-mode .device-status-value {
   margin-top: 2px !important;
 }
 .rank-history-container {
@@ -3584,7 +4015,7 @@ if (window.googleAdsApexCharts) {
 }
 
 /* Constrain rank history container height in ranking mode */
-.google-ads-table.ranking-mode .rank-history-container {
+.google-ads-table.overview-mode .rank-history-container {
   height: 104px !important;
   max-height: 104px !important;
   overflow: hidden !important;
@@ -3607,8 +4038,8 @@ if (window.googleAdsApexCharts) {
 }
 
 /* Reduce row heights in ranking mode */
-.google-ads-table.ranking-mode .rank-history-row,
-.google-ads-table.ranking-mode .visibility-history-row {
+.google-ads-table.overview-mode .rank-history-row,
+.google-ads-table.overview-mode .visibility-history-row {
   min-height: 55px !important;
   height: 55px !important;
   margin-bottom: 4px !important;
@@ -3721,11 +4152,11 @@ if (window.googleAdsApexCharts) {
 }
 
 /* Show position charts and hide rank history in Charts/Map modes */
-.google-ads-table:not(.ranking-mode) .google-ads-chart-avg-position {
+.google-ads-table:not(.overview-mode) .google-ads-chart-avg-position {
   display: flex !important;
 }
 
-.google-ads-table:not(.ranking-mode) .rank-market-share-history {
+.google-ads-table:not(.overview-mode) .rank-market-share-history {
   display: none !important;
 }
 /* Water-filling effect for visibility boxes */
