@@ -499,249 +499,200 @@ async function loadProductMetricsData(productTitle) {
   try {
     console.log('[loadProductMetricsData] Starting...');
     
-    // First, let's list all available databases
-    if ('databases' in indexedDB) {
-      try {
-        const databases = await indexedDB.databases();
-        console.log('[loadProductMetricsData] All available databases:', databases);
-      } catch (e) {
-        console.log('[loadProductMetricsData] Cannot list databases (not supported)');
-      }
-    }
-    
     // Get current account prefix
     const accountPrefix = window.currentAccount || 'acc1';
     const tableName = `${accountPrefix}_googleSheets_productPerformance`;
     
     console.log(`[loadProductMetricsData] Looking for table: ${tableName}`);
     
-    // Try to open the database without version first
-    let db = await new Promise((resolve, reject) => {
+    // First, close any existing connections to force a fresh connection
+    const existingDb = await new Promise((resolve) => {
       const request = indexedDB.open('myAppDB - projectData');
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        db.close();
+        resolve();
+      };
+      request.onerror = () => resolve();
+    });
+    
+    // Wait a bit to ensure the database is fully closed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Now try to delete and recreate the database connection
+    console.log('[loadProductMetricsData] Attempting to refresh database connection...');
+    
+    // Try to access through the parent database first
+    const myAppDb = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => {
+        console.log('[loadProductMetricsData] Opened myAppDB');
+        resolve(event.target.result);
+      };
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Check if projectData exists in myAppDB
+    if (myAppDb.objectStoreNames.contains('projectData')) {
+      console.log('[loadProductMetricsData] Found projectData in myAppDB');
+      
+      try {
+        const transaction = myAppDb.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        
+        // Try to get the specific key
+        const getRequest = objectStore.get(tableName);
+        
+        const data = await new Promise((resolve, reject) => {
+          getRequest.onsuccess = () => {
+            console.log('[loadProductMetricsData] Data retrieved from projectData store');
+            resolve(getRequest.result);
+          };
+          getRequest.onerror = () => reject(getRequest.error);
+        });
+        
+        if (data) {
+          console.log('[loadProductMetricsData] Found data in projectData store:', data);
+          
+          // Process the data
+          let actualData;
+          if (data.data && Array.isArray(data.data)) {
+            actualData = data.data;
+          } else if (Array.isArray(data)) {
+            actualData = data;
+          } else {
+            console.error('[loadProductMetricsData] Unexpected data format in projectData');
+            myAppDb.close();
+            return null;
+          }
+          
+          // Filter for the product
+          const productData = actualData.filter(row => 
+            row['Product Title'] === productTitle
+          );
+          
+          console.log(`[loadProductMetricsData] Found ${productData.length} records for product`);
+          
+          if (productData.length > 0) {
+            const campaignNames = [...new Set(productData.map(row => row['Campaign Name']))].filter(Boolean);
+            const channelTypes = [...new Set(productData.map(row => row['Channel Type']))].filter(Boolean);
+            
+            myAppDb.close();
+            
+            return {
+              productData,
+              campaignNames,
+              channelTypes
+            };
+          }
+        }
+      } catch (e) {
+        console.log('[loadProductMetricsData] Error accessing projectData:', e);
+      }
+    }
+    
+    myAppDb.close();
+    
+    // Alternative approach: Try to force database refresh
+    console.log('[loadProductMetricsData] Trying to force database refresh...');
+    
+    // Delete the database and let it recreate
+    try {
+      await new Promise((resolve, reject) => {
+        const deleteReq = indexedDB.deleteDatabase('myAppDB - projectData');
+        deleteReq.onsuccess = () => {
+          console.log('[loadProductMetricsData] Database deleted successfully');
+          resolve();
+        };
+        deleteReq.onerror = () => {
+          console.log('[loadProductMetricsData] Could not delete database');
+          resolve(); // Continue anyway
+        };
+      });
+    } catch (e) {
+      console.log('[loadProductMetricsData] Error deleting database:', e);
+    }
+    
+    // Wait for any background processes
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Try opening again
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB - projectData', 2); // Try with version 2
+      
+      request.onupgradeneeded = (event) => {
+        console.log('[loadProductMetricsData] Database upgrade needed');
+        const database = event.target.result;
+        
+        // Check if the object store exists, if not, we can't create it here
+        if (!database.objectStoreNames.contains(tableName)) {
+          console.log('[loadProductMetricsData] Object store does not exist and cannot be created here');
+        }
+      };
       
       request.onsuccess = (event) => {
         const database = event.target.result;
-        console.log('[loadProductMetricsData] Database opened, version:', database.version);
-        console.log('[loadProductMetricsData] Object store names:', database.objectStoreNames);
-        console.log('[loadProductMetricsData] Object store count:', database.objectStoreNames.length);
-        
-        // Try to list object stores in different ways
-        if (database.objectStoreNames.length === 0) {
-          console.log('[loadProductMetricsData] No object stores found, trying alternative methods...');
-          
-          // Log the database object itself
-          console.log('[loadProductMetricsData] Database object:', database);
-          
-          // Try to create a transaction anyway
-          try {
-            const testTransaction = database.transaction(database.objectStoreNames);
-            console.log('[loadProductMetricsData] Transaction created:', testTransaction);
-          } catch (e) {
-            console.log('[loadProductMetricsData] Cannot create transaction:', e);
-          }
-        }
-        
+        console.log('[loadProductMetricsData] Database reopened, version:', database.version);
+        console.log('[loadProductMetricsData] Object stores after refresh:', Array.from(database.objectStoreNames));
         resolve(database);
       };
       
-      request.onerror = (event) => {
-        console.error('[loadProductMetricsData] Database open error:', event.target.error);
-        reject(event.target.error);
-      };
-      
-      request.onupgradeneeded = (event) => {
-        console.log('[loadProductMetricsData] Upgrade needed event fired');
-      };
+      request.onerror = () => reject(new Error('Failed to reopen database'));
     });
-    
-    // If no object stores, try closing and reopening with specific version
-    if (db.objectStoreNames.length === 0) {
-      console.log('[loadProductMetricsData] Closing database and trying with version...');
-      db.close();
-      
-      // Try different versions
-      for (let version = 1; version <= 5; version++) {
-        try {
-          console.log(`[loadProductMetricsData] Trying version ${version}...`);
-          
-          db = await new Promise((resolve, reject) => {
-            const request = indexedDB.open('myAppDB - projectData', version);
-            
-            request.onsuccess = (event) => {
-              const database = event.target.result;
-              console.log(`[loadProductMetricsData] Version ${version} - Object stores:`, Array.from(database.objectStoreNames));
-              resolve(database);
-            };
-            
-            request.onerror = () => reject(new Error(`Failed to open version ${version}`));
-            
-            request.onblocked = () => {
-              console.log(`[loadProductMetricsData] Version ${version} blocked`);
-              reject(new Error(`Version ${version} blocked`));
-            };
-          });
-          
-          if (db.objectStoreNames.length > 0) {
-            console.log(`[loadProductMetricsData] Found object stores with version ${version}`);
-            break;
-          } else {
-            db.close();
-          }
-        } catch (e) {
-          console.log(`[loadProductMetricsData] Version ${version} failed:`, e.message);
-        }
-      }
-    }
-    
-    // Alternative approach: Try to access the data directly through a different method
-    if (db.objectStoreNames.length === 0) {
-      console.log('[loadProductMetricsData] Still no object stores, trying alternative database names...');
-      db.close();
-      
-      const alternativeNames = [
-        'myAppDB',
-        'projectData',
-        'myAppDB-projectData',
-        'myAppDB_projectData'
-      ];
-      
-      for (const dbName of alternativeNames) {
-        try {
-          console.log(`[loadProductMetricsData] Trying database name: ${dbName}`);
-          
-          const altDb = await new Promise((resolve, reject) => {
-            const request = indexedDB.open(dbName);
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(new Error(`Failed to open ${dbName}`));
-          });
-          
-          if (altDb.objectStoreNames.length > 0) {
-            console.log(`[loadProductMetricsData] Found object stores in ${dbName}:`, Array.from(altDb.objectStoreNames));
-            
-            // Check if our table exists
-            if (altDb.objectStoreNames.contains(tableName)) {
-              console.log(`[loadProductMetricsData] Found our table in ${dbName}!`);
-              db.close();
-              db = altDb;
-              break;
-            } else {
-              // Check for similar tables
-              const similarTables = Array.from(altDb.objectStoreNames).filter(name => 
-                name.includes('googleSheets') || name.includes('productPerformance')
-              );
-              
-              if (similarTables.length > 0) {
-                console.log(`[loadProductMetricsData] Found similar tables in ${dbName}:`, similarTables);
-              }
-              
-              altDb.close();
-            }
-          } else {
-            altDb.close();
-          }
-        } catch (e) {
-          console.log(`[loadProductMetricsData] Failed to check ${dbName}:`, e.message);
-        }
-      }
-    }
     
     // Final check
     if (!db.objectStoreNames.contains(tableName)) {
-      console.error(`[loadProductMetricsData] Table '${tableName}' not found after all attempts`);
-      console.log('[loadProductMetricsData] Final object stores:', Array.from(db.objectStoreNames));
+      console.error('[loadProductMetricsData] Table still not found after refresh');
       
-      // Try to use localStorage or sessionStorage as fallback
-      console.log('[loadProductMetricsData] Checking for data in localStorage/sessionStorage...');
-      const localData = localStorage.getItem(tableName);
-      const sessionData = sessionStorage.getItem(tableName);
-      
-      if (localData) {
-        console.log('[loadProductMetricsData] Found data in localStorage');
-      }
-      if (sessionData) {
-        console.log('[loadProductMetricsData] Found data in sessionStorage');
-      }
+      // As a last resort, check if the data might be stored differently
+      console.log('[loadProductMetricsData] Checking all available object stores...');
+      const allStores = Array.from(db.objectStoreNames);
+      console.log('[loadProductMetricsData] All stores:', allStores);
       
       db.close();
       return null;
     }
     
     // Get data from the table
-    console.log('[loadProductMetricsData] Creating transaction...');
     const transaction = db.transaction([tableName], 'readonly');
     const objectStore = transaction.objectStore(tableName);
     const getAllRequest = objectStore.getAll();
     
     const data = await new Promise((resolve, reject) => {
-      getAllRequest.onsuccess = () => {
-        console.log('[loadProductMetricsData] Data retrieved successfully');
-        resolve(getAllRequest.result);
-      };
-      getAllRequest.onerror = () => {
-        console.error('[loadProductMetricsData] Failed to get data:', getAllRequest.error);
-        reject(getAllRequest.error);
-      };
+      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+      getAllRequest.onerror = () => reject(getAllRequest.error);
     });
     
-    console.log('[loadProductMetricsData] Raw data:', data);
-    
+    // Process data as before...
     if (!data || data.length === 0) {
-      console.warn('[loadProductMetricsData] No data found in object store');
+      console.warn('[loadProductMetricsData] No data found');
       db.close();
       return null;
     }
     
-    // Check data structure
-    console.log('[loadProductMetricsData] Data structure - length:', data.length);
-    console.log('[loadProductMetricsData] First item:', data[0]);
-    console.log('[loadProductMetricsData] First item keys:', data[0] ? Object.keys(data[0]) : 'No first item');
-    
-    // Handle different data structures
     let actualData;
     if (data[0] && data[0].data && Array.isArray(data[0].data)) {
-      // Data is wrapped in an object with 'data' property
       actualData = data[0].data;
-      console.log('[loadProductMetricsData] Data was wrapped, unwrapped to:', actualData.length, 'items');
     } else if (Array.isArray(data)) {
-      // Data is directly an array
       actualData = data;
-      console.log('[loadProductMetricsData] Data is direct array with:', actualData.length, 'items');
     } else {
-      console.error('[loadProductMetricsData] Unexpected data structure:', typeof data);
+      console.error('[loadProductMetricsData] Unexpected data structure');
       db.close();
       return null;
     }
     
-    // Log sample of actual data
-    if (actualData.length > 0) {
-      console.log('[loadProductMetricsData] Sample data item:', actualData[0]);
-      console.log('[loadProductMetricsData] Product titles in data:', 
-        [...new Set(actualData.slice(0, 10).map(row => row['Product Title']))]);
-    }
-    
-    // Filter data for the selected product
     const productData = actualData.filter(row => 
       row['Product Title'] === productTitle
     );
     
-    console.log(`[loadProductMetricsData] Filtering for product: "${productTitle}"`);
-    console.log(`[loadProductMetricsData] Found ${productData.length} records for this product`);
-    
     if (productData.length === 0) {
-      console.warn('[loadProductMetricsData] No data found for this product');
-      console.log('[loadProductMetricsData] Available product titles:', 
-        [...new Set(actualData.map(row => row['Product Title']))].slice(0, 10));
+      console.warn('[loadProductMetricsData] No data for product');
       db.close();
       return null;
     }
     
-    // Get unique campaign names and channel types
     const campaignNames = [...new Set(productData.map(row => row['Campaign Name']))].filter(Boolean);
     const channelTypes = [...new Set(productData.map(row => row['Channel Type']))].filter(Boolean);
-    
-    console.log('[loadProductMetricsData] Campaign names:', campaignNames);
-    console.log('[loadProductMetricsData] Channel types:', channelTypes);
-    console.log('[loadProductMetricsData] Sample product data:', productData[0]);
     
     db.close();
     
@@ -750,9 +701,9 @@ async function loadProductMetricsData(productTitle) {
       campaignNames,
       channelTypes
     };
+    
   } catch (error) {
-    console.error('[loadProductMetricsData] Unexpected error:', error);
-    console.error('[loadProductMetricsData] Error stack:', error.stack);
+    console.error('[loadProductMetricsData] Error:', error);
     return null;
   }
 }
