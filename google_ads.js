@@ -737,7 +737,7 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
         roas: 0,
         aov: 0,
         cpa: 0,
-        ranking: 0,
+        ranking: null,
         visibility: 0,
         count: 0
       };
@@ -761,34 +761,44 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     Object.keys(groupedData).forEach(date => {
       const group = groupedData[date];
       
-      // Calculate derived metrics
-      group.ctr = group.impressions > 0 ? (group.clicks / group.impressions) * 100 : 0;
-      group.cvr = group.clicks > 0 ? (group.conversions / group.clicks) * 100 : 0;
-      group.roas = group.cost > 0 ? group.conversionValue / group.cost : 0;
-      group.aov = group.conversions > 0 ? group.conversionValue / group.conversions : 0;
-      group.cpa = group.conversions > 0 ? group.cost / group.conversions : 0;
+      // Calculate derived metrics and round to 2 decimal places
+      group.ctr = group.impressions > 0 ? Math.round((group.clicks / group.impressions) * 100 * 100) / 100 : 0;
+      group.cvr = group.clicks > 0 ? Math.round((group.conversions / group.clicks) * 100 * 100) / 100 : 0;
+      group.roas = group.cost > 0 ? Math.round((group.conversionValue / group.cost) * 100) / 100 : 0;
+      group.aov = group.conversions > 0 ? Math.round((group.conversionValue / group.conversions) * 100) / 100 : 0;
+      group.cpa = group.conversions > 0 ? Math.round((group.cost / group.conversions) * 100) / 100 : 0;
       
-      // Get ranking and visibility from product records (averaged across all combinations)
-      let totalRank = 0, totalVis = 0, recordCount = 0;
+      // Round cost and conversion values to 2 decimal places
+      group.cost = Math.round(group.cost * 100) / 100;
+      group.conversionValue = Math.round(group.conversionValue * 100) / 100;
+      
+      // Get ranking and visibility from product records for this specific date
+      let totalRank = 0, totalVis = 0, rankCount = 0, visCount = 0;
       
       productRecords.forEach(record => {
-        // Calculate average rank from historical data for this date
         if (record.historical_data && Array.isArray(record.historical_data)) {
           const histItem = record.historical_data.find(item => item.date?.value === date);
-          if (histItem?.avg_position) {
+          
+          // Get ranking data
+          if (histItem?.avg_position != null) {
             totalRank += parseFloat(histItem.avg_position);
-            recordCount++;
+            rankCount++;
           }
-        }
-        
-        // Get visibility (use avg_visibility like in overview mode)
-        if (record.avg_visibility) {
-          totalVis += parseFloat(record.avg_visibility) * 100;
+          
+          // Get daily visibility data (same as visibility-history-row)
+          if (histItem?.visibility != null) {
+            const dailyVisibility = parseFloat(histItem.visibility) * 100;
+            totalVis += dailyVisibility;
+            visCount++;
+          }
         }
       });
       
-      group.ranking = recordCount > 0 ? totalRank / recordCount : 40;
-      group.visibility = productRecords.length > 0 ? totalVis / productRecords.length : 0;
+      // Set ranking (null if no data available)
+      group.ranking = rankCount > 0 ? Math.round((totalRank / rankCount) * 100) / 100 : null;
+      
+      // Set visibility (0 if no data available)
+      group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100) / 100 : 0;
     });
   }
   
@@ -848,20 +858,20 @@ function renderProductMetricsChart(containerId, chartData) {
     border: 1px solid #dee2e6;
   `;
   
-  // Define metrics configuration with the new metrics
+  // Define metrics configuration with individual y-axes
   const metricsConfig = [
-    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y', active: true },
-    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y', active: true },
-    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y1', active: true },
-    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y', active: true },
-    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y1', active: true },
-    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y2', active: false },
-    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y2', active: false },
-    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y2', active: false },
-    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y1', active: false },
-    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y1', active: false },
-    { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y3', active: false },
-    { key: 'visibility', label: 'Visibility (%)', color: '#e67e22', yAxisID: 'y2', active: false }
+    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y1', active: true, type: 'bar' },
+    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y2', active: true, type: 'bar' },
+    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y3', active: true, type: 'line' },
+    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y4', active: true, type: 'line' },
+    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y5', active: true, type: 'line' },
+    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y6', active: false, type: 'line' },
+    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y7', active: false, type: 'line' },
+    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y8', active: false, type: 'line' },
+    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y9', active: false, type: 'line' },
+    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y10', active: false, type: 'line' },
+    { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y11', active: false, type: 'line' },
+    { key: 'visibility', label: 'Visibility (%)', color: '#e67e22', yAxisID: 'y12', active: false, type: 'line', fill: true }
   ];
   
   // Create toggle buttons
@@ -908,15 +918,55 @@ function renderProductMetricsChart(containerId, chartData) {
     label: metric.label,
     data: chartData[metric.key],
     borderColor: metric.color,
-    backgroundColor: metric.color + '20',
+    backgroundColor: metric.fill ? metric.color + '40' : metric.color + '20',
     borderWidth: 2,
     pointRadius: 3,
     pointHoverRadius: 5,
     tension: 0.3,
     yAxisID: metric.yAxisID,
+    type: metric.type,
+    fill: metric.fill || false,
     hidden: !metric.active,
     metricKey: metric.key
   }));
+  
+  // Create scales object for all y-axes (but only show the active ones)
+  const scales = {
+    x: {
+      type: 'category',
+      title: {
+        display: true,
+        text: 'Date',
+        font: { size: 12 }
+      },
+      ticks: {
+        maxRotation: 45,
+        minRotation: 45,
+        font: { size: 10 }
+      }
+    }
+  };
+  
+  // Add y-axes for each metric
+  metricsConfig.forEach((metric, index) => {
+    scales[metric.yAxisID] = {
+      type: 'linear',
+      display: false, // Initially hidden, will be shown when metric is active
+      position: index % 2 === 0 ? 'left' : 'right',
+      reverse: metric.key === 'ranking', // Reverse for ranking (lower is better)
+      title: {
+        display: true,
+        text: metric.label,
+        font: { size: 10 }
+      },
+      grid: {
+        drawOnChartArea: index === 0 // Only draw grid for first axis
+      },
+      ticks: {
+        font: { size: 10 }
+      }
+    };
+  });
   
   // Create chart instance
   const chartInstance = new Chart(canvas, {
@@ -947,20 +997,29 @@ function renderProductMetricsChart(containerId, chartData) {
               }
               const value = context.parsed.y;
               
-              // Round all values to 2 decimal places
+              // Handle null values for ranking
+              if (context.dataset.metricKey === 'ranking' && (value === null || value === 40)) {
+                return label + 'no rank';
+              }
+              
+              // Format other values with proper rounding
               if (label.includes('$')) {
-                label += '$' + value.toFixed(2);
+                label += '$' + (value ? value.toFixed(2) : '0.00');
               } else if (label.includes('%')) {
-                label += value.toFixed(2) + '%';
+                label += (value ? value.toFixed(2) : '0.00') + '%';
               } else if (label === 'ROAS: ') {
-                label += value.toFixed(2);
+                label += value ? value.toFixed(2) : '0.00';
               } else if (label === 'Avg Ranking: ') {
-                label += value.toFixed(2);
+                label += value ? value.toFixed(2) : 'no rank';
               } else {
-                label += value.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                });
+                // For whole numbers like impressions, clicks, conversions
+                if (context.dataset.metricKey === 'impressions' || 
+                    context.dataset.metricKey === 'clicks' || 
+                    context.dataset.metricKey === 'conversions') {
+                  label += value ? value.toLocaleString() : '0';
+                } else {
+                  label += value ? value.toFixed(2) : '0.00';
+                }
               }
               
               return label;
@@ -968,84 +1027,33 @@ function renderProductMetricsChart(containerId, chartData) {
           }
         }
       },
-      scales: {
-        x: {
-          type: 'category',
-          title: {
-            display: true,
-            text: 'Date',
-            font: { size: 12 }
-          },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            font: { size: 10 }
-          }
-        },
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'Count',
-            font: { size: 12 }
-          }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Value ($)',
-            font: { size: 12 }
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y2: {
-          type: 'linear',
-          display: false,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Rate (%)',
-            font: { size: 12 }
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y3: {
-          type: 'linear',
-          display: false,
-          position: 'left',
-          reverse: true,  // Reverse for ranking (lower is better)
-          title: {
-            display: true,
-            text: 'Ranking',
-            font: { size: 12 }
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        }
-      }
+      scales: scales
     }
   });
   
-  // Function to update chart visibility
+  // Function to update chart visibility and y-axes
   function updateChartVisibility() {
+    // Update dataset visibility
     chartInstance.data.datasets.forEach((dataset, index) => {
       const metric = metricsConfig.find(m => m.key === dataset.metricKey);
       if (metric) {
         dataset.hidden = !metric.active;
       }
     });
+    
+    // Update y-axis visibility
+    metricsConfig.forEach(metric => {
+      const scale = chartInstance.options.scales[metric.yAxisID];
+      if (scale) {
+        scale.display = metric.active;
+      }
+    });
+    
     chartInstance.update('none');
   }
+  
+  // Initial update to show active axes
+  updateChartVisibility();
   
   // Store chart instance for potential future access
   container.chartInstance = chartInstance;
