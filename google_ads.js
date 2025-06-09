@@ -907,11 +907,12 @@ function renderProductMetricsChart(containerId, chartData) {
   
   container.appendChild(toggleContainer);
   
-  // Create canvas for chart
-  const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = 'calc(100% - 100px)';
-  container.appendChild(canvas);
+// Create canvas for chart
+const canvas = document.createElement('canvas');
+canvas.style.width = '100%';
+canvas.style.height = '450px'; // Fixed height instead of calc()
+canvas.style.maxHeight = '450px';
+container.appendChild(canvas);
   
   // Create datasets
   const datasets = metricsConfig.map(metric => ({
@@ -931,42 +932,55 @@ function renderProductMetricsChart(containerId, chartData) {
   }));
   
   // Create scales object for all y-axes (but only show the active ones)
-  const scales = {
-    x: {
-      type: 'category',
-      title: {
-        display: true,
-        text: 'Date',
-        font: { size: 12 }
-      },
-      ticks: {
-        maxRotation: 45,
-        minRotation: 45,
-        font: { size: 10 }
+  const scales: {
+  x: {
+    type: 'category',
+    title: {
+      display: true,
+      text: 'Date',
+      font: { size: 12 }
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      font: { size: 10 },
+      callback: function(value, index) {
+        const dateStr = this.getLabelForValue(value);
+        if (dateStr) {
+          // Convert YYYY-MM-DD to DD/MM
+          const dateParts = dateStr.split('-');
+          if (dateParts.length === 3) {
+            return `${dateParts[2]}/${dateParts[1]}`;
+          }
+        }
+        return dateStr;
       }
     }
-  };
+  }
+};
   
-  // Add y-axes for each metric
-  metricsConfig.forEach((metric, index) => {
-    scales[metric.yAxisID] = {
-      type: 'linear',
-      display: false, // Initially hidden, will be shown when metric is active
-      position: index % 2 === 0 ? 'left' : 'right',
-      reverse: metric.key === 'ranking', // Reverse for ranking (lower is better)
-      title: {
-        display: true,
-        text: metric.label,
-        font: { size: 10 }
-      },
-      grid: {
-        drawOnChartArea: index === 0 // Only draw grid for first axis
-      },
-      ticks: {
-        font: { size: 10 }
-      }
-    };
-  });
+// Add y-axes for each metric
+metricsConfig.forEach((metric, index) => {
+  scales[metric.yAxisID] = {
+    type: 'linear',
+    display: false, // Always hidden
+    position: index % 2 === 0 ? 'left' : 'right',
+    reverse: metric.key === 'ranking', // Reverse for ranking (lower is better)
+    min: metric.key === 'ranking' ? 0 : undefined, // Always start from 0 for ranking
+    title: {
+      display: false, // Hide title
+      text: metric.label,
+      font: { size: 10 }
+    },
+    grid: {
+      drawOnChartArea: false // Don't draw any grid lines
+    },
+    ticks: {
+      display: false, // Hide ticks
+      font: { size: 10 }
+    }
+  };
+});
   
   // Create chart instance
   const chartInstance = new Chart(canvas, {
@@ -1041,13 +1055,13 @@ function renderProductMetricsChart(containerId, chartData) {
       }
     });
     
-    // Update y-axis visibility
-    metricsConfig.forEach(metric => {
-      const scale = chartInstance.options.scales[metric.yAxisID];
-      if (scale) {
-        scale.display = metric.active;
-      }
-    });
+// Keep y-axes hidden (don't change display based on active state)
+metricsConfig.forEach(metric => {
+  const scale = chartInstance.options.scales[metric.yAxisID];
+  if (scale) {
+    scale.display = false; // Always keep hidden
+  }
+});
     
     chartInstance.update('none');
   }
