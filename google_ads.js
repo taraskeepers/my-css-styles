@@ -931,32 +931,32 @@ container.appendChild(canvas);
     metricKey: metric.key
   }));
   
-  // Create scales object for all y-axes (but only show the active ones)
-  const scales: {
-x: {
-  type: 'category',
-  title: {
-    display: true,
-    text: 'Date',
-    font: { size: 12 }
-  },
-  ticks: {
-    maxRotation: 45,
-    minRotation: 45,
-    font: { size: 10 },
-    callback: function(value, index) {
-      const dateStr = this.getLabelForValue(value);
-      if (dateStr) {
-        // Convert YYYY-MM-DD to DD/MM
-        const dateParts = dateStr.split('-');
-        if (dateParts.length === 3) {
-          return `${dateParts[2]}/${dateParts[1]}`;
+// Create scales object for all y-axes (but only show the active ones)
+const scales = {
+  x: {
+    type: 'category',
+    title: {
+      display: true,
+      text: 'Date',
+      font: { size: 12 }
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      font: { size: 10 },
+      callback: function(value, index) {
+        const dateStr = this.getLabelForValue(value);
+        if (dateStr) {
+          // Convert YYYY-MM-DD to DD/MM
+          const dateParts = dateStr.split('-');
+          if (dateParts.length === 3) {
+            return `${dateParts[2]}/${dateParts[1]}`;
+          }
         }
+        return dateStr;
       }
-      return dateStr;
     }
   }
-}
 };
   
 // Add y-axes for each metric
