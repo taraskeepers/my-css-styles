@@ -1819,20 +1819,24 @@ dateRangeStyle.textContent = `
 document.head.appendChild(dateRangeStyle);
 
 // Trends toggle functionality
-const trendsToggle = document.getElementById('trendsToggle');
-const trendsContainer = document.getElementById('google-ads-trends-container');
+setTimeout(() => {
+  const trendsToggle = document.getElementById('trendsToggle');
+  const trendsContainer = document.getElementById('google-ads-trends-container');
 
-trendsToggle.addEventListener('change', function() {
-  if (this.checked) {
-    trendsContainer.classList.add('visible');
-    // Update trends data
-    if (window.currentProductMetricsData) {
-      updateTrendsData();
-    }
-  } else {
-    trendsContainer.classList.remove('visible');
+  if (trendsToggle && trendsContainer) {
+    trendsToggle.addEventListener('change', function() {
+      if (this.checked) {
+        trendsContainer.classList.add('visible');
+        // Update trends data
+        if (window.currentProductMetricsData) {
+          updateTrendsData();
+        }
+      } else {
+        trendsContainer.classList.remove('visible');
+      }
+    });
   }
-});
+}, 100);
 
 productMetricsContainer.appendChild(filterControls);
 
