@@ -1,6 +1,7 @@
 window.pendingGoogleAdsCharts = [];
 window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
+window.userMetricPreferences = null;
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
@@ -420,6 +421,19 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
       // Initial chart render
       const chartData = processMetricsData(result.productData);
       renderProductMetricsChart('productMetricsChart', chartData);
+
+      // Update date range text
+const dateRangeText = document.getElementById('dateRangeText');
+if (dateRangeText) {
+  const days = window.selectedDateRangeDays || 7;
+  const rangeLabels = {
+    7: 'Last 7 days',
+    14: 'Last 14 days',
+    30: 'Last 30 days',
+    90: 'Last 90 days'
+  };
+  dateRangeText.textContent = rangeLabels[days] || `Last ${days} days`;
+}
       
       // Add event listeners for filters
       campaignFilter.addEventListener('change', updateProductMetricsChart);
@@ -709,8 +723,18 @@ async function loadProductMetricsData(productTitle) {
 }
 
 function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
-  // Filter data based on selections
-  let filteredData = productData;
+  // Get selected date range
+  const daysToShow = window.selectedDateRangeDays || 7;
+  const endDate = moment().startOf('day');
+  const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+  
+  // Filter data based on selections and date range
+  let filteredData = productData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = moment(row.Date, 'YYYY-MM-DD');
+    return rowDate.isBetween(startDate, endDate, 'day', '[]');
+  });
+  
   if (campaignFilter !== 'all') {
     filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
   }
@@ -858,21 +882,28 @@ function renderProductMetricsChart(containerId, chartData) {
     border: 1px solid #dee2e6;
   `;
   
-  // Define metrics configuration with individual y-axes
-  const metricsConfig = [
-    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y1', active: true, type: 'bar' },
-    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y2', active: true, type: 'bar' },
-    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y3', active: true, type: 'line' },
-    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y4', active: true, type: 'line' },
-    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y5', active: true, type: 'line' },
-    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y6', active: false, type: 'line' },
-    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y7', active: false, type: 'line' },
-    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y8', active: false, type: 'line' },
-    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y9', active: false, type: 'line' },
-    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y10', active: false, type: 'line' },
-    { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y11', active: false, type: 'line' },
-    { key: 'visibility', label: 'Visibility (%)', color: '#e67e22', yAxisID: 'y12', active: false, type: 'line', fill: true }
-  ];
+// Define metrics configuration with individual y-axes
+const metricsConfig = [
+  { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y1', active: false, type: 'bar' },
+  { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y2', active: false, type: 'bar' },
+  { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y3', active: false, type: 'line' },
+  { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y4', active: true, type: 'line' },
+  { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y5', active: false, type: 'line' },
+  { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y6', active: false, type: 'line' },
+  { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y7', active: false, type: 'line' },
+  { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y8', active: false, type: 'line' },
+  { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y9', active: false, type: 'line' },
+  { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y10', active: false, type: 'line' },
+  { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y11', active: true, type: 'line' },
+  { key: 'visibility', label: 'Visibility (%)', color: '#e67e22', yAxisID: 'y12', active: true, type: 'line', fill: true }
+];
+
+// Apply user preferences if they exist
+if (window.userMetricPreferences) {
+  metricsConfig.forEach(metric => {
+    metric.active = window.userMetricPreferences[metric.key] || false;
+  });
+}
   
   // Create toggle buttons
   metricsConfig.forEach(metric => {
@@ -892,15 +923,21 @@ function renderProductMetricsChart(containerId, chartData) {
       user-select: none;
     `;
     
-    button.addEventListener('click', () => {
-      metric.active = !metric.active;
-      button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
-      button.style.backgroundColor = metric.active ? metric.color : 'white';
-      button.style.color = metric.active ? 'white' : metric.color;
-      
-      // Update chart
-      updateChartVisibility();
-    });
+button.addEventListener('click', () => {
+  metric.active = !metric.active;
+  button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
+  button.style.backgroundColor = metric.active ? metric.color : 'white';
+  button.style.color = metric.active ? 'white' : metric.color;
+  
+  // Save user preferences
+  if (!window.userMetricPreferences) {
+    window.userMetricPreferences = {};
+  }
+  window.userMetricPreferences[metric.key] = metric.active;
+  
+  // Update chart
+  updateChartVisibility();
+});
     
     toggleContainer.appendChild(button);
   });
@@ -1330,9 +1367,18 @@ filterControls.style.cssText = `
   margin-bottom: 20px;
   padding-bottom: 20px;
   border-bottom: 1px solid #eee;
+  justify-content: space-between;
+  align-items: center;
 `;
 
-filterControls.innerHTML = `
+const leftFilters = document.createElement('div');
+leftFilters.style.cssText = `
+  display: flex;
+  gap: 20px;
+  align-items: center;
+`;
+
+leftFilters.innerHTML = `
   <div style="display: flex; align-items: center; gap: 10px;">
     <label style="font-weight: 600; font-size: 14px;">Campaign:</label>
     <select id="campaignNameFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
@@ -1346,6 +1392,136 @@ filterControls.innerHTML = `
     </select>
   </div>
 `;
+
+// Date range selector
+const dateRangeSelector = document.createElement('div');
+dateRangeSelector.id = 'dateRangeSelector';
+dateRangeSelector.style.cssText = `
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
+`;
+
+dateRangeSelector.innerHTML = `
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+  <span id="dateRangeText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Loading...</span>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+`;
+
+// Add date range dropdown
+const dateRangeDropdown = document.createElement('div');
+dateRangeDropdown.id = 'dateRangeDropdown';
+dateRangeDropdown.style.cssText = `
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: none;
+  z-index: 1000;
+  min-width: 200px;
+`;
+
+const dateRanges = [
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 14 days', days: 14 },
+  { label: 'Last 30 days', days: 30 },
+  { label: 'Last 90 days', days: 90 }
+];
+
+dateRangeDropdown.innerHTML = dateRanges.map(range => `
+  <div class="date-range-option" data-days="${range.days}" style="
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #3c4043;
+    transition: background 0.2s;
+  ">${range.label}</div>
+`).join('');
+
+// Add wrapper for date selector with relative positioning
+const dateRangeWrapper = document.createElement('div');
+dateRangeWrapper.style.cssText = 'position: relative;';
+dateRangeWrapper.appendChild(dateRangeSelector);
+dateRangeWrapper.appendChild(dateRangeDropdown);
+
+filterControls.appendChild(leftFilters);
+filterControls.appendChild(dateRangeWrapper);
+
+// Initialize selected date range
+window.selectedDateRangeDays = 7; // Default to last 7 days
+
+// Date range selector functionality
+dateRangeSelector.addEventListener('click', function(e) {
+  e.stopPropagation();
+  dateRangeDropdown.style.display = dateRangeDropdown.style.display === 'none' ? 'block' : 'none';
+});
+
+// Handle date range selection
+dateRangeDropdown.addEventListener('click', function(e) {
+  const option = e.target.closest('.date-range-option');
+  if (option) {
+    const days = parseInt(option.getAttribute('data-days'));
+    window.selectedDateRangeDays = days;
+    
+    // Update text
+    document.getElementById('dateRangeText').textContent = option.textContent;
+    
+    // Hide dropdown
+    dateRangeDropdown.style.display = 'none';
+    
+    // Update chart with new date range
+    if (window.currentProductMetricsData) {
+      const chartData = processMetricsData(
+        window.currentProductMetricsData,
+        document.getElementById('campaignNameFilter').value,
+        document.getElementById('channelTypeFilter').value
+      );
+      renderProductMetricsChart('productMetricsChart', chartData);
+    }
+  }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function() {
+  dateRangeDropdown.style.display = 'none';
+});
+
+// Add hover effect styles
+const dateRangeStyle = document.createElement('style');
+dateRangeStyle.textContent = `
+  #dateRangeSelector:hover {
+    border-color: #5f6368;
+    box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
+  }
+  .date-range-option:hover {
+    background-color: #f1f3f4;
+  }
+  .date-range-option:first-child {
+    border-radius: 7px 7px 0 0;
+  }
+  .date-range-option:last-child {
+    border-radius: 0 0 7px 7px;
+  }
+`;
+document.head.appendChild(dateRangeStyle);
 
 productMetricsContainer.appendChild(filterControls);
 
