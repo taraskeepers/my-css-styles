@@ -1036,9 +1036,9 @@ plugins: {
           label += value ? value.toFixed(2) : '0.00';
         } else if (label === 'Avg Ranking: ') {
           label += value ? value.toFixed(2) : 'no rank';
-} else if (label.includes('Visibility')) {
-  label += (value ? value.toFixed(1) : '0.0') + '%'; // Already in percentage format
-} else {
+        } else if (label.includes('Visibility')) {
+          label += (value ? value.toFixed(1) : '0.0') + '%'; // Already in percentage format
+        } else {
           // For whole numbers like impressions, clicks, conversions
           if (context.dataset.metricKey === 'impressions' || 
               context.dataset.metricKey === 'clicks' || 
@@ -1050,6 +1050,54 @@ plugins: {
         }
         
         return label;
+      }
+    }
+  },
+  datalabels: {
+    display: function(context) {
+      return !context.dataset.hidden;
+    },
+    align: 'top',
+    anchor: 'end',
+    offset: 10,
+    backgroundColor: function(context) {
+      return context.dataset.borderColor + '20';
+    },
+    borderColor: function(context) {
+      return context.dataset.borderColor;
+    },
+    borderRadius: 4,
+    borderWidth: 1,
+    color: function(context) {
+      return context.dataset.borderColor;
+    },
+    font: {
+      size: 11,
+      weight: 'bold'
+    },
+    padding: {
+      top: 4,
+      bottom: 4,
+      left: 6,
+      right: 6
+    },
+    formatter: function(value, context) {
+      if (value === null || value === undefined) return '';
+      
+      const metricKey = context.dataset.metricKey;
+      
+      if (metricKey === 'ranking') {
+        return value.toFixed(1);
+      } else if (metricKey === 'visibility') {
+        return value.toFixed(1) + '%';
+      } else if (context.dataset.label.includes('$')) {
+        return '$' + value.toFixed(2);
+      } else if (context.dataset.label.includes('%')) {
+        return value.toFixed(1) + '%';
+      } else if (['impressions', 'clicks', 'conversions'].includes(metricKey)) {
+        return value.toLocaleString();
+      } else {
+        return value.toFixed(2);
       }
     }
   }
