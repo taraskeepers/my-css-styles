@@ -473,6 +473,10 @@ function updateProductMetricsChart() {
       channelFilter
     );
     renderProductMetricsChart('productMetricsChart', chartData);
+    // Update trends if visible
+if (document.getElementById('trendsToggle')?.checked) {
+  updateTrendsData();
+}
   }
 }
   
@@ -728,6 +732,10 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
   const endDate = moment().startOf('day');
   const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
   
+  // Calculate previous period dates
+  const prevEndDate = startDate.clone().subtract(1, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(daysToShow - 1, 'days');
+  
   // Filter data based on selections and date range
   let filteredData = productData.filter(row => {
     if (!row.Date) return false;
@@ -735,16 +743,27 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     return rowDate.isBetween(startDate, endDate, 'day', '[]');
   });
   
+  // Get previous period data
+  let prevFilteredData = productData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = moment(row.Date, 'YYYY-MM-DD');
+    return rowDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+  });
+  
   if (campaignFilter !== 'all') {
     filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
+    prevFilteredData = prevFilteredData.filter(row => row['Campaign Name'] === campaignFilter);
   }
   if (channelFilter !== 'all') {
     filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
+    prevFilteredData = prevFilteredData.filter(row => row['Channel Type'] === channelFilter);
   }
   
   // Group by date and sum metrics
   const groupedData = {};
+  const prevGroupedData = {};
   
+  // Process current period
   filteredData.forEach(row => {
     const date = row.Date;
     if (!date) return;
@@ -778,6 +797,57 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     group.count++;
   });
   
+  // Process previous period
+  prevFilteredData.forEach(row => {
+    const date = row.Date;
+    if (!date) return;
+    
+    if (!prevGroupedData[date]) {
+      prevGroupedData[date] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        count: 0
+      };
+    }
+    
+    const group = prevGroupedData[date];
+    
+    group.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    group.clicks += parseInt(row.Clicks) || 0;
+    group.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    group.conversions += parseFloat(row.Conversions) || 0;
+    group.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    group.count++;
+  });
+  
+  // Calculate totals for trend comparison
+  const currentTotals = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    conversionValue: 0,
+    ranking: 0,
+    visibility: 0,
+    rankCount: 0,
+    visCount: 0
+  };
+  
+  const prevTotals = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    conversionValue: 0,
+    ranking: 0,
+    visibility: 0,
+    rankCount: 0,
+    visCount: 0
+  };
+  
   // Get ranking and visibility data from the same source as overview mode
   if (window.selectedGoogleAdsProduct) {
     const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
@@ -809,22 +879,69 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
             rankCount++;
           }
           
-// Get daily visibility data (same as visibility-history-row)
-if (histItem?.visibility != null) {
-  const dailyVisibility = parseFloat(histItem.visibility); // Remove * 100
-  totalVis += dailyVisibility;
-  visCount++;
-}
+          // Get daily visibility data
+          if (histItem?.visibility != null) {
+            const dailyVisibility = parseFloat(histItem.visibility);
+            totalVis += dailyVisibility;
+            visCount++;
+          }
         }
       });
       
       // Set ranking (null if no data available)
       group.ranking = rankCount > 0 ? Math.round((totalRank / rankCount) * 100) / 100 : null;
       
-// Set visibility (0 if no data available)
-group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100 * 10) / 10 : 0; // Convert to percentage 0-100
+      // Set visibility (0 if no data available)
+      group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100 * 10) / 10 : 0;
+      
+      // Add to current totals
+      currentTotals.impressions += group.impressions;
+      currentTotals.clicks += group.clicks;
+      currentTotals.cost += group.cost;
+      currentTotals.conversions += group.conversions;
+      currentTotals.conversionValue += group.conversionValue;
+      if (group.ranking !== null) {
+        currentTotals.ranking += group.ranking;
+        currentTotals.rankCount++;
+      }
+      currentTotals.visibility += group.visibility;
+      currentTotals.visCount++;
+    });
+    
+    // Calculate previous period ranking and visibility
+    productRecords.forEach(record => {
+      if (record.historical_data && Array.isArray(record.historical_data)) {
+        record.historical_data.forEach(item => {
+          if (item.date?.value) {
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+              if (item.avg_position != null) {
+                prevTotals.ranking += parseFloat(item.avg_position);
+                prevTotals.rankCount++;
+              }
+              if (item.visibility != null) {
+                prevTotals.visibility += parseFloat(item.visibility) * 100;
+                prevTotals.visCount++;
+              }
+            }
+          }
+        });
+      }
     });
   }
+  
+  // Sum previous period metrics
+  Object.values(prevGroupedData).forEach(group => {
+    prevTotals.impressions += group.impressions;
+    prevTotals.clicks += group.clicks;
+    prevTotals.cost += group.cost;
+    prevTotals.conversions += group.conversions;
+    prevTotals.conversionValue += group.conversionValue;
+  });
+  
+  // Store totals for trends calculation
+  window.currentPeriodTotals = currentTotals;
+  window.previousPeriodTotals = prevTotals;
   
   // Convert to sorted array
   const sortedDates = Object.keys(groupedData).sort();
@@ -861,6 +978,173 @@ group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100 * 10) /
   });
   
   return chartData;
+}
+
+function updateTrendsData() {
+  const trendsContent = document.getElementById('trends-content');
+  if (!trendsContent || !window.currentPeriodTotals || !window.previousPeriodTotals) return;
+  
+  const current = window.currentPeriodTotals;
+  const prev = window.previousPeriodTotals;
+  
+  // Define metrics to display
+  const metrics = [
+    { 
+      key: 'impressions', 
+      label: 'Impressions', 
+      value: current.impressions,
+      prevValue: prev.impressions,
+      format: 'number'
+    },
+    { 
+      key: 'clicks', 
+      label: 'Clicks', 
+      value: current.clicks,
+      prevValue: prev.clicks,
+      format: 'number'
+    },
+    { 
+      key: 'cost', 
+      label: 'Cost', 
+      value: current.cost,
+      prevValue: prev.cost,
+      format: 'currency'
+    },
+    { 
+      key: 'conversions', 
+      label: 'Conversions', 
+      value: current.conversions,
+      prevValue: prev.conversions,
+      format: 'decimal'
+    },
+    { 
+      key: 'conversionValue', 
+      label: 'Conversion Value', 
+      value: current.conversionValue,
+      prevValue: prev.conversionValue,
+      format: 'currency'
+    },
+    { 
+      key: 'ctr', 
+      label: 'CTR', 
+      value: current.clicks > 0 ? (current.clicks / current.impressions) * 100 : 0,
+      prevValue: prev.clicks > 0 ? (prev.clicks / prev.impressions) * 100 : 0,
+      format: 'percentage'
+    },
+    { 
+      key: 'cvr', 
+      label: 'CVR', 
+      value: current.clicks > 0 ? (current.conversions / current.clicks) * 100 : 0,
+      prevValue: prev.clicks > 0 ? (prev.conversions / prev.clicks) * 100 : 0,
+      format: 'percentage'
+    },
+    { 
+      key: 'roas', 
+      label: 'ROAS', 
+      value: current.cost > 0 ? current.conversionValue / current.cost : 0,
+      prevValue: prev.cost > 0 ? prev.conversionValue / prev.cost : 0,
+      format: 'decimal'
+    },
+    { 
+      key: 'aov', 
+      label: 'AOV', 
+      value: current.conversions > 0 ? current.conversionValue / current.conversions : 0,
+      prevValue: prev.conversions > 0 ? prev.conversionValue / prev.conversions : 0,
+      format: 'currency'
+    },
+    { 
+      key: 'cpa', 
+      label: 'CPA', 
+      value: current.conversions > 0 ? current.cost / current.conversions : 0,
+      prevValue: prev.conversions > 0 ? prev.cost / prev.conversions : 0,
+      format: 'currency'
+    },
+    { 
+      key: 'ranking', 
+      label: 'Avg Ranking', 
+      value: current.rankCount > 0 ? current.ranking / current.rankCount : 0,
+      prevValue: prev.rankCount > 0 ? prev.ranking / prev.rankCount : 0,
+      format: 'ranking'
+    },
+    { 
+      key: 'visibility', 
+      label: 'Visibility', 
+      value: current.visCount > 0 ? current.visibility / current.visCount : 0,
+      prevValue: prev.visCount > 0 ? prev.visibility / prev.visCount : 0,
+      format: 'percentage'
+    }
+  ];
+  
+  // Generate HTML for trends
+  let html = '';
+  
+  metrics.forEach(metric => {
+    const change = metric.value - metric.prevValue;
+    const percentChange = metric.prevValue > 0 ? (change / metric.prevValue) * 100 : 0;
+    
+    let formattedValue = '';
+    let formattedChange = '';
+    let trendClass = 'trend-neutral';
+    let arrow = '—';
+    
+    // Format current value
+    switch (metric.format) {
+      case 'currency':
+        formattedValue = '$' + metric.value.toFixed(2);
+        formattedChange = '$' + Math.abs(change).toFixed(2);
+        break;
+      case 'percentage':
+        formattedValue = metric.value.toFixed(2) + '%';
+        formattedChange = Math.abs(change).toFixed(2) + '%';
+        break;
+      case 'number':
+        formattedValue = metric.value.toLocaleString();
+        formattedChange = Math.abs(change).toLocaleString();
+        break;
+      case 'decimal':
+        formattedValue = metric.value.toFixed(2);
+        formattedChange = Math.abs(change).toFixed(2);
+        break;
+      case 'ranking':
+        formattedValue = metric.value.toFixed(1);
+        formattedChange = Math.abs(change).toFixed(1);
+        break;
+    }
+    
+    // Determine trend direction (reverse for ranking - lower is better)
+    if (metric.key === 'ranking' || metric.key === 'cpa') {
+      if (change < 0) {
+        trendClass = 'trend-up';
+        arrow = '▲';
+      } else if (change > 0) {
+        trendClass = 'trend-down';
+        arrow = '▼';
+      }
+    } else {
+      if (change > 0) {
+        trendClass = 'trend-up';
+        arrow = '▲';
+      } else if (change < 0) {
+        trendClass = 'trend-down';
+        arrow = '▼';
+      }
+    }
+    
+    html += `
+      <div class="trend-item">
+        <div class="trend-metric-name">${metric.label}</div>
+        <div class="trend-values">
+          <span class="trend-current-value">${formattedValue}</span>
+          <span class="trend-change ${trendClass}">
+            <span class="trend-arrow">${arrow}</span>
+            <span>${formattedChange}</span>
+          </span>
+        </div>
+      </div>
+    `;
+  });
+  
+  trendsContent.innerHTML = html;
 }
 
 function renderProductMetricsChart(containerId, chartData) {
@@ -1391,6 +1675,13 @@ leftFilters.innerHTML = `
       <option value="all">All</option>
     </select>
   </div>
+  <div style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
+    <label style="font-weight: 600; font-size: 14px;">Trends:</label>
+    <label class="trends-toggle-switch">
+      <input type="checkbox" id="trendsToggle">
+      <span class="trends-toggle-slider"></span>
+    </label>
+  </div>
 `;
 
 // Date range selector
@@ -1495,6 +1786,10 @@ dateRangeDropdown.addEventListener('click', function(e) {
         document.getElementById('channelTypeFilter').value
       );
       renderProductMetricsChart('productMetricsChart', chartData);
+      // Update trends if visible
+if (document.getElementById('trendsToggle')?.checked) {
+  updateTrendsData();
+}
     }
   }
 });
@@ -1523,17 +1818,53 @@ dateRangeStyle.textContent = `
 `;
 document.head.appendChild(dateRangeStyle);
 
+// Trends toggle functionality
+const trendsToggle = document.getElementById('trendsToggle');
+const trendsContainer = document.getElementById('google-ads-trends-container');
+
+trendsToggle.addEventListener('change', function() {
+  if (this.checked) {
+    trendsContainer.classList.add('visible');
+    // Update trends data
+    if (window.currentProductMetricsData) {
+      updateTrendsData();
+    }
+  } else {
+    trendsContainer.classList.remove('visible');
+  }
+});
+
 productMetricsContainer.appendChild(filterControls);
+
+// Create wrapper for chart and trends
+const chartWrapper = document.createElement('div');
+chartWrapper.style.cssText = `
+  width: 100%;
+  height: calc(100% - 80px);
+  position: relative;
+  display: flex;
+  gap: 15px;
+`;
 
 // Add chart container
 const chartContainer = document.createElement('div');
 chartContainer.id = 'productMetricsChart';
 chartContainer.style.cssText = `
-  width: 100%;
-  height: calc(100% - 80px);
+  flex: 1;
+  height: 100%;
   position: relative;
+  transition: flex 0.3s ease-out;
 `;
-productMetricsContainer.appendChild(chartContainer);
+
+// Add trends container
+const trendsContainer = document.createElement('div');
+trendsContainer.id = 'google-ads-trends-container';
+trendsContainer.className = 'google-ads-trends-container';
+trendsContainer.innerHTML = '<div class="trends-container-title">Metric Trends</div><div id="trends-content"></div>';
+
+chartWrapper.appendChild(chartContainer);
+chartWrapper.appendChild(trendsContainer);
+productMetricsContainer.appendChild(chartWrapper);
 
 contentWrapper.appendChild(productInfoContainer);
 contentWrapper.appendChild(productMetricsContainer);
@@ -5069,6 +5400,152 @@ if (window.googleAdsApexCharts) {
 
 .metric-toggle-btn.active {
   transform: scale(1.02);
+}
+/* Trends toggle switch styles */
+.trends-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.trends-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.trends-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.trends-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+.trends-toggle-switch input:checked + .trends-toggle-slider {
+  background-color: #007aff;
+}
+
+.trends-toggle-switch input:checked + .trends-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Trends container styles */
+.google-ads-trends-container {
+  width: 165px;
+  height: 430px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 15px;
+  overflow-y: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: none;
+  animation: slideIn 0.3s ease-out;
+}
+
+.google-ads-trends-container.visible {
+  display: block;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.trends-container-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.trend-item {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.trend-item:hover {
+  background: #e8f0fe;
+}
+
+.trend-metric-name {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.trend-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trend-current-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.trend-change {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.trend-up {
+  color: #4CAF50;
+}
+
+.trend-down {
+  color: #F44336;
+}
+
+.trend-neutral {
+  color: #999;
+}
+
+.trend-arrow {
+  font-size: 10px;
+}
+
+/* Chart container transition */
+#productMetricsChart {
+  transition: width 0.3s ease-out;
 }
     `;
     document.head.appendChild(style);
