@@ -1821,18 +1821,18 @@ document.head.appendChild(dateRangeStyle);
 // Trends toggle functionality
 setTimeout(() => {
   const trendsToggle = document.getElementById('trendsToggle');
-  const trendsContainer = document.getElementById('google-ads-trends-container');
+  const trendsContainerElement = document.getElementById('google-ads-trends-container');
 
-  if (trendsToggle && trendsContainer) {
+  if (trendsToggle && trendsContainerElement) {
     trendsToggle.addEventListener('change', function() {
       if (this.checked) {
-        trendsContainer.classList.add('visible');
+        trendsContainerElement.classList.add('visible');
         // Update trends data
         if (window.currentProductMetricsData) {
           updateTrendsData();
         }
       } else {
-        trendsContainer.classList.remove('visible');
+        trendsContainerElement.classList.remove('visible');
       }
     });
   }
