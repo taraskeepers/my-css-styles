@@ -914,22 +914,22 @@ canvas.style.height = '450px'; // Fixed height instead of calc()
 canvas.style.maxHeight = '450px';
 container.appendChild(canvas);
   
-  // Create datasets
-  const datasets = metricsConfig.map(metric => ({
-    label: metric.label,
-    data: chartData[metric.key],
-    borderColor: metric.color,
-    backgroundColor: metric.fill ? metric.color + '40' : metric.color + '20',
-    borderWidth: 2,
-    pointRadius: 3,
-    pointHoverRadius: 5,
-    tension: 0.3,
-    yAxisID: metric.yAxisID,
-    type: metric.type,
-    fill: metric.fill || false,
-    hidden: !metric.active,
-    metricKey: metric.key
-  }));
+// Create datasets
+const datasets = metricsConfig.map(metric => ({
+  label: metric.label,
+  data: chartData[metric.key],
+  borderColor: metric.color,
+  backgroundColor: metric.fill ? metric.color + '40' : metric.color + '20',
+  borderWidth: metric.key === 'ranking' ? 4 : 2, // 2x thicker for ranking
+  pointRadius: 3,
+  pointHoverRadius: 5,
+  tension: 0.3,
+  yAxisID: metric.yAxisID,
+  type: metric.type,
+  fill: metric.fill || false,
+  hidden: !metric.active,
+  metricKey: metric.key
+}));
   
 // Create scales object for all y-axes (but only show the active ones)
 const scales = {
@@ -961,12 +961,23 @@ const scales = {
   
 // Add y-axes for each metric
 metricsConfig.forEach((metric, index) => {
+  let minValue, maxValue;
+  
+  if (metric.key === 'ranking') {
+    minValue = 1;   // Best ranking (top)
+    maxValue = 40;  // Worst ranking (bottom)
+  } else if (metric.key === 'visibility') {
+    minValue = 0;
+    maxValue = 1;   // 100% in decimal form
+  }
+  
   scales[metric.yAxisID] = {
     type: 'linear',
     display: false, // Always hidden
     position: index % 2 === 0 ? 'left' : 'right',
     reverse: metric.key === 'ranking', // Reverse for ranking (lower is better)
-    min: metric.key === 'ranking' ? 0 : undefined, // Always start from 0 for ranking
+    min: minValue,
+    max: maxValue,
     title: {
       display: false, // Hide title
       text: metric.label,
