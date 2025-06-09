@@ -1252,7 +1252,7 @@ productMetricsContainer.id = 'product_metrics';
 productMetricsContainer.className = 'google-ads-metrics-container';
 productMetricsContainer.style.cssText = `
   width: 1195px;
-  height: 600px;
+  height: 650px;
   margin: 20px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
