@@ -785,20 +785,20 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
             rankCount++;
           }
           
-          // Get daily visibility data (same as visibility-history-row)
-          if (histItem?.visibility != null) {
-            const dailyVisibility = parseFloat(histItem.visibility) * 100;
-            totalVis += dailyVisibility;
-            visCount++;
-          }
+// Get daily visibility data (same as visibility-history-row)
+if (histItem?.visibility != null) {
+  const dailyVisibility = parseFloat(histItem.visibility); // Remove * 100
+  totalVis += dailyVisibility;
+  visCount++;
+}
         }
       });
       
       // Set ranking (null if no data available)
       group.ranking = rankCount > 0 ? Math.round((totalRank / rankCount) * 100) / 100 : null;
       
-      // Set visibility (0 if no data available)
-      group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100) / 100 : 0;
+// Set visibility (0 if no data available)
+group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 1000) / 1000 : 0; // Keep as decimal 0-1
     });
   }
   
@@ -1007,51 +1007,53 @@ metricsConfig.forEach((metric, index) => {
         mode: 'index',
         intersect: false
       },
-      plugins: {
-        legend: {
-          display: false  // Hide the default legend
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              const value = context.parsed.y;
-              
-              // Handle null values for ranking
-              if (context.dataset.metricKey === 'ranking' && (value === null || value === 40)) {
-                return label + 'no rank';
-              }
-              
-              // Format other values with proper rounding
-              if (label.includes('$')) {
-                label += '$' + (value ? value.toFixed(2) : '0.00');
-              } else if (label.includes('%')) {
-                label += (value ? value.toFixed(2) : '0.00') + '%';
-              } else if (label === 'ROAS: ') {
-                label += value ? value.toFixed(2) : '0.00';
-              } else if (label === 'Avg Ranking: ') {
-                label += value ? value.toFixed(2) : 'no rank';
-              } else {
-                // For whole numbers like impressions, clicks, conversions
-                if (context.dataset.metricKey === 'impressions' || 
-                    context.dataset.metricKey === 'clicks' || 
-                    context.dataset.metricKey === 'conversions') {
-                  label += value ? value.toLocaleString() : '0';
-                } else {
-                  label += value ? value.toFixed(2) : '0.00';
-                }
-              }
-              
-              return label;
-            }
+plugins: {
+  legend: {
+    display: false  // Hide the default legend
+  },
+  tooltip: {
+    mode: 'index',
+    intersect: false,
+    callbacks: {
+      label: function(context) {
+        let label = context.dataset.label || '';
+        if (label) {
+          label += ': ';
+        }
+        const value = context.parsed.y;
+        
+        // Handle null values for ranking
+        if (context.dataset.metricKey === 'ranking' && (value === null || value === 40)) {
+          return label + 'no rank';
+        }
+        
+        // Format other values with proper rounding
+        if (label.includes('$')) {
+          label += '$' + (value ? value.toFixed(2) : '0.00');
+        } else if (label.includes('%')) {
+          label += (value ? value.toFixed(2) : '0.00') + '%';
+        } else if (label === 'ROAS: ') {
+          label += value ? value.toFixed(2) : '0.00';
+        } else if (label === 'Avg Ranking: ') {
+          label += value ? value.toFixed(2) : 'no rank';
+        } else if (label.includes('Visibility')) {
+          label += (value ? (value * 100).toFixed(1) : '0.0') + '%'; // Convert decimal to percentage
+        } else {
+          // For whole numbers like impressions, clicks, conversions
+          if (context.dataset.metricKey === 'impressions' || 
+              context.dataset.metricKey === 'clicks' || 
+              context.dataset.metricKey === 'conversions') {
+            label += value ? value.toLocaleString() : '0';
+          } else {
+            label += value ? value.toFixed(2) : '0.00';
           }
         }
-      },
+        
+        return label;
+      }
+    }
+  }
+},
       scales: scales
     }
   });
