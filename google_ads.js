@@ -2,6 +2,7 @@ window.pendingGoogleAdsCharts = [];
 window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
 window.userMetricPreferences = null;
+window.userTrendPreferences = null;
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
@@ -987,8 +988,8 @@ function updateTrendsData() {
   const current = window.currentPeriodTotals;
   const prev = window.previousPeriodTotals;
   
-  // Define metrics to display
-  const metrics = [
+  // Define all metrics
+  const allMetrics = [
     { 
       key: 'impressions', 
       label: 'Impressions', 
@@ -1075,10 +1076,32 @@ function updateTrendsData() {
     }
   ];
   
-  // Generate HTML for trends
+  // Initialize default preferences if not set
+  if (!window.userTrendPreferences) {
+    window.userTrendPreferences = {};
+    // Default to first 8 metrics
+    allMetrics.slice(0, 8).forEach(metric => {
+      window.userTrendPreferences[metric.key] = true;
+    });
+  }
+  
+  // Filter metrics based on user preferences
+  const selectedMetrics = allMetrics.filter(metric => window.userTrendPreferences[metric.key]);
+  
+  // Update container height if more than 8 metrics
+  const trendsContainer = document.getElementById('google-ads-trends-container');
+  if (trendsContainer) {
+    if (selectedMetrics.length > 8) {
+      trendsContainer.classList.add('expanded');
+    } else {
+      trendsContainer.classList.remove('expanded');
+    }
+  }
+  
+  // Generate HTML for selected metrics
   let html = '';
   
-  metrics.forEach(metric => {
+  selectedMetrics.forEach(metric => {
     const change = metric.value - metric.prevValue;
     const percentChange = metric.prevValue > 0 ? (change / metric.prevValue) * 100 : 0;
     
@@ -1145,6 +1168,39 @@ function updateTrendsData() {
   });
   
   trendsContent.innerHTML = html;
+  
+  // Update metrics selector popup
+  updateMetricsSelectorPopup(allMetrics);
+}
+
+function updateMetricsSelectorPopup(allMetrics) {
+  const container = document.getElementById('metricsListContainer');
+  if (!container) return;
+  
+  let html = '';
+  allMetrics.forEach(metric => {
+    const isChecked = window.userTrendPreferences[metric.key] || false;
+    html += `
+      <div class="metric-selector-item">
+        <label class="metric-toggle-switch">
+          <input type="checkbox" data-metric="${metric.key}" ${isChecked ? 'checked' : ''}>
+          <span class="metric-toggle-slider"></span>
+        </label>
+        <span>${metric.label}</span>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Add event listeners to toggles
+  container.querySelectorAll('input[data-metric]').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      const metricKey = this.getAttribute('data-metric');
+      window.userTrendPreferences[metricKey] = this.checked;
+      updateTrendsData();
+    });
+  });
 }
 
 function renderProductMetricsChart(containerId, chartData) {
@@ -1838,6 +1894,26 @@ setTimeout(() => {
   }
 }, 100);
 
+// Trends settings functionality
+setTimeout(() => {
+  const settingsBtn = document.getElementById('trendsSettingsBtn');
+  const selectorPopup = document.getElementById('metricsSelectorPopup');
+  
+  if (settingsBtn && selectorPopup) {
+    settingsBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      selectorPopup.classList.toggle('visible');
+    });
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!selectorPopup.contains(e.target) && e.target !== settingsBtn) {
+        selectorPopup.classList.remove('visible');
+      }
+    });
+  }
+}, 100);
+
 productMetricsContainer.appendChild(filterControls);
 
 // Create wrapper for chart and trends
@@ -1857,14 +1933,28 @@ chartContainer.style.cssText = `
   flex: 1;
   height: 100%;
   position: relative;
-  transition: flex 0.3s ease-out;
+  transition: width 0.3s ease-out;
+  width: 100%;
 `;
 
 // Add trends container
 const trendsContainer = document.createElement('div');
 trendsContainer.id = 'google-ads-trends-container';
 trendsContainer.className = 'google-ads-trends-container';
-trendsContainer.innerHTML = '<div class="trends-container-title">Metric Trends</div><div id="trends-content"></div>';
+trendsContainer.innerHTML = `
+  <div class="trends-container-title">Metric Trends</div>
+  <button class="trends-settings-btn" id="trendsSettingsBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
+    </svg>
+  </button>
+  <div id="trends-content"></div>
+  <div class="metrics-selector-popup" id="metricsSelectorPopup">
+    <div class="metrics-selector-title">Select Metrics to Display</div>
+    <div id="metricsListContainer"></div>
+  </div>
+`;
 
 chartWrapper.appendChild(chartContainer);
 chartWrapper.appendChild(trendsContainer);
@@ -5453,23 +5543,32 @@ if (window.googleAdsApexCharts) {
 
 /* Trends container styles */
 .google-ads-trends-container {
-  width: 165px;
+  width: 0;
+  min-width: 0;
   height: 430px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  padding: 15px;
+  padding: 0;
   overflow-y: auto;
-  position: absolute;
-  right: 0;
-  top: 0;
-  display: none;
-  animation: slideIn 0.3s ease-out;
+  overflow-x: hidden;
+  position: relative;
+  display: block;
+  transition: all 0.3s ease-out;
+  flex-shrink: 0;
 }
 
 .google-ads-trends-container.visible {
-  display: block;
+  width: 180px;
+  min-width: 180px;
+  padding: 15px;
+}
+
+/* When more than 8 metrics are selected */
+.google-ads-trends-container.expanded {
+  height: auto;
+  max-height: 600px;
 }
 
 @keyframes slideIn {
@@ -5494,14 +5593,20 @@ if (window.googleAdsApexCharts) {
 
 .trend-item {
   margin-bottom: 12px;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  transition: background 0.2s;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s;
+}
+
+.trend-item:last-child {
+  border-bottom: none;
 }
 
 .trend-item:hover {
-  background: #e8f0fe;
+  background: rgba(232, 240, 254, 0.3);
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 4px;
 }
 
 .trend-metric-name {
@@ -5550,6 +5655,118 @@ if (window.googleAdsApexCharts) {
 /* Chart container transition */
 #productMetricsChart {
   transition: width 0.3s ease-out;
+}
+/* Trends settings button */
+.trends-settings-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.trends-settings-btn:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.trends-settings-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #666;
+}
+
+/* Metrics selector popup */
+.metrics-selector-popup {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  width: 240px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 15px;
+  display: none;
+  z-index: 1000;
+}
+
+.metrics-selector-popup.visible {
+  display: block;
+}
+
+.metrics-selector-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.metric-selector-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.metric-selector-toggle {
+  margin-right: 10px;
+}
+
+/* Custom toggle switch for metrics */
+.metric-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.metric-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.metric-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 20px;
+}
+
+.metric-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+.metric-toggle-switch input:checked + .metric-toggle-slider {
+  background-color: #007aff;
+}
+
+.metric-toggle-switch input:checked + .metric-toggle-slider:before {
+  transform: translateX(16px);
 }
     `;
     document.head.appendChild(style);
