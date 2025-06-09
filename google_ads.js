@@ -798,7 +798,7 @@ if (histItem?.visibility != null) {
       group.ranking = rankCount > 0 ? Math.round((totalRank / rankCount) * 100) / 100 : null;
       
 // Set visibility (0 if no data available)
-group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 1000) / 1000 : 0; // Keep as decimal 0-1
+group.visibility = visCount > 0 ? Math.round((totalVis / visCount) * 100 * 10) / 10 : 0; // Convert to percentage 0-100
     });
   }
   
@@ -963,13 +963,13 @@ const scales = {
 metricsConfig.forEach((metric, index) => {
   let minValue, maxValue;
   
-  if (metric.key === 'ranking') {
-    minValue = 1;   // Best ranking (top)
-    maxValue = 40;  // Worst ranking (bottom)
-  } else if (metric.key === 'visibility') {
-    minValue = 0;
-    maxValue = 1;   // 100% in decimal form
-  }
+if (metric.key === 'ranking') {
+  minValue = 1;   // Best ranking (top)
+  maxValue = 40;  // Worst ranking (bottom)
+} else if (metric.key === 'visibility') {
+  minValue = 0;
+  maxValue = 100;   // 100% as actual percentage
+}
   
   scales[metric.yAxisID] = {
     type: 'linear',
@@ -1036,9 +1036,9 @@ plugins: {
           label += value ? value.toFixed(2) : '0.00';
         } else if (label === 'Avg Ranking: ') {
           label += value ? value.toFixed(2) : 'no rank';
-        } else if (label.includes('Visibility')) {
-          label += (value ? (value * 100).toFixed(1) : '0.0') + '%'; // Convert decimal to percentage
-        } else {
+} else if (label.includes('Visibility')) {
+  label += (value ? value.toFixed(1) : '0.0') + '%'; // Already in percentage format
+} else {
           // For whole numbers like impressions, clicks, conversions
           if (context.dataset.metricKey === 'impressions' || 
               context.dataset.metricKey === 'clicks' || 
@@ -1084,6 +1084,83 @@ metricsConfig.forEach(metric => {
   
   // Store chart instance for potential future access
   container.chartInstance = chartInstance;
+  // Create custom label container
+const labelContainer = document.createElement('div');
+labelContainer.className = 'metric-labels-overlay';
+labelContainer.style.cssText = `
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  font-size: 13px;
+  z-index: 1000;
+  min-width: 180px;
+`;
+
+// Function to update labels
+function updateLabels() {
+  labelContainer.innerHTML = '';
+  
+  chartInstance.data.datasets.forEach(dataset => {
+    if (!dataset.hidden && dataset.data && dataset.data.length > 0) {
+      const lastValue = dataset.data[dataset.data.length - 1];
+      if (lastValue === null || lastValue === undefined) return;
+      
+      const labelDiv = document.createElement('div');
+      labelDiv.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 8px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        background-color: ${dataset.borderColor}15;
+        border-left: 3px solid ${dataset.borderColor};
+      `;
+      
+      // Format value
+      let formattedValue;
+      if (dataset.metricKey === 'ranking') {
+        formattedValue = lastValue.toFixed(1);
+      } else if (dataset.metricKey === 'visibility') {
+        formattedValue = lastValue.toFixed(1) + '%';
+      } else if (dataset.label.includes('$')) {
+        formattedValue = '$' + lastValue.toFixed(2);
+      } else if (dataset.label.includes('%')) {
+        formattedValue = lastValue.toFixed(2) + '%';
+      } else if (['impressions', 'clicks', 'conversions'].includes(dataset.metricKey)) {
+        formattedValue = lastValue.toLocaleString();
+      } else {
+        formattedValue = lastValue.toFixed(2);
+      }
+      
+      labelDiv.innerHTML = `
+        <span style="color: #666; font-size: 12px;">${dataset.label.replace(' (%)', '').replace(' ($)', '')}</span>
+        <span style="color: ${dataset.borderColor}; font-weight: bold; font-size: 14px;">${formattedValue}</span>
+      `;
+      
+      labelContainer.appendChild(labelDiv);
+    }
+  });
+}
+
+// Initial update
+updateLabels();
+
+// Update labels when chart changes
+const originalUpdate = updateChartVisibility;
+updateChartVisibility = function() {
+  originalUpdate();
+  setTimeout(updateLabels, 50);
+};
+
+// Add to container
+canvas.parentElement.style.position = 'relative';
+canvas.parentElement.appendChild(labelContainer);
 }
 
 function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewOverviewGoogleAds') {
