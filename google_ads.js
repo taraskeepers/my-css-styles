@@ -5545,7 +5545,7 @@ if (window.googleAdsApexCharts) {
 .google-ads-trends-container {
   width: 0;
   min-width: 0;
-  height: 430px;
+  height: 540px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -5592,7 +5592,6 @@ if (window.googleAdsApexCharts) {
 }
 
 .trend-item {
-  margin-bottom: 12px;
   padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
   transition: all 0.2s;
@@ -5623,7 +5622,7 @@ if (window.googleAdsApexCharts) {
 }
 
 .trend-current-value {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   color: #333;
 }
