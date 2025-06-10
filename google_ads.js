@@ -6105,7 +6105,6 @@ if (window.googleAdsApexCharts) {
   border-radius: 20px;
   padding: 3px;
   z-index: 100;
-  margin-bottom: 15px;
 }
 
 /* Adjust product_info container top margin */
@@ -6179,12 +6178,13 @@ if (window.googleAdsApexCharts) {
 
 /* Update chart-mode-toggle for top placement */
 .chart-mode-toggle-top {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   background: #f0f0f0;
   padding: 6px 12px;
   border-radius: 20px;
+  height: 36px;
 }
 
 .chart-mode-toggle-top label {
