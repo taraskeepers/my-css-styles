@@ -364,6 +364,14 @@ function createSegmentationChartGoogleAds(containerId, chartData, termParam, loc
 
 function selectGoogleAdsProduct(product, navItemElement) {
   console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
+
+  // Clean up previous product info charts
+if (window.productInfoCharts) {
+  window.productInfoCharts.forEach(chart => {
+    try { chart.destroy(); } catch (e) {}
+  });
+  window.productInfoCharts = [];
+}
   
   document.querySelectorAll('.nav-google-ads-item').forEach(item => {
     item.classList.remove('selected');
@@ -374,6 +382,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
   }
   
   window.selectedGoogleAdsProduct = product;
+  populateProductInfo(product);
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
@@ -767,6 +776,256 @@ async function loadProductMetricsData(productTitle) {
     console.error('[loadProductMetricsData] Error:', error);
     return null;
   }
+}
+
+function populateProductInfo(product) {
+  const productInfoContainer = document.getElementById('product_info');
+  if (!productInfoContainer) return;
+  
+  // Clear existing content
+  productInfoContainer.innerHTML = '';
+  
+  // Create wrapper
+  const wrapper = document.createElement('div');
+  wrapper.className = 'product-info-wrapper';
+  
+  // Left container with product details
+  const leftContainer = document.createElement('div');
+  leftContainer.className = 'product-info-left';
+  
+  const productImage = product.thumbnail || 'https://via.placeholder.com/120?text=No+Image';
+  const productTitle = product.title || 'No title';
+  const productPrice = product.price || 'N/A';
+  const productRating = calculateGoogleAdsProductMetrics(product).avgRating;
+  
+  leftContainer.innerHTML = `
+    <img class="product-info-image" 
+         src="${productImage}" 
+         alt="${productTitle}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/120?text=No+Image';">
+    <div class="product-info-title">${productTitle}</div>
+    <div class="product-info-details">
+      <div class="product-info-price">${productPrice !== 'N/A' ? '$' + productPrice : productPrice}</div>
+      <div class="product-info-rating">
+        <span>★</span>
+        <span>${productRating}</span>
+      </div>
+    </div>
+  `;
+  
+  // Right container with radial charts
+  const rightContainer = document.createElement('div');
+  rightContainer.className = 'product-info-right';
+  
+  // Add toggle
+  const toggleContainer = document.createElement('div');
+  toggleContainer.innerHTML = `
+    <div class="chart-mode-toggle">
+      <label>Channel Type</label>
+      <label class="chart-mode-switch">
+        <input type="checkbox" id="chartModeToggle">
+        <span class="chart-mode-slider"></span>
+      </label>
+      <label>Campaigns</label>
+    </div>
+  `;
+  
+  // Add charts grid
+  const chartsGrid = document.createElement('div');
+  chartsGrid.className = 'radial-charts-grid';
+  chartsGrid.id = 'productInfoChartsGrid';
+  
+  rightContainer.appendChild(toggleContainer);
+  rightContainer.appendChild(chartsGrid);
+  
+  wrapper.appendChild(leftContainer);
+  wrapper.appendChild(rightContainer);
+  productInfoContainer.appendChild(wrapper);
+  
+  // Show the container
+  productInfoContainer.style.display = 'block';
+  
+  // Load data and render charts
+  loadProductMetricsData(product.title).then(result => {
+    if (result && result.productData.length > 0) {
+      renderProductInfoCharts(result.productData, 'channel');
+      
+      // Add toggle event listener
+      document.getElementById('chartModeToggle').addEventListener('change', function() {
+        const mode = this.checked ? 'campaign' : 'channel';
+        renderProductInfoCharts(result.productData, mode);
+      });
+    } else {
+      chartsGrid.innerHTML = '<div style="text-align: center; color: #999; width: 100%;">No performance data available</div>';
+    }
+  });
+}
+
+function renderProductInfoCharts(productData, mode = 'channel') {
+  const chartsGrid = document.getElementById('productInfoChartsGrid');
+  if (!chartsGrid) return;
+  
+  // Clear existing charts
+  chartsGrid.innerHTML = '';
+  
+  // Aggregate data by mode
+  const aggregatedData = {};
+  
+  productData.forEach(row => {
+    const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
+    
+    if (!aggregatedData[key]) {
+      aggregatedData[key] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversionValue: 0
+      };
+    }
+    
+    aggregatedData[key].impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    aggregatedData[key].clicks += parseInt(row.Clicks) || 0;
+    aggregatedData[key].cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    aggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+  });
+  
+  // Calculate totals
+  const totals = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversionValue: 0
+  };
+  
+  Object.values(aggregatedData).forEach(data => {
+    totals.impressions += data.impressions;
+    totals.clicks += data.clicks;
+    totals.cost += data.cost;
+    totals.conversionValue += data.conversionValue;
+  });
+  
+  // Define metrics and colors
+  const metrics = [
+    { 
+      key: 'impressions', 
+      label: 'Impressions', 
+      formatter: (val) => val.toLocaleString(),
+      colors: ['#007aff', '#5ac8fa']
+    },
+    { 
+      key: 'clicks', 
+      label: 'Clicks', 
+      formatter: (val) => val.toLocaleString(),
+      colors: ['#34c759', '#30d158']
+    },
+    { 
+      key: 'cost', 
+      label: 'Cost', 
+      formatter: (val) => '$' + val.toFixed(2),
+      colors: ['#ff3b30', '#ff6961']
+    },
+    { 
+      key: 'conversionValue', 
+      label: 'Conversion Value', 
+      formatter: (val) => '$' + val.toFixed(2),
+      colors: ['#af52de', '#da70d6']
+    }
+  ];
+  
+  // Create charts for each metric
+  metrics.forEach((metric, index) => {
+    const chartItem = document.createElement('div');
+    chartItem.className = 'radial-chart-item';
+    
+    const chartContainer = document.createElement('div');
+    chartContainer.className = 'radial-chart-container';
+    chartContainer.id = `productInfoChart${index}`;
+    
+    const chartLabel = document.createElement('div');
+    chartLabel.className = 'radial-chart-label';
+    chartLabel.textContent = metric.label;
+    
+    const chartSublabel = document.createElement('div');
+    chartSublabel.className = 'radial-chart-sublabel';
+    chartSublabel.textContent = metric.formatter(totals[metric.key]);
+    
+    chartItem.appendChild(chartContainer);
+    chartItem.appendChild(chartLabel);
+    chartItem.appendChild(chartSublabel);
+    chartsGrid.appendChild(chartItem);
+    
+    // Create radial chart
+    const series = [];
+    const labels = [];
+    
+    // Get data for this metric, sorted by value
+    const sortedKeys = Object.keys(aggregatedData).sort((a, b) => 
+      aggregatedData[b][metric.key] - aggregatedData[a][metric.key]
+    );
+    
+    sortedKeys.forEach(key => {
+      const value = aggregatedData[key][metric.key];
+      const percentage = totals[metric.key] > 0 ? (value / totals[metric.key]) * 100 : 0;
+      series.push(percentage);
+      labels.push(key);
+    });
+    
+    // Create donut chart
+    const options = {
+      series: series,
+      chart: {
+        type: 'donut',
+        height: 120,
+        width: 120
+      },
+      labels: labels,
+      colors: series.length === 1 ? [metric.colors[0]] : metric.colors,
+      legend: {
+        show: false
+      },
+      dataLabels: {
+        enabled: false
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '75%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                showAlways: true,
+                label: '',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#333',
+                formatter: function (w) {
+                  return metric.formatter(totals[metric.key]);
+                }
+              }
+            }
+          }
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function(value, { seriesIndex }) {
+            const actualValue = aggregatedData[sortedKeys[seriesIndex]][metric.key];
+            return metric.formatter(actualValue) + ' (' + value.toFixed(1) + '%)';
+          }
+        }
+      }
+    };
+    
+    const chart = new ApexCharts(chartContainer, options);
+    chart.render();
+    
+    // Store chart reference for cleanup
+    if (!window.productInfoCharts) {
+      window.productInfoCharts = [];
+    }
+    window.productInfoCharts.push(chart);
+  });
 }
 
 function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
@@ -5806,6 +6065,179 @@ if (window.googleAdsApexCharts) {
 
 .metric-toggle-switch input:checked + .metric-toggle-slider:before {
   transform: translateX(16px);
+}
+/* Product Info Container Styles */
+.product-info-wrapper {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  align-items: center;
+}
+
+.product-info-left {
+  width: 250px;
+  height: 210px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.product-info-image {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: white;
+  padding: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.product-info-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.product-info-details {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.product-info-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #007aff;
+}
+
+.product-info-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-info-right {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.chart-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 24px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.chart-mode-toggle label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.chart-mode-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.chart-mode-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.chart-mode-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.chart-mode-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+.chart-mode-switch input:checked + .chart-mode-slider {
+  background-color: #007aff;
+}
+
+.chart-mode-switch input:checked + .chart-mode-slider:before {
+  transform: translateX(20px);
+}
+
+.radial-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  flex: 1;
+  align-items: center;
+}
+
+.radial-chart-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.radial-chart-container {
+  width: 120px;
+  height: 120px;
+}
+
+.radial-chart-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.radial-chart-sublabel {
+  font-size: 10px;
+  color: #999;
+  margin-top: 2px;
 }
     `;
     document.head.appendChild(style);
