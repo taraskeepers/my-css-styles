@@ -836,61 +836,18 @@ function populateProductInfo(product) {
   rightContainer.appendChild(legendsContainer);
   rightContainer.appendChild(chartsGrid);
   
-  // Move date range selector here
-  const dateSelector = document.createElement('div');
-  dateSelector.className = 'product-info-date-selector';
-  dateSelector.innerHTML = `
-    <div id="productInfoDateRange" style="
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 14px;
-      background: #fff;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
-    ">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-      </svg>
-      <span id="productInfoDateText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Last 7 days</span>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </div>
-    <div id="productInfoDateDropdown" style="
-      position: absolute;
-      top: 100%;
-      right: 0;
-      margin-top: 8px;
-      background: white;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      display: none;
-      z-index: 1000;
-      min-width: 200px;
-    ">
-      <div class="date-range-option" data-days="3" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 3 days</div>
-      <div class="date-range-option" data-days="7" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 7 days</div>
-      <div class="date-range-option" data-days="14" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 14 days</div>
-      <div class="date-range-option" data-days="30" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 30 days</div>
-      <div class="date-range-option" data-days="90" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 90 days</div>
-    </div>
-  `;
-  
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
-  wrapper.appendChild(dateSelector);
-  productInfoContainer.appendChild(wrapper);
   
+  productInfoContainer.appendChild(wrapper);
   // Show the container
   productInfoContainer.style.display = 'block';
+  
+    // Show date range selector in top controls
+  const topDateSelector = document.getElementById('productInfoDateRange');
+  if (topDateSelector) {
+    topDateSelector.style.display = 'block';
+  }
   
   // Setup date range selector functionality
   setupProductInfoDateSelector();
@@ -914,7 +871,7 @@ function populateProductInfo(product) {
 }
 
 function setupProductInfoDateSelector() {
-  const dateRange = document.getElementById('productInfoDateRange');
+  const dateRange = document.getElementById('productInfoDateRange').querySelector('div');
   const dropdown = document.getElementById('productInfoDateDropdown');
   const dateText = document.getElementById('productInfoDateText');
   
@@ -1270,28 +1227,55 @@ function populateProductTables(productData, mode = 'channel') {
     data.cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
   });
   
-  // Sort by impressions descending
-  const sortedKeys = Object.keys(aggregatedData).sort((a, b) => 
-    aggregatedData[b].impressions - aggregatedData[a].impressions
-  );
+  // Store current sort state
+  if (!window.productTableSort) {
+    window.productTableSort = { column: 'impressions', ascending: false };
+  }
+  
+  // Sort data
+  const sortedKeys = Object.keys(aggregatedData).sort((a, b) => {
+    const aData = aggregatedData[a];
+    const bData = aggregatedData[b];
+    let aVal, bVal;
+    
+    switch(window.productTableSort.column) {
+      case 'key': aVal = a; bVal = b; break;
+      default: aVal = aData[window.productTableSort.column]; bVal = bData[window.productTableSort.column];
+    }
+    
+    if (window.productTableSort.ascending) {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+  
+  // Find max impressions for bar scaling
+  const maxImpressions = Math.max(...Object.values(aggregatedData).map(d => d.impressions));
+  
+  // Find ROAS range for coloring
+  const roasValues = Object.values(aggregatedData).map(d => d.roas).filter(r => r > 0);
+  const maxRoas = Math.max(...roasValues);
+  const minRoas = Math.min(...roasValues);
+  const midRoas = (maxRoas + minRoas) / 2;
   
   // Create table HTML
   let tableHTML = `
     <div class="product-tables-content">
-      <table class="product-metrics-table">
+      <table class="product-metrics-table" id="productMetricsTableElement">
         <thead>
           <tr>
-            <th>${mode === 'channel' ? 'Channel Type' : 'Campaign'}</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>Cost</th>
-            <th>Conversions</th>
-            <th>Conv. Value</th>
-            <th>CTR</th>
-            <th>CVR</th>
-            <th>ROAS</th>
-            <th>AOV</th>
-            <th>CPA</th>
+            <th data-sort="key" class="sortable">${mode === 'channel' ? 'Channel Type' : 'Campaign'} <span class="sort-indicator"></span></th>
+            <th data-sort="impressions" class="sortable">Impressions <span class="sort-indicator"></span></th>
+            <th data-sort="clicks" class="sortable">Clicks <span class="sort-indicator"></span></th>
+            <th data-sort="cost" class="sortable">Cost <span class="sort-indicator"></span></th>
+            <th data-sort="conversions" class="sortable">Conversions <span class="sort-indicator"></span></th>
+            <th data-sort="conversionValue" class="sortable">Conv. Value <span class="sort-indicator"></span></th>
+            <th data-sort="ctr" class="sortable">CTR <span class="sort-indicator"></span></th>
+            <th data-sort="cvr" class="sortable">CVR <span class="sort-indicator"></span></th>
+            <th data-sort="roas" class="sortable">ROAS <span class="sort-indicator"></span></th>
+            <th data-sort="aov" class="sortable">AOV <span class="sort-indicator"></span></th>
+            <th data-sort="cpa" class="sortable">CPA <span class="sort-indicator"></span></th>
           </tr>
         </thead>
         <tbody>
@@ -1299,17 +1283,39 @@ function populateProductTables(productData, mode = 'channel') {
   
   sortedKeys.forEach(key => {
     const data = aggregatedData[key];
+    const impressionBarWidth = maxImpressions > 0 ? (data.impressions / maxImpressions) * 100 : 0;
+    
+    // Calculate ROAS background color
+    let roasStyle = '';
+    if (data.roas > 0) {
+      if (data.roas >= midRoas) {
+        // Green gradient for good ROAS
+        const intensity = Math.min((data.roas - midRoas) / (maxRoas - midRoas) * 0.4, 0.4);
+        roasStyle = `background-color: rgba(76, 175, 80, ${intensity});`;
+      } else {
+        // Red gradient for poor ROAS
+        const intensity = Math.min((midRoas - data.roas) / (midRoas - minRoas) * 0.4, 0.4);
+        roasStyle = `background-color: rgba(244, 67, 54, ${intensity});`;
+      }
+    }
+    
     tableHTML += `
       <tr>
-        <td>${key}</td>
-        <td>${data.impressions.toLocaleString()}</td>
+        <td class="clickable-campaign" data-value="${key}" data-mode="${mode}">${key}</td>
+        <td>
+          <div class="impression-bar-container">
+            <div class="impression-bar" style="width: ${impressionBarWidth}%">
+              <span class="impression-value">${data.impressions.toLocaleString()}</span>
+            </div>
+          </div>
+        </td>
         <td>${data.clicks.toLocaleString()}</td>
         <td>$${data.cost.toFixed(2)}</td>
         <td>${data.conversions.toFixed(2)}</td>
         <td>$${data.conversionValue.toFixed(2)}</td>
         <td>${data.ctr.toFixed(2)}%</td>
         <td>${data.cvr.toFixed(2)}%</td>
-        <td>${data.roas.toFixed(2)}x</td>
+        <td style="${roasStyle}">${data.roas.toFixed(2)}x</td>
         <td>$${data.aov.toFixed(2)}</td>
         <td>$${data.cpa.toFixed(2)}</td>
       </tr>
@@ -1323,6 +1329,52 @@ function populateProductTables(productData, mode = 'channel') {
   `;
   
   tablesContainer.innerHTML = tableHTML;
+  
+  // Add event listeners for sorting
+  const headers = tablesContainer.querySelectorAll('th.sortable');
+  headers.forEach(header => {
+    header.addEventListener('click', function() {
+      const sortColumn = this.getAttribute('data-sort');
+      if (window.productTableSort.column === sortColumn) {
+        window.productTableSort.ascending = !window.productTableSort.ascending;
+      } else {
+        window.productTableSort.column = sortColumn;
+        window.productTableSort.ascending = false;
+      }
+      populateProductTables(productData, mode);
+    });
+  });
+  
+  // Show sort indicator
+  const currentHeader = tablesContainer.querySelector(`th[data-sort="${window.productTableSort.column}"]`);
+  if (currentHeader) {
+    const indicator = currentHeader.querySelector('.sort-indicator');
+    indicator.textContent = window.productTableSort.ascending ? ' ▲' : ' ▼';
+  }
+  
+  // Add event listeners for clickable campaigns
+  const clickableCells = tablesContainer.querySelectorAll('.clickable-campaign');
+  clickableCells.forEach(cell => {
+    cell.addEventListener('click', function() {
+      const value = this.getAttribute('data-value');
+      const cellMode = this.getAttribute('data-mode');
+      
+      // Update the appropriate filter in product_metrics
+      if (cellMode === 'campaign') {
+        const campaignFilter = document.getElementById('campaignNameFilter');
+        if (campaignFilter) {
+          campaignFilter.value = value;
+          updateProductMetricsChart();
+        }
+      } else {
+        const channelFilter = document.getElementById('channelTypeFilter');
+        if (channelFilter) {
+          channelFilter.value = value;
+          updateProductMetricsChart();
+        }
+      }
+    });
+  });
 }
 
 function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
@@ -4672,70 +4724,26 @@ if (window.googleAdsApexCharts) {
         width: auto;
         min-width: 600px;
       }
-
-      .fullscreen-toggle {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        padding: 8px 12px;
-        background-color: #007aff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 13px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        z-index: 100;
-      }
-
-      .fullscreen-toggle:hover {
-        background-color: #0056b3;
-      }
-
-      .fullscreen-close {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background-color: #ff3b30;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 12px;
-        font-size: 14px;
-        cursor: pointer;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .fullscreen-close:hover {
-        background-color: #d9342c;
-      }
       
-      .google-ads-view-switcher {
-        position: absolute;
-        top: 10px;
-        right: 140px;
-        display: inline-flex;
-        background-color: #f0f0f0;
-        border-radius: 20px;
-        padding: 3px;
-        z-index: 100;
-      }
+.google-ads-view-switcher {
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 24px;
+  padding: 4px;
+  height: 36px;
+}
 
-      .google-ads-view-switcher button {
-        padding: 6px 16px;
-        border: none;
-        background: transparent;
-        border-radius: 17px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #666;
-      }
+.google-ads-view-switcher button {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
 
       .google-ads-view-switcher button.active {
         background-color: #007aff;
@@ -6173,6 +6181,85 @@ if (window.googleAdsApexCharts) {
   font-weight: 500;
   color: #666;
 }
+.product-info-date-selector-top {
+  margin-left: auto;
+  position: relative;
+}
+
+/* Update top controls to handle the new layout */
+.google-ads-top-controls {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 100;
+  margin-bottom: 15px;
+}
+/* Product table enhancements */
+.product-metrics-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 20px;
+}
+
+.product-metrics-table th.sortable:hover {
+  background-color: #e8e8e8;
+}
+
+.sort-indicator {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 10px;
+}
+
+.clickable-campaign {
+  cursor: pointer;
+  color: #007aff;
+  text-decoration: underline;
+}
+
+.clickable-campaign:hover {
+  color: #0056b3;
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+.impression-bar-container {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.impression-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: #007aff;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  min-width: fit-content;
+  transition: width 0.3s ease;
+}
+
+.impression-value {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ROAS coloring is handled inline */
     `;
     document.head.appendChild(style);
   }
