@@ -1352,7 +1352,7 @@ function populateProductTables(productData, mode = 'channel') {
     indicator.textContent = window.productTableSort.ascending ? ' ▲' : ' ▼';
   }
   
-  // Add event listeners for clickable campaigns
+// Add event listeners for clickable campaigns
   const clickableCells = tablesContainer.querySelectorAll('.clickable-campaign');
   clickableCells.forEach(cell => {
     cell.addEventListener('click', function() {
@@ -1364,13 +1364,15 @@ function populateProductTables(productData, mode = 'channel') {
         const campaignFilter = document.getElementById('campaignNameFilter');
         if (campaignFilter) {
           campaignFilter.value = value;
-          updateProductMetricsChart();
+          // Trigger change event to update the chart
+          campaignFilter.dispatchEvent(new Event('change'));
         }
       } else {
         const channelFilter = document.getElementById('channelTypeFilter');
         if (channelFilter) {
           channelFilter.value = value;
-          updateProductMetricsChart();
+          // Trigger change event to update the chart
+          channelFilter.dispatchEvent(new Event('change'));
         }
       }
     });
@@ -4131,19 +4133,21 @@ container.innerHTML = `
       <div id="googleAdsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-        <div class="google-ads-top-controls">
-          <div class="google-ads-view-switcher">
-            <button id="viewOverviewGoogleAds" class="active">Overview</button>
-            <button id="viewChartsGoogleAds">Performance</button>
-            <button id="viewMapGoogleAds">Map</button>
-          </div>
-          <div class="chart-mode-toggle-top">
-            <label>Channel Type</label>
-            <label class="chart-mode-switch">
-              <input type="checkbox" id="chartModeToggle">
-              <span class="chart-mode-slider"></span>
-            </label>
-            <label>Campaigns</label>
+<div class="google-ads-top-controls">
+          <div class="controls-left-group">
+            <div class="google-ads-view-switcher">
+              <button id="viewOverviewGoogleAds" class="active">Overview</button>
+              <button id="viewChartsGoogleAds">Performance</button>
+              <button id="viewMapGoogleAds">Map</button>
+            </div>
+            <div class="chart-mode-toggle-top">
+              <label>Channel Type</label>
+              <label class="chart-mode-switch">
+                <input type="checkbox" id="chartModeToggle">
+                <span class="chart-mode-slider"></span>
+              </label>
+              <label>Campaigns</label>
+            </div>
           </div>
           <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
             <div style="
@@ -6153,17 +6157,24 @@ if (window.googleAdsApexCharts) {
   color: #333;
 }
 
-/* Top controls container */
+/* Update top controls to handle the new layout */
 .google-ads-top-controls {
   position: absolute;
   top: 10px;
   left: 20px;
-  right: 140px;
+  right: 20px;
+  max-width: 1175px; /* 1195px - 20px to align with product-info-wrapper */
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   z-index: 100;
   margin-bottom: 15px;
+}
+
+.controls-left-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 /* Update chart-mode-toggle for top placement */
@@ -6222,7 +6233,7 @@ if (window.googleAdsApexCharts) {
 .clickable-campaign {
   cursor: pointer;
   color: #007aff;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .clickable-campaign:hover {
