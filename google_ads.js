@@ -793,31 +793,28 @@ function populateProductInfo(product) {
   const leftContainer = document.createElement('div');
   leftContainer.className = 'product-info-left';
   
-  const productImage = product.thumbnail || 'https://via.placeholder.com/80?text=No+Image';
+  const productImage = product.thumbnail || 'https://via.placeholder.com/100?text=No+Image';
   const productTitle = product.title || 'No title';
   const productPrice = product.price || 'N/A';
   
   // Generate review data (since it's not in the data model, we'll simulate it)
-  // In real implementation, this would come from product data
   const reviewRating = (Math.random() * 2 + 3).toFixed(1); // Random between 3.0-5.0
   const reviewCount = Math.floor(Math.random() * 500 + 50); // Random between 50-550
   
   leftContainer.innerHTML = `
-    <div class="product-info-top">
+    <div class="product-info-title">${productTitle}</div>
+    <div class="product-info-bottom-section">
       <img class="product-info-image" 
            src="${productImage}" 
            alt="${productTitle}"
-           onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Image';">
-      <div class="product-info-title-section">
-        <div class="product-info-title">${productTitle}</div>
-      </div>
-    </div>
-    <div class="product-info-bottom">
-      <div class="product-info-price">${productPrice !== 'N/A' ? '$' + productPrice : productPrice}</div>
-      <div class="product-info-reviews">
-        <span class="product-stars">${'★'.repeat(Math.round(reviewRating))}</span>
-        <span>${reviewRating}</span>
-        <span class="product-review-count">(${reviewCount} reviews)</span>
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Image';">
+      <div class="product-info-details">
+        <div class="product-info-price">${productPrice !== 'N/A' && !isNaN(productPrice) ? '$' + productPrice : productPrice}</div>
+        <div class="product-info-reviews">
+          <span class="product-stars">${'★'.repeat(Math.round(reviewRating))}</span>
+          <span>${reviewRating}</span>
+          <span class="product-review-count">(${reviewCount} reviews)</span>
+        </div>
       </div>
     </div>
   `;
@@ -826,7 +823,10 @@ function populateProductInfo(product) {
   const rightContainer = document.createElement('div');
   rightContainer.className = 'product-info-right';
   
-  // Add toggle
+  // Add controls row with toggle and legends
+  const controlsRow = document.createElement('div');
+  controlsRow.className = 'chart-controls-row';
+  
   const toggleContainer = document.createElement('div');
   toggleContainer.innerHTML = `
     <div class="chart-mode-toggle">
@@ -839,30 +839,92 @@ function populateProductInfo(product) {
     </div>
   `;
   
+  const legendsContainer = document.createElement('div');
+  legendsContainer.className = 'chart-legends';
+  legendsContainer.id = 'chartLegends';
+  
+  controlsRow.appendChild(toggleContainer);
+  controlsRow.appendChild(legendsContainer);
+  
   // Add charts grid
   const chartsGrid = document.createElement('div');
   chartsGrid.className = 'radial-charts-grid';
   chartsGrid.id = 'productInfoChartsGrid';
   
-  rightContainer.appendChild(toggleContainer);
+  rightContainer.appendChild(controlsRow);
   rightContainer.appendChild(chartsGrid);
+  
+  // Move date range selector here
+  const dateSelector = document.createElement('div');
+  dateSelector.className = 'product-info-date-selector';
+  dateSelector.innerHTML = `
+    <div id="productInfoDateRange" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
+    ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span id="productInfoDateText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Last 7 days</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+    <div id="productInfoDateDropdown" style="
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: none;
+      z-index: 1000;
+      min-width: 200px;
+    ">
+      <div class="date-range-option" data-days="3" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 3 days</div>
+      <div class="date-range-option" data-days="7" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 7 days</div>
+      <div class="date-range-option" data-days="14" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 14 days</div>
+      <div class="date-range-option" data-days="30" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 30 days</div>
+      <div class="date-range-option" data-days="90" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 90 days</div>
+    </div>
+  `;
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
+  wrapper.appendChild(dateSelector);
   productInfoContainer.appendChild(wrapper);
   
   // Show the container
   productInfoContainer.style.display = 'block';
   
+  // Setup date range selector functionality
+  setupProductInfoDateSelector();
+  
   // Load data and render charts
   loadProductMetricsData(product.title).then(result => {
     if (result && result.productData.length > 0) {
+      // Store data globally for date range changes
+      window.currentProductInfoData = result.productData;
+      
       renderProductInfoCharts(result.productData, 'channel');
       
       // Add toggle event listener
       document.getElementById('chartModeToggle').addEventListener('change', function() {
         const mode = this.checked ? 'campaign' : 'channel';
-        renderProductInfoCharts(result.productData, mode);
+        renderProductInfoCharts(window.currentProductInfoData, mode);
       });
     } else {
       chartsGrid.innerHTML = '<div style="text-align: center; color: #999; width: 100%;">No performance data available</div>';
@@ -870,12 +932,85 @@ function populateProductInfo(product) {
   });
 }
 
+function setupProductInfoDateSelector() {
+  const dateRange = document.getElementById('productInfoDateRange');
+  const dropdown = document.getElementById('productInfoDateDropdown');
+  const dateText = document.getElementById('productInfoDateText');
+  
+  // Sync with global date range
+  const days = window.selectedDateRangeDays || 7;
+  const rangeLabels = {
+    3: 'Last 3 days',
+    7: 'Last 7 days',
+    14: 'Last 14 days',
+    30: 'Last 30 days',
+    90: 'Last 90 days'
+  };
+  dateText.textContent = rangeLabels[days] || `Last ${days} days`;
+  
+  dateRange.addEventListener('click', function(e) {
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  });
+  
+  dropdown.addEventListener('click', function(e) {
+    const option = e.target.closest('.date-range-option');
+    if (option) {
+      const days = parseInt(option.getAttribute('data-days'));
+      window.selectedDateRangeDays = days;
+      
+      // Update all date range displays
+      dateText.textContent = option.textContent;
+      const mainDateText = document.getElementById('dateRangeText');
+      if (mainDateText) {
+        mainDateText.textContent = option.textContent;
+      }
+      
+      // Hide dropdown
+      dropdown.style.display = 'none';
+      
+      // Update both containers
+      if (window.currentProductInfoData) {
+        renderProductInfoCharts(window.currentProductInfoData, 
+          document.getElementById('chartModeToggle').checked ? 'campaign' : 'channel');
+      }
+      
+      if (window.currentProductMetricsData) {
+        const chartData = processMetricsData(
+          window.currentProductMetricsData,
+          document.getElementById('campaignNameFilter').value,
+          document.getElementById('channelTypeFilter').value
+        );
+        renderProductMetricsChart('productMetricsChart', chartData);
+        updateTrendsData();
+      }
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function() {
+    dropdown.style.display = 'none';
+  });
+  
+  // Add hover effects
+  dropdown.querySelectorAll('.date-range-option').forEach(option => {
+    option.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f1f3f4';
+    });
+    option.addEventListener('mouseleave', function() {
+      this.style.backgroundColor = 'transparent';
+    });
+  });
+}
+
 function renderProductInfoCharts(productData, mode = 'channel') {
   const chartsGrid = document.getElementById('productInfoChartsGrid');
+  const legendsContainer = document.getElementById('chartLegends');
   if (!chartsGrid) return;
   
   // Clear existing charts
   chartsGrid.innerHTML = '';
+  legendsContainer.innerHTML = '';
   
   // Clean up previous charts
   if (window.productInfoCharts) {
@@ -885,10 +1020,21 @@ function renderProductInfoCharts(productData, mode = 'channel') {
     window.productInfoCharts = [];
   }
   
+  // Filter by date range
+  const daysToShow = window.selectedDateRangeDays || 7;
+  const endDate = moment().startOf('day');
+  const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+  
+  const filteredData = productData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = moment(row.Date, 'YYYY-MM-DD');
+    return rowDate.isBetween(startDate, endDate, 'day', '[]');
+  });
+  
   // Aggregate data by mode
   const aggregatedData = {};
   
-  productData.forEach(row => {
+  filteredData.forEach(row => {
     const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
     
     if (!aggregatedData[key]) {
@@ -932,37 +1078,51 @@ function renderProductInfoCharts(productData, mode = 'channel') {
   });
   totals.roas = totals.cost > 0 ? totals.conversionValue / totals.cost : 0;
   
-  // Define metrics and colors
+  // Define consistent colors for each key
+  const colorPalette = ['#007aff', '#34c759', '#ff3b30', '#af52de', '#ff9500', '#5ac8fa', '#ffcc00', '#ff2d55'];
+  const keyColors = {};
+  const sortedKeys = Object.keys(aggregatedData).sort();
+  sortedKeys.forEach((key, index) => {
+    keyColors[key] = colorPalette[index % colorPalette.length];
+  });
+  
+  // Create legends
+  sortedKeys.forEach(key => {
+    const legendItem = document.createElement('div');
+    legendItem.className = 'legend-item';
+    legendItem.innerHTML = `
+      <div class="legend-color" style="background-color: ${keyColors[key]};"></div>
+      <span>${key}</span>
+    `;
+    legendsContainer.appendChild(legendItem);
+  });
+  
+  // Define metrics
   const metrics = [
     { 
       key: 'impressions', 
       label: 'Impressions', 
-      formatter: (val) => val.toLocaleString(),
-      colors: ['#007aff', '#5ac8fa', '#34b3ff', '#1e88e5']
+      formatter: (val) => val.toLocaleString()
     },
     { 
       key: 'clicks', 
       label: 'Clicks', 
-      formatter: (val) => val.toLocaleString(),
-      colors: ['#34c759', '#30d158', '#32de84', '#4ade80']
+      formatter: (val) => val.toLocaleString()
     },
     { 
       key: 'cost', 
       label: 'Cost', 
-      formatter: (val) => '$' + val.toFixed(2),
-      colors: ['#ff3b30', '#ff6961', '#ff4757', '#ee5a6f']
+      formatter: (val) => '$' + val.toFixed(2)
     },
     { 
       key: 'conversionValue', 
       label: 'Conv. Value', 
-      formatter: (val) => '$' + val.toFixed(2),
-      colors: ['#af52de', '#da70d6', '#c77dff', '#e0aaff']
+      formatter: (val) => '$' + val.toFixed(2)
     },
     { 
       key: 'roas', 
       label: 'ROAS', 
-      formatter: (val) => val.toFixed(2) + 'x',
-      colors: ['#ff9500', '#ffa726', '#ffb74d', '#ffc947']
+      formatter: (val) => val.toFixed(2) + 'x'
     }
   ];
   
@@ -991,39 +1151,36 @@ function renderProductInfoCharts(productData, mode = 'channel') {
     // Create radial chart
     const series = [];
     const labels = [];
-    
-    // Get data for this metric, sorted by value
-    const sortedKeys = Object.keys(aggregatedData).sort((a, b) => 
-      aggregatedData[b][metric.key] - aggregatedData[a][metric.key]
-    );
+    const colors = [];
     
     sortedKeys.forEach(key => {
       const value = aggregatedData[key][metric.key];
       const percentage = totals[metric.key] > 0 ? (value / totals[metric.key]) * 100 : 0;
       series.push(percentage);
       labels.push(key);
+      colors.push(keyColors[key]);
     });
     
-    // Create pie chart (not donut)
+    // Create pie chart
     const options = {
       series: series,
       chart: {
         type: 'pie',
-        height: 100,
-        width: 100
+        height: 120,
+        width: 120
       },
       labels: labels,
-      colors: metric.colors.slice(0, series.length),
+      colors: colors,
       legend: {
         show: false
       },
       dataLabels: {
         enabled: true,
         formatter: function(val) {
-          return val.toFixed(0) + '%';
+          return val > 5 ? val.toFixed(0) + '%' : '';
         },
         style: {
-          fontSize: '11px',
+          fontSize: '12px',
           fontWeight: 600,
           colors: ['#fff']
         },
@@ -1036,8 +1193,8 @@ function renderProductInfoCharts(productData, mode = 'channel') {
       plotOptions: {
         pie: {
           dataLabels: {
-            offset: -5,
-            minAngleToShowLabel: 10
+            offset: -8,
+            minAngleToShowLabel: 15
           }
         }
       },
@@ -1049,7 +1206,7 @@ function renderProductInfoCharts(productData, mode = 'channel') {
           sortedKeys.forEach((key, idx) => {
             const value = aggregatedData[key][metric.key];
             const percentage = series[idx];
-            const color = metric.colors[idx % metric.colors.length];
+            const color = keyColors[key];
             
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
@@ -6124,10 +6281,11 @@ if (window.googleAdsApexCharts) {
   gap: 20px;
   height: 100%;
   align-items: stretch;
+  position: relative;
 }
 
 .product-info-left {
-  width: 250px;
+  width: 280px;
   height: 210px;
   background: #f8f9fa;
   border-radius: 12px;
@@ -6137,15 +6295,30 @@ if (window.googleAdsApexCharts) {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.product-info-top {
+.product-info-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  min-height: 40px;
+}
+
+.product-info-bottom-section {
+  flex: 1;
   display: flex;
   gap: 12px;
-  margin-bottom: 12px;
+  align-items: flex-end;
 }
 
 .product-info-image {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
   border-radius: 8px;
   background: white;
@@ -6154,35 +6327,16 @@ if (window.googleAdsApexCharts) {
   flex-shrink: 0;
 }
 
-.product-info-title-section {
+.product-info-details {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-}
-
-.product-info-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  line-height: 1.3;
-}
-
-.product-info-bottom {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-end;
+  padding-bottom: 8px;
 }
 
 .product-info-price {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: #007aff;
   margin-bottom: 8px;
@@ -6214,12 +6368,17 @@ if (window.googleAdsApexCharts) {
   gap: 10px;
 }
 
+.chart-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 4px 0;
+}
+
 .chart-mode-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  width: fit-content;
 }
 
 .chart-mode-toggle label {
@@ -6273,6 +6432,28 @@ if (window.googleAdsApexCharts) {
   transform: translateX(16px);
 }
 
+.chart-legends {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 .radial-charts-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -6288,23 +6469,49 @@ if (window.googleAdsApexCharts) {
 }
 
 .radial-chart-container {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
 }
 
 .radial-chart-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #333;
-  margin-top: 6px;
+  margin-top: 8px;
   text-align: center;
 }
 
 .radial-chart-sublabel {
-  font-size: 11px;
+  font-size: 12px;
   color: #666;
   margin-top: 2px;
   font-weight: 500;
+}
+
+/* Date range selector in product info */
+.product-info-date-selector {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+}
+
+/* View switcher positioning */
+.google-ads-view-switcher {
+  position: absolute;
+  top: 10px;
+  right: 140px;
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  z-index: 100;
+  margin-bottom: 15px;
+}
+
+/* Adjust product_info container top margin */
+#product_info {
+  margin-top: 60px !important;
 }
     `;
     document.head.appendChild(style);
