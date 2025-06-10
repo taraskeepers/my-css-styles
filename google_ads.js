@@ -1183,10 +1183,17 @@ function populateProductTables(productData, mode = 'channel') {
   // Show the container
   tablesContainer.style.display = 'block';
   
+  // Check if previous period is enabled
+  const showPreviousPeriod = document.getElementById('previousPeriodToggle')?.checked || false;
+  
   // Filter by date range
   const daysToShow = window.selectedDateRangeDays || 7;
   const endDate = moment().startOf('day');
   const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+  
+  // Calculate previous period dates
+  const prevEndDate = startDate.clone().subtract(1, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(daysToShow - 1, 'days');
   
   const filteredData = productData.filter(row => {
     if (!row.Date) return false;
@@ -1194,9 +1201,17 @@ function populateProductTables(productData, mode = 'channel') {
     return rowDate.isBetween(startDate, endDate, 'day', '[]');
   });
   
+  const prevFilteredData = productData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = moment(row.Date, 'YYYY-MM-DD');
+    return rowDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+  });
+  
   // Aggregate data by mode
   const aggregatedData = {};
+  const prevAggregatedData = {};
   
+  // Current period
   filteredData.forEach(row => {
     const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
     
@@ -1217,9 +1232,39 @@ function populateProductTables(productData, mode = 'channel') {
     aggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
   });
   
+  // Previous period
+  prevFilteredData.forEach(row => {
+    const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
+    
+    if (!prevAggregatedData[key]) {
+      prevAggregatedData[key] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0
+      };
+    }
+    
+    prevAggregatedData[key].impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    prevAggregatedData[key].clicks += parseInt(row.Clicks) || 0;
+    prevAggregatedData[key].cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    prevAggregatedData[key].conversions += parseFloat(row.Conversions) || 0;
+    prevAggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+  });
+  
   // Calculate derived metrics
   Object.keys(aggregatedData).forEach(key => {
     const data = aggregatedData[key];
+    data.ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
+    data.cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
+    data.roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
+    data.aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
+    data.cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
+  });
+  
+  Object.keys(prevAggregatedData).forEach(key => {
+    const data = prevAggregatedData[key];
     data.ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
     data.cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
     data.roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
@@ -1259,6 +1304,87 @@ function populateProductTables(productData, mode = 'channel') {
   const minRoas = Math.min(...roasValues);
   const midRoas = (maxRoas + minRoas) / 2;
   
+  // Helper function to format value with trend
+  function formatValueWithTrend(current, previous, format = 'number', isReverse = false) {
+    let formattedCurrent = '';
+    let trendHtml = '';
+    
+    // Format current value
+    switch (format) {
+      case 'currency':
+        formattedCurrent = '$' + current.toFixed(2);
+        break;
+      case 'percentage':
+        formattedCurrent = current.toFixed(2) + '%';
+        break;
+      case 'number':
+        formattedCurrent = current.toLocaleString();
+        break;
+      case 'decimal':
+        formattedCurrent = current.toFixed(2);
+        break;
+      case 'roas':
+        formattedCurrent = current.toFixed(2) + 'x';
+        break;
+    }
+    
+    // Calculate trend if showing previous period
+    if (showPreviousPeriod) {
+      const change = current - previous;
+      let trendClass = 'table-trend-neutral';
+      let arrow = '—';
+      
+      // For CPA, lower is better (reverse logic)
+      if (isReverse) {
+        if (change < 0) {
+          trendClass = 'table-trend-up';
+          arrow = '▲';
+        } else if (change > 0) {
+          trendClass = 'table-trend-down';
+          arrow = '▼';
+        }
+      } else {
+        if (change > 0) {
+          trendClass = 'table-trend-up';
+          arrow = '▲';
+        } else if (change < 0) {
+          trendClass = 'table-trend-down';
+          arrow = '▼';
+        }
+      }
+      
+      let formattedChange = '';
+      switch (format) {
+        case 'currency':
+          formattedChange = '$' + Math.abs(change).toFixed(2);
+          break;
+        case 'percentage':
+          formattedChange = Math.abs(change).toFixed(2) + '%';
+          break;
+        case 'number':
+          formattedChange = Math.abs(change).toLocaleString();
+          break;
+        case 'decimal':
+          formattedChange = Math.abs(change).toFixed(2);
+          break;
+        case 'roas':
+          formattedChange = Math.abs(change).toFixed(2) + 'x';
+          break;
+      }
+      
+      trendHtml = `<div class="table-trend-value ${trendClass}">
+        <span class="table-trend-arrow">${arrow}</span>
+        <span>${formattedChange}</span>
+      </div>`;
+    }
+    
+    return showPreviousPeriod ? 
+      `<div class="table-value-wrapper">
+        <div class="table-current-value">${formattedCurrent}</div>
+        ${trendHtml}
+      </div>` : formattedCurrent;
+  }
+  
   // Create table HTML
   let tableHTML = `
     <div class="product-tables-content">
@@ -1283,17 +1409,20 @@ function populateProductTables(productData, mode = 'channel') {
   
   sortedKeys.forEach(key => {
     const data = aggregatedData[key];
+    const prevData = prevAggregatedData[key] || {
+      impressions: 0, clicks: 0, cost: 0, conversions: 0, conversionValue: 0,
+      ctr: 0, cvr: 0, roas: 0, aov: 0, cpa: 0
+    };
+    
     const impressionBarWidth = maxImpressions > 0 ? (data.impressions / maxImpressions) * 100 : 0;
     
     // Calculate ROAS background color
     let roasStyle = '';
     if (data.roas > 0) {
       if (data.roas >= midRoas) {
-        // Green gradient for good ROAS
         const intensity = Math.min((data.roas - midRoas) / (maxRoas - midRoas) * 0.4, 0.4);
         roasStyle = `background-color: rgba(76, 175, 80, ${intensity});`;
       } else {
-        // Red gradient for poor ROAS
         const intensity = Math.min((midRoas - data.roas) / (midRoas - minRoas) * 0.4, 0.4);
         roasStyle = `background-color: rgba(244, 67, 54, ${intensity});`;
       }
@@ -1308,16 +1437,17 @@ function populateProductTables(productData, mode = 'channel') {
               <span class="impression-value">${data.impressions.toLocaleString()}</span>
             </div>
           </div>
+          ${showPreviousPeriod ? formatValueWithTrend(data.impressions, prevData.impressions, 'number').split('</div>')[1] : ''}
         </td>
-        <td>${data.clicks.toLocaleString()}</td>
-        <td>$${data.cost.toFixed(2)}</td>
-        <td>${data.conversions.toFixed(2)}</td>
-        <td>$${data.conversionValue.toFixed(2)}</td>
-        <td>${data.ctr.toFixed(2)}%</td>
-        <td>${data.cvr.toFixed(2)}%</td>
-        <td style="${roasStyle}">${data.roas.toFixed(2)}x</td>
-        <td>$${data.aov.toFixed(2)}</td>
-        <td>$${data.cpa.toFixed(2)}</td>
+        <td>${formatValueWithTrend(data.clicks, prevData.clicks, 'number')}</td>
+        <td>${formatValueWithTrend(data.cost, prevData.cost, 'currency')}</td>
+        <td>${formatValueWithTrend(data.conversions, prevData.conversions, 'decimal')}</td>
+        <td>${formatValueWithTrend(data.conversionValue, prevData.conversionValue, 'currency')}</td>
+        <td>${formatValueWithTrend(data.ctr, prevData.ctr, 'percentage')}</td>
+        <td>${formatValueWithTrend(data.cvr, prevData.cvr, 'percentage')}</td>
+        <td style="${roasStyle}">${formatValueWithTrend(data.roas, prevData.roas, 'roas')}</td>
+        <td>${formatValueWithTrend(data.aov, prevData.aov, 'currency')}</td>
+        <td>${formatValueWithTrend(data.cpa, prevData.cpa, 'currency', true)}</td>
       </tr>
     `;
   });
@@ -1352,7 +1482,7 @@ function populateProductTables(productData, mode = 'channel') {
     indicator.textContent = window.productTableSort.ascending ? ' ▲' : ' ▼';
   }
   
-// Add event listeners for clickable campaigns
+  // Add event listeners for clickable campaigns
   const clickableCells = tablesContainer.querySelectorAll('.clickable-campaign');
   clickableCells.forEach(cell => {
     cell.addEventListener('click', function() {
@@ -4140,13 +4270,20 @@ container.innerHTML = `
               <button id="viewChartsGoogleAds">Performance</button>
               <button id="viewMapGoogleAds">Map</button>
             </div>
-            <div class="chart-mode-toggle-top">
+<div class="chart-mode-toggle-top">
               <label>Channel Type</label>
               <label class="chart-mode-switch">
                 <input type="checkbox" id="chartModeToggle">
                 <span class="chart-mode-slider"></span>
               </label>
               <label>Campaigns</label>
+            </div>
+            <div class="previous-period-toggle-top">
+              <label>Previous Period</label>
+              <label class="chart-mode-switch">
+                <input type="checkbox" id="previousPeriodToggle">
+                <span class="chart-mode-slider"></span>
+              </label>
             </div>
           </div>
           <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
@@ -4374,6 +4511,15 @@ document.getElementById('chartModeToggle').addEventListener('change', function(e
   if (window.currentProductInfoData) {
     renderProductInfoCharts(window.currentProductInfoData, mode);
     populateProductTables(window.currentProductInfoData, mode);
+  }
+});
+
+// Add event listener for previous period toggle
+document.getElementById('previousPeriodToggle').addEventListener('change', function(e) {
+  // Update product tables if visible
+  if (window.currentProductInfoData) {
+    const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+    populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
   }
 });
   
@@ -6258,7 +6404,58 @@ if (window.googleAdsApexCharts) {
   white-space: nowrap;
 }
 
-/* ROAS coloring is handled inline */
+.previous-period-toggle-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f0f0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  height: 36px;
+}
+
+.previous-period-toggle-top label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+/* Table trend styles */
+.table-value-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.table-current-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.table-trend-value {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.table-trend-up {
+  color: #4CAF50;
+}
+
+.table-trend-down {
+  color: #F44336;
+}
+
+.table-trend-neutral {
+  color: #999;
+}
+
+.table-trend-arrow {
+  font-size: 9px;
+}
     `;
     document.head.appendChild(style);
   }
