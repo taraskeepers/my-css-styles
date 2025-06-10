@@ -1878,10 +1878,9 @@ dateRangeDropdown.addEventListener('click', function(e) {
         document.getElementById('channelTypeFilter').value
       );
       renderProductMetricsChart('productMetricsChart', chartData);
-      // Update trends if visible
-if (document.getElementById('trendsToggle')?.checked) {
-  updateTrendsData();
-}
+      
+      // Update trends data with new period
+      updateTrendsData();
     }
   }
 });
