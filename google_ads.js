@@ -422,6 +422,32 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
       // Initial chart render
       const chartData = processMetricsData(result.productData);
       renderProductMetricsChart('productMetricsChart', chartData);
+      // Update trends data
+      updateTrendsData();
+      
+      // Add settings button functionality after a delay to ensure DOM is ready
+      setTimeout(() => {
+        const settingsBtn = document.getElementById('trendsSettingsBtn');
+        const selectorPopup = document.getElementById('metricsSelectorPopup');
+        
+        if (settingsBtn && selectorPopup) {
+          // Remove any existing listeners
+          const newSettingsBtn = settingsBtn.cloneNode(true);
+          settingsBtn.parentNode.replaceChild(newSettingsBtn, settingsBtn);
+          
+          newSettingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectorPopup.classList.toggle('visible');
+          });
+          
+          // Close popup when clicking outside
+          document.addEventListener('click', function(e) {
+            if (!selectorPopup.contains(e.target) && !newSettingsBtn.contains(e.target)) {
+              selectorPopup.classList.remove('visible');
+            }
+          });
+        }
+      }, 150);
 
       // Update date range text
 const dateRangeText = document.getElementById('dateRangeText');
@@ -435,6 +461,7 @@ if (dateRangeText) {
   };
   dateRangeText.textContent = rangeLabels[days] || `Last ${days} days`;
 }
+updateTrendsData();
       
       // Add event listeners for filters
       campaignFilter.addEventListener('change', updateProductMetricsChart);
@@ -475,9 +502,7 @@ function updateProductMetricsChart() {
     );
     renderProductMetricsChart('productMetricsChart', chartData);
     // Update trends if visible
-if (document.getElementById('trendsToggle')?.checked) {
-  updateTrendsData();
-}
+updateTrendsData();
   }
 }
   
@@ -1731,13 +1756,6 @@ leftFilters.innerHTML = `
       <option value="all">All</option>
     </select>
   </div>
-  <div style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
-    <label style="font-weight: 600; font-size: 14px;">Trends:</label>
-    <label class="trends-toggle-switch">
-      <input type="checkbox" id="trendsToggle">
-      <span class="trends-toggle-slider"></span>
-    </label>
-  </div>
 `;
 
 // Date range selector
@@ -1874,26 +1892,6 @@ dateRangeStyle.textContent = `
 `;
 document.head.appendChild(dateRangeStyle);
 
-// Trends toggle functionality
-setTimeout(() => {
-  const trendsToggle = document.getElementById('trendsToggle');
-  const trendsContainerElement = document.getElementById('google-ads-trends-container');
-
-  if (trendsToggle && trendsContainerElement) {
-    trendsToggle.addEventListener('change', function() {
-      if (this.checked) {
-        trendsContainerElement.classList.add('visible');
-        // Update trends data
-        if (window.currentProductMetricsData) {
-          updateTrendsData();
-        }
-      } else {
-        trendsContainerElement.classList.remove('visible');
-      }
-    });
-  }
-}, 100);
-
 // Trends settings functionality
 setTimeout(() => {
   const settingsBtn = document.getElementById('trendsSettingsBtn');
@@ -1940,7 +1938,7 @@ chartContainer.style.cssText = `
 // Add trends container
 const trendsContainer = document.createElement('div');
 trendsContainer.id = 'google-ads-trends-container';
-trendsContainer.className = 'google-ads-trends-container';
+trendsContainer.className = 'google-ads-trends-container visible';
 trendsContainer.innerHTML = `
   <div class="trends-container-title">Metric Trends</div>
   <button class="trends-settings-btn" id="trendsSettingsBtn">
@@ -5543,26 +5541,19 @@ if (window.googleAdsApexCharts) {
 
 /* Trends container styles */
 .google-ads-trends-container {
-  width: 0;
-  min-width: 0;
+  width: 180px;
+  min-width: 180px;
   height: 540px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  padding: 0;
+  padding: 15px;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
   display: block;
-  transition: all 0.3s ease-out;
   flex-shrink: 0;
-}
-
-.google-ads-trends-container.visible {
-  width: 180px;
-  min-width: 180px;
-  padding: 15px;
 }
 
 /* When more than 8 metrics are selected */
