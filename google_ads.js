@@ -811,9 +811,8 @@ function populateProductInfo(product) {
       <div class="product-info-details">
         <div class="product-info-price">${productPrice !== 'N/A' && !isNaN(productPrice) ? '$' + productPrice : productPrice}</div>
         <div class="product-info-reviews">
-          <span class="product-stars">${'★'.repeat(Math.round(reviewRating))}</span>
-          <span>${reviewRating}</span>
-          <span class="product-review-count">(${reviewCount} reviews)</span>
+          <div class="product-stars">${'★'.repeat(Math.round(reviewRating))} ${reviewRating}</div>
+          <div class="product-review-count">(${reviewCount} reviews)</div>
         </div>
       </div>
     </div>
@@ -823,35 +822,18 @@ function populateProductInfo(product) {
   const rightContainer = document.createElement('div');
   rightContainer.className = 'product-info-right';
   
-  // Add controls row with toggle and legends
-  const controlsRow = document.createElement('div');
-  controlsRow.className = 'chart-controls-row';
-  
-  const toggleContainer = document.createElement('div');
-  toggleContainer.innerHTML = `
-    <div class="chart-mode-toggle">
-      <label>Channel Type</label>
-      <label class="chart-mode-switch">
-        <input type="checkbox" id="chartModeToggle">
-        <span class="chart-mode-slider"></span>
-      </label>
-      <label>Campaigns</label>
-    </div>
-  `;
-  
+  // Add legends container
   const legendsContainer = document.createElement('div');
   legendsContainer.className = 'chart-legends';
   legendsContainer.id = 'chartLegends';
-  
-  controlsRow.appendChild(toggleContainer);
-  controlsRow.appendChild(legendsContainer);
+  legendsContainer.style.marginBottom = '10px';
   
   // Add charts grid
   const chartsGrid = document.createElement('div');
   chartsGrid.className = 'radial-charts-grid';
   chartsGrid.id = 'productInfoChartsGrid';
   
-  rightContainer.appendChild(controlsRow);
+  rightContainer.appendChild(legendsContainer);
   rightContainer.appendChild(chartsGrid);
   
   // Move date range selector here
@@ -919,13 +901,12 @@ function populateProductInfo(product) {
       // Store data globally for date range changes
       window.currentProductInfoData = result.productData;
       
-      renderProductInfoCharts(result.productData, 'channel');
+      // Get current mode from toggle
+      const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+      renderProductInfoCharts(result.productData, isChannelMode ? 'channel' : 'campaign');
       
-      // Add toggle event listener
-      document.getElementById('chartModeToggle').addEventListener('change', function() {
-        const mode = this.checked ? 'campaign' : 'channel';
-        renderProductInfoCharts(window.currentProductInfoData, mode);
-      });
+      // Also populate the tables
+      populateProductTables(result.productData, isChannelMode ? 'channel' : 'campaign');
     } else {
       chartsGrid.innerHTML = '<div style="text-align: center; color: #999; width: 100%;">No performance data available</div>';
     }
@@ -969,11 +950,12 @@ function setupProductInfoDateSelector() {
       // Hide dropdown
       dropdown.style.display = 'none';
       
-      // Update both containers
-      if (window.currentProductInfoData) {
-        renderProductInfoCharts(window.currentProductInfoData, 
-          document.getElementById('chartModeToggle').checked ? 'campaign' : 'channel');
-      }
+// Update both containers
+    if (window.currentProductInfoData) {
+      const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+      renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+      populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+    }
       
       if (window.currentProductMetricsData) {
         const chartData = processMetricsData(
@@ -1235,6 +1217,112 @@ function renderProductInfoCharts(productData, mode = 'channel') {
     }
     window.productInfoCharts.push(chart);
   });
+}
+
+function populateProductTables(productData, mode = 'channel') {
+  const tablesContainer = document.getElementById('product_tables');
+  if (!tablesContainer) return;
+  
+  // Show the container
+  tablesContainer.style.display = 'block';
+  
+  // Filter by date range
+  const daysToShow = window.selectedDateRangeDays || 7;
+  const endDate = moment().startOf('day');
+  const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+  
+  const filteredData = productData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = moment(row.Date, 'YYYY-MM-DD');
+    return rowDate.isBetween(startDate, endDate, 'day', '[]');
+  });
+  
+  // Aggregate data by mode
+  const aggregatedData = {};
+  
+  filteredData.forEach(row => {
+    const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
+    
+    if (!aggregatedData[key]) {
+      aggregatedData[key] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0
+      };
+    }
+    
+    aggregatedData[key].impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    aggregatedData[key].clicks += parseInt(row.Clicks) || 0;
+    aggregatedData[key].cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    aggregatedData[key].conversions += parseFloat(row.Conversions) || 0;
+    aggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+  });
+  
+  // Calculate derived metrics
+  Object.keys(aggregatedData).forEach(key => {
+    const data = aggregatedData[key];
+    data.ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
+    data.cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
+    data.roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
+    data.aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
+    data.cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
+  });
+  
+  // Sort by impressions descending
+  const sortedKeys = Object.keys(aggregatedData).sort((a, b) => 
+    aggregatedData[b].impressions - aggregatedData[a].impressions
+  );
+  
+  // Create table HTML
+  let tableHTML = `
+    <div class="product-tables-content">
+      <table class="product-metrics-table">
+        <thead>
+          <tr>
+            <th>${mode === 'channel' ? 'Channel Type' : 'Campaign'}</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>Cost</th>
+            <th>Conversions</th>
+            <th>Conv. Value</th>
+            <th>CTR</th>
+            <th>CVR</th>
+            <th>ROAS</th>
+            <th>AOV</th>
+            <th>CPA</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  sortedKeys.forEach(key => {
+    const data = aggregatedData[key];
+    tableHTML += `
+      <tr>
+        <td>${key}</td>
+        <td>${data.impressions.toLocaleString()}</td>
+        <td>${data.clicks.toLocaleString()}</td>
+        <td>$${data.cost.toFixed(2)}</td>
+        <td>${data.conversions.toFixed(2)}</td>
+        <td>$${data.conversionValue.toFixed(2)}</td>
+        <td>${data.ctr.toFixed(2)}%</td>
+        <td>${data.cvr.toFixed(2)}%</td>
+        <td>${data.roas.toFixed(2)}x</td>
+        <td>$${data.aov.toFixed(2)}</td>
+        <td>$${data.cpa.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+  
+  tableHTML += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  tablesContainer.innerHTML = tableHTML;
 }
 
 function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
@@ -2209,6 +2297,20 @@ productMetricsContainer.style.cssText = `
   display: none;
 `;
 
+// Create product_tables container
+const productTablesContainer = document.createElement('div');
+productTablesContainer.id = 'product_tables';
+productTablesContainer.className = 'google-ads-tables-container';
+productTablesContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
 // Add filter controls to metrics container
 const filterControls = document.createElement('div');
 filterControls.style.cssText = `
@@ -2243,139 +2345,7 @@ leftFilters.innerHTML = `
   </div>
 `;
 
-// Date range selector
-const dateRangeSelector = document.createElement('div');
-dateRangeSelector.id = 'dateRangeSelector';
-dateRangeSelector.style.cssText = `
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  background: #fff;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
-`;
-
-dateRangeSelector.innerHTML = `
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
-  <span id="dateRangeText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Loading...</span>
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-`;
-
-// Add date range dropdown
-const dateRangeDropdown = document.createElement('div');
-dateRangeDropdown.id = 'dateRangeDropdown';
-dateRangeDropdown.style.cssText = `
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  background: white;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  display: none;
-  z-index: 1000;
-  min-width: 200px;
-`;
-
-const dateRanges = [
-  { label: 'Last 3 days', days: 3 },
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 14 days', days: 14 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 90 days', days: 90 }
-];
-
-dateRangeDropdown.innerHTML = dateRanges.map(range => `
-  <div class="date-range-option" data-days="${range.days}" style="
-    padding: 10px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #3c4043;
-    transition: background 0.2s;
-  ">${range.label}</div>
-`).join('');
-
-// Add wrapper for date selector with relative positioning
-const dateRangeWrapper = document.createElement('div');
-dateRangeWrapper.style.cssText = 'position: relative;';
-dateRangeWrapper.appendChild(dateRangeSelector);
-dateRangeWrapper.appendChild(dateRangeDropdown);
-
 filterControls.appendChild(leftFilters);
-filterControls.appendChild(dateRangeWrapper);
-
-// Initialize selected date range
-window.selectedDateRangeDays = 7; // Default to last 7 days
-
-// Date range selector functionality
-dateRangeSelector.addEventListener('click', function(e) {
-  e.stopPropagation();
-  dateRangeDropdown.style.display = dateRangeDropdown.style.display === 'none' ? 'block' : 'none';
-});
-
-// Handle date range selection
-dateRangeDropdown.addEventListener('click', function(e) {
-  const option = e.target.closest('.date-range-option');
-  if (option) {
-    const days = parseInt(option.getAttribute('data-days'));
-    window.selectedDateRangeDays = days;
-    
-    // Update text
-    document.getElementById('dateRangeText').textContent = option.textContent;
-    
-    // Hide dropdown
-    dateRangeDropdown.style.display = 'none';
-    
-    // Update chart with new date range
-    if (window.currentProductMetricsData) {
-      const chartData = processMetricsData(
-        window.currentProductMetricsData,
-        document.getElementById('campaignNameFilter').value,
-        document.getElementById('channelTypeFilter').value
-      );
-      renderProductMetricsChart('productMetricsChart', chartData);
-      
-      // Update trends data with new period
-      updateTrendsData();
-    }
-  }
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function() {
-  dateRangeDropdown.style.display = 'none';
-});
-
-// Add hover effect styles
-const dateRangeStyle = document.createElement('style');
-dateRangeStyle.textContent = `
-  #dateRangeSelector:hover {
-    border-color: #5f6368;
-    box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
-  }
-  .date-range-option:hover {
-    background-color: #f1f3f4;
-  }
-  .date-range-option:first-child {
-    border-radius: 7px 7px 0 0;
-  }
-  .date-range-option:last-child {
-    border-radius: 0 0 7px 7px;
-  }
-`;
-document.head.appendChild(dateRangeStyle);
 
 // Trends settings functionality
 setTimeout(() => {
@@ -2444,6 +2414,7 @@ chartWrapper.appendChild(trendsContainer);
 productMetricsContainer.appendChild(chartWrapper);
 
 contentWrapper.appendChild(productInfoContainer);
+contentWrapper.appendChild(productTablesContainer);
 contentWrapper.appendChild(productMetricsContainer);
 
 // Replace the original append
@@ -4108,10 +4079,20 @@ container.innerHTML = `
       <div id="googleAdsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
-        <div class="google-ads-view-switcher">
-          <button id="viewOverviewGoogleAds" class="active">Overview</button>
-          <button id="viewChartsGoogleAds">Performance</button>
-          <button id="viewMapGoogleAds">Map</button>
+        <div class="google-ads-top-controls">
+          <div class="chart-mode-toggle-top">
+            <label>Channel Type</label>
+            <label class="chart-mode-switch">
+              <input type="checkbox" id="chartModeToggle">
+              <span class="chart-mode-slider"></span>
+            </label>
+            <label>Campaigns</label>
+          </div>
+          <div class="google-ads-view-switcher">
+            <button id="viewOverviewGoogleAds" class="active">Overview</button>
+            <button id="viewChartsGoogleAds">Performance</button>
+            <button id="viewMapGoogleAds">Map</button>
+          </div>
         </div>
         <button id="fullscreenToggleGoogleAds" class="fullscreen-toggle">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -4732,6 +4713,17 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
         button.classList.remove('inactive');
       }
     });
+  }
+});
+
+  // Add event listener for chart mode toggle
+document.getElementById('chartModeToggle').addEventListener('change', function(e) {
+  const mode = this.checked ? 'campaign' : 'channel';
+  
+  // Update product info charts
+  if (window.currentProductInfoData) {
+    renderProductInfoCharts(window.currentProductInfoData, mode);
+    populateProductTables(window.currentProductInfoData, mode);
   }
 });
   
@@ -6296,14 +6288,14 @@ if (window.googleAdsApexCharts) {
 }
 
 .product-info-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #333;
   margin-bottom: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   line-height: 1.4;
   min-height: 40px;
@@ -6344,8 +6336,9 @@ if (window.googleAdsApexCharts) {
 
 .product-info-reviews {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   font-size: 13px;
   color: #666;
 }
@@ -6512,6 +6505,79 @@ if (window.googleAdsApexCharts) {
 /* Adjust product_info container top margin */
 #product_info {
   margin-top: 60px !important;
+}
+/* Product Tables Container */
+#product_tables {
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+}
+
+.product-tables-content {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.product-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.product-metrics-table th {
+  background: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+
+.product-metrics-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.product-metrics-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.product-metrics-table td:first-child {
+  font-weight: 500;
+  color: #333;
+}
+
+/* Top controls container */
+.google-ads-top-controls {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 140px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  margin-bottom: 15px;
+}
+
+/* Update chart-mode-toggle for top placement */
+.chart-mode-toggle-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f0f0;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.chart-mode-toggle-top label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
 }
     `;
     document.head.appendChild(style);
