@@ -470,6 +470,7 @@ const dateRangeText = document.getElementById('dateRangeText');
 if (dateRangeText) {
   const days = window.selectedDateRangeDays || 7;
   const rangeLabels = {
+    3: 'Last 3 days',
     7: 'Last 7 days',
     14: 'Last 14 days',
     30: 'Last 30 days',
@@ -1821,6 +1822,7 @@ dateRangeDropdown.style.cssText = `
 `;
 
 const dateRanges = [
+  { label: 'Last 3 days', days: 3 },
   { label: 'Last 7 days', days: 7 },
   { label: 'Last 14 days', days: 14 },
   { label: 'Last 30 days', days: 30 },
