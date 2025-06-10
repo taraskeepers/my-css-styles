@@ -5620,7 +5620,7 @@ if (window.googleAdsApexCharts) {
 }
 
 .trend-item {
-  padding: 8px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;
   transition: all 0.2s;
 }
