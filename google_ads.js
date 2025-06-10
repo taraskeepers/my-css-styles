@@ -6095,18 +6095,6 @@ if (window.googleAdsApexCharts) {
   z-index: 100;
 }
 
-/* View switcher positioning */
-.google-ads-view-switcher {
-  position: absolute;
-  top: 10px;
-  right: 140px;
-  display: inline-flex;
-  background-color: #f0f0f0;
-  border-radius: 20px;
-  padding: 3px;
-  z-index: 100;
-}
-
 /* Adjust product_info container top margin */
 #product_info {
   margin-top: 60px !important;
