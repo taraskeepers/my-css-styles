@@ -4080,6 +4080,11 @@ container.innerHTML = `
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="google-ads-top-controls">
+          <div class="google-ads-view-switcher">
+            <button id="viewOverviewGoogleAds" class="active">Overview</button>
+            <button id="viewChartsGoogleAds">Performance</button>
+            <button id="viewMapGoogleAds">Map</button>
+          </div>
           <div class="chart-mode-toggle-top">
             <label>Channel Type</label>
             <label class="chart-mode-switch">
@@ -4088,467 +4093,56 @@ container.innerHTML = `
             </label>
             <label>Campaigns</label>
           </div>
-          <div class="google-ads-view-switcher">
-            <button id="viewOverviewGoogleAds" class="active">Overview</button>
-            <button id="viewChartsGoogleAds">Performance</button>
-            <button id="viewMapGoogleAds">Map</button>
+          <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              padding: 8px 14px;
+              background: #fff;
+              border: 1px solid #dadce0;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
+            ">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span id="productInfoDateText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Last 7 days</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div id="productInfoDateDropdown" style="
+              position: absolute;
+              top: 100%;
+              right: 0;
+              margin-top: 8px;
+              background: white;
+              border: 1px solid #dadce0;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              display: none;
+              z-index: 1000;
+              min-width: 200px;
+            ">
+              <div class="date-range-option" data-days="3" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 3 days</div>
+              <div class="date-range-option" data-days="7" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 7 days</div>
+              <div class="date-range-option" data-days="14" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 14 days</div>
+              <div class="date-range-option" data-days="30" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 30 days</div>
+              <div class="date-range-option" data-days="90" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 90 days</div>
+            </div>
           </div>
         </div>
-        <button id="fullscreenToggleGoogleAds" class="fullscreen-toggle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-          Full Screen
-        </button>
         <div id="googleAdsMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
         </div>
       </div>
     </div>
   `;
-    
-  let fullscreenOverlay = document.getElementById('googleAdsFullscreenOverlay');
-  if (!fullscreenOverlay) {
-    fullscreenOverlay = document.createElement('div');
-    fullscreenOverlay.id = 'googleAdsFullscreenOverlay';
-    fullscreenOverlay.className = 'product-explorer-fullscreen-overlay';
-    document.body.appendChild(fullscreenOverlay);
-  }
-  
-  // Add fullscreen toggle functionality
-  document.getElementById("fullscreenToggleGoogleAds").addEventListener("click", function() {
-    const table = document.querySelector("#googleAdsContainer .google-ads-table");
-    if (!table) {
-      console.warn("No product map table found to display in fullscreen");
-      return;
-    }
-    
-    const tableClone = table.cloneNode(true);
-    
-    fullscreenOverlay.innerHTML = '';
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "fullscreen-close";
-    closeBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-      Exit Full Screen
-    `;
-    fullscreenOverlay.appendChild(closeBtn);
-    
-    fullscreenOverlay.appendChild(tableClone);
-    
-    fullscreenOverlay.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-
-    // Preserve current view state in fullscreen
-const currentActiveButton = document.querySelector('.google-ads-view-switcher .active');
-if (currentActiveButton && switcherClone) {
-  const activeId = currentActiveButton.id;
-  const clonedActiveButton = switcherClone.querySelector(`#${activeId}`);
-  if (clonedActiveButton) {
-    setTimeout(() => {
-      clonedActiveButton.click();
-    }, 100);
-  }
-}
-    
-    closeBtn.addEventListener("click", function() {
-      fullscreenOverlay.style.display = 'none';
-      document.body.style.overflow = 'auto';
-      
-      const detailsPanel = document.getElementById('google-ads-details-panel');
-      if (detailsPanel && detailsPanel.style.display !== 'none') {
-        detailsPanel.style.position = 'fixed';
-        detailsPanel.style.top = '40%';
-        detailsPanel.style.left = 'auto';
-        detailsPanel.style.right = '10px';
-        detailsPanel.style.transform = 'translateY(-50%)';
-      }
-    });
-
-    const originalSwitcher = document.querySelector('.google-ads-view-switcher');
-    if (originalSwitcher) {
-      const switcherClone = originalSwitcher.cloneNode(true);
-      fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
-      
-const clonedRankingBtn = switcherClone.querySelector('#viewOverviewGoogleAds');
-const clonedChartsBtn = switcherClone.querySelector('#viewChartsGoogleAds');
-const clonedMapBtn = switcherClone.querySelector('#viewMapGoogleAds');
-
-clonedRankingBtn.addEventListener('click', function() {
-  clonedRankingBtn.classList.add('active');
-  clonedChartsBtn.classList.remove('active');
-  clonedMapBtn.classList.remove('active');
-  
-  fullscreenOverlay.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
-    container.style.display = 'flex';
-  });
-  fullscreenOverlay.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
-    container.style.display = 'none';
-  });
-});
-
-clonedChartsBtn.addEventListener('click', function() {
-  clonedChartsBtn.classList.add('active');
-  clonedRankingBtn.classList.remove('active');
-  clonedMapBtn.classList.remove('active');
-  
-  // Show BOTH segmentation charts AND position charts
-  fullscreenOverlay.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
-    container.style.display = 'flex';
-  });
-  fullscreenOverlay.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
-    container.style.display = 'flex';
-    
-    // Render position chart if record data is available
-    if (container.combinationRecord) {
-      renderGoogleAdsPositionChart(container, container.combinationRecord);
-    }
-  });
-});
-
-clonedMapBtn.addEventListener('click', function() {
-  clonedMapBtn.classList.add('active');
-  clonedRankingBtn.classList.remove('active');
-  clonedChartsBtn.classList.remove('active');
-  
-  // Hide segmentation charts, show only position charts
-  fullscreenOverlay.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
-    container.style.display = 'none';
-  });
-  fullscreenOverlay.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
-    container.style.display = 'flex';
-    
-    // Render position chart if record data is available
-    if (container.combinationRecord) {
-      renderGoogleAdsPositionChart(container, container.combinationRecord);
-    }
-  });
-});
-    }
-    
-    const productCells = fullscreenOverlay.querySelectorAll('.product-cell');
-    productCells.forEach(cell => {
-      cell.style.flexWrap = "nowrap";
-      cell.style.overflowX = "auto";
-      cell.style.minWidth = "100%";
-      
-      const cards = cell.querySelectorAll('.ad-details');
-      cards.forEach(card => {
-        card.style.width = "150px";
-        card.style.flexShrink = "0";
-        card.style.margin = "0 6px 0 0";
-        
-        card.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          const plaIndex = card.getAttribute('data-pla-index');
-          const rowData = window.globalRows[plaIndex];
-          if (!rowData) {
-            console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
-            return;
-          }
-          
-          card.click();
-        });
-      });
-    });
-
-    setTimeout(() => {
-      console.log("[DEBUG-FULLSCREEN] Starting segmentation chart recreation...");
-      
-      const chartContainers = fullscreenOverlay.querySelectorAll('.google-ads-segmentation-chart-container');
-      console.log("[DEBUG-FULLSCREEN] Found chart containers:", chartContainers.length);
-      
-      const originalTable = document.querySelector('.google-ads-table');
-      const originalRows = originalTable.querySelectorAll('tbody tr');
-      
-      const chartDataMap = {};
-      let chartIndex = 0;
-      
-      originalRows.forEach(row => {
-        const originalChartContainer = row.querySelector('.google-ads-segmentation-chart-container');
-        if (!originalChartContainer) return;
-        
-        let term = '';
-        let location = '';
-        let device = '';
-        
-        let currentRow = row;
-        while (currentRow && !term) {
-          const termElement = currentRow.querySelector('.search-term-tag');
-          if (termElement) {
-            term = termElement.textContent.trim();
-          }
-          currentRow = currentRow.previousElementSibling;
-        }
-        
-        currentRow = row;
-        while (currentRow && !location) {
-          const locationElement = currentRow.querySelector('.city-line');
-          if (locationElement) {
-            location = locationElement.textContent.trim();
-          }
-          currentRow = currentRow.previousElementSibling;
-        }
-        
-        const deviceElement = row.querySelector('.device-icon');
-        if (deviceElement) {
-          device = deviceElement.alt || '';
-        }
-        
-        chartDataMap[chartIndex] = { term, location, device };
-        chartIndex++;
-      });
-      
-      function locationMatches(mappedLocation, productLocation) {
-        if (!mappedLocation || !productLocation) return false;
-        
-        if (mappedLocation === productLocation) return true;
-        
-        const productParts = productLocation.split(',');
-        const firstPart = productParts[0] ? productParts[0].trim() : '';
-        
-        return mappedLocation.toLowerCase() === firstPart.toLowerCase();
-      }
-      
-      chartContainers.forEach((container, index) => {
-        console.log(`[DEBUG-FULLSCREEN] Processing container ${index}:`, container.id);
-        
-        const mappedData = chartDataMap[index];
-        if (!mappedData) {
-          console.log("[DEBUG-FULLSCREEN] No mapped data found for index", index);
-          return;
-        }
-        
-        const { term, location, device } = mappedData;
-        console.log("[DEBUG-FULLSCREEN] Using mapped data - term:", term, "location:", location, "device:", device);
-        
-        if (!term || !location || !device) {
-          console.log("[DEBUG-FULLSCREEN] Incomplete mapped data");
-          return;
-        }
-        
-        const matchingProducts = window.allRows.filter(p => {
-          const termMatch = p.q === term;
-          const locMatch = locationMatches(location, p.location_requested);
-          const deviceMatch = p.device === device;
-          const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
-          
-          return termMatch && locMatch && deviceMatch && companyMatch;
-        });
-        
-        console.log("[DEBUG-FULLSCREEN] Found matching products:", matchingProducts.length);
-        
-        if (matchingProducts.length === 0) {
-          console.log("[DEBUG-FULLSCREEN] No matching products found");
-          return;
-        }
-        
-        const activeProducts = matchingProducts.filter(product => 
-          product.product_status === 'active' || !product.product_status
-        );
-        
-        const inactiveProducts = matchingProducts.filter(product => 
-          product.product_status === 'inactive'
-        );
-        
-        console.log("[DEBUG-FULLSCREEN] Active products:", activeProducts.length, "Inactive:", inactiveProducts.length);
-        
-        const chartData = calculateAggregateSegmentDataGoogleAds(matchingProducts);
-        console.log("[DEBUG-FULLSCREEN] Chart data generated:", !!chartData, "length:", chartData?.length || 0);
-        
-        if (!chartData || chartData.length === 0) {
-          console.log("[DEBUG-FULLSCREEN] No valid chart data generated");
-          return;
-        }
-        
-        console.log("[DEBUG-FULLSCREEN] Rendering chart directly to cloned container");
-        
-        container.innerHTML = '';
-        container.style.height = '380px';
-        container.style.maxHeight = '380px';
-        container.style.overflowY = 'hidden';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.alignItems = 'center';
-        
-        const canvasWrapper = document.createElement('div');
-        canvasWrapper.style.width = '100%';
-        canvasWrapper.style.height = '280px';
-        canvasWrapper.style.maxHeight = '280px';
-        canvasWrapper.style.position = 'relative';
-        canvasWrapper.style.marginBottom = '10px';
-        container.appendChild(canvasWrapper);
-        
-        const canvas = document.createElement('canvas');
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvasWrapper.appendChild(canvas);
-        
-        const countContainer = document.createElement('div');
-        countContainer.style.width = '250px';
-        countContainer.style.height = '80px';
-        countContainer.style.maxHeight = '80px';
-        countContainer.style.display = 'grid';
-        countContainer.style.gridTemplateColumns = '1fr 1fr';
-        countContainer.style.gridTemplateRows = 'auto auto';
-        countContainer.style.gap = '4px';
-        countContainer.style.padding = '8px';
-        countContainer.style.backgroundColor = '#f9f9f9';
-        countContainer.style.borderRadius = '8px';
-        countContainer.style.fontSize = '14px';
-        countContainer.style.boxSizing = 'border-box';
-        
-        countContainer.innerHTML = `
-          <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Active:</div>
-          <div style="font-weight: 700; color: #4CAF50;">${activeProducts.length}</div>
-          <div style="font-weight: 500; color: #555; font-size: 12px; text-align: right; padding-right: 8px;">Inactive:</div>
-          <div style="font-weight: 700; color: #9e9e9e;">${inactiveProducts.length}</div>
-        `;
-        
-        container.appendChild(countContainer);
-        
-        try {
-          new Chart(canvas, {
-            type: "bar",
-            data: {
-              labels: chartData.map(d => d.label),
-              datasets: [
-                {
-                  label: "Current",
-                  data: chartData.map(d => d.current),
-                  backgroundColor: "#007aff",
-                  borderRadius: 4
-                },
-                {
-                  label: "Previous",
-                  type: "line",
-                  data: chartData.map(d => d.previous),
-                  borderColor: "rgba(255,0,0,1)",
-                  backgroundColor: "rgba(255,0,0,0.2)",
-                  fill: true,
-                  tension: 0.3,
-                  borderWidth: 2
-                }
-              ]
-            },
-            options: {
-              indexAxis: "y",
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: ctx => {
-                      const val = ctx.parsed.x;
-                      return `${ctx.dataset.label}: ${val.toFixed(2)}%`;
-                    }
-                  }
-                },
-                datalabels: {
-                  display: ctx => ctx.datasetIndex === 0,
-                  formatter: (value, context) => {
-                    const row = chartData[context.dataIndex];
-                    const mainLabel = `${row.current.toFixed(1)}%`;
-                    const diff = row.current - row.previous;
-                    const absDiff = Math.abs(diff).toFixed(1);
-                    const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "±";
-                    return [ mainLabel, `${arrow}${absDiff}%` ];
-                  },
-                  color: ctx => {
-                    const row = chartData[ctx.dataIndex];
-                    const diff = row.current - row.previous;
-                    if (diff > 0) return "green";
-                    if (diff < 0) return "red";
-                    return "#444";
-                  },
-                  anchor: "end",
-                  align: "end",
-                  offset: 8,
-                  font: { size: 10 }
-                }
-              },
-              scales: {
-                x: { display: false, min: 0, max: 100 },
-                y: { display: true, grid: { display: false }, ticks: { font: { size: 11 } } }
-              },
-              animation: false
-            }
-          });
-          
-          console.log("[DEBUG-FULLSCREEN] Chart rendered successfully to cloned container");
-        } catch (error) {
-          console.error("[DEBUG-FULLSCREEN] Error rendering chart:", error);
-        }
-      });
-    }, 500);
-      
-    setTimeout(() => {
-      fullscreenOverlay.querySelectorAll('.vis-badge').forEach(function(el) {
-        const parts = el.id.split('-');
-        const index = parts[2];
-        const row = window.globalRows[index];
-        if (!row) return;
-        
-        let visValue = parseFloat(row.visibilityBarValue) || 0;
-        if (visValue === 0) {
-          visValue = 0.1;
-        }
-    
-        var options = {
-          series: [visValue],
-          chart: {
-            height: 80,
-            width: 80,
-            type: 'radialBar',
-            sparkline: { enabled: false },
-            offsetY: 0
-          },
-          plotOptions: {
-            radialBar: {
-              startAngle: -90,
-              endAngle: 90,
-              hollow: { size: '50%' },
-              track: { strokeDashArray: 8, margin:2 },
-              dataLabels: {
-                name: { show: false },
-                value: {
-                  show: true,
-                  offsetY: 0,
-                  fontSize: '14px',
-                  formatter: function(val){
-                    return Math.round(val) + "%";
-                  }
-                }
-              }
-            }
-          },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shade: 'dark',
-              shadeIntensity: 0.15,
-              inverseColors: false,
-              opacityFrom: 1,
-              opacityTo: 1,
-              stops: [0,50,100]
-            }
-          },
-          stroke: { lineCap:'butt', dashArray:4 },
-          labels: []
-        };
-        
-        if (typeof ApexCharts !== 'undefined') {
-          var chart = new ApexCharts(el, options);
-          chart.render();
-        }
-      });
-    }, 100);
-  });
 
 // Add view switcher functionality - UPDATED to handle new structure
 const viewOverviewGoogleAdsBtn = document.getElementById("viewOverviewGoogleAds");
