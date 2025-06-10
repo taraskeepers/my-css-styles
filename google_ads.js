@@ -425,7 +425,7 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
       // Update trends data
       updateTrendsData();
       
-      // Add settings button functionality after a delay to ensure DOM is ready
+// Add settings button functionality after a delay to ensure DOM is ready
       setTimeout(() => {
         const settingsBtn = document.getElementById('trendsSettingsBtn');
         const selectorPopup = document.getElementById('metricsSelectorPopup');
@@ -437,6 +437,22 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
           
           newSettingsBtn.addEventListener('click', function(e) {
             e.stopPropagation();
+            
+            // Calculate position for the popup
+            const btnRect = newSettingsBtn.getBoundingClientRect();
+            const trendsContainer = document.getElementById('google-ads-trends-container');
+            const containerRect = trendsContainer.getBoundingClientRect();
+            
+            // Position popup to the left of the trends container
+            selectorPopup.style.top = btnRect.top + 'px';
+            selectorPopup.style.left = (containerRect.left - 280) + 'px'; // 260px width + 20px gap
+            
+            // If not enough space on the left, position it above
+            if (containerRect.left < 300) {
+              selectorPopup.style.left = containerRect.left + 'px';
+              selectorPopup.style.top = (containerRect.top - 420) + 'px'; // Approximate height + gap
+            }
+            
             selectorPopup.classList.toggle('visible');
           });
           
@@ -4478,19 +4494,39 @@ if (window.googleAdsApexCharts) {
         margin: 0 auto;
         position: relative;
       }
-      
-      .trend-up {
-        color: green;
-      }
-      
-      .trend-down {
-        color: red;
-      }
-      
-      .trend-neutral {
-        color: #444;
-      }
-      
+.trend-up {
+  color: #4CAF50 !important;
+  background: none !important;
+}
+
+.trend-down {
+  color: #F44336 !important;
+  background: none !important;
+}
+
+.trend-neutral {
+  color: #999 !important;
+  background: none !important;
+}
+
+.trend-change {
+  background: none !important;
+  padding: 0 !important;
+}
+/* Ensure no backgrounds on trend spans */
+.trend-change span {
+  background: none !important;
+  color: inherit;
+}
+
+.trend-arrow {
+  background: none !important;
+}
+
+/* Remove any potential inherited backgrounds */
+.trend-values span {
+  background: none !important;
+}     
       .segment-count-circle {
         width: 32px;
         height: 32px;
@@ -5677,21 +5713,33 @@ if (window.googleAdsApexCharts) {
 
 /* Metrics selector popup */
 .metrics-selector-popup {
-  position: absolute;
-  top: 40px;
-  right: 10px;
-  width: 240px;
+  position: fixed;
+  width: 260px;
   background: white;
   border: 1px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   padding: 15px;
   display: none;
-  z-index: 1000;
+  z-index: 10000;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .metrics-selector-popup.visible {
   display: block;
+}
+
+.metrics-selector-popup {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.metrics-selector-popup.visible {
+  display: block;
+  opacity: 1;
+  transform: scale(1);
 }
 
 .metrics-selector-title {
