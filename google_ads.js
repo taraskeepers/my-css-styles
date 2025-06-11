@@ -7171,7 +7171,44 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 }
 
   googleAdsNavPanel.appendChild(productsNavContainer);
-
+  // Auto-select first product and properly populate all containers
+  setTimeout(() => {
+    console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
+    
+    const firstNavItem = document.querySelector('.nav-google-ads-item');
+    
+    if (firstNavItem && allCompanyProducts.length > 0) {
+      const firstProduct = allCompanyProducts[0];
+      console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
+      
+      // Ensure Overview mode is set first
+      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+      const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
+      const chartBtn = document.getElementById('viewChartsGoogleAds');
+      
+      if (overviewBtn && performanceBtn && chartBtn) {
+        overviewBtn.classList.add('active');
+        performanceBtn.classList.remove('active');
+        chartBtn.classList.remove('active');
+      }
+      
+      // Now select the product - this will trigger selectGoogleAdsProduct()
+      // which will populate all the containers with actual data
+      firstNavItem.click();
+      
+    } else {
+      console.warn('[renderGoogleAdsTable] No products found for auto-selection');
+      
+      const tableContainer = document.querySelector("#googleAdsTableContainer");
+      const emptyMessage = document.createElement('div');
+      emptyMessage.id = 'googleAdsEmptyMessage';
+      emptyMessage.style.padding = '40px';
+      emptyMessage.style.textAlign = 'center';
+      emptyMessage.style.color = '#666';
+      emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+      tableContainer.appendChild(emptyMessage);
+    }
+  }, 300);
 }
 
 // Export the function
