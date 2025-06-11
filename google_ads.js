@@ -381,7 +381,17 @@ if (window.productInfoCharts) {
     navItemElement.classList.add('selected');
   }
   
-  window.selectedGoogleAdsProduct = product;
+window.selectedGoogleAdsProduct = product;
+
+// Ensure containers are visible when product is selected
+const productInfoContainer = document.getElementById('product_info');
+const productRankingMapContainer = document.getElementById('product_ranking_map');
+const productTablesContainer = document.getElementById('product_tables');
+
+if (productInfoContainer) productInfoContainer.style.display = 'block';
+if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
+if (productTablesContainer) productTablesContainer.style.display = 'block';
+
 populateProductInfo(product);
 // Apply current filters to ranking map
 const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
