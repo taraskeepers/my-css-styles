@@ -7182,16 +7182,8 @@ setTimeout(() => {
     const firstProduct = allCompanyProducts[0];
     console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-    // First select the product
+    // Just simulate the click - this should trigger all the proper logic
     firstNavItem.click();
-    
-    // Then ensure Overview mode is properly activated
-    setTimeout(() => {
-      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-      if (overviewBtn) {
-        overviewBtn.click();
-      }
-    }, 200);
     
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
@@ -7205,7 +7197,7 @@ setTimeout(() => {
     emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
     tableContainer.appendChild(emptyMessage);
   }
-}, 100);
+}, 200); // Increased timeout to 300ms to ensure DOM is fully ready
 }
 
 // Export the function
