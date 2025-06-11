@@ -366,12 +366,12 @@ function selectGoogleAdsProduct(product, navItemElement) {
   console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
   // Clean up previous product info charts
-if (window.productInfoCharts) {
-  window.productInfoCharts.forEach(chart => {
-    try { chart.destroy(); } catch (e) {}
-  });
-  window.productInfoCharts = [];
-}
+  if (window.productInfoCharts) {
+    window.productInfoCharts.forEach(chart => {
+      try { chart.destroy(); } catch (e) {}
+    });
+    window.productInfoCharts = [];
+  }
   
   document.querySelectorAll('.nav-google-ads-item').forEach(item => {
     item.classList.remove('selected');
@@ -381,170 +381,205 @@ if (window.productInfoCharts) {
     navItemElement.classList.add('selected');
   }
   
-window.selectedGoogleAdsProduct = product;
-
-// Ensure containers are visible when product is selected
-const productInfoContainer = document.getElementById('product_info');
-const productRankingMapContainer = document.getElementById('product_ranking_map');
-const productTablesContainer = document.getElementById('product_tables');
-
-if (productInfoContainer) productInfoContainer.style.display = 'block';
-if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
-if (productTablesContainer) productTablesContainer.style.display = 'block';
-
-populateProductInfo(product);
-// Apply current filters to ranking map
-const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-populateProductRankingMap(product, campaignFilter, channelFilter);
+  window.selectedGoogleAdsProduct = product;
+  
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
   console.log(`[selectGoogleAdsProduct] Found ${combinations.length} combinations for ${product.title}`);
   
+  // First render the table which creates the containers
   renderTableForSelectedGoogleAdsProduct(combinations, currentViewMode);
-
-// Load and display product metrics if in overview mode
-if (currentViewMode === 'viewOverviewGoogleAds') {
-  loadProductMetricsData(product.title).then(result => {
+  
+  // Now wait a bit for DOM to be ready, then populate the containers
+  setTimeout(() => {
+    // Ensure containers are visible
+    const productInfoContainer = document.getElementById('product_info');
+    const productRankingMapContainer = document.getElementById('product_ranking_map');
+    const productTablesContainer = document.getElementById('product_tables');
     const productMetricsContainer = document.getElementById('product_metrics');
     
-    if (result && result.productData.length > 0) {
-      // Show the container
-      if (productMetricsContainer) {
-        productMetricsContainer.style.display = 'block';
-      }
-      
-      // Populate campaign filter
-      const campaignFilter = document.getElementById('campaignNameFilter');
-      if (campaignFilter) {
-        campaignFilter.innerHTML = '<option value="all">All</option>';
-        result.campaignNames.forEach(campaign => {
-          const option = document.createElement('option');
-          option.value = campaign;
-          option.textContent = campaign;
-          campaignFilter.appendChild(option);
-        });
-      }
-      
-      // Populate channel type filter
-      const channelFilter = document.getElementById('channelTypeFilter');
-      if (channelFilter) {
-        channelFilter.innerHTML = '<option value="all">All</option>';
-        result.channelTypes.forEach(channel => {
-          const option = document.createElement('option');
-          option.value = channel;
-          option.textContent = channel;
-          channelFilter.appendChild(option);
-        });
-      }
-      
-      // Store data for filtering
-      window.currentProductMetricsData = result.productData;
-      
-      // Initial chart render
-      const chartData = processMetricsData(result.productData);
-      renderProductMetricsChart('productMetricsChart', chartData);
-      // Update trends data
-      updateTrendsData();
-      
-// Add settings button functionality after a delay to ensure DOM is ready
-      setTimeout(() => {
-        const settingsBtn = document.getElementById('trendsSettingsBtn');
-        const selectorPopup = document.getElementById('metricsSelectorPopup');
-        
-        if (settingsBtn && selectorPopup) {
-          // Remove any existing listeners
-          const newSettingsBtn = settingsBtn.cloneNode(true);
-          settingsBtn.parentNode.replaceChild(newSettingsBtn, settingsBtn);
+    if (currentViewMode === 'viewOverviewGoogleAds') {
+      if (productInfoContainer) productInfoContainer.style.display = 'block';
+      if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
+      if (productTablesContainer) productTablesContainer.style.display = 'block';
+      if (productMetricsContainer) productMetricsContainer.style.display = 'block';
+    }
+    
+    // Now populate them
+    populateProductInfo(product);
+    
+    // Apply current filters to ranking map
+    const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+    const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+    populateProductRankingMap(product, campaignFilter, channelFilter);
+    
+    // Load and display product metrics if in overview mode
+    if (currentViewMode === 'viewOverviewGoogleAds') {
+      loadProductMetricsData(product.title).then(result => {
+        if (result && result.productData.length > 0) {
+          // Show the container
+          if (productMetricsContainer) {
+            productMetricsContainer.style.display = 'block';
+          }
           
-          newSettingsBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
+          // Store data globally
+          window.currentProductMetricsData = result.productData;
+          
+          // Get initial campaigns and channels
+          const campaigns = [...new Set(result.productData.map(d => d['Campaign Name']))].filter(c => c);
+          const channels = [...new Set(result.productData.map(d => d['Channel Type']))].filter(c => c);
+          
+          // Populate filter dropdowns
+          const campaignFilter = document.getElementById('campaignNameFilter');
+          const channelFilter = document.getElementById('channelTypeFilter');
+          
+          if (campaignFilter) {
+            campaignFilter.innerHTML = '<option value="all">All Campaigns</option>';
+            campaigns.forEach(campaign => {
+              campaignFilter.innerHTML += `<option value="${campaign}">${campaign}</option>`;
+            });
+          }
+          
+          if (channelFilter) {
+            channelFilter.innerHTML = '<option value="all">All Channels</option>';
+            channels.forEach(channel => {
+              channelFilter.innerHTML += `<option value="${channel}">${channel}</option>`;
+            });
+          }
+          
+          // Process and render initial chart
+          const chartData = processMetricsData(result.productData, 'all', 'all');
+          renderProductMetricsChart('productMetricsChart', chartData);
+          
+          // Setup metrics selector
+          setTimeout(() => {
+            const metricsContainer = document.getElementById('metricsListContainer');
+            const newSettingsBtn = document.getElementById('trendsSettingsBtn');
+            const selectorPopup = document.getElementById('metricsSelectorPopup');
             
-            // Calculate position for the popup
-            const btnRect = newSettingsBtn.getBoundingClientRect();
-            const trendsContainer = document.getElementById('google-ads-trends-container');
-            const containerRect = trendsContainer.getBoundingClientRect();
-            
-            // Position popup to the left of the trends container
-            selectorPopup.style.top = btnRect.top + 'px';
-            selectorPopup.style.left = (containerRect.left - 280) + 'px'; // 260px width + 20px gap
-            
-            // If not enough space on the left, position it above
-            if (containerRect.left < 300) {
-              selectorPopup.style.left = containerRect.left + 'px';
-              selectorPopup.style.top = (containerRect.top - 420) + 'px'; // Approximate height + gap
+            if (metricsContainer && window.availableMetrics) {
+              metricsContainer.innerHTML = '';
+              window.availableMetrics.forEach(metric => {
+                const item = document.createElement('div');
+                item.className = 'metric-selector-item';
+                const isChecked = window.selectedMetrics.includes(metric.key) ? 'checked' : '';
+                item.innerHTML = `
+                  <label class="metric-toggle-switch">
+                    <input type="checkbox" class="metric-selector-toggle" 
+                           data-metric="${metric.key}" ${isChecked}>
+                    <span class="metric-toggle-slider"></span>
+                  </label>
+                  <span>${metric.label}</span>
+                `;
+                metricsContainer.appendChild(item);
+              });
+              
+              // Add toggle listeners
+              document.querySelectorAll('.metric-selector-toggle').forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                  const metric = this.dataset.metric;
+                  if (this.checked) {
+                    if (!window.selectedMetrics.includes(metric)) {
+                      window.selectedMetrics.push(metric);
+                    }
+                  } else {
+                    window.selectedMetrics = window.selectedMetrics.filter(m => m !== metric);
+                  }
+                  updateTrendsData();
+                });
+              });
             }
             
-            selectorPopup.classList.toggle('visible');
-          });
-          
-          // Close popup when clicking outside
-          document.addEventListener('click', function(e) {
-            if (!selectorPopup.contains(e.target) && !newSettingsBtn.contains(e.target)) {
-              selectorPopup.classList.remove('visible');
+            if (newSettingsBtn && selectorPopup) {
+              newSettingsBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const containerRect = document.getElementById('google-ads-trends-container').getBoundingClientRect();
+                selectorPopup.style.position = 'fixed';
+                selectorPopup.style.top = containerRect.top + 'px';
+                selectorPopup.style.left = (containerRect.left - 280) + 'px';
+                
+                if (containerRect.left < 300) {
+                  selectorPopup.style.left = containerRect.left + 'px';
+                  selectorPopup.style.top = (containerRect.top - 420) + 'px';
+                }
+                
+                selectorPopup.classList.toggle('visible');
+              });
+              
+              document.addEventListener('click', function(e) {
+                if (!selectorPopup.contains(e.target) && !newSettingsBtn.contains(e.target)) {
+                  selectorPopup.classList.remove('visible');
+                }
+              });
             }
-          });
+          }, 150);
+          
+          // Update date range text
+          const dateRangeText = document.getElementById('dateRangeText');
+          if (dateRangeText) {
+            const days = window.selectedDateRangeDays || 7;
+            const rangeLabels = {
+              3: 'Last 3 days',
+              7: 'Last 7 days',
+              14: 'Last 14 days',
+              30: 'Last 30 days',
+              90: 'Last 90 days'
+            };
+            dateRangeText.textContent = rangeLabels[days] || `Last ${days} days`;
+          }
+          updateTrendsData();
+          
+          // Add event listeners for filters
+          const campaignFilterElement = document.getElementById('campaignNameFilter');
+          const channelFilterElement = document.getElementById('channelTypeFilter');
+          
+          if (campaignFilterElement && !campaignFilterElement.hasAttribute('data-listener-attached')) {
+            campaignFilterElement.setAttribute('data-listener-attached', 'true');
+            campaignFilterElement.addEventListener('change', function() {
+              updateProductMetricsChart();
+              if (window.selectedGoogleAdsProduct) {
+                const campaignValue = this.value;
+                const channelValue = document.getElementById('channelTypeFilter').value;
+                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+              }
+            });
+          }
+          
+          if (channelFilterElement && !channelFilterElement.hasAttribute('data-listener-attached')) {
+            channelFilterElement.setAttribute('data-listener-attached', 'true');
+            channelFilterElement.addEventListener('change', function() {
+              updateProductMetricsChart();
+              if (window.selectedGoogleAdsProduct) {
+                const campaignValue = document.getElementById('campaignNameFilter').value;
+                const channelValue = this.value;
+                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+              }
+            });
+          }
+        } else {
+          // No data available
+          if (productMetricsContainer) {
+            productMetricsContainer.style.display = 'block';
+            const chartContainer = document.getElementById('productMetricsChart');
+            if (chartContainer) {
+              chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>No performance data available for this product</h3><p>Performance metrics will appear here once data is available in the Google Sheets integration.</p></div>';
+            }
+          }
         }
-      }, 150);
-
-      // Update date range text
-const dateRangeText = document.getElementById('dateRangeText');
-if (dateRangeText) {
-  const days = window.selectedDateRangeDays || 7;
-  const rangeLabels = {
-    3: 'Last 3 days',
-    7: 'Last 7 days',
-    14: 'Last 14 days',
-    30: 'Last 30 days',
-    90: 'Last 90 days'
-  };
-  dateRangeText.textContent = rangeLabels[days] || `Last ${days} days`;
-}
-updateTrendsData();
-      
-// Add event listeners for filters
-campaignFilter.addEventListener('change', function() {
-  updateProductMetricsChart();
-  // Update ranking map with new filters
-  if (window.selectedGoogleAdsProduct) {
-    const campaignValue = this.value;
-    const channelValue = document.getElementById('channelTypeFilter').value;
-    populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
-  }
-});
-
-channelFilter.addEventListener('change', function() {
-  updateProductMetricsChart();
-  // Update ranking map with new filters
-  if (window.selectedGoogleAdsProduct) {
-    const campaignValue = document.getElementById('campaignNameFilter').value;
-    const channelValue = this.value;
-    populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
-  }
-});
-    } else {
-      // No data available - show message
-      if (productMetricsContainer) {
-        productMetricsContainer.style.display = 'block';
-        const chartContainer = document.getElementById('productMetricsChart');
-        if (chartContainer) {
-          chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>No performance data available for this product</h3><p>Performance metrics will appear here once data is available in the Google Sheets integration.</p></div>';
+      }).catch(error => {
+        console.error('[selectGoogleAdsProduct] Failed to load product metrics:', error);
+        const productMetricsContainer = document.getElementById('product_metrics');
+        if (productMetricsContainer) {
+          productMetricsContainer.style.display = 'block';
+          const chartContainer = document.getElementById('productMetricsChart');
+          if (chartContainer) {
+            chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>Unable to load performance data</h3><p>Please check if the Google Sheets integration is properly configured.</p></div>';
+          }
         }
-      }
+      });
     }
-  }).catch(error => {
-    console.error('[selectGoogleAdsProduct] Failed to load product metrics:', error);
-    // Show error message
-    const productMetricsContainer = document.getElementById('product_metrics');
-    if (productMetricsContainer) {
-      productMetricsContainer.style.display = 'block';
-      const chartContainer = document.getElementById('productMetricsChart');
-      if (chartContainer) {
-        chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>Unable to load performance data</h3><p>Please check if the Google Sheets integration is properly configured.</p></div>';
-      }
-    }
-  });
+  }, 100); // Small delay to ensure DOM is ready
 }
   
 function updateProductMetricsChart() {
@@ -3077,10 +3112,9 @@ productRankingMapContainer.style.cssText = `
 
 contentWrapper.appendChild(productRankingMapContainer);
 
-// Replace the original append
+// Replace the original append - table should be INSIDE contentWrapper
+contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
 container.appendChild(contentWrapper);
-
-container.appendChild(table);
 
 console.log('[renderTableForSelectedGoogleAdsProduct] Table created, rendering charts...');
 
@@ -7203,14 +7237,22 @@ setTimeout(() => {
       chartBtn.classList.remove('active');
     }
     
-    // Now select the product - this will trigger selectGoogleAdsProduct()
-    // which will populate all the containers with actual data
+    // Click the first product
     firstNavItem.click();
     
   } else {
-    // ... rest of the code
+    console.warn('[renderGoogleAdsTable] No products found for auto-selection');
+    
+    const tableContainer = document.querySelector("#googleAdsTableContainer");
+    const emptyMessage = document.createElement('div');
+    emptyMessage.id = 'googleAdsEmptyMessage';
+    emptyMessage.style.padding = '40px';
+    emptyMessage.style.textAlign = 'center';
+    emptyMessage.style.color = '#666';
+    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+    tableContainer.appendChild(emptyMessage);
   }
-}, 300);
+}, 500); // Increased timeout
 }
 
 // Export the function
