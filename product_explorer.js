@@ -1965,22 +1965,42 @@ function calculateProductMetrics(product) {
     const device = record.device || '';
     const comboKey = `${searchTerm}|${location}|${device}`;
     
-    // Track location status
+    // Track location status using the same logic as getLastTrackedInfo
     if (location) {
-      const isActive = record.product_status === 'active' || !record.product_status;
-      if (isActive) hasAnyActiveLocation = true;
+      // Check if this record has been active in the last 7 days
+      let isRecordActive = false;
+      
+      if (record.historical_data && record.historical_data.length > 0) {
+        let latestDate = null;
+        record.historical_data.forEach(item => {
+          if (item.date && item.date.value) {
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            if (!latestDate || itemDate.isAfter(latestDate)) {
+              latestDate = itemDate.clone();
+            }
+          }
+        });
+        
+        if (latestDate) {
+          const today = moment().startOf('day');
+          const daysDiff = today.diff(latestDate, 'days');
+          isRecordActive = daysDiff <= 7;
+        }
+      }
+      
+      if (isRecordActive) hasAnyActiveLocation = true;
       
       if (!locationStatusMap.has(location)) {
         locationStatusMap.set(location, { hasActive: false, hasInactive: false });
       }
-      if (isActive) {
+      if (isRecordActive) {
         locationStatusMap.get(location).hasActive = true;
       } else {
         locationStatusMap.get(location).hasInactive = true;
       }
     }
     
-    // Process ALL records (both active and inactive) for metrics calculation
+    // Process records for metrics calculation
     if (!combinationMetrics.has(comboKey)) {
       combinationMetrics.set(comboKey, { 
         rankSum: 0, 
@@ -1988,11 +2008,30 @@ function calculateProductMetrics(product) {
         visibilitySum: 0, 
         visibilityCount: 0,
         record: record,
-        isActive: record.product_status === 'active' || !record.product_status
+        isActive: false // Will be updated below
       });
     }
     
     const combo = combinationMetrics.get(comboKey);
+    
+    // Update the isActive status for this combination
+    if (record.historical_data && record.historical_data.length > 0) {
+      let latestDate = null;
+      record.historical_data.forEach(item => {
+        if (item.date && item.date.value) {
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          if (!latestDate || itemDate.isAfter(latestDate)) {
+            latestDate = itemDate.clone();
+          }
+        }
+      });
+      
+      if (latestDate) {
+        const today = moment().startOf('day');
+        const daysDiff = today.diff(latestDate, 'days');
+        combo.isActive = daysDiff <= 7;
+      }
+    }
     
     // Calculate rank from historical data
     if (record.historical_data && Array.isArray(record.historical_data)) {
@@ -2022,9 +2061,8 @@ function calculateProductMetrics(product) {
           combo.rankCount++;
         }
         
-// Calculate visibility using the exact same logic as the table
+        // Calculate visibility only for active combinations
         if (combo.isActive) {
-          // Use the same calculation as in createDeviceCell function
           let avgVisibility = 0;
           if (record.avg_visibility) {
             avgVisibility = parseFloat(record.avg_visibility) * 100;
