@@ -383,6 +383,7 @@ if (window.productInfoCharts) {
   
   window.selectedGoogleAdsProduct = product;
   populateProductInfo(product);
+  populateProductRankingMap(product);
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
@@ -513,6 +514,187 @@ updateTrendsData();
         chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>Unable to load performance data</h3><p>Please check if the Google Sheets integration is properly configured.</p></div>';
       }
     }
+  });
+}
+
+function populateProductRankingMap(product) {
+  const container = document.getElementById('product_ranking_map');
+  if (!container) return;
+  
+  // Show the container
+  container.style.display = 'block';
+  
+  // Load data from googleSheets_productPerformance
+  loadProductMetricsData(product.title).then(result => {
+    if (!result || !result.productData || result.productData.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No performance data available for ranking map</div>';
+      return;
+    }
+    
+    // Get ranking data from product records
+    const productRecords = getProductRecords(product);
+    const rankingsByDate = new Map();
+    
+    // Collect rankings by date
+    productRecords.forEach(record => {
+      if (record.historical_data && Array.isArray(record.historical_data)) {
+        record.historical_data.forEach(item => {
+          if (item.date?.value && item.avg_position != null) {
+            const date = item.date.value;
+            const ranking = parseFloat(item.avg_position);
+            
+            if (!rankingsByDate.has(date)) {
+              rankingsByDate.set(date, []);
+            }
+            rankingsByDate.get(date).push(ranking);
+          }
+        });
+      }
+    });
+    
+    // Calculate average ranking per date
+    const avgRankingByDate = new Map();
+    rankingsByDate.forEach((rankings, date) => {
+      const avgRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
+      avgRankingByDate.set(date, avgRanking);
+    });
+    
+    // Initialize data structure for 40 positions
+    const positionData = {};
+    for (let i = 1; i <= 40; i++) {
+      positionData[i] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        ctrSum: 0,
+        cvrSum: 0,
+        roasSum: 0,
+        aovSum: 0,
+        cpaSum: 0,
+        count: 0
+      };
+    }
+    
+    // Group data by date and aggregate
+    const dataByDate = new Map();
+    result.productData.forEach(row => {
+      const date = row.Date;
+      if (!date) return;
+      
+      if (!dataByDate.has(date)) {
+        dataByDate.set(date, {
+          impressions: 0,
+          clicks: 0,
+          cost: 0,
+          conversions: 0,
+          conversionValue: 0
+        });
+      }
+      
+      const dayData = dataByDate.get(date);
+      dayData.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+      dayData.clicks += parseInt(row.Clicks) || 0;
+      dayData.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+      dayData.conversions += parseFloat(row.Conversions) || 0;
+      dayData.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    });
+    
+    // Process aggregated data by ranking position
+    dataByDate.forEach((dayData, date) => {
+      const avgRanking = avgRankingByDate.get(date);
+      if (!avgRanking) return;
+      
+      // Round ranking to nearest integer
+      const roundedRanking = Math.round(avgRanking);
+      const position = Math.max(1, Math.min(40, roundedRanking));
+      
+      const posData = positionData[position];
+      posData.impressions += dayData.impressions;
+      posData.clicks += dayData.clicks;
+      posData.cost += dayData.cost;
+      posData.conversions += dayData.conversions;
+      posData.conversionValue += dayData.conversionValue;
+      
+      // Calculate metrics for averaging
+      const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
+      const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
+      const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
+      const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
+      const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
+      
+      posData.ctrSum += ctr;
+      posData.cvrSum += cvr;
+      posData.roasSum += roas;
+      posData.aovSum += aov;
+      posData.cpaSum += cpa;
+      posData.count++;
+    });
+    
+    // Create table HTML
+    let tableHTML = `
+      <table class="ranking-map-table">
+        <thead>
+          <tr>
+            <th>Avg Ranking</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>Cost</th>
+            <th>Conversions</th>
+            <th>Conv. Value</th>
+            <th>CTR</th>
+            <th>CVR</th>
+            <th>ROAS</th>
+            <th>AOV</th>
+            <th>CPA</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    // Generate rows for positions 1-40
+    for (let position = 1; position <= 40; position++) {
+      const data = positionData[position];
+      const hasData = data.count > 0;
+      
+      // Calculate averages
+      const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
+      const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
+      const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
+      const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
+      const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
+      
+      const rowClass = position <= 3 ? 'ranking-position-' + position : 
+                      position <= 8 ? 'ranking-position-4' :
+                      position <= 14 ? 'ranking-position-9' : '';
+      
+      tableHTML += `
+        <tr class="${rowClass}">
+          <td>${position}</td>
+          <td>${hasData ? data.impressions.toLocaleString() : '-'}</td>
+          <td>${hasData ? data.clicks.toLocaleString() : '-'}</td>
+          <td>${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
+          <td>${hasData ? data.conversions.toFixed(2) : '-'}</td>
+          <td>${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
+          <td>${hasData ? avgCtr + '%' : '-'}</td>
+          <td>${hasData ? avgCvr + '%' : '-'}</td>
+          <td>${hasData ? avgRoas + 'x' : '-'}</td>
+          <td>${hasData ? '$' + avgAov : '-'}</td>
+          <td>${hasData ? '$' + avgCpa : '-'}</td>
+        </tr>
+      `;
+    }
+    
+    tableHTML += `
+        </tbody>
+      </table>
+    `;
+    
+    container.innerHTML = tableHTML;
+  }).catch(error => {
+    console.error('[populateProductRankingMap] Error:', error);
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading ranking map data</div>';
   });
 }
 
@@ -2601,6 +2783,24 @@ contentWrapper.appendChild(productInfoContainer);
 contentWrapper.appendChild(productTablesContainer);
 contentWrapper.appendChild(productMetricsContainer);
 
+// Create product-ranking-map container
+const productRankingMapContainer = document.createElement('div');
+productRankingMapContainer.id = 'product_ranking_map';
+productRankingMapContainer.className = 'google-ads-ranking-map-container';
+productRankingMapContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+  max-height: 600px;
+  overflow-y: auto;
+`;
+
+contentWrapper.appendChild(productRankingMapContainer);
+
 // Replace the original append
 container.appendChild(contentWrapper);
 
@@ -4356,11 +4556,13 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     table.classList.remove('charts-mode', 'map-mode');
   }
   
-  // Show additional containers
-  const productInfo = document.getElementById('product_info');
-  const productMetrics = document.getElementById('product_metrics');
-  if (productInfo) productInfo.style.display = 'block';
-  if (productMetrics) productMetrics.style.display = 'block';
+// Show additional containers
+const productInfo = document.getElementById('product_info');
+const productMetrics = document.getElementById('product_metrics');
+const productRankingMap = document.getElementById('product_ranking_map'); // Add this
+if (productInfo) productInfo.style.display = 'block';
+if (productMetrics) productMetrics.style.display = 'block';
+if (productRankingMap) productRankingMap.style.display = 'block'; // Add this
   
   // Hide map
   const mapContainer = document.getElementById('googleAdsMapContainer');
@@ -6456,6 +6658,59 @@ if (window.googleAdsApexCharts) {
 .table-trend-arrow {
   font-size: 9px;
 }
+/* Product Ranking Map Styles */
+.ranking-map-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.ranking-map-table th {
+  background: #f8f9fa;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.ranking-map-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 11px;
+  height: 24px;
+  line-height: 16px;
+}
+
+.ranking-map-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.ranking-map-table td:first-child {
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  width: 60px;
+}
+
+.ranking-position-1 td:first-child { background-color: #dfffd6; }
+.ranking-position-2 td:first-child,
+.ranking-position-3 td:first-child { background-color: #ffffc2; }
+.ranking-position-4 td:first-child,
+.ranking-position-5 td:first-child,
+.ranking-position-6 td:first-child,
+.ranking-position-7 td:first-child,
+.ranking-position-8 td:first-child { background-color: #ffe0bd; }
+.ranking-position-9 td:first-child,
+.ranking-position-10 td:first-child,
+.ranking-position-11 td:first-child,
+.ranking-position-12 td:first-child,
+.ranking-position-13 td:first-child,
+.ranking-position-14 td:first-child { background-color: #ffcfcf; }
     `;
     document.head.appendChild(style);
   }
