@@ -387,24 +387,6 @@ populateProductInfo(product);
 const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
 const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
 populateProductRankingMap(product, campaignFilter, channelFilter);
-
-window.selectedGoogleAdsProduct = product;
-
-// Ensure containers are visible when product is selected
-const productInfoContainer = document.getElementById('product_info');
-const productRankingMapContainer = document.getElementById('product_ranking_map');
-const productTablesContainer = document.getElementById('product_tables');
-
-if (productInfoContainer) productInfoContainer.style.display = 'block';
-if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
-if (productTablesContainer) productTablesContainer.style.display = 'block';
-
-populateProductInfo(product);
-// Apply current filters to ranking map
-const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-populateProductRankingMap(product, campaignFilter, channelFilter);
-  
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
@@ -7190,46 +7172,43 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 
   googleAdsNavPanel.appendChild(productsNavContainer);
   // Auto-select first product and properly populate all containers
-// Auto-select first product and properly populate all containers
-setTimeout(() => {
-  console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
-  
-  const firstNavItem = document.querySelector('.nav-google-ads-item');
-  
-  if (firstNavItem && allCompanyProducts.length > 0) {
-    const firstProduct = allCompanyProducts[0];
-    console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
+  setTimeout(() => {
+    console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
     
-    // Ensure Overview mode is set first
-    const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-    const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
-    const chartBtn = document.getElementById('viewChartsGoogleAds');
+    const firstNavItem = document.querySelector('.nav-google-ads-item');
     
-    if (overviewBtn && performanceBtn && chartBtn) {
-      overviewBtn.classList.add('active');
-      performanceBtn.classList.remove('active');
-      chartBtn.classList.remove('active');
+    if (firstNavItem && allCompanyProducts.length > 0) {
+      const firstProduct = allCompanyProducts[0];
+      console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
+      
+      // Ensure Overview mode is set first
+      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+      const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
+      const chartBtn = document.getElementById('viewChartsGoogleAds');
+      
+      if (overviewBtn && performanceBtn && chartBtn) {
+        overviewBtn.classList.add('active');
+        performanceBtn.classList.remove('active');
+        chartBtn.classList.remove('active');
+      }
+      
+      // Now select the product - this will trigger selectGoogleAdsProduct()
+      // which will populate all the containers with actual data
+      firstNavItem.click();
+      
+    } else {
+      console.warn('[renderGoogleAdsTable] No products found for auto-selection');
+      
+      const tableContainer = document.querySelector("#googleAdsTableContainer");
+      const emptyMessage = document.createElement('div');
+      emptyMessage.id = 'googleAdsEmptyMessage';
+      emptyMessage.style.padding = '40px';
+      emptyMessage.style.textAlign = 'center';
+      emptyMessage.style.color = '#666';
+      emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+      tableContainer.appendChild(emptyMessage);
     }
-    
-    // Force display of containers before clicking
-    const productInfo = document.getElementById('product_info');
-    const productMetrics = document.getElementById('product_metrics');
-    const productRankingMap = document.getElementById('product_ranking_map');
-    const productTables = document.getElementById('product_tables');
-    
-    if (productInfo) productInfo.style.display = 'block';
-    if (productMetrics) productMetrics.style.display = 'block';
-    if (productRankingMap) productRankingMap.style.display = 'block';
-    if (productTables) productTables.style.display = 'block';
-    
-    // Now select the product - this will trigger selectGoogleAdsProduct()
-    // which will populate all the containers with actual data
-    firstNavItem.click();
-    
-  } else {
-    // ... rest of the code
-  }
-}, 500); // Increased timeout to ensure DOM is ready
+  }, 300);
 }
 
 // Export the function
