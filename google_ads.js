@@ -7172,65 +7172,6 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 
   googleAdsNavPanel.appendChild(productsNavContainer);
 
-// Auto-select first product and ensure proper Overview mode initialization
-setTimeout(() => {
-  console.log('[renderGoogleAdsTable] Auto-selecting first product...');
-  
-  const firstNavItem = document.querySelector('.nav-google-ads-item');
-  
-  if (firstNavItem && allCompanyProducts.length > 0) {
-    const firstProduct = allCompanyProducts[0];
-    console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
-    
-    // Simulate clicking the first product
-    firstNavItem.click();
-    
-    // Ensure Overview mode is properly set up after product selection
-    setTimeout(() => {
-      console.log('[renderGoogleAdsTable] Ensuring Overview mode is active...');
-      
-      // Make sure Overview button is active
-      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-      const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
-      const chartBtn = document.getElementById('viewChartsGoogleAds');
-      
-      if (overviewBtn && performanceBtn && chartBtn) {
-        // Set button states
-        overviewBtn.classList.add('active');
-        performanceBtn.classList.remove('active');
-        chartBtn.classList.remove('active');
-        
-        // Show overview containers
-        const productInfo = document.getElementById('product_info');
-        const productMetrics = document.getElementById('product_metrics');
-        const productRankingMap = document.getElementById('product_ranking_map');
-        const googleAdsTable = document.getElementById('googleAdsTable');
-        
-        if (productInfo) productInfo.style.display = 'block';
-        if (productMetrics) productMetrics.style.display = 'block';
-        if (productRankingMap) productRankingMap.style.display = 'block';
-        if (googleAdsTable) {
-          googleAdsTable.classList.add('overview-mode');
-          googleAdsTable.classList.remove('performance-mode');
-        }
-        
-        console.log('[renderGoogleAdsTable] Overview mode containers shown');
-      }
-    }, 100);
-    
-  } else {
-    console.warn('[renderGoogleAdsTable] No products found for auto-selection');
-    
-    const tableContainer = document.querySelector("#googleAdsTableContainer");
-    const emptyMessage = document.createElement('div');
-    emptyMessage.id = 'googleAdsEmptyMessage';
-    emptyMessage.style.padding = '40px';
-    emptyMessage.style.textAlign = 'center';
-    emptyMessage.style.color = '#666';
-    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
-    tableContainer.appendChild(emptyMessage);
-  }
-}, 300); // Increased timeout to ensure everything is ready
 }
 
 // Export the function
