@@ -7173,36 +7173,39 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
   googleAdsNavPanel.appendChild(productsNavContainer);
 
     // Set water fill heights for visibility indicators
-  setTimeout(() => {
-    document.querySelectorAll('.vis-water-container[data-fill]').forEach(container => {
-      const fillPercent = parseFloat(container.getAttribute('data-fill')) || 0;
-      container.style.setProperty('--fill-height', fillPercent + '%');
-    });
-  }, 100);
-
-  setTimeout(() => {
-    console.log('[renderGoogleAdsTable] Auto-selecting first product...');
+setTimeout(() => {
+  console.log('[renderGoogleAdsTable] Auto-selecting first product...');
+  
+  const firstNavItem = document.querySelector('.nav-google-ads-item');
+  
+  if (firstNavItem && allCompanyProducts.length > 0) {
+    const firstProduct = allCompanyProducts[0];
+    console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-    const firstNavItem = document.querySelector('.nav-google-ads-item');
+    // First select the product
+    firstNavItem.click();
     
-    if (firstNavItem && allCompanyProducts.length > 0) {
-      const firstProduct = allCompanyProducts[0];
-      console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
-      
-      firstNavItem.click();
-    } else {
-      console.warn('[renderGoogleAdsTable] No products found for auto-selection');
-      
-const tableContainer = document.querySelector("#googleAdsTableContainer");
-const emptyMessage = document.createElement('div');
-emptyMessage.id = 'googleAdsEmptyMessage';
-emptyMessage.style.padding = '40px';
-emptyMessage.style.textAlign = 'center';
-emptyMessage.style.color = '#666';
-emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
-tableContainer.appendChild(emptyMessage);
-    }
-  }, 100);
+    // Then ensure Overview mode is properly activated
+    setTimeout(() => {
+      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+      if (overviewBtn) {
+        overviewBtn.click();
+      }
+    }, 200);
+    
+  } else {
+    console.warn('[renderGoogleAdsTable] No products found for auto-selection');
+    
+    const tableContainer = document.querySelector("#googleAdsTableContainer");
+    const emptyMessage = document.createElement('div');
+    emptyMessage.id = 'googleAdsEmptyMessage';
+    emptyMessage.style.padding = '40px';
+    emptyMessage.style.textAlign = 'center';
+    emptyMessage.style.color = '#666';
+    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
+    tableContainer.appendChild(emptyMessage);
+  }
+}, 100);
 }
 
 // Export the function
