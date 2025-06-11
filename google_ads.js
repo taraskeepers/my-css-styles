@@ -7172,7 +7172,7 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 
   googleAdsNavPanel.appendChild(productsNavContainer);
 
-    // Set water fill heights for visibility indicators
+// Auto-select first product and ensure proper Overview mode initialization
 setTimeout(() => {
   console.log('[renderGoogleAdsTable] Auto-selecting first product...');
   
@@ -7182,8 +7182,41 @@ setTimeout(() => {
     const firstProduct = allCompanyProducts[0];
     console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-    // Just simulate the click - this should trigger all the proper logic
+    // Simulate clicking the first product
     firstNavItem.click();
+    
+    // Ensure Overview mode is properly set up after product selection
+    setTimeout(() => {
+      console.log('[renderGoogleAdsTable] Ensuring Overview mode is active...');
+      
+      // Make sure Overview button is active
+      const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+      const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
+      const chartBtn = document.getElementById('viewChartsGoogleAds');
+      
+      if (overviewBtn && performanceBtn && chartBtn) {
+        // Set button states
+        overviewBtn.classList.add('active');
+        performanceBtn.classList.remove('active');
+        chartBtn.classList.remove('active');
+        
+        // Show overview containers
+        const productInfo = document.getElementById('product_info');
+        const productMetrics = document.getElementById('product_metrics');
+        const productRankingMap = document.getElementById('product_ranking_map');
+        const googleAdsTable = document.getElementById('googleAdsTable');
+        
+        if (productInfo) productInfo.style.display = 'block';
+        if (productMetrics) productMetrics.style.display = 'block';
+        if (productRankingMap) productRankingMap.style.display = 'block';
+        if (googleAdsTable) {
+          googleAdsTable.classList.add('overview-mode');
+          googleAdsTable.classList.remove('performance-mode');
+        }
+        
+        console.log('[renderGoogleAdsTable] Overview mode containers shown');
+      }
+    }, 100);
     
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
@@ -7197,7 +7230,7 @@ setTimeout(() => {
     emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
     tableContainer.appendChild(emptyMessage);
   }
-}, 300); // Increased timeout to 300ms to ensure DOM is fully ready
+}, 500); // Increased timeout to ensure everything is ready
 }
 
 // Export the function
