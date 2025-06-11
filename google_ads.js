@@ -629,7 +629,6 @@ updateTrendsData();
       }
     }
   }
-}
 
 async function loadProductMetricsData(productTitle) {
   try {
