@@ -382,8 +382,11 @@ if (window.productInfoCharts) {
   }
   
   window.selectedGoogleAdsProduct = product;
-  populateProductInfo(product);
-  populateProductRankingMap(product);
+populateProductInfo(product);
+// Apply current filters to ranking map
+const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+populateProductRankingMap(product, campaignFilter, channelFilter);
   const currentViewMode = document.querySelector('.google-ads-view-switcher .active')?.id || 'viewOverviewGoogleAds';
   
   const combinations = getProductCombinations(product);
@@ -490,9 +493,26 @@ if (dateRangeText) {
 }
 updateTrendsData();
       
-      // Add event listeners for filters
-      campaignFilter.addEventListener('change', updateProductMetricsChart);
-      channelFilter.addEventListener('change', updateProductMetricsChart);
+// Add event listeners for filters
+campaignFilter.addEventListener('change', function() {
+  updateProductMetricsChart();
+  // Update ranking map with new filters
+  if (window.selectedGoogleAdsProduct) {
+    const campaignValue = this.value;
+    const channelValue = document.getElementById('channelTypeFilter').value;
+    populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+  }
+});
+
+channelFilter.addEventListener('change', function() {
+  updateProductMetricsChart();
+  // Update ranking map with new filters
+  if (window.selectedGoogleAdsProduct) {
+    const campaignValue = document.getElementById('campaignNameFilter').value;
+    const channelValue = this.value;
+    populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+  }
+});
     } else {
       // No data available - show message
       if (productMetricsContainer) {
@@ -517,12 +537,17 @@ updateTrendsData();
   });
 }
 
-function populateProductRankingMap(product) {
+function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all') {
   const container = document.getElementById('product_ranking_map');
   if (!container) return;
   
   // Show the container
   container.style.display = 'block';
+  
+  // Get date range
+  const daysToShow = window.selectedDateRangeDays || 7;
+  const endDate = moment().startOf('day');
+  const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
   
   // Load data from googleSheets_productPerformance
   loadProductMetricsData(product.title).then(result => {
@@ -531,22 +556,39 @@ function populateProductRankingMap(product) {
       return;
     }
     
+    // Apply filters
+    let filteredData = result.productData.filter(row => {
+      if (!row.Date) return false;
+      const rowDate = moment(row.Date, 'YYYY-MM-DD');
+      return rowDate.isBetween(startDate, endDate, 'day', '[]');
+    });
+    
+    if (campaignFilter !== 'all') {
+      filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
+    }
+    if (channelFilter !== 'all') {
+      filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
+    }
+    
     // Get ranking data from product records
     const productRecords = getProductRecords(product);
     const rankingsByDate = new Map();
     
-    // Collect rankings by date
+    // Collect rankings by date within the date range
     productRecords.forEach(record => {
       if (record.historical_data && Array.isArray(record.historical_data)) {
         record.historical_data.forEach(item => {
           if (item.date?.value && item.avg_position != null) {
-            const date = item.date.value;
-            const ranking = parseFloat(item.avg_position);
-            
-            if (!rankingsByDate.has(date)) {
-              rankingsByDate.set(date, []);
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+              const date = item.date.value;
+              const ranking = parseFloat(item.avg_position);
+              
+              if (!rankingsByDate.has(date)) {
+                rankingsByDate.set(date, []);
+              }
+              rankingsByDate.get(date).push(ranking);
             }
-            rankingsByDate.get(date).push(ranking);
           }
         });
       }
@@ -559,7 +601,7 @@ function populateProductRankingMap(product) {
       avgRankingByDate.set(date, avgRanking);
     });
     
-    // Initialize data structure for 40 positions
+    // Initialize data structure
     const positionData = {};
     for (let i = 1; i <= 40; i++) {
       positionData[i] = {
@@ -579,7 +621,7 @@ function populateProductRankingMap(product) {
     
     // Group data by date and aggregate
     const dataByDate = new Map();
-    result.productData.forEach(row => {
+    filteredData.forEach(row => {
       const date = row.Date;
       if (!date) return;
       
@@ -632,72 +674,272 @@ function populateProductRankingMap(product) {
       posData.count++;
     });
     
-    // Create table HTML
-    let tableHTML = `
-      <table class="ranking-map-table">
-        <thead>
-          <tr>
-            <th>Avg Ranking</th>
-            <th>Impressions</th>
-            <th>Clicks</th>
-            <th>Cost</th>
-            <th>Conversions</th>
-            <th>Conv. Value</th>
-            <th>CTR</th>
-            <th>CVR</th>
-            <th>ROAS</th>
-            <th>AOV</th>
-            <th>CPA</th>
-          </tr>
-        </thead>
-        <tbody>
+    // Check if segmented mode is on
+    const isSegmented = document.getElementById('rankingMapSegmentedToggle')?.checked || false;
+    
+    // Create toggle HTML
+    let containerHTML = `
+      <div class="ranking-map-segmented-toggle">
+        <label>Detailed Mode</label>
+        <label class="chart-mode-switch">
+          <input type="checkbox" id="rankingMapSegmentedToggle" ${isSegmented ? 'checked' : ''}>
+          <span class="chart-mode-slider"></span>
+        </label>
+        <label>Segmented Mode</label>
+      </div>
     `;
     
-    // Generate rows for positions 1-40
-    for (let position = 1; position <= 40; position++) {
-      const data = positionData[position];
-      const hasData = data.count > 0;
+    if (isSegmented) {
+      // Segmented mode - aggregate into 4 segments
+      const segments = {
+        'Top 3': { range: [1, 3], data: null },
+        'Top 4-8': { range: [4, 8], data: null },
+        'Top 9-14': { range: [9, 14], data: null },
+        'Below 14': { range: [15, 40], data: null }
+      };
       
-      // Calculate averages
-      const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
-      const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
-      const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
-      const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
-      const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
+      // Aggregate data for each segment
+      Object.keys(segments).forEach(segmentName => {
+        const segment = segments[segmentName];
+        const segmentData = {
+          impressions: 0,
+          clicks: 0,
+          cost: 0,
+          conversions: 0,
+          conversionValue: 0,
+          ctrSum: 0,
+          cvrSum: 0,
+          roasSum: 0,
+          aovSum: 0,
+          cpaSum: 0,
+          count: 0
+        };
+        
+        for (let pos = segment.range[0]; pos <= segment.range[1]; pos++) {
+          const data = positionData[pos];
+          segmentData.impressions += data.impressions;
+          segmentData.clicks += data.clicks;
+          segmentData.cost += data.cost;
+          segmentData.conversions += data.conversions;
+          segmentData.conversionValue += data.conversionValue;
+          segmentData.ctrSum += data.ctrSum;
+          segmentData.cvrSum += data.cvrSum;
+          segmentData.roasSum += data.roasSum;
+          segmentData.aovSum += data.aovSum;
+          segmentData.cpaSum += data.cpaSum;
+          segmentData.count += data.count;
+        }
+        
+        segment.data = segmentData;
+      });
       
-      const rowClass = position <= 3 ? 'ranking-position-' + position : 
-                      position <= 8 ? 'ranking-position-4' :
-                      position <= 14 ? 'ranking-position-9' : '';
-      
-      tableHTML += `
-        <tr class="${rowClass}">
-          <td>${position}</td>
-          <td>${hasData ? data.impressions.toLocaleString() : '-'}</td>
-          <td>${hasData ? data.clicks.toLocaleString() : '-'}</td>
-          <td>${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
-          <td>${hasData ? data.conversions.toFixed(2) : '-'}</td>
-          <td>${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
-          <td>${hasData ? avgCtr + '%' : '-'}</td>
-          <td>${hasData ? avgCvr + '%' : '-'}</td>
-          <td>${hasData ? avgRoas + 'x' : '-'}</td>
-          <td>${hasData ? '$' + avgAov : '-'}</td>
-          <td>${hasData ? '$' + avgCpa : '-'}</td>
-        </tr>
+      // Create segmented table
+      containerHTML += `
+        <table class="ranking-map-table">
+          <thead>
+            <tr>
+              <th>Segment</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Avg CPC</th>
+              <th>Cost</th>
+              <th>Conversions</th>
+              <th>Conv. Value</th>
+              <th>CTR</th>
+              <th>CVR</th>
+              <th>ROAS</th>
+              <th>AOV</th>
+              <th>CPA</th>
+            </tr>
+          </thead>
+          <tbody>
       `;
+      
+      // Collect all values for heat map calculation
+      const allValues = {
+        impressions: [], clicks: [], avgCpc: [], cost: [], conversions: [],
+        conversionValue: [], ctr: [], cvr: [], roas: [], aov: [], cpa: []
+      };
+      
+      Object.keys(segments).forEach(segmentName => {
+        const data = segments[segmentName].data;
+        if (data.count > 0) {
+          allValues.impressions.push(data.impressions);
+          allValues.clicks.push(data.clicks);
+          allValues.avgCpc.push(data.clicks > 0 ? data.cost / data.clicks : 0);
+          allValues.cost.push(data.cost);
+          allValues.conversions.push(data.conversions);
+          allValues.conversionValue.push(data.conversionValue);
+          allValues.ctr.push(data.ctrSum / data.count);
+          allValues.cvr.push(data.cvrSum / data.count);
+          allValues.roas.push(data.roasSum / data.count);
+          allValues.aov.push(data.aovSum / data.count);
+          allValues.cpa.push(data.cpaSum / data.count);
+        }
+      });
+      
+      Object.keys(segments).forEach((segmentName, index) => {
+        const data = segments[segmentName].data;
+        const hasData = data.count > 0;
+        
+        const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
+        const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
+        const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
+        const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
+        const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
+        const avgCpc = hasData && data.clicks > 0 ? (data.cost / data.clicks).toFixed(2) : '0.00';
+        
+        const rowClass = index === 0 ? 'ranking-position-1' :
+                        index === 1 ? 'ranking-position-4' :
+                        index === 2 ? 'ranking-position-9' : 'ranking-position-below-14';
+        
+        containerHTML += `
+          <tr class="${rowClass}">
+            <td>${segmentName}</td>
+            <td class="${getHeatMapClass(data.impressions, allValues.impressions, false)}">${hasData ? data.impressions.toLocaleString() : '-'}</td>
+            <td class="${getHeatMapClass(data.clicks, allValues.clicks, false)}">${hasData ? data.clicks.toLocaleString() : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCpc), allValues.avgCpc, true)}">${hasData ? '$' + avgCpc : '-'}</td>
+            <td class="${getHeatMapClass(data.cost, allValues.cost, true)}">${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.conversions, allValues.conversions, false)}">${hasData ? data.conversions.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.conversionValue, allValues.conversionValue, false)}">${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCtr), allValues.ctr, false)}">${hasData ? avgCtr + '%' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCvr), allValues.cvr, false)}">${hasData ? avgCvr + '%' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgRoas), allValues.roas, false)}">${hasData ? avgRoas + 'x' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgAov), allValues.aov, false)}">${hasData ? '$' + avgAov : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCpa), allValues.cpa, true)}">${hasData ? '$' + avgCpa : '-'}</td>
+          </tr>
+        `;
+      });
+      
+    } else {
+      // Detailed mode - show all 40 rows
+      containerHTML += `
+        <table class="ranking-map-table">
+          <thead>
+            <tr>
+              <th>Avg Ranking</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Avg CPC</th>
+              <th>Cost</th>
+              <th>Conversions</th>
+              <th>Conv. Value</th>
+              <th>CTR</th>
+              <th>CVR</th>
+              <th>ROAS</th>
+              <th>AOV</th>
+              <th>CPA</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // Collect all values for heat map calculation
+      const allValues = {
+        impressions: [], clicks: [], avgCpc: [], cost: [], conversions: [],
+        conversionValue: [], ctr: [], cvr: [], roas: [], aov: [], cpa: []
+      };
+      
+      // First pass to collect values
+      for (let position = 1; position <= 40; position++) {
+        const data = positionData[position];
+        if (data.count > 0) {
+          allValues.impressions.push(data.impressions);
+          allValues.clicks.push(data.clicks);
+          allValues.avgCpc.push(data.clicks > 0 ? data.cost / data.clicks : 0);
+          allValues.cost.push(data.cost);
+          allValues.conversions.push(data.conversions);
+          allValues.conversionValue.push(data.conversionValue);
+          allValues.ctr.push(data.ctrSum / data.count);
+          allValues.cvr.push(data.cvrSum / data.count);
+          allValues.roas.push(data.roasSum / data.count);
+          allValues.aov.push(data.aovSum / data.count);
+          allValues.cpa.push(data.cpaSum / data.count);
+        }
+      }
+      
+      // Generate rows
+      for (let position = 1; position <= 40; position++) {
+        const data = positionData[position];
+        const hasData = data.count > 0;
+        
+        const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
+        const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
+        const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
+        const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
+        const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
+        const avgCpc = hasData && data.clicks > 0 ? (data.cost / data.clicks).toFixed(2) : '0.00';
+        
+        const rowClass = position <= 3 ? 'ranking-position-' + position : 
+                        position <= 8 ? 'ranking-position-4' :
+                        position <= 14 ? 'ranking-position-9' : 'ranking-position-below-14';
+        
+        containerHTML += `
+          <tr class="${rowClass}">
+            <td>${position}</td>
+            <td class="${getHeatMapClass(data.impressions, allValues.impressions, false)}">${hasData ? data.impressions.toLocaleString() : '-'}</td>
+            <td class="${getHeatMapClass(data.clicks, allValues.clicks, false)}">${hasData ? data.clicks.toLocaleString() : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCpc), allValues.avgCpc, true)}">${hasData ? '$' + avgCpc : '-'}</td>
+            <td class="${getHeatMapClass(data.cost, allValues.cost, true)}">${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.conversions, allValues.conversions, false)}">${hasData ? data.conversions.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.conversionValue, allValues.conversionValue, false)}">${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCtr), allValues.ctr, false)}">${hasData ? avgCtr + '%' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCvr), allValues.cvr, false)}">${hasData ? avgCvr + '%' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgRoas), allValues.roas, false)}">${hasData ? avgRoas + 'x' : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgAov), allValues.aov, false)}">${hasData ? '$' + avgAov : '-'}</td>
+            <td class="${getHeatMapClass(parseFloat(avgCpa), allValues.cpa, true)}">${hasData ? '$' + avgCpa : '-'}</td>
+          </tr>
+        `;
+      }
     }
     
-    tableHTML += `
-        </tbody>
-      </table>
+    containerHTML += `
+          </tbody>
+        </table>
     `;
     
-    container.innerHTML = tableHTML;
+    container.innerHTML = containerHTML;
+    
+    // Add event listener for toggle
+    document.getElementById('rankingMapSegmentedToggle').addEventListener('change', function() {
+      populateProductRankingMap(product, campaignFilter, channelFilter);
+    });
+    
   }).catch(error => {
     console.error('[populateProductRankingMap] Error:', error);
     container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading ranking map data</div>';
   });
 }
 
+// Helper function for heat map coloring
+function getHeatMapClass(value, allValues, isReverse = false) {
+  if (!value || allValues.length === 0 || allValues.every(v => !v)) return '';
+  
+  const validValues = allValues.filter(v => v > 0);
+  if (validValues.length < 2) return '';
+  
+  const min = Math.min(...validValues);
+  const max = Math.max(...validValues);
+  
+  if (min === max) return '';
+  
+  const percentile = (value - min) / (max - min);
+  
+  if (isReverse) {
+    // For metrics where lower is better (CPC, CPA, Cost)
+    if (percentile <= 0.25) return 'heat-map-best';
+    if (percentile <= 0.5) return 'heat-map-good';
+    if (percentile <= 0.75) return 'heat-map-poor';
+    return 'heat-map-worst';
+  } else {
+    // For metrics where higher is better
+    if (percentile >= 0.75) return 'heat-map-best';
+    if (percentile >= 0.5) return 'heat-map-good';
+    if (percentile >= 0.25) return 'heat-map-poor';
+    return 'heat-map-worst';
+  }
+}
+  
 function updateProductMetricsChart() {
   const campaignFilter = document.getElementById('campaignNameFilter').value;
   const channelFilter = document.getElementById('channelTypeFilter').value;
@@ -1095,6 +1337,12 @@ function setupProductInfoDateSelector() {
       renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
       populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
     }
+    // Update ranking map with new date range
+if (window.selectedGoogleAdsProduct) {
+  const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+  const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
+}
       
       if (window.currentProductMetricsData) {
         const chartData = processMetricsData(
@@ -6697,20 +6945,58 @@ if (window.googleAdsApexCharts) {
   width: 60px;
 }
 
-.ranking-position-1 td:first-child { background-color: #dfffd6; }
+.ranking-position-1 td:first-child,
 .ranking-position-2 td:first-child,
-.ranking-position-3 td:first-child { background-color: #ffffc2; }
+.ranking-position-3 td:first-child { background-color: #dfffd6; }
+
 .ranking-position-4 td:first-child,
 .ranking-position-5 td:first-child,
 .ranking-position-6 td:first-child,
 .ranking-position-7 td:first-child,
-.ranking-position-8 td:first-child { background-color: #ffe0bd; }
+.ranking-position-8 td:first-child { background-color: #ffffc2; }
+
 .ranking-position-9 td:first-child,
 .ranking-position-10 td:first-child,
 .ranking-position-11 td:first-child,
 .ranking-position-12 td:first-child,
 .ranking-position-13 td:first-child,
-.ranking-position-14 td:first-child { background-color: #ffcfcf; }
+.ranking-position-14 td:first-child { background-color: #ffe0bd; }
+
+/* Add this for rows below 14 */
+.ranking-position-below-14 td:first-child { background-color: #ffcfcf; }
+
+/* Heat map cell coloring */
+.heat-map-best {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+}
+
+.heat-map-good {
+  background-color: rgba(76, 175, 80, 0.08) !important;
+}
+
+.heat-map-poor {
+  background-color: rgba(244, 67, 54, 0.08) !important;
+}
+
+.heat-map-worst {
+  background-color: rgba(244, 67, 54, 0.15) !important;
+}
+
+/* Segmented mode styles */
+.ranking-map-segmented-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.ranking-map-segmented-toggle label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
     `;
     document.head.appendChild(style);
   }
