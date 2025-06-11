@@ -7197,7 +7197,7 @@ setTimeout(() => {
     emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
     tableContainer.appendChild(emptyMessage);
   }
-}, 200); // Increased timeout to 300ms to ensure DOM is fully ready
+}, 300); // Increased timeout to 300ms to ensure DOM is fully ready
 }
 
 // Export the function
