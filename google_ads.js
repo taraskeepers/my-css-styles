@@ -3126,10 +3126,10 @@ renderPendingGoogleAdsChartsForProduct();
   
 // Apply initial view mode immediately after table creation
 if (initialViewMode === 'viewOverviewGoogleAds') {
-  // Apply ranking mode immediately without delay
+  // Hide table in overview mode
   const table = document.querySelector('.google-ads-table');
   if (table) {
-    table.classList.add('overview-mode');
+    table.style.display = 'none';
   }
   
   // Ensure the ranking button is active immediately
@@ -3139,20 +3139,6 @@ if (initialViewMode === 'viewOverviewGoogleAds') {
   if (rankingBtn) rankingBtn.classList.add('active');
   if (chartsBtn) chartsBtn.classList.remove('active');
   if (mapBtn) mapBtn.classList.remove('active');
-  
-  // Apply to device containers and hide charts immediately
-  setTimeout(() => {
-    document.querySelectorAll('.device-container').forEach(container => {
-      container.classList.add('overview-mode');
-    });
-    
-    document.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
-      container.style.display = 'none';
-    });
-    document.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
-      container.style.display = 'none';
-    });
-  }, 10); // Minimal delay just for DOM elements to be created
 } else {
   setTimeout(() => {
     const targetButton = document.getElementById(initialViewMode);
@@ -4895,43 +4881,25 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   
-  // Show the table and additional containers
+  // Hide the table in overview mode
   const table = document.querySelector('.google-ads-table');
   if (table) {
-    table.style.display = 'table';
-    table.classList.add('overview-mode');
-    table.classList.remove('charts-mode', 'map-mode');
+    table.style.display = 'none';
   }
   
-// Show additional containers
-const productInfo = document.getElementById('product_info');
-const productMetrics = document.getElementById('product_metrics');
-const productRankingMap = document.getElementById('product_ranking_map'); // Add this
-if (productInfo) productInfo.style.display = 'block';
-if (productMetrics) productMetrics.style.display = 'block';
-if (productRankingMap) productRankingMap.style.display = 'block'; // Add this
+  // Show additional containers
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  if (productInfo) productInfo.style.display = 'block';
+  if (productMetrics) productMetrics.style.display = 'block';
+  if (productRankingMap) productRankingMap.style.display = 'block';
   
   // Hide map
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
-  
-  // Update table display
-  document.querySelectorAll('.device-container').forEach(container => {
-    container.classList.add('overview-mode');
-  });
-  
-  // Hide charts, show rank history
-  document.querySelectorAll('.google-ads-chart-avg-position').forEach(container => {
-    container.style.display = 'none';
-  });
-  document.querySelectorAll('.google-ads-segmentation-chart-container').forEach(container => {
-    container.style.display = 'none';
-  });
-  document.querySelectorAll('.rank-market-share-history').forEach(container => {
-    container.style.display = 'block';
-  });
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
@@ -5125,30 +5093,6 @@ if (window.googleAdsApexCharts) {
   box-sizing: border-box;
   overflow: hidden;
 }
-
-.google-ads-table.overview-mode td {
-  padding: 8px;
-  font-size: 14px;
-  color: #333;
-  vertical-align: middle;
-  border-bottom: 1px solid #eee;
-  height: 120px !important;
-  max-height: 120px !important;
-  min-height: 120px !important;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-      .google-ads-table { table-layout: fixed; }
-      .google-ads-table th:nth-child(1), .google-ads-table td:nth-child(1) { width: 190px; }
-      .google-ads-table th:nth-child(2), .google-ads-table td:nth-child(2) { width: 150px; }
-.google-ads-table th:nth-child(3), .google-ads-table td:nth-child(3) { width: 200px; }
-.google-ads-table th:nth-child(4), .google-ads-table td:nth-child(4) { width: 230px; }
-.google-ads-table th:nth-child(5), .google-ads-table td:nth-child(5) { width: auto; min-width: 400px; }
-
-/* Hide segmentation column in ranking mode */
-.overview-mode .segmentation-column {
-  display: none !important;
-}
       
       .search-term-tag {
         display: inline-block;
@@ -5204,63 +5148,6 @@ if (window.googleAdsApexCharts) {
         height: 100%;
         justify-content: space-between;
       }
-.device-container.overview-mode {
-  display: flex !important;
-  flex-direction: row !important;
-  height: 100% !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding: 8px !important;
-  gap: 8px !important;
-}
-
-.device-container.overview-mode .device-type, 
-.device-container.overview-mode .device-rank, 
-.device-container.overview-mode .device-share {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 4px !important;
-  min-width: 60px !important;
-  text-align: center !important;
-}
-
-.device-container.overview-mode .device-rank-value {
-  font-size: 24px !important;
-  margin: 2px 0 !important;
-  font-weight: bold !important;
-}
-
-.device-container.overview-mode .device-trend {
-  font-size: 14px !important;
-  margin: 0 !important;
-  font-weight: 600 !important;
-}
-
-.device-container.overview-mode .pie-chart-container {
-  width: 60px !important;
-  height: 60px !important;
-  margin: 0 auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.device-container.overview-mode .section-header {
-  font-size: 9px !important;
-  margin-bottom: 2px !important;
-}
-
-.device-container.overview-mode .last-tracked-container {
-  display: none !important;
-}
-
-.device-container.overview-mode .device-icon {
-  width: 50px !important;
-  height: 50px !important;
-}
       
       .device-type, .device-rank, .device-share {
         display: flex;
@@ -5715,53 +5602,6 @@ if (window.googleAdsApexCharts) {
   height: 50px;
   object-fit: contain;
 }
-/* Fix row height in ranking mode */
-.google-ads-table.overview-mode td {
-  height: 110px !important;
-  max-height: 110px !important;
-  min-height: 110px !important;
-  padding: 8px !important;
-  vertical-align: middle !important;
-}
-
-.google-ads-table.overview-mode tbody td {
-  height: 110px !important;
-  max-height: 110px !important;
-  min-height: 110px !important;
-}
-
-.google-ads-table.overview-mode tr {
-  height: 110px !important;
-  max-height: 110px !important;
-}
-/* Ensure proper spacing and alignment in ranking mode */
-.google-ads-table.overview-mode .device-container .last-tracked-container {
-  display: none !important;
-}
-
-.google-ads-table.overview-mode .device-container {
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: #fafafa;
-}
-/* Increase Device column width in ranking mode */
-.google-ads-table.overview-mode th:nth-child(3), 
-.google-ads-table.overview-mode td:nth-child(3) { 
-  width: 380px !important; 
-}
-.device-container.overview-mode .device-type, 
-.device-container.overview-mode .device-rank, 
-.device-container.overview-mode .device-share,
-.device-container.overview-mode .device-status {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 4px !important;
-  min-width: 60px !important;
-  text-align: center !important;
-}
 
 .device-status {
   display: flex;
@@ -5777,254 +5617,11 @@ if (window.googleAdsApexCharts) {
   margin-top: 4px;
 }
 
-.device-container.overview-mode .device-status-value {
-  margin-top: 2px !important;
-}
-.rank-history-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Constrain rank history container height in ranking mode */
-.google-ads-table.overview-mode .rank-history-container {
-  height: 104px !important;
-  max-height: 104px !important;
-  overflow: hidden !important;
-  justify-content: flex-start !important;
-}
-
-.rank-history-row,
-.visibility-history-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 3px;
-  margin-bottom: 10px;
-  justify-content: flex-start;
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-height: 60px;
-  padding-bottom: 5px;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Reduce row heights in ranking mode */
-.google-ads-table.overview-mode .rank-history-row,
-.google-ads-table.overview-mode .visibility-history-row {
-  min-height: 55px !important;
-  height: 55px !important;
-  margin-bottom: 4px !important;
-  padding-bottom: 0px !important;
-  align-items: center !important;
-}
-
-/* Custom scrollbar styling */
-.rank-history-row::-webkit-scrollbar,
-.visibility-history-row::-webkit-scrollbar {
-  height: 6px;
-}
-
-.rank-history-row::-webkit-scrollbar-track,
-.visibility-history-row::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.rank-history-row::-webkit-scrollbar-thumb,
-.visibility-history-row::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.rank-history-row::-webkit-scrollbar-thumb:hover,
-.visibility-history-row::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.rank-box,
-.visibility-box {
-  width: 50px;
-  height: 50px;
-  min-width: 50px; /* Prevent shrinking */
-  min-height: 50px; /* Prevent shrinking */
-  max-width: 50px; /* Prevent growing */
-  max-height: 50px; /* Prevent growing */
-  flex-shrink: 0; /* Prevent flex shrinking */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 4px;
-  color: #333;
-  border: 1px solid #ddd;
-  background-color: #fff;
-  position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* Color coding for ranks when data exists */
-.rank-box.rank-green {
-  background-color: #dfffd6 !important;
-  color: #000000 !important;
-}
-
-.rank-box.rank-yellow {
-  background-color: #ffffc2 !important;
-  color: #000000 !important;
-}
-
-.rank-box.rank-orange {
-  background-color: #ffe0bd !important;
-  color: #000000 !important;
-}
-
-.rank-box.rank-red {
-  background-color: #ffcfcf !important;
-  color: #000000 !important;
-}
-
-.visibility-box {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  font-size: 10px;
-}
-
-/* Empty state for completely missing data (when no historical data at all) */
-.history-empty-box,
-.history-empty-share-box {
-  height: 24px !important;
-  min-height: 24px !important;
-  width: 32px;
-  background-color: #e0e0e0 !important;
-  border-radius: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.5;
-  border: 1px solid #ccc;
-}
-
-.rank-history-container .no-data-message {
-  text-align: center;
-  color: #999;
-  font-style: italic;
-  padding: 20px;
-}
-
 /* Hide rank history in Charts and Map modes, show position charts */
 .google-ads-chart-avg-position {
   display: none;
 }
 
-.rank-market-share-history {
-  display: block;
-}
-
-/* Show position charts and hide rank history in Charts/Map modes */
-.google-ads-table:not(.overview-mode) .google-ads-chart-avg-position {
-  display: flex !important;
-}
-
-.google-ads-table:not(.overview-mode) .rank-market-share-history {
-  display: none !important;
-}
-/* Water-filling effect for visibility boxes */
-.visibility-box::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, 
-    #1e88e5 0%, 
-    rgba(30, 136, 229, 0.7) 50%,
-    rgba(30, 136, 229, 0.3) 100%);
-  border-radius: 0 0 3px 3px;
-  transition: height 0.5s ease-in-out;
-  height: var(--fill-height, 0%);
-  z-index: 1;
-}
-
-.visibility-box {
-  z-index: 2;
-  position: relative;
-  color: #1565c0 !important;
-  font-weight: 700 !important;
-}
-
-/* Ensure text is always visible above the fill */
-.visibility-box span {
-  position: relative;
-  z-index: 3;
-}
-
-.visibility-box[data-fill="0"]::before { height: 0%; }
-.visibility-box[data-fill*="1"]::before { height: calc(var(--fill-percent) * 1%); }
-
-/* Dynamic fill heights based on data-fill attribute */
-.visibility-box { --fill-percent: attr(data-fill number, 0); }
-
-/* Alternative approach using specific ranges */
-.visibility-box[data-fill="0"]::before { height: 0%; }
-.visibility-box:not([data-fill="0"])::before { 
-  height: calc(var(--fill-percent) * 1%); 
-}
-
-/* Text should be above the fill */
-.visibility-box {
-  z-index: 2;
-  position: relative;
-}
-
-/* Water-filling effect for visibility boxes */
-.visibility-box::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, 
-    #1e88e5 0%, 
-    rgba(30, 136, 229, 0.7) 50%,
-    rgba(30, 136, 229, 0.3) 100%);
-  border-radius: 0 0 3px 3px;
-  transition: height 0.3s ease-in-out;
-  z-index: 1;
-  height: 0%; /* Default height */
-}
-
-/* Dynamic height setting for different percentage ranges */
-.visibility-box[data-fill="0"]::before { height: 0% !important; }
-.visibility-box[data-fill*="1"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="2"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="3"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="4"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="5"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="6"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="7"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="8"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-.visibility-box[data-fill*="9"]:not([data-fill="0"])::before { height: calc(var(--fill-height, 0%) * 1) !important; }
-
-.visibility-box {
-  z-index: 2;
-  position: relative;
-  color: #1565c0 !important;
-  font-weight: 700 !important;
-}
-
-.visibility-box span {
-  position: relative;
-  z-index: 3;
-  color: #1565c0 !important;
-}
 #googleAdsMapContainer {
   padding-left: 40px !important;
   text-align: left !important;
