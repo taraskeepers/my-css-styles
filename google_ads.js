@@ -7064,7 +7064,7 @@ wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;'
 
 // Left container for funnel (increased width for three columns + funnel + descriptions)
 const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 800px; height: 100%; position: relative;';
+leftContainer.style.cssText = 'width: 650px; height: 100%; position: relative;';
   
   // Right container for metrics
   const rightContainer = document.createElement('div');
@@ -7199,7 +7199,7 @@ function renderROASFunnel(container, bucketData) {
   
   // Create main container with columns and funnel
   const mainContainer = document.createElement('div');
-  mainContainer.style.cssText = 'width: 100%; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 15px;';
+  mainContainer.style.cssText = 'width: 100%; max-width: 650px; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
   container.appendChild(mainContainer);
   
   // Create ROAS column
@@ -7208,19 +7208,19 @@ function renderROASFunnel(container, bucketData) {
   
   // Create Cost/Revenue column
   const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+  metricsColumn.style.cssText = 'width: 160px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
   // SVG container for funnel
   const svgContainer = document.createElement('div');
-  svgContainer.style.cssText = 'flex: 1; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+  svgContainer.style.cssText = 'width: 320px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
   
   // SVG dimensions
-  const width = 400;
-  const height = 460;
+const width = 400;
+const height = 460;
   
   // Create SVG
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7278,9 +7278,7 @@ function renderROASFunnel(container, bucketData) {
   svg.appendChild(defs);
   
   // Calculate max percentage for width scaling
-  const maxPercentage = Math.max(...orderedBuckets.map(b => b.productPercentage));
-  const minWidth = 120; // Minimum trapezoid width (increased to fit content better)
-  const maxWidth = 350; // Maximum trapezoid width
+const fixedTrapezoidWidth = 350;
   
   // Funnel dimensions
   const sectionHeight = 100;
@@ -7388,25 +7386,25 @@ function renderROASFunnel(container, bucketData) {
     `;
     
 metricsIndicator.innerHTML = `
-  <div style="margin-bottom: 12px;">
-    <div style="font-size: 10px; font-weight: 600; color: #FFE082; margin-bottom: 4px; text-align: center;">COST</div>
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+  <div style="margin-bottom: 12px; padding-left: 8px;">
+    <div style="font-size: 10px; font-weight: 600; color: #FFE082; margin-bottom: 4px;">COST</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
       <div style="font-size: 22px; font-weight: 700; color: #FFE082;">$${(bucket.totalCost / 1000).toFixed(0)}k</div>
-      <div style="display: flex; flex-direction: column; align-items: center; min-width: 25px;">
-        <div style="width: 20px; height: 3px; background: rgba(255,224,130,0.3); border-radius: 2px; margin-bottom: 1px;">
-          <div style="width: ${bucket.costPercentage}%; height: 100%; background: #FFE082; border-radius: 2px;"></div>
+      <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1;">
+        <div style="width: 40px; height: 4px; background: rgba(255,224,130,0.3); border-radius: 2px; margin-bottom: 2px;">
+          <div style="width: ${Math.min(100, bucket.costPercentage)}%; height: 100%; background: #FFE082; border-radius: 2px;"></div>
         </div>
         <div style="font-size: 8px; color: #FFE082; font-weight: 600;">${bucket.costPercentage.toFixed(0)}%</div>
       </div>
     </div>
   </div>
-  <div>
-    <div style="font-size: 10px; font-weight: 600; color: #C8E6C9; margin-bottom: 4px; text-align: center;">REVENUE</div>
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+  <div style="padding-left: 8px;">
+    <div style="font-size: 10px; font-weight: 600; color: #C8E6C9; margin-bottom: 4px;">REVENUE</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
       <div style="font-size: 22px; font-weight: 700; color: #C8E6C9;">$${(bucket.totalRevenue / 1000).toFixed(0)}k</div>
-      <div style="display: flex; flex-direction: column; align-items: center; min-width: 25px;">
-        <div style="width: 20px; height: 3px; background: rgba(200,230,201,0.3); border-radius: 2px; margin-bottom: 1px;">
-          <div style="width: ${bucket.revenuePercentage}%; height: 100%; background: #C8E6C9; border-radius: 2px;"></div>
+      <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1;">
+        <div style="width: 40px; height: 4px; background: rgba(200,230,201,0.3); border-radius: 2px; margin-bottom: 2px;">
+          <div style="width: ${Math.min(100, bucket.revenuePercentage)}%; height: 100%; background: #C8E6C9; border-radius: 2px;"></div>
         </div>
         <div style="font-size: 8px; color: #C8E6C9; font-weight: 600;">${bucket.revenuePercentage.toFixed(0)}%</div>
       </div>
@@ -7419,54 +7417,140 @@ metricsIndicator.innerHTML = `
     // Determine if description should be inside trapezoid or overflow
     const canFitDescription = sectionWidth > 280;
     
-   // Add content inside trapezoid
+  // Calculate metrics for the bucket
+const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
+const totalImpressions = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
+const totalClicks = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
+const totalConversions = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
+
+// Calculate max values for percentage bars
+const maxImpressions = Math.max(...orderedBuckets.map(b => {
+  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
+  return products.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
+}));
+const maxClicks = Math.max(...orderedBuckets.map(b => {
+  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
+  return products.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
+}));
+const maxConversions = Math.max(...orderedBuckets.map(b => {
+  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
+  return products.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
+}));
+
+// Update trapezoid calculation for fixed width
+const y = startY + index * (sectionHeight + gap);
+const sectionWidth = fixedTrapezoidWidth; // Use fixed width
+const topWidth = sectionWidth;
+const bottomWidth = sectionWidth * 0.85;
+const leftEdge = 20;
+
+const topLeft = leftEdge;
+const topRight = leftEdge + topWidth;
+const bottomLeft = leftEdge;
+const bottomRight = leftEdge + bottomWidth;
+
+// ... (keep the trapezoid creation code the same) ...
+
+// Add content inside trapezoid
 const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 textGroup.style.pointerEvents = 'none';
 
-// Left side: Product count (large) and percentage with visualization - ADD LEFT PADDING
+// Left side: Product count (large) and percentage with visualization
 const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-productCount.setAttribute('x', leftEdge + 35); // Increased from 25 to 35 for left padding
-productCount.setAttribute('y', y + 45);
+productCount.setAttribute('x', leftEdge + 35);
+productCount.setAttribute('y', y + 35);
 productCount.setAttribute('text-anchor', 'middle');
 productCount.setAttribute('fill', 'white');
 productCount.setAttribute('font-weight', '700');
-productCount.setAttribute('font-size', '32px');
+productCount.setAttribute('font-size', '28px');
 productCount.textContent = bucket.count;
 
 // Percentage bar visualization
 const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBarBg.setAttribute('x', leftEdge + 20); // Adjusted for padding
-percentageBarBg.setAttribute('y', y + 60);
+percentageBarBg.setAttribute('x', leftEdge + 20);
+percentageBarBg.setAttribute('y', y + 45);
 percentageBarBg.setAttribute('width', '30');
-percentageBarBg.setAttribute('height', '6');
+percentageBarBg.setAttribute('height', '5');
 percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-percentageBarBg.setAttribute('rx', '3');
+percentageBarBg.setAttribute('rx', '2');
 
 const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBar.setAttribute('x', leftEdge + 20); // Adjusted for padding
-percentageBar.setAttribute('y', y + 60);
+percentageBar.setAttribute('x', leftEdge + 20);
+percentageBar.setAttribute('y', y + 45);
 percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
-percentageBar.setAttribute('height', '6');
+percentageBar.setAttribute('height', '5');
 percentageBar.setAttribute('fill', 'white');
-percentageBar.setAttribute('rx', '3');
+percentageBar.setAttribute('rx', '2');
 
 const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-percentageText.setAttribute('x', leftEdge + 35); // Adjusted for padding
-percentageText.setAttribute('y', y + 78);
+percentageText.setAttribute('x', leftEdge + 35);
+percentageText.setAttribute('y', y + 60);
 percentageText.setAttribute('text-anchor', 'middle');
 percentageText.setAttribute('fill', 'white');
-percentageText.setAttribute('font-size', '11px');
+percentageText.setAttribute('font-size', '10px');
 percentageText.setAttribute('font-weight', '600');
 percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
-// Right side: Bucket name - INCREASED FONT SIZE
+// Right side: Bucket name
 const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 bucketName.setAttribute('x', leftEdge + 80);
-bucketName.setAttribute('y', y + 25);
+bucketName.setAttribute('y', y + 20);
 bucketName.setAttribute('fill', 'white');
 bucketName.setAttribute('font-weight', '700');
-bucketName.setAttribute('font-size', '18px'); // Increased from 16px to 18px
+bucketName.setAttribute('font-size', '16px');
 bucketName.textContent = bucket.name;
+
+// Metrics under bucket name
+const metricsData = [
+  { label: 'Impr', value: totalImpressions, max: maxImpressions, format: (val) => val > 1000 ? `${(val/1000).toFixed(0)}k` : val.toString() },
+  { label: 'Clicks', value: totalClicks, max: maxClicks, format: (val) => val.toString() },
+  { label: 'Conv', value: totalConversions, max: maxConversions, format: (val) => val.toFixed(1) }
+];
+
+metricsData.forEach((metric, metricIndex) => {
+  const metricY = y + 35 + (metricIndex * 15);
+  
+  // Metric label
+  const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  metricLabel.setAttribute('x', leftEdge + 80);
+  metricLabel.setAttribute('y', metricY);
+  metricLabel.setAttribute('fill', 'white');
+  metricLabel.setAttribute('font-size', '9px');
+  metricLabel.setAttribute('font-weight', '600');
+  metricLabel.setAttribute('opacity', '0.8');
+  metricLabel.textContent = metric.label;
+  
+  // Metric value
+  const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  metricValue.setAttribute('x', leftEdge + 110);
+  metricValue.setAttribute('y', metricY);
+  metricValue.setAttribute('fill', 'white');
+  metricValue.setAttribute('font-size', '10px');
+  metricValue.setAttribute('font-weight', '700');
+  metricValue.textContent = metric.format(metric.value);
+  
+  // Small percentage bar
+  const smallBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  smallBarBg.setAttribute('x', leftEdge + 145);
+  smallBarBg.setAttribute('y', metricY - 4);
+  smallBarBg.setAttribute('width', '20');
+  smallBarBg.setAttribute('height', '3');
+  smallBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+  smallBarBg.setAttribute('rx', '1');
+  
+  const smallBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  smallBar.setAttribute('x', leftEdge + 145);
+  smallBar.setAttribute('y', metricY - 4);
+  smallBar.setAttribute('width', Math.max(1, (metric.value / metric.max) * 20));
+  smallBar.setAttribute('height', '3');
+  smallBar.setAttribute('fill', 'white');
+  smallBar.setAttribute('rx', '1');
+  
+  textGroup.appendChild(metricLabel);
+  textGroup.appendChild(metricValue);
+  textGroup.appendChild(smallBarBg);
+  textGroup.appendChild(smallBar);
+});
 
 textGroup.appendChild(productCount);
 textGroup.appendChild(percentageBarBg);
@@ -7474,132 +7558,61 @@ textGroup.appendChild(percentageBar);
 textGroup.appendChild(percentageText);
 textGroup.appendChild(bucketName);
 
-// Enhanced description handling - ALWAYS INSIDE OR OVERLAPPING
-const availableDescriptionWidth = sectionWidth - 90; // Space after product count and name
-const canFitFullDescription = availableDescriptionWidth > 200;
-const canFitPartialDescription = availableDescriptionWidth > 120;
+// Add hover tooltip for description
+const hoverTooltip = document.createElement('div');
+hoverTooltip.style.cssText = `
+  position: absolute;
+  background: ${colors[index].start};
+  color: white;
+  padding: 12px 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border: 2px solid white;
+`;
 
-if (canFitFullDescription) {
-  // Full description inside trapezoid - use ALL available space
-  const maxCharsPerLine = Math.floor(availableDescriptionWidth / 6);
-  const words = bucket.description.split(' ');
-  const lines = [];
-  let currentLine = '';
+hoverTooltip.innerHTML = `
+  <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
+  <div>${bucket.description}</div>
+`;
+
+container.appendChild(hoverTooltip);
+
+// Add hover events to trapezoid
+trapezoid.addEventListener('mouseenter', function(e) {
+  if (!this.style.stroke) {
+    this.style.transform = 'scale(1.02)';
+    this.style.filter = 'url(#dropshadow) brightness(1.1)';
+  }
   
-  words.forEach(word => {
-    if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
-      currentLine += (currentLine ? ' ' : '') + word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  });
-  if (currentLine) lines.push(currentLine);
+  // Show tooltip
+  hoverTooltip.style.opacity = '1';
+  hoverTooltip.style.left = (e.pageX + 10) + 'px';
+  hoverTooltip.style.top = (e.pageY - 10) + 'px';
+});
+
+trapezoid.addEventListener('mouseleave', function() {
+  if (!this.style.stroke) {
+    this.style.transform = 'scale(1)';
+    this.style.filter = 'url(#dropshadow) brightness(1)';
+  }
   
-  // Use up to 4 lines to maximize space usage
-  lines.slice(0, 4).forEach((line, lineIndex) => {
-    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    descText.setAttribute('x', leftEdge + 80);
-    descText.setAttribute('y', y + 42 + (lineIndex * 11));
-    descText.setAttribute('fill', 'white');
-    descText.setAttribute('font-size', '10px');
-    descText.setAttribute('opacity', '0.95');
-    descText.textContent = line;
-    textGroup.appendChild(descText);
-  });
-  
-} else if (canFitPartialDescription) {
-  // Partial description inside trapezoid
-  const maxChars = Math.floor(availableDescriptionWidth / 6) * 2; // Two lines max
-  const truncatedDesc = bucket.description.length > maxChars ? 
-    bucket.description.substring(0, maxChars) + '...' : bucket.description;
-  
-  const words = truncatedDesc.split(' ');
-  const lines = [];
-  let currentLine = '';
-  const maxLineLength = Math.floor(maxChars / 2);
-  
-  words.forEach(word => {
-    if ((currentLine + ' ' + word).length <= maxLineLength) {
-      currentLine += (currentLine ? ' ' : '') + word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  });
-  if (currentLine) lines.push(currentLine);
-  
-  lines.slice(0, 2).forEach((line, lineIndex) => {
-    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    descText.setAttribute('x', leftEdge + 80);
-    descText.setAttribute('y', y + 42 + (lineIndex * 11));
-    descText.setAttribute('fill', 'white');
-    descText.setAttribute('font-size', '10px');
-    descText.setAttribute('opacity', '0.95');
-    descText.textContent = line;
-    textGroup.appendChild(descText);
-  });
-  
-} else {
-  // Overlapping description box on the left side of trapezoid
-  const descriptionOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  
-  // Background rectangle for description
-  const descRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  descRect.setAttribute('x', leftEdge - 180);
-  descRect.setAttribute('y', y + 15);
-  descRect.setAttribute('width', '170');
-  descRect.setAttribute('height', '70');
-  descRect.setAttribute('fill', colors[index].start);
-  descRect.setAttribute('stroke', 'white');
-  descRect.setAttribute('stroke-width', '2');
-  descRect.setAttribute('rx', '8');
-  descRect.setAttribute('filter', 'url(#dropshadow)');
-  
-  // Split description into lines for overlay
-  const words = bucket.description.split(' ');
-  const lines = [];
-  let currentLine = '';
-  const maxLineLength = 25; // Fixed width for overlay
-  
-  words.forEach(word => {
-    if ((currentLine + ' ' + word).length <= maxLineLength) {
-      currentLine += (currentLine ? ' ' : '') + word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  });
-  if (currentLine) lines.push(currentLine);
-  
-  descriptionOverlay.appendChild(descRect);
-  
-  // Add title to overlay
-  const overlayTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  overlayTitle.setAttribute('x', leftEdge - 95);
-  overlayTitle.setAttribute('y', y + 30);
-  overlayTitle.setAttribute('text-anchor', 'middle');
-  overlayTitle.setAttribute('fill', 'white');
-  overlayTitle.setAttribute('font-weight', '700');
-  overlayTitle.setAttribute('font-size', '12px');
-  overlayTitle.textContent = bucket.name;
-  descriptionOverlay.appendChild(overlayTitle);
-  
-  // Add description lines to overlay
-  lines.slice(0, 4).forEach((line, lineIndex) => {
-    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    descText.setAttribute('x', leftEdge - 95);
-    descText.setAttribute('y', y + 45 + (lineIndex * 10));
-    descText.setAttribute('text-anchor', 'middle');
-    descText.setAttribute('fill', 'white');
-    descText.setAttribute('font-size', '9px');
-    descText.setAttribute('opacity', '0.95');
-    descText.textContent = line;
-    descriptionOverlay.appendChild(descText);
-  });
-  
-  svg.appendChild(descriptionOverlay);
-}
+  // Hide tooltip
+  hoverTooltip.style.opacity = '0';
+});
+
+trapezoid.addEventListener('mousemove', function(e) {
+  if (hoverTooltip.style.opacity === '1') {
+    hoverTooltip.style.left = (e.pageX + 10) + 'px';
+    hoverTooltip.style.top = (e.pageY - 10) + 'px';
+  }
+});
 
 svg.appendChild(textGroup);
   });
