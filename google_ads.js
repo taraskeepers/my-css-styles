@@ -4817,7 +4817,7 @@ container.innerHTML = `
           <div class="controls-left-group">
             <div class="google-ads-view-switcher">
               <button id="viewBucketsGoogleAds" class="active">Buckets & Funnels</button>
-              <button id="viewOverviewGoogleAds" class="active">Product Overview</button>
+              <button id="viewOverviewGoogleAds" class="active">Overview</button>
               <button id="viewChartsGoogleAds">Performance</button>
               <button id="viewMapGoogleAds">Map</button>
             </div>
