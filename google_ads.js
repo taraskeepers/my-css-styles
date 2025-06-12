@@ -7444,36 +7444,36 @@ textGroup.style.pointerEvents = 'none';
 // Left side: Product count (large) and percentage with visualization
 const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 productCount.setAttribute('x', 35);
-productCount.setAttribute('y', y + 40);
+productCount.setAttribute('y', y + 35);
 productCount.setAttribute('text-anchor', 'middle');
 productCount.setAttribute('fill', 'white');
 productCount.setAttribute('font-weight', '700');
-productCount.setAttribute('font-size', '32px');
+productCount.setAttribute('font-size', '36px');
 productCount.textContent = bucket.count;
 
 // Percentage bar visualization
 const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBarBg.setAttribute('x', 20);
-percentageBarBg.setAttribute('y', y + 45);
-percentageBarBg.setAttribute('width', '30');
-percentageBarBg.setAttribute('height', '5');
+percentageBarBg.setAttribute('x', 15);
+percentageBarBg.setAttribute('y', y + 55);
+percentageBarBg.setAttribute('width', '40');
+percentageBarBg.setAttribute('height', '8');
 percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-percentageBarBg.setAttribute('rx', '2');
+percentageBarBg.setAttribute('rx', '3');
 
 const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBar.setAttribute('x', 20);
-percentageBar.setAttribute('y', y + 45);
-percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
-percentageBar.setAttribute('height', '5');
+percentageBar.setAttribute('x', 15);
+percentageBar.setAttribute('y', y + 55);
+percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 40));
+percentageBar.setAttribute('height', '8');
 percentageBar.setAttribute('fill', 'white');
-percentageBar.setAttribute('rx', '2');
+percentageBar.setAttribute('rx', '3');
 
 const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 percentageText.setAttribute('x', 35);
-percentageText.setAttribute('y', y + 60);
+percentageText.setAttribute('y', y + 80);
 percentageText.setAttribute('text-anchor', 'middle');
 percentageText.setAttribute('fill', 'white');
-percentageText.setAttribute('font-size', '10px');
+percentageText.setAttribute('font-size', '14px');
 percentageText.setAttribute('font-weight', '600');
 percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
@@ -7486,41 +7486,64 @@ bucketName.setAttribute('font-weight', '700');
 bucketName.setAttribute('font-size', '18px');
 bucketName.textContent = bucket.name;
 
-// Metrics in horizontal row
+// Metrics in three vertical columns
 const metricsData = [
   { label: 'Impr', value: totalImpressions, max: maxImpressions, format: (val) => val > 1000 ? `${(val/1000).toFixed(0)}k` : val.toString() },
   { label: 'Clicks', value: totalClicks, max: maxClicks, format: (val) => val.toString() },
   { label: 'Conv', value: totalConversions, max: maxConversions, format: (val) => val.toFixed(1) }
 ];
 
-const metricsY = y + 50;
-let metricsX = 80;
+const metricsStartX = 85;
+const metricsSpacing = 65;
 
 metricsData.forEach((metric, metricIndex) => {
-  // Metric label
+  const metricX = metricsStartX + (metricIndex * metricsSpacing);
+  
+  // Metric label at top
   const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricLabel.setAttribute('x', metricsX);
-  metricLabel.setAttribute('y', metricsY);
+  metricLabel.setAttribute('x', metricX);
+  metricLabel.setAttribute('y', y + 40);
+  metricLabel.setAttribute('text-anchor', 'middle');
   metricLabel.setAttribute('fill', 'white');
-  metricLabel.setAttribute('font-size', '11px');
+  metricLabel.setAttribute('font-size', '12px');
   metricLabel.setAttribute('font-weight', '600');
-  metricLabel.setAttribute('opacity', '0.8');
   metricLabel.textContent = metric.label + ':';
   
-  // Metric value
+  // Small bar in middle
+  const barWidth = 35;
+  const barHeight = 5;
+  const barY = y + 55;
+  
+  const barBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  barBg.setAttribute('x', metricX - barWidth/2);
+  barBg.setAttribute('y', barY);
+  barBg.setAttribute('width', barWidth);
+  barBg.setAttribute('height', barHeight);
+  barBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+  barBg.setAttribute('rx', '2');
+  
+  const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bar.setAttribute('x', metricX - barWidth/2);
+  bar.setAttribute('y', barY);
+  bar.setAttribute('width', Math.max(1, (metric.value / metric.max) * barWidth));
+  bar.setAttribute('height', barHeight);
+  bar.setAttribute('fill', 'white');
+  bar.setAttribute('rx', '2');
+  
+  // Metric value at bottom
   const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricValue.setAttribute('x', metricsX + 35);
-  metricValue.setAttribute('y', metricsY);
+  metricValue.setAttribute('x', metricX);
+  metricValue.setAttribute('y', y + 75);
+  metricValue.setAttribute('text-anchor', 'middle');
   metricValue.setAttribute('fill', 'white');
-  metricValue.setAttribute('font-size', '12px');
+  metricValue.setAttribute('font-size', '13px');
   metricValue.setAttribute('font-weight', '700');
   metricValue.textContent = metric.format(metric.value);
   
   textGroup.appendChild(metricLabel);
+  textGroup.appendChild(barBg);
+  textGroup.appendChild(bar);
   textGroup.appendChild(metricValue);
-  
-  // Move x position for next metric
-  metricsX += 75;
 });
     
 textGroup.appendChild(productCount);
