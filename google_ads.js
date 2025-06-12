@@ -7064,7 +7064,7 @@ wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;'
 
 // Left container for funnel (increased width for three columns + funnel + descriptions)
 const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 650px; height: 100%; position: relative;';
+leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   
   // Right container for metrics
   const rightContainer = document.createElement('div');
