@@ -7064,7 +7064,7 @@ wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;'
 
 // Left container for funnel (increased width for three columns + funnel + descriptions)
 const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 900px; height: 100%; position: relative;';
+leftContainer.style.cssText = 'width: 800px; height: 100%; position: relative;';
   
   // Right container for metrics
   const rightContainer = document.createElement('div');
@@ -7208,20 +7208,15 @@ function renderROASFunnel(container, bucketData) {
   
   // Create Cost/Revenue column
   const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 120px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
   // SVG container for funnel
   const svgContainer = document.createElement('div');
   svgContainer.style.cssText = 'flex: 1; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
-  // Create description overflow container
-  const descriptionContainer = document.createElement('div');
-  descriptionContainer.style.cssText = 'position: absolute; right: 20px; top: 20px; width: 300px; height: 460px; pointer-events: none; z-index: 10;';
-  
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
-  svgContainer.appendChild(descriptionContainer);
   
   // SVG dimensions
   const width = 400;
@@ -7392,136 +7387,221 @@ function renderROASFunnel(container, bucketData) {
       line-height: 1.2;
     `;
     
-    metricsIndicator.innerHTML = `
-      <div style="margin-bottom: 6px;">
-        <div style="font-size: 11px; font-weight: 700; color: #FFE082;">$${(bucket.totalCost / 1000).toFixed(0)}k</div>
-        <div style="font-size: 9px; opacity: 0.9;">${bucket.costPercentage.toFixed(0)}% cost</div>
+metricsIndicator.innerHTML = `
+  <div style="margin-bottom: 12px;">
+    <div style="font-size: 10px; font-weight: 600; color: #FFE082; margin-bottom: 4px; text-align: center;">COST</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+      <div style="font-size: 22px; font-weight: 700; color: #FFE082;">$${(bucket.totalCost / 1000).toFixed(0)}k</div>
+      <div style="display: flex; flex-direction: column; align-items: center; min-width: 25px;">
+        <div style="width: 20px; height: 3px; background: rgba(255,224,130,0.3); border-radius: 2px; margin-bottom: 1px;">
+          <div style="width: ${bucket.costPercentage}%; height: 100%; background: #FFE082; border-radius: 2px;"></div>
+        </div>
+        <div style="font-size: 8px; color: #FFE082; font-weight: 600;">${bucket.costPercentage.toFixed(0)}%</div>
       </div>
-      <div>
-        <div style="font-size: 11px; font-weight: 700; color: #C8E6C9;">$${(bucket.totalRevenue / 1000).toFixed(0)}k</div>
-        <div style="font-size: 9px; opacity: 0.9;">${bucket.revenuePercentage.toFixed(0)}% rev</div>
+    </div>
+  </div>
+  <div>
+    <div style="font-size: 10px; font-weight: 600; color: #C8E6C9; margin-bottom: 4px; text-align: center;">REVENUE</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+      <div style="font-size: 22px; font-weight: 700; color: #C8E6C9;">$${(bucket.totalRevenue / 1000).toFixed(0)}k</div>
+      <div style="display: flex; flex-direction: column; align-items: center; min-width: 25px;">
+        <div style="width: 20px; height: 3px; background: rgba(200,230,201,0.3); border-radius: 2px; margin-bottom: 1px;">
+          <div style="width: ${bucket.revenuePercentage}%; height: 100%; background: #C8E6C9; border-radius: 2px;"></div>
+        </div>
+        <div style="font-size: 8px; color: #C8E6C9; font-weight: 600;">${bucket.revenuePercentage.toFixed(0)}%</div>
       </div>
-    `;
+    </div>
+  </div>
+`;
     
     metricsColumn.appendChild(metricsIndicator);
     
     // Determine if description should be inside trapezoid or overflow
     const canFitDescription = sectionWidth > 280;
     
-    // Add content inside trapezoid
-    const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    textGroup.style.pointerEvents = 'none';
-    
-    // Left side: Product count (large) and percentage with visualization
-    const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    productCount.setAttribute('x', leftEdge + 25);
-    productCount.setAttribute('y', y + 45);
-    productCount.setAttribute('text-anchor', 'middle');
-    productCount.setAttribute('fill', 'white');
-    productCount.setAttribute('font-weight', '700');
-    productCount.setAttribute('font-size', '32px');
-    productCount.textContent = bucket.count;
-    
-    // Percentage bar visualization
-    const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    percentageBarBg.setAttribute('x', leftEdge + 10);
-    percentageBarBg.setAttribute('y', y + 60);
-    percentageBarBg.setAttribute('width', '30');
-    percentageBarBg.setAttribute('height', '6');
-    percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-    percentageBarBg.setAttribute('rx', '3');
-    
-    const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    percentageBar.setAttribute('x', leftEdge + 10);
-    percentageBar.setAttribute('y', y + 60);
-    percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
-    percentageBar.setAttribute('height', '6');
-    percentageBar.setAttribute('fill', 'white');
-    percentageBar.setAttribute('rx', '3');
-    
-    const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    percentageText.setAttribute('x', leftEdge + 25);
-    percentageText.setAttribute('y', y + 78);
-    percentageText.setAttribute('text-anchor', 'middle');
-    percentageText.setAttribute('fill', 'white');
-    percentageText.setAttribute('font-size', '11px');
-    percentageText.setAttribute('font-weight', '600');
-    percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
-    
-    // Right side: Bucket name
-    const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    bucketName.setAttribute('x', leftEdge + 70);
-    bucketName.setAttribute('y', y + 25);
-    bucketName.setAttribute('fill', 'white');
-    bucketName.setAttribute('font-weight', '700');
-    bucketName.setAttribute('font-size', '16px');
-    bucketName.textContent = bucket.name;
-    
-    textGroup.appendChild(productCount);
-    textGroup.appendChild(percentageBarBg);
-    textGroup.appendChild(percentageBar);
-    textGroup.appendChild(percentageText);
-    textGroup.appendChild(bucketName);
-    
-    if (canFitDescription) {
-      // Add truncated description inside trapezoid
-      const maxChars = Math.floor((sectionWidth - 80) / 6); // Rough character estimation
-      const truncatedDesc = bucket.description.length > maxChars ? 
-        bucket.description.substring(0, maxChars) + '...' : bucket.description;
-      
-      // Split description into multiple lines
-      const words = truncatedDesc.split(' ');
-      const lines = [];
-      let currentLine = '';
-      const maxLineLength = Math.floor(maxChars / 3);
-      
-      words.forEach(word => {
-        if ((currentLine + word).length < maxLineLength) {
-          currentLine += (currentLine ? ' ' : '') + word;
-        } else {
-          if (currentLine) lines.push(currentLine);
-          currentLine = word;
-        }
-      });
-      if (currentLine) lines.push(currentLine);
-      
-      lines.slice(0, 3).forEach((line, lineIndex) => {
-        const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        descText.setAttribute('x', leftEdge + 70);
-        descText.setAttribute('y', y + 45 + (lineIndex * 12));
-        descText.setAttribute('fill', 'white');
-        descText.setAttribute('font-size', '10px');
-        descText.setAttribute('opacity', '0.9');
-        descText.textContent = line;
-        textGroup.appendChild(descText);
-      });
+   // Add content inside trapezoid
+const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+textGroup.style.pointerEvents = 'none';
+
+// Left side: Product count (large) and percentage with visualization - ADD LEFT PADDING
+const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+productCount.setAttribute('x', leftEdge + 35); // Increased from 25 to 35 for left padding
+productCount.setAttribute('y', y + 45);
+productCount.setAttribute('text-anchor', 'middle');
+productCount.setAttribute('fill', 'white');
+productCount.setAttribute('font-weight', '700');
+productCount.setAttribute('font-size', '32px');
+productCount.textContent = bucket.count;
+
+// Percentage bar visualization
+const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+percentageBarBg.setAttribute('x', leftEdge + 20); // Adjusted for padding
+percentageBarBg.setAttribute('y', y + 60);
+percentageBarBg.setAttribute('width', '30');
+percentageBarBg.setAttribute('height', '6');
+percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+percentageBarBg.setAttribute('rx', '3');
+
+const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+percentageBar.setAttribute('x', leftEdge + 20); // Adjusted for padding
+percentageBar.setAttribute('y', y + 60);
+percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
+percentageBar.setAttribute('height', '6');
+percentageBar.setAttribute('fill', 'white');
+percentageBar.setAttribute('rx', '3');
+
+const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+percentageText.setAttribute('x', leftEdge + 35); // Adjusted for padding
+percentageText.setAttribute('y', y + 78);
+percentageText.setAttribute('text-anchor', 'middle');
+percentageText.setAttribute('fill', 'white');
+percentageText.setAttribute('font-size', '11px');
+percentageText.setAttribute('font-weight', '600');
+percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
+
+// Right side: Bucket name - INCREASED FONT SIZE
+const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+bucketName.setAttribute('x', leftEdge + 80);
+bucketName.setAttribute('y', y + 25);
+bucketName.setAttribute('fill', 'white');
+bucketName.setAttribute('font-weight', '700');
+bucketName.setAttribute('font-size', '18px'); // Increased from 16px to 18px
+bucketName.textContent = bucket.name;
+
+textGroup.appendChild(productCount);
+textGroup.appendChild(percentageBarBg);
+textGroup.appendChild(percentageBar);
+textGroup.appendChild(percentageText);
+textGroup.appendChild(bucketName);
+
+// Enhanced description handling - ALWAYS INSIDE OR OVERLAPPING
+const availableDescriptionWidth = sectionWidth - 90; // Space after product count and name
+const canFitFullDescription = availableDescriptionWidth > 200;
+const canFitPartialDescription = availableDescriptionWidth > 120;
+
+if (canFitFullDescription) {
+  // Full description inside trapezoid - use ALL available space
+  const maxCharsPerLine = Math.floor(availableDescriptionWidth / 6);
+  const words = bucket.description.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  words.forEach(word => {
+    if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
+      currentLine += (currentLine ? ' ' : '') + word;
     } else {
-      // Add description in external container
-      const descriptionBox = document.createElement('div');
-      descriptionBox.style.cssText = `
-        position: absolute;
-        top: ${y + 10}px;
-        left: 0;
-        background: ${colors[index].start};
-        color: white;
-        padding: 12px 15px;
-        border-radius: 8px;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.3);
-        font-size: 11px;
-        line-height: 1.4;
-        max-width: 280px;
-        border-left: 4px solid white;
-      `;
-      
-      descriptionBox.innerHTML = `
-        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
-        <div style="opacity: 0.95;">${bucket.description}</div>
-      `;
-      
-      descriptionContainer.appendChild(descriptionBox);
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
     }
-    
-    svg.appendChild(textGroup);
+  });
+  if (currentLine) lines.push(currentLine);
+  
+  // Use up to 4 lines to maximize space usage
+  lines.slice(0, 4).forEach((line, lineIndex) => {
+    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    descText.setAttribute('x', leftEdge + 80);
+    descText.setAttribute('y', y + 42 + (lineIndex * 11));
+    descText.setAttribute('fill', 'white');
+    descText.setAttribute('font-size', '10px');
+    descText.setAttribute('opacity', '0.95');
+    descText.textContent = line;
+    textGroup.appendChild(descText);
+  });
+  
+} else if (canFitPartialDescription) {
+  // Partial description inside trapezoid
+  const maxChars = Math.floor(availableDescriptionWidth / 6) * 2; // Two lines max
+  const truncatedDesc = bucket.description.length > maxChars ? 
+    bucket.description.substring(0, maxChars) + '...' : bucket.description;
+  
+  const words = truncatedDesc.split(' ');
+  const lines = [];
+  let currentLine = '';
+  const maxLineLength = Math.floor(maxChars / 2);
+  
+  words.forEach(word => {
+    if ((currentLine + ' ' + word).length <= maxLineLength) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  });
+  if (currentLine) lines.push(currentLine);
+  
+  lines.slice(0, 2).forEach((line, lineIndex) => {
+    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    descText.setAttribute('x', leftEdge + 80);
+    descText.setAttribute('y', y + 42 + (lineIndex * 11));
+    descText.setAttribute('fill', 'white');
+    descText.setAttribute('font-size', '10px');
+    descText.setAttribute('opacity', '0.95');
+    descText.textContent = line;
+    textGroup.appendChild(descText);
+  });
+  
+} else {
+  // Overlapping description box on the left side of trapezoid
+  const descriptionOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  
+  // Background rectangle for description
+  const descRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  descRect.setAttribute('x', leftEdge - 180);
+  descRect.setAttribute('y', y + 15);
+  descRect.setAttribute('width', '170');
+  descRect.setAttribute('height', '70');
+  descRect.setAttribute('fill', colors[index].start);
+  descRect.setAttribute('stroke', 'white');
+  descRect.setAttribute('stroke-width', '2');
+  descRect.setAttribute('rx', '8');
+  descRect.setAttribute('filter', 'url(#dropshadow)');
+  
+  // Split description into lines for overlay
+  const words = bucket.description.split(' ');
+  const lines = [];
+  let currentLine = '';
+  const maxLineLength = 25; // Fixed width for overlay
+  
+  words.forEach(word => {
+    if ((currentLine + ' ' + word).length <= maxLineLength) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  });
+  if (currentLine) lines.push(currentLine);
+  
+  descriptionOverlay.appendChild(descRect);
+  
+  // Add title to overlay
+  const overlayTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  overlayTitle.setAttribute('x', leftEdge - 95);
+  overlayTitle.setAttribute('y', y + 30);
+  overlayTitle.setAttribute('text-anchor', 'middle');
+  overlayTitle.setAttribute('fill', 'white');
+  overlayTitle.setAttribute('font-weight', '700');
+  overlayTitle.setAttribute('font-size', '12px');
+  overlayTitle.textContent = bucket.name;
+  descriptionOverlay.appendChild(overlayTitle);
+  
+  // Add description lines to overlay
+  lines.slice(0, 4).forEach((line, lineIndex) => {
+    const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    descText.setAttribute('x', leftEdge - 95);
+    descText.setAttribute('y', y + 45 + (lineIndex * 10));
+    descText.setAttribute('text-anchor', 'middle');
+    descText.setAttribute('fill', 'white');
+    descText.setAttribute('font-size', '9px');
+    descText.setAttribute('opacity', '0.95');
+    descText.textContent = line;
+    descriptionOverlay.appendChild(descText);
+  });
+  
+  svg.appendChild(descriptionOverlay);
+}
+
+svg.appendChild(textGroup);
   });
   
   svgContainer.appendChild(svg);
