@@ -408,6 +408,10 @@ function selectGoogleAdsProduct(product, navItemElement) {
     
     // Now populate them
     populateProductInfo(product);
+    // Ensure date selector is properly set up
+setTimeout(() => {
+  setupProductInfoDateSelector();
+}, 100);
     
     // Apply current filters to ranking map
     const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
@@ -1339,9 +1343,32 @@ function getHeatMapClass(value, allValues, isReverse = false) {
 }
 
 function setupProductInfoDateSelector() {
-  const dateRange = document.getElementById('productInfoDateRange').querySelector('div');
+  const dateRangeContainer = document.getElementById('productInfoDateRange');
+  if (!dateRangeContainer) return;
+  
+  const dateRange = dateRangeContainer.querySelector('div');
   const dropdown = document.getElementById('productInfoDateDropdown');
   const dateText = document.getElementById('productInfoDateText');
+  
+  if (!dateRange || !dropdown || !dateText) return;
+  
+  // Check if listeners are already attached
+  if (dateRange.hasAttribute('data-listeners-attached')) {
+    // Just update the text and return
+    const days = window.selectedDateRangeDays || 7;
+    const rangeLabels = {
+      3: 'Last 3 days',
+      7: 'Last 7 days',
+      14: 'Last 14 days',
+      30: 'Last 30 days',
+      90: 'Last 90 days'
+    };
+    dateText.textContent = rangeLabels[days] || `Last ${days} days`;
+    return;
+  }
+  
+  // Mark that listeners are attached
+  dateRange.setAttribute('data-listeners-attached', 'true');
   
   // Sync with global date range
   const days = window.selectedDateRangeDays || 7;
@@ -1375,18 +1402,19 @@ function setupProductInfoDateSelector() {
       // Hide dropdown
       dropdown.style.display = 'none';
       
-// Update both containers
-    if (window.currentProductInfoData) {
-      const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
-      renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
-      populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
-    }
-    // Update ranking map with new date range
-if (window.selectedGoogleAdsProduct) {
-  const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-  const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
-}
+      // Update both containers
+      if (window.currentProductInfoData) {
+        const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+        renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+        populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+      }
+      
+      // Update ranking map with new date range
+      if (window.selectedGoogleAdsProduct) {
+        const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+        const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+        populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
+      }
       
       if (window.currentProductMetricsData) {
         const chartData = processMetricsData(
@@ -1400,10 +1428,15 @@ if (window.selectedGoogleAdsProduct) {
     }
   });
   
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function() {
-    dropdown.style.display = 'none';
-  });
+  // Close dropdown when clicking outside - use a named function to avoid duplicates
+  if (!window.productInfoDateClickHandler) {
+    window.productInfoDateClickHandler = function(e) {
+      if (!dateRangeContainer.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', window.productInfoDateClickHandler);
+  }
   
   // Add hover effects
   dropdown.querySelectorAll('.date-range-option').forEach(option => {
@@ -4922,16 +4955,26 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
-  
   // Hide ROAS Buckets
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
   
-  // Trigger a re-selection of the current product to reload all data
-  const activeNavItem = document.querySelector('.nav-google-ads-item.active');
-  if (activeNavItem) {
-    // Simulate a click on the active product to reload everything
-    activeNavItem.click();
+  // If there's already selected product data, make sure to render it
+  if (window.currentProductMetricsData) {
+    const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+    const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+    const chartData = processMetricsData(window.currentProductMetricsData, campaignFilter, channelFilter);
+    renderProductMetricsChart('productMetricsChart', chartData);
+    updateTrendsData();
+  }
+  
+  // If there's a selected product, ensure all components are populated
+  if (window.selectedGoogleAdsProduct) {
+    const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+    if (window.currentProductInfoData) {
+      renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+      populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+    }
   }
 });
 
