@@ -6849,6 +6849,56 @@ if (window.googleAdsApexCharts) {
     min-width: 200px;
   }
 }
+/* Enhanced funnel columns */
+.funnel-metrics-column {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  padding: 15px 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.funnel-metrics-indicator {
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.funnel-metrics-indicator:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+/* Trapezoid content styling */
+.trapezoid-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Description overflow styling */
+.bucket-description-overflow {
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.bucket-description-overflow::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 20px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid;
+  border-right-color: inherit;
+}
+
+/* Percentage visualization */
+.percentage-bar-bg {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.percentage-bar-fill {
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+}
     `;
     document.head.appendChild(style);
   }
@@ -7008,13 +7058,13 @@ async function loadAndRenderROASBuckets() {
   // Clear existing content
   container.innerHTML = '';
   
-// Create wrapper
+// Create wrapper  
 const wrapper = document.createElement('div');
 wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;';
 
-// Left container for funnel (increased width to accommodate ROAS column and overflow)
+// Left container for funnel (increased width for three columns + funnel + descriptions)
 const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 750px; height: 100%; position: relative;';
+leftContainer.style.cssText = 'width: 900px; height: 100%; position: relative;';
   
   // Right container for metrics
   const rightContainer = document.createElement('div');
@@ -7092,6 +7142,14 @@ leftContainer.style.cssText = 'width: 750px; height: 100%; position: relative;';
 }
 
 function renderROASFunnel(container, bucketData) {
+  // Bucket descriptions from the Buckets document
+  const bucketDescriptions = {
+    'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
+    'Efficient Low Volume': 'These products deliver a strong return on ad spend but with a low number of conversions. It suggests the product is well-targeted but not reaching enough people. Consider testing broader or new audiences and increasing impressions while maintaining efficiency.',
+    'Volume Driver, Low ROI': 'Products that drive a high number of conversions, but at the cost of low profitability (low ROAS). These can be important for customer acquisition but may not be sustainable unless their margin improves or lifetime value justifies continued spend.',
+    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.'
+  };
+
   // Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
     const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
@@ -7105,7 +7163,8 @@ function renderROASFunnel(container, bucketData) {
       ...bucket,
       totalCost,
       totalRevenue,
-      avgROAS
+      avgROAS,
+      description: bucketDescriptions[bucket.name] || ''
     };
   });
 
@@ -7123,10 +7182,10 @@ function renderROASFunnel(container, bucketData) {
 
   // Reverse order: Top Performers at bottom, Underperformers at top
   const orderedBuckets = [
-    enhancedBucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0 },
-    enhancedBucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0 },
-    enhancedBucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0 },
-    enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0 }
+    enhancedBucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Underperformers'] },
+    enhancedBucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Volume Driver, Low ROI'] },
+    enhancedBucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Efficient Low Volume'] },
+    enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Top Performers'] }
   ];
 
   // Store reference for click handling
@@ -7138,30 +7197,35 @@ function renderROASFunnel(container, bucketData) {
   title.textContent = 'ROAS Performance Funnel';
   container.appendChild(title);
   
-  // Create main container with ROAS column and funnel
+  // Create main container with columns and funnel
   const mainContainer = document.createElement('div');
-  mainContainer.style.cssText = 'width: 100%; height: calc(100% - 60px); display: flex; align-items: center; gap: 20px;';
+  mainContainer.style.cssText = 'width: 100%; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 15px;';
   container.appendChild(mainContainer);
   
   // Create ROAS column
   const roasColumn = document.createElement('div');
-  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0;';
+  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+  
+  // Create Cost/Revenue column
+  const metricsColumn = document.createElement('div');
+  metricsColumn.style.cssText = 'width: 120px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
   // SVG container for funnel
   const svgContainer = document.createElement('div');
-  svgContainer.style.cssText = 'flex: 1; height: 500px; display: flex; justify-content: center; align-items: center; position: relative;';
+  svgContainer.style.cssText = 'flex: 1; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
-  // Create overflow text container
-  const overflowContainer = document.createElement('div');
-  overflowContainer.style.cssText = 'position: absolute; left: 100%; top: 20px; width: 300px; height: 460px; pointer-events: none; z-index: 10;';
+  // Create description overflow container
+  const descriptionContainer = document.createElement('div');
+  descriptionContainer.style.cssText = 'position: absolute; right: 20px; top: 20px; width: 300px; height: 460px; pointer-events: none; z-index: 10;';
   
   mainContainer.appendChild(roasColumn);
+  mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
-  svgContainer.appendChild(overflowContainer);
+  svgContainer.appendChild(descriptionContainer);
   
   // SVG dimensions
   const width = 400;
-  const height = 500;
+  const height = 460;
   
   // Create SVG
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7220,31 +7284,31 @@ function renderROASFunnel(container, bucketData) {
   
   // Calculate max percentage for width scaling
   const maxPercentage = Math.max(...orderedBuckets.map(b => b.productPercentage));
-  const minWidth = 60; // Minimum trapezoid width
+  const minWidth = 120; // Minimum trapezoid width (increased to fit content better)
   const maxWidth = 350; // Maximum trapezoid width
   
   // Funnel dimensions
   const sectionHeight = 100;
   const gap = 5;
-  const startY = 20;
+  const startY = 0;
   
-  // Create funnel sections as inverted trapezoids and ROAS indicators
+  // Create funnel sections as left-aligned inverted trapezoids
   orderedBuckets.forEach((bucket, index) => {
     const y = startY + index * (sectionHeight + gap);
     
     // Calculate width based on percentage
     const percentageRatio = maxPercentage > 0 ? bucket.productPercentage / maxPercentage : 0;
-    const sectionWidth = Math.max(minWidth, maxWidth * (0.2 + 0.8 * percentageRatio));
+    const sectionWidth = Math.max(minWidth, maxWidth * (0.3 + 0.7 * percentageRatio));
     
-    // Calculate trapezoid points for inverted funnel (wider at top, narrower at bottom)
+    // Left-aligned trapezoid points
     const topWidth = sectionWidth;
     const bottomWidth = sectionWidth * 0.85; // 15% narrower at bottom
-    const centerX = width / 2;
+    const leftEdge = 20; // Fixed left edge position
     
-    const topLeft = centerX - topWidth / 2;
-    const topRight = centerX + topWidth / 2;
-    const bottomLeft = centerX - bottomWidth / 2;
-    const bottomRight = centerX + bottomWidth / 2;
+    const topLeft = leftEdge;
+    const topRight = leftEdge + topWidth;
+    const bottomLeft = leftEdge;
+    const bottomRight = leftEdge + bottomWidth;
     
     // Create inverted trapezoid
     const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
@@ -7285,7 +7349,7 @@ function renderROASFunnel(container, bucketData) {
     
     svg.appendChild(trapezoid);
     
-    // Create ROAS indicator in left column
+    // Create ROAS indicator in left column (aligned with trapezoid)
     const roasIndicator = document.createElement('div');
     roasIndicator.style.cssText = `
       height: ${sectionHeight}px;
@@ -7308,99 +7372,156 @@ function renderROASFunnel(container, bucketData) {
     
     roasColumn.appendChild(roasIndicator);
     
-    // Determine if text should be inside trapezoid or overflow
-    const textFitsInside = sectionWidth > 200; // Threshold for fitting text inside
+    // Create Cost/Revenue indicator in metrics column (aligned with trapezoid)
+    const metricsIndicator = document.createElement('div');
+    metricsIndicator.style.cssText = `
+      height: ${sectionHeight}px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #607D8B, #546E7A);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: ${gap}px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+    `;
     
-    if (textFitsInside) {
-      // Add text inside trapezoid
-      const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      textGroup.style.pointerEvents = 'none';
+    metricsIndicator.innerHTML = `
+      <div style="margin-bottom: 6px;">
+        <div style="font-size: 11px; font-weight: 700; color: #FFE082;">$${(bucket.totalCost / 1000).toFixed(0)}k</div>
+        <div style="font-size: 9px; opacity: 0.9;">${bucket.costPercentage.toFixed(0)}% cost</div>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: #C8E6C9;">$${(bucket.totalRevenue / 1000).toFixed(0)}k</div>
+        <div style="font-size: 9px; opacity: 0.9;">${bucket.revenuePercentage.toFixed(0)}% rev</div>
+      </div>
+    `;
+    
+    metricsColumn.appendChild(metricsIndicator);
+    
+    // Determine if description should be inside trapezoid or overflow
+    const canFitDescription = sectionWidth > 280;
+    
+    // Add content inside trapezoid
+    const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    textGroup.style.pointerEvents = 'none';
+    
+    // Left side: Product count (large) and percentage with visualization
+    const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    productCount.setAttribute('x', leftEdge + 25);
+    productCount.setAttribute('y', y + 45);
+    productCount.setAttribute('text-anchor', 'middle');
+    productCount.setAttribute('fill', 'white');
+    productCount.setAttribute('font-weight', '700');
+    productCount.setAttribute('font-size', '32px');
+    productCount.textContent = bucket.count;
+    
+    // Percentage bar visualization
+    const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    percentageBarBg.setAttribute('x', leftEdge + 10);
+    percentageBarBg.setAttribute('y', y + 60);
+    percentageBarBg.setAttribute('width', '30');
+    percentageBarBg.setAttribute('height', '6');
+    percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+    percentageBarBg.setAttribute('rx', '3');
+    
+    const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    percentageBar.setAttribute('x', leftEdge + 10);
+    percentageBar.setAttribute('y', y + 60);
+    percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
+    percentageBar.setAttribute('height', '6');
+    percentageBar.setAttribute('fill', 'white');
+    percentageBar.setAttribute('rx', '3');
+    
+    const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    percentageText.setAttribute('x', leftEdge + 25);
+    percentageText.setAttribute('y', y + 78);
+    percentageText.setAttribute('text-anchor', 'middle');
+    percentageText.setAttribute('fill', 'white');
+    percentageText.setAttribute('font-size', '11px');
+    percentageText.setAttribute('font-weight', '600');
+    percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
+    
+    // Right side: Bucket name
+    const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    bucketName.setAttribute('x', leftEdge + 70);
+    bucketName.setAttribute('y', y + 25);
+    bucketName.setAttribute('fill', 'white');
+    bucketName.setAttribute('font-weight', '700');
+    bucketName.setAttribute('font-size', '16px');
+    bucketName.textContent = bucket.name;
+    
+    textGroup.appendChild(productCount);
+    textGroup.appendChild(percentageBarBg);
+    textGroup.appendChild(percentageBar);
+    textGroup.appendChild(percentageText);
+    textGroup.appendChild(bucketName);
+    
+    if (canFitDescription) {
+      // Add truncated description inside trapezoid
+      const maxChars = Math.floor((sectionWidth - 80) / 6); // Rough character estimation
+      const truncatedDesc = bucket.description.length > maxChars ? 
+        bucket.description.substring(0, maxChars) + '...' : bucket.description;
       
-      // Bucket name
-      const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      nameText.setAttribute('x', centerX);
-      nameText.setAttribute('y', y + 20);
-      nameText.setAttribute('text-anchor', 'middle');
-      nameText.setAttribute('fill', 'white');
-      nameText.setAttribute('font-weight', '700');
-      nameText.setAttribute('font-size', '14px');
-      nameText.textContent = bucket.name;
+      // Split description into multiple lines
+      const words = truncatedDesc.split(' ');
+      const lines = [];
+      let currentLine = '';
+      const maxLineLength = Math.floor(maxChars / 3);
       
-      // Products count and percentage
-      const productsText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      productsText.setAttribute('x', centerX);
-      productsText.setAttribute('y', y + 40);
-      productsText.setAttribute('text-anchor', 'middle');
-      productsText.setAttribute('fill', 'white');
-      productsText.setAttribute('font-size', '12px');
-      productsText.textContent = `${bucket.count} products (${bucket.productPercentage.toFixed(1)}%)`;
+      words.forEach(word => {
+        if ((currentLine + word).length < maxLineLength) {
+          currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+      if (currentLine) lines.push(currentLine);
       
-      // Cost info
-      const costText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      costText.setAttribute('x', centerX);
-      costText.setAttribute('y', y + 58);
-      costText.setAttribute('text-anchor', 'middle');
-      costText.setAttribute('fill', 'white');
-      costText.setAttribute('font-size', '11px');
-      costText.textContent = `Cost: $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)`;
-      
-      // Revenue info
-      const revenueText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      revenueText.setAttribute('x', centerX);
-      revenueText.setAttribute('y', y + 76);
-      revenueText.setAttribute('text-anchor', 'middle');
-      revenueText.setAttribute('fill', 'white');
-      revenueText.setAttribute('font-size', '11px');
-      revenueText.textContent = `Revenue: $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)`;
-      
-      textGroup.appendChild(nameText);
-      textGroup.appendChild(productsText);
-      textGroup.appendChild(costText);
-      textGroup.appendChild(revenueText);
-      svg.appendChild(textGroup);
+      lines.slice(0, 3).forEach((line, lineIndex) => {
+        const descText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        descText.setAttribute('x', leftEdge + 70);
+        descText.setAttribute('y', y + 45 + (lineIndex * 12));
+        descText.setAttribute('fill', 'white');
+        descText.setAttribute('font-size', '10px');
+        descText.setAttribute('opacity', '0.9');
+        descText.textContent = line;
+        textGroup.appendChild(descText);
+      });
     } else {
-      // Add minimal text inside and detailed text in overflow area
-      const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      textGroup.style.pointerEvents = 'none';
-      
-      // Just show count inside small trapezoid
-      const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      countText.setAttribute('x', centerX);
-      countText.setAttribute('y', y + sectionHeight / 2 + 5);
-      countText.setAttribute('text-anchor', 'middle');
-      countText.setAttribute('fill', 'white');
-      countText.setAttribute('font-weight', '700');
-      countText.setAttribute('font-size', '24px');
-      countText.textContent = bucket.count;
-      
-      textGroup.appendChild(countText);
-      svg.appendChild(textGroup);
-      
-      // Add detailed info in overflow container
-      const overflowInfo = document.createElement('div');
-      overflowInfo.style.cssText = `
+      // Add description in external container
+      const descriptionBox = document.createElement('div');
+      descriptionBox.style.cssText = `
         position: absolute;
-        top: ${y - 20}px;
+        top: ${y + 10}px;
         left: 0;
         background: ${colors[index].start};
         color: white;
-        padding: 10px 15px;
+        padding: 12px 15px;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        box-shadow: 0 3px 12px rgba(0,0,0,0.3);
         font-size: 11px;
         line-height: 1.4;
-        min-width: 250px;
+        max-width: 280px;
+        border-left: 4px solid white;
       `;
       
-      overflowInfo.innerHTML = `
+      descriptionBox.innerHTML = `
         <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
-        <div><strong>${bucket.count} products</strong> (${bucket.productPercentage.toFixed(1)}% of all)</div>
-        <div><strong>Cost:</strong> $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}% of total)</div>
-        <div><strong>Revenue:</strong> $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}% of total)</div>
+        <div style="opacity: 0.95;">${bucket.description}</div>
       `;
       
-      overflowContainer.appendChild(overflowInfo);
+      descriptionContainer.appendChild(descriptionBox);
     }
+    
+    svg.appendChild(textGroup);
   });
   
   svgContainer.appendChild(svg);
