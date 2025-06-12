@@ -7290,8 +7290,7 @@ const fixedTrapezoidWidth = 350;
     const y = startY + index * (sectionHeight + gap);
     
     // Calculate width based on percentage
-    const percentageRatio = maxPercentage > 0 ? bucket.productPercentage / maxPercentage : 0;
-    const sectionWidth = Math.max(minWidth, maxWidth * (0.3 + 0.7 * percentageRatio));
+const sectionWidth = fixedTrapezoidWidth;
     
     // Left-aligned trapezoid points
     const topWidth = sectionWidth;
@@ -7436,20 +7435,6 @@ const maxConversions = Math.max(...orderedBuckets.map(b => {
   const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
   return products.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
 }));
-
-// Update trapezoid calculation for fixed width
-const y = startY + index * (sectionHeight + gap);
-const sectionWidth = fixedTrapezoidWidth; // Use fixed width
-const topWidth = sectionWidth;
-const bottomWidth = sectionWidth * 0.85;
-const leftEdge = 20;
-
-const topLeft = leftEdge;
-const topRight = leftEdge + topWidth;
-const bottomLeft = leftEdge;
-const bottomRight = leftEdge + bottomWidth;
-
-// ... (keep the trapezoid creation code the same) ...
 
 // Add content inside trapezoid
 const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
