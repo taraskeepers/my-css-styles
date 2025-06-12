@@ -4959,6 +4959,16 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
   
+  // Check if a product is already selected, if not, select the first one
+  if (!window.selectedGoogleAdsProduct) {
+    const firstNavItem = document.querySelector('.nav-google-ads-item');
+    if (firstNavItem) {
+      console.log('[Overview] Auto-selecting first product for Overview mode');
+      firstNavItem.click();
+      return; // Exit here as the click will trigger all the data loading
+    }
+  }
+  
   // If there's already selected product data, make sure to render it
   if (window.currentProductMetricsData) {
     const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
@@ -4968,25 +4978,25 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     updateTrendsData();
   }
   
-// If there's a selected product, ensure all components are populated
-if (window.selectedGoogleAdsProduct) {
-  const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
-  
-  // Populate product info charts and tables
-  if (window.currentProductInfoData) {
-    renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
-    populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+  // If there's a selected product, ensure all components are populated
+  if (window.selectedGoogleAdsProduct) {
+    const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+    
+    // Populate product info charts and tables
+    if (window.currentProductInfoData) {
+      renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+      populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+    }
+    
+    // Populate product metrics table (separate from ranking tables)
+    if (window.currentProductMetricsData) {
+      const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+      const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+      const chartData = processMetricsData(window.currentProductMetricsData, campaignFilter, channelFilter);
+      renderProductMetricsChart('productMetricsChart', chartData);
+      updateTrendsData();
+    }
   }
-  
-  // Populate product metrics table (separate from ranking tables)
-  if (window.currentProductMetricsData) {
-    const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-    const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-    const chartData = processMetricsData(window.currentProductMetricsData, campaignFilter, channelFilter);
-    renderProductMetricsChart('productMetricsChart', chartData);
-    updateTrendsData();
-  }
-}
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
