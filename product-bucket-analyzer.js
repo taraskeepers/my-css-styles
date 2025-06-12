@@ -184,21 +184,49 @@ window.productBucketAnalyzer = {
     }
   },
 
-  // Calculate historic bucket data for each day in the last 30 days
+// Calculate historic bucket data for each day in the last 30 days
   calculateHistoricBuckets(key, allData, startDate30, endDate) {
     const [productTitle, campaignName, channelType] = key.split('|');
     const historicData = [];
     
-    // For each day in the last 30 days
+    // Find the actual date range of available data
+    const dataForKey = allData.filter(row => {
+      if (campaignName === 'All' && channelType === 'All') {
+        return row['Product Title'] === productTitle;
+      }
+      return row['Product Title'] === productTitle &&
+             row['Campaign Name'] === campaignName &&
+             row['Channel Type'] === channelType;
+    });
+    
+    if (dataForKey.length === 0) return historicData;
+    
+    // Get min and max dates from actual data
+    const dataDates = dataForKey.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+    const minDataDate = new Date(Math.min(...dataDates));
+    const maxDataDate = new Date(Math.max(...dataDates));
+    
+    // For each day in the last 30 days (or from when data starts, whichever is later)
     const currentDate = new Date(startDate30);
     currentDate.setDate(currentDate.getDate() + 1); // Start from day 1 of last 30 days
     
+    // Adjust start date if data doesn't go back that far
+    if (currentDate < minDataDate) {
+      currentDate.setTime(minDataDate.getTime());
+    }
+    
     while (currentDate <= endDate) {
-      // Calculate date range for this specific day (30 days back from currentDate)
+      // Calculate date range for this specific day (up to 30 days back, but not before data starts)
       const histStartDate = new Date(currentDate);
       histStartDate.setDate(histStartDate.getDate() - 30);
       
-      // Filter data for this 30-day window
+      // Don't go before the earliest data point
+      if (histStartDate < minDataDate) {
+        histStartDate.setTime(minDataDate.getTime());
+        histStartDate.setDate(histStartDate.getDate() - 1); // Adjust for > comparison in filter
+      }
+      
+      // Filter data for this window
       const windowData = allData.filter(row => {
         if (!row.Date) return false;
         const rowDate = new Date(row.Date);
@@ -232,7 +260,8 @@ window.productBucketAnalyzer = {
           Pricing_Bucket: buckets.pricingBucket,
           ROAS_Bucket: buckets.roasBucket,
           ROI_Bucket: buckets.roiBucket,
-          Spend_Bucket: buckets.spendBucket
+          Spend_Bucket: buckets.spendBucket,
+          days_of_data: Math.floor((currentDate - Math.max(histStartDate, minDataDate - 86400000)) / 86400000) // Track how many days of data were used
         });
       }
       
