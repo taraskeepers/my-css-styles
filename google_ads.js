@@ -7001,7 +7001,7 @@ async function loadAndRenderROASBuckets() {
   // Load and render funnel data
   try {
     const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets`;
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -7264,7 +7264,7 @@ async function updateBucketMetrics(selectedBucket) {
   
   try {
     const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets`;
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
