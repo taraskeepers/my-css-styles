@@ -7297,10 +7297,10 @@ const trapezoidBottomWidth = 250;
 const leftEdge = 0; // Start from left edge
 
 // Calculate trapezoid points - same for all
-const topLeft = leftEdge;
-const topRight = leftEdge + trapezoidTopWidth;
-const bottomLeft = leftEdge;
-const bottomRight = leftEdge + trapezoidBottomWidth;
+const topLeft = 0;
+const topRight = trapezoidTopWidth;
+const bottomLeft = 0;
+const bottomRight = trapezoidBottomWidth;
 
 // Create inverted trapezoid
 const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
@@ -7415,7 +7415,7 @@ metricsIndicator.innerHTML = `
     metricsColumn.appendChild(metricsIndicator);
     
     // Determine if description should be inside trapezoid or overflow
-    const canFitDescription = sectionWidth > 280;
+    const canFitDescription = trapezoidTopWidth > 280;
     
   // Calculate metrics for the bucket
 const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
