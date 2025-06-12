@@ -858,9 +858,9 @@ function populateProductInfo(product) {
   const wrapper = document.createElement('div');
   wrapper.className = 'product-info-wrapper';
   
-  // Left container with product details
-  const leftContainer = document.createElement('div');
-  leftContainer.className = 'product-info-left';
+// Left container for funnel
+const leftContainer = document.createElement('div');
+leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   
   const productImage = product.thumbnail || 'https://via.placeholder.com/100?text=No+Image';
   const productTitle = product.title || 'No title';
@@ -7197,9 +7197,10 @@ function renderROASFunnel(container, bucketData) {
   title.textContent = 'ROAS Performance Funnel';
   container.appendChild(title);
   
-  // Create main container with columns and funnel
-  const mainContainer = document.createElement('div');
-  mainContainer.style.cssText = 'width: 100%; max-width: 650px; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
+// Create main container with columns and funnel
+const mainContainer = document.createElement('div');
+mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
+  
   container.appendChild(mainContainer);
   
   // Create ROAS column
@@ -7211,22 +7212,23 @@ function renderROASFunnel(container, bucketData) {
   metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
   // SVG container for funnel
-  const svgContainer = document.createElement('div');
-  svgContainer.style.cssText = 'width: 320px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+const svgContainer = document.createElement('div');
+svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
   
-  // SVG dimensions
-const width = 400;
+// SVG dimensions - match the actual content size
+const width = 280;
 const height = 460;
-  
-  // Create SVG
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', width);
-  svg.setAttribute('height', height);
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+// Create SVG
+const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+svg.setAttribute('width', width);
+svg.setAttribute('height', height);
+svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+svg.style.marginLeft = '0';
   
   // Define gradients and filters
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -7289,22 +7291,21 @@ const fixedTrapezoidWidth = 350;
   orderedBuckets.forEach((bucket, index) => {
     const y = startY + index * (sectionHeight + gap);
     
-    // Calculate width based on percentage
-const sectionWidth = fixedTrapezoidWidth;
+// Fixed dimensions for all trapezoids
+const trapezoidTopWidth = 280;
+const trapezoidBottomWidth = 250;
+const leftEdge = 0; // Start from left edge
+
+// Calculate trapezoid points - same for all
+const topLeft = leftEdge;
+const topRight = leftEdge + trapezoidTopWidth;
+const bottomLeft = leftEdge;
+const bottomRight = leftEdge + trapezoidBottomWidth;
+
+// Create inverted trapezoid
+const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
     
-    // Left-aligned trapezoid points
-    const topWidth = sectionWidth;
-    const bottomWidth = sectionWidth * 0.85; // 15% narrower at bottom
-    const leftEdge = 20; // Fixed left edge position
-    
-    const topLeft = leftEdge;
-    const topRight = leftEdge + topWidth;
-    const bottomLeft = leftEdge;
-    const bottomRight = leftEdge + bottomWidth;
-    
-    // Create inverted trapezoid
-    const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
     trapezoid.setAttribute('points', points);
     trapezoid.setAttribute('fill', `url(#${colors[index].id})`);
     trapezoid.setAttribute('filter', 'url(#dropshadow)');
@@ -7442,7 +7443,7 @@ textGroup.style.pointerEvents = 'none';
 
 // Left side: Product count (large) and percentage with visualization
 const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-productCount.setAttribute('x', leftEdge + 35);
+productCount.setAttribute('x', 35);
 productCount.setAttribute('y', y + 40);
 productCount.setAttribute('text-anchor', 'middle');
 productCount.setAttribute('fill', 'white');
@@ -7452,7 +7453,7 @@ productCount.textContent = bucket.count;
 
 // Percentage bar visualization
 const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBarBg.setAttribute('x', leftEdge + 20);
+percentageBarBg.setAttribute('x', 20);
 percentageBarBg.setAttribute('y', y + 45);
 percentageBarBg.setAttribute('width', '30');
 percentageBarBg.setAttribute('height', '5');
@@ -7460,7 +7461,7 @@ percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
 percentageBarBg.setAttribute('rx', '2');
 
 const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBar.setAttribute('x', leftEdge + 20);
+percentageBar.setAttribute('x', 20);
 percentageBar.setAttribute('y', y + 45);
 percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
 percentageBar.setAttribute('height', '5');
@@ -7468,7 +7469,7 @@ percentageBar.setAttribute('fill', 'white');
 percentageBar.setAttribute('rx', '2');
 
 const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-percentageText.setAttribute('x', leftEdge + 35);
+percentageText.setAttribute('x', 35);
 percentageText.setAttribute('y', y + 60);
 percentageText.setAttribute('text-anchor', 'middle');
 percentageText.setAttribute('fill', 'white');
@@ -7478,7 +7479,7 @@ percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
 // Right side: Bucket name
 const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-bucketName.setAttribute('x', leftEdge + 80);
+bucketName.setAttribute('x', 80);
 bucketName.setAttribute('y', y + 25);
 bucketName.setAttribute('fill', 'white');
 bucketName.setAttribute('font-weight', '700');
@@ -7493,7 +7494,7 @@ const metricsData = [
 ];
 
 const metricsY = y + 50;
-let metricsX = leftEdge + 80;
+let metricsX = 80;
 
 metricsData.forEach((metric, metricIndex) => {
   // Metric label
