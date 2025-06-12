@@ -37,12 +37,22 @@ window.productBucketAnalyzer = {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
 
-      // Filter data for last 30 days
-      const filteredData = rawData.filter(row => {
-        if (!row.Date) return false;
-        const rowDate = new Date(row.Date);
-        return rowDate >= startDate && rowDate <= endDate;
-      });
+// Filter data for last 30 days
+const filteredData = rawData.filter(row => {
+  if (!row.Date) return false;
+  const rowDate = new Date(row.Date);
+  
+  // Find the max date in the data to handle future dates
+  const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+  const maxDataDate = new Date(Math.max(...allDates));
+  
+  // Calculate 30 days back from the most recent date in the data
+  const endDate = maxDataDate;
+  const startDate = new Date(maxDataDate);
+  startDate.setDate(startDate.getDate() - 30);
+  
+  return rowDate >= startDate && rowDate <= endDate;
+});
 
       console.log(`[Product Buckets] Filtered to ${filteredData.length} rows for last 30 days`);
 
@@ -53,10 +63,11 @@ window.productBucketAnalyzer = {
       const groupedData = this.groupByProductCampaignChannel(filteredData);
 
       // Calculate aggregated metrics for each group
-      const bucketData = [];
-      for (const [key, rows] of Object.entries(groupedData)) {
-        const metrics = this.calculateAggregatedMetrics(rows);
-        const buckets = this.assignBuckets(metrics);
+const bucketData = [];
+for (const [key, rows] of Object.entries(groupedData)) {
+  const isAllRow = key.endsWith('|All|All');
+  const metrics = this.calculateAggregatedMetrics(rows, isAllRow);
+  const buckets = this.assignBuckets(metrics);
         
         bucketData.push({
           'Product Title': metrics.productTitle,
@@ -198,17 +209,17 @@ groupByProductCampaignChannel(data) {
 },
 
   // Calculate aggregated metrics for a group of rows
-  calculateAggregatedMetrics(rows) {
-    const metrics = {
-      productTitle: rows[0]['Product Title'] || '',
-      campaignName: rows[0]['Campaign Name'] || '',
-      channelType: rows[0]['Channel Type'] || '',
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      convValue: 0
-    };
+calculateAggregatedMetrics(rows, isAllRow = false) {
+  const metrics = {
+    productTitle: rows[0]['Product Title'] || '',
+    campaignName: isAllRow ? 'All' : (rows[0]['Campaign Name'] || ''),
+    channelType: isAllRow ? 'All' : (rows[0]['Channel Type'] || ''),
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    convValue: 0
+  };
 
     // Aggregate sum metrics
     rows.forEach(row => {
