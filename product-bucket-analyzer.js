@@ -167,20 +167,35 @@ window.productBucketAnalyzer = {
     console.log('[Product Buckets] Calculated dynamic defaults:', this.DEFAULTS);
   },
 
-  // Group data by product + campaign + channel
-  groupByProductCampaignChannel(data) {
-    const grouped = {};
+// Group data by product + campaign + channel AND by product only
+groupByProductCampaignChannel(data) {
+  const grouped = {};
+  const productOnly = {}; // For "All" aggregation
+  
+  data.forEach(row => {
+    // Original grouping by product + campaign + channel
+    const key = `${row['Product Title']}|${row['Campaign Name']}|${row['Channel Type']}`;
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+    grouped[key].push(row);
     
-    data.forEach(row => {
-      const key = `${row['Product Title']}|${row['Campaign Name']}|${row['Channel Type']}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(row);
-    });
+    // Additional grouping by product only (for "All" row)
+    const productKey = row['Product Title'];
+    if (!productOnly[productKey]) {
+      productOnly[productKey] = [];
+    }
+    productOnly[productKey].push(row);
+  });
+  
+  // Add the "All" entries to the main grouped object
+  for (const [productTitle, rows] of Object.entries(productOnly)) {
+    const allKey = `${productTitle}|All|All`;
+    grouped[allKey] = rows;
+  }
 
-    return grouped;
-  },
+  return grouped;
+},
 
   // Calculate aggregated metrics for a group of rows
   calculateAggregatedMetrics(rows) {
