@@ -7208,7 +7208,7 @@ function renderROASFunnel(container, bucketData) {
   
   // Create Cost/Revenue column
   const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 160px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
   // SVG container for funnel
   const svgContainer = document.createElement('div');
@@ -7371,7 +7371,7 @@ const sectionWidth = fixedTrapezoidWidth;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: center;
+      align-items: left;
       background: linear-gradient(135deg, #607D8B, #546E7A);
       color: white;
       border-radius: 8px;
