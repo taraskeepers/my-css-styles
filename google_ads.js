@@ -6818,6 +6818,9 @@ if (window.googleAdsApexCharts) {
   line-height: 32px !important;
   padding: 8px 8px !important;
 }
+#roas_buckets {
+  margin-top: 60px !important;
+}
     `;
     document.head.appendChild(style);
   }
@@ -6985,16 +6988,17 @@ async function loadAndRenderROASBuckets() {
   const leftContainer = document.createElement('div');
   leftContainer.style.cssText = 'width: 450px; height: 100%;';
   
-  // Right container (for future use)
+  // Right container for metrics
   const rightContainer = document.createElement('div');
-  rightContainer.style.cssText = 'flex: 1; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 20px;';
-  rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Additional analytics coming soon</div>';
+  rightContainer.className = 'right-container';
+  rightContainer.style.cssText = 'flex: 1; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
+  rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
   container.appendChild(wrapper);
   
-  // Load data from IDB
+  // Load and render funnel data
   try {
     const accountPrefix = window.currentAccount || 'acc1';
     const tableName = `${accountPrefix}_googleSheets_productBuckets`;
@@ -7023,6 +7027,9 @@ async function loadAndRenderROASBuckets() {
     if (!result || !result.data) {
       throw new Error('No data found');
     }
+    
+    // Store data globally for metrics updates
+    window.roasBucketsData = result.data;
     
     // Count products by ROAS_Bucket
     const bucketCounts = {
@@ -7057,6 +7064,17 @@ async function loadAndRenderROASBuckets() {
 }
 
 function renderROASFunnel(container, bucketData) {
+  // Reverse order: Top Performers at bottom, Underperformers at top
+  const orderedBuckets = [
+    bucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, percentage: 0 },
+    bucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, percentage: 0 },
+    bucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, percentage: 0 },
+    bucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, percentage: 0 }
+  ];
+
+  // Store reference for click handling
+  container.bucketData = bucketData;
+  
   // Create funnel title
   const title = document.createElement('h3');
   title.style.cssText = 'text-align: center; margin-bottom: 20px; color: #333; font-size: 18px;';
@@ -7078,10 +7096,9 @@ function renderROASFunnel(container, bucketData) {
   svg.setAttribute('height', height);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   
-  // Define gradients and filters
+  // Define gradients and filters (same as before)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   
-  // Add drop shadow filter
   const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
   filter.setAttribute('id', 'dropshadow');
   filter.innerHTML = `
@@ -7097,12 +7114,12 @@ function renderROASFunnel(container, bucketData) {
   `;
   defs.appendChild(filter);
   
-  // Define gradients for each section
+  // Reversed color order to match bucket order
   const colors = [
-    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' },
-    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
+    { id: 'underperformers', start: '#F44336', end: '#EF5350' },
     { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
-    { id: 'underperformers', start: '#F44336', end: '#EF5350' }
+    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
+    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' }
   ];
   
   colors.forEach(color => {
@@ -7128,57 +7145,73 @@ function renderROASFunnel(container, bucketData) {
   
   svg.appendChild(defs);
   
+  // Calculate max percentage for width scaling
+  const maxPercentage = Math.max(...orderedBuckets.map(b => parseFloat(b.percentage)));
+  const minWidth = 80; // Minimum width percentage
+  const maxWidth = 350; // Maximum width
+  
   // Funnel dimensions
-  const topWidth = 350;
-  const bottomWidth = 100;
   const sectionHeight = 100;
   const gap = 5;
   const startY = 20;
   
-  // Create funnel sections
-  bucketData.forEach((bucket, index) => {
+  // Create funnel sections with percentage-based width
+  orderedBuckets.forEach((bucket, index) => {
     const y = startY + index * (sectionHeight + gap);
-    const widthDiff = topWidth - bottomWidth;
-    const sectionTopWidth = topWidth - (widthDiff * index / 4);
-    const sectionBottomWidth = topWidth - (widthDiff * (index + 1) / 4);
     
-    // Calculate x positions to center the trapezoid
-    const topX = (width - sectionTopWidth) / 2;
-    const bottomX = (width - sectionBottomWidth) / 2;
+    // Calculate width based on percentage (with minimum width)
+    const percentageRatio = maxPercentage > 0 ? parseFloat(bucket.percentage) / maxPercentage : 0;
+    const sectionWidth = Math.max(minWidth, maxWidth * (0.3 + 0.7 * percentageRatio)); // 30% minimum + 70% variable
     
-    // Create trapezoid path
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const d = `
-      M ${topX} ${y}
-      L ${topX + sectionTopWidth} ${y}
-      L ${bottomX + sectionBottomWidth} ${y + sectionHeight}
-      L ${bottomX} ${y + sectionHeight}
-      Z
-    `;
-    path.setAttribute('d', d);
-    path.setAttribute('fill', `url(#${colors[index].id})`);
-    path.setAttribute('filter', 'url(#dropshadow)');
-    path.style.cursor = 'pointer';
-    path.style.transition = 'all 0.3s ease';
+    // Calculate x position to center the section
+    const x = (width - sectionWidth) / 2;
+    
+    // Create rectangle instead of trapezoid for clearer width differences
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', y);
+    rect.setAttribute('width', sectionWidth);
+    rect.setAttribute('height', sectionHeight);
+    rect.setAttribute('rx', '8'); // Rounded corners
+    rect.setAttribute('fill', `url(#${colors[index].id})`);
+    rect.setAttribute('filter', 'url(#dropshadow)');
+    rect.style.cursor = 'pointer';
+    rect.style.transition = 'all 0.3s ease';
+    
+    // Add click handler
+    rect.addEventListener('click', function() {
+      // Remove previous selection
+      svg.querySelectorAll('rect').forEach(r => r.style.stroke = 'none');
+      
+      // Highlight selected
+      this.style.stroke = '#333';
+      this.style.strokeWidth = '3';
+      
+      // Update right container
+      updateBucketMetrics(bucket.name);
+    });
     
     // Add hover effect
-    path.addEventListener('mouseenter', function() {
-      this.style.transform = 'scale(1.02)';
-      this.style.filter = 'url(#dropshadow) brightness(1.1)';
+    rect.addEventListener('mouseenter', function() {
+      if (!this.style.stroke) {
+        this.style.transform = 'scale(1.02)';
+        this.style.filter = 'url(#dropshadow) brightness(1.1)';
+      }
     });
     
-    path.addEventListener('mouseleave', function() {
-      this.style.transform = 'scale(1)';
-      this.style.filter = 'url(#dropshadow) brightness(1)';
+    rect.addEventListener('mouseleave', function() {
+      if (!this.style.stroke) {
+        this.style.transform = 'scale(1)';
+        this.style.filter = 'url(#dropshadow) brightness(1)';
+      }
     });
     
-    svg.appendChild(path);
+    svg.appendChild(rect);
     
-    // Add text group
+    // Add text
     const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     textGroup.style.pointerEvents = 'none';
     
-    // Bucket name
     const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     nameText.setAttribute('x', width / 2);
     nameText.setAttribute('y', y + sectionHeight / 2 - 10);
@@ -7188,7 +7221,6 @@ function renderROASFunnel(container, bucketData) {
     nameText.setAttribute('font-size', '14px');
     nameText.textContent = bucket.name;
     
-    // Product count
     const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     countText.setAttribute('x', width / 2);
     countText.setAttribute('y', y + sectionHeight / 2 + 10);
@@ -7198,7 +7230,6 @@ function renderROASFunnel(container, bucketData) {
     countText.setAttribute('font-size', '20px');
     countText.textContent = bucket.count;
     
-    // Percentage
     const percentText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     percentText.setAttribute('x', width / 2);
     percentText.setAttribute('y', y + sectionHeight / 2 + 28);
@@ -7214,6 +7245,266 @@ function renderROASFunnel(container, bucketData) {
   });
   
   svgContainer.appendChild(svg);
+  
+  // Auto-select Top Performers by default
+  setTimeout(() => {
+    const topPerformersRect = svg.querySelectorAll('rect')[3]; // Last rect is Top Performers
+    if (topPerformersRect) {
+      topPerformersRect.click();
+    }
+  }, 100);
+}
+
+async function updateBucketMetrics(selectedBucket) {
+  const rightContainer = document.querySelector('#roas_buckets .right-container');
+  if (!rightContainer) return;
+  
+  // Show loading
+  rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px;"><div class="spinner"></div><p>Loading metrics...</p></div>';
+  
+  try {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      throw new Error('No data found');
+    }
+    
+    // Filter data for selected bucket
+    const bucketProducts = result.data.filter(row => row['ROAS_Bucket'] === selectedBucket);
+    
+    if (bucketProducts.length === 0) {
+      rightContainer.innerHTML = `<div style="text-align: center; margin-top: 40px; color: #666;">No products found in ${selectedBucket} bucket</div>`;
+      return;
+    }
+    
+    renderBucketMetrics(rightContainer, selectedBucket, bucketProducts);
+    
+  } catch (error) {
+    console.error('[updateBucketMetrics] Error:', error);
+    rightContainer.innerHTML = '<div style="text-align: center; color: #f44336; margin-top: 40px;">Error loading bucket metrics</div>';
+  }
+}
+
+function renderBucketMetrics(container, bucketName, products) {
+  container.innerHTML = '';
+  
+  // Create header
+  const header = document.createElement('div');
+  header.style.cssText = 'margin-bottom: 20px; text-align: center;';
+  header.innerHTML = `
+    <h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${bucketName}</h3>
+    <p style="margin: 0; color: #666; font-size: 14px;">${products.length} products</p>
+  `;
+  container.appendChild(header);
+  
+  // Calculate aggregated metrics
+  const metrics = calculateAggregatedMetrics(products);
+  
+  // Create metrics grid
+  const metricsGrid = document.createElement('div');
+  metricsGrid.style.cssText = `
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+  `;
+  
+  // Key metrics to display
+  const keyMetrics = [
+    { label: 'Total Impressions', value: metrics.totalImpressions.toLocaleString(), color: '#2196F3' },
+    { label: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), color: '#4CAF50' },
+    { label: 'Total Cost', value: '$' + metrics.totalCost.toLocaleString(), color: '#FF9800' },
+    { label: 'Total Conversions', value: metrics.totalConversions.toFixed(1), color: '#9C27B0' },
+    { label: 'Avg ROAS', value: metrics.avgROAS.toFixed(2) + 'x', color: '#F44336' },
+    { label: 'Avg AOV', value: '$' + metrics.avgAOV.toFixed(2), color: '#607D8B' },
+    { label: 'Avg CTR', value: metrics.avgCTR.toFixed(2) + '%', color: '#795548' },
+    { label: 'Avg CVR', value: metrics.avgCVR.toFixed(2) + '%', color: '#3F51B5' },
+    { label: 'Avg CPA', value: '$' + metrics.avgCPA.toFixed(2), color: '#E91E63' }
+  ];
+  
+  keyMetrics.forEach(metric => {
+    const metricCard = document.createElement('div');
+    metricCard.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-left: 4px solid ${metric.color};
+    `;
+    
+    metricCard.innerHTML = `
+      <div style="font-size: 24px; font-weight: 700; color: ${metric.color}; margin-bottom: 5px;">${metric.value}</div>
+      <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">${metric.label}</div>
+    `;
+    
+    metricsGrid.appendChild(metricCard);
+  });
+  
+  container.appendChild(metricsGrid);
+  
+  // Create distribution charts
+  const distributionSection = document.createElement('div');
+  distributionSection.innerHTML = '<h4 style="margin: 0 0 15px 0; color: #333;">Bucket Distribution</h4>';
+  
+  const distributionGrid = document.createElement('div');
+  distributionGrid.style.cssText = `
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  `;
+  
+  // Funnel Bucket distribution
+  const funnelDistribution = createDistributionChart(products, 'Funnel_Bucket', 'Funnel Performance');
+  const mlDistribution = createDistributionChart(products, 'ML_Cluster', 'ML Clusters');
+  
+  distributionGrid.appendChild(funnelDistribution);
+  distributionGrid.appendChild(mlDistribution);
+  distributionSection.appendChild(distributionGrid);
+  
+  container.appendChild(distributionSection);
+}
+
+function calculateAggregatedMetrics(products) {
+  const totals = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    convValue: 0
+  };
+  
+  const averages = {
+    roas: 0,
+    aov: 0,
+    ctr: 0,
+    cvr: 0,
+    cpa: 0
+  };
+  
+  let validCount = 0;
+  
+  products.forEach(product => {
+    totals.impressions += parseInt(product.Impressions) || 0;
+    totals.clicks += parseInt(product.Clicks) || 0;
+    totals.cost += parseFloat(product.Cost) || 0;
+    totals.conversions += parseFloat(product.Conversions) || 0;
+    totals.convValue += parseFloat(product.ConvValue) || 0;
+    
+    averages.roas += parseFloat(product.ROAS) || 0;
+    averages.aov += parseFloat(product.AOV) || 0;
+    averages.ctr += parseFloat(product.CTR) || 0;
+    averages.cvr += parseFloat(product.CVR) || 0;
+    averages.cpa += parseFloat(product.CPA) || 0;
+    
+    validCount++;
+  });
+  
+  return {
+    totalImpressions: totals.impressions,
+    totalClicks: totals.clicks,
+    totalCost: totals.cost,
+    totalConversions: totals.conversions,
+    totalConvValue: totals.convValue,
+    avgROAS: validCount > 0 ? averages.roas / validCount : 0,
+    avgAOV: validCount > 0 ? averages.aov / validCount : 0,
+    avgCTR: validCount > 0 ? averages.ctr / validCount : 0,
+    avgCVR: validCount > 0 ? averages.cvr / validCount : 0,
+    avgCPA: validCount > 0 ? averages.cpa / validCount : 0
+  };
+}
+
+function createDistributionChart(products, field, title) {
+  const container = document.createElement('div');
+  container.style.cssText = `
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  `;
+  
+  const titleEl = document.createElement('h5');
+  titleEl.style.cssText = 'margin: 0 0 15px 0; color: #333; font-size: 14px; text-align: center;';
+  titleEl.textContent = title;
+  container.appendChild(titleEl);
+  
+  // Count occurrences
+  const counts = {};
+  products.forEach(product => {
+    const value = product[field] || 'Unknown';
+    counts[value] = (counts[value] || 0) + 1;
+  });
+  
+  const total = products.length;
+  const chartContainer = document.createElement('div');
+  
+  // Create simple bar chart
+  Object.entries(counts).forEach(([label, count]) => {
+    const percentage = (count / total * 100).toFixed(1);
+    
+    const barContainer = document.createElement('div');
+    barContainer.style.cssText = 'margin-bottom: 8px;';
+    
+    const labelEl = document.createElement('div');
+    labelEl.style.cssText = 'font-size: 11px; color: #666; margin-bottom: 2px;';
+    labelEl.textContent = `${label} (${count})`;
+    
+    const barWrapper = document.createElement('div');
+    barWrapper.style.cssText = `
+      background: #f0f0f0;
+      border-radius: 3px;
+      height: 12px;
+      position: relative;
+    `;
+    
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      background: #007aff;
+      height: 100%;
+      width: ${percentage}%;
+      border-radius: 3px;
+      position: relative;
+    `;
+    
+    const percentLabel = document.createElement('span');
+    percentLabel.style.cssText = `
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: white;
+      font-weight: 600;
+    `;
+    percentLabel.textContent = `${percentage}%`;
+    
+    bar.appendChild(percentLabel);
+    barWrapper.appendChild(bar);
+    barContainer.appendChild(labelEl);
+    barContainer.appendChild(barWrapper);
+    chartContainer.appendChild(barContainer);
+  });
+  
+  container.appendChild(chartContainer);
+  return container;
 }
 
 // Export the function
