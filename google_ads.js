@@ -7423,19 +7423,15 @@ const totalImpressions = bucketProducts.reduce((sum, product) => sum + (parseInt
 const totalClicks = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
 const totalConversions = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
 
-// Calculate max values for percentage bars
-const maxImpressions = Math.max(...orderedBuckets.map(b => {
-  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
-  return products.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
-}));
-const maxClicks = Math.max(...orderedBuckets.map(b => {
-  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
-  return products.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
-}));
-const maxConversions = Math.max(...orderedBuckets.map(b => {
-  const products = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === b.name);
-  return products.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
-}));
+// Calculate totals across all buckets for percentage calculations
+const grandTotalImpressions = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
+const grandTotalClicks = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
+const grandTotalConversions = window.roasBucketsData.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
+
+// Calculate percentages
+const impressionsPercentage = grandTotalImpressions > 0 ? (totalImpressions / grandTotalImpressions * 100) : 0;
+const clicksPercentage = grandTotalClicks > 0 ? (totalClicks / grandTotalClicks * 100) : 0;
+const conversionsPercentage = grandTotalConversions > 0 ? (totalConversions / grandTotalConversions * 100) : 0;
 
 // Add content inside trapezoid
 const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -7443,8 +7439,8 @@ textGroup.style.pointerEvents = 'none';
 
 // Left side: Product count (large) and percentage with visualization
 const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-productCount.setAttribute('x', 35);
-productCount.setAttribute('y', y + 35);
+productCount.setAttribute('x', 45);
+productCount.setAttribute('y', y + 45);
 productCount.setAttribute('text-anchor', 'middle');
 productCount.setAttribute('fill', 'white');
 productCount.setAttribute('font-weight', '700');
@@ -7453,23 +7449,23 @@ productCount.textContent = bucket.count;
 
 // Percentage bar visualization
 const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBarBg.setAttribute('x', 15);
-percentageBarBg.setAttribute('y', y + 55);
+percentageBarBg.setAttribute('x', 25);
+percentageBarBg.setAttribute('y', y + 60);
 percentageBarBg.setAttribute('width', '40');
-percentageBarBg.setAttribute('height', '8');
+percentageBarBg.setAttribute('height', '6');
 percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
 percentageBarBg.setAttribute('rx', '3');
 
 const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBar.setAttribute('x', 15);
-percentageBar.setAttribute('y', y + 55);
+percentageBar.setAttribute('x', 25);
+percentageBar.setAttribute('y', y + 60);
 percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 40));
-percentageBar.setAttribute('height', '8');
+percentageBar.setAttribute('height', '6');
 percentageBar.setAttribute('fill', 'white');
 percentageBar.setAttribute('rx', '3');
 
 const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-percentageText.setAttribute('x', 35);
+percentageText.setAttribute('x', 45);
 percentageText.setAttribute('y', y + 80);
 percentageText.setAttribute('text-anchor', 'middle');
 percentageText.setAttribute('fill', 'white');
@@ -7486,15 +7482,15 @@ bucketName.setAttribute('font-weight', '700');
 bucketName.setAttribute('font-size', '18px');
 bucketName.textContent = bucket.name;
 
-// Metrics in three vertical columns
+// Metrics in three vertical columns - positioned in bottom right
 const metricsData = [
-  { label: 'Impr', value: totalImpressions, max: maxImpressions, format: (val) => val > 1000 ? `${(val/1000).toFixed(0)}k` : val.toString() },
-  { label: 'Clicks', value: totalClicks, max: maxClicks, format: (val) => val.toString() },
-  { label: 'Conv', value: totalConversions, max: maxConversions, format: (val) => val.toFixed(1) }
+  { label: 'Impr:', percentage: impressionsPercentage },
+  { label: 'Clicks:', percentage: clicksPercentage },
+  { label: 'Conv:', percentage: conversionsPercentage }
 ];
 
-const metricsStartX = 85;
-const metricsSpacing = 65;
+const metricsStartX = 120;
+const metricsSpacing = 50;
 
 metricsData.forEach((metric, metricIndex) => {
   const metricX = metricsStartX + (metricIndex * metricsSpacing);
@@ -7502,17 +7498,18 @@ metricsData.forEach((metric, metricIndex) => {
   // Metric label at top
   const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   metricLabel.setAttribute('x', metricX);
-  metricLabel.setAttribute('y', y + 40);
+  metricLabel.setAttribute('y', y + 60);
   metricLabel.setAttribute('text-anchor', 'middle');
   metricLabel.setAttribute('fill', 'white');
-  metricLabel.setAttribute('font-size', '12px');
-  metricLabel.setAttribute('font-weight', '600');
-  metricLabel.textContent = metric.label + ':';
+  metricLabel.setAttribute('font-size', '11px');
+  metricLabel.setAttribute('font-weight', '500');
+  metricLabel.setAttribute('opacity', '0.9');
+  metricLabel.textContent = metric.label;
   
-  // Small bar in middle
-  const barWidth = 35;
-  const barHeight = 5;
-  const barY = y + 55;
+  // Small bar directly under label
+  const barWidth = 30;
+  const barHeight = 4;
+  const barY = y + 65;
   
   const barBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   barBg.setAttribute('x', metricX - barWidth/2);
@@ -7525,20 +7522,20 @@ metricsData.forEach((metric, metricIndex) => {
   const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   bar.setAttribute('x', metricX - barWidth/2);
   bar.setAttribute('y', barY);
-  bar.setAttribute('width', Math.max(1, (metric.value / metric.max) * barWidth));
+  bar.setAttribute('width', Math.max(1, (metric.percentage / 100) * barWidth));
   bar.setAttribute('height', barHeight);
   bar.setAttribute('fill', 'white');
   bar.setAttribute('rx', '2');
   
-  // Metric value at bottom
+  // Percentage value at bottom
   const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   metricValue.setAttribute('x', metricX);
-  metricValue.setAttribute('y', y + 75);
+  metricValue.setAttribute('y', y + 82);
   metricValue.setAttribute('text-anchor', 'middle');
   metricValue.setAttribute('fill', 'white');
-  metricValue.setAttribute('font-size', '13px');
+  metricValue.setAttribute('font-size', '12px');
   metricValue.setAttribute('font-weight', '700');
-  metricValue.textContent = metric.format(metric.value);
+  metricValue.textContent = `${metric.percentage.toFixed(1)}%`;
   
   textGroup.appendChild(metricLabel);
   textGroup.appendChild(barBg);
