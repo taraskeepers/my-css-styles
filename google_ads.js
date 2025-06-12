@@ -3111,6 +3111,23 @@ productRankingMapContainer.style.cssText = `
 
 contentWrapper.appendChild(productRankingMapContainer);
 
+// Create ROAS Buckets container
+const roasBucketsContainer = document.createElement('div');
+roasBucketsContainer.id = 'roas_buckets';
+roasBucketsContainer.className = 'google-ads-buckets-container';
+roasBucketsContainer.style.cssText = `
+  width: 1195px;
+  height: 650px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+contentWrapper.appendChild(roasBucketsContainer);
+
 // Replace the original append - table should be INSIDE contentWrapper
 contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
 container.appendChild(contentWrapper);
@@ -4901,6 +4918,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
+  // Hide ROAS Buckets
+  const roasBuckets = document.getElementById('roas_buckets');
+  if (roasBuckets) roasBuckets.style.display = 'none';
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
@@ -4920,6 +4940,9 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
     mapContainer.style.display = 'none';
   }
   // END ADD
+  // Hide ROAS Buckets
+  const roasBuckets = document.getElementById('roas_buckets');
+  if (roasBuckets) roasBuckets.style.display = 'none';
   
   // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
@@ -4956,6 +4979,18 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   if (table) {
     table.style.display = 'none';
   }
+  // Hide other containers
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  const roasBuckets = document.getElementById('roas_buckets');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'none';
+  if (productTables) productTables.style.display = 'none';
+  if (roasBuckets) roasBuckets.style.display = 'none';
   
   // Show the map container
   const mapContainer = document.getElementById('googleAdsMapContainer');
@@ -5018,6 +5053,39 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
         button.classList.remove('inactive');
       }
     });
+  }
+});
+
+const viewBucketsGoogleAdsBtn = document.getElementById("viewBucketsGoogleAds");
+
+viewBucketsGoogleAdsBtn.addEventListener("click", function() {
+  // Clear all active states
+  viewBucketsGoogleAdsBtn.classList.add("active");
+  viewOverviewGoogleAdsBtn.classList.remove("active");
+  viewChartsGoogleAdsBtn.classList.remove("active");
+  viewMapGoogleAdsBtn.classList.remove("active");
+  
+  // Hide other views
+  const table = document.querySelector('.google-ads-table');
+  if (table) table.style.display = 'none';
+  
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  const mapContainer = document.getElementById('googleAdsMapContainer');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'none';
+  if (productTables) productTables.style.display = 'none';
+  if (mapContainer) mapContainer.style.display = 'none';
+  
+  // Show ROAS Buckets container
+  const roasBuckets = document.getElementById('roas_buckets');
+  if (roasBuckets) {
+    roasBuckets.style.display = 'block';
+    loadAndRenderROASBuckets();
   }
 });
 
@@ -6850,6 +6918,252 @@ setTimeout(() => {
     tableContainer.appendChild(emptyMessage);
   }
 }, 500); // Increased timeout
+}
+
+async function loadAndRenderROASBuckets() {
+  const container = document.getElementById('roas_buckets');
+  if (!container) return;
+  
+  // Clear existing content
+  container.innerHTML = '';
+  
+  // Create wrapper
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display: flex; gap: 20px; height: 100%;';
+  
+  // Left container for funnel
+  const leftContainer = document.createElement('div');
+  leftContainer.style.cssText = 'width: 450px; height: 100%;';
+  
+  // Right container (for future use)
+  const rightContainer = document.createElement('div');
+  rightContainer.style.cssText = 'flex: 1; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 20px;';
+  rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Additional analytics coming soon</div>';
+  
+  wrapper.appendChild(leftContainer);
+  wrapper.appendChild(rightContainer);
+  container.appendChild(wrapper);
+  
+  // Load data from IDB
+  try {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    if (!db.objectStoreNames.contains('projectData')) {
+      throw new Error('projectData store not found');
+    }
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      throw new Error('No data found');
+    }
+    
+    // Count products by ROAS_Bucket
+    const bucketCounts = {
+      'Top Performers': 0,
+      'Efficient Low Volume': 0,
+      'Volume Driver, Low ROI': 0,
+      'Underperformers': 0
+    };
+    
+    result.data.forEach(row => {
+      const bucket = row['ROAS_Bucket'];
+      if (bucket && bucketCounts.hasOwnProperty(bucket)) {
+        bucketCounts[bucket]++;
+      }
+    });
+    
+    const total = Object.values(bucketCounts).reduce((sum, count) => sum + count, 0);
+    
+    // Calculate percentages
+    const bucketData = Object.entries(bucketCounts).map(([name, count]) => ({
+      name,
+      count,
+      percentage: total > 0 ? (count / total * 100).toFixed(1) : 0
+    }));
+    
+    renderROASFunnel(leftContainer, bucketData);
+    
+  } catch (error) {
+    console.error('[loadAndRenderROASBuckets] Error:', error);
+    leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data</div>';
+  }
+}
+
+function renderROASFunnel(container, bucketData) {
+  // Create funnel title
+  const title = document.createElement('h3');
+  title.style.cssText = 'text-align: center; margin-bottom: 20px; color: #333; font-size: 18px;';
+  title.textContent = 'ROAS Performance Funnel';
+  container.appendChild(title);
+  
+  // Create SVG container
+  const svgContainer = document.createElement('div');
+  svgContainer.style.cssText = 'width: 100%; height: calc(100% - 60px); display: flex; justify-content: center; align-items: center;';
+  container.appendChild(svgContainer);
+  
+  // SVG dimensions
+  const width = 400;
+  const height = 500;
+  
+  // Create SVG
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  
+  // Define gradients and filters
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  
+  // Add drop shadow filter
+  const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+  filter.setAttribute('id', 'dropshadow');
+  filter.innerHTML = `
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+    <feOffset dx="2" dy="2" result="offsetblur"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.3"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  `;
+  defs.appendChild(filter);
+  
+  // Define gradients for each section
+  const colors = [
+    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' },
+    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
+    { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
+    { id: 'underperformers', start: '#F44336', end: '#EF5350' }
+  ];
+  
+  colors.forEach(color => {
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    gradient.setAttribute('id', color.id);
+    gradient.setAttribute('x1', '0%');
+    gradient.setAttribute('y1', '0%');
+    gradient.setAttribute('x2', '100%');
+    gradient.setAttribute('y2', '0%');
+    
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('style', `stop-color:${color.start};stop-opacity:1`);
+    
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop2.setAttribute('offset', '100%');
+    stop2.setAttribute('style', `stop-color:${color.end};stop-opacity:1`);
+    
+    gradient.appendChild(stop1);
+    gradient.appendChild(stop2);
+    defs.appendChild(gradient);
+  });
+  
+  svg.appendChild(defs);
+  
+  // Funnel dimensions
+  const topWidth = 350;
+  const bottomWidth = 100;
+  const sectionHeight = 100;
+  const gap = 5;
+  const startY = 20;
+  
+  // Create funnel sections
+  bucketData.forEach((bucket, index) => {
+    const y = startY + index * (sectionHeight + gap);
+    const widthDiff = topWidth - bottomWidth;
+    const sectionTopWidth = topWidth - (widthDiff * index / 4);
+    const sectionBottomWidth = topWidth - (widthDiff * (index + 1) / 4);
+    
+    // Calculate x positions to center the trapezoid
+    const topX = (width - sectionTopWidth) / 2;
+    const bottomX = (width - sectionBottomWidth) / 2;
+    
+    // Create trapezoid path
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const d = `
+      M ${topX} ${y}
+      L ${topX + sectionTopWidth} ${y}
+      L ${bottomX + sectionBottomWidth} ${y + sectionHeight}
+      L ${bottomX} ${y + sectionHeight}
+      Z
+    `;
+    path.setAttribute('d', d);
+    path.setAttribute('fill', `url(#${colors[index].id})`);
+    path.setAttribute('filter', 'url(#dropshadow)');
+    path.style.cursor = 'pointer';
+    path.style.transition = 'all 0.3s ease';
+    
+    // Add hover effect
+    path.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.02)';
+      this.style.filter = 'url(#dropshadow) brightness(1.1)';
+    });
+    
+    path.addEventListener('mouseleave', function() {
+      this.style.transform = 'scale(1)';
+      this.style.filter = 'url(#dropshadow) brightness(1)';
+    });
+    
+    svg.appendChild(path);
+    
+    // Add text group
+    const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    textGroup.style.pointerEvents = 'none';
+    
+    // Bucket name
+    const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    nameText.setAttribute('x', width / 2);
+    nameText.setAttribute('y', y + sectionHeight / 2 - 10);
+    nameText.setAttribute('text-anchor', 'middle');
+    nameText.setAttribute('fill', 'white');
+    nameText.setAttribute('font-weight', '600');
+    nameText.setAttribute('font-size', '14px');
+    nameText.textContent = bucket.name;
+    
+    // Product count
+    const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    countText.setAttribute('x', width / 2);
+    countText.setAttribute('y', y + sectionHeight / 2 + 10);
+    countText.setAttribute('text-anchor', 'middle');
+    countText.setAttribute('fill', 'white');
+    countText.setAttribute('font-weight', '700');
+    countText.setAttribute('font-size', '20px');
+    countText.textContent = bucket.count;
+    
+    // Percentage
+    const percentText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    percentText.setAttribute('x', width / 2);
+    percentText.setAttribute('y', y + sectionHeight / 2 + 28);
+    percentText.setAttribute('text-anchor', 'middle');
+    percentText.setAttribute('fill', 'white');
+    percentText.setAttribute('font-size', '12px');
+    percentText.textContent = `${bucket.percentage}%`;
+    
+    textGroup.appendChild(nameText);
+    textGroup.appendChild(countText);
+    textGroup.appendChild(percentText);
+    svg.appendChild(textGroup);
+  });
+  
+  svgContainer.appendChild(svg);
 }
 
 // Export the function
