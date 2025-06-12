@@ -4968,14 +4968,25 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     updateTrendsData();
   }
   
-  // If there's a selected product, ensure all components are populated
-  if (window.selectedGoogleAdsProduct) {
-    const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
-    if (window.currentProductInfoData) {
-      renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
-      populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
-    }
+// If there's a selected product, ensure all components are populated
+if (window.selectedGoogleAdsProduct) {
+  const isChannelMode = !document.getElementById('chartModeToggle')?.checked;
+  
+  // Populate product info charts and tables
+  if (window.currentProductInfoData) {
+    renderProductInfoCharts(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
+    populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
   }
+  
+  // Populate product metrics table (separate from ranking tables)
+  if (window.currentProductMetricsData) {
+    const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+    const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+    const chartData = processMetricsData(window.currentProductMetricsData, campaignFilter, channelFilter);
+    renderProductMetricsChart('productMetricsChart', chartData);
+    updateTrendsData();
+  }
+}
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
