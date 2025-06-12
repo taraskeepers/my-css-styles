@@ -17,6 +17,11 @@ window.productBucketAnalyzer = {
     avgCpc: null // Will be calculated as average
   },
 
+  // Helper to round to 2 decimal places
+  round2(value) {
+    return Math.round(value * 100) / 100;
+  },
+
   // Process and create bucket analysis
   async processProductBuckets(prefix = 'acc1_') {
     const startTime = performance.now();
@@ -33,70 +38,132 @@ window.productBucketAnalyzer = {
       const rawData = productRec.data;
       console.log(`[Product Buckets] Processing ${rawData.length} rows of data`);
 
-      // Get date range (last 30 days)
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
+      // Find the max date in the data
+      const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+      const maxDataDate = new Date(Math.max(...allDates));
+      
+      // Calculate date ranges
+      const endDate = maxDataDate;
+      const startDate30 = new Date(maxDataDate);
+      startDate30.setDate(startDate30.getDate() - 30);
+      const startDate60 = new Date(maxDataDate);
+      startDate60.setDate(startDate60.getDate() - 60);
 
-// Filter data for last 30 days
-const filteredData = rawData.filter(row => {
-  if (!row.Date) return false;
-  const rowDate = new Date(row.Date);
-  
-  // Find the max date in the data to handle future dates
-  const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
-  const maxDataDate = new Date(Math.max(...allDates));
-  
-  // Calculate 30 days back from the most recent date in the data
-  const endDate = maxDataDate;
-  const startDate = new Date(maxDataDate);
-  startDate.setDate(startDate.getDate() - 30);
-  
-  return rowDate >= startDate && rowDate <= endDate;
-});
+      // Filter data for different periods
+      const last30DaysData = rawData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > startDate30 && rowDate <= endDate;
+      });
 
-      console.log(`[Product Buckets] Filtered to ${filteredData.length} rows for last 30 days`);
+      const prev30DaysData = rawData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > startDate60 && rowDate <= startDate30;
+      });
 
-      // Calculate dynamic defaults based on data
-      this.calculateDynamicDefaults(filteredData);
+      const last60DaysData = rawData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > startDate60 && rowDate <= endDate;
+      });
 
-      // Group by product + campaign + channel
-      const groupedData = this.groupByProductCampaignChannel(filteredData);
+      console.log(`[Product Buckets] Last 30 days: ${last30DaysData.length} rows`);
+      console.log(`[Product Buckets] Previous 30 days: ${prev30DaysData.length} rows`);
+      console.log(`[Product Buckets] Last 60 days: ${last60DaysData.length} rows`);
 
-      // Calculate aggregated metrics for each group
-const bucketData = [];
-for (const [key, rows] of Object.entries(groupedData)) {
-  const isAllRow = key.endsWith('|All|All');
-  const metrics = this.calculateAggregatedMetrics(rows, isAllRow);
-  const buckets = this.assignBuckets(metrics);
+      // Calculate dynamic defaults based on last 30 days data
+      this.calculateDynamicDefaults(last30DaysData);
+
+      // Group data by product + campaign + channel for both periods
+      const currentGrouped = this.groupByProductCampaignChannel(last30DaysData);
+      const prevGrouped = this.groupByProductCampaignChannel(prev30DaysData);
+
+      // Build a set of all unique keys from both periods
+      const allKeys = new Set([...Object.keys(currentGrouped), ...Object.keys(prevGrouped)]);
+
+      // Calculate aggregated metrics and buckets for each group
+      const bucketData = [];
+      
+      for (const key of allKeys) {
+        const currentRows = currentGrouped[key] || [];
+        const prevRows = prevGrouped[key] || [];
+        const isAllRow = key.endsWith('|All|All');
         
-        bucketData.push({
-          'Product Title': metrics.productTitle,
-          'Campaign Name': metrics.campaignName,
-          'Channel Type': metrics.channelType,
-          'Impressions': metrics.impressions,
-          'Clicks': metrics.clicks,
-          'Avg CPC': metrics.avgCpc,
-          'Cost': metrics.cost,
-          'Conversions': metrics.conversions,
-          'ConvValue': metrics.convValue,
-          'CTR': metrics.ctr,
-          'CVR': metrics.cvr,
-          'ROAS': metrics.roas,
-          'AOV': metrics.aov,
-          'CPA': metrics.cpa,
-          'ROAS_Bucket': buckets.roasBucket,
-          'ROI_Bucket': buckets.roiBucket,
-          'Funnel_Bucket': buckets.funnelBucket,
-          'Spend_Bucket': buckets.spendBucket,
-          'Pricing_Bucket': buckets.pricingBucket,
-          'Custom_Tier': buckets.customTier,
-          'ML_Cluster': buckets.mlCluster
-        });
+        // Skip if no data in current period
+        if (currentRows.length === 0) continue;
+        
+        // Calculate current period metrics
+        const currentMetrics = this.calculateAggregatedMetrics(currentRows, isAllRow);
+        const currentBuckets = this.assignBuckets(currentMetrics);
+        
+        // Calculate previous period metrics (might be empty)
+        let prevMetrics = null;
+        let prevBuckets = null;
+        if (prevRows.length > 0) {
+          prevMetrics = this.calculateAggregatedMetrics(prevRows, isAllRow);
+          prevBuckets = this.assignBuckets(prevMetrics);
+        }
+        
+        // Calculate historic bucket data
+        const historicBuckets = this.calculateHistoricBuckets(
+          key, 
+          last60DaysData, 
+          startDate30, 
+          endDate
+        );
+        
+        // Build the row data
+        const rowData = {
+          'Product Title': currentMetrics.productTitle,
+          'Campaign Name': currentMetrics.campaignName,
+          'Channel Type': currentMetrics.channelType,
+          'Impressions': currentMetrics.impressions,
+          'Clicks': currentMetrics.clicks,
+          'Avg CPC': this.round2(currentMetrics.avgCpc),
+          'Cost': this.round2(currentMetrics.cost),
+          'Conversions': currentMetrics.conversions,
+          'ConvValue': this.round2(currentMetrics.convValue),
+          'CTR': this.round2(currentMetrics.ctr),
+          'CVR': this.round2(currentMetrics.cvr),
+          'ROAS': this.round2(currentMetrics.roas),
+          'AOV': this.round2(currentMetrics.aov),
+          'CPA': this.round2(currentMetrics.cpa),
+          'ROAS_Bucket': currentBuckets.roasBucket,
+          'ROI_Bucket': currentBuckets.roiBucket,
+          'Funnel_Bucket': currentBuckets.funnelBucket,
+          'Spend_Bucket': currentBuckets.spendBucket,
+          'Pricing_Bucket': currentBuckets.pricingBucket,
+          'Custom_Tier': currentBuckets.customTier,
+          'ML_Cluster': currentBuckets.mlCluster,
+          // Previous period metrics
+          'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
+          'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
+          'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
+          'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
+          'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
+          'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
+          'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
+          'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
+          'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
+          'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
+          'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+          'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
+          'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
+          'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
+          'prev_Spend_Bucket': prevBuckets ? prevBuckets.spendBucket : '',
+          'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
+          'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
+          'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
+          // Historic bucket data
+          'historic_data.buckets': historicBuckets
+        };
+        
+        bucketData.push(rowData);
       }
 
-      // Save to IDB
-      const tableName = prefix + "googleSheets_productBuckets";
+      // Save to IDB with new table name
+      const tableName = prefix + "googleSheets_productBuckets_30d";
       await window.embedIDB.setData(tableName, bucketData);
       
       console.log(`[Product Buckets] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
@@ -106,9 +173,9 @@ for (const [key, rows] of Object.entries(groupedData)) {
       window.googleSheetsData.productBuckets = bucketData;
 
       // Add timing log
-    const endTime = performance.now();
-    const processingTime = ((endTime - startTime) / 1000).toFixed(3);
-    console.log(`[Product Buckets] ✅ Processing completed in ${processingTime} seconds`);
+      const endTime = performance.now();
+      const processingTime = ((endTime - startTime) / 1000).toFixed(3);
+      console.log(`[Product Buckets] ✅ Processing completed in ${processingTime} seconds`);
 
       return bucketData;
     } catch (error) {
@@ -117,148 +184,207 @@ for (const [key, rows] of Object.entries(groupedData)) {
     }
   },
 
-// Calculate dynamic defaults based on actual data
-calculateDynamicDefaults(data) {
-  // Helper function to parse numbers with commas and dollar signs
-  const parseNumber = (value) => {
-    if (!value) return 0;
-    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
-  };
-
-  const validData = data.filter(row => parseNumber(row.Impressions) > 0);
-  
-  // Calculate average CPC
-  const cpcValues = validData
-    .filter(row => parseNumber(row.Clicks) > 0 && parseNumber(row.Cost) > 0)
-    .map(row => parseNumber(row.Cost) / parseNumber(row.Clicks));
-  this.DEFAULTS.avgCpc = cpcValues.length > 0 
-    ? cpcValues.reduce((a, b) => a + b, 0) / cpcValues.length 
-    : 5;
-
-  // Calculate average CTR
-  const ctrValues = validData.map(row => parseNumber(row.CTR));
-  this.DEFAULTS.ctr = ctrValues.length > 0
-    ? ctrValues.reduce((a, b) => a + b, 0) / ctrValues.length
-    : 2;
-
-  // Calculate median conversions
-  const conversionValues = validData
-    .map(row => parseNumber(row.Conversions))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  this.DEFAULTS.conversions = conversionValues.length > 0
-    ? conversionValues[Math.floor(conversionValues.length / 2)]
-    : 1;
-
-  // Calculate median conversion value
-  const convValueValues = validData
-    .map(row => parseNumber(row['Conversion Value']))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  this.DEFAULTS.convValue = convValueValues.length > 0
-    ? convValueValues[Math.floor(convValueValues.length / 2)]
-    : 100;
-
-  // Calculate median CVR
-  const cvrValues = validData
-    .filter(row => parseNumber(row.Clicks) > 0)
-    .map(row => parseNumber(row.CVR))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  this.DEFAULTS.cvr = cvrValues.length > 0
-    ? cvrValues[Math.floor(cvrValues.length / 2)]
-    : 2;
-
-  // Calculate median AOV
-  const aovValues = validData
-    .map(row => parseNumber(row.AOV))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  this.DEFAULTS.aov = aovValues.length > 0
-    ? aovValues[Math.floor(aovValues.length / 2)]
-    : 50;
-
-  // Calculate median CPA
-  const cpaValues = validData
-    .map(row => parseNumber(row.CPA))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  this.DEFAULTS.cpa = cpaValues.length > 0
-    ? cpaValues[Math.floor(cpaValues.length / 2)]
-    : 25;
-
-  console.log('[Product Buckets] Calculated dynamic defaults:', this.DEFAULTS);
-},
-
-// Group data by product + campaign + channel AND by product only
-groupByProductCampaignChannel(data) {
-  const grouped = {};
-  const productOnly = {}; // For "All" aggregation
-  
-  data.forEach(row => {
-    // Original grouping by product + campaign + channel
-    const key = `${row['Product Title']}|${row['Campaign Name']}|${row['Channel Type']}`;
-    if (!grouped[key]) {
-      grouped[key] = [];
-    }
-    grouped[key].push(row);
+  // Calculate historic bucket data for each day in the last 30 days
+  calculateHistoricBuckets(key, allData, startDate30, endDate) {
+    const [productTitle, campaignName, channelType] = key.split('|');
+    const historicData = [];
     
-    // Additional grouping by product only (for "All" row)
-    const productKey = row['Product Title'];
-    if (!productOnly[productKey]) {
-      productOnly[productKey] = [];
+    // For each day in the last 30 days
+    const currentDate = new Date(startDate30);
+    currentDate.setDate(currentDate.getDate() + 1); // Start from day 1 of last 30 days
+    
+    while (currentDate <= endDate) {
+      // Calculate date range for this specific day (30 days back from currentDate)
+      const histStartDate = new Date(currentDate);
+      histStartDate.setDate(histStartDate.getDate() - 30);
+      
+      // Filter data for this 30-day window
+      const windowData = allData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > histStartDate && rowDate <= currentDate;
+      });
+      
+      // Filter for this specific product/campaign/channel combination
+      let relevantData = [];
+      if (campaignName === 'All' && channelType === 'All') {
+        // "All" row - aggregate all data for this product
+        relevantData = windowData.filter(row => row['Product Title'] === productTitle);
+      } else {
+        // Specific campaign/channel combination
+        relevantData = windowData.filter(row => 
+          row['Product Title'] === productTitle &&
+          row['Campaign Name'] === campaignName &&
+          row['Channel Type'] === channelType
+        );
+      }
+      
+      // If we have data, calculate metrics and buckets
+      if (relevantData.length > 0) {
+        const metrics = this.calculateAggregatedMetrics(relevantData, campaignName === 'All');
+        const buckets = this.assignBuckets(metrics);
+        
+        historicData.push({
+          date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          Custom_Tier: buckets.customTier,
+          Funnel_Bucket: buckets.funnelBucket,
+          ML_Cluster: buckets.mlCluster,
+          Pricing_Bucket: buckets.pricingBucket,
+          ROAS_Bucket: buckets.roasBucket,
+          ROI_Bucket: buckets.roiBucket,
+          Spend_Bucket: buckets.spendBucket
+        });
+      }
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
     }
-    productOnly[productKey].push(row);
-  });
-  
-  // Add the "All" entries to the main grouped object
-  for (const [productTitle, rows] of Object.entries(productOnly)) {
-    const allKey = `${productTitle}|All|All`;
-    grouped[allKey] = rows;
-  }
+    
+    return historicData;
+  },
 
-  return grouped;
-},
+  // Calculate dynamic defaults based on actual data
+  calculateDynamicDefaults(data) {
+    // Helper function to parse numbers with commas and dollar signs
+    const parseNumber = (value) => {
+      if (!value) return 0;
+      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+    };
 
-// Calculate aggregated metrics for a group of rows
-calculateAggregatedMetrics(rows, isAllRow = false) {
-  const metrics = {
-    productTitle: rows[0]['Product Title'] || '',
-    campaignName: isAllRow ? 'All' : (rows[0]['Campaign Name'] || ''),
-    channelType: isAllRow ? 'All' : (rows[0]['Channel Type'] || ''),
-    impressions: 0,
-    clicks: 0,
-    cost: 0,
-    conversions: 0,
-    convValue: 0
-  };
+    const validData = data.filter(row => parseNumber(row.Impressions) > 0);
+    
+    // Calculate average CPC
+    const cpcValues = validData
+      .filter(row => parseNumber(row.Clicks) > 0 && parseNumber(row.Cost) > 0)
+      .map(row => parseNumber(row.Cost) / parseNumber(row.Clicks));
+    this.DEFAULTS.avgCpc = cpcValues.length > 0 
+      ? cpcValues.reduce((a, b) => a + b, 0) / cpcValues.length 
+      : 5;
 
-  // Helper function to parse numbers with commas and dollar signs
-  const parseNumber = (value) => {
-    if (!value) return 0;
-    // Convert to string, remove commas and dollar signs, then parse
-    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
-  };
+    // Calculate average CTR
+    const ctrValues = validData.map(row => parseNumber(row.CTR));
+    this.DEFAULTS.ctr = ctrValues.length > 0
+      ? ctrValues.reduce((a, b) => a + b, 0) / ctrValues.length
+      : 2;
 
-  // Aggregate sum metrics
-  rows.forEach(row => {
-    metrics.impressions += parseNumber(row.Impressions);
-    metrics.clicks += parseNumber(row.Clicks);
-    metrics.cost += parseNumber(row.Cost);
-    metrics.conversions += parseNumber(row.Conversions);
-    metrics.convValue += parseNumber(row['Conversion Value']);
-  });
+    // Calculate median conversions
+    const conversionValues = validData
+      .map(row => parseNumber(row.Conversions))
+      .filter(v => v > 0)
+      .sort((a, b) => a - b);
+    this.DEFAULTS.conversions = conversionValues.length > 0
+      ? conversionValues[Math.floor(conversionValues.length / 2)]
+      : 1;
 
-  // Calculate derived metrics
-  metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
-  metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
-  metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-  metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
-  metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
-  metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+    // Calculate median conversion value
+    const convValueValues = validData
+      .map(row => parseNumber(row['Conversion Value']))
+      .filter(v => v > 0)
+      .sort((a, b) => a - b);
+    this.DEFAULTS.convValue = convValueValues.length > 0
+      ? convValueValues[Math.floor(convValueValues.length / 2)]
+      : 100;
 
-  return metrics;
-},
+    // Calculate median CVR
+    const cvrValues = validData
+      .filter(row => parseNumber(row.Clicks) > 0)
+      .map(row => parseNumber(row.CVR))
+      .filter(v => v > 0)
+      .sort((a, b) => a - b);
+    this.DEFAULTS.cvr = cvrValues.length > 0
+      ? cvrValues[Math.floor(cvrValues.length / 2)]
+      : 2;
+
+    // Calculate median AOV
+    const aovValues = validData
+      .map(row => parseNumber(row.AOV))
+      .filter(v => v > 0)
+      .sort((a, b) => a - b);
+    this.DEFAULTS.aov = aovValues.length > 0
+      ? aovValues[Math.floor(aovValues.length / 2)]
+      : 50;
+
+    // Calculate median CPA
+    const cpaValues = validData
+      .map(row => parseNumber(row.CPA))
+      .filter(v => v > 0)
+      .sort((a, b) => a - b);
+    this.DEFAULTS.cpa = cpaValues.length > 0
+      ? cpaValues[Math.floor(cpaValues.length / 2)]
+      : 25;
+
+    console.log('[Product Buckets] Calculated dynamic defaults:', this.DEFAULTS);
+  },
+
+  // Group data by product + campaign + channel AND by product only
+  groupByProductCampaignChannel(data) {
+    const grouped = {};
+    const productOnly = {}; // For "All" aggregation
+    
+    data.forEach(row => {
+      // Original grouping by product + campaign + channel
+      const key = `${row['Product Title']}|${row['Campaign Name']}|${row['Channel Type']}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(row);
+      
+      // Additional grouping by product only (for "All" row)
+      const productKey = row['Product Title'];
+      if (!productOnly[productKey]) {
+        productOnly[productKey] = [];
+      }
+      productOnly[productKey].push(row);
+    });
+    
+    // Add the "All" entries to the main grouped object
+    for (const [productTitle, rows] of Object.entries(productOnly)) {
+      const allKey = `${productTitle}|All|All`;
+      grouped[allKey] = rows;
+    }
+
+    return grouped;
+  },
+
+  // Calculate aggregated metrics for a group of rows
+  calculateAggregatedMetrics(rows, isAllRow = false) {
+    const metrics = {
+      productTitle: rows[0]['Product Title'] || '',
+      campaignName: isAllRow ? 'All' : (rows[0]['Campaign Name'] || ''),
+      channelType: isAllRow ? 'All' : (rows[0]['Channel Type'] || ''),
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0
+    };
+
+    // Helper function to parse numbers with commas and dollar signs
+    const parseNumber = (value) => {
+      if (!value) return 0;
+      // Convert to string, remove commas and dollar signs, then parse
+      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+    };
+
+    // Aggregate sum metrics
+    rows.forEach(row => {
+      metrics.impressions += parseNumber(row.Impressions);
+      metrics.clicks += parseNumber(row.Clicks);
+      metrics.cost += parseNumber(row.Cost);
+      metrics.conversions += parseNumber(row.Conversions);
+      metrics.convValue += parseNumber(row['Conversion Value']);
+    });
+
+    // Calculate derived metrics
+    metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
+    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
+    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
+    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+    metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
+    metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+
+    return metrics;
+  },
 
   // Assign all bucket categories based on metrics
   assignBuckets(metrics) {
