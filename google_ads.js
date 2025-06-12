@@ -7281,7 +7281,7 @@ const height = 460;
 const fixedTrapezoidWidth = 350;
   
   // Funnel dimensions
-  const sectionHeight = 130;
+  const sectionHeight = 100;
   const gap = 5;
   const startY = 0;
   
@@ -7343,19 +7343,19 @@ const sectionWidth = fixedTrapezoidWidth;
     
     // Create ROAS indicator in left column (aligned with trapezoid)
     const roasIndicator = document.createElement('div');
-roasIndicator.style.cssText = `
-  height: ${sectionHeight}px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: ${colors[index].start};
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  margin-bottom: ${gap}px;
-`;
+    roasIndicator.style.cssText = `
+      height: ${sectionHeight}px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: ${colors[index].start};
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: ${gap}px;
+    `;
     
     roasIndicator.innerHTML = `
       <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">ROAS</div>
@@ -7366,23 +7366,23 @@ roasIndicator.style.cssText = `
     
     // Create Cost/Revenue indicator in metrics column (aligned with trapezoid)
     const metricsIndicator = document.createElement('div');
-metricsIndicator.style.cssText = `
-  height: ${sectionHeight}px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, #607D8B, #546E7A);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  margin-bottom: ${gap}px;
-  padding: 8px 4px;
-  text-align: center;
-  font-size: 10px;
-  line-height: 1.2;
-`;
+    metricsIndicator.style.cssText = `
+      height: ${sectionHeight}px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #607D8B, #546E7A);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: ${gap}px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+    `;
     
 metricsIndicator.innerHTML = `
   <div style="margin-bottom: 6px; padding-left: 8px;">
@@ -7436,8 +7436,6 @@ const maxConversions = Math.max(...orderedBuckets.map(b => {
   return products.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
 }));
 
-// Replace the entire trapezoid content section starting from "// Add content inside trapezoid" with:
-
 // Add content inside trapezoid
 const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 textGroup.style.pointerEvents = 'none';
@@ -7445,36 +7443,36 @@ textGroup.style.pointerEvents = 'none';
 // Left side: Product count (large) and percentage with visualization
 const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 productCount.setAttribute('x', leftEdge + 35);
-productCount.setAttribute('y', y + 45); // Adjusted for increased height
+productCount.setAttribute('y', y + 40);
 productCount.setAttribute('text-anchor', 'middle');
 productCount.setAttribute('fill', 'white');
 productCount.setAttribute('font-weight', '700');
-productCount.setAttribute('font-size', '36px'); // Increased from 28px
+productCount.setAttribute('font-size', '32px');
 productCount.textContent = bucket.count;
 
 // Percentage bar visualization
 const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 percentageBarBg.setAttribute('x', leftEdge + 20);
-percentageBarBg.setAttribute('y', y + 60); // Adjusted for increased height
+percentageBarBg.setAttribute('y', y + 45);
 percentageBarBg.setAttribute('width', '30');
-percentageBarBg.setAttribute('height', '6'); // Increased from 5px
+percentageBarBg.setAttribute('height', '5');
 percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-percentageBarBg.setAttribute('rx', '3');
+percentageBarBg.setAttribute('rx', '2');
 
 const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 percentageBar.setAttribute('x', leftEdge + 20);
-percentageBar.setAttribute('y', y + 60);
+percentageBar.setAttribute('y', y + 45);
 percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 30));
-percentageBar.setAttribute('height', '6');
+percentageBar.setAttribute('height', '5');
 percentageBar.setAttribute('fill', 'white');
-percentageBar.setAttribute('rx', '3');
+percentageBar.setAttribute('rx', '2');
 
 const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 percentageText.setAttribute('x', leftEdge + 35);
-percentageText.setAttribute('y', y + 80); // Adjusted for increased height
+percentageText.setAttribute('y', y + 60);
 percentageText.setAttribute('text-anchor', 'middle');
 percentageText.setAttribute('fill', 'white');
-percentageText.setAttribute('font-size', '12px'); // Increased from 10px
+percentageText.setAttribute('font-size', '10px');
 percentageText.setAttribute('font-weight', '600');
 percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
@@ -7484,58 +7482,46 @@ bucketName.setAttribute('x', leftEdge + 80);
 bucketName.setAttribute('y', y + 25);
 bucketName.setAttribute('fill', 'white');
 bucketName.setAttribute('font-weight', '700');
-bucketName.setAttribute('font-size', '18px'); // Increased from 16px
+bucketName.setAttribute('font-size', '18px');
 bucketName.textContent = bucket.name;
 
-// Metrics in one row (horizontal layout)
-const metricsStartY = y + 50; // Position below bucket name
-const metricSpacing = 60; // Horizontal spacing between metrics
+// Metrics in horizontal row
+const metricsData = [
+  { label: 'Impr', value: totalImpressions, max: maxImpressions, format: (val) => val > 1000 ? `${(val/1000).toFixed(0)}k` : val.toString() },
+  { label: 'Clicks', value: totalClicks, max: maxClicks, format: (val) => val.toString() },
+  { label: 'Conv', value: totalConversions, max: maxConversions, format: (val) => val.toFixed(1) }
+];
+
+const metricsY = y + 50;
+let metricsX = leftEdge + 80;
 
 metricsData.forEach((metric, metricIndex) => {
-  const metricX = leftEdge + 80 + (metricIndex * metricSpacing);
-  
   // Metric label
   const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricLabel.setAttribute('x', metricX);
-  metricLabel.setAttribute('y', metricsStartY);
+  metricLabel.setAttribute('x', metricsX);
+  metricLabel.setAttribute('y', metricsY);
   metricLabel.setAttribute('fill', 'white');
-  metricLabel.setAttribute('font-size', '11px'); // Increased from 9px
+  metricLabel.setAttribute('font-size', '11px');
   metricLabel.setAttribute('font-weight', '600');
   metricLabel.setAttribute('opacity', '0.8');
-  metricLabel.textContent = metric.label;
+  metricLabel.textContent = metric.label + ':';
   
   // Metric value
   const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricValue.setAttribute('x', metricX);
-  metricValue.setAttribute('y', metricsStartY + 15);
+  metricValue.setAttribute('x', metricsX + 35);
+  metricValue.setAttribute('y', metricsY);
   metricValue.setAttribute('fill', 'white');
-  metricValue.setAttribute('font-size', '12px'); // Increased from 10px
+  metricValue.setAttribute('font-size', '12px');
   metricValue.setAttribute('font-weight', '700');
   metricValue.textContent = metric.format(metric.value);
   
-  // Small percentage bar
-  const smallBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  smallBarBg.setAttribute('x', metricX);
-  smallBarBg.setAttribute('y', metricsStartY + 20);
-  smallBarBg.setAttribute('width', '25'); // Increased from 20px
-  smallBarBg.setAttribute('height', '4'); // Increased from 3px
-  smallBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-  smallBarBg.setAttribute('rx', '2');
-  
-  const smallBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  smallBar.setAttribute('x', metricX);
-  smallBar.setAttribute('y', metricsStartY + 20);
-  smallBar.setAttribute('width', Math.max(1, (metric.value / metric.max) * 25));
-  smallBar.setAttribute('height', '4');
-  smallBar.setAttribute('fill', 'white');
-  smallBar.setAttribute('rx', '2');
-  
   textGroup.appendChild(metricLabel);
   textGroup.appendChild(metricValue);
-  textGroup.appendChild(smallBarBg);
-  textGroup.appendChild(smallBar);
+  
+  // Move x position for next metric
+  metricsX += 75;
 });
-
+    
 textGroup.appendChild(productCount);
 textGroup.appendChild(percentageBarBg);
 textGroup.appendChild(percentageBar);
@@ -7545,7 +7531,7 @@ textGroup.appendChild(bucketName);
 // Add hover tooltip for description
 const hoverTooltip = document.createElement('div');
 hoverTooltip.style.cssText = `
-  position: fixed;
+  position: absolute;
   background: ${colors[index].start};
   color: white;
   padding: 12px 15px;
@@ -7554,7 +7540,6 @@ hoverTooltip.style.cssText = `
   font-size: 12px;
   line-height: 1.4;
   width: 280px;
-  max-width: 280px;
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
@@ -7564,7 +7549,7 @@ hoverTooltip.style.cssText = `
 
 hoverTooltip.innerHTML = `
   <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
-  <div style="font-size: 12px; line-height: 1.5;">${bucket.description}</div>
+  <div>${bucket.description}</div>
 `;
 
 container.appendChild(hoverTooltip);
@@ -7576,13 +7561,11 @@ trapezoid.addEventListener('mouseenter', function(e) {
     this.style.filter = 'url(#dropshadow) brightness(1.1)';
   }
   
-  // Show tooltip positioned relative to the trapezoid
-  const containerRect = container.getBoundingClientRect();
-  const svgRect = svg.getBoundingClientRect();
-  
+  // Show tooltip
+  const rect = container.getBoundingClientRect();
   hoverTooltip.style.opacity = '1';
-  hoverTooltip.style.left = (svgRect.left + leftEdge + sectionWidth + 10) + 'px';
-  hoverTooltip.style.top = (svgRect.top + y - 10) + 'px';
+  hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
+  hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
 });
 
 trapezoid.addEventListener('mouseleave', function() {
@@ -7594,11 +7577,12 @@ trapezoid.addEventListener('mouseleave', function() {
   // Hide tooltip
   hoverTooltip.style.opacity = '0';
 });
-    
+
 trapezoid.addEventListener('mousemove', function(e) {
   if (hoverTooltip.style.opacity === '1') {
-    hoverTooltip.style.left = (e.pageX + 10) + 'px';
-    hoverTooltip.style.top = (e.pageY - 10) + 'px';
+    const rect = container.getBoundingClientRect();
+    hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
+    hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
   }
 });
 
