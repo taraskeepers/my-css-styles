@@ -19,6 +19,7 @@ window.productBucketAnalyzer = {
 
   // Process and create bucket analysis
   async processProductBuckets(prefix = 'acc1_') {
+    const startTime = performance.now();
     try {
       console.log('[Product Buckets] Starting bucket analysis...');
       
@@ -104,6 +105,11 @@ for (const [key, rows] of Object.entries(groupedData)) {
       if (!window.googleSheetsData) window.googleSheetsData = {};
       window.googleSheetsData.productBuckets = bucketData;
 
+      // Add timing log
+    const endTime = performance.now();
+    const processingTime = ((endTime - startTime) / 1000).toFixed(3);
+    console.log(`[Product Buckets] ✅ Processing completed in ${processingTime} seconds`);
+
       return bucketData;
     } catch (error) {
       console.error('[Product Buckets] Error processing buckets:', error);
@@ -111,72 +117,78 @@ for (const [key, rows] of Object.entries(groupedData)) {
     }
   },
 
-  // Calculate dynamic defaults based on actual data
-  calculateDynamicDefaults(data) {
-    const validData = data.filter(row => row.Impressions > 0);
-    
-    // Calculate average CPC
-    const cpcValues = validData
-      .filter(row => row.Clicks > 0 && row.Cost > 0)
-      .map(row => parseFloat(row.Cost) / parseFloat(row.Clicks));
-    this.DEFAULTS.avgCpc = cpcValues.length > 0 
-      ? cpcValues.reduce((a, b) => a + b, 0) / cpcValues.length 
-      : 5;
+// Calculate dynamic defaults based on actual data
+calculateDynamicDefaults(data) {
+  // Helper function to parse numbers with commas and dollar signs
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
 
-    // Calculate average CTR
-    const ctrValues = validData.map(row => parseFloat(row.CTR || 0));
-    this.DEFAULTS.ctr = ctrValues.length > 0
-      ? ctrValues.reduce((a, b) => a + b, 0) / ctrValues.length
-      : 2;
+  const validData = data.filter(row => parseNumber(row.Impressions) > 0);
+  
+  // Calculate average CPC
+  const cpcValues = validData
+    .filter(row => parseNumber(row.Clicks) > 0 && parseNumber(row.Cost) > 0)
+    .map(row => parseNumber(row.Cost) / parseNumber(row.Clicks));
+  this.DEFAULTS.avgCpc = cpcValues.length > 0 
+    ? cpcValues.reduce((a, b) => a + b, 0) / cpcValues.length 
+    : 5;
 
-    // Calculate median conversions
-    const conversionValues = validData
-      .map(row => parseFloat(row.Conversions || 0))
-      .filter(v => v > 0)
-      .sort((a, b) => a - b);
-    this.DEFAULTS.conversions = conversionValues.length > 0
-      ? conversionValues[Math.floor(conversionValues.length / 2)]
-      : 1;
+  // Calculate average CTR
+  const ctrValues = validData.map(row => parseNumber(row.CTR));
+  this.DEFAULTS.ctr = ctrValues.length > 0
+    ? ctrValues.reduce((a, b) => a + b, 0) / ctrValues.length
+    : 2;
 
-    // Calculate median conversion value
-    const convValueValues = validData
-      .map(row => parseFloat(row['Conversion Value'] || 0))
-      .filter(v => v > 0)
-      .sort((a, b) => a - b);
-    this.DEFAULTS.convValue = convValueValues.length > 0
-      ? convValueValues[Math.floor(convValueValues.length / 2)]
-      : 100;
+  // Calculate median conversions
+  const conversionValues = validData
+    .map(row => parseNumber(row.Conversions))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  this.DEFAULTS.conversions = conversionValues.length > 0
+    ? conversionValues[Math.floor(conversionValues.length / 2)]
+    : 1;
 
-    // Calculate median CVR
-    const cvrValues = validData
-      .filter(row => parseFloat(row.Clicks) > 0)
-      .map(row => parseFloat(row.CVR || 0))
-      .filter(v => v > 0)
-      .sort((a, b) => a - b);
-    this.DEFAULTS.cvr = cvrValues.length > 0
-      ? cvrValues[Math.floor(cvrValues.length / 2)]
-      : 2;
+  // Calculate median conversion value
+  const convValueValues = validData
+    .map(row => parseNumber(row['Conversion Value']))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  this.DEFAULTS.convValue = convValueValues.length > 0
+    ? convValueValues[Math.floor(convValueValues.length / 2)]
+    : 100;
 
-    // Calculate median AOV
-    const aovValues = validData
-      .map(row => parseFloat(row.AOV || 0))
-      .filter(v => v > 0)
-      .sort((a, b) => a - b);
-    this.DEFAULTS.aov = aovValues.length > 0
-      ? aovValues[Math.floor(aovValues.length / 2)]
-      : 50;
+  // Calculate median CVR
+  const cvrValues = validData
+    .filter(row => parseNumber(row.Clicks) > 0)
+    .map(row => parseNumber(row.CVR))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  this.DEFAULTS.cvr = cvrValues.length > 0
+    ? cvrValues[Math.floor(cvrValues.length / 2)]
+    : 2;
 
-    // Calculate median CPA
-    const cpaValues = validData
-      .map(row => parseFloat(row.CPA || 0))
-      .filter(v => v > 0)
-      .sort((a, b) => a - b);
-    this.DEFAULTS.cpa = cpaValues.length > 0
-      ? cpaValues[Math.floor(cpaValues.length / 2)]
-      : 25;
+  // Calculate median AOV
+  const aovValues = validData
+    .map(row => parseNumber(row.AOV))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  this.DEFAULTS.aov = aovValues.length > 0
+    ? aovValues[Math.floor(aovValues.length / 2)]
+    : 50;
 
-    console.log('[Product Buckets] Calculated dynamic defaults:', this.DEFAULTS);
-  },
+  // Calculate median CPA
+  const cpaValues = validData
+    .map(row => parseNumber(row.CPA))
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+  this.DEFAULTS.cpa = cpaValues.length > 0
+    ? cpaValues[Math.floor(cpaValues.length / 2)]
+    : 25;
+
+  console.log('[Product Buckets] Calculated dynamic defaults:', this.DEFAULTS);
+},
 
 // Group data by product + campaign + channel AND by product only
 groupByProductCampaignChannel(data) {
@@ -208,7 +220,7 @@ groupByProductCampaignChannel(data) {
   return grouped;
 },
 
-  // Calculate aggregated metrics for a group of rows
+// Calculate aggregated metrics for a group of rows
 calculateAggregatedMetrics(rows, isAllRow = false) {
   const metrics = {
     productTitle: rows[0]['Product Title'] || '',
@@ -221,25 +233,32 @@ calculateAggregatedMetrics(rows, isAllRow = false) {
     convValue: 0
   };
 
-    // Aggregate sum metrics
-    rows.forEach(row => {
-      metrics.impressions += parseFloat(row.Impressions || 0);
-      metrics.clicks += parseFloat(row.Clicks || 0);
-      metrics.cost += parseFloat(row.Cost || 0);
-      metrics.conversions += parseFloat(row.Conversions || 0);
-      metrics.convValue += parseFloat(row['Conversion Value'] || 0);
-    });
+  // Helper function to parse numbers with commas and dollar signs
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    // Convert to string, remove commas and dollar signs, then parse
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
 
-    // Calculate derived metrics
-    metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
-    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
-    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
-    metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
-    metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+  // Aggregate sum metrics
+  rows.forEach(row => {
+    metrics.impressions += parseNumber(row.Impressions);
+    metrics.clicks += parseNumber(row.Clicks);
+    metrics.cost += parseNumber(row.Cost);
+    metrics.conversions += parseNumber(row.Conversions);
+    metrics.convValue += parseNumber(row['Conversion Value']);
+  });
 
-    return metrics;
-  },
+  // Calculate derived metrics
+  metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
+  metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
+  metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
+  metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+  metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
+  metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+
+  return metrics;
+},
 
   // Assign all bucket categories based on metrics
   assignBuckets(metrics) {
