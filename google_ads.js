@@ -4898,8 +4898,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.add("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+  if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   
-  // Hide the table in overview mode
+  // Hide the table
   const table = document.querySelector('.google-ads-table');
   if (table) {
     table.style.display = 'none';
@@ -4909,18 +4910,29 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
   const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  
   if (productInfo) productInfo.style.display = 'block';
   if (productMetrics) productMetrics.style.display = 'block';
   if (productRankingMap) productRankingMap.style.display = 'block';
+  if (productTables) productTables.style.display = 'block';
   
   // Hide map
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
+  
   // Hide ROAS Buckets
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
+  
+  // Trigger a re-selection of the current product to reload all data
+  const activeNavItem = document.querySelector('.nav-google-ads-item.active');
+  if (activeNavItem) {
+    // Simulate a click on the active product to reload everything
+    activeNavItem.click();
+  }
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
