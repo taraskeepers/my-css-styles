@@ -9645,30 +9645,6 @@ summaryRow.innerHTML = `
   container.appendChild(table);
 }
 
-function renderBucketDistribution(container, data) {
-  container.innerHTML = '';
-  
-  const title = document.createElement('h4');
-  title.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
-  title.textContent = 'Bucket Distribution';
-  container.appendChild(title);
-  
-  const distributionGrid = document.createElement('div');
-  distributionGrid.style.cssText = `
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  `;
-  
-  // Funnel Bucket distribution
-  const funnelDistribution = createDistributionChart(data, 'Funnel_Bucket', 'Funnel Performance');
-  const mlDistribution = createDistributionChart(data, 'ML_Cluster', 'ML Clusters');
-  
-  distributionGrid.appendChild(funnelDistribution);
-  distributionGrid.appendChild(mlDistribution);
-  container.appendChild(distributionGrid);
-}
-
 function getAllFromStore(store) {
   return new Promise((resolve, reject) => {
     const request = store.getAll();
