@@ -9441,6 +9441,8 @@ function renderROASHistoricCharts(container, data) {
   
   // Filter for "All" campaign records only
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+    // Define bucket type
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   
   // Calculate current totals
   const currentTotals = allCampaignRecords.reduce((acc, product) => {
