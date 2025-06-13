@@ -7505,7 +7505,6 @@ function renderROASFunnel(container, bucketData) {
 
   // Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
-    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
@@ -9531,11 +9530,11 @@ function renderROASHistoricCharts(container, data) {
   const rightContainer = document.createElement('div');
   rightContainer.style.cssText = 'width: 25%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
   
-  // Process historic data
+// Process historic data
   const dateMap = new Map();
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-// Get unique bucket names from the data
-const bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
+  
+  // Get unique bucket names from the data
+  const bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
   
   // Calculate date range based on available data
   let minDate = moment();
@@ -9565,66 +9564,58 @@ const bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))]
     startDate.set(minDate.toObject());
   }
   
-  // Initialize date map
+  // Initialize date map with dynamic bucket names
   for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
     const dateStr = d.format('YYYY-MM-DD');
-    dateMap.set(dateStr, {
-      'Top Performers': 0,
-      'Efficient Low Volume': 0,
-      'Volume Driver, Low ROI': 0,
-      'Underperformers': 0
+    const bucketCounts = {};
+    bucketNames.forEach(name => {
+      bucketCounts[name] = 0;
     });
+    dateMap.set(dateStr, bucketCounts);
   }
   
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-// Count products per bucket per date
-allCampaignRecords.forEach(product => {
-  if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-    product['historic_data.buckets'].forEach(histItem => {
-      const date = histItem.date;
-      const bucketValue = histItem[bucketType];
-      
-      if (date && bucketValue && dateMap.has(date)) {
-        const dayData = dateMap.get(date);
-        if (dayData[bucketValue] !== undefined) {
-          dayData[bucketValue]++;
+  // Count products per bucket per date (NO NEW bucketType declaration here)
+  allCampaignRecords.forEach(product => {
+    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+      product['historic_data.buckets'].forEach(histItem => {
+        const date = histItem.date;
+        const bucketValue = histItem[bucketType];  // USE EXISTING bucketType
+        
+        if (date && bucketValue && dateMap.has(date)) {
+          const dayData = dateMap.get(date);
+          if (dayData[bucketValue] !== undefined) {
+            dayData[bucketValue]++;
+          }
         }
-      }
-    });
-  }
-});
+      });
+    }
+  });
   
   // Calculate current and previous bucket counts for trends
-  const currentBucketCounts = {
-    'Top Performers': 0,
-    'Efficient Low Volume': 0,
-    'Volume Driver, Low ROI': 0,
-    'Underperformers': 0
-  };
+  const currentBucketCounts = {};
+  const prevBucketCounts = {};
   
-  const prevBucketCounts = {
-    'Top Performers': 0,
-    'Efficient Low Volume': 0,
-    'Volume Driver, Low ROI': 0,
-    'Underperformers': 0
-  };
+  // Initialize counts for all bucket names
+  bucketNames.forEach(name => {
+    currentBucketCounts[name] = 0;
+    prevBucketCounts[name] = 0;
+  });
   
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-const prevBucketType = 'prev_' + bucketType;
-
-// Count current and previous bucket assignments
-allCampaignRecords.forEach(product => {
-  const currentBucket = product[bucketType];
-  const prevBucket = product[prevBucketType];
+  const prevBucketType = 'prev_' + bucketType;  // USE EXISTING bucketType
   
-  if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
-    currentBucketCounts[currentBucket]++;
-  }
-  
-  if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
-    prevBucketCounts[prevBucket]++;
-  }
-});
+  // Count current and previous bucket assignments
+  allCampaignRecords.forEach(product => {
+    const currentBucket = product[bucketType];  // USE EXISTING bucketType
+    const prevBucket = product[prevBucketType];
+    
+    if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
+      currentBucketCounts[currentBucket]++;
+    }
+    
+    if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
+      prevBucketCounts[prevBucket]++;
+    }
+  });
   
   // Convert to arrays for Chart.js
   const dates = Array.from(dateMap.keys()).sort();
@@ -9765,7 +9756,6 @@ uniqueBuckets.forEach(bucket => {
   bucketGroups[bucket] = [];
 });
   
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 allCampaignRecords.forEach(product => {
   const bucket = product[bucketType];
   if (bucket && bucketGroups[bucket]) {
