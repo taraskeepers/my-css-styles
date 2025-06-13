@@ -9178,13 +9178,6 @@ function renderROASHistoricCharts(container, data) {
   const rightContainer = document.createElement('div');
   rightContainer.style.cssText = 'width: 25%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
   
-  wrapper.appendChild(leftContainer);
-  wrapper.appendChild(rightContainer);
-  wrapper.appendChild(leftContainer);
-wrapper.appendChild(rightContainer);
-mainWrapper.appendChild(wrapper);
-container.appendChild(mainWrapper);
-  
   // Process historic data
   const dateMap = new Map();
   const bucketNames = ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'];
@@ -9291,23 +9284,19 @@ container.appendChild(mainWrapper);
       borderColor: colors[index].border,
       borderWidth: 2,
       fill: true,
-      tension: 0.3,
-      pointRadius: 0,
-      pointHoverRadius: 5
+      tension: 0.4
     };
   });
   
-  // Create canvas
+  // Create chart
   const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
+  canvas.style.cssText = 'width: 100%; height: 100%;';
   leftContainer.appendChild(canvas);
   
-  // Create chart
   new Chart(canvas, {
     type: 'line',
     data: {
-      labels: dates.map(date => moment(date).format('MM/DD')),
+      labels: dates.map(date => moment(date).format('MMM DD')),
       datasets: datasets
     },
     options: {
@@ -9315,115 +9304,50 @@ container.appendChild(mainWrapper);
       maintainAspectRatio: false,
       interaction: {
         mode: 'index',
-        intersect: false
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: 'ROAS Bucket Distribution Over Time',
-          font: { size: 16, weight: 'bold' },
-          padding: { bottom: 10 }
-        },
-        legend: {
-          display: false  // Remove legend
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          titleColor: '#333',
-          bodyColor: '#666',
-          borderColor: '#ddd',
-          borderWidth: 1,
-          padding: 12,
-          displayColors: true,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          },
-          callbacks: {
-            title: function(context) {
-              return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
-            },
-            label: function(context) {
-              const label = context.dataset.label;
-              const value = context.parsed.y;
-              return label + ': ' + value + ' products';
-            },
-            labelTextColor: function(context) {
-              return '#333';
-            },
-            afterLabel: function(context) {
-              return '';  // Add spacing
-            }
-          }
-        },
-        datalabels: {
-          display: false  // Disable data labels on points
-        }
+        intersect: false,
       },
       scales: {
         x: {
           display: true,
           title: {
-            display: false  // Remove "Date" label
-          },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 15,
-            font: { size: 10 }  // Smaller font size for dates
+            display: true,
+            text: 'Date'
           }
         },
         y: {
-          stacked: true,
           display: true,
           title: {
             display: true,
-            text: 'Number of Products',
-            font: { size: 12 }
+            text: 'Number of Products'
           },
-          ticks: {
-            stepSize: 1,
-            precision: 0
-          }
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'Historic ROAS Bucket Distribution'
+        },
+        legend: {
+          position: 'top',
         }
       }
     }
   });
   
-  // Add summary with trends to right container (removed "Current Distribution" heading)
+  // Render right panel with bucket summary
+  const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
   rightContainer.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+    <h4 style="margin: 0 0 20px 0; color: #333; text-align: center;">Current vs Previous</h4>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
       ${bucketNames.map((name, index) => {
         const currentCount = currentBucketCounts[name];
         const prevCount = prevBucketCounts[name];
         const change = currentCount - prevCount;
-        const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
+        const trendColor = change > 0 ? '#4CAF50' : change < 0 ? '#F44336' : '#666';
+        const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
         
-        let trendArrow = '';
-        let trendColor = '#666';
-        let trendText = '';
-        
-        if (change > 0) {
-          trendArrow = '▲';
-          trendColor = '#4CAF50';
-          trendText = `+${change}`;
-        } else if (change < 0) {
-          trendArrow = '▼';
-          trendColor = '#F44336';
-          trendText = `${change}`;
-        } else {
-          trendArrow = '—';
-          trendColor = '#999';
-          trendText = '0';
-        }
-        
-        // Shorten bucket names for compact display
+        // Shorten bucket names for display
         const shortName = name === 'Volume Driver, Low ROI' ? 'Volume Driver' : 
                          name === 'Efficient Low Volume' ? 'Efficient Low' : name;
         
@@ -9461,6 +9385,11 @@ container.appendChild(mainWrapper);
       }).join('')}
     </div>
   `;
+  
+  wrapper.appendChild(leftContainer);
+  wrapper.appendChild(rightContainer);
+  mainWrapper.appendChild(wrapper);
+  container.appendChild(mainWrapper);
 }
 
 function renderROASMetricsTable(container, data) {
