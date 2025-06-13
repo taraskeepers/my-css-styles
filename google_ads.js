@@ -3144,6 +3144,23 @@ productRankingMapContainer.style.cssText = `
 
 contentWrapper.appendChild(productRankingMapContainer);
 
+// Create ROAS Charts container
+const roasChartsContainer = document.createElement('div');
+roasChartsContainer.id = 'roas_charts';
+roasChartsContainer.className = 'google-ads-charts-container';
+roasChartsContainer.style.cssText = `
+  width: 1195px;
+  height: 200px;
+  margin: 60px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+contentWrapper.appendChild(roasChartsContainer);
+
 // Create ROAS Buckets container
 const roasBucketsContainer = document.createElement('div');
 roasBucketsContainer.id = 'roas_buckets';
@@ -3151,7 +3168,7 @@ roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
   width: 1195px;
   height: 650px;
-  margin: 20px 0 20px 20px;
+  margin: 0 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
@@ -4955,6 +4972,8 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (mapContainer) mapContainer.style.display = 'none';
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
+  const roasCharts = document.getElementById('roas_charts');
+  if (roasCharts) roasCharts.style.display = 'none';
   
   // Force re-selection of current product or select first one
   const selectedNavItem = document.querySelector('.nav-google-ads-item.selected');
@@ -4993,6 +5012,8 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   // Hide ROAS Buckets
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
+  const roasCharts = document.getElementById('roas_charts');
+  if (roasCharts) roasCharts.style.display = 'none';
   
   // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
@@ -5036,11 +5057,13 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   const productTables = document.getElementById('product_tables');
   const roasBuckets = document.getElementById('roas_buckets');
   
-  if (productInfo) productInfo.style.display = 'none';
+if (productInfo) productInfo.style.display = 'none';
   if (productMetrics) productMetrics.style.display = 'none';
   if (productRankingMap) productRankingMap.style.display = 'none';
   if (productTables) productTables.style.display = 'none';
   if (roasBuckets) roasBuckets.style.display = 'none';
+  const roasCharts = document.getElementById('roas_charts');
+  if (roasCharts) roasCharts.style.display = 'none';
   
   // Show the map container
   const mapContainer = document.getElementById('googleAdsMapContainer');
@@ -5131,12 +5154,16 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-  // Show ROAS Buckets container
-  const roasBuckets = document.getElementById('roas_buckets');
-  if (roasBuckets) {
-    roasBuckets.style.display = 'block';
-    loadAndRenderROASBuckets();
-  }
+// Show ROAS Charts and Buckets containers
+const roasCharts = document.getElementById('roas_charts');
+const roasBuckets = document.getElementById('roas_buckets');
+if (roasCharts) {
+  roasCharts.style.display = 'block';
+}
+if (roasBuckets) {
+  roasBuckets.style.display = 'block';
+  loadAndRenderROASBuckets();
+}
 });
 
   // Add event listener for chart mode toggle
@@ -7052,8 +7079,13 @@ setTimeout(() => {
 }
 
 async function loadAndRenderROASBuckets() {
-  const container = document.getElementById('roas_buckets');
-  if (!container) return;
+  const bucketsContainer = document.getElementById('roas_buckets');
+  const chartsContainer = document.getElementById('roas_charts');
+  if (!bucketsContainer) return;
+  
+  // Clear existing content in both containers
+  if (bucketsContainer) bucketsContainer.innerHTML = '';
+  if (chartsContainer) chartsContainer.innerHTML = '';
   
   // Clear existing content
   container.innerHTML = '';
@@ -7108,7 +7140,11 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
     
     // Store data globally for metrics updates
     window.roasBucketsData = result.data;
-    
+
+    // Process historic data for area charts
+if (chartsContainer) {
+  renderROASHistoricCharts(chartsContainer, result.data);
+}   
     // Count products by ROAS_Bucket
     const bucketCounts = {
       'Top Performers': 0,
@@ -7871,6 +7907,180 @@ function createDistributionChart(products, field, title) {
   
   container.appendChild(chartContainer);
   return container;
+}
+
+function renderROASHistoricCharts(container, data) {
+  // Create wrapper
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display: flex; gap: 20px; height: 100%;';
+  
+  // Left container for chart (80% width)
+  const leftContainer = document.createElement('div');
+  leftContainer.style.cssText = 'width: 80%; height: 100%; position: relative;';
+  
+  // Right container (20% width) - empty for now
+  const rightContainer = document.createElement('div');
+  rightContainer.style.cssText = 'width: 20%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
+  
+  wrapper.appendChild(leftContainer);
+  wrapper.appendChild(rightContainer);
+  container.appendChild(wrapper);
+  
+  // Filter for "All" campaign records only
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Process historic data
+  const dateMap = new Map();
+  const bucketNames = ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'];
+  
+  // Initialize date map for last 30 days
+  const endDate = moment();
+  const startDate = moment().subtract(29, 'days');
+  
+  for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
+    const dateStr = d.format('YYYY-MM-DD');
+    dateMap.set(dateStr, {
+      'Top Performers': 0,
+      'Efficient Low Volume': 0,
+      'Volume Driver, Low ROI': 0,
+      'Underperformers': 0
+    });
+  }
+  
+  // Count products per bucket per date
+  allCampaignRecords.forEach(product => {
+    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+      product['historic_data.buckets'].forEach(histItem => {
+        const date = histItem.date;
+        const roasBucket = histItem.ROAS_Bucket;
+        
+        if (date && roasBucket && dateMap.has(date)) {
+          const dayData = dateMap.get(date);
+          if (dayData[roasBucket] !== undefined) {
+            dayData[roasBucket]++;
+          }
+        }
+      });
+    }
+  });
+  
+  // Convert to arrays for Chart.js
+  const dates = Array.from(dateMap.keys()).sort();
+  const datasets = bucketNames.map((bucketName, index) => {
+    const colors = [
+      { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },      // Top Performers - green
+      { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },     // Efficient Low Volume - blue
+      { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },      // Volume Driver - orange
+      { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' }       // Underperformers - red
+    ];
+    
+    return {
+      label: bucketName,
+      data: dates.map(date => dateMap.get(date)[bucketName]),
+      backgroundColor: colors[index].bg,
+      borderColor: colors[index].border,
+      borderWidth: 2,
+      fill: true,
+      tension: 0.3
+    };
+  });
+  
+  // Create canvas
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  leftContainer.appendChild(canvas);
+  
+  // Create chart
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dates.map(date => moment(date).format('MM/DD')),
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'ROAS Bucket Distribution Over Time',
+          font: { size: 16, weight: 'bold' },
+          padding: { bottom: 10 }
+        },
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 12,
+            font: { size: 12 }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(context) {
+              return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
+            },
+            label: function(context) {
+              return context.dataset.label + ': ' + context.parsed.y + ' products';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 15
+          }
+        },
+        y: {
+          stacked: true,
+          display: true,
+          title: {
+            display: true,
+            text: 'Number of Products',
+            font: { size: 12 }
+          },
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+  
+  // Add summary to right container
+  rightContainer.innerHTML = `
+    <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Current Distribution</h4>
+    ${bucketNames.map((name, index) => {
+      const currentCount = dateMap.get(dates[dates.length - 1])[name];
+      const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
+      return `
+        <div style="margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 12px; height: 12px; background: ${colors[index]}; border-radius: 2px;"></div>
+            <span style="font-size: 12px; color: #666;">${name}</span>
+          </div>
+          <div style="font-size: 20px; font-weight: 700; color: ${colors[index]}; margin-left: 20px;">${currentCount}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
 }
 
 // Export the function
