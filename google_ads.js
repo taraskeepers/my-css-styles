@@ -4964,37 +4964,39 @@ container.innerHTML = `
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
 <div class="google-ads-top-controls">
 <div class="controls-left-group">
-  <div class="switchers-container">
+  <div class="first-row-controls">
     <div class="google-ads-view-switcher">
       <button id="viewBucketsGoogleAds" class="active">Buckets & Funnels</button>
       <button id="viewOverviewGoogleAds" class="active">Overview</button>
       <button id="viewChartsGoogleAds">Performance</button>
       <button id="viewMapGoogleAds">Map</button>
     </div>
-    <div class="google-ads-buckets-switcher" id="googleAdsBucketsSwitcher" style="display: block;">
-      <button id="bucketROAS" class="active">ROAS</button>
-      <button id="bucketROI">ROI</button>
-      <button id="bucketFunnel">Funnel</button>
-      <button id="bucketSpend">Spend</button>
-      <button id="bucketPricing">Pricing</button>
-      <button id="bucketCustom">Custom</button>
-      <button id="bucketML">ML</button>
+    <div class="chart-mode-toggle-top">
+      <label>Channel Type</label>
+      <label class="chart-mode-switch">
+        <input type="checkbox" id="chartModeToggle">
+        <span class="chart-mode-slider"></span>
+      </label>
+      <label>Campaigns</label>
+    </div>
+    <div class="previous-period-toggle-top">
+      <label>Previous Period</label>
+      <label class="chart-mode-switch">
+        <input type="checkbox" id="previousPeriodToggle">
+        <span class="chart-mode-slider"></span>
+      </label>
     </div>
   </div>
-  <div class="chart-mode-toggle-top">
-              <label>Channel Type</label>
-              <label class="chart-mode-switch">
-                <input type="checkbox" id="chartModeToggle">
-                <span class="chart-mode-slider"></span>
-              </label>
-              <label>Campaigns</label>
-            </div>
-            <div class="previous-period-toggle-top">
-              <label>Previous Period</label>
-              <label class="chart-mode-switch">
-                <input type="checkbox" id="previousPeriodToggle">
-                <span class="chart-mode-slider"></span>
-              </label>
+  <div class="google-ads-buckets-switcher" id="googleAdsBucketsSwitcher" style="display: block;">
+    <button id="bucketROAS" class="active">ROAS</button>
+    <button id="bucketROI">ROI</button>
+    <button id="bucketFunnel">Funnel</button>
+    <button id="bucketSpend">Spend</button>
+    <button id="bucketPricing">Pricing</button>
+    <button id="bucketCustom">Custom</button>
+    <button id="bucketML">ML</button>
+  </div>
+</div>
             </div>
           </div>
           <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
@@ -7138,7 +7140,13 @@ if (window.googleAdsApexCharts) {
 .google-ads-buckets-switcher button:hover:not(.active) {
   background-color: rgba(0, 122, 255, 0.1);
 }
-.switchers-container {
+.first-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.controls-left-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
