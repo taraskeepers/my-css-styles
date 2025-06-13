@@ -7110,14 +7110,43 @@ async function loadAndRenderROASBuckets() {
   bucketsContainer.appendChild(wrapper);
   
   try {
-    // Get the products bucket data from IndexedDB
-    const db = await openDatabase();
-    const transaction = db.transaction(['googleSheets_productBuckets_30d'], 'readonly');
-    const store = transaction.objectStore('googleSheets_productBuckets_30d');
-    const allData = await getAllFromStore(store);
+    // Get the bucket data using the same pattern as other data access
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    // Check if projectData store exists
+    if (!db.objectStoreNames.contains('projectData')) {
+      console.error('[loadAndRenderROASBuckets] projectData store not found');
+      throw new Error('projectData store not found');
+    }
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.error('[loadAndRenderROASBuckets] No data found for', tableName);
+      leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
+      return;
+    }
     
     // Filter for "All" campaign records only
-    const filteredData = allData.filter(row => row['Campaign Name'] === 'All');
+    const filteredData = result.data.filter(row => row['Campaign Name'] === 'All');
     
     if (!filteredData || filteredData.length === 0) {
       leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
@@ -7164,7 +7193,7 @@ async function loadAndRenderROASBuckets() {
     
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
-    leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data</div>';
+    leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
   }
 }
 
