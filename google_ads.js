@@ -7110,36 +7110,26 @@ async function loadAndRenderROASBuckets() {
   bucketsContainer.appendChild(wrapper);
   
   try {
-    // Get the products bucket data
-    const query = `
-      SELECT * FROM googleSheets_productBuckets_30d 
-      WHERE "Campaign Name" = 'All'
-      ORDER BY "Product Title"
-    `;
+    // Get the products bucket data from IndexedDB
+    const db = await openDatabase();
+    const transaction = db.transaction(['googleSheets_productBuckets_30d'], 'readonly');
+    const store = transaction.objectStore('googleSheets_productBuckets_30d');
+    const allData = await getAllFromStore(store);
     
-    const result = await window.db.exec(query);
+    // Filter for "All" campaign records only
+    const filteredData = allData.filter(row => row['Campaign Name'] === 'All');
     
-    if (!result || result.length === 0 || !result[0].values) {
+    if (!filteredData || filteredData.length === 0) {
       leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
       return;
     }
     
-    // Convert to array of objects
-    const columns = result[0].columns;
-    result.data = result[0].values.map(row => {
-      const obj = {};
-      columns.forEach((col, idx) => {
-        obj[col] = row[idx];
-      });
-      return obj;
-    });
-    
     // Store data globally for metrics updates
-    window.roasBucketsData = result.data;
+    window.roasBucketsData = filteredData;
     
     // Process historic data for area charts
     if (chartsContainer) {
-      renderROASHistoricCharts(chartsContainer, result.data);
+      renderROASHistoricCharts(chartsContainer, filteredData);
     }
     
     // Count products per bucket
@@ -7150,7 +7140,7 @@ async function loadAndRenderROASBuckets() {
       'Underperformers': 0
     };
     
-    result.data.forEach(row => {
+    filteredData.forEach(row => {
       const bucket = row['ROAS_Bucket'];
       if (bucket && bucketCounts.hasOwnProperty(bucket)) {
         bucketCounts[bucket]++;
@@ -7158,9 +7148,9 @@ async function loadAndRenderROASBuckets() {
     });
     
     // Calculate grand totals from all products
-    const grandTotalImpressions = result.data.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
-    const grandTotalClicks = result.data.reduce((sum, row) => sum + (parseInt(row.Clicks) || 0), 0);
-    const grandTotalConversions = result.data.reduce((sum, row) => sum + (parseFloat(row.Conversions) || 0), 0);
+    const grandTotalImpressions = filteredData.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
+    const grandTotalClicks = filteredData.reduce((sum, row) => sum + (parseInt(row.Clicks) || 0), 0);
+    const grandTotalConversions = filteredData.reduce((sum, row) => sum + (parseFloat(row.Conversions) || 0), 0);
     
     // Create bucket data array
     const total = Object.values(bucketCounts).reduce((sum, count) => sum + count, 0);
@@ -8082,6 +8072,14 @@ function renderROASHistoricCharts(container, data) {
       `;
     }).join('')}
   `;
+}
+
+function getAllFromStore(store) {
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 // Export the function
