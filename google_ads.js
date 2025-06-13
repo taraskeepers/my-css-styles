@@ -7259,18 +7259,19 @@ function renderROASFunnel(container, bucketData) {
     enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Top Performers'] }
   ];
 
-  // Store reference for click handling
-  container.bucketData = orderedBuckets;
-  
-  // Create funnel title
-  const title = document.createElement('h3');
-  title.style.cssText = 'text-align: center; margin-bottom: 20px; color: #333; font-size: 18px;';
-  title.textContent = 'ROAS Performance Funnel';
-  container.appendChild(title);
-  
-// Create main container with columns and funnel
+// Store reference for click handling
+container.bucketData = orderedBuckets;
+
+// Calculate aggregated totals for all products
+const allProducts = window.roasBucketsData;
+const totalProductCount = allProducts.length;
+const totalCostAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
+const totalRevenueAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
+const avgROASAll = totalCostAll > 0 ? totalRevenueAll / totalCostAll : 0;
+
+// Create main container with columns and funnel (no title, full height)
 const mainContainer = document.createElement('div');
-mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: calc(100% - 60px); display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
+mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
   
   container.appendChild(mainContainer);
   
@@ -7292,7 +7293,7 @@ svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justif
   
 // SVG dimensions - match the actual content size
 const width = 280;
-const height = 460;
+const height = 520;
 
 // Create SVG
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7326,6 +7327,26 @@ svg.style.marginLeft = '0';
     { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
     { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' }
   ];
+
+  // Add gradient for "ALL PRODUCTS" row
+const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+allGradient.setAttribute('id', 'gradient-all');
+allGradient.setAttribute('x1', '0%');
+allGradient.setAttribute('y1', '0%');
+allGradient.setAttribute('x2', '100%');
+allGradient.setAttribute('y2', '0%');
+
+const allStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+allStop1.setAttribute('offset', '0%');
+allStop1.setAttribute('style', 'stop-color:#424242;stop-opacity:1');
+
+const allStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+allStop2.setAttribute('offset', '100%');
+allStop2.setAttribute('style', 'stop-color:#616161;stop-opacity:1');
+
+allGradient.appendChild(allStop1);
+allGradient.appendChild(allStop2);
+defs.appendChild(allGradient);
   
   colors.forEach(color => {
     const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -7353,14 +7374,119 @@ svg.style.marginLeft = '0';
   // Calculate max percentage for width scaling
 const fixedTrapezoidWidth = 350;
   
-  // Funnel dimensions
-  const sectionHeight = 100;
-  const gap = 5;
-  const startY = 0;
-  
-  // Create funnel sections as left-aligned inverted trapezoids
-  orderedBuckets.forEach((bucket, index) => {
-    const y = startY + index * (sectionHeight + gap);
+// Funnel dimensions
+const sectionHeight = 90;  // Reduced to fit 5 rows
+const gap = 5;
+const aggregatedRowHeight = 70;  // Smaller height for aggregated row
+const separatorGap = 15;  // Gap between aggregated and bucket rows
+const startY = 0;
+
+// First, create the aggregated row
+const aggregatedY = startY;
+
+// Aggregated row trapezoid
+const aggTrapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+const aggTopWidth = 280;
+const aggBottomWidth = 250;
+const aggPoints = `0,${aggregatedY} ${aggTopWidth},${aggregatedY} ${aggBottomWidth},${aggregatedY + aggregatedRowHeight} 0,${aggregatedY + aggregatedRowHeight}`;
+
+aggTrapezoid.setAttribute('points', aggPoints);
+aggTrapezoid.setAttribute('fill', 'url(#gradient-all)');
+aggTrapezoid.setAttribute('filter', 'url(#dropshadow)');
+aggTrapezoid.style.cursor = 'default';
+aggTrapezoid.style.stroke = '#333';
+aggTrapezoid.style.strokeWidth = '2';
+aggTrapezoid.style.strokeDasharray = '5,5';
+
+svg.appendChild(aggTrapezoid);
+
+// Add "ALL PRODUCTS" text in aggregated trapezoid
+const aggTextGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+aggTextGroup.style.pointerEvents = 'none';
+
+const allProductsLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+allProductsLabel.setAttribute('x', 140);
+allProductsLabel.setAttribute('y', aggregatedY + 30);
+allProductsLabel.setAttribute('text-anchor', 'middle');
+allProductsLabel.setAttribute('fill', 'white');
+allProductsLabel.setAttribute('font-weight', '700');
+allProductsLabel.setAttribute('font-size', '16px');
+allProductsLabel.textContent = 'ALL PRODUCTS';
+
+const allProductsCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+allProductsCount.setAttribute('x', 140);
+allProductsCount.setAttribute('y', aggregatedY + 50);
+allProductsCount.setAttribute('text-anchor', 'middle');
+allProductsCount.setAttribute('fill', 'white');
+allProductsCount.setAttribute('font-weight', '700');
+allProductsCount.setAttribute('font-size', '24px');
+allProductsCount.textContent = totalProductCount;
+
+aggTextGroup.appendChild(allProductsLabel);
+aggTextGroup.appendChild(allProductsCount);
+svg.appendChild(aggTextGroup);
+
+// Create aggregated row indicators in columns
+const aggRoasIndicator = document.createElement('div');
+aggRoasIndicator.style.cssText = `
+  height: ${aggregatedRowHeight}px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #424242, #616161);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  margin-bottom: ${separatorGap}px;
+  border: 2px dashed #999;
+`;
+
+aggRoasIndicator.innerHTML = `
+  <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">AVG ROAS</div>
+  <div style="font-size: 18px; font-weight: 700;">${avgROASAll.toFixed(1)}x</div>
+`;
+
+roasColumn.appendChild(aggRoasIndicator);
+
+const aggMetricsIndicator = document.createElement('div');
+aggMetricsIndicator.style.cssText = `
+  height: ${aggregatedRowHeight}px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #37474F, #455A64);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  margin-bottom: ${separatorGap}px;
+  padding: 4px;
+  text-align: center;
+  font-size: 9px;
+  border: 2px dashed #999;
+`;
+
+aggMetricsIndicator.innerHTML = `
+  <div style="margin-bottom: 4px;">
+    <div style="font-size: 9px; font-weight: 600; color: #FFE082;">TOTAL COST</div>
+    <div style="font-size: 16px; font-weight: 700; color: #FFE082;">$${(totalCostAll / 1000).toFixed(0)}k</div>
+  </div>
+  <div>
+    <div style="font-size: 9px; font-weight: 600; color: #C8E6C9;">TOTAL REVENUE</div>
+    <div style="font-size: 16px; font-weight: 700; color: #C8E6C9;">$${(totalRevenueAll / 1000).toFixed(0)}k</div>
+  </div>
+`;
+
+metricsColumn.appendChild(aggMetricsIndicator);
+
+// Now create bucket sections with adjusted Y position
+const bucketStartY = aggregatedY + aggregatedRowHeight + separatorGap;
+
+orderedBuckets.forEach((bucket, index) => {
+  const y = bucketStartY + index * (sectionHeight + gap);
     
 // Fixed dimensions for all trapezoids
 const trapezoidTopWidth = 280;
@@ -8124,35 +8250,40 @@ function renderROASHistoricCharts(container, data) {
             size: 13
           },
           callbacks: {
-            title: function(context) {
-              return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
-            },
-            label: function(context) {
-              const label = context.dataset.label;
-              const value = context.parsed.y;
-              return label + ': ' + value + ' products';
-            }
-          }
+  title: function(context) {
+    return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
+  },
+  label: function(context) {
+    const label = context.dataset.label;
+    const value = context.parsed.y;
+    return label + ': ' + value + ' products';
+  },
+  labelTextColor: function(context) {
+    return '#333';
+  },
+  afterLabel: function(context) {
+    return '';  // Add spacing
+  }
+}
         },
         datalabels: {
           display: false  // Disable data labels on points
         }
       },
-      scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Date',
-            font: { size: 12 }
-          },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 15
-          }
-        },
+scales: {
+  x: {
+    display: true,
+    title: {
+      display: false  // Remove "Date" label
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      autoSkip: true,
+      maxTicksLimit: 15,
+      font: { size: 10 }  // Smaller font size for dates
+    }
+  },
         y: {
           stacked: true,
           display: true,
@@ -8170,9 +8301,10 @@ function renderROASHistoricCharts(container, data) {
     }
   });
   
-  // Add summary with trends to right container
-  rightContainer.innerHTML = `
-    <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Current Distribution</h4>
+// Add summary with trends to right container
+rightContainer.innerHTML = `
+  <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #333; font-weight: 600;">Current Distribution</h4>
+  <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
     ${bucketNames.map((name, index) => {
       const currentCount = currentBucketCounts[name];
       const prevCount = prevBucketCounts[name];
@@ -8197,23 +8329,44 @@ function renderROASHistoricCharts(container, data) {
         trendText = '0';
       }
       
+      // Shorten bucket names for compact display
+      const shortName = name === 'Volume Driver, Low ROI' ? 'Volume Driver' : 
+                       name === 'Efficient Low Volume' ? 'Efficient Low' : name;
+      
       return `
-        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <div style="width: 12px; height: 12px; background: ${colors[index]}; border-radius: 2px;"></div>
-            <span style="font-size: 12px; color: #666; flex: 1;">${name}</span>
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 8px;
+          background: ${colors[index]}08;
+          border-left: 3px solid ${colors[index]};
+          border-radius: 4px;
+        ">
+          <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+            <span style="font-size: 11px; color: #666; font-weight: 500;">${shortName}</span>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 24px; font-weight: 700; color: ${colors[index]};">${currentCount}</div>
-            <div style="display: flex; align-items: center; gap: 4px; background: ${trendColor}20; padding: 4px 8px; border-radius: 4px;">
-              <span style="color: ${trendColor}; font-size: 12px; font-weight: 600;">${trendArrow}</span>
-              <span style="color: ${trendColor}; font-size: 12px; font-weight: 600;">${trendText}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px; font-weight: 700; color: ${colors[index]};">${currentCount}</span>
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 2px;
+              background: ${trendColor}15;
+              padding: 2px 6px;
+              border-radius: 3px;
+              min-width: 35px;
+              justify-content: center;
+            ">
+              <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${trendArrow}</span>
+              <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${Math.abs(change)}</span>
             </div>
           </div>
         </div>
       `;
     }).join('')}
-  `;
+  </div>
+`;
 }
 
 function getAllFromStore(store) {
