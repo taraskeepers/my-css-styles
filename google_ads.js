@@ -3218,7 +3218,7 @@ roasChartsContainer.className = 'google-ads-charts-container';
 roasChartsContainer.style.cssText = `
   width: 1195px;
   height: 400px;
-  margin: 60px 0 20px 20px;
+  margin: 100px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
@@ -7116,7 +7116,6 @@ if (window.googleAdsApexCharts) {
   border-radius: 24px;
   padding: 4px;
   height: 36px;
-  margin-top: 10px;
 }
 
 .google-ads-buckets-switcher button {
