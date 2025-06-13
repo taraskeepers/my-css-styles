@@ -8545,34 +8545,34 @@ function renderROASMetricsTable(container, data) {
     'Underperformers': '#F44336'
   };
   
+// Helper function to create bar cell (stacked vertically)
+  const createBarCell = (value, total, formatValue, bucketColor) => {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+        <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+        <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+          <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+            <div style="height: 100%; background: ${bucketColor}; width: ${percentage}%; border-radius: 4px;"></div>
+          </div>
+          <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  };
+  
+  // Helper function for regular cells (with proper alignment)
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
   bucketMetrics.forEach(bucket => {
     const row = document.createElement('tr');
-row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
-    
-// Helper function to create bar cell (stacked vertically)
-    const createBarCell = (value, total, formatValue, bucketColor) => {
-      const percentage = total > 0 ? (value / total) * 100 : 0;
-      return `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
-          <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
-          <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
-            <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
-              <div style="height: 100%; background: ${bucketColor}; width: ${percentage}%; border-radius: 4px;"></div>
-            </div>
-            <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
-          </div>
-        </div>
-      `;
-    };
-    
-    // Helper function for regular cells (with proper alignment)
-    const createRegularCell = (value, isCenter = true) => {
-      return `
-        <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
-          <span style="font-weight: 600; font-size: 12px;">${value}</span>
-        </div>
-      `;
-    };
+    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
     
 row.innerHTML = `
       <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle;">${bucket.bucket}</td>
