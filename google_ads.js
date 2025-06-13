@@ -3,6 +3,73 @@ window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
 window.userMetricPreferences = null;
 window.userTrendPreferences = null;
+window.bucketDescriptions = {
+  // ROAS Bucket descriptions
+  'ROAS_Bucket': {
+    'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
+    'Efficient Low Volume': 'These products deliver a strong return on ad spend but with a low number of conversions. It suggests the product is well-targeted but not reaching enough people. Consider testing broader or new audiences and increasing impressions while maintaining efficiency.',
+    'Volume Driver, Low ROI': 'Products that drive a high number of conversions, but at the cost of low profitability (low ROAS). These can be important for customer acquisition but may not be sustainable unless their margin improves or lifetime value justifies continued spend.',
+    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.'
+  },
+  
+  // ROI Bucket descriptions
+  'ROI_Bucket': {
+    'Scalable Winners': 'These products achieve both high return on ad spend and low acquisition costs. They are efficient and profitable — the ideal candidates for scaling aggressively, whether through higher budgets or replicating their strategy across other products.',
+    'Niche but Profitable': 'High ROAS but also high CPA. These products may appeal to a smaller segment but generate strong returns when they convert. Scale cautiously, focusing on fine-tuned targeting and maintaining profitability.',
+    'Price Issue': 'Products that are cheap to acquire (low CPA) but don\'t generate enough return (low ROAS). These may require price adjustments or better upselling to improve average order value and profitability.',
+    'Waste of Spend': 'High CPA and low ROAS — you are spending a lot without seeing returns. These products may not be viable for paid advertising unless significant improvements are made in targeting, creative, or pricing.'
+  },
+  
+  // Funnel Bucket descriptions
+  'Funnel_Bucket': {
+    'Needs Better Ad Creative': 'When impressions are high but clicks are low, your ads are being shown, but they\'re not compelling users to act. Focus on improving headlines, visuals, or offers to increase engagement.',
+    'Poor Targeting': 'A high number of clicks but a low click-through rate suggests you\'re reaching too many users who aren\'t interested. Narrow or adjust your audience targeting to improve relevance.',
+    'Weak Landing Page or Offer': 'If users are clicking but not converting, the issue is likely with your landing page experience, messaging, offer clarity, or purchase process. Rework your page structure and test new offers or CTAs.',
+    'Most Efficient': 'High conversion rate and low cost per acquisition — this is the ideal outcome of a high-performing ad funnel. These products are great for scaling or using as a benchmark for other campaigns.',
+    'Valuable but Costly': 'High conversions and high CPA mean the product is desirable, but expensive to sell. Consider increasing the product price, improving margins, or testing new audiences to reduce CPA.',
+    'UX Optimization Needed': 'High CTR but low CVR indicates the ad is effective, but users don\'t complete the purchase. Likely caused by poor mobile experience, confusing navigation, or trust issues. Improve page usability and conversion flow.',
+    'Ad Creative Problem': 'Low CTR but high CVR points to an ineffective ad creative. While the landing page works, not enough people are enticed to click. Refresh the creative and test different value propositions.',
+    'Funnel Friction': 'Both CTR and CVR are low. This means the product, ad, and page are not aligned with audience needs or expectations. Comprehensive repositioning is recommended.',
+    'Funnel Champions': 'Products that succeed at every stage: high CTR and high CVR. These should serve as templates for new products or campaigns. Expand budget and test additional variations to scale.'
+  },
+  
+  // Spend Bucket descriptions
+  'Spend_Bucket': {
+    'Unprofitable Spend': 'Spending a lot but not generating enough return. These products are draining your budget and require immediate review or removal from active campaigns.',
+    'Hidden Gems': 'Low spend but strong revenue — a high-efficiency, underutilized product. Increase budget and scale cautiously, ensuring efficiency is preserved as volume grows.',
+    'Scalable with Caution': 'High cost matched by strong performance. These products can drive growth but require careful management to avoid inefficiencies at scale.',
+    'Low Priority': 'Low investment and low return. These products are not significant contributors and should be deprioritized unless further testing reveals hidden potential.',
+    'Zombies': 'These have almost no impressions — they\'re not receiving enough exposure. Either increase bids, check for disapprovals, or rework to improve eligibility and reach.',
+    'Parasites': 'High ad spend with zero conversions. These are extremely inefficient and should be paused immediately or re-evaluated from a creative and targeting perspective.'
+  },
+  
+  // Pricing Bucket descriptions
+  'Pricing_Bucket': {
+    'Premium Product with Strong Demand': 'These products command a high price yet convert efficiently. Strong market demand justifies their price point. Ideal for profit-focused growth strategies.',
+    'Low-Ticket Impulse Buys': 'Low price and high conversion rate — perfect for volume strategies or entry-level products that feed a broader customer funnel or upsell flow.',
+    'Price Resistance': 'High price but low conversions. The value isn\'t clear to customers at the listed price. Consider price testing, bundling, or improved value communication.',
+    'Low Value No Interest': 'Low price and low conversion — customers still don\'t want it. Likely a product-market fit issue. Reconsider the product\'s positioning or remove it from active advertising.'
+  },
+  
+  // Custom Tier descriptions
+  'Custom_Tier': {
+    'Hero Product': 'Top 10% of performers. They consistently deliver the best results and should be heavily promoted and protected. Anchor your campaigns around these.',
+    'Scale-Up': 'Products with high conversion rates and low CPA — ideal for growth. Double down with additional creative, audience testing, and budget scaling.',
+    'Wasted Spend': 'Underperforming products with significant investment but no returns. These should be paused or completely reworked.',
+    'Testing Product': 'Products that haven\'t yet generated enough data to make a decision. Allow them to run with low spend until more conclusive performance data is available.',
+    'Creative Review': 'CTR is strong, so the ad is engaging — but low CVR indicates the page or offer is underwhelming. The issue is after the click. Focus on improving post-click experience.',
+    'Budget Booster': 'These convert well at very low cost. They are perfect to scale or use as fillers in campaigns with strict CPA goals.'
+  },
+  
+  // ML Cluster descriptions
+  'ML_Cluster': {
+    'Undervalued Winners': 'Products with low cost per click and high conversion value — often overlooked due to low initial spend. Increase focus, as these may be hidden gems.',
+    'Expensive Waste': 'High CPC and zero conversions — clear sign of inefficiency. Likely misaligned audience or poor ad creative. Should be paused or reworked.',
+    'Optimizable': 'Products with average metrics — showing potential but not yet optimized. Consider A/B testing creatives or targeting to lift performance.',
+    'High ROAS Anomalies': 'Very high ROAS with low click volume. These could be gold mines if volume can be increased — test higher bids, creatives, or broader targeting to grow reach.',
+    'Drop-Off Cluster': 'Products that perform well at the awareness or interest stage (e.g., high CTR), but drop off before conversion. Investigate the mid-funnel: checkout flow, trust elements, mobile UX.'
+  }
+};
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
@@ -9049,6 +9116,7 @@ function createDistributionChart(products, field, title) {
     border-radius: 8px;
     padding: 15px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
   `;
   
   const titleEl = document.createElement('h5');
@@ -9059,7 +9127,6 @@ function createDistributionChart(products, field, title) {
   // Count occurrences with proper error handling
   const counts = {};
   products.forEach(product => {
-    // Add safety check and default value
     const value = (product && product[field]) ? product[field] : 'Unknown';
     counts[value] = (counts[value] || 0) + 1;
   });
@@ -9074,12 +9141,47 @@ function createDistributionChart(products, field, title) {
     return container;
   }
   
-  // Create simple bar chart
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = `
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 300px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+  `;
+  container.appendChild(tooltip);
+  
+  // Create simple bar chart with hover functionality
   Object.entries(counts).forEach(([label, count]) => {
     const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
     
     const barContainer = document.createElement('div');
-    barContainer.style.cssText = 'margin-bottom: 8px;';
+    barContainer.style.cssText = `
+      margin-bottom: 8px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    `;
+    
+    // Add hover effects
+    barContainer.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = 'rgba(0, 122, 255, 0.05)';
+    });
+    
+    barContainer.addEventListener('mouseleave', function() {
+      this.style.backgroundColor = 'transparent';
+    });
     
     const labelEl = document.createElement('div');
     labelEl.style.cssText = 'font-size: 11px; color: #666; margin-bottom: 2px;';
@@ -9118,11 +9220,51 @@ function createDistributionChart(products, field, title) {
     barWrapper.appendChild(bar);
     barContainer.appendChild(labelEl);
     barContainer.appendChild(barWrapper);
+    
+    // Add tooltip functionality
+    barContainer.addEventListener('mouseenter', function(e) {
+      const description = getBucketDescription(field, label);
+      if (description) {
+        tooltip.innerHTML = `<strong>${label}</strong><br><br>${description}`;
+        tooltip.style.opacity = '1';
+      }
+    });
+    
+    barContainer.addEventListener('mousemove', function(e) {
+      const rect = container.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      
+      let left = e.clientX - rect.left + 15;
+      let top = e.clientY - rect.top - 10;
+      
+      // Adjust position if tooltip would go outside container
+      if (left + tooltipRect.width > container.offsetWidth) {
+        left = e.clientX - rect.left - tooltipRect.width - 15;
+      }
+      if (top < 0) {
+        top = e.clientY - rect.top + 20;
+      }
+      
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    });
+    
+    barContainer.addEventListener('mouseleave', function() {
+      tooltip.style.opacity = '0';
+    });
+    
     chartContainer.appendChild(barContainer);
   });
   
   container.appendChild(chartContainer);
   return container;
+}
+
+function getBucketDescription(bucketType, bucketValue) {
+  if (window.bucketDescriptions && window.bucketDescriptions[bucketType]) {
+    return window.bucketDescriptions[bucketType][bucketValue] || null;
+  }
+  return null;
 }
 
 function renderROASHistoricCharts(container, data) {
