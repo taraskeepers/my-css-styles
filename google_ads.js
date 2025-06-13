@@ -7159,7 +7159,7 @@ async function loadAndRenderROASBuckets() {
   // Right container for metrics
   const rightContainer = document.createElement('div');
   rightContainer.className = 'right-container';
-  rightContainer.style.cssText = 'flex: 1; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
+  rightContainer.style.cssText = 'flex: 1; height: 500px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
   rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
 wrapper.appendChild(leftContainer);
@@ -7258,18 +7258,37 @@ const channelsContainer = document.getElementById('roas_channels');
 if (channelsContainer) {
   renderROASChannelsContainer(channelsContainer, result.data, null);
 }
- // Initialize bucket distribution with ALL PRODUCTS data
+// Initialize bucket distribution with ALL PRODUCTS data
 setTimeout(() => {
   // Update right container to show overall distribution immediately
   const rightContainer = document.querySelector('#roas_buckets .right-container');
   if (rightContainer && window.roasBucketsData) {
-    rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
-    renderBucketDistribution(rightContainer, window.roasBucketsData);
+    // Clear the placeholder text and show actual content
+    rightContainer.innerHTML = '';
+    
+    // Add title
+    const titleDiv = document.createElement('div');
+    titleDiv.style.cssText = 'text-align: center; margin-bottom: 15px; color: #333; font-weight: 600;';
+    titleDiv.textContent = 'Overall Portfolio Distribution';
+    rightContainer.appendChild(titleDiv);
+    
+    // Create scrollable content area
+    const scrollableContent = document.createElement('div');
+    scrollableContent.id = 'bucketDistributionContent';
+    scrollableContent.style.cssText = `
+      height: 420px;
+      overflow-y: auto;
+      padding-right: 5px;
+    `;
+    
+    // Render bucket distribution
+    renderBucketDistribution(scrollableContent, window.roasBucketsData);
+    rightContainer.appendChild(scrollableContent);
   }
   
   // Update channels and campaigns with no filter (show all)
   updateChannelsAndCampaignsForBucket(null);
-}, 200);   
+}, 300);  
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
     leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
@@ -7892,42 +7911,23 @@ metricsHoverTooltip.style.cssText = `
 
 metricsIndicator.appendChild(metricsHoverTooltip);
 
-// Add hover events for products bar
-productsBarContainer.addEventListener('mouseenter', function(e) {
-  metricsHoverTooltip.innerHTML = `# Products: ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)`;
+// Create combined hover event for the entire metrics indicator
+metricsIndicator.addEventListener('mouseenter', function(e) {
+  metricsHoverTooltip.innerHTML = `
+    <div style="margin-bottom: 6px;"><strong># Products:</strong> ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)</div>
+    <div style="margin-bottom: 6px;"><strong>Cost:</strong> $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)</div>
+    <div><strong>Revenue:</strong> $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)</div>
+  `;
   metricsHoverTooltip.style.opacity = '1';
+});
+
+metricsIndicator.addEventListener('mousemove', function(e) {
   const rect = metricsIndicator.getBoundingClientRect();
-  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  metricsHoverTooltip.style.top = (e.clientY - rect.top - 80) + 'px';
   metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
 });
 
-productsBarContainer.addEventListener('mouseleave', function() {
-  metricsHoverTooltip.style.opacity = '0';
-});
-
-// Add hover events for cost bar
-costBarContainer.addEventListener('mouseenter', function(e) {
-  metricsHoverTooltip.innerHTML = `Cost: $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)`;
-  metricsHoverTooltip.style.opacity = '1';
-  const rect = metricsIndicator.getBoundingClientRect();
-  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
-});
-
-costBarContainer.addEventListener('mouseleave', function() {
-  metricsHoverTooltip.style.opacity = '0';
-});
-
-// Add hover events for revenue bar
-revenueBarContainer.addEventListener('mouseenter', function(e) {
-  metricsHoverTooltip.innerHTML = `Revenue: $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)`;
-  metricsHoverTooltip.style.opacity = '1';
-  const rect = metricsIndicator.getBoundingClientRect();
-  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
-});
-
-revenueBarContainer.addEventListener('mouseleave', function() {
+metricsIndicator.addEventListener('mouseleave', function() {
   metricsHoverTooltip.style.opacity = '0';
 });
 
@@ -9361,6 +9361,9 @@ new Chart(canvas, {
         text: 'Historic ROAS Bucket Distribution'
       },
       legend: {
+        display: false
+      },
+      datalabels: {
         display: false
       }
     }
