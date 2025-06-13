@@ -3150,7 +3150,7 @@ roasChartsContainer.id = 'roas_charts';
 roasChartsContainer.className = 'google-ads-charts-container';
 roasChartsContainer.style.cssText = `
   width: 1195px;
-  height: 200px;
+  height: 280px;
   margin: 60px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -7478,6 +7478,28 @@ aggTextGroup.appendChild(allProductsLabel);
 aggTextGroup.appendChild(allProductsCount);
 svg.appendChild(aggTextGroup);
 
+// Make aggregated trapezoid clickable
+aggTrapezoid.style.cursor = 'pointer';
+aggTrapezoid.addEventListener('click', function() {
+  // Remove previous selection from all trapezoids
+  svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
+  
+  // Highlight selected (use different style for aggregated)
+  this.style.stroke = '#333';
+  this.style.strokeWidth = '3';
+  this.style.strokeDasharray = 'none';
+  
+  // Update channels and campaigns with no filter (show all)
+  updateChannelsAndCampaignsForBucket(null);
+  
+  // Update right container to show overall distribution
+  const rightContainer = document.querySelector('#roas_buckets .right-container');
+  if (rightContainer) {
+    rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
+    renderBucketDistribution(rightContainer, window.roasBucketsData);
+  }
+});
+
 // Create aggregated row indicators in columns
 const aggRoasIndicator = document.createElement('div');
 aggRoasIndicator.style.cssText = `
@@ -7509,28 +7531,126 @@ aggMetricsIndicator.style.cssText = `
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #37474F, #455A64);
-  color: white;
   border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   margin-bottom: ${separatorGap}px;
   padding: 4px;
-  text-align: center;
-  font-size: 9px;
   border: 2px dashed #999;
 `;
 
-aggMetricsIndicator.innerHTML = `
-  <div style="margin-bottom: 4px;">
-    <div style="font-size: 9px; font-weight: 600; color: #FFE082;">TOTAL COST</div>
-    <div style="font-size: 16px; font-weight: 700; color: #FFE082;">$${(totalCostAll / 1000).toFixed(0)}k</div>
-  </div>
-  <div>
-    <div style="font-size: 9px; font-weight: 600; color: #C8E6C9;">TOTAL REVENUE</div>
-    <div style="font-size: 16px; font-weight: 700; color: #C8E6C9;">$${(totalRevenueAll / 1000).toFixed(0)}k</div>
-  </div>
+// For aggregated row, show 100% bars
+const aggBarHeight = 20;
+const aggBarWidth = 132;
+
+// Products bar (100%)
+const aggProductsBarContainer = document.createElement('div');
+aggProductsBarContainer.style.cssText = `
+  width: ${aggBarWidth}px;
+  height: ${aggBarHeight}px;
+  position: relative;
+  margin-bottom: 1px;
+  background: #2196F3;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
+
+const aggProductsLabel = document.createElement('div');
+aggProductsLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 7px;
+  font-weight: 500;
+  color: white;
+`;
+aggProductsLabel.textContent = '# Products';
+
+const aggProductsValue = document.createElement('div');
+aggProductsValue.style.cssText = `
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+`;
+aggProductsValue.textContent = '100%';
+
+aggProductsBarContainer.appendChild(aggProductsLabel);
+aggProductsBarContainer.appendChild(aggProductsValue);
+
+// Cost bar (100%)
+const aggCostBarContainer = document.createElement('div');
+aggCostBarContainer.style.cssText = `
+  width: ${aggBarWidth}px;
+  height: ${aggBarHeight}px;
+  position: relative;
+  margin-bottom: 1px;
+  background: #FF9800;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const aggCostLabel = document.createElement('div');
+aggCostLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 7px;
+  font-weight: 500;
+  color: white;
+`;
+aggCostLabel.textContent = 'Cost';
+
+const aggCostValue = document.createElement('div');
+aggCostValue.style.cssText = `
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+`;
+aggCostValue.textContent = '100%';
+
+aggCostBarContainer.appendChild(aggCostLabel);
+aggCostBarContainer.appendChild(aggCostValue);
+
+// Revenue bar (100%)
+const aggRevenueBarContainer = document.createElement('div');
+aggRevenueBarContainer.style.cssText = `
+  width: ${aggBarWidth}px;
+  height: ${aggBarHeight}px;
+  position: relative;
+  background: #4CAF50;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const aggRevenueLabel = document.createElement('div');
+aggRevenueLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 7px;
+  font-weight: 500;
+  color: white;
+`;
+aggRevenueLabel.textContent = 'Revenue';
+
+const aggRevenueValue = document.createElement('div');
+aggRevenueValue.style.cssText = `
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+`;
+aggRevenueValue.textContent = '100%';
+
+aggRevenueBarContainer.appendChild(aggRevenueLabel);
+aggRevenueBarContainer.appendChild(aggRevenueValue);
+
+aggMetricsIndicator.appendChild(aggProductsBarContainer);
+aggMetricsIndicator.appendChild(aggCostBarContainer);
+aggMetricsIndicator.appendChild(aggRevenueBarContainer);
 
 metricsColumn.appendChild(aggMetricsIndicator);
 
@@ -7617,52 +7737,167 @@ trapezoid.addEventListener('click', function() {
     
     roasColumn.appendChild(roasIndicator);
     
-    // Create Cost/Revenue indicator in metrics column (aligned with trapezoid)
-    const metricsIndicator = document.createElement('div');
-    metricsIndicator.style.cssText = `
-      height: ${sectionHeight}px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: left;
-      background: linear-gradient(135deg, #607D8B, #546E7A);
-      color: white;
-      border-radius: 8px;
-      font-weight: 600;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      margin-bottom: ${gap}px;
-      padding: 8px 4px;
-      text-align: center;
-      font-size: 10px;
-      line-height: 1.2;
-    `;
-    
-metricsIndicator.innerHTML = `
-  <div style="margin-bottom: 6px; padding-left: 8px;">
-    <div style="font-size: 10px; font-weight: 600; color: #FFE082; margin-bottom: 4px; text-align: left;">COST</div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div style="font-size: 22px; font-weight: 700; color: #FFE082;">$${(bucket.totalCost / 1000).toFixed(0)}k</div>
-      <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1;">
-        <div style="width: 40px; height: 4px; background: rgba(255,224,130,0.3); border-radius: 2px; margin-bottom: 2px;">
-          <div style="width: ${Math.min(100, bucket.costPercentage)}%; height: 100%; background: #FFE082; border-radius: 2px;"></div>
-        </div>
-        <div style="font-size: 14px; color: #FFE082; font-weight: 600;">${bucket.costPercentage.toFixed(0)}%</div>
-      </div>
-    </div>
-  </div>
-  <div style="padding-left: 8px;">
-    <div style="font-size: 10px; font-weight: 600; color: #C8E6C9; margin-bottom: 4px; text-align: left;">REVENUE</div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div style="font-size: 22px; font-weight: 700; color: #C8E6C9;">$${(bucket.totalRevenue / 1000).toFixed(0)}k</div>
-      <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1;">
-        <div style="width: 40px; height: 4px; background: rgba(200,230,201,0.3); border-radius: 2px; margin-bottom: 2px;">
-          <div style="width: ${Math.min(100, bucket.revenuePercentage)}%; height: 100%; background: #C8E6C9; border-radius: 2px;"></div>
-        </div>
-        <div style="font-size: 14px; color: #C8E6C9; font-weight: 600;">${bucket.revenuePercentage.toFixed(0)}%</div>
-      </div>
-    </div>
-  </div>
+// Create Cost/Revenue indicator with horizontal bars
+const metricsIndicator = document.createElement('div');
+metricsIndicator.style.cssText = `
+  height: ${sectionHeight}px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  margin-bottom: ${gap}px;
+  padding: 4px;
+  border: 1px solid #ddd;
 `;
+
+// Create three horizontal bar sections
+const barHeight = 26;
+const barWidth = 132;
+
+// Products bar
+const productsBarContainer = document.createElement('div');
+productsBarContainer.style.cssText = `
+  width: ${barWidth}px;
+  height: ${barHeight}px;
+  position: relative;
+  margin-bottom: 2px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const productsBar = document.createElement('div');
+productsBar.style.cssText = `
+  height: 100%;
+  width: ${Math.min(100, bucket.productPercentage)}%;
+  background: #2196F3;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+`;
+
+const productsLabel = document.createElement('div');
+productsLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 8px;
+  font-weight: 500;
+  color: #666;
+`;
+productsLabel.textContent = '# Products';
+
+const productsValue = document.createElement('div');
+productsValue.style.cssText = `
+  font-size: 11px;
+  font-weight: 700;
+  color: ${bucket.productPercentage > 50 ? 'white' : '#333'};
+`;
+productsValue.textContent = `${bucket.productPercentage.toFixed(1)}%`;
+
+productsBar.appendChild(productsValue);
+productsBarContainer.appendChild(productsBar);
+productsBarContainer.appendChild(productsLabel);
+
+// Cost bar
+const costBarContainer = document.createElement('div');
+costBarContainer.style.cssText = `
+  width: ${barWidth}px;
+  height: ${barHeight}px;
+  position: relative;
+  margin-bottom: 2px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const costBar = document.createElement('div');
+costBar.style.cssText = `
+  height: 100%;
+  width: ${Math.min(100, bucket.costPercentage)}%;
+  background: #FF9800;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+`;
+
+const costLabel = document.createElement('div');
+costLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 8px;
+  font-weight: 500;
+  color: #666;
+`;
+costLabel.textContent = 'Cost';
+
+const costValue = document.createElement('div');
+costValue.style.cssText = `
+  font-size: 11px;
+  font-weight: 700;
+  color: ${bucket.costPercentage > 50 ? 'white' : '#333'};
+`;
+costValue.textContent = `${bucket.costPercentage.toFixed(1)}%`;
+
+costBar.appendChild(costValue);
+costBarContainer.appendChild(costBar);
+costBarContainer.appendChild(costLabel);
+
+// Revenue bar
+const revenueBarContainer = document.createElement('div');
+revenueBarContainer.style.cssText = `
+  width: ${barWidth}px;
+  height: ${barHeight}px;
+  position: relative;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const revenueBar = document.createElement('div');
+revenueBar.style.cssText = `
+  height: 100%;
+  width: ${Math.min(100, bucket.revenuePercentage)}%;
+  background: #4CAF50;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+`;
+
+const revenueLabel = document.createElement('div');
+revenueLabel.style.cssText = `
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 8px;
+  font-weight: 500;
+  color: #666;
+`;
+revenueLabel.textContent = 'Revenue';
+
+const revenueValue = document.createElement('div');
+revenueValue.style.cssText = `
+  font-size: 11px;
+  font-weight: 700;
+  color: ${bucket.revenuePercentage > 50 ? 'white' : '#333'};
+`;
+revenueValue.textContent = `${bucket.revenuePercentage.toFixed(1)}%`;
+
+revenueBar.appendChild(revenueValue);
+revenueBarContainer.appendChild(revenueBar);
+revenueBarContainer.appendChild(revenueLabel);
+
+metricsIndicator.appendChild(productsBarContainer);
+metricsIndicator.appendChild(costBarContainer);
+metricsIndicator.appendChild(revenueBarContainer);
     
     metricsColumn.appendChild(metricsIndicator);
     
@@ -7965,26 +8200,184 @@ async function updateChannelsAndCampaignsForBucket(selectedBucket) {
 function renderBucketMetrics(container, bucketName, products) {
   container.innerHTML = '';
   
-  // Only show bucket distribution (no individual metrics)
-  const distributionSection = document.createElement('div');
-  distributionSection.innerHTML = '<h4 style="margin: 0 0 15px 0; color: #333;">Bucket Distribution</h4>';
+  // Add settings button
+  const headerContainer = document.createElement('div');
+  headerContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative;';
+  
+  const title = document.createElement('h4');
+  title.style.cssText = 'margin: 0; color: #333;';
+  title.textContent = 'Bucket Distribution';
+  
+  const settingsBtn = document.createElement('button');
+  settingsBtn.id = 'bucketDistributionSettingsBtn';
+  settingsBtn.className = 'trends-settings-btn';
+  settingsBtn.style.cssText = `
+    width: 24px;
+    height: 24px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: absolute;
+    top: 0;
+    right: 0;
+  `;
+  settingsBtn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
+    </svg>
+  `;
+  
+  headerContainer.appendChild(title);
+  headerContainer.appendChild(settingsBtn);
+  container.appendChild(headerContainer);
+  
+  // Create scrollable content area
+  const scrollableContent = document.createElement('div');
+  scrollableContent.id = 'bucketDistributionContent';
+  scrollableContent.style.cssText = `
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 5px;
+  `;
+  
+  // Initialize bucket preferences if not exists
+  if (!window.bucketDistributionPreferences) {
+    window.bucketDistributionPreferences = {
+      'Funnel_Bucket': true,
+      'ML_Cluster': true,
+      'Spend_Bucket': false,
+      'Custom_Tier': false,
+      'ROAS_Bucket': false,
+      'ROI_Bucket': false,
+      'Pricing_Bucket': false
+    };
+  }
+  
+  renderBucketDistribution(scrollableContent, products);
+  container.appendChild(scrollableContent);
+  
+  // Create settings popup
+  const settingsPopup = document.createElement('div');
+  settingsPopup.id = 'bucketDistributionSettingsPopup';
+  settingsPopup.className = 'metrics-selector-popup';
+  settingsPopup.innerHTML = `
+    <div class="metrics-selector-title">Select Bucket Types to Display</div>
+    <div id="bucketDistributionListContainer"></div>
+  `;
+  container.appendChild(settingsPopup);
+  
+  // Setup settings functionality
+  setupBucketDistributionSettings(settingsBtn, settingsPopup, scrollableContent, products);
+}
+
+function renderBucketDistribution(container, products) {
+  container.innerHTML = '';
+  
+  const bucketConfigs = [
+    { key: 'Funnel_Bucket', title: 'Funnel Performance' },
+    { key: 'ML_Cluster', title: 'ML Clusters' },
+    { key: 'Spend_Bucket', title: 'Spend Buckets' },
+    { key: 'Custom_Tier', title: 'Custom Tiers' },
+    { key: 'ROAS_Bucket', title: 'ROAS Buckets' },
+    { key: 'ROI_Bucket', title: 'ROI Buckets' },
+    { key: 'Pricing_Bucket', title: 'Pricing Buckets' }
+  ];
   
   const distributionGrid = document.createElement('div');
   distributionGrid.style.cssText = `
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 15px;
   `;
   
-  // Funnel Bucket distribution
-  const funnelDistribution = createDistributionChart(products, 'Funnel_Bucket', 'Funnel Performance');
-  const mlDistribution = createDistributionChart(products, 'ML_Cluster', 'ML Clusters');
+  bucketConfigs.forEach(config => {
+    if (window.bucketDistributionPreferences[config.key]) {
+      const distributionChart = createDistributionChart(products, config.key, config.title);
+      distributionGrid.appendChild(distributionChart);
+    }
+  });
   
-  distributionGrid.appendChild(funnelDistribution);
-  distributionGrid.appendChild(mlDistribution);
-  distributionSection.appendChild(distributionGrid);
+  container.appendChild(distributionGrid);
+}
+
+function setupBucketDistributionSettings(settingsBtn, settingsPopup, contentContainer, products) {
+  settingsBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    
+    // Position popup
+    const containerRect = contentContainer.getBoundingClientRect();
+    settingsPopup.style.position = 'fixed';
+    settingsPopup.style.top = containerRect.top + 'px';
+    settingsPopup.style.left = (containerRect.left - 280) + 'px';
+    
+    if (containerRect.left < 300) {
+      settingsPopup.style.left = containerRect.left + 'px';
+      settingsPopup.style.top = (containerRect.top - 420) + 'px';
+    }
+    
+    settingsPopup.classList.toggle('visible');
+    
+    // Update popup content
+    updateBucketDistributionPopup(products);
+  });
   
-  container.appendChild(distributionSection);
+  // Close popup when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!settingsPopup.contains(e.target) && !settingsBtn.contains(e.target)) {
+      settingsPopup.classList.remove('visible');
+    }
+  });
+}
+
+function updateBucketDistributionPopup(products) {
+  const container = document.getElementById('bucketDistributionListContainer');
+  if (!container) return;
+  
+  const bucketConfigs = [
+    { key: 'ROAS_Bucket', label: 'ROAS Buckets' },
+    { key: 'ROI_Bucket', label: 'ROI Buckets' },
+    { key: 'Funnel_Bucket', label: 'Funnel Performance' },
+    { key: 'Spend_Bucket', label: 'Spend Buckets' },
+    { key: 'Pricing_Bucket', label: 'Pricing Buckets' },
+    { key: 'Custom_Tier', label: 'Custom Tiers' },
+    { key: 'ML_Cluster', label: 'ML Clusters' }
+  ];
+  
+  let html = '';
+  bucketConfigs.forEach(config => {
+    const isChecked = window.bucketDistributionPreferences[config.key] || false;
+    html += `
+      <div class="metric-selector-item">
+        <label class="metric-toggle-switch">
+          <input type="checkbox" data-bucket="${config.key}" ${isChecked ? 'checked' : ''}>
+          <span class="metric-toggle-slider"></span>
+        </label>
+        <span>${config.label}</span>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Add event listeners
+  container.querySelectorAll('input[data-bucket]').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      const bucketKey = this.getAttribute('data-bucket');
+      window.bucketDistributionPreferences[bucketKey] = this.checked;
+      
+      // Re-render distribution
+      const contentContainer = document.getElementById('bucketDistributionContent');
+      if (contentContainer) {
+        renderBucketDistribution(contentContainer, products);
+      }
+    });
+  });
 }
 
 function renderROASChannelsContainer(container, data, bucketFilter = null) {
@@ -8676,9 +9069,106 @@ function createDistributionChart(products, field, title) {
 }
 
 function renderROASHistoricCharts(container, data) {
-  // Create wrapper
+  // Create main wrapper
+  const mainWrapper = document.createElement('div');
+  mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
+  
+  // Create metrics summary row
+  const metricsRow = document.createElement('div');
+  metricsRow.style.cssText = `
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 8px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `;
+  
+  // Filter for "All" campaign records only
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Calculate current totals
+  const currentTotals = allCampaignRecords.reduce((acc, product) => {
+    acc.cost += parseFloat(product.Cost) || 0;
+    acc.convValue += parseFloat(product.ConvValue) || 0;
+    acc.impressions += parseInt(product.Impressions) || 0;
+    acc.conversions += parseFloat(product.Conversions) || 0;
+    return acc;
+  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0 });
+  
+  // Calculate previous totals
+  const prevTotals = allCampaignRecords.reduce((acc, product) => {
+    acc.cost += parseFloat(product.prev_Cost) || 0;
+    acc.convValue += parseFloat(product.prev_ConvValue) || 0;
+    acc.impressions += parseInt(product.prev_Impressions) || 0;
+    acc.conversions += parseFloat(product.prev_Conversions) || 0;
+    return acc;
+  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0 });
+  
+  // Calculate metrics
+  const currentROAS = currentTotals.cost > 0 ? currentTotals.convValue / currentTotals.cost : 0;
+  const prevROAS = prevTotals.cost > 0 ? prevTotals.convValue / prevTotals.cost : 0;
+  
+  const currentAOV = currentTotals.conversions > 0 ? currentTotals.convValue / currentTotals.conversions : 0;
+  const prevAOV = prevTotals.conversions > 0 ? prevTotals.convValue / prevTotals.conversions : 0;
+  
+  const currentCPA = currentTotals.conversions > 0 ? currentTotals.cost / currentTotals.conversions : 0;
+  const prevCPA = prevTotals.conversions > 0 ? prevTotals.cost / prevTotals.conversions : 0;
+  
+  // Helper function to create metric item
+  const createMetricItem = (label, current, previous, format) => {
+    const change = current - previous;
+    const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
+    const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
+    
+    let formattedCurrent, formattedChange;
+    switch (format) {
+      case 'currency':
+        formattedCurrent = '$' + current.toLocaleString();
+        formattedChange = '$' + Math.abs(change).toLocaleString();
+        break;
+      case 'number':
+        formattedCurrent = current.toLocaleString();
+        formattedChange = Math.abs(change).toLocaleString();
+        break;
+      case 'decimal':
+        formattedCurrent = current.toFixed(2) + 'x';
+        formattedChange = Math.abs(change).toFixed(2) + 'x';
+        break;
+      default:
+        formattedCurrent = current.toFixed(2);
+        formattedChange = Math.abs(change).toFixed(2);
+    }
+    
+    return `
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 11px; color: #666; margin-bottom: 4px; font-weight: 500; text-transform: uppercase;">${label}</div>
+        <div style="font-size: 20px; font-weight: 700; color: #333; margin-bottom: 2px;">${formattedCurrent}</div>
+        <div class="${trendClass}" style="font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 3px;">
+          <span>${trendArrow}</span>
+          <span>${formattedChange}</span>
+        </div>
+      </div>
+    `;
+  };
+  
+  metricsRow.innerHTML = `
+    ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
+    ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
+    ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
+    ${createMetricItem('Impressions', currentTotals.impressions, prevTotals.impressions, 'number')}
+    ${createMetricItem('Cost', currentTotals.cost, prevTotals.cost, 'currency')}
+    ${createMetricItem('Revenue', currentTotals.convValue, prevTotals.convValue, 'currency')}
+  `;
+  
+  mainWrapper.appendChild(metricsRow);
+  
+  // Create wrapper for chart and summary
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display: flex; gap: 20px; height: 100%;';
+  wrapper.style.cssText = 'display: flex; gap: 20px; flex: 1;';
   
   // Left container for chart (75% width)
   const leftContainer = document.createElement('div');
@@ -8690,7 +9180,10 @@ function renderROASHistoricCharts(container, data) {
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
-  container.appendChild(wrapper);
+  wrapper.appendChild(leftContainer);
+wrapper.appendChild(rightContainer);
+mainWrapper.appendChild(wrapper);
+container.appendChild(mainWrapper);
   
   // Filter for "All" campaign records only
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
