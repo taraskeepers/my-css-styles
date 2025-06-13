@@ -3177,6 +3177,22 @@ roasMetricsTableContainer.style.cssText = `
 
 contentWrapper.appendChild(roasMetricsTableContainer);
 
+// Create ROAS Channels container
+const roasChannelsContainer = document.createElement('div');
+roasChannelsContainer.id = 'roas_channels';
+roasChannelsContainer.className = 'google-ads-channels-container';
+roasChannelsContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+contentWrapper.appendChild(roasChannelsContainer);
+
 // Create ROAS Buckets container
 const roasBucketsContainer = document.createElement('div');
 roasBucketsContainer.id = 'roas_buckets';
@@ -5170,15 +5186,19 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-  // Show ROAS Charts, Metrics Table and Buckets containers
+// Show ROAS Charts, Metrics Table, Channels and Buckets containers
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasCharts) {
     roasCharts.style.display = 'block';
   }
   if (roasMetricsTable) {
     roasMetricsTable.style.display = 'block';
+  }
+  if (roasChannels) {
+    roasChannels.style.display = 'block';
   }
   if (roasBuckets) {
     roasBuckets.style.display = 'block';
@@ -7142,15 +7162,9 @@ async function loadAndRenderROASBuckets() {
   rightContainer.style.cssText = 'flex: 1; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
   rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
-  wrapper.appendChild(leftContainer);
+wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
   bucketsContainer.appendChild(wrapper);
-  
-  // Create bucket distribution container
-  const bucketDistributionContainer = document.createElement('div');
-  bucketDistributionContainer.id = 'bucket_distribution';
-  bucketDistributionContainer.style.cssText = 'width: 100%; margin-top: 20px; padding: 20px 10px;';
-  bucketsContainer.appendChild(bucketDistributionContainer);
   
   try {
     // Get the bucket data using the same pattern as other data access
@@ -7237,10 +7251,13 @@ async function loadAndRenderROASBuckets() {
       percentage: total > 0 ? (count / total * 100).toFixed(1) : 0
     }));
     
-    renderROASFunnel(leftContainer, bucketData);
+renderROASFunnel(leftContainer, bucketData);
     
-    // Render bucket distribution section
-    renderBucketDistribution(bucketDistributionContainer, filteredData);
+    // Render channels container
+    const channelsContainer = document.getElementById('roas_channels');
+    if (channelsContainer) {
+      renderROASChannelsContainer(channelsContainer, filteredData);
+    }
     
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
@@ -7906,62 +7923,7 @@ async function updateBucketMetrics(selectedBucket) {
 function renderBucketMetrics(container, bucketName, products) {
   container.innerHTML = '';
   
-  // Create header
-  const header = document.createElement('div');
-  header.style.cssText = 'margin-bottom: 20px; text-align: center;';
-  header.innerHTML = `
-    <h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${bucketName}</h3>
-    <p style="margin: 0; color: #666; font-size: 14px;">${products.length} products</p>
-  `;
-  container.appendChild(header);
-  
-  // Calculate aggregated metrics
-  const metrics = calculateAggregatedMetrics(products);
-  
-  // Create metrics grid
-  const metricsGrid = document.createElement('div');
-  metricsGrid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-bottom: 25px;
-  `;
-  
-  // Key metrics to display
-  const keyMetrics = [
-    { label: 'Total Impressions', value: metrics.totalImpressions.toLocaleString(), color: '#2196F3' },
-    { label: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), color: '#4CAF50' },
-    { label: 'Total Cost', value: '$' + metrics.totalCost.toLocaleString(), color: '#FF9800' },
-    { label: 'Total Conversions', value: metrics.totalConversions.toFixed(1), color: '#9C27B0' },
-    { label: 'Avg ROAS', value: metrics.avgROAS.toFixed(2) + 'x', color: '#F44336' },
-    { label: 'Avg AOV', value: '$' + metrics.avgAOV.toFixed(2), color: '#607D8B' },
-    { label: 'Avg CTR', value: metrics.avgCTR.toFixed(2) + '%', color: '#795548' },
-    { label: 'Avg CVR', value: metrics.avgCVR.toFixed(2) + '%', color: '#3F51B5' },
-    { label: 'Avg CPA', value: '$' + metrics.avgCPA.toFixed(2), color: '#E91E63' }
-  ];
-  
-  keyMetrics.forEach(metric => {
-    const metricCard = document.createElement('div');
-    metricCard.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      border-left: 4px solid ${metric.color};
-    `;
-    
-    metricCard.innerHTML = `
-      <div style="font-size: 24px; font-weight: 700; color: ${metric.color}; margin-bottom: 5px;">${metric.value}</div>
-      <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">${metric.label}</div>
-    `;
-    
-    metricsGrid.appendChild(metricCard);
-  });
-  
-  container.appendChild(metricsGrid);
-  
-  // Create distribution charts
+  // Only show bucket distribution (no individual metrics)
   const distributionSection = document.createElement('div');
   distributionSection.innerHTML = '<h4 style="margin: 0 0 15px 0; color: #333;">Bucket Distribution</h4>';
   
@@ -7981,6 +7943,281 @@ function renderBucketMetrics(container, bucketName, products) {
   distributionSection.appendChild(distributionGrid);
   
   container.appendChild(distributionSection);
+}
+
+function renderROASChannelsContainer(container, data) {
+  container.innerHTML = '';
+  
+  // Create channels table
+  const channelsTitle = document.createElement('h3');
+  channelsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+  channelsTitle.textContent = 'Performance by Channel Type';
+  container.appendChild(channelsTitle);
+  
+  const channelsTableContainer = document.createElement('div');
+  channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
+  container.appendChild(channelsTableContainer);
+  
+  renderROASChannelsTable(channelsTableContainer, data);
+  
+  // Create campaigns table placeholder
+  const campaignsTitle = document.createElement('h3');
+  campaignsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+  campaignsTitle.textContent = 'Performance by Campaign';
+  container.appendChild(campaignsTitle);
+  
+  const campaignsTableContainer = document.createElement('div');
+  campaignsTableContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #999; border: 2px dashed #ddd; border-radius: 8px;">Campaign performance table will be implemented here</div>';
+  container.appendChild(campaignsTableContainer);
+}
+
+function renderROASChannelsTable(container, data) {
+  container.innerHTML = '';
+  
+  // Filter for "All" campaign records only
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Group by Channel Type
+  const channelGroups = {
+    'PERFORMANCE_MAX': [],
+    'SHOPPING': []
+  };
+  
+  allCampaignRecords.forEach(product => {
+    const channel = product['Channel Type'];
+    if (channel && channelGroups[channel]) {
+      channelGroups[channel].push(product);
+    }
+  });
+  
+  // Calculate aggregated metrics for each channel
+  const channelMetrics = Object.entries(channelGroups).map(([channelName, products]) => {
+    if (products.length === 0) {
+      return {
+        channel: channelName,
+        count: 0,
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        convValue: 0,
+        avgCPC: 0,
+        cpm: 0,
+        ctr: 0,
+        cvr: 0,
+        cpa: 0,
+        roas: 0,
+        aov: 0
+      };
+    }
+    
+    const totals = products.reduce((acc, product) => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+      return acc;
+    }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+    
+    const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+    const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+    const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+    const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+    const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+    const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+    
+    return {
+      channel: channelName,
+      count: products.length,
+      impressions: totals.impressions,
+      clicks: totals.clicks,
+      cost: totals.cost,
+      conversions: totals.conversions,
+      convValue: totals.convValue,
+      avgCPC,
+      cpm,
+      ctr,
+      cvr,
+      cpa,
+      roas,
+      aov
+    };
+  });
+  
+  // Calculate totals for percentage bars
+  const grandTotals = channelMetrics.reduce((acc, channel) => {
+    acc.impressions += channel.impressions;
+    acc.clicks += channel.clicks;
+    acc.cost += channel.cost;
+    acc.conversions += channel.conversions;
+    acc.convValue += channel.convValue;
+    return acc;
+  }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+  
+  // Helper function to create bar cell (stacked vertically)
+  const createBarCell = (value, total, formatValue, channelColor) => {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+        <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+        <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+          <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+            <div style="height: 100%; background: ${channelColor}; width: ${percentage}%; border-radius: 4px;"></div>
+          </div>
+          <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  };
+  
+  // Helper function for regular cells (with proper alignment)
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
+  // Create table
+  const table = document.createElement('table');
+  table.style.cssText = `
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: fixed;
+  `;
+  
+  // Create header (same as bucket table but with Channel Type)
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">Channel Type</th>
+      <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+      <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+      <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
+    </tr>
+  `;
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  const channelColors = {
+    'PERFORMANCE_MAX': '#4CAF50',
+    'SHOPPING': '#2196F3'
+  };
+  
+  channelMetrics.forEach(channel => {
+    const row = document.createElement('tr');
+    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
+    
+    row.innerHTML = `
+      <td style="padding: 8px; font-weight: 600; color: ${channelColors[channel.channel]}; vertical-align: middle; background: #ffffff;">${channel.channel}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.aov.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpa.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.avgCPC.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpm.toFixed(2))}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.impressions, grandTotals.impressions, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.clicks, grandTotals.clicks, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.conversions, grandTotals.conversions, (v) => v.toFixed(1), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  // Add summary row
+  const summaryRow = document.createElement('tr');
+  summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
+  
+  // Calculate summary metrics
+  const summary = {
+    totalProducts: channelMetrics.reduce((sum, channel) => sum + channel.count, 0),
+    avgROAS: grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0,
+    avgAOV: channelMetrics.reduce((sum, channel) => sum + (channel.aov * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPA: channelMetrics.reduce((sum, channel) => sum + (channel.cpa * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCTR: channelMetrics.reduce((sum, channel) => sum + (channel.ctr * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCVR: channelMetrics.reduce((sum, channel) => sum + (channel.cvr * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPC: channelMetrics.reduce((sum, channel) => sum + (channel.avgCPC * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPM: channelMetrics.reduce((sum, channel) => sum + (channel.cpm * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    totalImpressions: grandTotals.impressions,
+    totalClicks: grandTotals.clicks,
+    totalConversions: grandTotals.conversions,
+    totalCost: grandTotals.cost,
+    totalConvValue: grandTotals.convValue
+  };
+  
+  summaryRow.innerHTML = `
+    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+  `;
+  
+  tbody.appendChild(summaryRow);
+  
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
 }
 
 function calculateAggregatedMetrics(products) {
