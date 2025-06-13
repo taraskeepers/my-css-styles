@@ -4931,6 +4931,65 @@ function getGoogleAdsRatingBadgeColor(rating) {
   return '#F44336'; // Red (above 14)
 }
 
+function addBucketTooltip(element, bucketName, bucketType) {
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = `
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 300px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+  `;
+  document.body.appendChild(tooltip);
+  
+  const description = getBucketDescription(bucketType, bucketName);
+  
+  if (description) {
+    tooltip.innerHTML = `<strong>${bucketName}</strong><br><br>${description}`;
+    
+    element.addEventListener('mouseenter', function(e) {
+      tooltip.style.opacity = '1';
+    });
+    
+    element.addEventListener('mousemove', function(e) {
+      let left = e.clientX + 15;
+      let top = e.clientY - 10;
+      
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const tooltipWidth = tooltip.offsetWidth || 300;
+      const tooltipHeight = tooltip.offsetHeight || 100;
+      
+      if (left + tooltipWidth > viewportWidth) {
+        left = e.clientX - tooltipWidth - 15;
+      }
+      
+      if (top + tooltipHeight > viewportHeight) {
+        top = e.clientY - tooltipHeight - 10;
+      }
+      
+      if (left < 10) left = 10;
+      if (top < 10) top = 10;
+      
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    });
+    
+    element.addEventListener('mouseleave', function() {
+      tooltip.style.opacity = '0';
+    });
+  }
+}
+
 // Main function definition
 function renderGoogleAdsTable() {
   const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
@@ -9621,24 +9680,30 @@ function renderROASHistoricCharts(container, data) {
   
   // Convert to arrays for Chart.js
   const dates = Array.from(dateMap.keys()).sort();
-  const datasets = bucketNames.map((bucketName, index) => {
-    const colors = [
-      { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },      // Top Performers - green
-      { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },     // Efficient Low Volume - blue
-      { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },      // Volume Driver - orange
-      { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' }       // Underperformers - red
-    ];
-    
-    return {
-      label: bucketName,
-      data: dates.map(date => dateMap.get(date)[bucketName]),
-      backgroundColor: colors[index].bg,
-      borderColor: colors[index].border,
-      borderWidth: 2,
-      fill: true,
-      tension: 0.4
-    };
-  });
+const datasets = bucketNames.map((bucketName, index) => {
+  const colorPalette = [
+    { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },
+    { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },
+    { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },
+    { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' },
+    { bg: 'rgba(156, 39, 176, 0.3)', border: '#9C27B0' },
+    { bg: 'rgba(0, 188, 212, 0.3)', border: '#00BCD4' },
+    { bg: 'rgba(139, 195, 74, 0.3)', border: '#8BC34A' },
+    { bg: 'rgba(255, 193, 7, 0.3)', border: '#FFC107' }
+  ];
+  
+  const colorIndex = index % colorPalette.length;
+  
+  return {
+    label: bucketName,
+    data: dates.map(date => dateMap.get(date)[bucketName]),
+    backgroundColor: colorPalette[colorIndex].bg,
+    borderColor: colorPalette[colorIndex].border,
+    borderWidth: 2,
+    fill: true,
+    tension: 0.4
+  };
+});
   
   // Create chart
   const canvas = document.createElement('canvas');
@@ -9687,7 +9752,10 @@ new Chart(canvas, {
 });
   
   // Render right panel with bucket summary
-  const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
+  const colorPalette = [
+  '#4CAF50', '#2196F3', '#FF9800', '#F44336', 
+  '#9C27B0', '#00BCD4', '#8BC34A', '#FFC107'
+];
   rightContainer.innerHTML = `
     <h4 style="margin: 0 0 20px 0; color: #333; text-align: center;">Current vs Previous</h4>
     <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -9708,15 +9776,15 @@ new Chart(canvas, {
             align-items: center;
             justify-content: space-between;
             padding: 6px 8px;
-            background: ${colors[index]}08;
-            border-left: 3px solid ${colors[index]};
+background: ${colorPalette[index % colorPalette.length]}08;
+border-left: 3px solid ${colorPalette[index % colorPalette.length]};
             border-radius: 4px;
           ">
             <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
               <span style="font-size: 18px; color: #666; font-weight: 500;">${shortName}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 18px; font-weight: 700; color: ${colors[index]};">${currentCount}</span>
+              <span style="font-size: 18px; font-weight: 700; color: ${colorPalette[index % colorPalette.length]};">${currentCount}</span>
               <div style="
                 display: flex;
                 align-items: center;
@@ -9873,12 +9941,12 @@ allCampaignRecords.forEach(product => {
   // Create body
   const tbody = document.createElement('tbody');
   
-  const bucketColors = {
-    'Top Performers': '#4CAF50',
-    'Efficient Low Volume': '#2196F3',
-    'Volume Driver, Low ROI': '#FF9800',
-    'Underperformers': '#F44336'
-  };
+const defaultColors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#00BCD4', '#8BC34A', '#FFC107'];
+const bucketColors = {};
+
+bucketMetrics.forEach((bucket, index) => {
+  bucketColors[bucket.bucket] = defaultColors[index % defaultColors.length];
+});
   
 // Helper function to create bar cell (stacked vertically)
   const createBarCell = (value, total, formatValue, bucketColor) => {
