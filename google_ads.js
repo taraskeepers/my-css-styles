@@ -7489,18 +7489,19 @@ setTimeout(() => {
 function renderROASFunnel(container, bucketData) {
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 
-// Update bucket descriptions based on selected type
-let bucketDescriptions = {};
-if (window.bucketDescriptions && window.bucketDescriptions[bucketType]) {
-  bucketDescriptions = window.bucketDescriptions[bucketType];
-}
-  // Bucket descriptions from the Buckets document
-  const bucketDescriptions = {
+  // Default bucket descriptions for ROAS_Bucket
+  const defaultBucketDescriptions = {
     'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
     'Efficient Low Volume': 'These products deliver a strong return on ad spend but with a low number of conversions. It suggests the product is well-targeted but not reaching enough people. Consider testing broader or new audiences and increasing impressions while maintaining efficiency.',
     'Volume Driver, Low ROI': 'Products that drive a high number of conversions, but at the cost of low profitability (low ROAS). These can be important for customer acquisition but may not be sustainable unless their margin improves or lifetime value justifies continued spend.',
-    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.'
+    'Underperformers': 'Products that have both low ROAS and low conversion volume. These require immediate action - either optimize campaigns (ad creative, targeting, bidding), adjust pricing, or pause to reallocate budget to better-performing products.'
   };
+
+  // Get bucket descriptions based on selected type
+  let bucketDescriptions = defaultBucketDescriptions;
+  if (window.bucketDescriptions && window.bucketDescriptions[bucketType]) {
+    bucketDescriptions = window.bucketDescriptions[bucketType];
+  }
 
   // Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
