@@ -3150,7 +3150,7 @@ roasChartsContainer.id = 'roas_charts';
 roasChartsContainer.className = 'google-ads-charts-container';
 roasChartsContainer.style.cssText = `
   width: 1195px;
-  height: 280px;
+  height: 400px;
   margin: 60px 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -7258,7 +7258,18 @@ const channelsContainer = document.getElementById('roas_channels');
 if (channelsContainer) {
   renderROASChannelsContainer(channelsContainer, result.data, null);
 }
-    
+ // Initialize bucket distribution with ALL PRODUCTS data
+setTimeout(() => {
+  // Update right container to show overall distribution immediately
+  const rightContainer = document.querySelector('#roas_buckets .right-container');
+  if (rightContainer && window.roasBucketsData) {
+    rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
+    renderBucketDistribution(rightContainer, window.roasBucketsData);
+  }
+  
+  // Update channels and campaigns with no filter (show all)
+  updateChannelsAndCampaignsForBucket(null);
+}, 200);   
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
     leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
@@ -7749,6 +7760,7 @@ metricsIndicator.style.cssText = `
   margin-bottom: ${gap}px;
   padding: 4px;
   border: 1px solid #ddd;
+  position: relative;
 `;
 
 // Create three horizontal bar sections
@@ -7765,6 +7777,7 @@ productsBarContainer.style.cssText = `
   background: #f0f0f0;
   border-radius: 3px;
   overflow: hidden;
+  cursor: pointer;
 `;
 
 const productsBar = document.createElement('div');
@@ -7779,17 +7792,6 @@ productsBar.style.cssText = `
   border-radius: 3px;
 `;
 
-const productsLabel = document.createElement('div');
-productsLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 8px;
-  font-weight: 500;
-  color: #666;
-`;
-productsLabel.textContent = '# Products';
-
 const productsValue = document.createElement('div');
 productsValue.style.cssText = `
   font-size: 11px;
@@ -7800,7 +7802,6 @@ productsValue.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
 productsBar.appendChild(productsValue);
 productsBarContainer.appendChild(productsBar);
-productsBarContainer.appendChild(productsLabel);
 
 // Cost bar
 const costBarContainer = document.createElement('div');
@@ -7812,6 +7813,7 @@ costBarContainer.style.cssText = `
   background: #f0f0f0;
   border-radius: 3px;
   overflow: hidden;
+  cursor: pointer;
 `;
 
 const costBar = document.createElement('div');
@@ -7826,17 +7828,6 @@ costBar.style.cssText = `
   border-radius: 3px;
 `;
 
-const costLabel = document.createElement('div');
-costLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 8px;
-  font-weight: 500;
-  color: #666;
-`;
-costLabel.textContent = 'Cost';
-
 const costValue = document.createElement('div');
 costValue.style.cssText = `
   font-size: 11px;
@@ -7847,7 +7838,6 @@ costValue.textContent = `${bucket.costPercentage.toFixed(1)}%`;
 
 costBar.appendChild(costValue);
 costBarContainer.appendChild(costBar);
-costBarContainer.appendChild(costLabel);
 
 // Revenue bar
 const revenueBarContainer = document.createElement('div');
@@ -7858,6 +7848,7 @@ revenueBarContainer.style.cssText = `
   background: #f0f0f0;
   border-radius: 3px;
   overflow: hidden;
+  cursor: pointer;
 `;
 
 const revenueBar = document.createElement('div');
@@ -7872,17 +7863,6 @@ revenueBar.style.cssText = `
   border-radius: 3px;
 `;
 
-const revenueLabel = document.createElement('div');
-revenueLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 8px;
-  font-weight: 500;
-  color: #666;
-`;
-revenueLabel.textContent = 'Revenue';
-
 const revenueValue = document.createElement('div');
 revenueValue.style.cssText = `
   font-size: 11px;
@@ -7893,7 +7873,63 @@ revenueValue.textContent = `${bucket.revenuePercentage.toFixed(1)}%`;
 
 revenueBar.appendChild(revenueValue);
 revenueBarContainer.appendChild(revenueBar);
-revenueBarContainer.appendChild(revenueLabel);
+
+// Create hover tooltip
+const hoverTooltip = document.createElement('div');
+hoverTooltip.style.cssText = `
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+  white-space: nowrap;
+`;
+
+metricsIndicator.appendChild(hoverTooltip);
+
+// Add hover events for products bar
+productsBarContainer.addEventListener('mouseenter', function(e) {
+  hoverTooltip.innerHTML = `# Products: ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)`;
+  hoverTooltip.style.opacity = '1';
+  const rect = metricsIndicator.getBoundingClientRect();
+  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+});
+
+productsBarContainer.addEventListener('mouseleave', function() {
+  hoverTooltip.style.opacity = '0';
+});
+
+// Add hover events for cost bar
+costBarContainer.addEventListener('mouseenter', function(e) {
+  hoverTooltip.innerHTML = `Cost: $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)`;
+  hoverTooltip.style.opacity = '1';
+  const rect = metricsIndicator.getBoundingClientRect();
+  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+});
+
+costBarContainer.addEventListener('mouseleave', function() {
+  hoverTooltip.style.opacity = '0';
+});
+
+// Add hover events for revenue bar
+revenueBarContainer.addEventListener('mouseenter', function(e) {
+  hoverTooltip.innerHTML = `Revenue: $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)`;
+  hoverTooltip.style.opacity = '1';
+  const rect = metricsIndicator.getBoundingClientRect();
+  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+});
+
+revenueBarContainer.addEventListener('mouseleave', function() {
+  hoverTooltip.style.opacity = '0';
+});
 
 metricsIndicator.appendChild(productsBarContainer);
 metricsIndicator.appendChild(costBarContainer);
@@ -8238,26 +8274,26 @@ function renderBucketMetrics(container, bucketName, products) {
   container.appendChild(headerContainer);
   
   // Create scrollable content area
-  const scrollableContent = document.createElement('div');
-  scrollableContent.id = 'bucketDistributionContent';
-  scrollableContent.style.cssText = `
-    max-height: 350px;
-    overflow-y: auto;
-    padding-right: 5px;
-  `;
+const scrollableContent = document.createElement('div');
+scrollableContent.id = 'bucketDistributionContent';
+scrollableContent.style.cssText = `
+  height: 450px;
+  overflow-y: auto;
+  padding-right: 5px;
+`;
   
   // Initialize bucket preferences if not exists
-  if (!window.bucketDistributionPreferences) {
-    window.bucketDistributionPreferences = {
-      'Funnel_Bucket': true,
-      'ML_Cluster': true,
-      'Spend_Bucket': false,
-      'Custom_Tier': false,
-      'ROAS_Bucket': false,
-      'ROI_Bucket': false,
-      'Pricing_Bucket': false
-    };
-  }
+if (!window.bucketDistributionPreferences) {
+  window.bucketDistributionPreferences = {
+    'Funnel_Bucket': true,
+    'ML_Cluster': true,
+    'Spend_Bucket': true,
+    'Custom_Tier': true,
+    'ROAS_Bucket': false,
+    'ROI_Bucket': false,
+    'Pricing_Bucket': false
+  };
+}
   
   renderBucketDistribution(scrollableContent, products);
   container.appendChild(scrollableContent);
@@ -9293,47 +9329,43 @@ function renderROASHistoricCharts(container, data) {
   canvas.style.cssText = 'width: 100%; height: 100%;';
   leftContainer.appendChild(canvas);
   
-  new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: dates.map(date => moment(date).format('MMM DD')),
-      datasets: datasets
+new Chart(canvas, {
+  type: 'line',
+  data: {
+    labels: dates.map(date => moment(date).format('DD/MM')),
+    datasets: datasets
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
+    scales: {
+      x: {
+        display: true
       },
-      scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Date'
-          }
-        },
-        y: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Number of Products'
-          },
-          beginAtZero: true
-        }
-      },
-      plugins: {
+      y: {
+        display: true,
         title: {
           display: true,
-          text: 'Historic ROAS Bucket Distribution'
+          text: 'Number of Products'
         },
-        legend: {
-          position: 'top',
-        }
+        beginAtZero: true
+      }
+    },
+    plugins: {
+      title: {
+        display: true,
+        text: 'Historic ROAS Bucket Distribution'
+      },
+      legend: {
+        display: false
       }
     }
-  });
+  }
+});
   
   // Render right panel with bucket summary
   const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
