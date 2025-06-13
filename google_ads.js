@@ -6867,9 +6867,6 @@ if (window.googleAdsApexCharts) {
   line-height: 32px !important;
   padding: 8px 8px !important;
 }
-#roas_buckets {
-  margin-top: 60px !important;
-}
 /* Enhanced funnel styles */
 .funnel-overflow-text {
   pointer-events: none;
