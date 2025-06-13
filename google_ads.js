@@ -8593,10 +8593,10 @@ tbody.appendChild(row);
   const summaryRow = document.createElement('tr');
   summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
   
-  // Calculate summary metrics
+// Calculate summary metrics
   const summary = {
     totalProducts: bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0),
-    avgROAS: bucketMetrics.reduce((sum, bucket) => sum + (bucket.roas * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgROAS: grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0,  // Use aggregate ROAS calculation
     avgAOV: bucketMetrics.reduce((sum, bucket) => sum + (bucket.aov * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
     avgCPA: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpa * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
     avgCTR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.ctr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
