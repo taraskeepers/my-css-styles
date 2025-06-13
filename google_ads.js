@@ -8496,7 +8496,7 @@ function renderROASMetricsTable(container, data) {
     return acc;
   }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
   
-  // Create table
+// Create table
   const table = document.createElement('table');
   table.style.cssText = `
     width: 100%;
@@ -8506,6 +8506,7 @@ function renderROASMetricsTable(container, data) {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: fixed;
   `;
   
   // Create header
@@ -8546,40 +8547,115 @@ function renderROASMetricsTable(container, data) {
   
   bucketMetrics.forEach(bucket => {
     const row = document.createElement('tr');
-    row.style.cssText = 'border-bottom: 1px solid #f0f0f0;';
+row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
     
-    // Helper function to create bar cell
-    const createBarCell = (value, total, formatValue) => {
+// Helper function to create bar cell (stacked vertically)
+    const createBarCell = (value, total, formatValue, bucketColor) => {
       const percentage = total > 0 ? (value / total) * 100 : 0;
       return `
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-weight: 600; min-width: 60px;">${formatValue(value)}</span>
-          <div style="flex: 1; height: 12px; background: #f0f0f0; border-radius: 6px; overflow: hidden; min-width: 40px;">
-            <div style="height: 100%; background: ${bucketColors[bucket.bucket]}; width: ${percentage}%; border-radius: 6px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+          <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+          <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+            <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+              <div style="height: 100%; background: ${bucketColor}; width: ${percentage}%; border-radius: 4px;"></div>
+            </div>
+            <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
           </div>
-          <span style="font-size: 10px; color: #666; min-width: 30px;">${percentage.toFixed(1)}%</span>
         </div>
       `;
     };
     
-    row.innerHTML = `
-      <td style="padding: 10px 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]};">${bucket.bucket}</td>
-      <td style="padding: 10px 8px; text-align: center; font-weight: 600;">${bucket.roas.toFixed(2)}x</td>
-      <td style="padding: 10px 8px; text-align: center;">$${bucket.aov.toFixed(2)}</td>
-      <td style="padding: 10px 8px; text-align: center;">$${bucket.cpa.toFixed(2)}</td>
-      <td style="padding: 10px 8px; text-align: center;">${bucket.ctr.toFixed(2)}%</td>
-      <td style="padding: 10px 8px; text-align: center;">${bucket.cvr.toFixed(2)}%</td>
-      <td style="padding: 10px 8px; text-align: center;">$${bucket.avgCPC.toFixed(2)}</td>
-      <td style="padding: 10px 8px; text-align: center;">$${bucket.cpm.toFixed(2)}</td>
-      <td style="padding: 10px 8px;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString())}</td>
-      <td style="padding: 10px 8px;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString())}</td>
-      <td style="padding: 10px 8px;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1))}</td>
-      <td style="padding: 10px 8px;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString())}</td>
-      <td style="padding: 10px 8px;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString())}</td>
+    // Helper function for regular cells (with proper alignment)
+    const createRegularCell = (value, isCenter = true) => {
+      return `
+        <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+          <span style="font-weight: 600; font-size: 12px;">${value}</span>
+        </div>
+      `;
+    };
+    
+row.innerHTML = `
+      <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle;">${bucket.bucket}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
     `;
     
-    tbody.appendChild(row);
+tbody.appendChild(row);
   });
+  
+  // Add summary row
+  const summaryRow = document.createElement('tr');
+  summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
+  
+  // Calculate summary metrics
+  const summary = {
+    totalProducts: bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0),
+    avgROAS: bucketMetrics.reduce((sum, bucket) => sum + (bucket.roas * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgAOV: bucketMetrics.reduce((sum, bucket) => sum + (bucket.aov * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPA: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpa * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCTR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.ctr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCVR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cvr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPC: bucketMetrics.reduce((sum, bucket) => sum + (bucket.avgCPC * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPM: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpm * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    totalImpressions: grandTotals.impressions,
+    totalClicks: grandTotals.clicks,
+    totalConversions: grandTotals.conversions,
+    totalCost: grandTotals.cost,
+    totalConvValue: grandTotals.convValue
+  };
+  
+  summaryRow.innerHTML = `
+    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle;">TOTAL / AVERAGE</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+  `;
+  
+  tbody.appendChild(summaryRow);
   
   table.appendChild(thead);
   table.appendChild(tbody);
