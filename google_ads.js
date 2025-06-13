@@ -9185,9 +9185,6 @@ wrapper.appendChild(rightContainer);
 mainWrapper.appendChild(wrapper);
 container.appendChild(mainWrapper);
   
-  // Filter for "All" campaign records only
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
-  
   // Process historic data
   const dateMap = new Map();
   const bucketNames = ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'];
