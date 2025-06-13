@@ -3161,6 +3161,22 @@ roasChartsContainer.style.cssText = `
 
 contentWrapper.appendChild(roasChartsContainer);
 
+// Create ROAS Metrics Table container
+const roasMetricsTableContainer = document.createElement('div');
+roasMetricsTableContainer.id = 'roas_metrics_table';
+roasMetricsTableContainer.className = 'google-ads-metrics-table-container';
+roasMetricsTableContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+contentWrapper.appendChild(roasMetricsTableContainer);
+
 // Create ROAS Buckets container
 const roasBucketsContainer = document.createElement('div');
 roasBucketsContainer.id = 'roas_buckets';
@@ -5154,11 +5170,15 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-  // Show ROAS Charts and Buckets containers
+  // Show ROAS Charts, Metrics Table and Buckets containers
   const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasCharts) {
     roasCharts.style.display = 'block';
+  }
+  if (roasMetricsTable) {
+    roasMetricsTable.style.display = 'block';
   }
   if (roasBuckets) {
     roasBuckets.style.display = 'block';
@@ -7098,6 +7118,8 @@ setTimeout(() => {
 async function loadAndRenderROASBuckets() {
   const bucketsContainer = document.getElementById('roas_buckets');
   const chartsContainer = document.getElementById('roas_charts');
+  const metricsTableContainer = document.getElementById('roas_metrics_table');
+  
   if (!bucketsContainer) return;
   
   // Clear existing content
@@ -7105,10 +7127,13 @@ async function loadAndRenderROASBuckets() {
   if (chartsContainer) {
     chartsContainer.innerHTML = '';
   }
+  if (metricsTableContainer) {
+    metricsTableContainer.innerHTML = '';
+  }
   
   // Create wrapper for buckets container
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;';
+  wrapper.style.cssText = 'display: flex; gap: 15px; height: 450px; padding: 10px;';
 
   // Left container for funnel (increased width for three columns + funnel + descriptions)
   const leftContainer = document.createElement('div');
@@ -7123,6 +7148,12 @@ async function loadAndRenderROASBuckets() {
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
   bucketsContainer.appendChild(wrapper);
+  
+  // Create bucket distribution container
+  const bucketDistributionContainer = document.createElement('div');
+  bucketDistributionContainer.id = 'bucket_distribution';
+  bucketDistributionContainer.style.cssText = 'width: 100%; margin-top: 20px; padding: 20px 10px;';
+  bucketsContainer.appendChild(bucketDistributionContainer);
   
   try {
     // Get the bucket data using the same pattern as other data access
@@ -7176,6 +7207,11 @@ async function loadAndRenderROASBuckets() {
       renderROASHistoricCharts(chartsContainer, filteredData);
     }
     
+    // Render metrics table
+    if (metricsTableContainer) {
+      renderROASMetricsTable(metricsTableContainer, filteredData);
+    }
+    
     // Count products per bucket
     const bucketCounts = {
       'Top Performers': 0,
@@ -7205,6 +7241,9 @@ async function loadAndRenderROASBuckets() {
     }));
     
     renderROASFunnel(leftContainer, bucketData);
+    
+    // Render bucket distribution section
+    renderBucketDistribution(bucketDistributionContainer, filteredData);
     
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
@@ -7850,8 +7889,10 @@ async function updateBucketMetrics(selectedBucket) {
       throw new Error('No data found');
     }
     
-    // Filter data for selected bucket
-    const bucketProducts = result.data.filter(row => row['ROAS_Bucket'] === selectedBucket);
+    // Filter data for selected bucket AND Campaign Name === 'All'
+    const bucketProducts = result.data.filter(row => 
+      row['ROAS_Bucket'] === selectedBucket && row['Campaign Name'] === 'All'
+    );
     
     if (bucketProducts.length === 0) {
       rightContainer.innerHTML = `<div style="text-align: center; margin-top: 40px; color: #666;">No products found in ${selectedBucket} bucket</div>`;
@@ -8075,13 +8116,13 @@ function renderROASHistoricCharts(container, data) {
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'display: flex; gap: 20px; height: 100%;';
   
-  // Left container for chart (70% width)
+  // Left container for chart (75% width)
   const leftContainer = document.createElement('div');
-  leftContainer.style.cssText = 'width: 70%; height: 100%; position: relative;';
+  leftContainer.style.cssText = 'width: 75%; height: 100%; position: relative;';
   
-  // Right container (30% width)
+  // Right container (25% width)
   const rightContainer = document.createElement('div');
-  rightContainer.style.cssText = 'width: 30%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
+  rightContainer.style.cssText = 'width: 25%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
@@ -8250,40 +8291,40 @@ function renderROASHistoricCharts(container, data) {
             size: 13
           },
           callbacks: {
-  title: function(context) {
-    return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
-  },
-  label: function(context) {
-    const label = context.dataset.label;
-    const value = context.parsed.y;
-    return label + ': ' + value + ' products';
-  },
-  labelTextColor: function(context) {
-    return '#333';
-  },
-  afterLabel: function(context) {
-    return '';  // Add spacing
-  }
-}
+            title: function(context) {
+              return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
+            },
+            label: function(context) {
+              const label = context.dataset.label;
+              const value = context.parsed.y;
+              return label + ': ' + value + ' products';
+            },
+            labelTextColor: function(context) {
+              return '#333';
+            },
+            afterLabel: function(context) {
+              return '';  // Add spacing
+            }
+          }
         },
         datalabels: {
           display: false  // Disable data labels on points
         }
       },
-scales: {
-  x: {
-    display: true,
-    title: {
-      display: false  // Remove "Date" label
-    },
-    ticks: {
-      maxRotation: 45,
-      minRotation: 45,
-      autoSkip: true,
-      maxTicksLimit: 15,
-      font: { size: 10 }  // Smaller font size for dates
-    }
-  },
+      scales: {
+        x: {
+          display: true,
+          title: {
+            display: false  // Remove "Date" label
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 15,
+            font: { size: 10 }  // Smaller font size for dates
+          }
+        },
         y: {
           stacked: true,
           display: true,
@@ -8301,72 +8342,272 @@ scales: {
     }
   });
   
-// Add summary with trends to right container
-rightContainer.innerHTML = `
-  <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #333; font-weight: 600;">Current Distribution</h4>
-  <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-    ${bucketNames.map((name, index) => {
-      const currentCount = currentBucketCounts[name];
-      const prevCount = prevBucketCounts[name];
-      const change = currentCount - prevCount;
-      const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
-      
-      let trendArrow = '';
-      let trendColor = '#666';
-      let trendText = '';
-      
-      if (change > 0) {
-        trendArrow = '▲';
-        trendColor = '#4CAF50';
-        trendText = `+${change}`;
-      } else if (change < 0) {
-        trendArrow = '▼';
-        trendColor = '#F44336';
-        trendText = `${change}`;
-      } else {
-        trendArrow = '—';
-        trendColor = '#999';
-        trendText = '0';
-      }
-      
-      // Shorten bucket names for compact display
-      const shortName = name === 'Volume Driver, Low ROI' ? 'Volume Driver' : 
-                       name === 'Efficient Low Volume' ? 'Efficient Low' : name;
-      
-      return `
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 6px 8px;
-          background: ${colors[index]}08;
-          border-left: 3px solid ${colors[index]};
-          border-radius: 4px;
-        ">
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-            <span style="font-size: 11px; color: #666; font-weight: 500;">${shortName}</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 18px; font-weight: 700; color: ${colors[index]};">${currentCount}</span>
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 2px;
-              background: ${trendColor}15;
-              padding: 2px 6px;
-              border-radius: 3px;
-              min-width: 35px;
-              justify-content: center;
-            ">
-              <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${trendArrow}</span>
-              <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${Math.abs(change)}</span>
+  // Add summary with trends to right container (removed "Current Distribution" heading)
+  rightContainer.innerHTML = `
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      ${bucketNames.map((name, index) => {
+        const currentCount = currentBucketCounts[name];
+        const prevCount = prevBucketCounts[name];
+        const change = currentCount - prevCount;
+        const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
+        
+        let trendArrow = '';
+        let trendColor = '#666';
+        let trendText = '';
+        
+        if (change > 0) {
+          trendArrow = '▲';
+          trendColor = '#4CAF50';
+          trendText = `+${change}`;
+        } else if (change < 0) {
+          trendArrow = '▼';
+          trendColor = '#F44336';
+          trendText = `${change}`;
+        } else {
+          trendArrow = '—';
+          trendColor = '#999';
+          trendText = '0';
+        }
+        
+        // Shorten bucket names for compact display
+        const shortName = name === 'Volume Driver, Low ROI' ? 'Volume Driver' : 
+                         name === 'Efficient Low Volume' ? 'Efficient Low' : name;
+        
+        return `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            background: ${colors[index]}08;
+            border-left: 3px solid ${colors[index]};
+            border-radius: 4px;
+          ">
+            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+              <span style="font-size: 18px; color: #666; font-weight: 500;">${shortName}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px; font-weight: 700; color: ${colors[index]};">${currentCount}</span>
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                background: ${trendColor}15;
+                padding: 2px 6px;
+                border-radius: 3px;
+                min-width: 35px;
+                justify-content: center;
+              ">
+                <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${trendArrow}</span>
+                <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${Math.abs(change)}</span>
+              </div>
             </div>
           </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderROASMetricsTable(container, data) {
+  container.innerHTML = '';
+  
+  // Filter for "All" campaign records only
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Group by ROAS Bucket
+  const bucketGroups = {
+    'Top Performers': [],
+    'Efficient Low Volume': [],
+    'Volume Driver, Low ROI': [],
+    'Underperformers': []
+  };
+  
+  allCampaignRecords.forEach(product => {
+    const bucket = product['ROAS_Bucket'];
+    if (bucket && bucketGroups[bucket]) {
+      bucketGroups[bucket].push(product);
+    }
+  });
+  
+  // Calculate aggregated metrics for each bucket
+  const bucketMetrics = Object.entries(bucketGroups).map(([bucketName, products]) => {
+    if (products.length === 0) {
+      return {
+        bucket: bucketName,
+        count: 0,
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        convValue: 0,
+        avgCPC: 0,
+        cpm: 0,
+        ctr: 0,
+        cvr: 0,
+        cpa: 0,
+        roas: 0,
+        aov: 0
+      };
+    }
+    
+    const totals = products.reduce((acc, product) => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+      return acc;
+    }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+    
+    const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+    const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+    const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+    const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+    const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+    const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+    
+    return {
+      bucket: bucketName,
+      count: products.length,
+      impressions: totals.impressions,
+      clicks: totals.clicks,
+      cost: totals.cost,
+      conversions: totals.conversions,
+      convValue: totals.convValue,
+      avgCPC,
+      cpm,
+      ctr,
+      cvr,
+      cpa,
+      roas,
+      aov
+    };
+  });
+  
+  // Calculate totals for percentage bars
+  const grandTotals = bucketMetrics.reduce((acc, bucket) => {
+    acc.impressions += bucket.impressions;
+    acc.clicks += bucket.clicks;
+    acc.cost += bucket.cost;
+    acc.conversions += bucket.conversions;
+    acc.convValue += bucket.convValue;
+    return acc;
+  }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+  
+  // Create table
+  const table = document.createElement('table');
+  table.style.cssText = `
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  `;
+  
+  // Create header
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px;">ROAS Bucket</th>
+      <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+      <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+      <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Conv Value</th>
+    </tr>
+  `;
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  const bucketColors = {
+    'Top Performers': '#4CAF50',
+    'Efficient Low Volume': '#2196F3',
+    'Volume Driver, Low ROI': '#FF9800',
+    'Underperformers': '#F44336'
+  };
+  
+  bucketMetrics.forEach(bucket => {
+    const row = document.createElement('tr');
+    row.style.cssText = 'border-bottom: 1px solid #f0f0f0;';
+    
+    // Helper function to create bar cell
+    const createBarCell = (value, total, formatValue) => {
+      const percentage = total > 0 ? (value / total) * 100 : 0;
+      return `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; min-width: 60px;">${formatValue(value)}</span>
+          <div style="flex: 1; height: 12px; background: #f0f0f0; border-radius: 6px; overflow: hidden; min-width: 40px;">
+            <div style="height: 100%; background: ${bucketColors[bucket.bucket]}; width: ${percentage}%; border-radius: 6px;"></div>
+          </div>
+          <span style="font-size: 10px; color: #666; min-width: 30px;">${percentage.toFixed(1)}%</span>
         </div>
       `;
-    }).join('')}
-  </div>
-`;
+    };
+    
+    row.innerHTML = `
+      <td style="padding: 10px 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]};">${bucket.bucket}</td>
+      <td style="padding: 10px 8px; text-align: center; font-weight: 600;">${bucket.roas.toFixed(2)}x</td>
+      <td style="padding: 10px 8px; text-align: center;">$${bucket.aov.toFixed(2)}</td>
+      <td style="padding: 10px 8px; text-align: center;">$${bucket.cpa.toFixed(2)}</td>
+      <td style="padding: 10px 8px; text-align: center;">${bucket.ctr.toFixed(2)}%</td>
+      <td style="padding: 10px 8px; text-align: center;">${bucket.cvr.toFixed(2)}%</td>
+      <td style="padding: 10px 8px; text-align: center;">$${bucket.avgCPC.toFixed(2)}</td>
+      <td style="padding: 10px 8px; text-align: center;">$${bucket.cpm.toFixed(2)}</td>
+      <td style="padding: 10px 8px;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString())}</td>
+      <td style="padding: 10px 8px;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString())}</td>
+      <td style="padding: 10px 8px;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1))}</td>
+      <td style="padding: 10px 8px;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString())}</td>
+      <td style="padding: 10px 8px;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString())}</td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function renderBucketDistribution(container, data) {
+  container.innerHTML = '';
+  
+  const title = document.createElement('h4');
+  title.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+  title.textContent = 'Bucket Distribution';
+  container.appendChild(title);
+  
+  const distributionGrid = document.createElement('div');
+  distributionGrid.style.cssText = `
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  `;
+  
+  // Funnel Bucket distribution
+  const funnelDistribution = createDistributionChart(data, 'Funnel_Bucket', 'Funnel Performance');
+  const mlDistribution = createDistributionChart(data, 'ML_Cluster', 'ML Clusters');
+  
+  distributionGrid.appendChild(funnelDistribution);
+  distributionGrid.appendChild(mlDistribution);
+  container.appendChild(distributionGrid);
 }
 
 function getAllFromStore(store) {
