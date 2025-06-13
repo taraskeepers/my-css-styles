@@ -3250,7 +3250,7 @@ roasBucketsContainer.id = 'roas_buckets';
 roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
   width: 1195px;
-  height: 650px;
+  height: 550px;
   margin: 0 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -9141,25 +9141,25 @@ function createDistributionChart(products, field, title) {
     return container;
   }
   
-  // Create tooltip element
-  const tooltip = document.createElement('div');
-  tooltip.style.cssText = `
-    position: absolute;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 12px 15px;
-    border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.4;
-    max-width: 300px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.2);
-  `;
-  container.appendChild(tooltip);
+// Create tooltip element - append to body for proper positioning
+const tooltip = document.createElement('div');
+tooltip.style.cssText = `
+  position: fixed;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px 15px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 300px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.2);
+`;
+document.body.appendChild(tooltip);
   
   // Create simple bar chart with hover functionality
   Object.entries(counts).forEach(([label, count]) => {
@@ -9230,33 +9230,63 @@ function createDistributionChart(products, field, title) {
       }
     });
     
-    barContainer.addEventListener('mousemove', function(e) {
-      const rect = container.getBoundingClientRect();
-      const tooltipRect = tooltip.getBoundingClientRect();
-      
-      let left = e.clientX - rect.left + 15;
-      let top = e.clientY - rect.top - 10;
-      
-      // Adjust position if tooltip would go outside container
-      if (left + tooltipRect.width > container.offsetWidth) {
-        left = e.clientX - rect.left - tooltipRect.width - 15;
-      }
-      if (top < 0) {
-        top = e.clientY - rect.top + 20;
-      }
-      
-      tooltip.style.left = left + 'px';
-      tooltip.style.top = top + 'px';
-    });
+barContainer.addEventListener('mousemove', function(e) {
+  // Use viewport coordinates for fixed positioning
+  let left = e.clientX + 15;
+  let top = e.clientY - 10;
+  
+  // Get viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Get tooltip dimensions (estimate if not visible)
+  const tooltipWidth = tooltip.offsetWidth || 300; // fallback to max-width
+  const tooltipHeight = tooltip.offsetHeight || 100; // estimated height
+  
+  // Adjust horizontal position if tooltip would go outside viewport
+  if (left + tooltipWidth > viewportWidth) {
+    left = e.clientX - tooltipWidth - 15;
+  }
+  
+  // Adjust vertical position if tooltip would go outside viewport
+  if (top + tooltipHeight > viewportHeight) {
+    top = e.clientY - tooltipHeight - 10;
+  }
+  
+  // Ensure tooltip doesn't go above or left of viewport
+  if (left < 10) left = 10;
+  if (top < 10) top = 10;
+  
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+});
     
     barContainer.addEventListener('mouseleave', function() {
       tooltip.style.opacity = '0';
     });
     
-    chartContainer.appendChild(barContainer);
+chartContainer.appendChild(barContainer);
   });
   
   container.appendChild(chartContainer);
+  
+  // Store tooltip reference for cleanup
+  container.tooltip = tooltip;
+  
+  // Add cleanup when container is removed
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.removedNodes.forEach(function(node) {
+        if (node === container && tooltip.parentNode) {
+          document.body.removeChild(tooltip);
+          observer.disconnect();
+        }
+      });
+    });
+  });
+  
+  observer.observe(document.body, { childList: true, subtree: true });
+  
   return container;
 }
 
