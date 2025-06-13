@@ -7263,8 +7263,7 @@ function renderROASFunnel(container, bucketData) {
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
     const totalRevenue = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
-    const avgROAS = bucketProducts.length > 0 ? 
-      bucketProducts.reduce((sum, product) => sum + (parseFloat(product.ROAS) || 0), 0) / bucketProducts.length : 0;
+    const avgROAS = totalCost > 0 ? totalRevenue / totalCost : 0;
     
     return {
       ...bucket,
@@ -8506,29 +8505,29 @@ function renderROASMetricsTable(container, data) {
     table-layout: fixed;
   `;
   
-  // Create header
+// Create header
   const thead = document.createElement('thead');
   thead.innerHTML = `
     <tr style="background: #f8f9fa;">
-      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px;">ROAS Bucket</th>
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">ROAS Bucket</th>
       <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
       <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
       <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
     </tr>
     <tr style="background: #f8f9fa;">
-      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6;"></th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">ROAS</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">AOV</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32;">CPA</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CTR</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CVR</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">Avg CPC</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0;">CPM</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Impressions</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Clicks</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Conversions</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Cost</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00;">Conv Value</th>
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
     </tr>
   `;
   
@@ -8572,19 +8571,19 @@ function renderROASMetricsTable(container, data) {
     row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
     
 row.innerHTML = `
-      <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle;">${bucket.bucket}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
     `;
     
 tbody.appendChild(row);
@@ -8611,15 +8610,15 @@ tbody.appendChild(row);
     totalConvValue: grandTotals.convValue
   };
   
-  summaryRow.innerHTML = `
-    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle;">TOTAL / AVERAGE</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
+summaryRow.innerHTML = `
+    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
     <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
         <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
