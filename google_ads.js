@@ -7260,6 +7260,19 @@ if (channelsContainer) {
 }
 // Initialize bucket distribution with ALL PRODUCTS data
 setTimeout(() => {
+  // Initialize preferences if not set
+  if (!window.bucketDistributionPreferences) {
+    window.bucketDistributionPreferences = {
+      'Funnel_Bucket': true,
+      'ML_Cluster': true,
+      'Spend_Bucket': true,
+      'Custom_Tier': true,
+      'ROAS_Bucket': false,
+      'ROI_Bucket': false,
+      'Pricing_Bucket': false
+    };
+  }
+  
   // Update right container to show overall distribution immediately
   const rightContainer = document.querySelector('#roas_buckets .right-container');
   if (rightContainer && window.roasBucketsData) {
@@ -7288,7 +7301,7 @@ setTimeout(() => {
   
   // Update channels and campaigns with no filter (show all)
   updateChannelsAndCampaignsForBucket(null);
-}, 300);  
+}, 300);
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
     leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
@@ -8333,7 +8346,7 @@ function renderBucketDistribution(container, products) {
   `;
   
   bucketConfigs.forEach(config => {
-    if (window.bucketDistributionPreferences[config.key]) {
+    if (window.bucketDistributionPreferences && window.bucketDistributionPreferences[config.key]) {
       const distributionChart = createDistributionChart(products, config.key, config.title);
       distributionGrid.appendChild(distributionChart);
     }
@@ -9043,19 +9056,27 @@ function createDistributionChart(products, field, title) {
   titleEl.textContent = title;
   container.appendChild(titleEl);
   
-  // Count occurrences
+  // Count occurrences with proper error handling
   const counts = {};
   products.forEach(product => {
-    const value = product[field] || 'Unknown';
+    // Add safety check and default value
+    const value = (product && product[field]) ? product[field] : 'Unknown';
     counts[value] = (counts[value] || 0) + 1;
   });
   
   const total = products.length;
   const chartContainer = document.createElement('div');
   
+  // Check if we have any data
+  if (Object.keys(counts).length === 0) {
+    chartContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">No data available</div>';
+    container.appendChild(chartContainer);
+    return container;
+  }
+  
   // Create simple bar chart
   Object.entries(counts).forEach(([label, count]) => {
-    const percentage = (count / total * 100).toFixed(1);
+    const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
     
     const barContainer = document.createElement('div');
     barContainer.style.cssText = 'margin-bottom: 8px;';
