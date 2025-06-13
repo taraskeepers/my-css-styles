@@ -6928,6 +6928,21 @@ if (window.googleAdsApexCharts) {
 .percentage-bar-fill {
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
 }
+/* Enhanced tooltip styling */
+.chartjs-tooltip {
+  opacity: 1 !important;
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 8px !important;
+  color: #333 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  pointer-events: none !important;
+  transform: translate(-50%, 0) !important;
+  transition: all 0.1s ease !important;
+  padding: 12px !important;
+  min-width: 200px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
     `;
     document.head.appendChild(style);
   }
@@ -7934,13 +7949,13 @@ function renderROASHistoricCharts(container, data) {
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'display: flex; gap: 20px; height: 100%;';
   
-  // Left container for chart (80% width)
+  // Left container for chart (70% width)
   const leftContainer = document.createElement('div');
-  leftContainer.style.cssText = 'width: 80%; height: 100%; position: relative;';
+  leftContainer.style.cssText = 'width: 70%; height: 100%; position: relative;';
   
-  // Right container (20% width) - empty for now
+  // Right container (30% width)
   const rightContainer = document.createElement('div');
-  rightContainer.style.cssText = 'width: 20%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
+  rightContainer.style.cssText = 'width: 30%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
@@ -7953,10 +7968,35 @@ function renderROASHistoricCharts(container, data) {
   const dateMap = new Map();
   const bucketNames = ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'];
   
-  // Initialize date map for last 30 days
+  // Calculate date range based on available data
+  let minDate = moment();
+  let maxDate = moment().subtract(30, 'days');
+  
+  // Find actual date range from historic data
+  allCampaignRecords.forEach(product => {
+    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+      product['historic_data.buckets'].forEach(histItem => {
+        if (histItem.date) {
+          const itemDate = moment(histItem.date, 'YYYY-MM-DD');
+          if (itemDate.isValid()) {
+            if (itemDate.isBefore(minDate)) minDate = itemDate.clone();
+            if (itemDate.isAfter(maxDate)) maxDate = itemDate.clone();
+          }
+        }
+      });
+    }
+  });
+  
+  // Use last 30 days or available data range
   const endDate = moment();
   const startDate = moment().subtract(29, 'days');
   
+  // Adjust if we have less than 30 days of data
+  if (minDate.isAfter(startDate)) {
+    startDate.set(minDate.toObject());
+  }
+  
+  // Initialize date map
   for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
     const dateStr = d.format('YYYY-MM-DD');
     dateMap.set(dateStr, {
@@ -7984,6 +8024,35 @@ function renderROASHistoricCharts(container, data) {
     }
   });
   
+  // Calculate current and previous bucket counts for trends
+  const currentBucketCounts = {
+    'Top Performers': 0,
+    'Efficient Low Volume': 0,
+    'Volume Driver, Low ROI': 0,
+    'Underperformers': 0
+  };
+  
+  const prevBucketCounts = {
+    'Top Performers': 0,
+    'Efficient Low Volume': 0,
+    'Volume Driver, Low ROI': 0,
+    'Underperformers': 0
+  };
+  
+  // Count current and previous bucket assignments
+  allCampaignRecords.forEach(product => {
+    const currentBucket = product['ROAS_Bucket'];
+    const prevBucket = product['prev_ROAS_Bucket'];
+    
+    if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
+      currentBucketCounts[currentBucket]++;
+    }
+    
+    if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
+      prevBucketCounts[prevBucket]++;
+    }
+  });
+  
   // Convert to arrays for Chart.js
   const dates = Array.from(dateMap.keys()).sort();
   const datasets = bucketNames.map((bucketName, index) => {
@@ -8001,7 +8070,9 @@ function renderROASHistoricCharts(container, data) {
       borderColor: colors[index].border,
       borderWidth: 2,
       fill: true,
-      tension: 0.3
+      tension: 0.3,
+      pointRadius: 0,
+      pointHoverRadius: 5
     };
   });
   
@@ -8033,23 +8104,38 @@ function renderROASHistoricCharts(container, data) {
           padding: { bottom: 10 }
         },
         legend: {
-          position: 'bottom',
-          labels: {
-            padding: 12,
-            font: { size: 12 }
-          }
+          display: false  // Remove legend
         },
         tooltip: {
           mode: 'index',
           intersect: false,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          titleColor: '#333',
+          bodyColor: '#666',
+          borderColor: '#ddd',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: true,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
           callbacks: {
             title: function(context) {
               return moment(dates[context[0].dataIndex]).format('MMMM DD, YYYY');
             },
             label: function(context) {
-              return context.dataset.label + ': ' + context.parsed.y + ' products';
+              const label = context.dataset.label;
+              const value = context.parsed.y;
+              return label + ': ' + value + ' products';
             }
           }
+        },
+        datalabels: {
+          display: false  // Disable data labels on points
         }
       },
       scales: {
@@ -8084,19 +8170,46 @@ function renderROASHistoricCharts(container, data) {
     }
   });
   
-  // Add summary to right container
+  // Add summary with trends to right container
   rightContainer.innerHTML = `
     <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Current Distribution</h4>
     ${bucketNames.map((name, index) => {
-      const currentCount = dateMap.get(dates[dates.length - 1])[name];
+      const currentCount = currentBucketCounts[name];
+      const prevCount = prevBucketCounts[name];
+      const change = currentCount - prevCount;
       const colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336'];
+      
+      let trendArrow = '';
+      let trendColor = '#666';
+      let trendText = '';
+      
+      if (change > 0) {
+        trendArrow = '▲';
+        trendColor = '#4CAF50';
+        trendText = `+${change}`;
+      } else if (change < 0) {
+        trendArrow = '▼';
+        trendColor = '#F44336';
+        trendText = `${change}`;
+      } else {
+        trendArrow = '—';
+        trendColor = '#999';
+        trendText = '0';
+      }
+      
       return `
-        <div style="margin-bottom: 10px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <div style="width: 12px; height: 12px; background: ${colors[index]}; border-radius: 2px;"></div>
-            <span style="font-size: 12px; color: #666;">${name}</span>
+            <span style="font-size: 12px; color: #666; flex: 1;">${name}</span>
           </div>
-          <div style="font-size: 20px; font-weight: 700; color: ${colors[index]}; margin-left: 20px;">${currentCount}</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 24px; font-weight: 700; color: ${colors[index]};">${currentCount}</div>
+            <div style="display: flex; align-items: center; gap: 4px; background: ${trendColor}20; padding: 4px 8px; border-radius: 4px;">
+              <span style="color: ${trendColor}; font-size: 12px; font-weight: 600;">${trendArrow}</span>
+              <span style="color: ${trendColor}; font-size: 12px; font-weight: 600;">${trendText}</span>
+            </div>
+          </div>
         </div>
       `;
     }).join('')}
