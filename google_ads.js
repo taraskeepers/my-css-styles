@@ -7253,10 +7253,10 @@ wrapper.appendChild(leftContainer);
     
 renderROASFunnel(leftContainer, bucketData);
     
-    // Render channels container
+// Render channels container (use original unfiltered data, not filteredData)
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
-      renderROASChannelsContainer(channelsContainer, filteredData);
+      renderROASChannelsContainer(channelsContainer, result.data);
     }
     
   } catch (error) {
