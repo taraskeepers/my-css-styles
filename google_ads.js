@@ -5154,16 +5154,18 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-// Show ROAS Charts and Buckets containers
-const roasCharts = document.getElementById('roas_charts');
-const roasBuckets = document.getElementById('roas_buckets');
-if (roasCharts) {
-  roasCharts.style.display = 'block';
-}
-if (roasBuckets) {
-  roasBuckets.style.display = 'block';
+  // Show ROAS Charts and Buckets containers
+  const roasCharts = document.getElementById('roas_charts');
+  const roasBuckets = document.getElementById('roas_buckets');
+  if (roasCharts) {
+    roasCharts.style.display = 'block';
+  }
+  if (roasBuckets) {
+    roasBuckets.style.display = 'block';
+  }
+  
+  // Load and render both containers
   loadAndRenderROASBuckets();
-}
 });
 
   // Add event listener for chart mode toggle
@@ -7083,20 +7085,19 @@ async function loadAndRenderROASBuckets() {
   const chartsContainer = document.getElementById('roas_charts');
   if (!bucketsContainer) return;
   
-  // Clear existing content in both containers
-  if (bucketsContainer) bucketsContainer.innerHTML = '';
-  if (chartsContainer) chartsContainer.innerHTML = '';
-  
   // Clear existing content
-  container.innerHTML = '';
+  bucketsContainer.innerHTML = '';
+  if (chartsContainer) {
+    chartsContainer.innerHTML = '';
+  }
   
-// Create wrapper  
-const wrapper = document.createElement('div');
-wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;';
+  // Create wrapper for buckets container
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display: flex; gap: 15px; height: 100%; padding: 10px;';
 
-// Left container for funnel (increased width for three columns + funnel + descriptions)
-const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
+  // Left container for funnel (increased width for three columns + funnel + descriptions)
+  const leftContainer = document.createElement('div');
+  leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   
   // Right container for metrics
   const rightContainer = document.createElement('div');
@@ -7106,46 +7107,42 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   
   wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
-  container.appendChild(wrapper);
+  bucketsContainer.appendChild(wrapper);
   
-  // Load and render funnel data
   try {
-    const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    // Get the products bucket data
+    const query = `
+      SELECT * FROM googleSheets_productBuckets_30d 
+      WHERE "Campaign Name" = 'All'
+      ORDER BY "Product Title"
+    `;
     
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
+    const result = await window.db.exec(query);
     
-    if (!db.objectStoreNames.contains('projectData')) {
-      throw new Error('projectData store not found');
+    if (!result || result.length === 0 || !result[0].values) {
+      leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
+      return;
     }
     
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
+    // Convert to array of objects
+    const columns = result[0].columns;
+    result.data = result[0].values.map(row => {
+      const obj = {};
+      columns.forEach((col, idx) => {
+        obj[col] = row[idx];
+      });
+      return obj;
     });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      throw new Error('No data found');
-    }
     
     // Store data globally for metrics updates
     window.roasBucketsData = result.data;
-
+    
     // Process historic data for area charts
-if (chartsContainer) {
-  renderROASHistoricCharts(chartsContainer, result.data);
-}   
-    // Count products by ROAS_Bucket
+    if (chartsContainer) {
+      renderROASHistoricCharts(chartsContainer, result.data);
+    }
+    
+    // Count products per bucket
     const bucketCounts = {
       'Top Performers': 0,
       'Efficient Low Volume': 0,
@@ -7160,9 +7157,13 @@ if (chartsContainer) {
       }
     });
     
-    const total = Object.values(bucketCounts).reduce((sum, count) => sum + count, 0);
+    // Calculate grand totals from all products
+    const grandTotalImpressions = result.data.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
+    const grandTotalClicks = result.data.reduce((sum, row) => sum + (parseInt(row.Clicks) || 0), 0);
+    const grandTotalConversions = result.data.reduce((sum, row) => sum + (parseFloat(row.Conversions) || 0), 0);
     
-    // Calculate percentages
+    // Create bucket data array
+    const total = Object.values(bucketCounts).reduce((sum, count) => sum + count, 0);
     const bucketData = Object.entries(bucketCounts).map(([name, count]) => ({
       name,
       count,
