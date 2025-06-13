@@ -7399,20 +7399,22 @@ wrapper.appendChild(leftContainer);
       renderROASMetricsTable(metricsTableContainer, filteredData);
     }
     
-    // Count products per bucket
-    const bucketCounts = {
-      'Top Performers': 0,
-      'Efficient Low Volume': 0,
-      'Volume Driver, Low ROI': 0,
-      'Underperformers': 0
-    };
-    
-    filteredData.forEach(row => {
-      const bucket = row['ROAS_Bucket'];
-      if (bucket && bucketCounts.hasOwnProperty(bucket)) {
-        bucketCounts[bucket]++;
-      }
-    });
+// Get bucket values dynamically based on selected type
+const bucketCounts = {};
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+
+// Get unique bucket values for the selected bucket type
+const uniqueBucketValues = [...new Set(filteredData.map(row => row[bucketType]))].filter(Boolean);
+uniqueBucketValues.forEach(bucketValue => {
+  bucketCounts[bucketValue] = 0;
+});
+
+filteredData.forEach(row => {
+  const bucket = row[bucketType];
+  if (bucket && bucketCounts.hasOwnProperty(bucket)) {
+    bucketCounts[bucket]++;
+  }
+});
     
     // Calculate grand totals from all products
     const grandTotalImpressions = filteredData.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
@@ -7485,6 +7487,13 @@ setTimeout(() => {
 }
 
 function renderROASFunnel(container, bucketData) {
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+
+// Update bucket descriptions based on selected type
+let bucketDescriptions = {};
+if (window.bucketDescriptions && window.bucketDescriptions[bucketType]) {
+  bucketDescriptions = window.bucketDescriptions[bucketType];
+}
   // Bucket descriptions from the Buckets document
   const bucketDescriptions = {
     'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
@@ -7495,7 +7504,8 @@ function renderROASFunnel(container, bucketData) {
 
   // Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
-    const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
+    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
     const totalRevenue = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
@@ -8366,9 +8376,10 @@ async function updateBucketMetrics(selectedBucket) {
     }
     
     // Filter data for selected bucket AND Campaign Name === 'All'
-    const bucketProducts = result.data.filter(row => 
-      row['ROAS_Bucket'] === selectedBucket && row['Campaign Name'] === 'All'
-    );
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+const bucketProducts = result.data.filter(row => 
+  row[bucketType] === selectedBucket && row['Campaign Name'] === 'All'
+);
     
     if (bucketProducts.length === 0) {
       rightContainer.innerHTML = `<div style="text-align: center; margin-top: 40px; color: #666;">No products found in ${selectedBucket} bucket</div>`;
@@ -8610,9 +8621,10 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   
   // Apply bucket filter if provided
   let filteredData = data;
-  if (bucketFilter) {
-    filteredData = data.filter(row => row['ROAS_Bucket'] === bucketFilter);
-  }
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+if (bucketFilter) {
+  filteredData = data.filter(row => row[bucketType] === bucketFilter);
+}
   
   // Create channels table
   const channelsTitle = document.createElement('h3');
@@ -8648,8 +8660,9 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 // Exclude records where Campaign Name = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
-  validRecords = validRecords.filter(row => row['ROAS_Bucket'] === bucketFilter);
+  validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
 }
   
   // Get all unique campaign names
@@ -8915,8 +8928,9 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
 // Exclude records where Channel Type = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
-  validRecords = validRecords.filter(row => row['ROAS_Bucket'] === bucketFilter);
+  validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
 }
   
   // Group by Channel Type
@@ -9518,7 +9532,9 @@ function renderROASHistoricCharts(container, data) {
   
   // Process historic data
   const dateMap = new Map();
-  const bucketNames = ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'];
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+// Get unique bucket names from the data
+const bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
   
   // Calculate date range based on available data
   let minDate = moment();
@@ -9559,22 +9575,23 @@ function renderROASHistoricCharts(container, data) {
     });
   }
   
-  // Count products per bucket per date
-  allCampaignRecords.forEach(product => {
-    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-      product['historic_data.buckets'].forEach(histItem => {
-        const date = histItem.date;
-        const roasBucket = histItem.ROAS_Bucket;
-        
-        if (date && roasBucket && dateMap.has(date)) {
-          const dayData = dateMap.get(date);
-          if (dayData[roasBucket] !== undefined) {
-            dayData[roasBucket]++;
-          }
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+// Count products per bucket per date
+allCampaignRecords.forEach(product => {
+  if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+    product['historic_data.buckets'].forEach(histItem => {
+      const date = histItem.date;
+      const bucketValue = histItem[bucketType];
+      
+      if (date && bucketValue && dateMap.has(date)) {
+        const dayData = dateMap.get(date);
+        if (dayData[bucketValue] !== undefined) {
+          dayData[bucketValue]++;
         }
-      });
-    }
-  });
+      }
+    });
+  }
+});
   
   // Calculate current and previous bucket counts for trends
   const currentBucketCounts = {
@@ -9591,19 +9608,22 @@ function renderROASHistoricCharts(container, data) {
     'Underperformers': 0
   };
   
-  // Count current and previous bucket assignments
-  allCampaignRecords.forEach(product => {
-    const currentBucket = product['ROAS_Bucket'];
-    const prevBucket = product['prev_ROAS_Bucket'];
-    
-    if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
-      currentBucketCounts[currentBucket]++;
-    }
-    
-    if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
-      prevBucketCounts[prevBucket]++;
-    }
-  });
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+const prevBucketType = 'prev_' + bucketType;
+
+// Count current and previous bucket assignments
+allCampaignRecords.forEach(product => {
+  const currentBucket = product[bucketType];
+  const prevBucket = product[prevBucketType];
+  
+  if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
+    currentBucketCounts[currentBucket]++;
+  }
+  
+  if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
+    prevBucketCounts[prevBucket]++;
+  }
+});
   
   // Convert to arrays for Chart.js
   const dates = Array.from(dateMap.keys()).sort();
@@ -9736,19 +9756,21 @@ function renderROASMetricsTable(container, data) {
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
   
   // Group by ROAS Bucket
-  const bucketGroups = {
-    'Top Performers': [],
-    'Efficient Low Volume': [],
-    'Volume Driver, Low ROI': [],
-    'Underperformers': []
-  };
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+// Get unique bucket values dynamically
+const uniqueBuckets = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean);
+const bucketGroups = {};
+uniqueBuckets.forEach(bucket => {
+  bucketGroups[bucket] = [];
+});
   
-  allCampaignRecords.forEach(product => {
-    const bucket = product['ROAS_Bucket'];
-    if (bucket && bucketGroups[bucket]) {
-      bucketGroups[bucket].push(product);
-    }
-  });
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+allCampaignRecords.forEach(product => {
+  const bucket = product[bucketType];
+  if (bucket && bucketGroups[bucket]) {
+    bucketGroups[bucket].push(product);
+  }
+});
   
   // Calculate aggregated metrics for each bucket
   const bucketMetrics = Object.entries(bucketGroups).map(([bucketName, products]) => {
