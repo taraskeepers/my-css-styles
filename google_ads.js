@@ -6759,7 +6759,8 @@ if (window.googleAdsApexCharts) {
   position: absolute;
   top: 10px;
   left: 20px;
-  right: 20px;
+  width: 1195px;
+  max-width: 1195px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
