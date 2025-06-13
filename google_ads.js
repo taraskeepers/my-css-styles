@@ -7254,10 +7254,10 @@ wrapper.appendChild(leftContainer);
 renderROASFunnel(leftContainer, bucketData);
     
 // Render channels container (use original unfiltered data, not filteredData)
-    const channelsContainer = document.getElementById('roas_channels');
-    if (channelsContainer) {
-      renderROASChannelsContainer(channelsContainer, result.data);
-    }
+const channelsContainer = document.getElementById('roas_channels');
+if (channelsContainer) {
+  renderROASChannelsContainer(channelsContainer, result.data, null);
+}
     
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
@@ -7561,18 +7561,21 @@ const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHei
     trapezoid.style.cursor = 'pointer';
     trapezoid.style.transition = 'all 0.3s ease';
     
-    // Add click handler
-    trapezoid.addEventListener('click', function() {
-      // Remove previous selection
-      svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
-      
-      // Highlight selected
-      this.style.stroke = '#333';
-      this.style.strokeWidth = '3';
-      
-      // Update right container
-      updateBucketMetrics(bucket.name);
-    });
+// Add click handler
+trapezoid.addEventListener('click', function() {
+  // Remove previous selection
+  svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
+  
+  // Highlight selected
+  this.style.stroke = '#333';
+  this.style.strokeWidth = '3';
+  
+  // Update right container
+  updateBucketMetrics(bucket.name);
+  
+  // Update channels and campaigns tables with bucket filter
+  updateChannelsAndCampaignsForBucket(bucket.name);
+});
     
     // Add hover effect
     trapezoid.addEventListener('mouseenter', function() {
@@ -7920,6 +7923,45 @@ async function updateBucketMetrics(selectedBucket) {
   }
 }
 
+async function updateChannelsAndCampaignsForBucket(selectedBucket) {
+  const channelsContainer = document.getElementById('roas_channels');
+  if (!channelsContainer) return;
+  
+  try {
+    // Get the same data as used in loadAndRenderROASBuckets
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.error('[updateChannelsAndCampaignsForBucket] No data found');
+      return;
+    }
+    
+    // Re-render the channels container with the bucket filter
+    renderROASChannelsContainer(channelsContainer, result.data, selectedBucket);
+    
+  } catch (error) {
+    console.error('[updateChannelsAndCampaignsForBucket] Error:', error);
+  }
+}
+
 function renderBucketMetrics(container, bucketName, products) {
   container.innerHTML = '';
   
@@ -7945,38 +7987,52 @@ function renderBucketMetrics(container, bucketName, products) {
   container.appendChild(distributionSection);
 }
 
-function renderROASChannelsContainer(container, data) {
+function renderROASChannelsContainer(container, data, bucketFilter = null) {
   container.innerHTML = '';
+  
+  // Apply bucket filter if provided
+  let filteredData = data;
+  if (bucketFilter) {
+    filteredData = data.filter(row => row['ROAS_Bucket'] === bucketFilter);
+  }
   
   // Create channels table
   const channelsTitle = document.createElement('h3');
   channelsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
-  channelsTitle.textContent = 'Performance by Channel Type';
+  channelsTitle.textContent = bucketFilter ? 
+    `Performance by Channel Type (${bucketFilter})` : 
+    'Performance by Channel Type';
   container.appendChild(channelsTitle);
   
   const channelsTableContainer = document.createElement('div');
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  renderROASChannelsTable(channelsTableContainer, data);
+  renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
   
-// Create campaigns table
+  // Create campaigns table
   const campaignsTitle = document.createElement('h3');
   campaignsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
-  campaignsTitle.textContent = 'Performance by Campaign';
+  campaignsTitle.textContent = bucketFilter ? 
+    `Performance by Campaign (${bucketFilter})` : 
+    'Performance by Campaign';
   container.appendChild(campaignsTitle);
   
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
   
-  renderROASCampaignsTable(campaignsTableContainer, data);
+  renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
 }
 
-function renderROASCampaignsTable(container, data) {
+function renderROASCampaignsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Exclude records where Campaign Name = "All", include all others
-  const validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+// Exclude records where Campaign Name = "All", include all others
+// Apply bucket filter if provided
+let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+if (bucketFilter) {
+  validRecords = validRecords.filter(row => row['ROAS_Bucket'] === bucketFilter);
+}
   
   // Get all unique campaign names
   const uniqueCampaigns = [...new Set(validRecords.map(row => row['Campaign Name']))].filter(Boolean);
@@ -8235,11 +8291,15 @@ function renderROASCampaignsTable(container, data) {
   container.appendChild(table);
 }
 
-function renderROASChannelsTable(container, data) {
+function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Exclude records where Channel Type = "All", include all others
-  const validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
+// Exclude records where Channel Type = "All", include all others
+// Apply bucket filter if provided
+let validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
+if (bucketFilter) {
+  validRecords = validRecords.filter(row => row['ROAS_Bucket'] === bucketFilter);
+}
   
   // Group by Channel Type
   const channelGroups = {
