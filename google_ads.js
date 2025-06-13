@@ -7875,8 +7875,8 @@ revenueBar.appendChild(revenueValue);
 revenueBarContainer.appendChild(revenueBar);
 
 // Create hover tooltip
-const hoverTooltip = document.createElement('div');
-hoverTooltip.style.cssText = `
+const metricsHoverTooltip = document.createElement('div');
+metricsHoverTooltip.style.cssText = `
   position: absolute;
   background: rgba(0, 0, 0, 0.8);
   color: white;
@@ -7890,45 +7890,45 @@ hoverTooltip.style.cssText = `
   white-space: nowrap;
 `;
 
-metricsIndicator.appendChild(hoverTooltip);
+metricsIndicator.appendChild(metricsHoverTooltip);
 
 // Add hover events for products bar
 productsBarContainer.addEventListener('mouseenter', function(e) {
-  hoverTooltip.innerHTML = `# Products: ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)`;
-  hoverTooltip.style.opacity = '1';
+  metricsHoverTooltip.innerHTML = `# Products: ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)`;
+  metricsHoverTooltip.style.opacity = '1';
   const rect = metricsIndicator.getBoundingClientRect();
-  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
 });
 
 productsBarContainer.addEventListener('mouseleave', function() {
-  hoverTooltip.style.opacity = '0';
+  metricsHoverTooltip.style.opacity = '0';
 });
 
 // Add hover events for cost bar
 costBarContainer.addEventListener('mouseenter', function(e) {
-  hoverTooltip.innerHTML = `Cost: $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)`;
-  hoverTooltip.style.opacity = '1';
+  metricsHoverTooltip.innerHTML = `Cost: $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)`;
+  metricsHoverTooltip.style.opacity = '1';
   const rect = metricsIndicator.getBoundingClientRect();
-  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
 });
 
 costBarContainer.addEventListener('mouseleave', function() {
-  hoverTooltip.style.opacity = '0';
+  metricsHoverTooltip.style.opacity = '0';
 });
 
 // Add hover events for revenue bar
 revenueBarContainer.addEventListener('mouseenter', function(e) {
-  hoverTooltip.innerHTML = `Revenue: $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)`;
-  hoverTooltip.style.opacity = '1';
+  metricsHoverTooltip.innerHTML = `Revenue: $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)`;
+  metricsHoverTooltip.style.opacity = '1';
   const rect = metricsIndicator.getBoundingClientRect();
-  hoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-  hoverTooltip.style.left = (e.clientX - rect.left - hoverTooltip.offsetWidth/2) + 'px';
+  metricsHoverTooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
 });
 
 revenueBarContainer.addEventListener('mouseleave', function() {
-  hoverTooltip.style.opacity = '0';
+  metricsHoverTooltip.style.opacity = '0';
 });
 
 metricsIndicator.appendChild(productsBarContainer);
