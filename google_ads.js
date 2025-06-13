@@ -3177,22 +3177,6 @@ roasMetricsTableContainer.style.cssText = `
 
 contentWrapper.appendChild(roasMetricsTableContainer);
 
-// Create ROAS Channels container
-const roasChannelsContainer = document.createElement('div');
-roasChannelsContainer.id = 'roas_channels';
-roasChannelsContainer.className = 'google-ads-channels-container';
-roasChannelsContainer.style.cssText = `
-  width: 1195px;
-  margin: 20px 0 20px 20px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 20px;
-  display: none;
-`;
-
-contentWrapper.appendChild(roasChannelsContainer);
-
 // Create ROAS Buckets container
 const roasBucketsContainer = document.createElement('div');
 roasBucketsContainer.id = 'roas_buckets';
@@ -3209,6 +3193,22 @@ roasBucketsContainer.style.cssText = `
 `;
 
 contentWrapper.appendChild(roasBucketsContainer);
+
+// Create ROAS Channels container
+const roasChannelsContainer = document.createElement('div');
+roasChannelsContainer.id = 'roas_channels';
+roasChannelsContainer.className = 'google-ads-channels-container';
+roasChannelsContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+
+contentWrapper.appendChild(roasChannelsContainer);
 
 // Replace the original append - table should be INSIDE contentWrapper
 contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
@@ -7974,8 +7974,8 @@ function renderROASChannelsContainer(container, data) {
 function renderROASChannelsTable(container, data) {
   container.innerHTML = '';
   
-  // Filter for "All" campaign records only
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  // Exclude records where Channel Type = "All", include all others
+  const validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
   
   // Group by Channel Type
   const channelGroups = {
@@ -7983,12 +7983,19 @@ function renderROASChannelsTable(container, data) {
     'SHOPPING': []
   };
   
-  allCampaignRecords.forEach(product => {
+  validRecords.forEach(product => {
     const channel = product['Channel Type'];
     if (channel && channelGroups[channel]) {
       channelGroups[channel].push(product);
     }
   });
+
+    // Temporary debug logging
+  console.log('[DEBUG] Total valid records:', validRecords.length);
+  console.log('[DEBUG] PERFORMANCE_MAX products:', channelGroups['PERFORMANCE_MAX'].length);
+  console.log('[DEBUG] SHOPPING products:', channelGroups['SHOPPING'].length);
+  console.log('[DEBUG] Sample PERFORMANCE_MAX record:', channelGroups['PERFORMANCE_MAX'][0]);
+  console.log('[DEBUG] Sample SHOPPING record:', channelGroups['SHOPPING'][0]);
   
   // Calculate aggregated metrics for each channel
   const channelMetrics = Object.entries(channelGroups).map(([channelName, products]) => {
