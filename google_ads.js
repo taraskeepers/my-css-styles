@@ -4964,12 +4964,21 @@ container.innerHTML = `
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
 <div class="google-ads-top-controls">
           <div class="controls-left-group">
-            <div class="google-ads-view-switcher">
-              <button id="viewBucketsGoogleAds" class="active">Buckets & Funnels</button>
-              <button id="viewOverviewGoogleAds" class="active">Overview</button>
-              <button id="viewChartsGoogleAds">Performance</button>
-              <button id="viewMapGoogleAds">Map</button>
-            </div>
+<div class="google-ads-view-switcher">
+  <button id="viewBucketsGoogleAds" class="active">Buckets & Funnels</button>
+  <button id="viewOverviewGoogleAds" class="active">Overview</button>
+  <button id="viewChartsGoogleAds">Performance</button>
+  <button id="viewMapGoogleAds">Map</button>
+</div>
+<div class="google-ads-buckets-switcher" id="googleAdsBucketsSwitcher" style="display: block;">
+  <button id="bucketROAS" class="active">ROAS</button>
+  <button id="bucketROI">ROI</button>
+  <button id="bucketFunnel">Funnel</button>
+  <button id="bucketSpend">Spend</button>
+  <button id="bucketPricing">Pricing</button>
+  <button id="bucketCustom">Custom</button>
+  <button id="bucketML">ML</button>
+</div>
 <div class="chart-mode-toggle-top">
               <label>Channel Type</label>
               <label class="chart-mode-switch">
@@ -5054,6 +5063,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (table) {
     table.style.display = 'none';
   }
+
+  // Hide buckets switcher
+const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
   // Show additional containers
   const productInfo = document.getElementById('product_info');
@@ -5096,6 +5109,10 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+
+  // Hide buckets switcher
+const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
   // Show the table and hide map  // ADD THIS
   const table = document.querySelector('.google-ads-table');
@@ -5143,6 +5160,10 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
+
+  // Hide buckets switcher
+const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
   // Hide the product table
   const table = document.querySelector('.google-ads-table');
@@ -5236,6 +5257,10 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+
+  // Show buckets switcher
+const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+if (bucketsSwitcher) bucketsSwitcher.style.display = 'block';
   
   // Hide other views
   const table = document.querySelector('.google-ads-table');
@@ -5294,6 +5319,42 @@ document.getElementById('previousPeriodToggle').addEventListener('change', funct
     populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
   }
 });
+
+  // Add bucket switcher functionality
+const bucketButtons = {
+  'bucketROAS': 'ROAS_Bucket',
+  'bucketROI': 'ROI_Bucket', 
+  'bucketFunnel': 'Funnel_Bucket',
+  'bucketSpend': 'Spend_Bucket',
+  'bucketPricing': 'Pricing_Bucket',
+  'bucketCustom': 'Custom_Tier',
+  'bucketML': 'ML_Cluster'
+};
+
+Object.keys(bucketButtons).forEach(buttonId => {
+  const button = document.getElementById(buttonId);
+  if (button) {
+    button.addEventListener('click', function() {
+      // Clear all active states
+      Object.keys(bucketButtons).forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+      });
+      
+      // Set this button as active
+      this.classList.add('active');
+      
+      // Store selected bucket type globally
+      window.selectedBucketType = bucketButtons[buttonId];
+      
+      // Re-render the buckets view with the new bucket type
+      loadAndRenderROASBuckets();
+    });
+  }
+});
+
+// Initialize selected bucket type
+window.selectedBucketType = 'ROAS_Bucket';
   
   console.log("[renderGoogleAdsTable] Using myCompany:", window.myCompany);
   
@@ -7046,6 +7107,35 @@ if (window.googleAdsApexCharts) {
   padding: 12px !important;
   min-width: 200px !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+.google-ads-buckets-switcher {
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 24px;
+  padding: 4px;
+  height: 36px;
+  margin-top: 10px;
+}
+
+.google-ads-buckets-switcher button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.google-ads-buckets-switcher button.active {
+  background-color: #007aff;
+  color: white;
+}
+
+.google-ads-buckets-switcher button:hover:not(.active) {
+  background-color: rgba(0, 122, 255, 0.1);
 }
     `;
     document.head.appendChild(style);
