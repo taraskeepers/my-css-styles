@@ -450,47 +450,35 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
 const orderedBuckets = [];
 const bucketConfig = window.bucketConfig[bucketType];
 
-// Order buckets based on configuration (reversed for funnel display - best at bottom)
-const orderToUse = [...bucketConfig.order].reverse();
+if (bucketConfig) {
+  // Order buckets based on configuration (reversed for funnel display - best at bottom)
+  const orderToUse = [...bucketConfig.order].reverse();
 
-orderToUse.forEach(bucketName => {
-  const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
-  if (foundBucket) {
-    orderedBuckets.push(foundBucket);
-  } else {
-    // Create placeholder for missing buckets
-    orderedBuckets.push({
-      name: bucketName,
-      count: 0,
-      avgROAS: 0,
-      totalCost: 0,
-      totalRevenue: 0,
-      costPercentage: 0,
-      revenuePercentage: 0,
-      productPercentage: 0,
-      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-    });
-  }
-});
-else {
-  // Fallback to hardcoded order if dynamic names not available
-  const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
-  defaultOrder.forEach(bucketName => {
+  orderToUse.forEach(bucketName => {
     const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
-    orderedBuckets.push(foundBucket || {
-      name: bucketName,
-      count: 0,
-      avgROAS: 0,
-      totalCost: 0,
-      totalRevenue: 0,
-      costPercentage: 0,
-      revenuePercentage: 0,
-      productPercentage: 0,
-      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-    });
+    if (foundBucket) {
+      orderedBuckets.push(foundBucket);
+    } else {
+      // Create placeholder for missing buckets
+      orderedBuckets.push({
+        name: bucketName,
+        count: 0,
+        avgROAS: 0,
+        totalCost: 0,
+        totalRevenue: 0,
+        costPercentage: 0,
+        revenuePercentage: 0,
+        productPercentage: 0,
+        description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+      });
+    }
+  });
+} else {
+  // Fallback - use all buckets from enhancedBucketData if no config
+  enhancedBucketData.forEach(bucket => {
+    orderedBuckets.push(bucket);
   });
 }
-
 // Store reference for click handling
 container.bucketData = orderedBuckets;
 
