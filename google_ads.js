@@ -7616,18 +7616,18 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
     bucket.productPercentage = totalProducts > 0 ? (bucket.count / totalProducts * 100) : 0;
   });
 
-// Use dynamic bucket names instead of hardcoded order
-const orderedBuckets = [];
+// Create orderedBuckets dynamically based on available data
+let orderedBuckets = [];
 
 // If we have dynamic bucket names, use them all
-if (window.allBucketNames) {
-  window.allBucketNames.forEach(bucketName => {
+if (window.allBucketNames && window.allBucketNames.length > 0) {
+  orderedBuckets = window.allBucketNames.map(bucketName => {
     const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
     if (foundBucket) {
-      orderedBuckets.push(foundBucket);
+      return foundBucket;
     } else {
       // Create placeholder for missing buckets
-      orderedBuckets.push({
+      return {
         name: bucketName,
         count: 0,
         avgROAS: 0,
@@ -7637,26 +7637,17 @@ if (window.allBucketNames) {
         revenuePercentage: 0,
         productPercentage: 0,
         description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-      });
+      };
     }
   });
 } else {
   // Fallback to hardcoded order if dynamic names not available
-  const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
-  defaultOrder.forEach(bucketName => {
-    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
-    orderedBuckets.push(foundBucket || {
-      name: bucketName,
-      count: 0,
-      avgROAS: 0,
-      totalCost: 0,
-      totalRevenue: 0,
-      costPercentage: 0,
-      revenuePercentage: 0,
-      productPercentage: 0,
-      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-    });
-  });
+  orderedBuckets = [
+    enhancedBucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Underperformers'] || 'Underperformers bucket' },
+    enhancedBucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Volume Driver, Low ROI'] || 'Volume Driver bucket' },
+    enhancedBucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Efficient Low Volume'] || 'Efficient Low Volume bucket' },
+    enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Top Performers'] || 'Top Performers bucket' }
+  ];
 }
 
 // Store reference for click handling
@@ -7724,26 +7715,19 @@ svg.style.marginLeft = '0';
   `;
   defs.appendChild(filter);
   
-// Generate dynamic colors based on number of buckets
-const colorPalette = [
-  { start: '#F44336', end: '#EF5350' }, // Red
-  { start: '#FF9800', end: '#FFA726' }, // Orange  
-  { start: '#2196F3', end: '#42A5F5' }, // Blue
-  { start: '#4CAF50', end: '#66BB6A' }, // Green
-  { start: '#9C27B0', end: '#BA68C8' }, // Purple
-  { start: '#00BCD4', end: '#4DD0E1' }, // Cyan
-  { start: '#8BC34A', end: '#AED581' }, // Light Green
-  { start: '#FFC107', end: '#FFD54F' }, // Amber
-  { start: '#607D8B', end: '#90A4AE' }, // Blue Grey
-  { start: '#E91E63', end: '#F06292' }  // Pink
+// Color gradients - expanded to handle more buckets
+const colors = [
+  { id: 'underperformers', start: '#F44336', end: '#EF5350' },
+  { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
+  { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
+  { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' },
+  { id: 'bucket-4', start: '#9C27B0', end: '#BA68C8' },
+  { id: 'bucket-5', start: '#00BCD4', end: '#4DD0E1' },
+  { id: 'bucket-6', start: '#8BC34A', end: '#AED581' },
+  { id: 'bucket-7', start: '#FFC107', end: '#FFD54F' },
+  { id: 'bucket-8', start: '#607D8B', end: '#90A4AE' },
+  { id: 'bucket-9', start: '#E91E63', end: '#F06292' }
 ];
-
-// Generate colors array based on actual number of buckets
-const colors = orderedBuckets.map((bucket, index) => ({
-  id: `bucket-${index}`,
-  start: colorPalette[index % colorPalette.length].start,
-  end: colorPalette[index % colorPalette.length].end
-}));
 
   // Add gradient for "ALL PRODUCTS" row
 const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
