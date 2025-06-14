@@ -7462,18 +7462,26 @@ wrapper.appendChild(leftContainer);
 const bucketCounts = {};
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 
-// Get unique bucket values for the selected bucket type
-const uniqueBucketValues = [...new Set(filteredData.map(row => row[bucketType]))].filter(Boolean);
-uniqueBucketValues.forEach(bucketValue => {
+// Get ALL unique bucket values from the entire dataset (not just filtered data)
+// This ensures we show all possible buckets, even if they have 0 products currently
+const allData = result.data.filter(row => row['Campaign Name'] === 'All');
+const allUniqueBucketValues = [...new Set(allData.map(row => row[bucketType]))].filter(Boolean);
+
+// Initialize all possible buckets with 0 count
+allUniqueBucketValues.forEach(bucketValue => {
   bucketCounts[bucketValue] = 0;
 });
 
+// Count products in each bucket from filtered data
 filteredData.forEach(row => {
   const bucket = row[bucketType];
   if (bucket && bucketCounts.hasOwnProperty(bucket)) {
     bucketCounts[bucket]++;
   }
 });
+
+// Store all unique bucket values globally for use in renderROASFunnel
+window.allBucketNames = allUniqueBucketValues;
     
     // Calculate grand totals from all products
     const grandTotalImpressions = filteredData.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
@@ -7556,6 +7564,22 @@ function renderROASFunnel(container, bucketData) {
     'Underperformers': 'Products that have both low ROAS and low conversion volume. These require immediate action - either optimize campaigns (ad creative, targeting, bidding), adjust pricing, or pause to reallocate budget to better-performing products.'
   };
 
+    // Ensure all bucket names are represented in bucketData (including those with 0 products)
+  if (window.allBucketNames) {
+    const bucketDataMap = new Map(bucketData.map(item => [item.name, item]));
+    
+    // Add missing buckets with 0 count
+    window.allBucketNames.forEach(bucketName => {
+      if (!bucketDataMap.has(bucketName)) {
+        bucketData.push({
+          name: bucketName,
+          count: 0,
+          percentage: 0
+        });
+      }
+    });
+  }
+
   // Get bucket descriptions based on selected type
   let bucketDescriptions = defaultBucketDescriptions;
   if (window.bucketDescriptions && window.bucketDescriptions[bucketType]) {
@@ -7575,7 +7599,7 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
       totalCost,
       totalRevenue,
       avgROAS,
-      description: bucketDescriptions[bucket.name] || ''
+      description: bucketDescriptions[bucket.name] || `${bucket.name} bucket - Performance analysis and optimization recommendations for products in this category.`
     };
   });
 
@@ -7591,13 +7615,48 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
     bucket.productPercentage = totalProducts > 0 ? (bucket.count / totalProducts * 100) : 0;
   });
 
-  // Reverse order: Top Performers at bottom, Underperformers at top
-  const orderedBuckets = [
-    enhancedBucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Underperformers'] },
-    enhancedBucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Volume Driver, Low ROI'] },
-    enhancedBucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Efficient Low Volume'] },
-    enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Top Performers'] }
-  ];
+// Use dynamic bucket names instead of hardcoded order
+const orderedBuckets = [];
+
+// If we have dynamic bucket names, use them all
+if (window.allBucketNames) {
+  window.allBucketNames.forEach(bucketName => {
+    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+    if (foundBucket) {
+      orderedBuckets.push(foundBucket);
+    } else {
+      // Create placeholder for missing buckets
+      orderedBuckets.push({
+        name: bucketName,
+        count: 0,
+        avgROAS: 0,
+        totalCost: 0,
+        totalRevenue: 0,
+        costPercentage: 0,
+        revenuePercentage: 0,
+        productPercentage: 0,
+        description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+      });
+    }
+  });
+} else {
+  // Fallback to hardcoded order if dynamic names not available
+  const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
+  defaultOrder.forEach(bucketName => {
+    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+    orderedBuckets.push(foundBucket || {
+      name: bucketName,
+      count: 0,
+      avgROAS: 0,
+      totalCost: 0,
+      totalRevenue: 0,
+      costPercentage: 0,
+      revenuePercentage: 0,
+      productPercentage: 0,
+      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+    });
+  });
+}
 
 // Store reference for click handling
 container.bucketData = orderedBuckets;
