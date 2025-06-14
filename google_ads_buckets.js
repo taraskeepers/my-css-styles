@@ -2661,8 +2661,6 @@ new Chart(canvas, {
   }
 });
   
-  // Render right panel with bucket summary
-  const colorPalette = [
 // Use bucket configuration colors
 const bucketConfig = window.bucketConfig[bucketType];
 const colorPalette = bucketNames.map(name => bucketConfig.colors[name] || '#999');
