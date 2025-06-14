@@ -10,6 +10,85 @@ window.bucketDistributionPreferences = window.bucketDistributionPreferences || {
   'Pricing_Bucket': false
 };
 
+// Comprehensive bucket configuration with colors and order
+window.bucketConfig = {
+  'ROAS_Bucket': {
+    order: ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'],
+    colors: {
+      'Top Performers': '#4CAF50',           // Green - Best
+      'Efficient Low Volume': '#2196F3',     // Blue - Good but needs scale
+      'Volume Driver, Low ROI': '#FF9800',   // Orange - Moderate
+      'Underperformers': '#F44336'           // Red - Worst
+    }
+  },
+  'ROI_Bucket': {
+    order: ['Scalable Winners', 'Niche but Profitable', 'Price Issue', 'Waste of Spend'],
+    colors: {
+      'Scalable Winners': '#4CAF50',         // Green - Best
+      'Niche but Profitable': '#2196F3',     // Blue - Good but limited
+      'Price Issue': '#FF9800',              // Orange - Moderate issue
+      'Waste of Spend': '#F44336'            // Red - Worst
+    }
+  },
+  'Funnel_Bucket': {
+    order: ['Funnel Champions', 'Most Efficient', 'UX Optimization Needed', 'Ad Creative Problem', 
+            'Valuable but Costly', 'Weak Landing Page or Offer', 'Poor Targeting', 
+            'Needs Better Ad Creative', 'Funnel Friction'],
+    colors: {
+      'Funnel Champions': '#4CAF50',              // Green - Best
+      'Most Efficient': '#66BB6A',                // Light Green - Excellent
+      'UX Optimization Needed': '#42A5F5',        // Light Blue - Moderate good
+      'Ad Creative Problem': '#2196F3',           // Blue - Moderate good
+      'Valuable but Costly': '#9C27B0',           // Purple - Moderate
+      'Weak Landing Page or Offer': '#FF9800',   // Orange - Moderate bad
+      'Poor Targeting': '#FF7043',                // Dark Orange - Bad
+      'Needs Better Ad Creative': '#EF5350',      // Light Red - Bad
+      'Funnel Friction': '#F44336'                // Red - Worst
+    }
+  },
+  'Spend_Bucket': {
+    order: ['Hidden Gems', 'Scalable with Caution', 'Low Priority', 'Unprofitable Spend', 'Zombies', 'Parasites'],
+    colors: {
+      'Hidden Gems': '#4CAF50',             // Green - Best
+      'Scalable with Caution': '#66BB6A',   // Light Green - Good
+      'Low Priority': '#9E9E9E',            // Gray - Neutral
+      'Unprofitable Spend': '#FF9800',      // Orange - Bad
+      'Zombies': '#D32F2F',                 // Dark Red - Very bad
+      'Parasites': '#F44336'                // Red - Worst
+    }
+  },
+  'Pricing_Bucket': {
+    order: ['Premium Product with Strong Demand', 'Low-Ticket Impulse Buys', 'Price Resistance', 'Low Value No Interest'],
+    colors: {
+      'Premium Product with Strong Demand': '#4CAF50',  // Green - Best
+      'Low-Ticket Impulse Buys': '#66BB6A',            // Light Green - Good
+      'Price Resistance': '#FF9800',                    // Orange - Moderate
+      'Low Value No Interest': '#F44336'                // Red - Worst
+    }
+  },
+  'Custom_Tier': {
+    order: ['Hero Product', 'Scale-Up', 'Budget Booster', 'Creative Review', 'Testing Product', 'Wasted Spend'],
+    colors: {
+      'Hero Product': '#FFD700',            // Gold - Best
+      'Scale-Up': '#4CAF50',               // Green - Excellent
+      'Budget Booster': '#66BB6A',         // Light Green - Good
+      'Creative Review': '#2196F3',         // Blue - Moderate
+      'Testing Product': '#9E9E9E',         // Gray - Neutral
+      'Wasted Spend': '#F44336'            // Red - Worst
+    }
+  },
+  'ML_Cluster': {
+    order: ['Undervalued Winners', 'High ROAS Anomalies', 'Optimizable', 'Drop-Off Cluster', 'Expensive Waste'],
+    colors: {
+      'Undervalued Winners': '#4CAF50',     // Green - Best
+      'High ROAS Anomalies': '#9C27B0',     // Purple - Special/Good
+      'Optimizable': '#2196F3',             // Blue - Neutral
+      'Drop-Off Cluster': '#FF9800',        // Orange - Moderate bad
+      'Expensive Waste': '#F44336'          // Red - Worst
+    }
+  }
+};
+
 // Function to initialize bucket switcher buttons
 function initializeBucketSwitcher() {
   const bucketButtons = {
@@ -367,30 +446,32 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
     bucket.productPercentage = totalProducts > 0 ? (bucket.count / totalProducts * 100) : 0;
   });
 
-// Use dynamic bucket names instead of hardcoded order
+// Use configuration-based ordering
 const orderedBuckets = [];
+const bucketConfig = window.bucketConfig[bucketType];
 
-// If we have dynamic bucket names, use them all
-if (window.allBucketNames) {
-  window.allBucketNames.forEach(bucketName => {
-    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
-    if (foundBucket) {
-      orderedBuckets.push(foundBucket);
-    } else {
-      // Create placeholder for missing buckets
-      orderedBuckets.push({
-        name: bucketName,
-        count: 0,
-        avgROAS: 0,
-        totalCost: 0,
-        totalRevenue: 0,
-        costPercentage: 0,
-        revenuePercentage: 0,
-        productPercentage: 0,
-        description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-      });
-    }
-  });
+// Order buckets based on configuration (reversed for funnel display - best at bottom)
+const orderToUse = [...bucketConfig.order].reverse();
+
+orderToUse.forEach(bucketName => {
+  const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+  if (foundBucket) {
+    orderedBuckets.push(foundBucket);
+  } else {
+    // Create placeholder for missing buckets
+    orderedBuckets.push({
+      name: bucketName,
+      count: 0,
+      avgROAS: 0,
+      totalCost: 0,
+      totalRevenue: 0,
+      costPercentage: 0,
+      revenuePercentage: 0,
+      productPercentage: 0,
+      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+    });
+  }
+});
 } else {
   // Fallback to hardcoded order if dynamic names not available
   const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
@@ -471,13 +552,43 @@ svg.style.marginLeft = '0';
   `;
   defs.appendChild(filter);
   
-  // Color gradients (reversed order to match bucket order)
-  const colors = [
-    { id: 'underperformers', start: '#F44336', end: '#EF5350' },
-    { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
-    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
-    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' }
-  ];
+// Get bucket configuration
+const bucketConfig = window.bucketConfig[bucketType];
+if (!bucketConfig) {
+  console.error(`[renderROASFunnel] No configuration found for bucket type: ${bucketType}`);
+  return;
+}
+
+// Create color gradients based on bucket configuration
+const colors = [];
+const colorIdMap = {};
+bucketConfig.order.forEach((bucketName, index) => {
+  const baseColor = bucketConfig.colors[bucketName];
+  const colorId = `bucket-${index}`;
+  colorIdMap[bucketName] = colorId;
+  
+  // Create a slightly lighter version for gradient end
+  const lighterColor = adjustColorBrightness(baseColor, 20);
+  
+  colors.push({
+    id: colorId,
+    start: baseColor,
+    end: lighterColor,
+    bucketName: bucketName
+  });
+});
+
+// Helper function to lighten colors
+function adjustColorBrightness(hex, percent) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+}
 
   // Add gradient for "ALL PRODUCTS" row
 const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -775,7 +886,8 @@ const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygo
 const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
     
     trapezoid.setAttribute('points', points);
-    trapezoid.setAttribute('fill', `url(#${colors[index].id})`);
+    const colorConfig = colors.find(c => c.bucketName === bucket.name);
+trapezoid.setAttribute('fill', `url(#${colorConfig ? colorConfig.id : colors[0].id})`);
     trapezoid.setAttribute('filter', 'url(#dropshadow)');
     trapezoid.style.cursor = 'pointer';
     trapezoid.style.transition = 'all 0.3s ease';
@@ -821,7 +933,7 @@ trapezoid.addEventListener('click', function() {
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background: ${colors[index].start};
+      background: ${bucketConfig.colors[bucket.name] || '#999'};
       color: white;
       border-radius: 8px;
       font-weight: 600;
@@ -2564,9 +2676,9 @@ new Chart(canvas, {
   
   // Render right panel with bucket summary
   const colorPalette = [
-  '#4CAF50', '#2196F3', '#FF9800', '#F44336', 
-  '#9C27B0', '#00BCD4', '#8BC34A', '#FFC107'
-];
+// Use bucket configuration colors
+const bucketConfig = window.bucketConfig[bucketType];
+const colorPalette = bucketNames.map(name => bucketConfig.colors[name] || '#999');
   rightContainer.innerHTML = `
     <h4 style="margin: 0 0 20px 0; color: #333; text-align: center;">Current vs Previous</h4>
     <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -2752,11 +2864,19 @@ allCampaignRecords.forEach(product => {
   // Create body
   const tbody = document.createElement('tbody');
   
-const defaultColors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#00BCD4', '#8BC34A', '#FFC107'];
+// Use configuration colors
+const bucketConfig = window.bucketConfig[bucketType];
 const bucketColors = {};
 
-bucketMetrics.forEach((bucket, index) => {
-  bucketColors[bucket.bucket] = defaultColors[index % defaultColors.length];
+// Sort buckets by configuration order (best first)
+bucketMetrics.sort((a, b) => {
+  const orderA = bucketConfig.order.indexOf(a.bucket);
+  const orderB = bucketConfig.order.indexOf(b.bucket);
+  return orderA - orderB;
+});
+
+bucketMetrics.forEach(bucket => {
+  bucketColors[bucket.bucket] = bucketConfig.colors[bucket.bucket] || '#999';
 });
   
 // Helper function to create bar cell (stacked vertically)
