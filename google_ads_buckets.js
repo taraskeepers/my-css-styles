@@ -493,14 +493,6 @@ const mainContainer = document.createElement('div');
 mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
   
   container.appendChild(mainContainer);
-  
-// Calculate dynamic height based on number of buckets
-const numBuckets = bucketConfig.order.length;
-const sectionHeight = 90;
-const gap = 5;
-const aggregatedRowHeight = 70;
-const separatorGap = 15;
-const dynamicHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
 
 // Create ROAS column
 const roasColumn = document.createElement('div');
@@ -553,6 +545,14 @@ if (!bucketConfig) {
   console.error(`[renderROASFunnel] No configuration found for bucket type: ${bucketType}`);
   return;
 }
+
+// Calculate dynamic height based on number of buckets
+const numBuckets = bucketConfig.order.length;
+const sectionHeight = 90;
+const gap = 5;
+const aggregatedRowHeight = 70;
+const separatorGap = 15;
+const dynamicHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
 
 // Create color gradients based on bucket configuration
 const colors = [];
