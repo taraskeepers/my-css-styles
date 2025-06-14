@@ -1,3 +1,56 @@
+// Initialize bucket-related global variables
+window.selectedBucketType = window.selectedBucketType || 'ROAS_Bucket';
+window.bucketDistributionPreferences = window.bucketDistributionPreferences || {
+  'Funnel_Bucket': true,
+  'ML_Cluster': true,
+  'Spend_Bucket': true,
+  'Custom_Tier': true,
+  'ROAS_Bucket': false,
+  'ROI_Bucket': false,
+  'Pricing_Bucket': false
+};
+
+// Function to initialize bucket switcher buttons
+function initializeBucketSwitcher() {
+  const bucketButtons = {
+    'bucketROAS': 'ROAS_Bucket',
+    'bucketROI': 'ROI_Bucket', 
+    'bucketFunnel': 'Funnel_Bucket',
+    'bucketSpend': 'Spend_Bucket',
+    'bucketPricing': 'Pricing_Bucket',
+    'bucketCustom': 'Custom_Tier',
+    'bucketML': 'ML_Cluster'
+  };
+
+  Object.keys(bucketButtons).forEach(buttonId => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      button.addEventListener('click', function() {
+        // Clear all active states
+        Object.keys(bucketButtons).forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) btn.classList.remove('active');
+        });
+        
+        // Set this button as active
+        this.classList.add('active');
+        
+        // Store selected bucket type globally
+        window.selectedBucketType = bucketButtons[buttonId];
+        
+        // Re-render the buckets view with the new bucket type
+        loadAndRenderROASBuckets();
+      });
+    }
+  });
+}
+
+// Export the initialization function
+if (typeof window !== 'undefined') {
+  window.initializeBucketSwitcher = initializeBucketSwitcher;
+}
+
+window.selectedBucketType = 'ROAS_Bucket';
 window.bucketDescriptions = {
   // ROAS Bucket descriptions
   'ROAS_Bucket': {
