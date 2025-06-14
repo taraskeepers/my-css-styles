@@ -3183,7 +3183,7 @@ roasBucketsContainer.id = 'roas_buckets';
 roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
   width: 1195px;
-  height: 550px;
+  height: auto;
   margin: 0 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
