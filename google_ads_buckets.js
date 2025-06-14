@@ -510,6 +510,14 @@ svgContainer.style.cssText = 'width: 280px; display: flex; justify-content: flex
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
 
+// Calculate dynamic height based on number of buckets
+const sectionHeight = 90;  // Height per bucket
+const gap = 5;
+const aggregatedRowHeight = 70;
+const separatorGap = 15;
+const numBuckets = orderedBuckets.length;
+const calculatedHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
+
 // SVG dimensions - match the actual content size
 const width = 280;
 const height = Math.max(520, calculatedHeight); // Ensure minimum height
