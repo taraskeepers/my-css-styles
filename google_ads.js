@@ -3250,8 +3250,7 @@ roasBucketsContainer.id = 'roas_buckets';
 roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
   width: 1195px;
-  min-height: 550px;
-  height: auto;
+  height: 550px;
   margin: 0 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -7616,18 +7615,18 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
     bucket.productPercentage = totalProducts > 0 ? (bucket.count / totalProducts * 100) : 0;
   });
 
-// Create orderedBuckets dynamically based on available data
-let orderedBuckets = [];
+// Use dynamic bucket names instead of hardcoded order
+const orderedBuckets = [];
 
 // If we have dynamic bucket names, use them all
-if (window.allBucketNames && window.allBucketNames.length > 0) {
-  orderedBuckets = window.allBucketNames.map(bucketName => {
+if (window.allBucketNames) {
+  window.allBucketNames.forEach(bucketName => {
     const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
     if (foundBucket) {
-      return foundBucket;
+      orderedBuckets.push(foundBucket);
     } else {
       // Create placeholder for missing buckets
-      return {
+      orderedBuckets.push({
         name: bucketName,
         count: 0,
         avgROAS: 0,
@@ -7637,17 +7636,26 @@ if (window.allBucketNames && window.allBucketNames.length > 0) {
         revenuePercentage: 0,
         productPercentage: 0,
         description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-      };
+      });
     }
   });
 } else {
   // Fallback to hardcoded order if dynamic names not available
-  orderedBuckets = [
-    enhancedBucketData.find(b => b.name === 'Underperformers') || { name: 'Underperformers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Underperformers'] || 'Underperformers bucket' },
-    enhancedBucketData.find(b => b.name === 'Volume Driver, Low ROI') || { name: 'Volume Driver, Low ROI', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Volume Driver, Low ROI'] || 'Volume Driver bucket' },
-    enhancedBucketData.find(b => b.name === 'Efficient Low Volume') || { name: 'Efficient Low Volume', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Efficient Low Volume'] || 'Efficient Low Volume bucket' },
-    enhancedBucketData.find(b => b.name === 'Top Performers') || { name: 'Top Performers', count: 0, avgROAS: 0, totalCost: 0, totalRevenue: 0, costPercentage: 0, revenuePercentage: 0, productPercentage: 0, description: bucketDescriptions['Top Performers'] || 'Top Performers bucket' }
-  ];
+  const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
+  defaultOrder.forEach(bucketName => {
+    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+    orderedBuckets.push(foundBucket || {
+      name: bucketName,
+      count: 0,
+      avgROAS: 0,
+      totalCost: 0,
+      totalRevenue: 0,
+      costPercentage: 0,
+      revenuePercentage: 0,
+      productPercentage: 0,
+      description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+    });
+  });
 }
 
 // Store reference for click handling
@@ -7660,35 +7668,31 @@ const totalCostAll = allProducts.reduce((sum, product) => sum + (parseFloat(prod
 const totalRevenueAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
 const avgROASAll = totalCostAll > 0 ? totalRevenueAll / totalCostAll : 0;
 
+// Create main container with columns and funnel (no title, full height)
 const mainContainer = document.createElement('div');
-mainContainer.style.cssText = `width: 100%; max-width: 520px; height: ${dynamicHeight}px; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;`;
+mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
   
   container.appendChild(mainContainer);
   
-// Create ROAS column
-const roasColumn = document.createElement('div');
-roasColumn.style.cssText = `width: 80px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
-
-// SVG dimensions - match the actual content size
-const width = 280;
-const height = dynamicHeight + 20; // Add some extra space
+  // Create ROAS column
+  const roasColumn = document.createElement('div');
+  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
   
-// Calculate dynamic height based on number of buckets
-const numBuckets = orderedBuckets.length;
-const padding = 40; // top and bottom padding
-const dynamicHeight = Math.max(500, aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + padding);
-
-// Create Cost/Revenue column
-const metricsColumn = document.createElement('div');
-metricsColumn.style.cssText = `width: 140px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
-
-// SVG container for funnel
+  // Create Cost/Revenue column
+  const metricsColumn = document.createElement('div');
+  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+  
+  // SVG container for funnel
 const svgContainer = document.createElement('div');
-svgContainer.style.cssText = `width: 280px; height: ${dynamicHeight}px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;`;
+svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
+  
+// SVG dimensions - match the actual content size
+const width = 280;
+const height = 520;
 
 // Create SVG
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7715,19 +7719,13 @@ svg.style.marginLeft = '0';
   `;
   defs.appendChild(filter);
   
-// Color gradients - expanded to handle more buckets
-const colors = [
-  { id: 'underperformers', start: '#F44336', end: '#EF5350' },
-  { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
-  { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
-  { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' },
-  { id: 'bucket-4', start: '#9C27B0', end: '#BA68C8' },
-  { id: 'bucket-5', start: '#00BCD4', end: '#4DD0E1' },
-  { id: 'bucket-6', start: '#8BC34A', end: '#AED581' },
-  { id: 'bucket-7', start: '#FFC107', end: '#FFD54F' },
-  { id: 'bucket-8', start: '#607D8B', end: '#90A4AE' },
-  { id: 'bucket-9', start: '#E91E63', end: '#F06292' }
-];
+  // Color gradients (reversed order to match bucket order)
+  const colors = [
+    { id: 'underperformers', start: '#F44336', end: '#EF5350' },
+    { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
+    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
+    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' }
+  ];
 
   // Add gradient for "ALL PRODUCTS" row
 const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
