@@ -3250,7 +3250,8 @@ roasBucketsContainer.id = 'roas_buckets';
 roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
   width: 1195px;
-  height: 550px;
+  min-height: 550px;
+  height: auto;
   margin: 0 0 20px 20px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -7668,31 +7669,35 @@ const totalCostAll = allProducts.reduce((sum, product) => sum + (parseFloat(prod
 const totalRevenueAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
 const avgROASAll = totalCostAll > 0 ? totalRevenueAll / totalCostAll : 0;
 
-// Create main container with columns and funnel (no title, full height)
 const mainContainer = document.createElement('div');
-mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
+mainContainer.style.cssText = `width: 100%; max-width: 520px; height: ${dynamicHeight}px; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;`;
   
   container.appendChild(mainContainer);
   
-  // Create ROAS column
-  const roasColumn = document.createElement('div');
-  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+// Create ROAS column
+const roasColumn = document.createElement('div');
+roasColumn.style.cssText = `width: 80px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
+
+// SVG dimensions - match the actual content size
+const width = 280;
+const height = dynamicHeight + 20; // Add some extra space
   
-  // Create Cost/Revenue column
-  const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
-  
-  // SVG container for funnel
+// Calculate dynamic height based on number of buckets
+const numBuckets = orderedBuckets.length;
+const padding = 40; // top and bottom padding
+const dynamicHeight = Math.max(500, aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + padding);
+
+// Create Cost/Revenue column
+const metricsColumn = document.createElement('div');
+metricsColumn.style.cssText = `width: 140px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
+
+// SVG container for funnel
 const svgContainer = document.createElement('div');
-svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+svgContainer.style.cssText = `width: 280px; height: ${dynamicHeight}px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;`;
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
-  
-// SVG dimensions - match the actual content size
-const width = 280;
-const height = 520;
 
 // Create SVG
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7719,13 +7724,26 @@ svg.style.marginLeft = '0';
   `;
   defs.appendChild(filter);
   
-  // Color gradients (reversed order to match bucket order)
-  const colors = [
-    { id: 'underperformers', start: '#F44336', end: '#EF5350' },
-    { id: 'volume-driver', start: '#FF9800', end: '#FFA726' },
-    { id: 'efficient-low', start: '#2196F3', end: '#42A5F5' },
-    { id: 'top-performers', start: '#4CAF50', end: '#66BB6A' }
-  ];
+// Generate dynamic colors based on number of buckets
+const colorPalette = [
+  { start: '#F44336', end: '#EF5350' }, // Red
+  { start: '#FF9800', end: '#FFA726' }, // Orange  
+  { start: '#2196F3', end: '#42A5F5' }, // Blue
+  { start: '#4CAF50', end: '#66BB6A' }, // Green
+  { start: '#9C27B0', end: '#BA68C8' }, // Purple
+  { start: '#00BCD4', end: '#4DD0E1' }, // Cyan
+  { start: '#8BC34A', end: '#AED581' }, // Light Green
+  { start: '#FFC107', end: '#FFD54F' }, // Amber
+  { start: '#607D8B', end: '#90A4AE' }, // Blue Grey
+  { start: '#E91E63', end: '#F06292' }  // Pink
+];
+
+// Generate colors array based on actual number of buckets
+const colors = orderedBuckets.map((bucket, index) => ({
+  id: `bucket-${index}`,
+  start: colorPalette[index % colorPalette.length].start,
+  end: colorPalette[index % colorPalette.length].end
+}));
 
   // Add gradient for "ALL PRODUCTS" row
 const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
