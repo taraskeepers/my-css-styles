@@ -448,7 +448,6 @@ const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === 
 
 // Use configuration-based ordering
 const orderedBuckets = [];
-const bucketConfig = window.bucketConfig[bucketType];
 
 if (bucketConfig) {
   // Order buckets based on configuration (reversed for funnel display - best at bottom)
