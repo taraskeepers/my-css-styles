@@ -554,13 +554,6 @@ if (!bucketConfig) {
   return;
 }
 
-// Funnel dimensions
-const sectionHeight = 90;  // Reduced to fit 5 rows
-const gap = 5;
-const aggregatedRowHeight = 70;  // Smaller height for aggregated row
-const separatorGap = 15;  // Gap between aggregated and bucket rows
-const startY = 0;
-
 // Create color gradients based on bucket configuration
 const colors = [];
 const colorIdMap = {};
