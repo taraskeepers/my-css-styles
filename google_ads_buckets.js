@@ -214,18 +214,18 @@ async function loadAndRenderROASBuckets() {
     metricsTableContainer.innerHTML = '';
   }
   
-  // Create wrapper for buckets container
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display: flex; gap: 15px; height: 450px; padding: 10px;';
+// Create wrapper for buckets container
+const wrapper = document.createElement('div');
+wrapper.style.cssText = 'display: flex; gap: 15px; min-height: 450px; padding: 10px;';
 
-  // Left container for funnel (increased width for three columns + funnel + descriptions)
-  const leftContainer = document.createElement('div');
-  leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
+// Left container for funnel (increased width for three columns + funnel + descriptions)
+const leftContainer = document.createElement('div');
+leftContainer.style.cssText = 'width: 520px; min-height: 100%; position: relative;';
   
-  // Right container for metrics
-  const rightContainer = document.createElement('div');
-  rightContainer.className = 'right-container';
-  rightContainer.style.cssText = 'flex: 1; height: 500px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
+// Right container for metrics
+const rightContainer = document.createElement('div');
+rightContainer.className = 'right-container';
+rightContainer.style.cssText = 'flex: 1; min-height: 500px; max-height: 800px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
   rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
 wrapper.appendChild(leftContainer);
@@ -494,25 +494,33 @@ mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; disp
   
   container.appendChild(mainContainer);
   
-  // Create ROAS column
-  const roasColumn = document.createElement('div');
-  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
+// Create ROAS column
+const roasColumn = document.createElement('div');
+roasColumn.style.cssText = 'width: 80px; display: flex; flex-direction: column; padding: 20px 0;';
+
+// Create Cost/Revenue column
+const metricsColumn = document.createElement('div');
+metricsColumn.style.cssText = 'width: 140px; display: flex; flex-direction: column; padding: 20px 0;';
   
-  // Create Cost/Revenue column
-  const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
-  
-  // SVG container for funnel
+// SVG container for funnel  
 const svgContainer = document.createElement('div');
-svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+svgContainer.style.cssText = 'width: 280px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
   
+// Calculate dynamic height based on number of buckets
+const sectionHeight = 90;  // Height per bucket
+const gap = 5;
+const aggregatedRowHeight = 70;
+const separatorGap = 15;
+const numBuckets = orderedBuckets.length;
+const calculatedHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
+
 // SVG dimensions - match the actual content size
 const width = 280;
-const height = 520;
+const height = Math.max(520, calculatedHeight); // Ensure minimum height
 
 // Create SVG
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
