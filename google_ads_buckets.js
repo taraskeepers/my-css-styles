@@ -472,7 +472,7 @@ orderToUse.forEach(bucketName => {
     });
   }
 });
-} else {
+else {
   // Fallback to hardcoded order if dynamic names not available
   const defaultOrder = ['Underperformers', 'Volume Driver, Low ROI', 'Efficient Low Volume', 'Top Performers'];
   defaultOrder.forEach(bucketName => {
