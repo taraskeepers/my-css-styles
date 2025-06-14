@@ -218,14 +218,14 @@ async function loadAndRenderROASBuckets() {
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'display: flex; gap: 15px; height: 450px; padding: 10px;';
 
-  // Left container for funnel (increased width for three columns + funnel + descriptions)
-  const leftContainer = document.createElement('div');
-  leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
-  
-  // Right container for metrics
-  const rightContainer = document.createElement('div');
-  rightContainer.className = 'right-container';
-  rightContainer.style.cssText = 'flex: 1; height: 500px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
+// Left container for funnel (increased width for three columns + funnel + descriptions)
+const leftContainer = document.createElement('div');
+leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
+
+// Right container for metrics
+const rightContainer = document.createElement('div');
+rightContainer.className = 'right-container';
+rightContainer.style.cssText = 'flex: 1; min-height: 500px; max-height: 700px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
   rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
 wrapper.appendChild(leftContainer);
@@ -494,31 +494,39 @@ mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; disp
   
   container.appendChild(mainContainer);
   
-  // Create ROAS column
-  const roasColumn = document.createElement('div');
-  roasColumn.style.cssText = 'width: 80px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
-  
-  // Create Cost/Revenue column
-  const metricsColumn = document.createElement('div');
-  metricsColumn.style.cssText = 'width: 140px; height: 500px; display: flex; flex-direction: column; padding: 20px 0;';
-  
-  // SVG container for funnel
+// Calculate dynamic height based on number of buckets
+const numBuckets = bucketConfig.order.length;
+const sectionHeight = 90;
+const gap = 5;
+const aggregatedRowHeight = 70;
+const separatorGap = 15;
+const dynamicHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
+
+// Create ROAS column
+const roasColumn = document.createElement('div');
+roasColumn.style.cssText = `width: 80px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
+
+// Create Cost/Revenue column
+const metricsColumn = document.createElement('div');
+metricsColumn.style.cssText = `width: 140px; height: ${dynamicHeight}px; display: flex; flex-direction: column; padding: 20px 0;`;
+
+// SVG container for funnel
 const svgContainer = document.createElement('div');
-svgContainer.style.cssText = 'width: 280px; height: 500px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+svgContainer.style.cssText = `width: 280px; height: ${dynamicHeight}px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;`;
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
   
-// SVG dimensions - match the actual content size
+// SVG dimensions - calculate based on number of buckets
 const width = 280;
-const height = 520;
+const svgHeight = dynamicHeight - 40; // Subtract padding
 
 // Create SVG
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 svg.setAttribute('width', width);
-svg.setAttribute('height', height);
-svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+svg.setAttribute('height', svgHeight);
+svg.setAttribute('viewBox', `0 0 ${width} ${svgHeight}`);
 svg.style.marginLeft = '0';
   
   // Define gradients and filters
@@ -545,6 +553,13 @@ if (!bucketConfig) {
   console.error(`[renderROASFunnel] No configuration found for bucket type: ${bucketType}`);
   return;
 }
+
+// Funnel dimensions
+const sectionHeight = 90;  // Reduced to fit 5 rows
+const gap = 5;
+const aggregatedRowHeight = 70;  // Smaller height for aggregated row
+const separatorGap = 15;  // Gap between aggregated and bucket rows
+const startY = 0;
 
 // Create color gradients based on bucket configuration
 const colors = [];
@@ -622,13 +637,6 @@ defs.appendChild(allGradient);
   
   // Calculate max percentage for width scaling
 const fixedTrapezoidWidth = 350;
-  
-// Funnel dimensions
-const sectionHeight = 90;  // Reduced to fit 5 rows
-const gap = 5;
-const aggregatedRowHeight = 70;  // Smaller height for aggregated row
-const separatorGap = 15;  // Gap between aggregated and bucket rows
-const startY = 0;
 
 // First, create the aggregated row
 const aggregatedY = startY;
@@ -2489,9 +2497,9 @@ function renderROASHistoricCharts(container, data) {
   
   mainWrapper.appendChild(metricsRow);
   
-  // Create wrapper for chart and summary
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display: flex; gap: 20px; flex: 1;';
+// Create wrapper for buckets container - dynamic height
+const wrapper = document.createElement('div');
+wrapper.style.cssText = 'display: flex; gap: 15px; min-height: 450px; max-height: 700px; padding: 10px;';
   
   // Left container for chart (75% width)
   const leftContainer = document.createElement('div');
