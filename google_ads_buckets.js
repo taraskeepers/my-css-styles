@@ -631,11 +631,7 @@ defs.appendChild(allGradient);
   // Calculate max percentage for width scaling
 const fixedTrapezoidWidth = 350;
   
-// Funnel dimensions
-const sectionHeight = 90;  // Reduced to fit 5 rows
-const gap = 5;
-const aggregatedRowHeight = 70;  // Smaller height for aggregated row
-const separatorGap = 15;  // Gap between aggregated and bucket rows
+// Set startY (other dimensions already defined above)
 const startY = 0;
 
 // First, create the aggregated row
