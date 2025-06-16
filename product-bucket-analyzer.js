@@ -16,6 +16,13 @@ window.productBucketAnalyzer = {
     cpa: null, // Will be calculated as median
     avgCpc: null // Will be calculated as average
   },
+  // Data collection thresholds
+  DATA_COLLECTION_THRESHOLDS: {
+    minImpressions: 100,
+    minClicks: 10,
+    minCost: 50,
+    minConvValue: 100
+  },
 
   // Helper to round to 2 decimal places
   round2(value) {
@@ -114,7 +121,7 @@ window.productBucketAnalyzer = {
         );
         
         // Build the row data
-        const rowData = {
+const rowData = {
           'Product Title': currentMetrics.productTitle,
           'Campaign Name': currentMetrics.campaignName,
           'Channel Type': currentMetrics.channelType,
@@ -129,6 +136,7 @@ window.productBucketAnalyzer = {
           'ROAS': this.round2(currentMetrics.roas),
           'AOV': this.round2(currentMetrics.aov),
           'CPA': this.round2(currentMetrics.cpa),
+          'CPM': this.round2(currentMetrics.cpm),
           'ROAS_Bucket': currentBuckets.roasBucket,
           'ROI_Bucket': currentBuckets.roiBucket,
           'Funnel_Bucket': currentBuckets.funnelBucket,
@@ -136,6 +144,7 @@ window.productBucketAnalyzer = {
           'Pricing_Bucket': currentBuckets.pricingBucket,
           'Custom_Tier': currentBuckets.customTier,
           'ML_Cluster': currentBuckets.mlCluster,
+          'Suggestions': currentBuckets.suggestions.join('; '),
           // Previous period metrics
           'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
           'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
@@ -148,6 +157,7 @@ window.productBucketAnalyzer = {
           'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
           'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
           'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+          'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
           'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
           'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
           'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
@@ -155,6 +165,7 @@ window.productBucketAnalyzer = {
           'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
           'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
           'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
+          'prev_Suggestions': prevBuckets ? prevBuckets.suggestions.join('; ') : '',
           // Historic bucket data
           'historic_data.buckets': historicBuckets
         };
@@ -408,16 +419,17 @@ window.productBucketAnalyzer = {
     metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
     metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
     metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
     metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
     metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+    metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
 
     return metrics;
   },
 
   // Assign all bucket categories based on metrics
-  assignBuckets(metrics) {
-    return {
+assignBuckets(metrics) {
+    const buckets = {
       roasBucket: this.assignROASBucket(metrics),
       roiBucket: this.assignROIBucket(metrics),
       funnelBucket: this.assignFunnelBucket(metrics),
@@ -426,10 +438,23 @@ window.productBucketAnalyzer = {
       customTier: this.assignCustomTier(metrics),
       mlCluster: this.assignMLCluster(metrics)
     };
+    
+    // Assign suggestions based on cross-bucket analysis
+    buckets.suggestions = this.assignSuggestions(metrics, buckets);
+    
+    return buckets;
   },
 
   // (1) ROAS Bucket
-  assignROASBucket(metrics) {
+assignROASBucket(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const highROAS = metrics.roas >= this.DEFAULTS.roas;
     const highConversions = metrics.conversions >= this.DEFAULTS.conversions;
 
@@ -440,7 +465,15 @@ window.productBucketAnalyzer = {
   },
 
   // (2) ROI Bucket
-  assignROIBucket(metrics) {
+assignROIBucket(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const lowCPA = metrics.cpa > 0 && metrics.cpa <= this.DEFAULTS.cpa;
     const highROAS = metrics.roas >= this.DEFAULTS.roas;
 
@@ -451,7 +484,15 @@ window.productBucketAnalyzer = {
   },
 
   // (3) Funnel Bucket
-  assignFunnelBucket(metrics) {
+assignFunnelBucket(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const highImpressions = metrics.impressions >= this.DEFAULTS.impressions;
     const highClicks = metrics.clicks >= this.DEFAULTS.clicks;
     const highCTR = metrics.ctr >= this.DEFAULTS.ctr;
@@ -474,7 +515,15 @@ window.productBucketAnalyzer = {
   },
 
   // (4) Spend Bucket
-  assignSpendBucket(metrics) {
+assignSpendBucket(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const highCost = metrics.cost >= this.DEFAULTS.cost;
     const highReturn = metrics.convValue >= (metrics.cost * this.DEFAULTS.roas);
     const lowImpressions = metrics.impressions < this.DEFAULTS.impressions;
@@ -489,7 +538,15 @@ window.productBucketAnalyzer = {
   },
 
   // (5) Pricing Bucket
-  assignPricingBucket(metrics) {
+assignPricingBucket(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const highAOV = metrics.aov >= this.DEFAULTS.aov;
     const highCVR = metrics.cvr >= this.DEFAULTS.cvr;
 
@@ -500,7 +557,15 @@ window.productBucketAnalyzer = {
   },
 
   // (6) Custom Tier
-  assignCustomTier(metrics) {
+assignCustomTier(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const lowCPA = metrics.cpa > 0 && metrics.cpa <= this.DEFAULTS.cpa;
     const highCVR = metrics.cvr >= this.DEFAULTS.cvr;
     const highSpend = metrics.cost >= this.DEFAULTS.cost * 2; // 2x default as "high"
@@ -524,7 +589,15 @@ window.productBucketAnalyzer = {
   },
 
   // (7) ML Cluster
-  assignMLCluster(metrics) {
+assignMLCluster(metrics) {
+    // Check for insufficient data
+    if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
+         metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
+         metrics.cost < this.DATA_COLLECTION_THRESHOLDS.minCost) &&
+        !(metrics.conversions > 0 && metrics.convValue > this.DATA_COLLECTION_THRESHOLDS.minConvValue)) {
+      return 'Collecting Data';
+    }
+
     const lowCPC = metrics.avgCpc < this.DEFAULTS.avgCpc;
     const highCPC = metrics.avgCpc > this.DEFAULTS.avgCpc * 1.5;
     const noConversions = metrics.conversions === 0;
@@ -540,6 +613,66 @@ window.productBucketAnalyzer = {
     if (goodCTR && poorCVR) return 'Drop-Off Cluster';
     
     return 'Optimizable'; // Default for medium performance
+  },
+
+// Assign suggestions based on cross-bucket analysis
+  assignSuggestions(metrics, buckets) {
+    const suggestions = [];
+    
+    // Get dynamic thresholds for comparison
+    const avgCTR = this.DEFAULTS.ctr;
+    const avgCVR = this.DEFAULTS.cvr;
+    const avgCPC = this.DEFAULTS.avgCpc;
+    
+    // Priority 1: Pause & Reallocate Budget
+    if (metrics.roas < 1 && 
+        buckets.roasBucket === 'Underperformers' && 
+        buckets.roiBucket === 'Waste of Spend' &&
+        (buckets.spendBucket === 'Parasites' || (metrics.conversions === 0 && metrics.cost > 100))) {
+      suggestions.push('Pause & Reallocate Budget');
+    }
+    
+    // Priority 2: Scale Aggressively  
+    if (metrics.roas > 3 &&
+        (buckets.roasBucket === 'Top Performers' || buckets.roiBucket === 'Scalable Winners') &&
+        metrics.cvr >= this.DEFAULTS.cvr) {
+      suggestions.push('Scale Aggressively');
+    }
+    
+    // Priority 3: Fix Ad Creative (Low CTR)
+    if (metrics.ctr < avgCTR * 0.5 &&
+        metrics.impressions > 1000 &&
+        metrics.conversions > 0 &&
+        (buckets.funnelBucket === 'Needs Better Ad Creative' || buckets.funnelBucket === 'Ad Creative Problem')) {
+      suggestions.push('Fix Ad Creative (Low CTR)');
+    }
+    
+    // Priority 4: Optimize Landing/Offer (Low CVR)
+    if (metrics.ctr > avgCTR &&
+        metrics.cvr < avgCVR * 0.5 &&
+        metrics.clicks > 50 &&
+        (buckets.funnelBucket === 'Weak Landing Page or Offer' || buckets.funnelBucket === 'UX Optimization Needed')) {
+      suggestions.push('Optimize Landing/Offer (Low CVR)');
+    }
+    
+    // Priority 5: Refine Targeting & Efficiency
+    if (metrics.avgCpc > avgCPC * 1.5 &&
+        (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
+        (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste')) {
+      const clickValueIndex = metrics.clicks > 0 ? (metrics.convValue / metrics.clicks) / metrics.avgCpc : 0;
+      if (clickValueIndex < 1.5) {
+        suggestions.push('Refine Targeting & Efficiency');
+      }
+    }
+    
+    // Priority 6: Increase Visibility First
+    if (metrics.impressions < 500 ||
+        metrics.cost < 50 ||
+        (buckets.spendBucket === 'Zombies' || (buckets.customTier === 'Testing Product' && metrics.clicks < 10))) {
+      suggestions.push('Increase Visibility First');
+    }
+    
+    return suggestions;
   }
 };
 
