@@ -333,7 +333,21 @@ const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 // Get ALL unique bucket values from the entire dataset (not just filtered data)
 // This ensures we show all possible buckets, even if they have 0 products currently
 const allData = result.data.filter(row => row['Campaign Name'] === 'All');
-const allUniqueBucketValues = [...new Set(allData.map(row => row[bucketType]))].filter(Boolean);
+let allUniqueBucketValues;
+
+if (bucketType === 'Suggestions') {
+  // For Suggestions, split the semicolon-separated values
+  const allSuggestions = new Set();
+  allData.forEach(row => {
+    if (row[bucketType]) {
+      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(s => allSuggestions.add(s));
+    }
+  });
+  allUniqueBucketValues = [...allSuggestions];
+} else {
+  allUniqueBucketValues = [...new Set(allData.map(row => row[bucketType]))].filter(Boolean);
+}
 
 // Initialize all possible buckets with 0 count
 allUniqueBucketValues.forEach(bucketValue => {
@@ -513,28 +527,45 @@ function renderROASFunnel(container, bucketData) {
 const orderedBuckets = [];
 
 if (bucketConfig) {
-  // Order buckets based on configuration (reversed for funnel display - best at bottom)
-  const orderToUse = [...bucketConfig.order].reverse();
+  if (bucketType === 'Suggestions') {
+    // For Suggestions, order by the configuration but only include buckets that exist in the data
+    const orderToUse = [...bucketConfig.order].reverse();
+    orderToUse.forEach(bucketName => {
+      const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+      if (foundBucket) {
+        orderedBuckets.push(foundBucket);
+      }
+    });
+    // Add any suggestions not in the predefined order
+    enhancedBucketData.forEach(bucket => {
+      if (!orderedBuckets.find(b => b.name === bucket.name)) {
+        orderedBuckets.push(bucket);
+      }
+    });
+  } else {
+    // Order buckets based on configuration (reversed for funnel display - best at bottom)
+    const orderToUse = [...bucketConfig.order].reverse();
 
-  orderToUse.forEach(bucketName => {
-    const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
-    if (foundBucket) {
-      orderedBuckets.push(foundBucket);
-    } else {
-      // Create placeholder for missing buckets
-      orderedBuckets.push({
-        name: bucketName,
-        count: 0,
-        avgROAS: 0,
-        totalCost: 0,
-        totalRevenue: 0,
-        costPercentage: 0,
-        revenuePercentage: 0,
-        productPercentage: 0,
-        description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
-      });
-    }
-  });
+    orderToUse.forEach(bucketName => {
+      const foundBucket = enhancedBucketData.find(b => b.name === bucketName);
+      if (foundBucket) {
+        orderedBuckets.push(foundBucket);
+      } else {
+        // Create placeholder for missing buckets
+        orderedBuckets.push({
+          name: bucketName,
+          count: 0,
+          avgROAS: 0,
+          totalCost: 0,
+          totalRevenue: 0,
+          costPercentage: 0,
+          revenuePercentage: 0,
+          productPercentage: 0,
+          description: bucketDescriptions[bucketName] || `${bucketName} bucket - Performance analysis and optimization recommendations for products in this category.`
+        });
+      }
+    });
+  }
 } else {
   // Fallback - use all buckets from enhancedBucketData if no config
   enhancedBucketData.forEach(bucket => {
@@ -620,21 +651,42 @@ if (!bucketConfig) {
 // Create color gradients based on bucket configuration
 const colors = [];
 const colorIdMap = {};
-bucketConfig.order.forEach((bucketName, index) => {
-  const baseColor = bucketConfig.colors[bucketName];
-  const colorId = `bucket-${index}`;
-  colorIdMap[bucketName] = colorId;
-  
-  // Create a slightly lighter version for gradient end
-  const lighterColor = adjustColorBrightness(baseColor, 20);
-  
-  colors.push({
-    id: colorId,
-    start: baseColor,
-    end: lighterColor,
-    bucketName: bucketName
+
+// For Suggestions, we need to handle dynamic bucket names
+if (bucketType === 'Suggestions') {
+  // Use the actual unique bucket values found in data
+  window.allBucketNames.forEach((bucketName, index) => {
+    const baseColor = bucketConfig.colors[bucketName] || '#999999';
+    const colorId = `bucket-${index}`;
+    colorIdMap[bucketName] = colorId;
+    
+    // Create a slightly lighter version for gradient end
+    const lighterColor = adjustColorBrightness(baseColor, 20);
+    
+    colors.push({
+      id: colorId,
+      start: baseColor,
+      end: lighterColor,
+      bucketName: bucketName
+    });
   });
-});
+} else {
+  bucketConfig.order.forEach((bucketName, index) => {
+    const baseColor = bucketConfig.colors[bucketName];
+    const colorId = `bucket-${index}`;
+    colorIdMap[bucketName] = colorId;
+    
+    // Create a slightly lighter version for gradient end
+    const lighterColor = adjustColorBrightness(baseColor, 20);
+    
+    colors.push({
+      id: colorId,
+      start: baseColor,
+      end: lighterColor,
+      bucketName: bucketName
+    });
+  });
+}
 
 // Helper function to lighten colors
 function adjustColorBrightness(hex, percent) {
@@ -939,9 +991,14 @@ const bottomRight = trapezoidBottomWidth;
 const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
 const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
     
-    trapezoid.setAttribute('points', points);
-    const colorConfig = colors.find(c => c.bucketName === bucket.name);
-trapezoid.setAttribute('fill', `url(#${colorConfig ? colorConfig.id : colors[0].id})`);
+trapezoid.setAttribute('points', points);
+const colorConfig = colors.find(c => c.bucketName === bucket.name);
+if (!colorConfig && bucketType === 'Suggestions') {
+  // For suggestions without predefined colors, use a default
+  trapezoid.setAttribute('fill', '#999999');
+} else {
+  trapezoid.setAttribute('fill', `url(#${colorConfig ? colorConfig.id : colors[0]?.id || 'gradient-all'})`);
+}
     trapezoid.setAttribute('filter', 'url(#dropshadow)');
     trapezoid.style.cursor = 'pointer';
     trapezoid.style.transition = 'all 0.3s ease';
@@ -2593,8 +2650,21 @@ function renderROASHistoricCharts(container, data) {
 // Process historic data
   const dateMap = new Map();
   
-  // Get unique bucket names from the data
-  const bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
+// Get unique bucket names from the data
+let bucketNames;
+if (bucketType === 'Suggestions') {
+  // For Suggestions, split the semicolon-separated values
+  const allSuggestions = new Set();
+  allCampaignRecords.forEach(row => {
+    if (row[bucketType]) {
+      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(s => allSuggestions.add(s));
+    }
+  });
+  bucketNames = [...allSuggestions].sort();
+} else {
+  bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
+}
   
   // Calculate date range based on available data
   let minDate = moment();
@@ -2634,22 +2704,34 @@ function renderROASHistoricCharts(container, data) {
     dateMap.set(dateStr, bucketCounts);
   }
   
-  // Count products per bucket per date (NO NEW bucketType declaration here)
-  allCampaignRecords.forEach(product => {
-    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-      product['historic_data.buckets'].forEach(histItem => {
-        const date = histItem.date;
-        const bucketValue = histItem[bucketType];  // USE EXISTING bucketType
+// Count products per bucket per date (NO NEW bucketType declaration here)
+allCampaignRecords.forEach(product => {
+  if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+    product['historic_data.buckets'].forEach(histItem => {
+      const date = histItem.date;
+      const bucketValue = histItem[bucketType];  // USE EXISTING bucketType
+      
+      if (date && bucketValue && dateMap.has(date)) {
+        const dayData = dateMap.get(date);
         
-        if (date && bucketValue && dateMap.has(date)) {
-          const dayData = dateMap.get(date);
+        if (bucketType === 'Suggestions' && bucketValue.includes(';')) {
+          // For Suggestions, split and count each one
+          const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
+          suggestions.forEach(suggestion => {
+            if (dayData[suggestion] !== undefined) {
+              dayData[suggestion]++;
+            }
+          });
+        } else {
+          // Normal bucket counting
           if (dayData[bucketValue] !== undefined) {
             dayData[bucketValue]++;
           }
         }
-      });
-    }
-  });
+      }
+    });
+  }
+});
   
   // Calculate current and previous bucket counts for trends
   const currentBucketCounts = {};
@@ -2663,11 +2745,33 @@ function renderROASHistoricCharts(container, data) {
   
   const prevBucketType = 'prev_' + bucketType;  // USE EXISTING bucketType
   
-  // Count current and previous bucket assignments
-  allCampaignRecords.forEach(product => {
-    const currentBucket = product[bucketType];  // USE EXISTING bucketType
-    const prevBucket = product[prevBucketType];
+// Count current and previous bucket assignments
+allCampaignRecords.forEach(product => {
+  const currentBucket = product[bucketType];  // USE EXISTING bucketType
+  const prevBucket = product[prevBucketType];
+  
+  if (bucketType === 'Suggestions') {
+    // Handle current suggestions
+    if (currentBucket) {
+      const suggestions = currentBucket.split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(suggestion => {
+        if (currentBucketCounts.hasOwnProperty(suggestion)) {
+          currentBucketCounts[suggestion]++;
+        }
+      });
+    }
     
+    // Handle previous suggestions
+    if (prevBucket) {
+      const prevSuggestions = prevBucket.split(';').map(s => s.trim()).filter(s => s);
+      prevSuggestions.forEach(suggestion => {
+        if (prevBucketCounts.hasOwnProperty(suggestion)) {
+          prevBucketCounts[suggestion]++;
+        }
+      });
+    }
+  } else {
+    // Normal bucket counting
     if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
       currentBucketCounts[currentBucket]++;
     }
@@ -2675,7 +2779,8 @@ function renderROASHistoricCharts(container, data) {
     if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
       prevBucketCounts[prevBucket]++;
     }
-  });
+  }
+});
   
 // Convert to arrays for Chart.js
 const dates = Array.from(dateMap.keys()).sort();
