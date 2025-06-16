@@ -93,19 +93,32 @@ window.bucketConfig = {
       'Expensive Waste': '#F44336',
       'Collecting Data': '#9E9E9E'
     }
+  },
+    'Suggestions': {
+    order: ['Pause & Reallocate Budget', 'Scale Aggressively', 'Fix Ad Creative (Low CTR)', 
+            'Optimize Landing/Offer (Low CVR)', 'Refine Targeting & Efficiency', 'Increase Visibility First'],
+    colors: {
+      'Pause & Reallocate Budget': '#F44336',
+      'Scale Aggressively': '#4CAF50',
+      'Fix Ad Creative (Low CTR)': '#FF9800',
+      'Optimize Landing/Offer (Low CVR)': '#FF7043',
+      'Refine Targeting & Efficiency': '#2196F3',
+      'Increase Visibility First': '#9E9E9E'
+    }
   }
 };
 
 // Function to initialize bucket switcher buttons
 function initializeBucketSwitcher() {
-  const bucketButtons = {
+const bucketButtons = {
     'bucketROAS': 'ROAS_Bucket',
     'bucketROI': 'ROI_Bucket', 
     'bucketFunnel': 'Funnel_Bucket',
     'bucketSpend': 'Spend_Bucket',
     'bucketPricing': 'Pricing_Bucket',
     'bucketCustom': 'Custom_Tier',
-    'bucketML': 'ML_Cluster'
+    'bucketML': 'ML_Cluster',
+    'bucketSuggestions': 'Suggestions'
   };
 
   Object.keys(bucketButtons).forEach(buttonId => {
@@ -329,9 +342,25 @@ allUniqueBucketValues.forEach(bucketValue => {
 
 // Count products in each bucket from filtered data
 filteredData.forEach(row => {
-  const bucket = row[bucketType];
-  if (bucket && bucketCounts.hasOwnProperty(bucket)) {
-    bucketCounts[bucket]++;
+  const bucketValue = row[bucketType];
+  
+  // Handle Suggestions differently (can have multiple values)
+  if (bucketType === 'Suggestions') {
+    if (bucketValue) {
+      // Split suggestions by semicolon and count each
+      const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(suggestion => {
+        if (!bucketCounts[suggestion]) {
+          bucketCounts[suggestion] = 0;
+        }
+        bucketCounts[suggestion]++;
+      });
+    }
+  } else {
+    // Normal bucket counting
+    if (bucketValue && bucketCounts.hasOwnProperty(bucketValue)) {
+      bucketCounts[bucketValue]++;
+    }
   }
 });
 
@@ -441,9 +470,19 @@ function renderROASFunnel(container, bucketData) {
     bucketDescriptions = window.bucketDescriptions[bucketType];
   }
 
-  // Calculate additional metrics for each bucket
+// Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
-const bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
+    let bucketProducts;
+    
+    // Handle Suggestions differently (products can have multiple suggestions)
+    if (bucketType === 'Suggestions') {
+      bucketProducts = window.roasBucketsData.filter(row => {
+        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+        return suggestions.includes(bucket.name);
+      });
+    } else {
+      bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
+    }
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
     const totalRevenue = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
@@ -1616,12 +1655,20 @@ function updateBucketDistributionPopup(products) {
 function renderROASChannelsContainer(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Apply bucket filter if provided
+// Apply bucket filter if provided
   let filteredData = data;
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-if (bucketFilter) {
-  filteredData = data.filter(row => row[bucketType] === bucketFilter);
-}
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  if (bucketFilter) {
+    if (bucketType === 'Suggestions') {
+      // Handle Suggestions filtering differently
+      filteredData = data.filter(row => {
+        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+        return suggestions.includes(bucketFilter);
+      });
+    } else {
+      filteredData = data.filter(row => row[bucketType] === bucketFilter);
+    }
+  }
   
   // Create channels table
   const channelsTitle = document.createElement('h3');
@@ -1659,7 +1706,14 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
-  validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
+  if (bucketType === 'Suggestions') {
+    filteredData = filteredData.filter(row => {
+      const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+      return suggestions.includes(bucketFilter);
+    });
+  } else {
+    filteredData = filteredData.filter(row => row[bucketType] === bucketFilter);
+  }
 }
   
   // Get all unique campaign names
@@ -1927,7 +1981,14 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
 let validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
-  validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
+  if (bucketType === 'Suggestions') {
+    filteredData = filteredData.filter(row => {
+      const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+      return suggestions.includes(bucketFilter);
+    });
+  } else {
+    filteredData = filteredData.filter(row => row[bucketType] === bucketFilter);
+  }
 }
   
   // Group by Channel Type
@@ -2616,32 +2677,35 @@ function renderROASHistoricCharts(container, data) {
     }
   });
   
-  // Convert to arrays for Chart.js
-  const dates = Array.from(dateMap.keys()).sort();
-const datasets = bucketNames.map((bucketName, index) => {
-  const colorPalette = [
-    { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },
-    { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },
-    { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },
-    { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' },
-    { bg: 'rgba(156, 39, 176, 0.3)', border: '#9C27B0' },
-    { bg: 'rgba(0, 188, 212, 0.3)', border: '#00BCD4' },
-    { bg: 'rgba(139, 195, 74, 0.3)', border: '#8BC34A' },
-    { bg: 'rgba(255, 193, 7, 0.3)', border: '#FFC107' }
-  ];
-  
-  const colorIndex = index % colorPalette.length;
-  
-  return {
-    label: bucketName,
-    data: dates.map(date => dateMap.get(date)[bucketName]),
-    backgroundColor: colorPalette[colorIndex].bg,
-    borderColor: colorPalette[colorIndex].border,
-    borderWidth: 2,
-    fill: true,
-    tension: 0.4
-  };
-});
+// Convert to arrays for Chart.js
+const dates = Array.from(dateMap.keys()).sort();
+// Filter out "Collecting Data" from chart datasets
+const datasets = bucketNames
+  .filter(bucketName => bucketName !== 'Collecting Data')
+  .map((bucketName, index) => {
+    const colorPalette = [
+      { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },
+      { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },
+      { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },
+      { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' },
+      { bg: 'rgba(156, 39, 176, 0.3)', border: '#9C27B0' },
+      { bg: 'rgba(0, 188, 212, 0.3)', border: '#00BCD4' },
+      { bg: 'rgba(139, 195, 74, 0.3)', border: '#8BC34A' },
+      { bg: 'rgba(255, 193, 7, 0.3)', border: '#FFC107' }
+    ];
+    
+    const colorIndex = index % colorPalette.length;
+    
+    return {
+      label: bucketName,
+      data: dates.map(date => dateMap.get(date)[bucketName]),
+      backgroundColor: colorPalette[colorIndex].bg,
+      borderColor: colorPalette[colorIndex].border,
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4
+    };
+  });
   
   // Create chart
   const canvas = document.createElement('canvas');
@@ -2763,9 +2827,19 @@ uniqueBuckets.forEach(bucket => {
 });
   
 allCampaignRecords.forEach(product => {
-  const bucket = product[bucketType];
-  if (bucket && bucketGroups[bucket]) {
-    bucketGroups[bucket].push(product);
+  if (bucketType === 'Suggestions') {
+    // Handle Suggestions differently - a product can be in multiple buckets
+    const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
+    suggestions.forEach(suggestion => {
+      if (bucketGroups[suggestion]) {
+        bucketGroups[suggestion].push(product);
+      }
+    });
+  } else {
+    const bucket = product[bucketType];
+    if (bucket && bucketGroups[bucket]) {
+      bucketGroups[bucket].push(product);
+    }
   }
 });
   
