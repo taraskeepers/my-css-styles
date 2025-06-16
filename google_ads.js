@@ -4928,6 +4928,7 @@ container.innerHTML = `
               <button id="bucketPricing">Pricing</button>
               <button id="bucketCustom">Custom</button>
               <button id="bucketML">ML</button>
+              <button id="bucketSuggestions">Suggestions</button>
             </div>
           </div>
           <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
