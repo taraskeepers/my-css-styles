@@ -13,78 +13,85 @@ window.bucketDistributionPreferences = window.bucketDistributionPreferences || {
 // Comprehensive bucket configuration with colors and order
 window.bucketConfig = {
   'ROAS_Bucket': {
-    order: ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers'],
+    order: ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers', 'Collecting Data'],
     colors: {
-      'Top Performers': '#4CAF50',           // Green - Best
-      'Efficient Low Volume': '#2196F3',     // Blue - Good but needs scale
-      'Volume Driver, Low ROI': '#FF9800',   // Orange - Moderate
-      'Underperformers': '#F44336'           // Red - Worst
+      'Top Performers': '#4CAF50',
+      'Efficient Low Volume': '#2196F3',
+      'Volume Driver, Low ROI': '#FF9800',
+      'Underperformers': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'ROI_Bucket': {
-    order: ['Scalable Winners', 'Niche but Profitable', 'Price Issue', 'Waste of Spend'],
+    order: ['Scalable Winners', 'Niche but Profitable', 'Price Issue', 'Waste of Spend', 'Collecting Data'],
     colors: {
-      'Scalable Winners': '#4CAF50',         // Green - Best
-      'Niche but Profitable': '#2196F3',     // Blue - Good but limited
-      'Price Issue': '#FF9800',              // Orange - Moderate issue
-      'Waste of Spend': '#F44336'            // Red - Worst
+      'Scalable Winners': '#4CAF50',
+      'Niche but Profitable': '#2196F3',
+      'Price Issue': '#FF9800',
+      'Waste of Spend': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'Funnel_Bucket': {
     order: ['Funnel Champions', 'Most Efficient', 'UX Optimization Needed', 'Ad Creative Problem', 
             'Valuable but Costly', 'Weak Landing Page or Offer', 'Poor Targeting', 
-            'Needs Better Ad Creative', 'Funnel Friction'],
+            'Needs Better Ad Creative', 'Funnel Friction', 'Collecting Data'],
     colors: {
-      'Funnel Champions': '#4CAF50',              // Green - Best
-      'Most Efficient': '#66BB6A',                // Light Green - Excellent
-      'UX Optimization Needed': '#42A5F5',        // Light Blue - Moderate good
-      'Ad Creative Problem': '#2196F3',           // Blue - Moderate good
-      'Valuable but Costly': '#9C27B0',           // Purple - Moderate
-      'Weak Landing Page or Offer': '#FF9800',   // Orange - Moderate bad
-      'Poor Targeting': '#FF7043',                // Dark Orange - Bad
-      'Needs Better Ad Creative': '#EF5350',      // Light Red - Bad
-      'Funnel Friction': '#F44336'                // Red - Worst
+      'Funnel Champions': '#4CAF50',
+      'Most Efficient': '#66BB6A',
+      'UX Optimization Needed': '#42A5F5',
+      'Ad Creative Problem': '#2196F3',
+      'Valuable but Costly': '#9C27B0',
+      'Weak Landing Page or Offer': '#FF9800',
+      'Poor Targeting': '#FF7043',
+      'Needs Better Ad Creative': '#EF5350',
+      'Funnel Friction': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'Spend_Bucket': {
-    order: ['Hidden Gems', 'Scalable with Caution', 'Low Priority', 'Unprofitable Spend', 'Zombies', 'Parasites'],
+    order: ['Hidden Gems', 'Scalable with Caution', 'Low Priority', 'Unprofitable Spend', 'Zombies', 'Parasites', 'Collecting Data'],
     colors: {
-      'Hidden Gems': '#4CAF50',             // Green - Best
-      'Scalable with Caution': '#66BB6A',   // Light Green - Good
-      'Low Priority': '#9E9E9E',            // Gray - Neutral
-      'Unprofitable Spend': '#FF9800',      // Orange - Bad
-      'Zombies': '#D32F2F',                 // Dark Red - Very bad
-      'Parasites': '#F44336'                // Red - Worst
+      'Hidden Gems': '#4CAF50',
+      'Scalable with Caution': '#66BB6A',
+      'Low Priority': '#9E9E9E',
+      'Unprofitable Spend': '#FF9800',
+      'Zombies': '#D32F2F',
+      'Parasites': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'Pricing_Bucket': {
-    order: ['Premium Product with Strong Demand', 'Low-Ticket Impulse Buys', 'Price Resistance', 'Low Value No Interest'],
+    order: ['Premium Product with Strong Demand', 'Low-Ticket Impulse Buys', 'Price Resistance', 'Low Value No Interest', 'Collecting Data'],
     colors: {
-      'Premium Product with Strong Demand': '#4CAF50',  // Green - Best
-      'Low-Ticket Impulse Buys': '#66BB6A',            // Light Green - Good
-      'Price Resistance': '#FF9800',                    // Orange - Moderate
-      'Low Value No Interest': '#F44336'                // Red - Worst
+      'Premium Product with Strong Demand': '#4CAF50',
+      'Low-Ticket Impulse Buys': '#66BB6A',
+      'Price Resistance': '#FF9800',
+      'Low Value No Interest': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'Custom_Tier': {
-    order: ['Hero Product', 'Scale-Up', 'Budget Booster', 'Creative Review', 'Testing Product', 'Wasted Spend'],
+    order: ['Hero Product', 'Scale-Up', 'Budget Booster', 'Creative Review', 'Testing Product', 'Wasted Spend', 'Collecting Data'],
     colors: {
-      'Hero Product': '#FFD700',            // Gold - Best
-      'Scale-Up': '#4CAF50',               // Green - Excellent
-      'Budget Booster': '#66BB6A',         // Light Green - Good
-      'Creative Review': '#2196F3',         // Blue - Moderate
-      'Testing Product': '#9E9E9E',         // Gray - Neutral
-      'Wasted Spend': '#F44336'            // Red - Worst
+      'Hero Product': '#FFD700',
+      'Scale-Up': '#4CAF50',
+      'Budget Booster': '#66BB6A',
+      'Creative Review': '#2196F3',
+      'Testing Product': '#9E9E9E',
+      'Wasted Spend': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   },
   'ML_Cluster': {
-    order: ['Undervalued Winners', 'High ROAS Anomalies', 'Optimizable', 'Drop-Off Cluster', 'Expensive Waste'],
+    order: ['Undervalued Winners', 'High ROAS Anomalies', 'Optimizable', 'Drop-Off Cluster', 'Expensive Waste', 'Collecting Data'],
     colors: {
-      'Undervalued Winners': '#4CAF50',     // Green - Best
-      'High ROAS Anomalies': '#9C27B0',     // Purple - Special/Good
-      'Optimizable': '#2196F3',             // Blue - Neutral
-      'Drop-Off Cluster': '#FF9800',        // Orange - Moderate bad
-      'Expensive Waste': '#F44336'          // Red - Worst
+      'Undervalued Winners': '#4CAF50',
+      'High ROAS Anomalies': '#9C27B0',
+      'Optimizable': '#2196F3',
+      'Drop-Off Cluster': '#FF9800',
+      'Expensive Waste': '#F44336',
+      'Collecting Data': '#9E9E9E'
     }
   }
 };
@@ -136,7 +143,8 @@ window.bucketDescriptions = {
     'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
     'Efficient Low Volume': 'These products deliver a strong return on ad spend but with a low number of conversions. It suggests the product is well-targeted but not reaching enough people. Consider testing broader or new audiences and increasing impressions while maintaining efficiency.',
     'Volume Driver, Low ROI': 'Products that drive a high number of conversions, but at the cost of low profitability (low ROAS). These can be important for customer acquisition but may not be sustainable unless their margin improves or lifetime value justifies continued spend.',
-    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.'
+    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.',
+    'Collecting Data': 'Products with insufficient data for reliable analysis. These need more impressions, clicks, and time before meaningful performance assessment. Continue running with minimal budget until statistical significance is reached.'
   },
   
   // ROI Bucket descriptions
@@ -144,7 +152,8 @@ window.bucketDescriptions = {
     'Scalable Winners': 'These products achieve both high return on ad spend and low acquisition costs. They are efficient and profitable — the ideal candidates for scaling aggressively, whether through higher budgets or replicating their strategy across other products.',
     'Niche but Profitable': 'High ROAS but also high CPA. These products may appeal to a smaller segment but generate strong returns when they convert. Scale cautiously, focusing on fine-tuned targeting and maintaining profitability.',
     'Price Issue': 'Products that are cheap to acquire (low CPA) but don\'t generate enough return (low ROAS). These may require price adjustments or better upselling to improve average order value and profitability.',
-    'Waste of Spend': 'High CPA and low ROAS — you are spending a lot without seeing returns. These products may not be viable for paid advertising unless significant improvements are made in targeting, creative, or pricing.'
+    'Waste of Spend': 'High CPA and low ROAS — you are spending a lot without seeing returns. These products may not be viable for paid advertising unless significant improvements are made in targeting, creative, or pricing.',
+    'Collecting Data': 'Insufficient data to determine ROI patterns. Allow these products to accumulate at least 100 impressions and 10 clicks before making optimization decisions.'
   },
   
   // Funnel Bucket descriptions
@@ -157,7 +166,8 @@ window.bucketDescriptions = {
     'UX Optimization Needed': 'High CTR but low CVR indicates the ad is effective, but users don\'t complete the purchase. Likely caused by poor mobile experience, confusing navigation, or trust issues. Improve page usability and conversion flow.',
     'Ad Creative Problem': 'Low CTR but high CVR points to an ineffective ad creative. While the landing page works, not enough people are enticed to click. Refresh the creative and test different value propositions.',
     'Funnel Friction': 'Both CTR and CVR are low. This means the product, ad, and page are not aligned with audience needs or expectations. Comprehensive repositioning is recommended.',
-    'Funnel Champions': 'Products that succeed at every stage: high CTR and high CVR. These should serve as templates for new products or campaigns. Expand budget and test additional variations to scale.'
+    'Funnel Champions': 'Products that succeed at every stage: high CTR and high CVR. These should serve as templates for new products or campaigns. Expand budget and test additional variations to scale.',
+    'Collecting Data': 'Not enough funnel data to identify bottlenecks. These products need more traffic through each stage before funnel optimization recommendations can be made.'
   },
   
   // Spend Bucket descriptions
@@ -167,7 +177,8 @@ window.bucketDescriptions = {
     'Scalable with Caution': 'High cost matched by strong performance. These products can drive growth but require careful management to avoid inefficiencies at scale.',
     'Low Priority': 'Low investment and low return. These products are not significant contributors and should be deprioritized unless further testing reveals hidden potential.',
     'Zombies': 'These have almost no impressions — they\'re not receiving enough exposure. Either increase bids, check for disapprovals, or rework to improve eligibility and reach.',
-    'Parasites': 'High ad spend with zero conversions. These are extremely inefficient and should be paused immediately or re-evaluated from a creative and targeting perspective.'
+    'Parasites': 'High ad spend with zero conversions. These are extremely inefficient and should be paused immediately or re-evaluated from a creative and targeting perspective.',
+    'Collecting Data': 'Minimal spend and activity so far. These products haven\'t consumed enough budget or generated enough data points to categorize their spend efficiency.'
   },
   
   // Pricing Bucket descriptions
@@ -175,7 +186,8 @@ window.bucketDescriptions = {
     'Premium Product with Strong Demand': 'These products command a high price yet convert efficiently. Strong market demand justifies their price point. Ideal for profit-focused growth strategies.',
     'Low-Ticket Impulse Buys': 'Low price and high conversion rate — perfect for volume strategies or entry-level products that feed a broader customer funnel or upsell flow.',
     'Price Resistance': 'High price but low conversions. The value isn\'t clear to customers at the listed price. Consider price testing, bundling, or improved value communication.',
-    'Low Value No Interest': 'Low price and low conversion — customers still don\'t want it. Likely a product-market fit issue. Reconsider the product\'s positioning or remove it from active advertising.'
+    'Low Value No Interest': 'Low price and low conversion — customers still don\'t want it. Likely a product-market fit issue. Reconsider the product\'s positioning or remove it from active advertising.',
+    'Collecting Data': 'Insufficient conversion data to assess price-performance relationship. Need more market exposure to understand if pricing is aligned with demand.'
   },
   
   // Custom Tier descriptions
@@ -185,7 +197,8 @@ window.bucketDescriptions = {
     'Wasted Spend': 'Underperforming products with significant investment but no returns. These should be paused or completely reworked.',
     'Testing Product': 'Products that haven\'t yet generated enough data to make a decision. Allow them to run with low spend until more conclusive performance data is available.',
     'Creative Review': 'CTR is strong, so the ad is engaging — but low CVR indicates the page or offer is underwhelming. The issue is after the click. Focus on improving post-click experience.',
-    'Budget Booster': 'These convert well at very low cost. They are perfect to scale or use as fillers in campaigns with strict CPA goals.'
+    'Budget Booster': 'These convert well at very low cost. They are perfect to scale or use as fillers in campaigns with strict CPA goals.',
+    'Collecting Data': 'New or low-activity products still gathering initial performance signals. Monitor closely as data accumulates to identify their strategic tier.'
   },
   
   // ML Cluster descriptions
@@ -194,7 +207,18 @@ window.bucketDescriptions = {
     'Expensive Waste': 'High CPC and zero conversions — clear sign of inefficiency. Likely misaligned audience or poor ad creative. Should be paused or reworked.',
     'Optimizable': 'Products with average metrics — showing potential but not yet optimized. Consider A/B testing creatives or targeting to lift performance.',
     'High ROAS Anomalies': 'Very high ROAS with low click volume. These could be gold mines if volume can be increased — test higher bids, creatives, or broader targeting to grow reach.',
-    'Drop-Off Cluster': 'Products that perform well at the awareness or interest stage (e.g., high CTR), but drop off before conversion. Investigate the mid-funnel: checkout flow, trust elements, mobile UX.'
+    'Drop-Off Cluster': 'Products that perform well at the awareness or interest stage (e.g., high CTR), but drop off before conversion. Investigate the mid-funnel: checkout flow, trust elements, mobile UX.',
+    'Collecting Data': 'Not enough data points for pattern recognition. Machine learning models require minimum thresholds of activity before clustering analysis becomes meaningful.'
+  },
+
+  // Suggestions descriptions
+  'Suggestions': {
+    'Pause & Reallocate Budget': 'This product is burning money without returns. It has ROAS below 1x, falls into the worst performance buckets, and either has zero conversions despite $100+ spend or is classified as a "Parasite". Immediate action required: pause all campaigns for this product and redistribute the budget to better performers. Consider revisiting only after significant product or market changes.',
+    'Scale Aggressively': 'Strong performer ready for growth. With ROAS above 3x and classification as either "Top Performer" or "Scalable Winner", this product efficiently converts traffic into revenue. Recommended actions: increase daily budgets by 50-100%, expand to new audiences, test additional ad formats, and consider increasing bids to capture more impression share while monitoring efficiency.',
+    'Fix Ad Creative (Low CTR)': 'Your ads aren\'t compelling enough to generate clicks. With CTR below 50% of account average despite sufficient impressions (1000+), users are seeing but ignoring your ads. The product can convert when clicked, so focus on: new imagery, stronger headlines, clearer value propositions, testing different ad formats, and highlighting unique selling points or promotions.',
+    'Optimize Landing/Offer (Low CVR)': 'Traffic quality is good but your landing page or offer isn\'t converting. With above-average CTR but conversion rate below 50% of account average, users are interested enough to click but something prevents purchase. Review: page load speed, mobile experience, price competitiveness, shipping costs, trust signals, checkout process complexity, and product description clarity.',
+    'Refine Targeting & Efficiency': 'You\'re paying too much for the wrong audience. With CPC 50% above average and poor engagement metrics, your targeting is misaligned. Actions to take: review and narrow audience targeting, add negative keywords, adjust demographic targets, use audience exclusions, test manual bidding strategies, and analyze search terms report to identify irrelevant traffic.',
+    'Increase Visibility First': 'Not enough data to make optimization decisions. With fewer than 500 impressions or $50 in spend, this product needs more exposure before performance can be properly assessed. Recommended: increase bids to improve ad rank, broaden match types temporarily, check for ad disapprovals, ensure product feed data is complete, and allocate minimum daily budget to gather statistically significant data.'
   }
 };
 
