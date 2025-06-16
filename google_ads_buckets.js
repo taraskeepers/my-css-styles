@@ -2694,15 +2694,35 @@ if (bucketType === 'Suggestions') {
     startDate.set(minDate.toObject());
   }
   
-  // Initialize date map with dynamic bucket names
-  for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
-    const dateStr = d.format('YYYY-MM-DD');
-    const bucketCounts = {};
+// Initialize date map with dynamic bucket names
+for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
+  const dateStr = d.format('YYYY-MM-DD');
+  const bucketCounts = {};
+  
+  if (bucketType === 'Suggestions') {
+    // For Suggestions, include all possible suggestion values
+    const allPossibleSuggestions = new Set();
+    allCampaignRecords.forEach(product => {
+      if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+        product['historic_data.buckets'].forEach(histItem => {
+          if (histItem.Suggestions) {
+            const suggestions = histItem.Suggestions.split(';').map(s => s.trim()).filter(s => s);
+            suggestions.forEach(s => allPossibleSuggestions.add(s));
+          }
+        });
+      }
+    });
+    [...allPossibleSuggestions].forEach(name => {
+      bucketCounts[name] = 0;
+    });
+  } else {
     bucketNames.forEach(name => {
       bucketCounts[name] = 0;
     });
-    dateMap.set(dateStr, bucketCounts);
   }
+  
+  dateMap.set(dateStr, bucketCounts);
+}
   
 // Count products per bucket per date (NO NEW bucketType declaration here)
 allCampaignRecords.forEach(product => {
@@ -2714,20 +2734,22 @@ allCampaignRecords.forEach(product => {
       if (date && bucketValue && dateMap.has(date)) {
         const dayData = dateMap.get(date);
         
-        if (bucketType === 'Suggestions' && bucketValue.includes(';')) {
-          // For Suggestions, split and count each one
-          const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
-          suggestions.forEach(suggestion => {
-            if (dayData[suggestion] !== undefined) {
-              dayData[suggestion]++;
-            }
-          });
-        } else {
-          // Normal bucket counting
-          if (dayData[bucketValue] !== undefined) {
-            dayData[bucketValue]++;
-          }
-        }
+if (bucketType === 'Suggestions') {
+  // For Suggestions, always split (even single values)
+  if (bucketValue) {
+    const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
+    suggestions.forEach(suggestion => {
+      if (dayData[suggestion] !== undefined) {
+        dayData[suggestion]++;
+      }
+    });
+  }
+} else {
+  // Normal bucket counting
+  if (dayData[bucketValue] !== undefined) {
+    dayData[bucketValue]++;
+  }
+}
       }
     });
   }
@@ -2886,7 +2908,7 @@ border-left: 3px solid ${colorPalette[index % colorPalette.length]};
             border-radius: 4px;
           ">
             <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-              <span style="font-size: 18px; color: #666; font-weight: 500;">${shortName}</span>
+              <span style="font-size: ${bucketType === 'Suggestions' ? '12px' : '18px'}; color: #666; font-weight: 500;">${shortName}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 18px; font-weight: 700; color: ${colorPalette[index % colorPalette.length]};">${currentCount}</span>
@@ -2924,8 +2946,23 @@ function renderROASMetricsTable(container, data) {
   
   // Group by ROAS Bucket
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  
 // Get unique bucket values dynamically
-const uniqueBuckets = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean);
+let uniqueBuckets;
+if (bucketType === 'Suggestions') {
+  // For Suggestions, extract individual suggestions
+  const allSuggestions = new Set();
+  allCampaignRecords.forEach(row => {
+    if (row[bucketType]) {
+      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(s => allSuggestions.add(s));
+    }
+  });
+  uniqueBuckets = [...allSuggestions];
+} else {
+  uniqueBuckets = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean);
+}
+
 const bucketGroups = {};
 uniqueBuckets.forEach(bucket => {
   bucketGroups[bucket] = [];
@@ -3061,11 +3098,26 @@ const bucketConfig = window.bucketConfig[bucketType];
 const bucketColors = {};
 
 // Sort buckets by configuration order (best first)
-bucketMetrics.sort((a, b) => {
-  const orderA = bucketConfig.order.indexOf(a.bucket);
-  const orderB = bucketConfig.order.indexOf(b.bucket);
-  return orderA - orderB;
-});
+if (bucketType === 'Suggestions') {
+  // For Suggestions, sort by predefined order but allow for dynamic buckets
+  bucketMetrics.sort((a, b) => {
+    const orderA = bucketConfig.order.indexOf(a.bucket);
+    const orderB = bucketConfig.order.indexOf(b.bucket);
+    // If both are in order, use that
+    if (orderA !== -1 && orderB !== -1) return orderA - orderB;
+    // If only one is in order, it comes first
+    if (orderA !== -1) return -1;
+    if (orderB !== -1) return 1;
+    // Otherwise, alphabetical
+    return a.bucket.localeCompare(b.bucket);
+  });
+} else {
+  bucketMetrics.sort((a, b) => {
+    const orderA = bucketConfig.order.indexOf(a.bucket);
+    const orderB = bucketConfig.order.indexOf(b.bucket);
+    return orderA - orderB;
+  });
+}
 
 bucketMetrics.forEach(bucket => {
   bucketColors[bucket.bucket] = bucketConfig.colors[bucket.bucket] || '#999';
