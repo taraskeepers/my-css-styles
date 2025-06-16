@@ -263,17 +263,18 @@ const rowData = {
         const metrics = this.calculateAggregatedMetrics(relevantData, campaignName === 'All');
         const buckets = this.assignBuckets(metrics);
         
-        historicData.push({
-          date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
-          Custom_Tier: buckets.customTier,
-          Funnel_Bucket: buckets.funnelBucket,
-          ML_Cluster: buckets.mlCluster,
-          Pricing_Bucket: buckets.pricingBucket,
-          ROAS_Bucket: buckets.roasBucket,
-          ROI_Bucket: buckets.roiBucket,
-          Spend_Bucket: buckets.spendBucket,
-          days_of_data: Math.floor((currentDate - Math.max(histStartDate, minDataDate - 86400000)) / 86400000) // Track how many days of data were used
-        });
+historicData.push({
+  date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
+  Custom_Tier: buckets.customTier,
+  Funnel_Bucket: buckets.funnelBucket,
+  ML_Cluster: buckets.mlCluster,
+  Pricing_Bucket: buckets.pricingBucket,
+  ROAS_Bucket: buckets.roasBucket,
+  ROI_Bucket: buckets.roiBucket,
+  Spend_Bucket: buckets.spendBucket,
+  Suggestions: buckets.suggestions.join('; '), // Add suggestions
+  days_of_data: Math.floor((currentDate - Math.max(histStartDate, minDataDate - 86400000)) / 86400000) // Track how many days of data were used
+});
       }
       
       // Move to next day
