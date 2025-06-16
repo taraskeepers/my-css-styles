@@ -1,4 +1,124 @@
-  // Google Sheets Data Fetching Functions
+// Progress Management System
+const ProgressManager = {
+  steps: [
+    { key: 'extract', label: 'Extracting Sheet ID', weight: 5 },
+    { key: 'fetch', label: 'Downloading sheet data', weight: 40 },
+    { key: 'parse', label: 'Processing data rows', weight: 35 },
+    { key: 'store', label: 'Saving to local storage', weight: 20 }
+  ],
+  
+  currentProgress: 0,
+  currentStep: null,
+  
+  init() {
+    this.currentProgress = 0;
+    this.currentStep = null;
+    this.updateUI();
+  },
+  
+  startStep(stepKey, customMessage = null) {
+    const step = this.steps.find(s => s.key === stepKey);
+    if (!step) return;
+    
+    this.currentStep = stepKey;
+    
+    // Calculate progress up to this step
+    const stepIndex = this.steps.findIndex(s => s.key === stepKey);
+    this.currentProgress = this.steps.slice(0, stepIndex).reduce((sum, s) => sum + s.weight, 0);
+    
+    this.updateUI(customMessage || step.label);
+    this.updateStepStatus(stepKey, 'active');
+  },
+  
+  completeStep(stepKey) {
+    const step = this.steps.find(s => s.key === stepKey);
+    if (!step) return;
+    
+    const stepIndex = this.steps.findIndex(s => s.key === stepKey);
+    this.currentProgress = this.steps.slice(0, stepIndex + 1).reduce((sum, s) => sum + s.weight, 0);
+    
+    this.updateUI();
+    this.updateStepStatus(stepKey, 'completed');
+  },
+  
+  updateProgress(stepKey, progressWithinStep) {
+    const step = this.steps.find(s => s.key === stepKey);
+    if (!step) return;
+    
+    const stepIndex = this.steps.findIndex(s => s.key === stepKey);
+    const baseProgress = this.steps.slice(0, stepIndex).reduce((sum, s) => sum + s.weight, 0);
+    
+    this.currentProgress = baseProgress + (step.weight * progressWithinStep / 100);
+    this.updateUI();
+  },
+  
+  updateUI(customMessage = null) {
+    const loader = document.getElementById("overlayLoader");
+    if (!loader) return;
+    
+    // Show progress elements
+    const progressContainer = loader.querySelector('.progress-container');
+    const progressText = loader.querySelector('.progress-text');
+    const loadingSteps = loader.querySelector('.loading-steps');
+    const subtitle = loader.querySelector('.loading-subtitle');
+    
+    if (progressContainer) {
+      progressContainer.style.display = 'block';
+      const progressBar = progressContainer.querySelector('.progress-bar');
+      if (progressBar) {
+        progressBar.style.width = `${Math.min(this.currentProgress, 100)}%`;
+      }
+    }
+    
+    if (progressText) {
+      progressText.style.display = 'block';
+      progressText.textContent = `${Math.round(this.currentProgress)}% complete`;
+    }
+    
+    if (loadingSteps) {
+      loadingSteps.style.display = 'block';
+    }
+    
+    if (customMessage && subtitle) {
+      subtitle.textContent = customMessage;
+    }
+    
+    // Estimate time remaining
+    if (this.currentProgress > 5) {
+      const estimated = this.estimateTimeRemaining();
+      if (estimated && subtitle) {
+        subtitle.textContent = `${customMessage || 'Processing...'} • ${estimated}`;
+      }
+    }
+  },
+  
+  updateStepStatus(stepKey, status) {
+    const stepEl = document.querySelector(`[data-step="${stepKey}"]`);
+    if (stepEl) {
+      stepEl.className = `loading-step ${status}`;
+    }
+  },
+  
+  estimateTimeRemaining() {
+    if (!this.startTime || this.currentProgress <= 5) return null;
+    
+    const elapsed = Date.now() - this.startTime;
+    const rate = this.currentProgress / elapsed;
+    const remaining = (100 - this.currentProgress) / rate;
+    
+    if (remaining < 5000) return "Almost done";
+    if (remaining < 30000) return `~${Math.round(remaining / 1000)}s remaining`;
+    if (remaining < 60000) return "~1 min remaining";
+    return `~${Math.round(remaining / 60000)} min remaining`;
+  },
+  
+  setStartTime() {
+    this.startTime = Date.now();
+  }
+};
+
+
+// Google Sheets Data Fetching Functions
 window.googleSheetsManager = {
   // Dynamic configuration
   currentSheetId: null,
@@ -111,153 +231,198 @@ window.googleSheetsManager = {
     });
   },
   
-  // Main function to fetch and store data from URL
-  fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
-    const loader = document.getElementById("overlayLoader");
+// Main function to fetch and store data from URL
+fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
+  const loader = document.getElementById("overlayLoader");
+  try {
+    // Initialize progress tracking
+    ProgressManager.init();
+    ProgressManager.setStartTime();
+    
+    // Show loader with enhanced UI
+    if (loader) {
+      const loaderText = loader.querySelector('.apple-loading-text');
+      if (loaderText) {
+        loaderText.textContent = 'Processing Google Sheets';
+      }
+      loader.style.display = "flex";
+      loader.style.opacity = "1";
+    }
+    
+    // STEP 1: Extract sheet ID
+    ProgressManager.startStep('extract', 'Validating Google Sheets URL...');
+    const sheetId = this.extractSheetId(url);
+    if (!sheetId) {
+      throw new Error('Invalid Google Sheets URL');
+    }
+    
+    this.currentSheetId = sheetId;
+    this.currentSheetUrl = url;
+    console.log('[Google Sheets] Sheet ID:', sheetId);
+    ProgressManager.completeStep('extract');
+    
+    // STEP 2: Fetch sheets data
+    ProgressManager.startStep('fetch', 'Downloading sheet data from Google...');
+    let productCSV, locationCSV;
+    
     try {
-      // Show loader
-      if (loader) {
-        const loaderText = loader.querySelector('.apple-loading-text');
-        if (loaderText) {
-          loaderText.textContent = 'Processing Google Sheets...';
-        }
-        loader.style.display = "flex";
-        loader.style.opacity = "1";
-      }
+      // Fetch sheets in parallel with progress updates
+      const fetchPromises = [
+        this.fetchSheetByName(sheetId, 'Product Performance'),
+        this.fetchSheetByName(sheetId, 'Location Revenue')
+      ];
       
-      // Extract sheet ID
-      const sheetId = this.extractSheetId(url);
-      if (!sheetId) {
-        throw new Error('Invalid Google Sheets URL');
-      }
+      // Update progress during fetch
+      setTimeout(() => ProgressManager.updateProgress('fetch', 30), 1000);
+      setTimeout(() => ProgressManager.updateProgress('fetch', 60), 3000);
+      setTimeout(() => ProgressManager.updateProgress('fetch', 90), 6000);
       
-      this.currentSheetId = sheetId;
-      this.currentSheetUrl = url;
-      
-      console.log('[Google Sheets] Sheet ID:', sheetId);
-      
-      // Fetch both sheets by name
-      let productCSV, locationCSV;
+      [productCSV, locationCSV] = await Promise.all(fetchPromises);
+    } catch (fetchError) {
+      // Try alternative sheet names
+      ProgressManager.updateUI('Trying alternative sheet names...');
       
       try {
-        // Fetch sheets in parallel
-        [productCSV, locationCSV] = await Promise.all([
-          this.fetchSheetByName(sheetId, 'Product Performance'),
-          this.fetchSheetByName(sheetId, 'Location Revenue')
-        ]);
-      } catch (fetchError) {
-        // If fetching by name fails, try common variations
-        console.log('[Google Sheets] Trying alternative sheet names...');
-        
+        productCSV = await this.fetchSheetByName(sheetId, 'ProductPerformance');
+      } catch (e) {
         try {
-          productCSV = await this.fetchSheetByName(sheetId, 'ProductPerformance');
-        } catch (e) {
-          try {
-            productCSV = await this.fetchSheetByName(sheetId, 'Product_Performance');
-          } catch (e2) {
-            throw new Error('Could not find "Product Performance" sheet');
-          }
-        }
-        
-        try {
-          locationCSV = await this.fetchSheetByName(sheetId, 'LocationRevenue');
-        } catch (e) {
-          try {
-            locationCSV = await this.fetchSheetByName(sheetId, 'Location_Revenue');
-          } catch (e2) {
-            throw new Error('Could not find "Location Revenue" sheet');
-          }
+          productCSV = await this.fetchSheetByName(sheetId, 'Product_Performance');
+        } catch (e2) {
+          throw new Error('Could not find "Product Performance" sheet');
         }
       }
       
-      // Parse the CSV data
-      const [productData, locationData] = await Promise.all([
-        this.parseSheetData(productCSV, 'Product Performance', this.PRODUCT_COLUMNS),
-        this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
-      ]);
-      
-// Store in IDB
-await Promise.all([
-  window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
-  window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
-  window.embedIDB.setData(prefix + "googleSheets_config", {
-    url: url,
-    sheetId: sheetId,
-    lastUpdated: Date.now()
-  })
-]);
-      
-      console.log('[Google Sheets] ✅ All data fetched and stored successfully');
-      
-      // Update status
-      const statusEl = document.getElementById('googleAdsStatus');
-      if (statusEl) {
-        statusEl.innerHTML = `
-          <div style="color: #4CAF50; font-weight: 500;">
-            ✓ Google Ads Data Uploaded Successfully
-          </div>
-          <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-            Product Performance: ${productData.length} rows<br>
-            Location Revenue: ${locationData.length} rows<br>
-            <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
-          </div>
-        `;
+      try {
+        locationCSV = await this.fetchSheetByName(sheetId, 'LocationRevenue');
+      } catch (e) {
+        try {
+          locationCSV = await this.fetchSheetByName(sheetId, 'Location_Revenue');
+        } catch (e2) {
+          throw new Error('Could not find "Location Revenue" sheet');
+        }
       }
-      
-      // Store in global variable for easy access
-      window.googleSheetsData = {
-        productPerformance: productData,
-        locationRevenue: locationData
-      };
-      
-      // Hide loader
-      if (loader) {
-        loader.style.opacity = "0";
-        setTimeout(() => { 
-          loader.style.display = "none";
-          const loaderText = loader.querySelector('.apple-loading-text');
-          if (loaderText) {
-            loaderText.textContent = 'Loading data…';
-          }
-        }, 500);
-      }
-      
-      return { productData, locationData };
-    } catch (error) {
-      console.error('[Google Sheets] ❌ Failed to fetch data:', error);
-      
-      // Update status with error
-      const statusEl = document.getElementById('googleAdsStatus');
-      if (statusEl) {
-        statusEl.innerHTML = `
-          <div style="color: #f44336;">
-            ✗ Error: ${error.message}
-          </div>
-          <div style="margin-top: 8px; font-size: 0.8rem; color: #666;">
-            Make sure:
-            <ul style="margin: 4px 0; padding-left: 20px;">
-              <li>The sheet is shared with "Anyone with the link"</li>
-              <li>Sheet names are exactly "Product Performance" and "Location Revenue"</li>
-            </ul>
-          </div>
-        `;
-      }
-      
-      // Hide loader on error
-      if (loader) {
-        loader.style.opacity = "0";
-        setTimeout(() => { 
-          loader.style.display = "none";
-          const loaderText = loader.querySelector('.apple-loading-text');
-          if (loaderText) {
-            loaderText.textContent = 'Loading data…';
-          }
-        }, 500);
-      }
-      
-      throw error;
     }
-  },
+    
+    ProgressManager.completeStep('fetch');
+    
+    // STEP 3: Parse the CSV data
+    ProgressManager.startStep('parse', 'Processing and validating data rows...');
+    
+    // Parse with progress updates
+    setTimeout(() => ProgressManager.updateProgress('parse', 50), 500);
+    
+    const [productData, locationData] = await Promise.all([
+      this.parseSheetData(productCSV, 'Product Performance', this.PRODUCT_COLUMNS),
+      this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
+    ]);
+    
+    ProgressManager.completeStep('parse');
+    
+    // STEP 4: Store in IDB
+    ProgressManager.startStep('store', 'Saving data to local storage...');
+    
+    setTimeout(() => ProgressManager.updateProgress('store', 60), 300);
+    
+    await Promise.all([
+      window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
+      window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
+      window.embedIDB.setData(prefix + "googleSheets_config", {
+        url: url,
+        sheetId: sheetId,
+        lastUpdated: Date.now()
+      })
+    ]);
+    
+    ProgressManager.completeStep('store');
+    
+    console.log('[Google Sheets] ✅ All data fetched and stored successfully');
+    
+    // Update status
+    const statusEl = document.getElementById('googleAdsStatus');
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <div style="color: #4CAF50; font-weight: 500;">
+          ✓ Google Ads Data Uploaded Successfully
+        </div>
+        <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+          Product Performance: ${productData.length} rows<br>
+          Location Revenue: ${locationData.length} rows<br>
+          <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
+        </div>
+      `;
+    }
+    
+    // Store in global variable for easy access
+    window.googleSheetsData = {
+      productPerformance: productData,
+      locationRevenue: locationData
+    };
+    
+    // Hide loader with success message
+    if (loader) {
+      const loaderText = loader.querySelector('.apple-loading-text');
+      const subtitle = loader.querySelector('.loading-subtitle');
+      if (loaderText) loaderText.textContent = 'Upload Complete!';
+      if (subtitle) subtitle.textContent = `Successfully processed ${productData.length + locationData.length} rows`;
+      
+      setTimeout(() => {
+        loader.style.opacity = "0";
+        setTimeout(() => { 
+          loader.style.display = "none";
+          // Reset UI for next time
+          const progressContainer = loader.querySelector('.progress-container');
+          const progressText = loader.querySelector('.progress-text');
+          const loadingSteps = loader.querySelector('.loading-steps');
+          if (progressContainer) progressContainer.style.display = 'none';
+          if (progressText) progressText.style.display = 'none';
+          if (loadingSteps) loadingSteps.style.display = 'none';
+          if (loaderText) loaderText.textContent = 'Loading data…';
+          if (subtitle) subtitle.textContent = '';
+        }, 500);
+      }, 2000); // Show success message for 2 seconds
+    }
+    
+    return { productData, locationData };
+  } catch (error) {
+    console.error('[Google Sheets] ❌ Failed to fetch data:', error);
+    
+    // Update status with error
+    const statusEl = document.getElementById('googleAdsStatus');
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <div style="color: #f44336;">
+          ✗ Error: ${error.message}
+        </div>
+        <div style="margin-top: 8px; font-size: 0.8rem; color: #666;">
+          Make sure:
+          <ul style="margin: 4px 0; padding-left: 20px;">
+            <li>The sheet is shared with "Anyone with the link"</li>
+            <li>Sheet names are exactly "Product Performance" and "Location Revenue"</li>
+          </ul>
+        </div>
+      `;
+    }
+    
+    // Hide loader on error
+    if (loader) {
+      const loaderText = loader.querySelector('.apple-loading-text');
+      const subtitle = loader.querySelector('.loading-subtitle');
+      if (loaderText) loaderText.textContent = 'Upload Failed';
+      if (subtitle) subtitle.textContent = error.message;
+      
+      setTimeout(() => {
+        loader.style.opacity = "0";
+        setTimeout(() => { 
+          loader.style.display = "none";
+          if (loaderText) loaderText.textContent = 'Loading data…';
+          if (subtitle) subtitle.textContent = '';
+        }, 500);
+      }, 3000); // Show error for 3 seconds
+    }
+    
+    throw error;
+  }
+},
   
   // Optional: Method to check if data exists in IDB
 hasStoredData: async function(prefix = 'acc1_') {
