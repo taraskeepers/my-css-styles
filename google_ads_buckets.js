@@ -373,9 +373,17 @@ wrapper.appendChild(leftContainer);
     // Store data globally for metrics updates
     window.roasBucketsData = filteredData;
     
-    // Process historic data for area charts
+// Get bucket type to determine what to show/hide
+    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+    
+    // Process historic data for area charts (hide for Suggestions)
     if (chartsContainer) {
-      renderROASHistoricCharts(chartsContainer, filteredData);
+      if (bucketType === 'Suggestions') {
+        chartsContainer.style.display = 'none';
+      } else {
+        chartsContainer.style.display = '';
+        renderROASHistoricCharts(chartsContainer, filteredData);
+      }
     }
     
     // Render metrics table
@@ -454,9 +462,15 @@ window.allBucketNames = allUniqueBucketValues;
 renderROASFunnel(leftContainer, bucketData);
     
 // Render channels container (use original unfiltered data, not filteredData)
+// Hide for Suggestions bucket type
 const channelsContainer = document.getElementById('roas_channels');
 if (channelsContainer) {
-  renderROASChannelsContainer(channelsContainer, result.data, null);
+  if (bucketType === 'Suggestions') {
+    channelsContainer.style.display = 'none';
+  } else {
+    channelsContainer.style.display = '';
+    renderROASChannelsContainer(channelsContainer, result.data, null);
+  }
 }
 // Initialize bucket distribution with ALL PRODUCTS data
 setTimeout(() => {
