@@ -617,6 +617,7 @@ assignMLCluster(metrics) {
   },
 
 // Assign suggestions based on cross-bucket analysis
+  // IMPORTANT: Order matters - Pause takes priority over optimization suggestions
   assignSuggestions(metrics, buckets) {
     const suggestions = [];
     
@@ -625,13 +626,26 @@ assignMLCluster(metrics) {
     const avgCVR = this.DEFAULTS.cvr;
     const avgCPC = this.DEFAULTS.avgCpc;
     
-    // Priority 1: Pause & Reallocate Budget
-    if (metrics.roas < 1 && 
-        buckets.roasBucket === 'Underperformers' && 
-        buckets.roiBucket === 'Waste of Spend' &&
-        (buckets.spendBucket === 'Parasites' || (metrics.conversions === 0 && metrics.cost > 100))) {
-      suggestions.push('Pause & Reallocate Budget');
-    }
+// Priority 1: Pause & Reallocate Budget
+// Include products with very low ROAS or minimal conversions relative to cost
+const conversionThreshold = this.DEFAULTS.conversions * 0.2; // 20% of median conversions
+const isWastefulSpend = (
+  // Extremely low ROAS (losing 50%+ of spend)
+  (metrics.roas < 0.5 && metrics.cost > 50) ||
+  // Original criteria
+  (metrics.roas < 1 && 
+   buckets.roasBucket === 'Underperformers' && 
+   buckets.roiBucket === 'Waste of Spend' &&
+   (buckets.spendBucket === 'Parasites' || (metrics.conversions === 0 && metrics.cost > 100))) ||
+  // High spend with insignificant conversions
+  (metrics.cost > 500 && metrics.conversions < conversionThreshold && metrics.roas < 1) ||
+  // Any product losing money with CPA > 3x the median
+  (metrics.cpa > this.DEFAULTS.cpa * 3 && metrics.roas < 1 && metrics.cost > 100)
+);
+
+if (isWastefulSpend) {
+  suggestions.push('Pause & Reallocate Budget');
+}
     
     // Priority 2: Scale Aggressively  
     if (metrics.roas > 3 &&
@@ -656,15 +670,17 @@ assignMLCluster(metrics) {
       suggestions.push('Optimize Landing/Offer (Low CVR)');
     }
     
-    // Priority 5: Refine Targeting & Efficiency
-    if (metrics.avgCpc > avgCPC * 1.5 &&
-        (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
-        (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste')) {
-      const clickValueIndex = metrics.clicks > 0 ? (metrics.convValue / metrics.clicks) / metrics.avgCpc : 0;
-      if (clickValueIndex < 1.5) {
-        suggestions.push('Refine Targeting & Efficiency');
-      }
-    }
+// Priority 5: Refine Targeting & Efficiency
+// Only suggest refinement if there's potential (not a complete failure)
+if (metrics.avgCpc > avgCPC * 1.5 &&
+    (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
+    (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste') &&
+    metrics.roas >= 0.5) { // Don't suggest refinement for products that should be paused
+  const clickValueIndex = metrics.clicks > 0 ? (metrics.convValue / metrics.clicks) / metrics.avgCpc : 0;
+  if (clickValueIndex < 1.5 && clickValueIndex > 0.5) { // Has some potential
+    suggestions.push('Refine Targeting & Efficiency');
+  }
+}
     
     // Priority 6: Increase Visibility First
     if (metrics.impressions < 500 ||
