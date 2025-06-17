@@ -1,12 +1,12 @@
 // Progress Management System
 const ProgressManager = {
-steps: [
-  { key: 'extract', label: 'Extracting Sheet ID', weight: 5 },
-  { key: 'fetch', label: 'Downloading sheet data', weight: 25 },
-  { key: 'parse', label: 'Processing data rows', weight: 25 },
-  { key: 'analyze', label: 'Analyzing product buckets', weight: 35 },
-  { key: 'store', label: 'Saving to local storage', weight: 10 }
-],
+  steps: [
+    { key: 'extract', label: 'Extracting Sheet ID', weight: 5 },
+    { key: 'fetch', label: 'Downloading sheet data', weight: 25 },
+    { key: 'parse', label: 'Processing data rows', weight: 25 },
+    { key: 'analyze', label: 'Analyzing product buckets', weight: 35 },
+    { key: 'store', label: 'Saving to local storage', weight: 10 }
+  ],
   
   currentProgress: 0,
   currentStep: null,
@@ -115,61 +115,60 @@ steps: [
   
   setStartTime() {
     this.startTime = Date.now();
-  }
+  },
 
-processInChunks: async function(data, processor, options = {}) {
-  const {
-    chunkSize = 100,           // Process 100 items at a time
-    stepKey = 'analyze',       // Which step this belongs to
-    stepLabel = 'Processing',  // Custom label for this step
-    yieldInterval = 10         // Yield every 10ms
-  } = options;
-  
-  if (!Array.isArray(data) || data.length === 0) {
-    return [];
-  }
-  
-  this.startStep(stepKey, `${stepLabel} ${data.length} items...`);
-  
-  const results = [];
-  const totalChunks = Math.ceil(data.length / chunkSize);
-  let processedChunks = 0;
-  
-  for (let i = 0; i < data.length; i += chunkSize) {
-    const chunk = data.slice(i, i + chunkSize);
+  processInChunks: async function(data, processor, options = {}) {
+    const {
+      chunkSize = 100,           // Process 100 items at a time
+      stepKey = 'analyze',       // Which step this belongs to
+      stepLabel = 'Processing',  // Custom label for this step
+      yieldInterval = 10         // Yield every 10ms
+    } = options;
     
-    // Process this chunk
-    const chunkResults = await processor(chunk, i);
-    if (Array.isArray(chunkResults)) {
-      results.push(...chunkResults);
-    } else if (chunkResults) {
-      results.push(chunkResults);
+    if (!Array.isArray(data) || data.length === 0) {
+      return [];
     }
     
-    // Update progress
-    processedChunks++;
-    const progressPercent = (processedChunks / totalChunks) * 100;
-    this.updateProgress(stepKey, progressPercent);
+    this.startStep(stepKey, `${stepLabel} ${data.length} items...`);
     
-    // Update UI with current status
-    const processed = Math.min(i + chunkSize, data.length);
-    this.updateUI(`${stepLabel} ${processed}/${data.length} items...`);
+    const results = [];
+    const totalChunks = Math.ceil(data.length / chunkSize);
+    let processedChunks = 0;
     
-    // Yield control back to browser every few chunks
-    if (processedChunks % 3 === 0 || processedChunks === totalChunks) {
-      await this.yield(yieldInterval);
+    for (let i = 0; i < data.length; i += chunkSize) {
+      const chunk = data.slice(i, i + chunkSize);
+      
+      // Process this chunk
+      const chunkResults = await processor(chunk, i);
+      if (Array.isArray(chunkResults)) {
+        results.push(...chunkResults);
+      } else if (chunkResults) {
+        results.push(chunkResults);
+      }
+      
+      // Update progress
+      processedChunks++;
+      const progressPercent = (processedChunks / totalChunks) * 100;
+      this.updateProgress(stepKey, progressPercent);
+      
+      // Update UI with current status
+      const processed = Math.min(i + chunkSize, data.length);
+      this.updateUI(`${stepLabel} ${processed}/${data.length} items...`);
+      
+      // Yield control back to browser every few chunks
+      if (processedChunks % 3 === 0 || processedChunks === totalChunks) {
+        await this.yield(yieldInterval);
+      }
     }
-  }
-  
-  this.completeStep(stepKey);
-  return results;
-},
+    
+    this.completeStep(stepKey);
+    return results;
+  },
 
-// Yield control back to the browser
-yield: function(ms = 10) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-  
+  // Yield control back to the browser
+  yield: function(ms = 10) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 };
 
 
@@ -474,7 +473,7 @@ window.googleSheetsData = {
       }, 2000); // Show success message for 2 seconds
     }
     
-    return { productData, locationData };
+    return { productData, locationData, productBuckets };
   } catch (error) {
     console.error('[Google Sheets] ❌ Failed to fetch data:', error);
     
