@@ -1745,12 +1745,6 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
   const chartContainer = document.getElementById(containerId);
   if (!chartContainer) return;
   chartContainer.classList.remove('loading');
-
-    console.log(`[DEBUG-CHART] Creating chart for container: ${containerId}`);
-  console.log(`[DEBUG-CHART] segmentCounts parameter:`, segmentCounts);
-  console.log(`[DEBUG-CHART] segmentCounts type:`, typeof segmentCounts);
-  console.log(`[DEBUG-CHART] segmentCounts is array:`, Array.isArray(segmentCounts));
-  console.log(`[DEBUG-CHART] Chart container found:`, !!chartContainer);
   
   if (!chartData || chartData.length === 0) {
     chartContainer.innerHTML = '<div class="no-data-message">No segment data</div>';
