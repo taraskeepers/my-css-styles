@@ -2489,7 +2489,7 @@ console.log(`[DEBUG] Added product to globalRows[${pmIndexKey}] with ${enhancedP
 let bucketBadgeHTML = '';
 let hasBucketClass = '';
 
-if (googleAdsInfo.enabled && bucketDataMap.size > 0) {
+if (googleAdsEnabled && bucketDataMap.size > 0) {
   const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
   
   if (productBucketData) {
@@ -2737,7 +2737,7 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
 let bucketBadgeHTML = '';
 let hasBucketClass = '';
 
-if (googleAdsInfo.enabled && bucketDataMap.size > 0) {
+if (googleAdsEnabled && bucketDataMap.size > 0) {
   const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
   
   if (productBucketData) {
