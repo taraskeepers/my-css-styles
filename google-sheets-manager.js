@@ -712,7 +712,7 @@ saveProductBucketsToSingleTable: async function(productBuckets, prefix) {
   }
   
   console.log(`[Single Table Storage] ✅ Successfully saved ${productBuckets.length} product buckets to single table: ${finalTableKey}`);
-}
+},
 
 // NEW: Run integrated bucket analysis with progress tracking
 runIntegratedBucketAnalysis: async function(prefix) {
