@@ -1,3 +1,62 @@
+// Simple function to check if a table exists
+async function checkTableExists(tableName) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      
+      // Check if projectData store exists
+      if (!db.objectStoreNames.contains('projectData')) {
+        db.close();
+        resolve(false);
+        return;
+      }
+      
+      // Check if the table exists in projectData
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = () => {
+        const exists = getRequest.result !== undefined;
+        db.close();
+        resolve(exists);
+      };
+      
+      getRequest.onerror = () => {
+        db.close();
+        resolve(false);
+      };
+    };
+    
+    request.onerror = () => {
+      resolve(false);
+    };
+  });
+}
+
+// Function to normalize bucket value to CSS class
+function normalizeBucketValue(bucketValue) {
+  if (!bucketValue) return '';
+  
+  return bucketValue
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .trim();
+}
+
+// Function to get bucket badge HTML
+function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
+  if (!bucketValue || bucketValue === '') return '';
+  
+  const normalizedClass = normalizeBucketValue(bucketValue);
+  const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
+  
+  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
+}
+
 async function renderProductMapTable() {
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
@@ -1476,27 +1535,6 @@ async function fetchProductBucketData(accountNumber, productTitle) {
     console.error('[ProductMap] Error fetching bucket data:', error);
     return null;
   }
-}
-
-// Function to normalize bucket value to CSS class
-function normalizeBucketValue(bucketValue) {
-  if (!bucketValue) return '';
-  
-  return bucketValue
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .trim();
-}
-
-// Function to get bucket badge HTML
-function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
-  if (!bucketValue || bucketValue === '') return '';
-  
-  const normalizedClass = normalizeBucketValue(bucketValue);
-  const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
-  
-  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
 }
   
     // Modified function to format location cell into three rows (city, state, country)
