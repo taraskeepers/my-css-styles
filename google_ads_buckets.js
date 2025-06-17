@@ -2653,15 +2653,31 @@ function renderROASHistoricCharts(container, data) {
 // Get unique bucket names from the data
 let bucketNames;
 if (bucketType === 'Suggestions') {
-  // For Suggestions, split the semicolon-separated values
+  // For Suggestions, split the semicolon-separated values from both current and historic data
   const allSuggestions = new Set();
+  
+  // From current data
   allCampaignRecords.forEach(row => {
     if (row[bucketType]) {
       const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
       suggestions.forEach(s => allSuggestions.add(s));
     }
   });
+  
+  // From historic data
+  allCampaignRecords.forEach(product => {
+    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
+      product['historic_data.buckets'].forEach(histItem => {
+        if (histItem[bucketType]) {
+          const suggestions = histItem[bucketType].split(';').map(s => s.trim()).filter(s => s);
+          suggestions.forEach(s => allSuggestions.add(s));
+        }
+      });
+    }
+  });
+  
   bucketNames = [...allSuggestions].sort();
+  console.log('[Suggestions Chart] Found bucket names:', bucketNames);
 } else {
   bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
 }
@@ -2723,22 +2739,24 @@ allCampaignRecords.forEach(product => {
       if (date && bucketValue && dateMap.has(date)) {
         const dayData = dateMap.get(date);
         
-if (bucketType === 'Suggestions') {
-  // For Suggestions, always split (even single values)
-  if (bucketValue) {
-    const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
-    suggestions.forEach(suggestion => {
-      if (dayData[suggestion] !== undefined) {
-        dayData[suggestion]++;
-      }
-    });
-  }
-} else {
-  // Normal bucket counting
-  if (dayData[bucketValue] !== undefined) {
-    dayData[bucketValue]++;
-  }
-}
+        if (bucketType === 'Suggestions') {
+          // For Suggestions, always split (even single values)
+          const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
+          suggestions.forEach(suggestion => {
+            if (dayData.hasOwnProperty(suggestion)) {
+              dayData[suggestion]++;
+            } else {
+              // If this suggestion isn't in our map, add it
+              console.log(`Warning: Suggestion "${suggestion}" not found in dateMap for date ${date}`);
+              dayData[suggestion] = 1;
+            }
+          });
+        } else {
+          // Normal bucket counting
+          if (dayData[bucketValue] !== undefined) {
+            dayData[bucketValue]++;
+          }
+        }
       }
     });
   }
@@ -2792,9 +2810,20 @@ allCampaignRecords.forEach(product => {
     }
   }
 });
-  
+
 // Convert to arrays for Chart.js
 const dates = Array.from(dateMap.keys()).sort();
+
+// Debug: Check what we have in dateMap
+if (bucketType === 'Suggestions') {
+  console.log('[Suggestions Chart] Date map sample:', {
+    firstDate: dates[0],
+    firstDateData: dateMap.get(dates[0]),
+    totalDates: dates.length,
+    bucketNames: bucketNames
+  });
+}
+
 // Filter out "Collecting Data" from chart datasets
 const datasets = bucketNames
   .filter(bucketName => bucketName !== 'Collecting Data')
