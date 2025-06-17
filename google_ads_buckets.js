@@ -94,16 +94,48 @@ window.bucketConfig = {
       'Collecting Data': '#9E9E9E'
     }
   },
-    'Suggestions': {
-    order: ['Pause & Reallocate Budget', 'Scale Aggressively', 'Fix Ad Creative (Low CTR)', 
-            'Optimize Landing/Offer (Low CVR)', 'Refine Targeting & Efficiency', 'Increase Visibility First'],
+'Suggestions': {
+    order: ['Pause & Reallocate Budget', 'Scale Aggressively', 'Scale Moderately', 
+            'Scale Cautiously', 'Test Budget Increase', 'Reduce Budget',
+            'Increase Visibility First', 'Increase Bids for Ranking', 'Test Higher Positions',
+            'Optimize Bid Strategy', 'Fix Ad Creative (Low CTR)', 'Test New Title',
+            'Refresh Creative Assets', 'Highlight Value Proposition',
+            'Optimize Landing/Offer (Low CVR)', 'Improve Product Page', 'Add Trust Signals',
+            'Simplify Checkout', 'Refine Targeting & Efficiency', 'Broaden Audience',
+            'Narrow Targeting', 'Test New Segments', 'Test Price Reduction',
+            'Consider Bundling', 'Add Promotions'],
     colors: {
+      // Budget & Scaling
       'Pause & Reallocate Budget': '#F44336',
       'Scale Aggressively': '#4CAF50',
+      'Scale Moderately': '#66BB6A',
+      'Scale Cautiously': '#81C784',
+      'Test Budget Increase': '#A5D6A7',
+      'Reduce Budget': '#FF8A65',
+      // Bidding & Ranking
+      'Increase Visibility First': '#9E9E9E',
+      'Increase Bids for Ranking': '#2196F3',
+      'Test Higher Positions': '#42A5F5',
+      'Optimize Bid Strategy': '#64B5F6',
+      // Creative & Messaging
       'Fix Ad Creative (Low CTR)': '#FF9800',
+      'Test New Title': '#FFA726',
+      'Refresh Creative Assets': '#FFB74D',
+      'Highlight Value Proposition': '#FFCC80',
+      // Landing & Conversion
       'Optimize Landing/Offer (Low CVR)': '#FF7043',
+      'Improve Product Page': '#FF8A65',
+      'Add Trust Signals': '#FFAB91',
+      'Simplify Checkout': '#FFCCBC',
+      // Targeting & Efficiency
       'Refine Targeting & Efficiency': '#2196F3',
-      'Increase Visibility First': '#9E9E9E'
+      'Broaden Audience': '#7986CB',
+      'Narrow Targeting': '#9575CD',
+      'Test New Segments': '#BA68C8',
+      // Product & Pricing
+      'Test Price Reduction': '#E91E63',
+      'Consider Bundling': '#F06292',
+      'Add Promotions': '#F48FB1'
     }
   }
 };
@@ -226,12 +258,37 @@ window.bucketDescriptions = {
 
   // Suggestions descriptions
   'Suggestions': {
+    // Budget & Scaling
     'Pause & Reallocate Budget': 'This product is burning money without returns. It has ROAS below 1x, falls into the worst performance buckets, and either has zero conversions despite $100+ spend or is classified as a "Parasite". Immediate action required: pause all campaigns for this product and redistribute the budget to better performers. Consider revisiting only after significant product or market changes.',
     'Scale Aggressively': 'Strong performer ready for growth. With ROAS above 3x and classification as either "Top Performer" or "Scalable Winner", this product efficiently converts traffic into revenue. Recommended actions: increase daily budgets by 50-100%, expand to new audiences, test additional ad formats, and consider increasing bids to capture more impression share while monitoring efficiency.',
+    'Scale Moderately': 'Solid performer with ROAS between 2-3x showing consistent profitability. This product has room for growth but requires measured expansion. Recommended: increase budgets by 25-50%, test one new audience at a time, monitor performance weekly, and ensure infrastructure can handle increased volume.',
+    'Scale Cautiously': 'Profitable product with ROAS between 1.5-2x that needs careful scaling. While showing positive returns, there\'s optimization potential. Actions: increase budget by 10-25% incrementally, improve weak metrics before major scaling, test small budget increases weekly, and focus on improving efficiency alongside growth.',
+    'Test Budget Increase': 'Hidden gem with limited spend but high efficiency (ROAS > 2x on less than $200 spend). This product shows strong potential but needs more data. Recommended: double the daily budget, maintain close monitoring for 2 weeks, expand gradually if efficiency holds, and identify what makes this product successful.',
+    'Reduce Budget': 'Marginally profitable product (ROAS 0.8-1.2x) consuming significant budget. Not bad enough to pause but needs optimization. Actions: reduce budget by 30-50%, focus spend on best-performing segments, work on improving conversion metrics, and reallocate saved budget to better performers.',
+    // Bidding & Ranking
+    'Increase Visibility First': 'Not enough data to make optimization decisions. With fewer than 500 impressions or $50 in spend, this product needs more exposure before performance can be properly assessed. Recommended: increase bids to improve ad rank, broaden match types temporarily, check for ad disapprovals, ensure product feed data is complete, and allocate minimum daily budget to gather statistically significant data.',
+    'Increase Bids for Ranking': 'Good conversion rate but low visibility due to poor ad rank (indicated by low CPM and CTR). The product converts well when seen. Actions: increase bids by 20-40%, aim for top 3 positions, monitor cost per conversion, test bid adjustments by device, and consider automated bidding for efficiency.',
+    'Test Higher Positions': 'Moderate performer (ROAS 1.5-2.5x) that might benefit from better ad placement. Currently achieving profitability but potentially missing volume. Recommended: test 25% bid increase for 2 weeks, measure incremental conversions, compare CPA at different positions, and find the sweet spot between volume and efficiency.',
+    'Optimize Bid Strategy': 'Paying too much per click (2x+ average) without corresponding returns. Your bidding strategy needs refinement. Actions: switch to automated bidding (Target CPA/ROAS), add bid adjustments for poor-performing segments, review search terms for irrelevant clicks, consider dayparting based on performance.',
+    // Creative & Messaging
     'Fix Ad Creative (Low CTR)': 'Your ads aren\'t compelling enough to generate clicks. With CTR below 50% of account average despite sufficient impressions (1000+), users are seeing but ignoring your ads. The product can convert when clicked, so focus on: new imagery, stronger headlines, clearer value propositions, testing different ad formats, and highlighting unique selling points or promotions.',
+    'Test New Title': 'Below-average CTR (50-80% of norm) suggests your title could be more compelling. With significant impressions, small improvements can have big impact. Try: adding power words, including key benefits, testing numbers/statistics, using emotional triggers, and A/B testing different angles.',
+    'Refresh Creative Assets': 'High impression count (10,000+) with declining CTR indicates ad fatigue. Your audience has seen these ads too often. Actions: develop new visual assets, test seasonal messaging, try different ad formats, highlight different product benefits, and implement creative rotation strategy.',
+    'Highlight Value Proposition': 'Low CTR despite competitive pricing suggests unclear value communication. Your ads aren\'t conveying why customers should care. Focus on: emphasizing unique benefits, adding social proof, showing price advantage clearly, using urgency/scarcity, and testing benefit-focused headlines.',
+    // Landing & Conversion
     'Optimize Landing/Offer (Low CVR)': 'Traffic quality is good but your landing page or offer isn\'t converting. With above-average CTR but conversion rate below 50% of account average, users are interested enough to click but something prevents purchase. Review: page load speed, mobile experience, price competitiveness, shipping costs, trust signals, checkout process complexity, and product description clarity.',
+    'Improve Product Page': 'Moderate conversion rate (50-100% of average) indicates optimization opportunities. Users are somewhat convinced but need more persuasion. Enhance: product images/videos, customer reviews display, benefit bullet points, FAQ section, and comparison charts.',
+    'Add Trust Signals': 'High interest (CTR 120%+ of average) but low conversion suggests trust issues. Visitors like what they see but hesitate to buy. Add: security badges, customer testimonials, money-back guarantee, shipping/return policy visibility, and social proof elements.',
+    'Simplify Checkout': 'High traffic (200+ clicks) with very low conversion indicates checkout friction. Users want to buy but encounter obstacles. Streamline: reduce form fields, add guest checkout, show progress indicators, optimize for mobile, and clarify all costs upfront.',
+    // Targeting & Efficiency
     'Refine Targeting & Efficiency': 'You\'re paying too much for the wrong audience. With CPC 50% above average and poor engagement metrics, your targeting is misaligned. Actions to take: review and narrow audience targeting, add negative keywords, adjust demographic targets, use audience exclusions, test manual bidding strategies, and analyze search terms report to identify irrelevant traffic.',
-    'Increase Visibility First': 'Not enough data to make optimization decisions. With fewer than 500 impressions or $50 in spend, this product needs more exposure before performance can be properly assessed. Recommended: increase bids to improve ad rank, broaden match types temporarily, check for ad disapprovals, ensure product feed data is complete, and allocate minimum daily budget to gather statistically significant data.'
+    'Broaden Audience': 'Excellent conversion rate (150%+ of average) but limited reach. Your targeting may be too narrow. Expand by: testing similar audiences, broadening keyword match types, increasing geographic reach, removing restrictive demographics, and testing new placements.',
+    'Narrow Targeting': 'Poor conversion rate with high spend indicates targeting is too broad. You\'re reaching unqualified traffic. Focus by: adding negative keywords, using exact match keywords, limiting to proven demographics, excluding poor-performing placements, and using customer match lists.',
+    'Test New Segments': 'Stable performer ready for expansion testing. Current targeting works but growth requires new audiences. Try: lookalike audiences, new geographic markets, different age/gender segments, interest-based targeting, and cross-sell opportunities.',
+    // Product & Pricing
+    'Test Price Reduction': 'High interest but price resistance indicated (high CTR, low CVR, high AOV). Your price point may be limiting conversions. Test: 10-20% price reduction, limited-time promotions, volume discounts, payment plans, and competitive price matching.',
+    'Consider Bundling': 'Low AOV product with decent performance could benefit from bundling. Increase transaction value by: creating product bundles, offering quantity discounts, suggesting complementary items, implementing minimum order values, and testing "frequently bought together" offers.',
+    'Add Promotions': 'Below-average CTR with high-value products suggests need for incentives. Motivate action with: limited-time discounts, free shipping thresholds, first-time buyer offers, seasonal promotions, and exclusive deals for ad traffic.'
   }
 };
 
