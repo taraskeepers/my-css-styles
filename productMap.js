@@ -1,8 +1,86 @@
-  function renderProductMapTable() {
+// Add these functions at the beginning of productMap.js
+
+// Function to check if Google Ads integration is enabled
+async function checkGoogleAdsIntegration() {
+  try {
+    const db = await window.dbPromise;
+    const tableNames = await db.getAllObjectStoreNames();
+    
+    // Look for a table matching the pattern acc[number]_googleSheets_config
+    const configTable = tableNames.find(name => /^acc\d+_googleSheets_config$/.test(name));
+    
+    if (configTable) {
+      // Extract account number from table name
+      const accountNumber = configTable.match(/acc(\d+)_/)[1];
+      return { enabled: true, accountNumber };
+    }
+    
+    return { enabled: false };
+  } catch (error) {
+    console.error('[ProductMap] Error checking Google Ads integration:', error);
+    return { enabled: false };
+  }
+}
+
+// Function to normalize bucket value to CSS class
+function normalizeBucketValue(bucketValue) {
+  if (!bucketValue) return '';
+  
+  return bucketValue
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .trim();
+}
+
+// Function to get bucket badge HTML
+function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
+  if (!bucketValue || bucketValue === '') return '';
+  
+  const normalizedClass = normalizeBucketValue(bucketValue);
+  const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
+  
+  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
+}
+
+async function renderProductMapTable() {
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
     const container = document.getElementById("productMapPage");
     if (!container) return;
+
+    // Check Google Ads integration
+    const googleAdsInfo = await checkGoogleAdsIntegration();
+    console.log('[ProductMap] Google Ads integration:', googleAdsInfo);
+
+    // If enabled, pre-fetch all bucket data to avoid multiple IDB calls
+    let bucketDataMap = new Map();
+    if (googleAdsInfo.enabled) {
+      try {
+        const db = await window.dbPromise;
+        const tableName = `acc${googleAdsInfo.accountNumber}_googleSheets_productBuckets_30d`;
+        
+        const tableNames = await db.getAllObjectStoreNames();
+        if (tableNames.includes(tableName)) {
+          const tx = db.transaction(tableName, 'readonly');
+          const store = tx.objectStore(tableName);
+          const allData = await store.getAll();
+          
+          // Build a map of product titles to bucket data
+          if (allData && allData[0] && allData[0].data) {
+            allData[0].data.forEach(product => {
+              if (product['Product Title']) {
+                bucketDataMap.set(product['Product Title'].toLowerCase(), product);
+              }
+            });
+          }
+          
+          console.log(`[ProductMap] Loaded bucket data for ${bucketDataMap.size} products`);
+        }
+      } catch (error) {
+        console.error('[ProductMap] Error loading bucket data:', error);
+      }
+    }
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
@@ -1275,6 +1353,57 @@ viewChartsBtn.addEventListener("click", function() {
   content: 'Loading chart...';
   font-size: 12px;
 }
+/* Add these styles to the existing style tag in renderProductMapTable function */
+
+.bucket-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background-color: #007aff; /* Default color, will be overridden by bucket type */
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  z-index: 5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Bucket-specific colors */
+.bucket-badge.top-performers { background-color: #4CAF50; }
+.bucket-badge.growth-drivers { background-color: #2196F3; }
+.bucket-badge.profit-champions { background-color: #9C27B0; }
+.bucket-badge.hidden-gems { background-color: #FF9800; }
+.bucket-badge.emerging-stars { background-color: #00BCD4; }
+.bucket-badge.niche-profitable { background-color: #795548; }
+.bucket-badge.collecting-data { background-color: #9E9E9E; }
+.bucket-badge.needs-attention { background-color: #F44336; }
+.bucket-badge.weak-landing { background-color: #E91E63; }
+.bucket-badge.price-resistance { background-color: #FF5722; }
+
+/* Adjust existing badges positioning when bucket-badge is present */
+.product-cell .ad-details.has-bucket .pos-badge {
+  top: 32px; /* 22px bucket height + 10px gap */
+}
+
+.product-cell .ad-details.has-bucket .sale-badge {
+  top: 32px; /* 22px bucket height + 10px gap */
+}
+
+.product-cell .ad-details.has-bucket .product-status-indicator {
+  top: 32px; /* 22px bucket height + 10px gap */
+}
+
+/* Ensure proper spacing for the thumbnail container */
+.product-cell .ad-details.has-bucket .ad-thumbnail-container {
+  margin-top: 26px; /* Give space for the bucket badge */
+}
       `;
       document.head.appendChild(style);
     }
@@ -1299,6 +1428,95 @@ if (!document.getElementById("centered-panel-spinner-style")) {
     }
   `;
   document.head.appendChild(spinnerStyle);
+}
+
+    // Add these functions at the beginning of productMap.js (after the style definitions)
+
+// Function to check if Google Ads integration is enabled
+async function checkGoogleAdsIntegration() {
+  try {
+    const db = await window.dbPromise;
+    const tableNames = await db.getAllObjectStoreNames();
+    
+    // Look for a table matching the pattern acc[number]_googleSheets_config
+    const configTable = tableNames.find(name => /^acc\d+_googleSheets_config$/.test(name));
+    
+    if (configTable) {
+      // Extract account number from table name
+      const accountNumber = configTable.match(/acc(\d+)_/)[1];
+      return { enabled: true, accountNumber };
+    }
+    
+    return { enabled: false };
+  } catch (error) {
+    console.error('[ProductMap] Error checking Google Ads integration:', error);
+    return { enabled: false };
+  }
+}
+
+// Function to fetch product bucket data
+async function fetchProductBucketData(accountNumber, productTitle) {
+  try {
+    const db = await window.dbPromise;
+    const tableName = `acc${accountNumber}_googleSheets_productBuckets_30d`;
+    
+    // Check if table exists
+    const tableNames = await db.getAllObjectStoreNames();
+    if (!tableNames.includes(tableName)) {
+      console.warn(`[ProductMap] Bucket table ${tableName} not found`);
+      return null;
+    }
+    
+    // Fetch all data from the table
+    const tx = db.transaction(tableName, 'readonly');
+    const store = tx.objectStore(tableName);
+    const allData = await store.getAll();
+    
+    // Find matching product by title
+    const bucketData = allData.find(item => {
+      if (item.data && Array.isArray(item.data)) {
+        return item.data.find(product => 
+          product['Product Title'] && 
+          product['Product Title'].toLowerCase() === productTitle.toLowerCase()
+        );
+      }
+      return false;
+    });
+    
+    if (bucketData && bucketData.data) {
+      const productData = bucketData.data.find(product => 
+        product['Product Title'] && 
+        product['Product Title'].toLowerCase() === productTitle.toLowerCase()
+      );
+      return productData || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[ProductMap] Error fetching bucket data:', error);
+    return null;
+  }
+}
+
+// Function to normalize bucket value to CSS class
+function normalizeBucketValue(bucketValue) {
+  if (!bucketValue) return '';
+  
+  return bucketValue
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .trim();
+}
+
+// Function to get bucket badge HTML
+function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
+  if (!bucketValue || bucketValue === '') return '';
+  
+  const normalizedClass = normalizeBucketValue(bucketValue);
+  const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
+  
+  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
 }
   
     // Modified function to format location cell into three rows (city, state, country)
@@ -2249,9 +2467,35 @@ if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 
 }
 enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
-                  // 5. Most importantly: Add this FULLY enhanced product to globalRows
-                  window.globalRows[pmIndexKey] = enhancedProduct;
-                  console.log(`[DEBUG] Added product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+// 5. Most importantly: Add this FULLY enhanced product to globalRows
+window.globalRows[pmIndexKey] = enhancedProduct;
+console.log(`[DEBUG] Added product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+
+// ADD BUCKET LOGIC HERE:
+// Get bucket data for this product
+let bucketBadgeHTML = '';
+let hasBucketClass = '';
+
+if (googleAdsInfo.enabled && bucketDataMap.size > 0) {
+  const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
+  
+  if (productBucketData) {
+    // Get ROAS_Bucket value by default
+    const bucketValue = productBucketData.ROAS_Bucket;
+    
+    if (bucketValue && bucketValue !== '') {
+      bucketBadgeHTML = getBucketBadgeHTML(bucketValue, 'ROAS');
+      hasBucketClass = 'has-bucket';
+      
+      // Log for debugging
+      console.log(`[ProductMap] Product "${enhancedProduct.title}" has ROAS_Bucket: ${bucketValue}`);
+    }
+  }
+}
+
+// Add bucket info to enhancedProduct
+enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
+enhancedProduct.hasBucketClass = hasBucketClass;
                   
                   // Now render the product with the same enhanced data
                   const html = compiledTemplate(enhancedProduct);
@@ -2261,6 +2505,16 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   // Get just the first element (the ad-details div)
                   const adCard = tempDiv.firstElementChild;
                   adCard.classList.remove('my-company');
+
+                  // Add has-bucket class if applicable
+if (hasBucketClass) {
+  adCard.classList.add(hasBucketClass);
+}
+
+// Insert bucket badge as the first child of ad-details
+if (bucketBadgeHTML) {
+  adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
+}
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
@@ -2465,6 +2719,31 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   // 5. Most importantly: Add this FULLY enhanced product to globalRows
                   window.globalRows[pmIndexKey] = enhancedProduct;
                   console.log(`[DEBUG] Added inactive product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
+
+// Get bucket data for this product
+let bucketBadgeHTML = '';
+let hasBucketClass = '';
+
+if (googleAdsInfo.enabled && bucketDataMap.size > 0) {
+  const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
+  
+  if (productBucketData) {
+    // Get ROAS_Bucket value by default
+    const bucketValue = productBucketData.ROAS_Bucket;
+    
+    if (bucketValue && bucketValue !== '') {
+      bucketBadgeHTML = getBucketBadgeHTML(bucketValue, 'ROAS');
+      hasBucketClass = 'has-bucket';
+      
+      // Log for debugging
+      console.log(`[ProductMap] Product "${enhancedProduct.title}" has ROAS_Bucket: ${bucketValue}`);
+    }
+  }
+}
+
+// Add bucket info to enhancedProduct
+enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
+enhancedProduct.hasBucketClass = hasBucketClass;
                   
                   // Now render the product with the same enhanced data
                   const html = compiledTemplate(enhancedProduct);
@@ -2474,6 +2753,16 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   // Get just the first element (the ad-details div)
                   const adCard = tempDiv.firstElementChild;
                   adCard.classList.remove('my-company');
+
+                  // Add has-bucket class if applicable
+if (hasBucketClass) {
+  adCard.classList.add(hasBucketClass);
+}
+
+// Insert bucket badge as the first child of ad-details
+if (bucketBadgeHTML) {
+  adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
+}
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
