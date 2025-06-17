@@ -390,7 +390,7 @@ wrapper.appendChild(leftContainer);
 if (metricsTableContainer) {
   // Apply margin-top only for Suggestions bucket type
   if (bucketType === 'Suggestions') {
-    metricsTableContainer.style.marginTop = '60px';
+    metricsTableContainer.style.marginTop = '100px';
     renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
   } else {
     metricsTableContainer.style.marginTop = '';
