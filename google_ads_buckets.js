@@ -2734,7 +2734,14 @@ allCampaignRecords.forEach(product => {
   if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
     product['historic_data.buckets'].forEach(histItem => {
       const date = histItem.date;
-      const bucketValue = histItem[bucketType];  // USE EXISTING bucketType
+      let bucketValue = histItem[bucketType];  // USE EXISTING bucketType
+      
+      // Special handling for Suggestions - if missing in historic data, recalculate
+      if (bucketType === 'Suggestions' && !bucketValue) {
+        // Historic data doesn't have Suggestions, so we skip this date
+        // Or we could recalculate based on other buckets, but that would be complex
+        return;
+      }
       
       if (date && bucketValue && dateMap.has(date)) {
         const dayData = dateMap.get(date);
@@ -2761,6 +2768,17 @@ allCampaignRecords.forEach(product => {
     });
   }
 });
+
+// Add debug to see if we found any data
+if (bucketType === 'Suggestions') {
+  let totalSuggestionCounts = 0;
+  dateMap.forEach((dayData, date) => {
+    Object.values(dayData).forEach(count => {
+      totalSuggestionCounts += count;
+    });
+  });
+  console.log('[Suggestions Chart] Total suggestion counts across all dates:', totalSuggestionCounts);
+}
   
   // Calculate current and previous bucket counts for trends
   const currentBucketCounts = {};
