@@ -2699,27 +2699,16 @@ for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
   const dateStr = d.format('YYYY-MM-DD');
   const bucketCounts = {};
   
-  if (bucketType === 'Suggestions') {
-    // For Suggestions, include all possible suggestion values
-    const allPossibleSuggestions = new Set();
-    allCampaignRecords.forEach(product => {
-      if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-        product['historic_data.buckets'].forEach(histItem => {
-          if (histItem.Suggestions) {
-            const suggestions = histItem.Suggestions.split(';').map(s => s.trim()).filter(s => s);
-            suggestions.forEach(s => allPossibleSuggestions.add(s));
-          }
-        });
-      }
-    });
-    [...allPossibleSuggestions].forEach(name => {
-      bucketCounts[name] = 0;
-    });
-  } else {
-    bucketNames.forEach(name => {
-      bucketCounts[name] = 0;
-    });
-  }
+if (bucketType === 'Suggestions') {
+  // For Suggestions, use the bucketNames we already collected
+  bucketNames.forEach(name => {
+    bucketCounts[name] = 0;
+  });
+} else {
+  bucketNames.forEach(name => {
+    bucketCounts[name] = 0;
+  });
+}
   
   dateMap.set(dateStr, bucketCounts);
 }
