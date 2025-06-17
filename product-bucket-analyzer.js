@@ -693,32 +693,10 @@ if (metrics.avgCpc > avgCPC * 1.5 &&
   }
 };
 
-// Auto-initialize when Google Sheets data is loaded
+// Auto-initialization disabled - now handled by integrated progress system
 (function() {
-  // Check if data is already loaded
-  if (window.googleSheetsData?.productPerformance?.length > 0) {
-    const prefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-    window.productBucketAnalyzer.processProductBuckets(prefix)
-      .then(() => console.log('[Product Buckets] Auto-processing completed'))
-      .catch(err => console.error('[Product Buckets] Auto-processing failed:', err));
-  }
+  console.log('[Product Buckets] Auto-initialization disabled - using integrated progress system');
   
-  // Listen for Google Sheets data updates
-  const originalFetchAndStore = window.googleSheetsManager?.fetchAndStoreFromUrl;
-  if (originalFetchAndStore) {
-    window.googleSheetsManager.fetchAndStoreFromUrl = async function(url, prefix) {
-      const result = await originalFetchAndStore.call(this, url, prefix);
-      
-      // Process buckets after data is loaded
-      if (result?.productData?.length > 0) {
-        setTimeout(() => {
-          window.productBucketAnalyzer.processProductBuckets(prefix)
-            .then(() => console.log('[Product Buckets] Processing completed after data load'))
-            .catch(err => console.error('[Product Buckets] Processing failed:', err));
-        }, 1000); // Small delay to ensure data is fully saved
-      }
-      
-      return result;
-    };
-  }
+  // Keep the analyzer available but don't auto-run
+  // The google-sheets-manager will call it as part of the unified progress flow
 })();
