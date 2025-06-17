@@ -2329,9 +2329,6 @@ matchingProducts.sort((a, b) => {
                     });
                   }
                   
-                  // Log the actual historical data count
-                  console.log(`[DEBUG] Product '${enhancedProduct.title}' has ${enhancedProduct.historical_data.length} actual historical records`);
-                  
                   // 4. Ensure other required fields are present
                   // Calculate real position and trend using historical data
                   if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
@@ -2482,7 +2479,6 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
                   
 // 5. Most importantly: Add this FULLY enhanced product to globalRows
 window.globalRows[pmIndexKey] = enhancedProduct;
-console.log(`[DEBUG] Added product to globalRows[${pmIndexKey}] with ${enhancedProduct.historical_data.length} real historical records`);
 
 // ADD BUCKET LOGIC HERE:
 // Get bucket data for this product
@@ -2940,7 +2936,6 @@ const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts]
               // Add direct click handlers to each product card
               productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
                 const plaIndex = adCard.getAttribute('data-pla-index');
-                console.log(`[DEBUG] Attaching click handler to card: ${plaIndex}`);
                 
                 adCard.addEventListener('click', function(e) {
                   // Prevent default and stop propagation
