@@ -373,35 +373,9 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     
 ProgressManager.completeStep('parse');
 
-// STEP 4: NEW - Process Product Buckets (the heavy part!)
-let productBuckets = [];
-if (productData.length > 0) {
-  console.log(`[Product Buckets] Starting analysis of ${productData.length} products...`);
-  
-  try {
-    // Use chunked processing to avoid "Page Unresponsive"
-    productBuckets = await ProgressManager.processInChunks(
-      productData,
-      this.processProductBucketsChunk.bind(this),
-      {
-        chunkSize: 100,
-        stepKey: 'analyze',
-        stepLabel: 'Analyzing product performance',
-        yieldInterval: 15
-      }
-    );
-    
-    console.log(`[Product Buckets] ✅ Processed ${productBuckets.length} product buckets`);
-  } catch (bucketError) {
-    console.warn('[Product Buckets] Error during bucket analysis:', bucketError);
-    // Continue without buckets if analysis fails
-  }
-}
-
-// STEP 5: Store in IDB with progressive storage
+// STEP 5: Store basic data only (product buckets will be created and stored in STEP 6)
 ProgressManager.startStep('store', 'Saving basic data to local storage...');
 
-// First, save the basic data (quick operations)
 const basicSavePromises = [
   window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
   window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
@@ -413,60 +387,55 @@ const basicSavePromises = [
 ];
 
 await Promise.all(basicSavePromises);
-ProgressManager.updateProgress('store', 30);
-
-// Then, save product buckets to single table with progress updates
-if (productBuckets.length > 0) {
-  ProgressManager.updateUI('Saving product buckets to database...');
-  await this.saveProductBucketsToSingleTable(productBuckets, prefix);
-} else {
-  // If no product buckets, complete the step
-  ProgressManager.updateProgress('store', 100);
-}
-
 ProgressManager.completeStep('store');
     
     console.log('[Google Sheets] ✅ All data fetched and stored successfully');
     
-    // Update status
-    const statusEl = document.getElementById('googleAdsStatus');
-    if (statusEl) {
-statusEl.innerHTML = `
-  <div style="color: #4CAF50; font-weight: 500;">
-    ✓ Google Ads Data Uploaded Successfully
-  </div>
-  <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-    Product Performance: ${productData.length} rows<br>
-    Location Revenue: ${locationData.length} rows<br>
-    ${productBuckets.length > 0 ? `Product Buckets (30d): ${productBuckets.length} analyzed<br>` : ''}
-    <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
-  </div>
-`;
-    }
-    
-// Store in global variable for easy access
+// Store basic data in global variable (buckets will be added after STEP 6)
 window.googleSheetsData = {
   productPerformance: productData,
   locationRevenue: locationData,
-  productBuckets: productBuckets
+  productBuckets: [] // Will be populated in STEP 6
 };
     
-// STEP 6: Start Product Bucket Analysis (the heavy process)
-ProgressManager.startStep('buckets', 'Starting product bucket analysis...');
+// STEP 6: Advanced Product Bucket Analysis (the heavy 76-second process)
+ProgressManager.startStep('buckets', 'Starting advanced product bucket analysis...');
 
-// Trigger the product bucket analyzer with progress tracking
 let finalBuckets = [];
 if (productData.length > 0) {
   try {
-    finalBuckets = await this.runProductBucketAnalysisWithProgress(prefix);
-    console.log(`[Integrated Process] ✅ Product bucket analysis completed: ${finalBuckets.length} buckets`);
+    // Disable auto-processing to prevent conflicts
+    window._skipProductBucketAutoProcessing = true;
+    
+    // Call the original product bucket analyzer but with progress tracking
+    finalBuckets = await this.runIntegratedBucketAnalysis(prefix);
+    console.log(`[Integrated Process] ✅ Advanced analysis completed: ${finalBuckets.length} final buckets`);
+    
+    // Update global storage with final buckets
+    window.googleSheetsData.productBuckets = finalBuckets;
+    
   } catch (analysisError) {
-    console.warn('[Integrated Process] Product bucket analysis failed:', analysisError);
-    // Continue without advanced buckets
+    console.warn('[Integrated Process] Advanced analysis failed:', analysisError);
   }
 }
 
 ProgressManager.completeStep('buckets');
+
+// Update final status with bucket count
+const statusEl = document.getElementById('googleAdsStatus');
+if (statusEl) {
+  statusEl.innerHTML = `
+    <div style="color: #4CAF50; font-weight: 500;">
+      ✓ Google Ads Data Uploaded Successfully
+    </div>
+    <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+      Product Performance: ${productData.length} rows<br>
+      Location Revenue: ${locationData.length} rows<br>
+      ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
+      <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
+    </div>
+  `;
+}
 
 // NOW show completion
 if (loader) {
@@ -489,7 +458,7 @@ if (loader) {
       if (loaderText) loaderText.textContent = 'Loading data…';
       if (subtitle) subtitle.textContent = '';
     }, 500);
-  }, 2000); // Show success message for 2 seconds
+  }, 2000);
 }
 
 return { productData, locationData, productBuckets: finalBuckets };
@@ -745,82 +714,52 @@ saveProductBucketsToSingleTable: async function(productBuckets, prefix) {
   console.log(`[Single Table Storage] ✅ Successfully saved ${productBuckets.length} product buckets to single table: ${finalTableKey}`);
 }
 
-// NEW: Run product bucket analysis with progress tracking
-runProductBucketAnalysisWithProgress: async function(prefix) {
-  if (!window.productBucketAnalyzer) {
-    console.warn('[Integrated Process] Product bucket analyzer not available');
-    return [];
-  }
-
+// NEW: Run integrated bucket analysis with progress tracking
+runIntegratedBucketAnalysis: async function(prefix) {
   try {
-    // Override the analyzer's progress reporting
-    const originalProcessBuckets = window.productBucketAnalyzer.processProductBuckets;
+    console.log('[Integrated Analysis] Starting product bucket analysis...');
     
-    // Create a new version that reports progress to our system
-    window.productBucketAnalyzer.processProductBuckets = async function(prefixOverride) {
-      const actualPrefix = prefixOverride || prefix;
+    if (!window.productBucketAnalyzer) {
+      console.warn('[Integrated Analysis] Product bucket analyzer not available');
+      return [];
+    }
+    
+    // Temporarily override console.log to capture progress from the original analyzer
+    const originalLog = console.log;
+    let lastProgress = 0;
+    
+    console.log = function(...args) {
+      const message = args.join(' ');
       
-      // Get the raw data
-      const productRec = await window.embedIDB.getData(actualPrefix + "googleSheets_productPerformance");
-      if (!productRec?.data || !productRec.data.length) {
-        console.error('[Product Buckets] No product performance data found');
-        return [];
-      }
-
-      const rawData = productRec.data;
-      ProgressManager.updateUI(`Analyzing ${rawData.length} product records...`);
-      
-      // Process in chunks with progress updates
-      return await ProgressManager.processInChunks(
-        rawData,
-        this.processDataChunk.bind(this),
-        {
-          chunkSize: 500, // Larger chunks for this analysis
-          stepKey: 'buckets',
-          stepLabel: 'Analyzing product performance',
-          yieldInterval: 20
+      // Look for progress indicators in the logs
+      if (message.includes('Processing') && message.includes('rows')) {
+        const match = message.match(/(\d+)\s*rows/);
+        if (match) {
+          const rows = parseInt(match[1]);
+          const progress = Math.min((rows / 50000) * 100, 90); // Estimate progress
+          if (progress > lastProgress) {
+            ProgressManager.updateProgress('buckets', progress);
+            ProgressManager.updateUI(`Advanced analysis: processing ${rows} records...`);
+            lastProgress = progress;
+          }
         }
-      );
-    };
-
-    // Add chunked processing method to analyzer
-    window.productBucketAnalyzer.processDataChunk = async function(chunk, startIndex) {
-      // This will contain the heavy processing logic
-      const results = [];
-      
-      for (let i = 0; i < chunk.length; i++) {
-        const row = chunk[i];
-        
-        // Your existing heavy analysis logic here
-        // For now, create a simplified bucket
-        const bucket = {
-          id: startIndex + i,
-          productTitle: row['Product Title'] || '',
-          date: row['Date'] || '',
-          impressions: parseFloat(row['Impressions']) || 0,
-          clicks: parseFloat(row['Clicks']) || 0,
-          cost: parseFloat(row['Cost']) || 0,
-          conversions: parseFloat(row['Conversions']) || 0,
-          roas: parseFloat(row['ROAS']) || 0,
-          processedAt: new Date().toISOString()
-        };
-        
-        results.push(bucket);
       }
       
-      return results;
+      // Call original console.log
+      originalLog.apply(console, args);
     };
-
-    // Run the analysis
-    const buckets = await window.productBucketAnalyzer.processProductBuckets(prefix);
     
-    // Restore original method
-    window.productBucketAnalyzer.processProductBuckets = originalProcessBuckets;
+    // Run the original product bucket analyzer
+    const result = await window.productBucketAnalyzer.processProductBuckets(prefix);
     
-    return buckets || [];
+    // Restore original console.log
+    console.log = originalLog;
+    
+    console.log(`[Integrated Analysis] ✅ Analysis completed successfully`);
+    return result || [];
     
   } catch (error) {
-    console.error('[Integrated Process] Error in product bucket analysis:', error);
+    console.error('[Integrated Analysis] Error:', error);
     return [];
   }
 }
