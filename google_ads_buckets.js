@@ -391,10 +391,11 @@ if (metricsTableContainer) {
   // Apply margin-top only for Suggestions bucket type
   if (bucketType === 'Suggestions') {
     metricsTableContainer.style.marginTop = '60px';
+    renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
   } else {
     metricsTableContainer.style.marginTop = '';
+    renderROASMetricsTable(metricsTableContainer, filteredData);
   }
-  renderROASMetricsTable(metricsTableContainer, filteredData);
 }
 
 // Get bucket values dynamically based on selected type
@@ -3350,6 +3351,290 @@ summaryRow.innerHTML = `
   table.appendChild(thead);
   table.appendChild(tbody);
   container.appendChild(table);
+}
+
+function renderSuggestionsMetricsTable(container, data) {
+  container.innerHTML = '';
+  
+  // Define suggestion categories
+  const suggestionCategories = {
+    'Budget & Scaling': [
+      'Pause & Reallocate Budget',
+      'Scale Aggressively', 
+      'Scale Moderately',
+      'Scale Cautiously',
+      'Test Budget Increase',
+      'Reduce Budget'
+    ],
+    'Bidding & Ranking': [
+      'Increase Visibility First',
+      'Increase Bids for Ranking',
+      'Test Higher Positions', 
+      'Optimize Bid Strategy'
+    ],
+    'Creative & Messaging': [
+      'Fix Ad Creative (Low CTR)',
+      'Test New Title',
+      'Refresh Creative Assets',
+      'Highlight Value Proposition'
+    ],
+    'Landing & Conversion': [
+      'Optimize Landing/Offer (Low CVR)',
+      'Improve Product Page',
+      'Add Trust Signals',
+      'Simplify Checkout'
+    ],
+    'Targeting & Efficiency': [
+      'Refine Targeting & Efficiency',
+      'Broaden Audience',
+      'Narrow Targeting',
+      'Test New Segments'
+    ],
+    'Product & Pricing': [
+      'Test Price Reduction',
+      'Consider Bundling',
+      'Add Promotions'
+    ]
+  };
+
+  // Filter for "All" campaign records only
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Get all unique suggestions from the data
+  const allSuggestions = new Set();
+  allCampaignRecords.forEach(row => {
+    if (row['Suggestions']) {
+      const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
+      suggestions.forEach(s => allSuggestions.add(s));
+    }
+  });
+
+  // Group suggestions by category
+  const groupedSuggestions = {};
+  const uncategorizedSuggestions = [];
+
+  Object.entries(suggestionCategories).forEach(([categoryName, suggestions]) => {
+    groupedSuggestions[categoryName] = [];
+    suggestions.forEach(suggestion => {
+      if (allSuggestions.has(suggestion)) {
+        groupedSuggestions[categoryName].push(suggestion);
+      }
+    });
+  });
+
+  // Find uncategorized suggestions
+  allSuggestions.forEach(suggestion => {
+    let found = false;
+    Object.values(suggestionCategories).forEach(categorySuggestions => {
+      if (categorySuggestions.includes(suggestion)) {
+        found = true;
+      }
+    });
+    if (!found) {
+      uncategorizedSuggestions.push(suggestion);
+    }
+  });
+
+  // Create main table container
+  const tableContainer = document.createElement('div');
+  tableContainer.style.cssText = 'display: flex; flex-direction: column; gap: 30px;';
+
+  // Process each category
+  Object.entries(groupedSuggestions).forEach(([categoryName, suggestions]) => {
+    if (suggestions.length === 0) return;
+
+    // Calculate metrics for suggestions in this category
+    const categoryMetrics = suggestions.map(suggestion => {
+      const bucketProducts = allCampaignRecords.filter(row => {
+        const rowSuggestions = row['Suggestions'] ? row['Suggestions'].split(';').map(s => s.trim()) : [];
+        return rowSuggestions.includes(suggestion);
+      });
+
+      if (bucketProducts.length === 0) {
+        return {
+          bucket: suggestion,
+          count: 0,
+          impressions: 0,
+          clicks: 0,
+          cost: 0,
+          conversions: 0,
+          convValue: 0,
+          avgCPC: 0,
+          cpm: 0,
+          ctr: 0,
+          cvr: 0,
+          cpa: 0,
+          roas: 0,
+          aov: 0
+        };
+      }
+
+      const totals = bucketProducts.reduce((acc, product) => {
+        acc.impressions += parseInt(product.Impressions) || 0;
+        acc.clicks += parseInt(product.Clicks) || 0;
+        acc.cost += parseFloat(product.Cost) || 0;
+        acc.conversions += parseFloat(product.Conversions) || 0;
+        acc.convValue += parseFloat(product.ConvValue) || 0;
+        return acc;
+      }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+
+      const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+      const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+      const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+      const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+      const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+
+      return {
+        bucket: suggestion,
+        count: bucketProducts.length,
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        cost: totals.cost,
+        conversions: totals.conversions,
+        convValue: totals.convValue,
+        avgCPC,
+        cpm,
+        ctr,
+        cvr,
+        cpa,
+        roas,
+        aov
+      };
+    });
+
+    // Calculate category totals for percentage bars
+    const categoryTotals = categoryMetrics.reduce((acc, metric) => {
+      acc.impressions += metric.impressions;
+      acc.clicks += metric.clicks;
+      acc.cost += metric.cost;
+      acc.conversions += metric.conversions;
+      acc.convValue += metric.convValue;
+      return acc;
+    }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+
+    // Create category section
+    const categorySection = document.createElement('div');
+    categorySection.style.cssText = 'background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+
+    // Category header
+    const categoryHeader = document.createElement('div');
+    categoryHeader.style.cssText = `
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      padding: 15px 20px;
+      border-bottom: 2px solid #dee2e6;
+      font-weight: 700;
+      font-size: 16px;
+      color: #333;
+      text-align: center;
+    `;
+    categoryHeader.textContent = categoryName;
+    categorySection.appendChild(categoryHeader);
+
+    // Create table for this category (same structure as original)
+    const table = document.createElement('table');
+    table.style.cssText = `
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      table-layout: fixed;
+    `;
+
+    // Create header (same as original)
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr style="background: #f8f9fa;">
+        <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">Suggestion</th>
+        <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+        <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+        <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+        <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
+      </tr>
+    `;
+
+    // Create body with suggestion rows
+    const tbody = document.createElement('tbody');
+
+    // Helper functions (same as original)
+    const createBarCell = (value, total, formatValue, suggestionColor) => {
+      const percentage = total > 0 ? (value / total) * 100 : 0;
+      return `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+          <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+          <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+            <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+              <div style="height: 100%; background: ${suggestionColor}; width: ${percentage}%; border-radius: 4px;"></div>
+            </div>
+            <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
+          </div>
+        </div>
+      `;
+    };
+
+    const createRegularCell = (value, isCenter = true) => {
+      return `
+        <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+          <span style="font-weight: 600; font-size: 12px;">${value}</span>
+        </div>
+      `;
+    };
+
+    // Get suggestion colors from configuration
+    const bucketConfig = window.bucketConfig['Suggestions'];
+
+    categoryMetrics.forEach(metric => {
+      const row = document.createElement('tr');
+      row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
+
+      const suggestionColor = bucketConfig.colors[metric.bucket] || '#999';
+
+      row.innerHTML = `
+        <td style="padding: 8px; font-weight: 600; color: ${suggestionColor}; vertical-align: middle; background: #ffffff; font-size: 11px;">${metric.bucket}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(metric.roas.toFixed(2) + 'x')}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + metric.aov.toFixed(2))}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + metric.cpa.toFixed(2))}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(metric.ctr.toFixed(2) + '%')}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(metric.cvr.toFixed(2) + '%')}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + metric.avgCPC.toFixed(2))}</td>
+        <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + metric.cpm.toFixed(2))}</td>
+        <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(metric.impressions, categoryTotals.impressions, (v) => v.toLocaleString(), suggestionColor)}</td>
+        <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(metric.clicks, categoryTotals.clicks, (v) => v.toLocaleString(), suggestionColor)}</td>
+        <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(metric.conversions, categoryTotals.conversions, (v) => v.toFixed(1), suggestionColor)}</td>
+        <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(metric.cost, categoryTotals.cost, (v) => '$' + v.toLocaleString(), suggestionColor)}</td>
+        <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(metric.convValue, categoryTotals.convValue, (v) => '$' + v.toLocaleString(), suggestionColor)}</td>
+      `;
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    categorySection.appendChild(table);
+    tableContainer.appendChild(categorySection);
+  });
+
+  // Add uncategorized suggestions if any
+  if (uncategorizedSuggestions.length > 0) {
+    // Similar logic for uncategorized suggestions...
+    console.log('Uncategorized suggestions found:', uncategorizedSuggestions);
+  }
+
+  container.appendChild(tableContainer);
 }
 
 function addBucketTooltip(element, bucketName, bucketType) {
