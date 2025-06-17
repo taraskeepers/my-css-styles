@@ -21,7 +21,7 @@ window.productBucketAnalyzer = {
     minImpressions: 100,
     minClicks: 10,
     minCost: 50,
-    minConvValue: 100
+    minConvValue: 500
   },
 
   // Helper to round to 2 decimal places
@@ -81,6 +81,10 @@ window.productBucketAnalyzer = {
 
       // Calculate dynamic defaults based on last 30 days data
       this.calculateDynamicDefaults(last30DaysData);
+      
+      // Calculate account average ROAS
+      this.accountAvgROAS = this.calculateAccountAvgROAS(last30DaysData);
+      console.log(`[Product Buckets] Account Average ROAS: ${this.accountAvgROAS.toFixed(2)}x`);
 
       // Group data by product + campaign + channel for both periods
       const currentGrouped = this.groupByProductCampaignChannel(last30DaysData);
@@ -89,116 +93,120 @@ window.productBucketAnalyzer = {
       // Build a set of all unique keys from both periods
       const allKeys = new Set([...Object.keys(currentGrouped), ...Object.keys(prevGrouped)]);
 
-// Calculate aggregated metrics and buckets for each group with progress tracking
-const bucketData = [];
-const allKeysArray = Array.from(allKeys);
-const totalKeys = allKeysArray.length;
-let processedKeys = 0;
+      // Calculate aggregated metrics and buckets for each group with progress tracking
+      const bucketData = [];
+      const allKeysArray = Array.from(allKeys);
+      const totalKeys = allKeysArray.length;
+      let processedKeys = 0;
 
-console.log(`[Product Buckets] Processing ${totalKeys} unique product combinations...`);
+      console.log(`[Product Buckets] Processing ${totalKeys} unique product combinations...`);
 
-// Process in chunks to prevent browser freezing
-const chunkSize = 50; // Process 50 keys at a time
-for (let i = 0; i < allKeysArray.length; i += chunkSize) {
-  const keyChunk = allKeysArray.slice(i, i + chunkSize);
-  
-  // Process this chunk of keys
-  for (const key of keyChunk) {
-    const currentRows = currentGrouped[key] || [];
-    const prevRows = prevGrouped[key] || [];
-    const isAllRow = key.endsWith('|All|All');
-    
-    // Skip if no data in current period
-    if (currentRows.length === 0) {
-      processedKeys++;
-      continue;
-    }
-    
-    // Calculate current period metrics
-    const currentMetrics = this.calculateAggregatedMetrics(currentRows, isAllRow);
-    const currentBuckets = this.assignBuckets(currentMetrics);
-    
-    // Calculate previous period metrics (might be empty)
-    let prevMetrics = null;
-    let prevBuckets = null;
-    if (prevRows.length > 0) {
-      prevMetrics = this.calculateAggregatedMetrics(prevRows, isAllRow);
-      prevBuckets = this.assignBuckets(prevMetrics);
-    }
-    
-    // Calculate historic bucket data
-    const historicBuckets = this.calculateHistoricBuckets(
-      key, 
-      last60DaysData, 
-      startDate30, 
-      endDate
-    );
-    
-    // Build the row data
-    const rowData = {
-      'Product Title': currentMetrics.productTitle,
-      'Campaign Name': currentMetrics.campaignName,
-      'Channel Type': currentMetrics.channelType,
-      'Impressions': currentMetrics.impressions,
-      'Clicks': currentMetrics.clicks,
-      'Avg CPC': this.round2(currentMetrics.avgCpc),
-      'Cost': this.round2(currentMetrics.cost),
-      'Conversions': currentMetrics.conversions,
-      'ConvValue': this.round2(currentMetrics.convValue),
-      'CTR': this.round2(currentMetrics.ctr),
-      'CVR': this.round2(currentMetrics.cvr),
-      'ROAS': this.round2(currentMetrics.roas),
-      'AOV': this.round2(currentMetrics.aov),
-      'CPA': this.round2(currentMetrics.cpa),
-      'CPM': this.round2(currentMetrics.cpm),
-      'ROAS_Bucket': currentBuckets.roasBucket,
-      'ROI_Bucket': currentBuckets.roiBucket,
-      'Funnel_Bucket': currentBuckets.funnelBucket,
-      'Spend_Bucket': currentBuckets.spendBucket,
-      'Pricing_Bucket': currentBuckets.pricingBucket,
-      'Custom_Tier': currentBuckets.customTier,
-      'ML_Cluster': currentBuckets.mlCluster,
-      'Suggestions': currentBuckets.suggestions.join('; '),
-      // Previous period metrics
-      'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
-      'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
-      'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
-      'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
-      'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
-      'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
-      'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
-      'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
-      'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
-      'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
-      'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
-      'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
-      'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
-      'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
-      'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
-      'prev_Spend_Bucket': prevBuckets ? prevBuckets.spendBucket : '',
-      'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
-      'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
-      'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
-      'prev_Suggestions': prevBuckets ? prevBuckets.suggestions.join('; ') : '',
-      // Historic bucket data
-      'historic_data.buckets': historicBuckets
-    };
-    
-    bucketData.push(rowData);
-    processedKeys++;
-  }
-  
-  // Update progress and yield control after each chunk
-  const progressPercent = (processedKeys / totalKeys) * 100;
-  console.log(`[Product Buckets] Progress: ${processedKeys}/${totalKeys} (${progressPercent.toFixed(1)}%) product combinations processed`);
-  
-  // Yield control back to browser every chunk
-  if (i % (chunkSize * 2) === 0 || i + chunkSize >= allKeysArray.length) {
-    await new Promise(resolve => setTimeout(resolve, 10));
-  }
-}
+      // Process in chunks to prevent browser freezing
+      const chunkSize = 50; // Process 50 keys at a time
+      for (let i = 0; i < allKeysArray.length; i += chunkSize) {
+        const keyChunk = allKeysArray.slice(i, i + chunkSize);
+        
+        // Process this chunk of keys
+        for (const key of keyChunk) {
+          const currentRows = currentGrouped[key] || [];
+          const prevRows = prevGrouped[key] || [];
+          const isAllRow = key.endsWith('|All|All');
+          
+          // Skip if no data in current period
+          if (currentRows.length === 0) {
+            processedKeys++;
+            continue;
+          }
+          
+          // Calculate current period metrics
+          const currentMetrics = this.calculateAggregatedMetrics(currentRows, isAllRow);
+          
+          // Calculate previous period metrics (might be empty)
+          let prevMetrics = null;
+          if (prevRows.length > 0) {
+            prevMetrics = this.calculateAggregatedMetrics(prevRows, isAllRow);
+          }
+          
+          // Calculate buckets with previous metrics for trend analysis
+          const currentBuckets = this.assignBuckets(currentMetrics, prevMetrics);
+          let prevBuckets = null;
+          if (prevMetrics) {
+            prevBuckets = this.assignBuckets(prevMetrics, null);
+          }
+          
+          // Calculate historic bucket data
+          const historicBuckets = this.calculateHistoricBuckets(
+            key, 
+            last60DaysData, 
+            startDate30, 
+            endDate
+          );
+          
+          // Build the row data
+          const rowData = {
+            'Product Title': currentMetrics.productTitle,
+            'Campaign Name': currentMetrics.campaignName,
+            'Channel Type': currentMetrics.channelType,
+            'Impressions': currentMetrics.impressions,
+            'Clicks': currentMetrics.clicks,
+            'Avg CPC': this.round2(currentMetrics.avgCpc),
+            'Cost': this.round2(currentMetrics.cost),
+            'Conversions': currentMetrics.conversions,
+            'ConvValue': this.round2(currentMetrics.convValue),
+            'CTR': this.round2(currentMetrics.ctr),
+            'CVR': this.round2(currentMetrics.cvr),
+            'ROAS': this.round2(currentMetrics.roas),
+            'AOV': this.round2(currentMetrics.aov),
+            'CPA': this.round2(currentMetrics.cpa),
+            'CPM': this.round2(currentMetrics.cpm),
+            'ROAS_Bucket': currentBuckets.roasBucket,
+            'ROI_Bucket': currentBuckets.roiBucket,
+            'Funnel_Bucket': currentBuckets.funnelBucket,
+            'Spend_Bucket': currentBuckets.spendBucket,
+            'Pricing_Bucket': currentBuckets.pricingBucket,
+            'Custom_Tier': currentBuckets.customTier,
+            'ML_Cluster': currentBuckets.mlCluster,
+            'Suggestions': currentBuckets.suggestions.join('; '),
+            // Previous period metrics
+            'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
+            'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
+            'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
+            'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
+            'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
+            'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
+            'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
+            'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
+            'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
+            'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
+            'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+            'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
+            'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
+            'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
+            'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
+            'prev_Spend_Bucket': prevBuckets ? prevBuckets.spendBucket : '',
+            'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
+            'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
+            'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
+            'prev_Suggestions': prevBuckets ? prevBuckets.suggestions.join('; ') : '',
+            // Historic bucket data
+            'historic_data.buckets': historicBuckets
+          };
+          
+          bucketData.push(rowData);
+          processedKeys++;
+        }
+        
+        // Update progress and yield control after each chunk
+        const progressPercent = (processedKeys / totalKeys) * 100;
+        console.log(`[Product Buckets] Progress: ${processedKeys}/${totalKeys} (${progressPercent.toFixed(1)}%) product combinations processed`);
+        
+        // Yield control back to browser every chunk
+        if (i % (chunkSize * 2) === 0 || i + chunkSize >= allKeysArray.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
 
-console.log(`[Product Buckets] ✅ Completed processing ${bucketData.length} product bucket entries`);
+      console.log(`[Product Buckets] ✅ Completed processing ${bucketData.length} product bucket entries`);
 
       // Save to IDB with new table name
       const tableName = prefix + "googleSheets_productBuckets_30d";
@@ -222,7 +230,7 @@ console.log(`[Product Buckets] ✅ Completed processing ${bucketData.length} pro
     }
   },
 
-// Calculate historic bucket data for each day in the last 30 days
+  // Calculate historic bucket data for each day in the last 30 days
   calculateHistoricBuckets(key, allData, startDate30, endDate) {
     const [productTitle, campaignName, channelType] = key.split('|');
     const historicData = [];
@@ -288,20 +296,20 @@ console.log(`[Product Buckets] ✅ Completed processing ${bucketData.length} pro
       // If we have data, calculate metrics and buckets
       if (relevantData.length > 0) {
         const metrics = this.calculateAggregatedMetrics(relevantData, campaignName === 'All');
-        const buckets = this.assignBuckets(metrics);
+        const buckets = this.assignBuckets(metrics, null);
         
-historicData.push({
-  date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
-  Custom_Tier: buckets.customTier,
-  Funnel_Bucket: buckets.funnelBucket,
-  ML_Cluster: buckets.mlCluster,
-  Pricing_Bucket: buckets.pricingBucket,
-  ROAS_Bucket: buckets.roasBucket,
-  ROI_Bucket: buckets.roiBucket,
-  Spend_Bucket: buckets.spendBucket,
-  Suggestions: buckets.suggestions.join('; '), // Add suggestions
-  days_of_data: Math.floor((currentDate - Math.max(histStartDate, minDataDate - 86400000)) / 86400000) // Track how many days of data were used
-});
+        historicData.push({
+          date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          Custom_Tier: buckets.customTier,
+          Funnel_Bucket: buckets.funnelBucket,
+          ML_Cluster: buckets.mlCluster,
+          Pricing_Bucket: buckets.pricingBucket,
+          ROAS_Bucket: buckets.roasBucket,
+          ROI_Bucket: buckets.roiBucket,
+          Spend_Bucket: buckets.spendBucket,
+          Suggestions: buckets.suggestions.join('; '),
+          days_of_data: Math.floor((currentDate - Math.max(histStartDate, minDataDate - 86400000)) / 86400000) // Track how many days of data were used
+        });
       }
       
       // Move to next day
@@ -447,7 +455,7 @@ historicData.push({
     metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
     metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
     metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
     metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
     metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
     metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
@@ -456,7 +464,7 @@ metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
   },
 
   // Assign all bucket categories based on metrics
-assignBuckets(metrics) {
+  assignBuckets(metrics, prevMetrics = null) {
     const buckets = {
       roasBucket: this.assignROASBucket(metrics),
       roiBucket: this.assignROIBucket(metrics),
@@ -468,13 +476,13 @@ assignBuckets(metrics) {
     };
     
     // Assign suggestions based on cross-bucket analysis
-    buckets.suggestions = this.assignSuggestions(metrics, buckets);
+    buckets.suggestions = this.assignSuggestions(metrics, buckets, prevMetrics);
     
     return buckets;
   },
 
   // (1) ROAS Bucket
-assignROASBucket(metrics) {
+  assignROASBucket(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -493,7 +501,7 @@ assignROASBucket(metrics) {
   },
 
   // (2) ROI Bucket
-assignROIBucket(metrics) {
+  assignROIBucket(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -512,7 +520,7 @@ assignROIBucket(metrics) {
   },
 
   // (3) Funnel Bucket
-assignFunnelBucket(metrics) {
+  assignFunnelBucket(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -543,7 +551,7 @@ assignFunnelBucket(metrics) {
   },
 
   // (4) Spend Bucket
-assignSpendBucket(metrics) {
+  assignSpendBucket(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -566,7 +574,7 @@ assignSpendBucket(metrics) {
   },
 
   // (5) Pricing Bucket
-assignPricingBucket(metrics) {
+  assignPricingBucket(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -585,7 +593,7 @@ assignPricingBucket(metrics) {
   },
 
   // (6) Custom Tier
-assignCustomTier(metrics) {
+  assignCustomTier(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -617,7 +625,7 @@ assignCustomTier(metrics) {
   },
 
   // (7) ML Cluster
-assignMLCluster(metrics) {
+  assignMLCluster(metrics) {
     // Check for insufficient data
     if ((metrics.impressions < this.DATA_COLLECTION_THRESHOLDS.minImpressions || 
          metrics.clicks < this.DATA_COLLECTION_THRESHOLDS.minClicks || 
@@ -645,7 +653,7 @@ assignMLCluster(metrics) {
 
   // Assign suggestions based on cross-bucket analysis
   // IMPORTANT: Order matters - Pause takes priority over optimization suggestions
-  assignSuggestions(metrics, buckets) {
+  assignSuggestions(metrics, buckets, prevMetrics = null) {
     const suggestions = [];
     
     // Get dynamic thresholds for comparison
@@ -655,10 +663,38 @@ assignMLCluster(metrics) {
     const avgCPM = this.DEFAULTS.cpm || 30; // Default CPM if not calculated
     const medianAOV = this.DEFAULTS.aov;
     const medianConversions = this.DEFAULTS.conversions;
+    const medianImpressions = this.DEFAULTS.impressions || 10000;
+    const accountAvgROAS = this.accountAvgROAS || 2.5;
+    const roasZone = this.getROASZone(metrics.roas, accountAvgROAS);
+    const trends = this.calculateTrends(metrics, prevMetrics);
+    
+    // === TREND-BASED SUGGESTIONS (Check regardless of ROAS) ===
+    if (trends.roasDecline > 20 && metrics.roas > 0) {
+      suggestions.push('Monitor Declining ROAS');
+    }
+    
+    if (trends.ctrDecline > 30 && metrics.impressions > 5000) {
+      suggestions.push('Address CTR Decline');
+    }
+    
+    if (trends.impressionDecline > 40) {
+      suggestions.push('Investigate Traffic Drop');
+    }
+    
+    if (trends.roasIncrease > 30 && metrics.roas > accountAvgROAS) {
+      suggestions.push('Capitalize on Momentum');
+    }
+    
+    if (trends.volatility > 50) {
+      suggestions.push('Stabilize Volatility');
+    }
+    
+    // === END TREND SUGGESTIONS ===
     
     // === BUDGET & SCALING SUGGESTIONS ===
     
     // Priority 1: Pause & Reallocate Budget
+    // Include products with very low ROAS or minimal conversions relative to cost
     const conversionThreshold = this.DEFAULTS.conversions * 0.2; // 20% of median conversions
     const isWastefulSpend = (
       // Extremely low ROAS (losing 50%+ of spend)
@@ -681,23 +717,24 @@ assignMLCluster(metrics) {
     // Only continue with other suggestions if not pausing
     if (!suggestions.includes('Pause & Reallocate Budget')) {
       
-      // Scale Aggressively  
-      if (metrics.roas > 3 &&
+      // Scale Aggressively - only for excellent/green zones
+      if ((roasZone === 'excellent' || roasZone === 'green') &&
+          metrics.roas > 3 &&
           (buckets.roasBucket === 'Top Performers' || buckets.roiBucket === 'Scalable Winners') &&
           metrics.cvr >= this.DEFAULTS.cvr) {
         suggestions.push('Scale Aggressively');
       }
       
-      // Scale Moderately
-      else if (metrics.roas >= 2 && metrics.roas <= 3 &&
+      // Scale Moderately - only if above account average
+      else if (metrics.roas >= accountAvgROAS && metrics.roas <= 3 &&
                metrics.cvr >= this.DEFAULTS.cvr &&
                buckets.roasBucket !== 'Top Performers') {
         suggestions.push('Scale Moderately');
       }
       
-      // Scale Cautiously
-      else if (metrics.roas >= 1.5 && metrics.roas < 2 &&
-               metrics.cost < this.DEFAULTS.cost * 5) { // Less than 5x average spend
+      // Scale Cautiously - only if above account average
+      else if (metrics.roas >= accountAvgROAS && metrics.roas < accountAvgROAS * 1.2 &&
+               metrics.cost < this.DEFAULTS.cost * 5) {
         suggestions.push('Scale Cautiously');
       }
       
@@ -718,10 +755,12 @@ assignMLCluster(metrics) {
     
     // === BIDDING & RANKING SUGGESTIONS ===
     
-    // Increase Visibility First
-    if (metrics.impressions < 500 ||
-        metrics.cost < 50 ||
-        (buckets.spendBucket === 'Zombies' || (buckets.customTier === 'Testing Product' && metrics.clicks < 10))) {
+    // Increase Visibility First - dynamic threshold
+    const visibilityThreshold = Math.min(10000, medianImpressions * 0.25);
+    if ((metrics.impressions < visibilityThreshold ||
+         metrics.cost < 50 ||
+         (buckets.spendBucket === 'Zombies' || (buckets.customTier === 'Testing Product' && metrics.clicks < 10))) &&
+        metrics.roas > 1) { // Don't increase visibility for unprofitable products
       suggestions.push('Increase Visibility First');
     }
     
@@ -777,8 +816,9 @@ assignMLCluster(metrics) {
     
     // === LANDING & CONVERSION SUGGESTIONS ===
     
-    // Optimize Landing/Offer (Low CVR)
-    if (metrics.ctr > avgCTR &&
+    // Optimize Landing/Offer (Low CVR) - only if below account average ROAS
+    if (metrics.roas < accountAvgROAS &&
+        metrics.ctr > avgCTR &&
         metrics.cvr < avgCVR * 0.5 &&
         metrics.clicks > 50 &&
         (buckets.funnelBucket === 'Weak Landing Page or Offer' || buckets.funnelBucket === 'UX Optimization Needed')) {
@@ -786,21 +826,24 @@ assignMLCluster(metrics) {
     }
     
     // Improve Product Page
-    else if (metrics.ctr >= avgCTR &&
+    else if (metrics.roas < accountAvgROAS &&
+             metrics.ctr >= avgCTR &&
              metrics.cvr >= avgCVR * 0.5 && metrics.cvr < avgCVR &&
              metrics.clicks > 30) {
       suggestions.push('Improve Product Page');
     }
     
     // Add Trust Signals
-    if (metrics.ctr > avgCTR * 1.2 &&
+    if (metrics.roas < accountAvgROAS &&
+        metrics.ctr > avgCTR * 1.2 &&
         metrics.cvr < avgCVR * 0.7 &&
         metrics.clicks > 100) {
       suggestions.push('Add Trust Signals');
     }
     
     // Simplify Checkout
-    if (metrics.clicks > 200 &&
+    if (metrics.roas < accountAvgROAS &&
+        metrics.clicks > 200 &&
         metrics.cvr < avgCVR * 0.5 &&
         metrics.ctr >= avgCTR) {
       suggestions.push('Simplify Checkout');
@@ -809,6 +852,7 @@ assignMLCluster(metrics) {
     // === TARGETING & EFFICIENCY SUGGESTIONS ===
     
     // Refine Targeting & Efficiency
+    // Only suggest refinement if there's potential (not a complete failure)
     if (metrics.avgCpc > avgCPC * 1.5 &&
         (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
         (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste') &&
@@ -829,7 +873,8 @@ assignMLCluster(metrics) {
     // Narrow Targeting
     if (metrics.cvr < this.DEFAULTS.cvr * 0.5 &&
         metrics.cost > this.DEFAULTS.cost * 2 &&
-        metrics.clicks > 100) {
+        metrics.clicks > 100 &&
+        metrics.roas < accountAvgROAS) {
       suggestions.push('Narrow Targeting');
     }
     
@@ -842,8 +887,9 @@ assignMLCluster(metrics) {
     
     // === PRODUCT & PRICING SUGGESTIONS ===
     
-    // Test Price Reduction
-    if (metrics.ctr > avgCTR &&
+    // Test Price Reduction - only for products below account average
+    if (metrics.roas < accountAvgROAS &&
+        metrics.ctr > avgCTR &&
         metrics.cvr < avgCVR * 0.5 &&
         metrics.aov > medianAOV * 1.5 &&
         (buckets.pricingBucket === 'Price Resistance' || buckets.funnelBucket === 'Weak Landing Page or Offer')) {
@@ -857,14 +903,60 @@ assignMLCluster(metrics) {
       suggestions.push('Consider Bundling');
     }
     
-    // Add Promotions
-    if (metrics.ctr < avgCTR * 0.8 &&
+    // Add Promotions - only for products below account average
+    if (metrics.roas < accountAvgROAS &&
+        metrics.ctr < avgCTR * 0.8 &&
         metrics.conversions > 0 &&
         metrics.aov > medianAOV) {
       suggestions.push('Add Promotions');
     }
     
     return suggestions;
+  },
+  
+  // Helper function to determine ROAS zone
+  getROASZone(roas, avgROAS) {
+    if (roas < 1) return 'red';
+    if (roas < 2) return 'orange';
+    if (roas < avgROAS) return 'yellow';
+    if (roas < 3) return 'green';
+    return 'excellent';
+  },
+  
+  // Helper function to calculate trends
+  calculateTrends(metrics, prevMetrics) {
+    if (!prevMetrics) {
+      return {
+        roasDecline: 0,
+        roasIncrease: 0,
+        ctrDecline: 0,
+        impressionDecline: 0,
+        volatility: 0
+      };
+    }
+    
+    const roasChange = prevMetrics.roas > 0 ? ((metrics.roas - prevMetrics.roas) / prevMetrics.roas) * 100 : 0;
+    const ctrChange = prevMetrics.ctr > 0 ? ((metrics.ctr - prevMetrics.ctr) / prevMetrics.ctr) * 100 : 0;
+    const impressionChange = prevMetrics.impressions > 0 ? ((metrics.impressions - prevMetrics.impressions) / prevMetrics.impressions) * 100 : 0;
+    
+    return {
+      roasDecline: Math.max(0, -roasChange),
+      roasIncrease: Math.max(0, roasChange),
+      ctrDecline: Math.max(0, -ctrChange),
+      impressionDecline: Math.max(0, -impressionChange),
+      volatility: Math.abs(roasChange)
+    };
+  },
+  
+  // Calculate account average ROAS
+  calculateAccountAvgROAS(allData) {
+    const totals = allData.reduce((acc, row) => {
+      acc.cost += parseFloat(row.Cost) || 0;
+      acc.convValue += parseFloat(row['Conversion Value']) || 0;
+      return acc;
+    }, { cost: 0, convValue: 0 });
+    
+    return totals.cost > 0 ? totals.convValue / totals.cost : 2.5;
   }
 };
 
