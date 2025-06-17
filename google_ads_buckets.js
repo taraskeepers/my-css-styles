@@ -386,10 +386,16 @@ wrapper.appendChild(leftContainer);
       }
     }
     
-    // Render metrics table
-    if (metricsTableContainer) {
-      renderROASMetricsTable(metricsTableContainer, filteredData);
-    }
+// Render metrics table
+if (metricsTableContainer) {
+  // Apply margin-top only for Suggestions bucket type
+  if (bucketType === 'Suggestions') {
+    metricsTableContainer.style.marginTop = '60px';
+  } else {
+    metricsTableContainer.style.marginTop = '';
+  }
+  renderROASMetricsTable(metricsTableContainer, filteredData);
+}
 
 // Get bucket values dynamically based on selected type
 const bucketCounts = {};
