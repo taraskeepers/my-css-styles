@@ -643,7 +643,7 @@ assignMLCluster(metrics) {
     return 'Optimizable'; // Default for medium performance
   },
 
-// Assign suggestions based on cross-bucket analysis
+  // Assign suggestions based on cross-bucket analysis
   // IMPORTANT: Order matters - Pause takes priority over optimization suggestions
   assignSuggestions(metrics, buckets) {
     const suggestions = [];
@@ -652,44 +652,132 @@ assignMLCluster(metrics) {
     const avgCTR = this.DEFAULTS.ctr;
     const avgCVR = this.DEFAULTS.cvr;
     const avgCPC = this.DEFAULTS.avgCpc;
+    const avgCPM = this.DEFAULTS.cpm || 30; // Default CPM if not calculated
+    const medianAOV = this.DEFAULTS.aov;
+    const medianConversions = this.DEFAULTS.conversions;
     
-// Priority 1: Pause & Reallocate Budget
-// Include products with very low ROAS or minimal conversions relative to cost
-const conversionThreshold = this.DEFAULTS.conversions * 0.2; // 20% of median conversions
-const isWastefulSpend = (
-  // Extremely low ROAS (losing 50%+ of spend)
-  (metrics.roas < 0.5 && metrics.cost > 50) ||
-  // Original criteria
-  (metrics.roas < 1 && 
-   buckets.roasBucket === 'Underperformers' && 
-   buckets.roiBucket === 'Waste of Spend' &&
-   (buckets.spendBucket === 'Parasites' || (metrics.conversions === 0 && metrics.cost > 100))) ||
-  // High spend with insignificant conversions
-  (metrics.cost > 500 && metrics.conversions < conversionThreshold && metrics.roas < 1) ||
-  // Any product losing money with CPA > 3x the median
-  (metrics.cpa > this.DEFAULTS.cpa * 3 && metrics.roas < 1 && metrics.cost > 100)
-);
-
-if (isWastefulSpend) {
-  suggestions.push('Pause & Reallocate Budget');
-}
+    // === BUDGET & SCALING SUGGESTIONS ===
     
-    // Priority 2: Scale Aggressively  
-    if (metrics.roas > 3 &&
-        (buckets.roasBucket === 'Top Performers' || buckets.roiBucket === 'Scalable Winners') &&
-        metrics.cvr >= this.DEFAULTS.cvr) {
-      suggestions.push('Scale Aggressively');
+    // Priority 1: Pause & Reallocate Budget
+    const conversionThreshold = this.DEFAULTS.conversions * 0.2; // 20% of median conversions
+    const isWastefulSpend = (
+      // Extremely low ROAS (losing 50%+ of spend)
+      (metrics.roas < 0.5 && metrics.cost > 50) ||
+      // Original criteria
+      (metrics.roas < 1 && 
+       buckets.roasBucket === 'Underperformers' && 
+       buckets.roiBucket === 'Waste of Spend' &&
+       (buckets.spendBucket === 'Parasites' || (metrics.conversions === 0 && metrics.cost > 100))) ||
+      // High spend with insignificant conversions
+      (metrics.cost > 500 && metrics.conversions < conversionThreshold && metrics.roas < 1) ||
+      // Any product losing money with CPA > 3x the median
+      (metrics.cpa > this.DEFAULTS.cpa * 3 && metrics.roas < 1 && metrics.cost > 100)
+    );
+    
+    if (isWastefulSpend) {
+      suggestions.push('Pause & Reallocate Budget');
     }
     
-    // Priority 3: Fix Ad Creative (Low CTR)
+    // Only continue with other suggestions if not pausing
+    if (!suggestions.includes('Pause & Reallocate Budget')) {
+      
+      // Scale Aggressively  
+      if (metrics.roas > 3 &&
+          (buckets.roasBucket === 'Top Performers' || buckets.roiBucket === 'Scalable Winners') &&
+          metrics.cvr >= this.DEFAULTS.cvr) {
+        suggestions.push('Scale Aggressively');
+      }
+      
+      // Scale Moderately
+      else if (metrics.roas >= 2 && metrics.roas <= 3 &&
+               metrics.cvr >= this.DEFAULTS.cvr &&
+               buckets.roasBucket !== 'Top Performers') {
+        suggestions.push('Scale Moderately');
+      }
+      
+      // Scale Cautiously
+      else if (metrics.roas >= 1.5 && metrics.roas < 2 &&
+               metrics.cost < this.DEFAULTS.cost * 5) { // Less than 5x average spend
+        suggestions.push('Scale Cautiously');
+      }
+      
+      // Test Budget Increase
+      if (buckets.spendBucket === 'Hidden Gems' &&
+          metrics.roas > 2 &&
+          metrics.cost < 200) {
+        suggestions.push('Test Budget Increase');
+      }
+      
+      // Reduce Budget (not pause, just reduce)
+      if (metrics.roas >= 0.8 && metrics.roas < 1.2 &&
+          metrics.cost > this.DEFAULTS.cost * 2 &&
+          !suggestions.some(s => s.includes('Scale'))) {
+        suggestions.push('Reduce Budget');
+      }
+    }
+    
+    // === BIDDING & RANKING SUGGESTIONS ===
+    
+    // Increase Visibility First
+    if (metrics.impressions < 500 ||
+        metrics.cost < 50 ||
+        (buckets.spendBucket === 'Zombies' || (buckets.customTier === 'Testing Product' && metrics.clicks < 10))) {
+      suggestions.push('Increase Visibility First');
+    }
+    
+    // Increase Bids for Ranking
+    else if (metrics.cvr > this.DEFAULTS.cvr &&
+             metrics.ctr < this.DEFAULTS.ctr &&
+             metrics.cpm < avgCPM * 0.7) { // Low CPM indicates low ad rank
+      suggestions.push('Increase Bids for Ranking');
+    }
+    
+    // Test Higher Positions
+    else if (metrics.roas >= 1.5 && metrics.roas < 2.5 &&
+             metrics.impressions > 1000 &&
+             metrics.cpm < avgCPM) {
+      suggestions.push('Test Higher Positions');
+    }
+    
+    // Optimize Bid Strategy
+    if (metrics.avgCpc > avgCPC * 2 &&
+        metrics.roas < 2 &&
+        metrics.clicks > 50) {
+      suggestions.push('Optimize Bid Strategy');
+    }
+    
+    // === CREATIVE & MESSAGING SUGGESTIONS ===
+    
+    // Fix Ad Creative (Low CTR)
     if (metrics.ctr < avgCTR * 0.5 &&
         metrics.impressions > 1000 &&
-        metrics.conversions > 0 &&
         (buckets.funnelBucket === 'Needs Better Ad Creative' || buckets.funnelBucket === 'Ad Creative Problem')) {
       suggestions.push('Fix Ad Creative (Low CTR)');
     }
     
-    // Priority 4: Optimize Landing/Offer (Low CVR)
+    // Test New Title
+    else if (metrics.ctr >= avgCTR * 0.5 && metrics.ctr < avgCTR * 0.8 &&
+             metrics.impressions > 2000) {
+      suggestions.push('Test New Title');
+    }
+    
+    // Refresh Creative Assets
+    if (metrics.impressions > 10000 &&
+        metrics.ctr < avgCTR &&
+        buckets.customTier !== 'Hero Product') {
+      suggestions.push('Refresh Creative Assets');
+    }
+    
+    // Highlight Value Proposition
+    if (metrics.ctr < avgCTR &&
+        metrics.aov < medianAOV &&
+        metrics.conversions > 0) {
+      suggestions.push('Highlight Value Proposition');
+    }
+    
+    // === LANDING & CONVERSION SUGGESTIONS ===
+    
+    // Optimize Landing/Offer (Low CVR)
     if (metrics.ctr > avgCTR &&
         metrics.cvr < avgCVR * 0.5 &&
         metrics.clicks > 50 &&
@@ -697,23 +785,83 @@ if (isWastefulSpend) {
       suggestions.push('Optimize Landing/Offer (Low CVR)');
     }
     
-// Priority 5: Refine Targeting & Efficiency
-// Only suggest refinement if there's potential (not a complete failure)
-if (metrics.avgCpc > avgCPC * 1.5 &&
-    (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
-    (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste') &&
-    metrics.roas >= 0.5) { // Don't suggest refinement for products that should be paused
-  const clickValueIndex = metrics.clicks > 0 ? (metrics.convValue / metrics.clicks) / metrics.avgCpc : 0;
-  if (clickValueIndex < 1.5 && clickValueIndex > 0.5) { // Has some potential
-    suggestions.push('Refine Targeting & Efficiency');
-  }
-}
+    // Improve Product Page
+    else if (metrics.ctr >= avgCTR &&
+             metrics.cvr >= avgCVR * 0.5 && metrics.cvr < avgCVR &&
+             metrics.clicks > 30) {
+      suggestions.push('Improve Product Page');
+    }
     
-    // Priority 6: Increase Visibility First
-    if (metrics.impressions < 500 ||
-        metrics.cost < 50 ||
-        (buckets.spendBucket === 'Zombies' || (buckets.customTier === 'Testing Product' && metrics.clicks < 10))) {
-      suggestions.push('Increase Visibility First');
+    // Add Trust Signals
+    if (metrics.ctr > avgCTR * 1.2 &&
+        metrics.cvr < avgCVR * 0.7 &&
+        metrics.clicks > 100) {
+      suggestions.push('Add Trust Signals');
+    }
+    
+    // Simplify Checkout
+    if (metrics.clicks > 200 &&
+        metrics.cvr < avgCVR * 0.5 &&
+        metrics.ctr >= avgCTR) {
+      suggestions.push('Simplify Checkout');
+    }
+    
+    // === TARGETING & EFFICIENCY SUGGESTIONS ===
+    
+    // Refine Targeting & Efficiency
+    if (metrics.avgCpc > avgCPC * 1.5 &&
+        (metrics.ctr < avgCTR || metrics.cvr < avgCVR) &&
+        (buckets.funnelBucket === 'Poor Targeting' || buckets.mlCluster === 'Expensive Waste') &&
+        metrics.roas >= 0.5) { // Don't suggest refinement for products that should be paused
+      const clickValueIndex = metrics.clicks > 0 ? (metrics.convValue / metrics.clicks) / metrics.avgCpc : 0;
+      if (clickValueIndex < 1.5 && clickValueIndex > 0.5) { // Has some potential
+        suggestions.push('Refine Targeting & Efficiency');
+      }
+    }
+    
+    // Broaden Audience
+    if (metrics.cvr > this.DEFAULTS.cvr * 1.5 &&
+        metrics.impressions < this.DEFAULTS.impressions &&
+        metrics.roas > 2) {
+      suggestions.push('Broaden Audience');
+    }
+    
+    // Narrow Targeting
+    if (metrics.cvr < this.DEFAULTS.cvr * 0.5 &&
+        metrics.cost > this.DEFAULTS.cost * 2 &&
+        metrics.clicks > 100) {
+      suggestions.push('Narrow Targeting');
+    }
+    
+    // Test New Segments
+    if (metrics.roas >= 1.5 && metrics.roas <= 2.5 &&
+        metrics.impressions > 5000 &&
+        metrics.conversions > medianConversions) {
+      suggestions.push('Test New Segments');
+    }
+    
+    // === PRODUCT & PRICING SUGGESTIONS ===
+    
+    // Test Price Reduction
+    if (metrics.ctr > avgCTR &&
+        metrics.cvr < avgCVR * 0.5 &&
+        metrics.aov > medianAOV * 1.5 &&
+        (buckets.pricingBucket === 'Price Resistance' || buckets.funnelBucket === 'Weak Landing Page or Offer')) {
+      suggestions.push('Test Price Reduction');
+    }
+    
+    // Consider Bundling
+    if (metrics.aov < medianAOV * 0.7 &&
+        metrics.roas >= 1.5 &&
+        metrics.conversions > 5) {
+      suggestions.push('Consider Bundling');
+    }
+    
+    // Add Promotions
+    if (metrics.ctr < avgCTR * 0.8 &&
+        metrics.conversions > 0 &&
+        metrics.aov > medianAOV) {
+      suggestions.push('Add Promotions');
     }
     
     return suggestions;
