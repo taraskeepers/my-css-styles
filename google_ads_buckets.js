@@ -391,6 +391,9 @@ wrapper.appendChild(leftContainer);
       renderROASMetricsTable(metricsTableContainer, filteredData);
     }
 
+// Get bucket values dynamically based on selected type
+const bucketCounts = {};
+
 // Get ALL unique bucket values from the entire dataset (not just filtered data)
 // This ensures we show all possible buckets, even if they have 0 products currently
 const allData = result.data.filter(row => row['Campaign Name'] === 'All');
