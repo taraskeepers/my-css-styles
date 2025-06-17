@@ -1,11 +1,12 @@
 // Progress Management System
 const ProgressManager = {
-  steps: [
-    { key: 'extract', label: 'Extracting Sheet ID', weight: 5 },
-    { key: 'fetch', label: 'Downloading sheet data', weight: 40 },
-    { key: 'parse', label: 'Processing data rows', weight: 35 },
-    { key: 'store', label: 'Saving to local storage', weight: 20 }
-  ],
+steps: [
+  { key: 'extract', label: 'Extracting Sheet ID', weight: 5 },
+  { key: 'fetch', label: 'Downloading sheet data', weight: 25 },
+  { key: 'parse', label: 'Processing data rows', weight: 25 },
+  { key: 'analyze', label: 'Analyzing product buckets', weight: 35 },
+  { key: 'store', label: 'Saving to local storage', weight: 10 }
+],
   
   currentProgress: 0,
   currentStep: null,
@@ -115,6 +116,60 @@ const ProgressManager = {
   setStartTime() {
     this.startTime = Date.now();
   }
+
+processInChunks: async function(data, processor, options = {}) {
+  const {
+    chunkSize = 100,           // Process 100 items at a time
+    stepKey = 'analyze',       // Which step this belongs to
+    stepLabel = 'Processing',  // Custom label for this step
+    yieldInterval = 10         // Yield every 10ms
+  } = options;
+  
+  if (!Array.isArray(data) || data.length === 0) {
+    return [];
+  }
+  
+  this.startStep(stepKey, `${stepLabel} ${data.length} items...`);
+  
+  const results = [];
+  const totalChunks = Math.ceil(data.length / chunkSize);
+  let processedChunks = 0;
+  
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.slice(i, i + chunkSize);
+    
+    // Process this chunk
+    const chunkResults = await processor(chunk, i);
+    if (Array.isArray(chunkResults)) {
+      results.push(...chunkResults);
+    } else if (chunkResults) {
+      results.push(chunkResults);
+    }
+    
+    // Update progress
+    processedChunks++;
+    const progressPercent = (processedChunks / totalChunks) * 100;
+    this.updateProgress(stepKey, progressPercent);
+    
+    // Update UI with current status
+    const processed = Math.min(i + chunkSize, data.length);
+    this.updateUI(`${stepLabel} ${processed}/${data.length} items...`);
+    
+    // Yield control back to browser every few chunks
+    if (processedChunks % 3 === 0 || processedChunks === totalChunks) {
+      await this.yield(yieldInterval);
+    }
+  }
+  
+  this.completeStep(stepKey);
+  return results;
+},
+
+// Yield control back to the browser
+yield: function(ms = 10) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+  
 };
 
 
@@ -316,22 +371,57 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
       this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
     ]);
     
-    ProgressManager.completeStep('parse');
+ProgressManager.completeStep('parse');
+
+// STEP 4: NEW - Process Product Buckets (the heavy part!)
+let productBuckets = [];
+if (productData.length > 0) {
+  console.log(`[Product Buckets] Starting analysis of ${productData.length} products...`);
+  
+  try {
+    // Use chunked processing to avoid "Page Unresponsive"
+    productBuckets = await ProgressManager.processInChunks(
+      productData,
+      this.processProductBucketsChunk.bind(this),
+      {
+        chunkSize: 100,
+        stepKey: 'analyze',
+        stepLabel: 'Analyzing product performance',
+        yieldInterval: 15
+      }
+    );
     
-    // STEP 4: Store in IDB
-    ProgressManager.startStep('store', 'Saving data to local storage...');
+    console.log(`[Product Buckets] ✅ Processed ${productBuckets.length} product buckets`);
+  } catch (bucketError) {
+    console.warn('[Product Buckets] Error during bucket analysis:', bucketError);
+    // Continue without buckets if analysis fails
+  }
+}
+
+// STEP 5: Store in IDB
+ProgressManager.startStep('store', 'Saving data to local storage...');
     
     setTimeout(() => ProgressManager.updateProgress('store', 60), 300);
     
-    await Promise.all([
-      window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
-      window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
-      window.embedIDB.setData(prefix + "googleSheets_config", {
-        url: url,
-        sheetId: sheetId,
-        lastUpdated: Date.now()
-      })
-    ]);
+const savePromises = [
+  window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
+  window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
+  window.embedIDB.setData(prefix + "googleSheets_config", {
+    url: url,
+    sheetId: sheetId,
+    lastUpdated: Date.now()
+  })
+];
+
+// Add product buckets if we have them
+if (productBuckets.length > 0) {
+  const period = window.filterState?.period || '30d';
+  savePromises.push(
+    window.embedIDB.setData(prefix + `googleSheets_productBuckets_${period}`, productBuckets)
+  );
+}
+
+await Promise.all(savePromises);
     
     ProgressManager.completeStep('store');
     
@@ -340,30 +430,32 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     // Update status
     const statusEl = document.getElementById('googleAdsStatus');
     if (statusEl) {
-      statusEl.innerHTML = `
-        <div style="color: #4CAF50; font-weight: 500;">
-          ✓ Google Ads Data Uploaded Successfully
-        </div>
-        <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-          Product Performance: ${productData.length} rows<br>
-          Location Revenue: ${locationData.length} rows<br>
-          <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
-        </div>
+statusEl.innerHTML = `
+  <div style="color: #4CAF50; font-weight: 500;">
+    ✓ Google Ads Data Uploaded Successfully
+  </div>
+  <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+    Product Performance: ${productData.length} rows<br>
+    Location Revenue: ${locationData.length} rows<br>
+    ${productBuckets.length > 0 ? `Product Buckets: ${productBuckets.length} analyzed<br>` : ''}
+    <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
+  </div>
       `;
     }
     
-    // Store in global variable for easy access
-    window.googleSheetsData = {
-      productPerformance: productData,
-      locationRevenue: locationData
-    };
+// Store in global variable for easy access
+window.googleSheetsData = {
+  productPerformance: productData,
+  locationRevenue: locationData,
+  productBuckets: productBuckets
+};
     
     // Hide loader with success message
     if (loader) {
       const loaderText = loader.querySelector('.apple-loading-text');
       const subtitle = loader.querySelector('.loading-subtitle');
       if (loaderText) loaderText.textContent = 'Upload Complete!';
-      if (subtitle) subtitle.textContent = `Successfully processed ${productData.length + locationData.length} rows`;
+      if (subtitle) subtitle.textContent = `Successfully processed ${productData.length + locationData.length + productBuckets.length} records`;
       
       setTimeout(() => {
         loader.style.opacity = "0";
@@ -471,5 +563,114 @@ fetchAndStoreAll: async function(prefix = 'acc1_') {
       locationData: [] 
     };
   }
+},
+
+// NEW: Process product buckets in chunks to prevent browser freeze
+processProductBucketsChunk: async function(chunk, startIndex) {
+  const buckets = [];
+  
+  for (let i = 0; i < chunk.length; i++) {
+    const product = chunk[i];
+    
+    try {
+      // Create product bucket with comprehensive analysis
+      const bucket = {
+        id: startIndex + i,
+        productTitle: product['Product Title'] || '',
+        productId: product['Product ID'] || '',
+        brand: product['Product Brand'] || '',
+        type1: product['Product Type L1'] || '',
+        type2: product['Product Type L2'] || '',
+        type3: product['Product Type L3'] || '',
+        campaign: product['Campaign Name'] || '',
+        channel: product['Product Channel'] || '',
+        country: product['Product Country'] || '',
+        
+        // Performance metrics
+        impressions: parseFloat(product['Impressions']) || 0,
+        clicks: parseFloat(product['Clicks']) || 0,
+        cost: parseFloat(product['Cost']) || 0,
+        conversions: parseFloat(product['Conversions']) || 0,
+        conversionValue: parseFloat(product['Conversion Value']) || 0,
+        ctr: parseFloat(product['CTR']) || 0,
+        cvr: parseFloat(product['CVR']) || 0,
+        roas: parseFloat(product['ROAS']) || 0,
+        aov: parseFloat(product['AOV']) || 0,
+        cpa: parseFloat(product['CPA']) || 0,
+        
+        // Analysis fields
+        category: this.categorizeProduct(product),
+        performance: this.calculatePerformance(product),
+        efficiency: this.calculateEfficiency(product),
+        
+        // Date processing
+        date: product['Date'] || '',
+        processedAt: new Date().toISOString()
+      };
+      
+      buckets.push(bucket);
+    } catch (error) {
+      console.warn(`[Product Buckets] Error processing product at index ${startIndex + i}:`, error);
+    }
+  }
+  
+  return buckets;
+},
+
+// Helper: Categorize products
+categorizeProduct: function(product) {
+  const brand = (product['Product Brand'] || '').toLowerCase();
+  const type1 = (product['Product Type L1'] || '').toLowerCase();
+  const type2 = (product['Product Type L2'] || '').toLowerCase();
+  
+  // Brand-based categorization
+  if (brand.includes('premium') || brand.includes('luxury')) return 'Premium';
+  if (brand.includes('budget') || brand.includes('value')) return 'Budget';
+  
+  // Type-based categorization
+  if (type1.includes('electronic') || type1.includes('tech')) return 'Electronics';
+  if (type1.includes('clothing') || type1.includes('apparel')) return 'Fashion';
+  if (type1.includes('home') || type1.includes('furniture')) return 'Home & Garden';
+  if (type1.includes('beauty') || type1.includes('cosmetic')) return 'Beauty';
+  if (type1.includes('sport') || type1.includes('fitness')) return 'Sports';
+  
+  return 'General';
+},
+
+// Helper: Calculate performance tier
+calculatePerformance: function(product) {
+  const roas = parseFloat(product['ROAS']) || 0;
+  const ctr = parseFloat(product['CTR']) || 0;
+  const cvr = parseFloat(product['CVR']) || 0;
+  
+  // High performance: Good ROAS + good engagement
+  if (roas >= 4 && ctr >= 2 && cvr >= 2) return 'High';
+  if (roas >= 2.5 && ctr >= 1.5 && cvr >= 1) return 'Medium-High';
+  if (roas >= 1.5 && ctr >= 1 && cvr >= 0.5) return 'Medium';
+  if (roas >= 1 && ctr >= 0.5) return 'Low-Medium';
+  
+  return 'Low';
+},
+
+// Helper: Calculate efficiency score
+calculateEfficiency: function(product) {
+  const cost = parseFloat(product['Cost']) || 0;
+  const conversions = parseFloat(product['Conversions']) || 0;
+  const clicks = parseFloat(product['Clicks']) || 0;
+  const impressions = parseFloat(product['Impressions']) || 0;
+  
+  if (cost === 0 || impressions === 0) return 'Unknown';
+  
+  const cpc = cost / Math.max(clicks, 1);
+  const ctr = (clicks / impressions) * 100;
+  const conversionRate = conversions / Math.max(clicks, 1) * 100;
+  
+  // Efficiency based on cost effectiveness and conversion performance
+  if (cpc < 0.5 && ctr > 3 && conversionRate > 2) return 'Very Efficient';
+  if (cpc < 1 && ctr > 2 && conversionRate > 1) return 'Efficient';
+  if (cpc < 2 && ctr > 1 && conversionRate > 0.5) return 'Moderate';
+  if (cpc < 5 && ctr > 0.5) return 'Low Efficiency';
+  
+  return 'Poor';
 }
 };
