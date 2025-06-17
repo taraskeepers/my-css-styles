@@ -390,10 +390,6 @@ wrapper.appendChild(leftContainer);
     if (metricsTableContainer) {
       renderROASMetricsTable(metricsTableContainer, filteredData);
     }
-    
-// Get bucket values dynamically based on selected type
-const bucketCounts = {};
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 
 // Get ALL unique bucket values from the entire dataset (not just filtered data)
 // This ensures we show all possible buckets, even if they have 0 products currently
