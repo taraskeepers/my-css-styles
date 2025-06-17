@@ -89,89 +89,116 @@ window.productBucketAnalyzer = {
       // Build a set of all unique keys from both periods
       const allKeys = new Set([...Object.keys(currentGrouped), ...Object.keys(prevGrouped)]);
 
-      // Calculate aggregated metrics and buckets for each group
-      const bucketData = [];
-      
-      for (const key of allKeys) {
-        const currentRows = currentGrouped[key] || [];
-        const prevRows = prevGrouped[key] || [];
-        const isAllRow = key.endsWith('|All|All');
-        
-        // Skip if no data in current period
-        if (currentRows.length === 0) continue;
-        
-        // Calculate current period metrics
-        const currentMetrics = this.calculateAggregatedMetrics(currentRows, isAllRow);
-        const currentBuckets = this.assignBuckets(currentMetrics);
-        
-        // Calculate previous period metrics (might be empty)
-        let prevMetrics = null;
-        let prevBuckets = null;
-        if (prevRows.length > 0) {
-          prevMetrics = this.calculateAggregatedMetrics(prevRows, isAllRow);
-          prevBuckets = this.assignBuckets(prevMetrics);
-        }
-        
-        // Calculate historic bucket data
-        const historicBuckets = this.calculateHistoricBuckets(
-          key, 
-          last60DaysData, 
-          startDate30, 
-          endDate
-        );
-        
-        // Build the row data
-const rowData = {
-          'Product Title': currentMetrics.productTitle,
-          'Campaign Name': currentMetrics.campaignName,
-          'Channel Type': currentMetrics.channelType,
-          'Impressions': currentMetrics.impressions,
-          'Clicks': currentMetrics.clicks,
-          'Avg CPC': this.round2(currentMetrics.avgCpc),
-          'Cost': this.round2(currentMetrics.cost),
-          'Conversions': currentMetrics.conversions,
-          'ConvValue': this.round2(currentMetrics.convValue),
-          'CTR': this.round2(currentMetrics.ctr),
-          'CVR': this.round2(currentMetrics.cvr),
-          'ROAS': this.round2(currentMetrics.roas),
-          'AOV': this.round2(currentMetrics.aov),
-          'CPA': this.round2(currentMetrics.cpa),
-          'CPM': this.round2(currentMetrics.cpm),
-          'ROAS_Bucket': currentBuckets.roasBucket,
-          'ROI_Bucket': currentBuckets.roiBucket,
-          'Funnel_Bucket': currentBuckets.funnelBucket,
-          'Spend_Bucket': currentBuckets.spendBucket,
-          'Pricing_Bucket': currentBuckets.pricingBucket,
-          'Custom_Tier': currentBuckets.customTier,
-          'ML_Cluster': currentBuckets.mlCluster,
-          'Suggestions': currentBuckets.suggestions.join('; '),
-          // Previous period metrics
-          'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
-          'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
-          'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
-          'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
-          'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
-          'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
-          'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
-          'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
-          'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
-          'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
-          'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
-          'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
-          'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
-          'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
-          'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
-          'prev_Spend_Bucket': prevBuckets ? prevBuckets.spendBucket : '',
-          'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
-          'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
-          'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
-          'prev_Suggestions': prevBuckets ? prevBuckets.suggestions.join('; ') : '',
-          // Historic bucket data
-          'historic_data.buckets': historicBuckets
-        };
-        
-        bucketData.push(rowData);
-      }
+// Calculate aggregated metrics and buckets for each group with progress tracking
+const bucketData = [];
+const allKeysArray = Array.from(allKeys);
+const totalKeys = allKeysArray.length;
+let processedKeys = 0;
+
+console.log(`[Product Buckets] Processing ${totalKeys} unique product combinations...`);
+
+// Process in chunks to prevent browser freezing
+const chunkSize = 50; // Process 50 keys at a time
+for (let i = 0; i < allKeysArray.length; i += chunkSize) {
+  const keyChunk = allKeysArray.slice(i, i + chunkSize);
+  
+  // Process this chunk of keys
+  for (const key of keyChunk) {
+    const currentRows = currentGrouped[key] || [];
+    const prevRows = prevGrouped[key] || [];
+    const isAllRow = key.endsWith('|All|All');
+    
+    // Skip if no data in current period
+    if (currentRows.length === 0) {
+      processedKeys++;
+      continue;
+    }
+    
+    // Calculate current period metrics
+    const currentMetrics = this.calculateAggregatedMetrics(currentRows, isAllRow);
+    const currentBuckets = this.assignBuckets(currentMetrics);
+    
+    // Calculate previous period metrics (might be empty)
+    let prevMetrics = null;
+    let prevBuckets = null;
+    if (prevRows.length > 0) {
+      prevMetrics = this.calculateAggregatedMetrics(prevRows, isAllRow);
+      prevBuckets = this.assignBuckets(prevMetrics);
+    }
+    
+    // Calculate historic bucket data
+    const historicBuckets = this.calculateHistoricBuckets(
+      key, 
+      last60DaysData, 
+      startDate30, 
+      endDate
+    );
+    
+    // Build the row data
+    const rowData = {
+      'Product Title': currentMetrics.productTitle,
+      'Campaign Name': currentMetrics.campaignName,
+      'Channel Type': currentMetrics.channelType,
+      'Impressions': currentMetrics.impressions,
+      'Clicks': currentMetrics.clicks,
+      'Avg CPC': this.round2(currentMetrics.avgCpc),
+      'Cost': this.round2(currentMetrics.cost),
+      'Conversions': currentMetrics.conversions,
+      'ConvValue': this.round2(currentMetrics.convValue),
+      'CTR': this.round2(currentMetrics.ctr),
+      'CVR': this.round2(currentMetrics.cvr),
+      'ROAS': this.round2(currentMetrics.roas),
+      'AOV': this.round2(currentMetrics.aov),
+      'CPA': this.round2(currentMetrics.cpa),
+      'CPM': this.round2(currentMetrics.cpm),
+      'ROAS_Bucket': currentBuckets.roasBucket,
+      'ROI_Bucket': currentBuckets.roiBucket,
+      'Funnel_Bucket': currentBuckets.funnelBucket,
+      'Spend_Bucket': currentBuckets.spendBucket,
+      'Pricing_Bucket': currentBuckets.pricingBucket,
+      'Custom_Tier': currentBuckets.customTier,
+      'ML_Cluster': currentBuckets.mlCluster,
+      'Suggestions': currentBuckets.suggestions.join('; '),
+      // Previous period metrics
+      'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
+      'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
+      'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
+      'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
+      'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
+      'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
+      'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
+      'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
+      'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
+      'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
+      'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+      'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
+      'prev_ROAS_Bucket': prevBuckets ? prevBuckets.roasBucket : '',
+      'prev_ROI_Bucket': prevBuckets ? prevBuckets.roiBucket : '',
+      'prev_Funnel_Bucket': prevBuckets ? prevBuckets.funnelBucket : '',
+      'prev_Spend_Bucket': prevBuckets ? prevBuckets.spendBucket : '',
+      'prev_Pricing_Bucket': prevBuckets ? prevBuckets.pricingBucket : '',
+      'prev_Custom_Tier': prevBuckets ? prevBuckets.customTier : '',
+      'prev_ML_Cluster': prevBuckets ? prevBuckets.mlCluster : '',
+      'prev_Suggestions': prevBuckets ? prevBuckets.suggestions.join('; ') : '',
+      // Historic bucket data
+      'historic_data.buckets': historicBuckets
+    };
+    
+    bucketData.push(rowData);
+    processedKeys++;
+  }
+  
+  // Update progress and yield control after each chunk
+  const progressPercent = (processedKeys / totalKeys) * 100;
+  console.log(`[Product Buckets] Progress: ${processedKeys}/${totalKeys} (${progressPercent.toFixed(1)}%) product combinations processed`);
+  
+  // Yield control back to browser every chunk
+  if (i % (chunkSize * 2) === 0 || i + chunkSize >= allKeysArray.length) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+
+console.log(`[Product Buckets] ✅ Completed processing ${bucketData.length} product bucket entries`);
 
       // Save to IDB with new table name
       const tableName = prefix + "googleSheets_productBuckets_30d";
