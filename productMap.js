@@ -1,42 +1,3 @@
-// Simple function to check if a table exists
-async function checkTableExists(tableName) {
-  return new Promise((resolve) => {
-    const request = indexedDB.open('myAppDB');
-    
-    request.onsuccess = (event) => {
-      const db = event.target.result;
-      const exists = db.objectStoreNames.contains(tableName);
-      db.close();
-      resolve(exists);
-    };
-    
-    request.onerror = () => {
-      resolve(false);
-    };
-  });
-}
-
-// Function to normalize bucket value to CSS class
-function normalizeBucketValue(bucketValue) {
-  if (!bucketValue) return '';
-  
-  return bucketValue
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .trim();
-}
-
-// Function to get bucket badge HTML
-function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
-  if (!bucketValue || bucketValue === '') return '';
-  
-  const normalizedClass = normalizeBucketValue(bucketValue);
-  const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
-  
-  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
-}
-
 async function renderProductMapTable() {
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
@@ -65,39 +26,39 @@ async function renderProductMapTable() {
       const bucketTableExists = await checkTableExists(`acc${accountNumber}_googleSheets_productBuckets_30d`);
       
       if (bucketTableExists) {
-        // Wrap the bucket data loading in a Promise so we can await it
-        await new Promise((resolve) => {
+        // Get the bucket data from projectData store (same pattern as google_ads_buckets.js)
+        const db = await new Promise((resolve, reject) => {
           const request = indexedDB.open('myAppDB');
-          request.onsuccess = (event) => {
-            const db = event.target.result;
-            const transaction = db.transaction([`acc${accountNumber}_googleSheets_productBuckets_30d`], 'readonly');
-            const objectStore = transaction.objectStore(`acc${accountNumber}_googleSheets_productBuckets_30d`);
-            const getAllRequest = objectStore.getAll();
-            
-            getAllRequest.onsuccess = (event) => {
-              const allData = event.target.result;
-              if (allData && allData[0] && allData[0].data) {
-                allData[0].data.forEach(product => {
-                  if (product['Product Title']) {
-                    bucketDataMap.set(product['Product Title'].toLowerCase(), product);
-                  }
-                });
-              }
-              console.log(`[ProductMap] Loaded ${bucketDataMap.size} products with bucket data`);
-              db.close();
-              resolve(); // Resolve the promise when done
-            };
-            
-            getAllRequest.onerror = () => {
-              db.close();
-              resolve(); // Resolve even on error to continue
-            };
+          request.onsuccess = (event) => resolve(event.target.result);
+          request.onerror = () => reject(new Error('Failed to open database'));
+        });
+        
+        // Get data from projectData store
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+        
+        await new Promise((resolve) => {
+          getRequest.onsuccess = () => {
+            const result = getRequest.result;
+            if (result && result.data) {
+              result.data.forEach(product => {
+                if (product['Product Title']) {
+                  bucketDataMap.set(product['Product Title'].toLowerCase(), product);
+                }
+              });
+            }
+            console.log(`[ProductMap] Loaded ${bucketDataMap.size} products with bucket data`);
+            resolve();
           };
           
-          request.onerror = () => {
-            resolve(); // Resolve even on error to continue
+          getRequest.onerror = () => {
+            console.error('[ProductMap] Error getting bucket data');
+            resolve();
           };
         });
+        
+        db.close();
       }
     }
   
