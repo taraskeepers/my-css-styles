@@ -397,12 +397,11 @@ if (productData.length > 0) {
   }
 }
 
-// STEP 5: Store in IDB
-ProgressManager.startStep('store', 'Saving data to local storage...');
-    
-    setTimeout(() => ProgressManager.updateProgress('store', 60), 300);
-    
-const savePromises = [
+// STEP 5: Store in IDB with progressive storage
+ProgressManager.startStep('store', 'Saving basic data to local storage...');
+
+// First, save the basic data (quick operations)
+const basicSavePromises = [
   window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
   window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
   window.embedIDB.setData(prefix + "googleSheets_config", {
@@ -412,17 +411,19 @@ const savePromises = [
   })
 ];
 
-// Add product buckets if we have them
+await Promise.all(basicSavePromises);
+ProgressManager.updateProgress('store', 30);
+
+// Then, save product buckets to single table with progress updates
 if (productBuckets.length > 0) {
-  const period = window.filterState?.period || '30d';
-  savePromises.push(
-    window.embedIDB.setData(prefix + `googleSheets_productBuckets_${period}`, productBuckets)
-  );
+  ProgressManager.updateUI('Saving product buckets to database...');
+  await this.saveProductBucketsToSingleTable(productBuckets, prefix);
+} else {
+  // If no product buckets, complete the step
+  ProgressManager.updateProgress('store', 100);
 }
 
-await Promise.all(savePromises);
-    
-    ProgressManager.completeStep('store');
+ProgressManager.completeStep('store');
     
     console.log('[Google Sheets] ✅ All data fetched and stored successfully');
     
@@ -436,10 +437,10 @@ statusEl.innerHTML = `
   <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
     Product Performance: ${productData.length} rows<br>
     Location Revenue: ${locationData.length} rows<br>
-    ${productBuckets.length > 0 ? `Product Buckets: ${productBuckets.length} analyzed<br>` : ''}
+    ${productBuckets.length > 0 ? `Product Buckets (30d): ${productBuckets.length} analyzed<br>` : ''}
     <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
   </div>
-      `;
+`;
     }
     
 // Store in global variable for easy access
@@ -651,7 +652,6 @@ calculatePerformance: function(product) {
   return 'Low';
 },
 
-// Helper: Calculate efficiency score
 calculateEfficiency: function(product) {
   const cost = parseFloat(product['Cost']) || 0;
   const conversions = parseFloat(product['Conversions']) || 0;
@@ -671,5 +671,59 @@ calculateEfficiency: function(product) {
   if (cpc < 5 && ctr > 0.5) return 'Low Efficiency';
   
   return 'Poor';
+},
+
+// NEW: Save all product buckets to ONE table with progressive updates
+saveProductBucketsToSingleTable: async function(productBuckets, prefix) {
+  if (!productBuckets || productBuckets.length === 0) {
+    return;
+  }
+
+  console.log(`[Single Table Storage] Starting progressive save of ${productBuckets.length} product buckets...`);
+  
+  const batchSize = 200; // Process in larger batches since we're appending
+  const totalBatches = Math.ceil(productBuckets.length / batchSize);
+  const finalTableKey = prefix + "googleSheets_productBuckets_30d";
+  
+  // Clear any existing data first
+  try {
+    await window.embedIDB.deleteData(finalTableKey);
+  } catch (e) {
+    // Table might not exist yet, that's fine
+  }
+  
+  let accumulatedBuckets = [];
+  
+  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+    const startIdx = batchIndex * batchSize;
+    const endIdx = Math.min(startIdx + batchSize, productBuckets.length);
+    const batch = productBuckets.slice(startIdx, endIdx);
+    
+    // Add current batch to accumulated data
+    accumulatedBuckets.push(...batch);
+    
+    try {
+      // Save all accumulated data so far to the single table
+      await window.embedIDB.setData(finalTableKey, accumulatedBuckets);
+      
+      // Update progress (30% base + 70% for this operation)
+      const progress = ((batchIndex + 1) / totalBatches) * 100;
+      ProgressManager.updateProgress('store', 30 + (progress * 0.7));
+      ProgressManager.updateUI(`Saving product buckets: ${endIdx}/${productBuckets.length} records saved`);
+      
+      console.log(`[Single Table Storage] Saved batch ${batchIndex + 1}/${totalBatches}: ${accumulatedBuckets.length} total records in table`);
+      
+      // Yield control every few batches
+      if (batchIndex % 2 === 0) {
+        await ProgressManager.yield(15);
+      }
+      
+    } catch (error) {
+      console.error(`[Single Table Storage] Error saving batch ${batchIndex}:`, error);
+      throw error;
+    }
+  }
+  
+  console.log(`[Single Table Storage] ✅ Successfully saved ${productBuckets.length} product buckets to single table: ${finalTableKey}`);
 }
 };
