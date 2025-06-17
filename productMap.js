@@ -1,35 +1,98 @@
 // Function to check if Google Ads integration is enabled
 async function checkGoogleAdsIntegration() {
   try {
-    // Check if dbPromise exists
-    if (!window.dbPromise) {
-      console.warn('[ProductMap] Database not initialized yet');
-      return { enabled: false };
-    }
-    
-    const db = await window.dbPromise;
-    
-    // Check if db is valid
-    if (!db || typeof db.getAllObjectStoreNames !== 'function') {
-      console.warn('[ProductMap] Database object is invalid');
-      return { enabled: false };
-    }
-    
-    const tableNames = await db.getAllObjectStoreNames();
-    
-    // Look for a table matching the pattern acc[number]_googleSheets_config
-    const configTable = tableNames.find(name => /^acc\d+_googleSheets_config$/.test(name));
-    
-    if (configTable) {
-      // Extract account number from table name
-      const accountNumber = configTable.match(/acc(\d+)_/)[1];
-      return { enabled: true, accountNumber };
-    }
-    
-    return { enabled: false };
+    return new Promise((resolve, reject) => {
+      const dbName = 'myAppDB'; // Your database name from the screenshot
+      
+      const request = indexedDB.open(dbName);
+      
+      request.onerror = () => {
+        console.error('[ProductMap] Failed to open database');
+        resolve({ enabled: false });
+      };
+      
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        const objectStoreNames = Array.from(db.objectStoreNames);
+        
+        // Look for a table matching the pattern acc[number]_googleSheets_config
+        const configTable = objectStoreNames.find(name => /^acc\d+_googleSheets_config$/.test(name));
+        
+        db.close();
+        
+        if (configTable) {
+          // Extract account number from table name
+          const accountNumber = configTable.match(/acc(\d+)_/)[1];
+          console.log('[ProductMap] Found Google Ads config for account:', accountNumber);
+          resolve({ enabled: true, accountNumber });
+        } else {
+          resolve({ enabled: false });
+        }
+      };
+    });
   } catch (error) {
     console.error('[ProductMap] Error checking Google Ads integration:', error);
     return { enabled: false };
+  }
+}
+
+// Function to fetch product bucket data
+async function fetchProductBucketData(accountNumber) {
+  try {
+    return new Promise((resolve, reject) => {
+      const dbName = 'myAppDB';
+      const tableName = `acc${accountNumber}_googleSheets_productBuckets_30d`;
+      
+      const request = indexedDB.open(dbName);
+      
+      request.onerror = () => {
+        console.error('[ProductMap] Failed to open database for bucket data');
+        resolve(new Map());
+      };
+      
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        
+        // Check if the table exists
+        if (!db.objectStoreNames.contains(tableName)) {
+          console.warn(`[ProductMap] Bucket table ${tableName} not found`);
+          db.close();
+          resolve(new Map());
+          return;
+        }
+        
+        const transaction = db.transaction([tableName], 'readonly');
+        const objectStore = transaction.objectStore(tableName);
+        const getAllRequest = objectStore.getAll();
+        
+        getAllRequest.onsuccess = (event) => {
+          const allData = event.target.result;
+          const bucketDataMap = new Map();
+          
+          // Build a map of product titles to bucket data
+          if (allData && allData[0] && allData[0].data) {
+            allData[0].data.forEach(product => {
+              if (product['Product Title']) {
+                bucketDataMap.set(product['Product Title'].toLowerCase(), product);
+              }
+            });
+          }
+          
+          console.log(`[ProductMap] Loaded bucket data for ${bucketDataMap.size} products`);
+          db.close();
+          resolve(bucketDataMap);
+        };
+        
+        getAllRequest.onerror = () => {
+          console.error('[ProductMap] Error fetching bucket data');
+          db.close();
+          resolve(new Map());
+        };
+      };
+    });
+  } catch (error) {
+    console.error('[ProductMap] Error in fetchProductBucketData:', error);
+    return new Map();
   }
 }
 
@@ -64,43 +127,11 @@ async function renderProductMapTable() {
     const googleAdsInfo = await checkGoogleAdsIntegration();
     console.log('[ProductMap] Google Ads integration:', googleAdsInfo);
 
-// If enabled, pre-fetch all bucket data to avoid multiple IDB calls
-let bucketDataMap = new Map();
-if (googleAdsInfo.enabled) {
-  try {
-    // Check if dbPromise exists
-    if (!window.dbPromise) {
-      console.warn('[ProductMap] Database not available for bucket data');
-    } else {
-      const db = await window.dbPromise;
-      
-      // Check if db is valid
-      if (db && typeof db.getAllObjectStoreNames === 'function') {
-        const tableName = `acc${googleAdsInfo.accountNumber}_googleSheets_productBuckets_30d`;
-        
-        const tableNames = await db.getAllObjectStoreNames();
-        if (tableNames.includes(tableName)) {
-          const tx = db.transaction(tableName, 'readonly');
-          const store = tx.objectStore(tableName);
-          const allData = await store.getAll();
-          
-          // Build a map of product titles to bucket data
-          if (allData && allData[0] && allData[0].data) {
-            allData[0].data.forEach(product => {
-              if (product['Product Title']) {
-                bucketDataMap.set(product['Product Title'].toLowerCase(), product);
-              }
-            });
-          }
-          
-          console.log(`[ProductMap] Loaded bucket data for ${bucketDataMap.size} products`);
-        }
-      }
+    // If enabled, pre-fetch all bucket data
+    let bucketDataMap = new Map();
+    if (googleAdsInfo.enabled) {
+      bucketDataMap = await fetchProductBucketData(googleAdsInfo.accountNumber);
     }
-  } catch (error) {
-    console.error('[ProductMap] Error loading bucket data:', error);
-  }
-}
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
