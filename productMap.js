@@ -1,9 +1,20 @@
-// Add these functions at the beginning of productMap.js
-
 // Function to check if Google Ads integration is enabled
 async function checkGoogleAdsIntegration() {
   try {
+    // Check if dbPromise exists
+    if (!window.dbPromise) {
+      console.warn('[ProductMap] Database not initialized yet');
+      return { enabled: false };
+    }
+    
     const db = await window.dbPromise;
+    
+    // Check if db is valid
+    if (!db || typeof db.getAllObjectStoreNames !== 'function') {
+      console.warn('[ProductMap] Database object is invalid');
+      return { enabled: false };
+    }
+    
     const tableNames = await db.getAllObjectStoreNames();
     
     // Look for a table matching the pattern acc[number]_googleSheets_config
@@ -53,11 +64,18 @@ async function renderProductMapTable() {
     const googleAdsInfo = await checkGoogleAdsIntegration();
     console.log('[ProductMap] Google Ads integration:', googleAdsInfo);
 
-    // If enabled, pre-fetch all bucket data to avoid multiple IDB calls
-    let bucketDataMap = new Map();
-    if (googleAdsInfo.enabled) {
-      try {
-        const db = await window.dbPromise;
+// If enabled, pre-fetch all bucket data to avoid multiple IDB calls
+let bucketDataMap = new Map();
+if (googleAdsInfo.enabled) {
+  try {
+    // Check if dbPromise exists
+    if (!window.dbPromise) {
+      console.warn('[ProductMap] Database not available for bucket data');
+    } else {
+      const db = await window.dbPromise;
+      
+      // Check if db is valid
+      if (db && typeof db.getAllObjectStoreNames === 'function') {
         const tableName = `acc${googleAdsInfo.accountNumber}_googleSheets_productBuckets_30d`;
         
         const tableNames = await db.getAllObjectStoreNames();
@@ -77,10 +95,12 @@ async function renderProductMapTable() {
           
           console.log(`[ProductMap] Loaded bucket data for ${bucketDataMap.size} products`);
         }
-      } catch (error) {
-        console.error('[ProductMap] Error loading bucket data:', error);
       }
     }
+  } catch (error) {
+    console.error('[ProductMap] Error loading bucket data:', error);
+  }
+}
   
 // Setup container with fixed height and scrolling
 container.innerHTML = `
