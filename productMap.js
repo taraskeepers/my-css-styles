@@ -1,99 +1,19 @@
-// Function to check if Google Ads integration is enabled
-async function checkGoogleAdsIntegration() {
-  try {
-    return new Promise((resolve, reject) => {
-      const dbName = 'myAppDB'; // Your database name from the screenshot
-      
-      const request = indexedDB.open(dbName);
-      
-      request.onerror = () => {
-        console.error('[ProductMap] Failed to open database');
-        resolve({ enabled: false });
-      };
-      
-      request.onsuccess = (event) => {
-        const db = event.target.result;
-        const objectStoreNames = Array.from(db.objectStoreNames);
-        
-        // Look for a table matching the pattern acc[number]_googleSheets_config
-        const configTable = objectStoreNames.find(name => /^acc\d+_googleSheets_config$/.test(name));
-        
-        db.close();
-        
-        if (configTable) {
-          // Extract account number from table name
-          const accountNumber = configTable.match(/acc(\d+)_/)[1];
-          console.log('[ProductMap] Found Google Ads config for account:', accountNumber);
-          resolve({ enabled: true, accountNumber });
-        } else {
-          resolve({ enabled: false });
-        }
-      };
-    });
-  } catch (error) {
-    console.error('[ProductMap] Error checking Google Ads integration:', error);
-    return { enabled: false };
-  }
-}
-
-// Function to fetch product bucket data
-async function fetchProductBucketData(accountNumber) {
-  try {
-    return new Promise((resolve, reject) => {
-      const dbName = 'myAppDB';
-      const tableName = `acc${accountNumber}_googleSheets_productBuckets_30d`;
-      
-      const request = indexedDB.open(dbName);
-      
-      request.onerror = () => {
-        console.error('[ProductMap] Failed to open database for bucket data');
-        resolve(new Map());
-      };
-      
-      request.onsuccess = (event) => {
-        const db = event.target.result;
-        
-        // Check if the table exists
-        if (!db.objectStoreNames.contains(tableName)) {
-          console.warn(`[ProductMap] Bucket table ${tableName} not found`);
-          db.close();
-          resolve(new Map());
-          return;
-        }
-        
-        const transaction = db.transaction([tableName], 'readonly');
-        const objectStore = transaction.objectStore(tableName);
-        const getAllRequest = objectStore.getAll();
-        
-        getAllRequest.onsuccess = (event) => {
-          const allData = event.target.result;
-          const bucketDataMap = new Map();
-          
-          // Build a map of product titles to bucket data
-          if (allData && allData[0] && allData[0].data) {
-            allData[0].data.forEach(product => {
-              if (product['Product Title']) {
-                bucketDataMap.set(product['Product Title'].toLowerCase(), product);
-              }
-            });
-          }
-          
-          console.log(`[ProductMap] Loaded bucket data for ${bucketDataMap.size} products`);
-          db.close();
-          resolve(bucketDataMap);
-        };
-        
-        getAllRequest.onerror = () => {
-          console.error('[ProductMap] Error fetching bucket data');
-          db.close();
-          resolve(new Map());
-        };
-      };
-    });
-  } catch (error) {
-    console.error('[ProductMap] Error in fetchProductBucketData:', error);
-    return new Map();
-  }
+// Simple function to check if a table exists
+async function checkTableExists(tableName) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const exists = db.objectStoreNames.contains(tableName);
+      db.close();
+      resolve(exists);
+    };
+    
+    request.onerror = () => {
+      resolve(false);
+    };
+  });
 }
 
 // Function to normalize bucket value to CSS class
@@ -122,32 +42,80 @@ async function renderProductMapTable() {
     console.log("[renderProductMapTable] Starting to build product map table");
     const container = document.getElementById("productMapPage");
     if (!container) return;
-
-    // Check Google Ads integration
-    const googleAdsInfo = await checkGoogleAdsIntegration();
-    console.log('[ProductMap] Google Ads integration:', googleAdsInfo);
-
-    // If enabled, pre-fetch all bucket data
+    
+    // Simple check for Google Ads integration
+    let googleAdsEnabled = false;
+    let accountNumber = null;
+    
+    // Check for acc1, acc2, etc. (you can adjust the range as needed)
+    for (let i = 1; i <= 10; i++) {
+      const configExists = await checkTableExists(`acc${i}_googleSheets_config`);
+      if (configExists) {
+        googleAdsEnabled = true;
+        accountNumber = i;
+        break;
+      }
+    }
+    
+    console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber);
+    
+    // Load bucket data if enabled
     let bucketDataMap = new Map();
-    if (googleAdsInfo.enabled) {
-      bucketDataMap = await fetchProductBucketData(googleAdsInfo.accountNumber);
+    if (googleAdsEnabled) {
+      const bucketTableExists = await checkTableExists(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+      
+      if (bucketTableExists) {
+        // Wrap the bucket data loading in a Promise so we can await it
+        await new Promise((resolve) => {
+          const request = indexedDB.open('myAppDB');
+          request.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction([`acc${accountNumber}_googleSheets_productBuckets_30d`], 'readonly');
+            const objectStore = transaction.objectStore(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+            const getAllRequest = objectStore.getAll();
+            
+            getAllRequest.onsuccess = (event) => {
+              const allData = event.target.result;
+              if (allData && allData[0] && allData[0].data) {
+                allData[0].data.forEach(product => {
+                  if (product['Product Title']) {
+                    bucketDataMap.set(product['Product Title'].toLowerCase(), product);
+                  }
+                });
+              }
+              console.log(`[ProductMap] Loaded ${bucketDataMap.size} products with bucket data`);
+              db.close();
+              resolve(); // Resolve the promise when done
+            };
+            
+            getAllRequest.onerror = () => {
+              db.close();
+              resolve(); // Resolve even on error to continue
+            };
+          };
+          
+          request.onerror = () => {
+            resolve(); // Resolve even on error to continue
+          };
+        });
+      }
     }
   
-// Setup container with fixed height and scrolling
-container.innerHTML = `
-  <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
-    <div class="view-switcher">
-      <button id="viewProducts" class="active">Products</button>
-      <button id="viewCharts">Charts</button>
-    </div>
-    <button id="fullscreenToggle" class="fullscreen-toggle">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-      </svg>
-      Full Screen
-    </button>
-  </div>
-`;
+    // Setup container with fixed height and scrolling
+    container.innerHTML = `
+      <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
+        <div class="view-switcher">
+          <button id="viewProducts" class="active">Products</button>
+          <button id="viewCharts">Charts</button>
+        </div>
+        <button id="fullscreenToggle" class="fullscreen-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Full Screen
+        </button>
+      </div>
+    `;
     
     // Create fullscreen overlay container (hidden initially)
     let fullscreenOverlay = document.getElementById('productMapFullscreenOverlay');
