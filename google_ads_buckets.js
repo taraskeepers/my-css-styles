@@ -3364,7 +3364,7 @@ summaryRow.innerHTML = `
 function renderSuggestionsMetricsTable(container, data) {
   container.innerHTML = '';
   
-  // Define suggestion categories
+// Define suggestion categories
   const suggestionCategories = {
     'Budget & Scaling': [
       'Pause & Reallocate Budget',
@@ -3373,6 +3373,13 @@ function renderSuggestionsMetricsTable(container, data) {
       'Scale Cautiously',
       'Test Budget Increase',
       'Reduce Budget'
+    ],
+    'Trend Analysis': [
+      'Monitor Declining ROAS',
+      'Address CTR Decline',
+      'Investigate Traffic Drop',
+      'Capitalize on Momentum',
+      'Stabilize Volatility'
     ],
     'Bidding & Ranking': [
       'Increase Visibility First',
