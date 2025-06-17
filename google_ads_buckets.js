@@ -97,6 +97,8 @@ window.bucketConfig = {
 'Suggestions': {
     order: ['Pause & Reallocate Budget', 'Scale Aggressively', 'Scale Moderately', 
             'Scale Cautiously', 'Test Budget Increase', 'Reduce Budget',
+            'Monitor Declining ROAS', 'Address CTR Decline', 'Investigate Traffic Drop',
+            'Capitalize on Momentum', 'Stabilize Volatility',
             'Increase Visibility First', 'Increase Bids for Ranking', 'Test Higher Positions',
             'Optimize Bid Strategy', 'Fix Ad Creative (Low CTR)', 'Test New Title',
             'Refresh Creative Assets', 'Highlight Value Proposition',
@@ -111,7 +113,13 @@ window.bucketConfig = {
       'Scale Moderately': '#66BB6A',
       'Scale Cautiously': '#81C784',
       'Test Budget Increase': '#A5D6A7',
-      'Reduce Budget': '#FF8A65',
+'Reduce Budget': '#FF8A65',
+      // Trend-based
+      'Monitor Declining ROAS': '#FFA726',
+      'Address CTR Decline': '#FF7043',
+      'Investigate Traffic Drop': '#EF5350',
+      'Capitalize on Momentum': '#66BB6A',
+      'Stabilize Volatility': '#AB47BC',
       // Bidding & Ranking
       'Increase Visibility First': '#9E9E9E',
       'Increase Bids for Ranking': '#2196F3',
