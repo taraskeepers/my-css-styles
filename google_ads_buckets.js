@@ -1483,8 +1483,6 @@ async function updateBucketMetrics(selectedBucket) {
     
     // Filter data for selected bucket AND Campaign Name === 'All'
 const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
-// Filter data for selected bucket AND Campaign Name === 'All'
-const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 let bucketProducts = [];
 
 if (bucketType === 'SUGGESTIONS_BUCKET') {
