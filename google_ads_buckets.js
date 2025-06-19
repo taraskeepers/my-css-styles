@@ -177,6 +177,17 @@ window.bucketDescriptions = {
   }
 };
 
+// Helper function to extract bucket data for a specific device segment
+window.extractBucketData = function(row, deviceSegment = 'all_devices') {
+  if (!row['buckets.device_segment'] || !Array.isArray(row['buckets.device_segment'])) {
+    return null;
+  }
+  
+  return row['buckets.device_segment'].find(segment => 
+    segment.device_segment === deviceSegment
+  );
+};
+
 async function loadAndRenderROASBuckets() {
   const bucketsContainer = document.getElementById('roas_buckets');
   const chartsContainer = document.getElementById('roas_charts');
@@ -262,11 +273,36 @@ async function loadAndRenderROASBuckets() {
       throw new Error('No data found');
     }
     
-    // Store data globally for device filtering
-    window.roasBucketsData = result.data;
-    
-    // Initial render with all devices
-    renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'all');
+// Store data globally for device filtering
+window.roasBucketsData = result.data;
+
+// Store all unique bucket names for suggestions
+const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  window.allBucketNames = Array.from(new Set(
+    result.data.flatMap(row => {
+      const bucketData = window.extractBucketData(row);
+      if (!bucketData || !bucketData.SUGGESTIONS_BUCKET) return [];
+      try {
+        const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET);
+        return suggestions.map(s => s.suggestion);
+      } catch (e) {
+        return [];
+      }
+    })
+  ));
+} else {
+  // For other bucket types, get unique values
+  window.allBucketNames = Array.from(new Set(
+    result.data.map(row => {
+      const bucketData = window.extractBucketData(row);
+      return bucketData ? bucketData[bucketType] : null;
+    }).filter(Boolean)
+  ));
+}
+
+// Initial render with all devices
+renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'all');
     
     // Add device filter event listeners
     const deviceRadios = deviceSwitcherContainer.querySelectorAll('input[name="device_filter_buckets"]');
@@ -501,15 +537,24 @@ function renderROASFunnel(container, bucketData) {
   const enhancedBucketData = bucketData.map(bucket => {
     let bucketProducts;
     
-    // Handle Suggestions differently (products can have multiple suggestions)
-    if (bucketType === 'SUGGESTIONS_BUCKET') {
-      bucketProducts = window.roasBucketsData.filter(row => {
-        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-        return suggestions.includes(bucket.name);
-      });
-    } else {
-      bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
+// Handle Suggestions differently (products can have multiple suggestions)
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  bucketProducts = window.roasBucketsData.filter(row => {
+    const bucketData = window.extractBucketData(row);
+    if (!bucketData || !bucketData.SUGGESTIONS_BUCKET) return false;
+    try {
+      const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET);
+      return suggestions.some(s => s.suggestion === bucket.name);
+    } catch (e) {
+      return false;
     }
+  });
+} else {
+  bucketProducts = window.roasBucketsData.filter(row => {
+    const bucketData = window.extractBucketData(row);
+    return bucketData && bucketData[bucketType] === bucket.name;
+  });
+}
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
     const totalRevenue = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
@@ -1246,7 +1291,10 @@ metricsIndicator.appendChild(revenueBarContainer);
     const canFitDescription = trapezoidTopWidth > 280;
     
   // Calculate metrics for the bucket
-const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
+const bucketProducts = window.roasBucketsData.filter(row => {
+  const bucketData = window.extractBucketData(row);
+  return bucketData && bucketData[bucketType] === bucket.name;
+});
 const totalImpressions = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
 const totalClicks = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
 const totalConversions = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
@@ -2062,13 +2110,21 @@ function renderROASCampaignsTableWithDevices(container, data, bucketFilter = nul
   const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   if (bucketFilter) {
     if (bucketType === 'SUGGESTIONS_BUCKET') {
-      validRecords = validRecords.filter(row => {
-        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-        return suggestions.includes(bucketFilter);
-      });
-    } else {
-      validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
+validRecords = validRecords.filter(row => {
+  const bucketData = window.extractBucketData(row);
+  if (!bucketData) return false;
+  
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
+    try {
+      const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET || '[]');
+      return suggestions.some(s => s.suggestion === bucketFilter);
+    } catch (e) {
+      return false;
     }
+  } else {
+    return bucketData[bucketType] === bucketFilter;
+  }
+});
   }
   
   // Get unique campaign names
@@ -2305,14 +2361,21 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
 const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 if (bucketFilter) {
-  if (bucketType === 'SUGGESTIONS_BUCKET') {
-    filteredData = filteredData.filter(row => {
-      const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-      return suggestions.includes(bucketFilter);
-    });
-  } else {
-    filteredData = filteredData.filter(row => row[bucketType] === bucketFilter);
-  }
+  validRecords = validRecords.filter(row => {
+    const bucketData = window.extractBucketData(row);
+    if (!bucketData) return false;
+    
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
+      try {
+        const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET || '[]');
+        return suggestions.some(s => s.suggestion === bucketFilter);
+      } catch (e) {
+        return false;
+      }
+    } else {
+      return bucketData[bucketType] === bucketFilter;
+    }
+  });
 }
   
   // Get all unique campaign names
@@ -3442,12 +3505,17 @@ allCampaignRecords.forEach(product => {
   const deviceBucketGroups = {};
   
   // Group ALL records (not just 'All' campaign) by bucket and device
-  allRecords.forEach(product => {
-    const device = product.Device || 'Unknown';
-    
-    if (bucketType === 'SUGGESTIONS_BUCKET') {
-      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
-      suggestions.forEach(suggestion => {
+allRecords.forEach(product => {
+  const device = product.Device || 'Unknown';
+  const bucketData = window.extractBucketData(product, device.toLowerCase());
+  
+  if (!bucketData) return;
+  
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
+    try {
+      const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET || '[]');
+      suggestions.forEach(suggestionObj => {
+        const suggestion = suggestionObj.suggestion;
         if (!deviceBucketGroups[suggestion]) {
           deviceBucketGroups[suggestion] = {};
         }
@@ -3456,9 +3524,12 @@ allCampaignRecords.forEach(product => {
         }
         deviceBucketGroups[suggestion][device].push(product);
       });
-    } else {
-      const bucket = product[bucketType];
-      if (bucket) {
+    } catch (e) {
+      console.error('Error parsing suggestions:', e);
+    }
+  } else {
+    const bucket = bucketData[bucketType];
+    if (bucket) {
         if (!deviceBucketGroups[bucket]) {
           deviceBucketGroups[bucket] = {};
         }
@@ -4089,7 +4160,7 @@ const bucketProducts = allCampaignRecords.filter(row => {
     };
 
     // Get suggestion colors from configuration
-    const bucketConfig = window.bucketConfig['Suggestions'];
+    const bucketConfig = window.bucketConfig['SUGGESTIONS_BUCKET'];
 
     categoryMetrics.forEach(metric => {
       const row = document.createElement('tr');
