@@ -418,6 +418,8 @@ wrapper.appendChild(leftContainer);
     
     // Store data globally for metrics updates
     window.roasBucketsData = filteredData;
+    // Store previous period data for comparison
+const prevFilteredData = result.data.filter(row => row['Campaign Name'] === 'All');
     
 // Get bucket type to determine what to show/hide
     const bucketType = window.selectedBucketType || 'ROAS_Bucket';
@@ -2055,7 +2057,7 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
     mainRow.style.cssText = 'cursor: pointer; transition: background-color 0.2s;';
     mainRow.innerHTML = `
       <td style="padding: 8px 6px; font-size: 12px; font-weight: 500; border-bottom: 1px solid #eee; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▶</span>
+        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▼</span>
         ${campaign}
       </td>
       <td style="padding: 8px 6px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee;">${metrics.productCount}</td>
@@ -2071,28 +2073,15 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
       <td style="padding: 8px 6px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee;">$${metrics.cpa}</td>
     `;
     
-    // Add click handler
-    mainRow.addEventListener('click', function() {
-      const deviceRows = document.querySelectorAll(`.campaign-device-row-${rowId}`);
-      const expandIcon = this.querySelector('.expand-icon');
-      const isExpanded = expandIcon.textContent === '▼';
-      
-      deviceRows.forEach(row => {
-        row.style.display = isExpanded ? 'none' : 'table-row';
-      });
-      
-      expandIcon.textContent = isExpanded ? '▶' : '▼';
-    });
-    
     tbody.appendChild(mainRow);
     
-    // Add device rows
-    const devices = Object.keys(deviceMetrics[campaign] || {}).sort();
-    devices.forEach(device => {
-      const deviceData = deviceMetrics[campaign][device];
-      const deviceRow = document.createElement('tr');
-      deviceRow.className = `campaign-device-row campaign-device-row-${rowId}`;
-      deviceRow.style.cssText = 'display: none; background-color: #f8f9fa;';
+// Add device rows
+const devices = Object.keys(deviceMetrics[campaign] || {}).sort();
+devices.forEach(device => {
+  const deviceData = deviceMetrics[campaign][device];
+  const deviceRow = document.createElement('tr');
+  deviceRow.className = `campaign-device-row campaign-device-row-${rowId}`;
+  deviceRow.style.cssText = 'display: table-row; background-color: #f8f9fa;'; // Changed from 'none' to 'table-row'
       
       deviceRow.innerHTML = `
         <td style="padding: 6px 6px; padding-left: 30px; font-size: 11px; border-bottom: 1px solid #eee; color: #666; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -2274,7 +2263,7 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
     mainRow.style.cssText = 'cursor: pointer; transition: background-color 0.2s;';
     mainRow.innerHTML = `
       <td style="padding: 8px 6px; font-size: 12px; font-weight: 500; border-bottom: 1px solid #eee;">
-        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▶</span>
+        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▼</span>
         ${channel}
       </td>
       <td style="padding: 8px 6px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee;">${metrics.productCount}</td>
@@ -2290,28 +2279,15 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
       <td style="padding: 8px 6px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee;">$${metrics.cpa}</td>
     `;
     
-    // Add click handler
-    mainRow.addEventListener('click', function() {
-      const deviceRows = document.querySelectorAll(`.channel-device-row-${rowId}`);
-      const expandIcon = this.querySelector('.expand-icon');
-      const isExpanded = expandIcon.textContent === '▼';
-      
-      deviceRows.forEach(row => {
-        row.style.display = isExpanded ? 'none' : 'table-row';
-      });
-      
-      expandIcon.textContent = isExpanded ? '▶' : '▼';
-    });
-    
     tbody.appendChild(mainRow);
     
-    // Add device rows
-    const devices = Object.keys(deviceMetrics[channel] || {}).sort();
-    devices.forEach(device => {
-      const deviceData = deviceMetrics[channel][device];
-      const deviceRow = document.createElement('tr');
-      deviceRow.className = `channel-device-row channel-device-row-${rowId}`;
-      deviceRow.style.cssText = 'display: none; background-color: #f8f9fa;';
+// Add device rows
+const devices = Object.keys(deviceMetrics[channel] || {}).sort();
+devices.forEach(device => {
+  const deviceData = deviceMetrics[channel][device];
+  const deviceRow = document.createElement('tr');
+  deviceRow.className = `channel-device-row channel-device-row-${rowId}`;
+  deviceRow.style.cssText = 'display: table-row; background-color: #f8f9fa;'; // Changed from 'none' to 'table-row'
       
       deviceRow.innerHTML = `
         <td style="padding: 6px 6px; padding-left: 30px; font-size: 11px; border-bottom: 1px solid #eee; color: #666;">
@@ -3220,7 +3196,7 @@ function renderROASMetricsTable(container, data) {
     mainRow.style.cssText = 'cursor: pointer; transition: background-color 0.2s;';
     mainRow.innerHTML = `
       <td style="padding: 10px 12px; font-weight: 500; border-bottom: 1px solid #eee;">
-        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▶</span>
+        <span class="expand-icon" style="display: inline-block; width: 20px; transition: transform 0.2s;">▼</span>
         ${bucket}
       </td>
       <td style="padding: 10px 12px; text-align: center; border-bottom: 1px solid #eee;">${metrics.count}</td>
@@ -3236,28 +3212,15 @@ function renderROASMetricsTable(container, data) {
       <td style="padding: 10px 12px; text-align: center; border-bottom: 1px solid #eee;">$${metrics.cpa}</td>
     `;
     
-    // Add click handler to toggle device rows
-    mainRow.addEventListener('click', function() {
-      const deviceRows = document.querySelectorAll(`.device-row-${rowId}`);
-      const expandIcon = this.querySelector('.expand-icon');
-      const isExpanded = expandIcon.textContent === '▼';
-      
-      deviceRows.forEach(row => {
-        row.style.display = isExpanded ? 'none' : 'table-row';
-      });
-      
-      expandIcon.textContent = isExpanded ? '▶' : '▼';
-    });
-    
     tbody.appendChild(mainRow);
     
-    // Add device rows
-    const devices = Object.keys(deviceMetrics[bucket] || {}).sort();
-    devices.forEach(device => {
-      const deviceData = deviceMetrics[bucket][device];
-      const deviceRow = document.createElement('tr');
-      deviceRow.className = `device-row device-row-${rowId}`;
-      deviceRow.style.cssText = 'display: none; background-color: #f8f9fa;';
+// Add device rows
+const devices = Object.keys(deviceMetrics[bucket] || {}).sort();
+devices.forEach(device => {
+  const deviceData = deviceMetrics[bucket][device];
+  const deviceRow = document.createElement('tr');
+  deviceRow.className = `device-row device-row-${rowId}`;
+  deviceRow.style.cssText = 'display: table-row; background-color: #f8f9fa;'; // Changed from 'none' to 'table-row'
       
       deviceRow.innerHTML = `
         <td style="padding: 8px 12px; padding-left: 40px; border-bottom: 1px solid #eee; color: #666;">
