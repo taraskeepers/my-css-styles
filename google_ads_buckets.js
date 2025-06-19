@@ -1,149 +1,82 @@
 // Initialize bucket-related global variables
-window.selectedBucketType = window.selectedBucketType || 'ROAS_Bucket';
+window.selectedBucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 window.bucketDistributionPreferences = window.bucketDistributionPreferences || {
-  'Funnel_Bucket': true,
-  'ML_Cluster': true,
-  'Spend_Bucket': true,
-  'Custom_Tier': true,
-  'ROAS_Bucket': false,
-  'ROI_Bucket': false,
-  'Pricing_Bucket': false
+  'PROFITABILITY_BUCKET': true,
+  'FUNNEL_STAGE_BUCKET': true,
+  'INVESTMENT_BUCKET': true,
+  'CUSTOM_TIER_BUCKET': true,
+  'SUGGESTIONS_BUCKET': false
 };
 
 // Comprehensive bucket configuration with colors and order
 window.bucketConfig = {
-  'ROAS_Bucket': {
-    order: ['Top Performers', 'Efficient Low Volume', 'Volume Driver, Low ROI', 'Underperformers', 'Collecting Data'],
+  'PROFITABILITY_BUCKET': {
+    order: ['Profit Stars', 'Strong Performers', 'Steady Contributors', 'Break-Even Products', 'Strategic Loss Leaders', 'True Losses', 'Insufficient Data'],
     colors: {
-      'Top Performers': '#4CAF50',
-      'Efficient Low Volume': '#2196F3',
-      'Volume Driver, Low ROI': '#FF9800',
-      'Underperformers': '#F44336',
-      'Collecting Data': '#9E9E9E'
+      'Profit Stars': '#4CAF50',
+      'Strong Performers': '#66BB6A',
+      'Steady Contributors': '#81C784',
+      'Break-Even Products': '#FFA726',
+      'Strategic Loss Leaders': '#AB47BC',
+      'True Losses': '#F44336',
+      'Insufficient Data': '#9E9E9E'
     }
   },
-  'ROI_Bucket': {
-    order: ['Scalable Winners', 'Niche but Profitable', 'Price Issue', 'Waste of Spend', 'Collecting Data'],
+  'FUNNEL_STAGE_BUCKET': {
+    order: ['Full Funnel Excellence', 'Ad Engagement Issue', 'Product Page Dropoff', 'Cart Abandonment Problem', 
+            'Checkout Friction', 'Price Discovery Shock', 'Cross-Stage Issues', 'Normal Performance', 'Insufficient Data'],
     colors: {
-      'Scalable Winners': '#4CAF50',
-      'Niche but Profitable': '#2196F3',
-      'Price Issue': '#FF9800',
-      'Waste of Spend': '#F44336',
-      'Collecting Data': '#9E9E9E'
+      'Full Funnel Excellence': '#4CAF50',
+      'Ad Engagement Issue': '#FF5252',
+      'Product Page Dropoff': '#FF9800',
+      'Cart Abandonment Problem': '#FFA726',
+      'Checkout Friction': '#FFCA28',
+      'Price Discovery Shock': '#AB47BC',
+      'Cross-Stage Issues': '#EF5350',
+      'Normal Performance': '#42A5F5',
+      'Insufficient Data': '#9E9E9E'
     }
   },
-  'Funnel_Bucket': {
-    order: ['Funnel Champions', 'Most Efficient', 'UX Optimization Needed', 'Ad Creative Problem', 
-            'Valuable but Costly', 'Weak Landing Page or Offer', 'Poor Targeting', 
-            'Needs Better Ad Creative', 'Funnel Friction', 'Collecting Data'],
+  'INVESTMENT_BUCKET': {
+    order: ['Maximum Priority', 'High Priority', 'Growth Priority', 'Maintain Priority', 'Reduce Priority', 'Pause Priority'],
     colors: {
-      'Funnel Champions': '#4CAF50',
-      'Most Efficient': '#66BB6A',
-      'UX Optimization Needed': '#42A5F5',
-      'Ad Creative Problem': '#2196F3',
-      'Valuable but Costly': '#9C27B0',
-      'Weak Landing Page or Offer': '#FF9800',
-      'Poor Targeting': '#FF7043',
-      'Needs Better Ad Creative': '#EF5350',
-      'Funnel Friction': '#F44336',
-      'Collecting Data': '#9E9E9E'
+      'Maximum Priority': '#4CAF50',
+      'High Priority': '#66BB6A',
+      'Growth Priority': '#81C784',
+      'Maintain Priority': '#42A5F5',
+      'Reduce Priority': '#FFA726',
+      'Pause Priority': '#F44336'
     }
   },
-  'Spend_Bucket': {
-    order: ['Hidden Gems', 'Scalable with Caution', 'Low Priority', 'Unprofitable Spend', 'Zombies', 'Parasites', 'Collecting Data'],
+  'CUSTOM_TIER_BUCKET': {
+    order: ['Hero Products', 'Rising Stars', 'Steady Performers', 'Mobile Champions', 'Desktop Dependent', 
+            'Test & Learn', 'Strategic Holdings', 'Watch List'],
     colors: {
-      'Hidden Gems': '#4CAF50',
-      'Scalable with Caution': '#66BB6A',
-      'Low Priority': '#9E9E9E',
-      'Unprofitable Spend': '#FF9800',
-      'Zombies': '#D32F2F',
-      'Parasites': '#F44336',
-      'Collecting Data': '#9E9E9E'
+      'Hero Products': '#FFD700',
+      'Rising Stars': '#4CAF50',
+      'Steady Performers': '#66BB6A',
+      'Mobile Champions': '#2196F3',
+      'Desktop Dependent': '#7B68EE',
+      'Test & Learn': '#9E9E9E',
+      'Strategic Holdings': '#AB47BC',
+      'Watch List': '#FF9800'
     }
   },
-  'Pricing_Bucket': {
-    order: ['Premium Product with Strong Demand', 'Low-Ticket Impulse Buys', 'Price Resistance', 'Low Value No Interest', 'Collecting Data'],
+  'SUGGESTIONS_BUCKET': {
+    order: ['Pause Immediately', 'Scale Maximum Budget', 'Fix Creative Urgently', 'Fix Cart Abandonment',
+            'Address Checkout Friction', 'Test Price Reduction', 'Optimize Mobile Experience', 
+            'Refresh Tired Creative', 'Broaden Targeting', 'Add Trust Signals'],
     colors: {
-      'Premium Product with Strong Demand': '#4CAF50',
-      'Low-Ticket Impulse Buys': '#66BB6A',
-      'Price Resistance': '#FF9800',
-      'Low Value No Interest': '#F44336',
-      'Collecting Data': '#9E9E9E'
-    }
-  },
-  'Custom_Tier': {
-    order: ['Hero Product', 'Scale-Up', 'Budget Booster', 'Creative Review', 'Testing Product', 'Wasted Spend', 'Collecting Data'],
-    colors: {
-      'Hero Product': '#FFD700',
-      'Scale-Up': '#4CAF50',
-      'Budget Booster': '#66BB6A',
-      'Creative Review': '#2196F3',
-      'Testing Product': '#9E9E9E',
-      'Wasted Spend': '#F44336',
-      'Collecting Data': '#9E9E9E'
-    }
-  },
-  'ML_Cluster': {
-    order: ['Undervalued Winners', 'High ROAS Anomalies', 'Optimizable', 'Drop-Off Cluster', 'Expensive Waste', 'Collecting Data'],
-    colors: {
-      'Undervalued Winners': '#4CAF50',
-      'High ROAS Anomalies': '#9C27B0',
-      'Optimizable': '#2196F3',
-      'Drop-Off Cluster': '#FF9800',
-      'Expensive Waste': '#F44336',
-      'Collecting Data': '#9E9E9E'
-    }
-  },
-'Suggestions': {
-    order: ['Pause & Reallocate Budget', 'Scale Aggressively', 'Scale Moderately', 
-            'Scale Cautiously', 'Test Budget Increase', 'Reduce Budget',
-            'Monitor Declining ROAS', 'Address CTR Decline', 'Investigate Traffic Drop',
-            'Capitalize on Momentum', 'Stabilize Volatility',
-            'Increase Visibility First', 'Increase Bids for Ranking', 'Test Higher Positions',
-            'Optimize Bid Strategy', 'Fix Ad Creative (Low CTR)', 'Test New Title',
-            'Refresh Creative Assets', 'Highlight Value Proposition',
-            'Optimize Landing/Offer (Low CVR)', 'Improve Product Page', 'Add Trust Signals',
-            'Simplify Checkout', 'Refine Targeting & Efficiency', 'Broaden Audience',
-            'Narrow Targeting', 'Test New Segments', 'Test Price Reduction',
-            'Consider Bundling', 'Add Promotions'],
-    colors: {
-      // Budget & Scaling
-      'Pause & Reallocate Budget': '#F44336',
-      'Scale Aggressively': '#4CAF50',
-      'Scale Moderately': '#66BB6A',
-      'Scale Cautiously': '#81C784',
-      'Test Budget Increase': '#A5D6A7',
-'Reduce Budget': '#FF8A65',
-      // Trend-based
-      'Monitor Declining ROAS': '#FFA726',
-      'Address CTR Decline': '#FF7043',
-      'Investigate Traffic Drop': '#EF5350',
-      'Capitalize on Momentum': '#66BB6A',
-      'Stabilize Volatility': '#AB47BC',
-      // Bidding & Ranking
-      'Increase Visibility First': '#9E9E9E',
-      'Increase Bids for Ranking': '#2196F3',
-      'Test Higher Positions': '#42A5F5',
-      'Optimize Bid Strategy': '#64B5F6',
-      // Creative & Messaging
-      'Fix Ad Creative (Low CTR)': '#FF9800',
-      'Test New Title': '#FFA726',
-      'Refresh Creative Assets': '#FFB74D',
-      'Highlight Value Proposition': '#FFCC80',
-      // Landing & Conversion
-      'Optimize Landing/Offer (Low CVR)': '#FF7043',
-      'Improve Product Page': '#FF8A65',
-      'Add Trust Signals': '#FFAB91',
-      'Simplify Checkout': '#FFCCBC',
-      // Targeting & Efficiency
-      'Refine Targeting & Efficiency': '#2196F3',
-      'Broaden Audience': '#7986CB',
-      'Narrow Targeting': '#9575CD',
-      'Test New Segments': '#BA68C8',
-      // Product & Pricing
+      'Pause Immediately': '#F44336',
+      'Scale Maximum Budget': '#4CAF50',
+      'Fix Creative Urgently': '#FF5252',
+      'Fix Cart Abandonment': '#FF9800',
+      'Address Checkout Friction': '#FFA726',
       'Test Price Reduction': '#E91E63',
-      'Consider Bundling': '#F06292',
-      'Add Promotions': '#F48FB1'
+      'Optimize Mobile Experience': '#2196F3',
+      'Refresh Tired Creative': '#FFB74D',
+      'Broaden Targeting': '#7986CB',
+      'Add Trust Signals': '#FFAB91'
     }
   }
 };
@@ -151,15 +84,12 @@ window.bucketConfig = {
 // Function to initialize bucket switcher buttons
 function initializeBucketSwitcher() {
 const bucketButtons = {
-    'bucketROAS': 'ROAS_Bucket',
-    'bucketROI': 'ROI_Bucket', 
-    'bucketFunnel': 'Funnel_Bucket',
-    'bucketSpend': 'Spend_Bucket',
-    'bucketPricing': 'Pricing_Bucket',
-    'bucketCustom': 'Custom_Tier',
-    'bucketML': 'ML_Cluster',
-    'bucketSuggestions': 'Suggestions'
-  };
+  'bucketProfitability': 'PROFITABILITY_BUCKET',
+  'bucketFunnel': 'FUNNEL_STAGE_BUCKET',
+  'bucketInvestment': 'INVESTMENT_BUCKET',
+  'bucketCustom': 'CUSTOM_TIER_BUCKET',
+  'bucketSuggestions': 'SUGGESTIONS_BUCKET'
+};
 
   Object.keys(bucketButtons).forEach(buttonId => {
     const button = document.getElementById(buttonId);
@@ -189,114 +119,61 @@ if (typeof window !== 'undefined') {
   window.initializeBucketSwitcher = initializeBucketSwitcher;
 }
 
-window.selectedBucketType = 'ROAS_Bucket';
+window.selectedBucketType = 'PROFITABILITY_BUCKET';
 window.bucketDescriptions = {
-  // ROAS Bucket descriptions
-  'ROAS_Bucket': {
-    'Top Performers': 'Products that generate high revenue from advertising while also converting at a high rate. These are your most profitable products and should be prioritized for increased ad spend, new creative testing, and expansion into additional audiences or platforms.',
-    'Efficient Low Volume': 'These products deliver a strong return on ad spend but with a low number of conversions. It suggests the product is well-targeted but not reaching enough people. Consider testing broader or new audiences and increasing impressions while maintaining efficiency.',
-    'Volume Driver, Low ROI': 'Products that drive a high number of conversions, but at the cost of low profitability (low ROAS). These can be important for customer acquisition but may not be sustainable unless their margin improves or lifetime value justifies continued spend.',
-    'Underperformers': 'Low ROAS and low conversions — these products are likely not aligned with audience demand or are poorly positioned. Immediate action should be taken: pause, test new creative, adjust targeting, or rethink their presence in paid media.',
-    'Collecting Data': 'Products with insufficient data for reliable analysis. These need more impressions, clicks, and time before meaningful performance assessment. Continue running with minimal budget until statistical significance is reached.'
+  'PROFITABILITY_BUCKET': {
+    'Profit Stars': 'Exceptional performers. Core profit drivers deserving maximum visibility.',
+    'Strong Performers': 'Reliable profit generators. Consistent returns with good margins.',
+    'Steady Contributors': 'Positive returns but not exceptional. Important for portfolio balance.',
+    'Break-Even Products': 'Marginal profitability. Evaluate strategic value beyond direct returns.',
+    'Strategic Loss Leaders': 'Intentional losses for market position or customer acquisition.',
+    'True Losses': 'Genuine underperformers. Candidates for pause or major overhaul.',
+    'Insufficient Data': 'Too early to classify. Continue controlled testing.'
   },
   
-  // ROI Bucket descriptions
-  'ROI_Bucket': {
-    'Scalable Winners': 'These products achieve both high return on ad spend and low acquisition costs. They are efficient and profitable — the ideal candidates for scaling aggressively, whether through higher budgets or replicating their strategy across other products.',
-    'Niche but Profitable': 'High ROAS but also high CPA. These products may appeal to a smaller segment but generate strong returns when they convert. Scale cautiously, focusing on fine-tuned targeting and maintaining profitability.',
-    'Price Issue': 'Products that are cheap to acquire (low CPA) but don\'t generate enough return (low ROAS). These may require price adjustments or better upselling to improve average order value and profitability.',
-    'Waste of Spend': 'High CPA and low ROAS — you are spending a lot without seeing returns. These products may not be viable for paid advertising unless significant improvements are made in targeting, creative, or pricing.',
-    'Collecting Data': 'Insufficient data to determine ROI patterns. Allow these products to accumulate at least 100 impressions and 10 clicks before making optimization decisions.'
+  'FUNNEL_STAGE_BUCKET': {
+    'Full Funnel Excellence': 'Exceptional at every stage. Model for optimization.',
+    'Ad Engagement Issue': 'Poor ad relevance or creative. Immediate creative refresh needed.',
+    'Product Page Dropoff': 'Interest exists but page doesn\'t convert. Fix imagery, copy, reviews.',
+    'Cart Abandonment Problem': 'Major friction at cart. Address shipping visibility, trust signals.',
+    'Checkout Friction': 'Payment or final step issues. Simplify process, add payment options.',
+    'Price Discovery Shock': 'Price resistance after click. Test clearer pricing or lower entry point.',
+    'Cross-Stage Issues': 'Systematic problems. Requires full funnel audit.',
+    'Normal Performance': 'Performing within expected ranges. Monitor for changes.',
+    'Insufficient Data': 'Not enough data to identify specific funnel issues.'
   },
   
-  // Funnel Bucket descriptions
-  'Funnel_Bucket': {
-    'Needs Better Ad Creative': 'When impressions are high but clicks are low, your ads are being shown, but they\'re not compelling users to act. Focus on improving headlines, visuals, or offers to increase engagement.',
-    'Poor Targeting': 'A high number of clicks but a low click-through rate suggests you\'re reaching too many users who aren\'t interested. Narrow or adjust your audience targeting to improve relevance.',
-    'Weak Landing Page or Offer': 'If users are clicking but not converting, the issue is likely with your landing page experience, messaging, offer clarity, or purchase process. Rework your page structure and test new offers or CTAs.',
-    'Most Efficient': 'High conversion rate and low cost per acquisition — this is the ideal outcome of a high-performing ad funnel. These products are great for scaling or using as a benchmark for other campaigns.',
-    'Valuable but Costly': 'High conversions and high CPA mean the product is desirable, but expensive to sell. Consider increasing the product price, improving margins, or testing new audiences to reduce CPA.',
-    'UX Optimization Needed': 'High CTR but low CVR indicates the ad is effective, but users don\'t complete the purchase. Likely caused by poor mobile experience, confusing navigation, or trust issues. Improve page usability and conversion flow.',
-    'Ad Creative Problem': 'Low CTR but high CVR points to an ineffective ad creative. While the landing page works, not enough people are enticed to click. Refresh the creative and test different value propositions.',
-    'Funnel Friction': 'Both CTR and CVR are low. This means the product, ad, and page are not aligned with audience needs or expectations. Comprehensive repositioning is recommended.',
-    'Funnel Champions': 'Products that succeed at every stage: high CTR and high CVR. These should serve as templates for new products or campaigns. Expand budget and test additional variations to scale.',
-    'Collecting Data': 'Not enough funnel data to identify bottlenecks. These products need more traffic through each stage before funnel optimization recommendations can be made.'
+  'INVESTMENT_BUCKET': {
+    'Maximum Priority': 'Underfunded winners. Maximize budget allocation immediately.',
+    'High Priority': 'Proven performers. Significant budget increase warranted.',
+    'Growth Priority': 'Positive trajectory. Steady budget increases while monitoring.',
+    'Maintain Priority': 'Solid but not spectacular. Maintain current levels.',
+    'Reduce Priority': 'Weakening performance. Gradual budget reduction.',
+    'Pause Priority': 'Clear failures. Pause immediately and reallocate.'
   },
   
-  // Spend Bucket descriptions
-  'Spend_Bucket': {
-    'Unprofitable Spend': 'Spending a lot but not generating enough return. These products are draining your budget and require immediate review or removal from active campaigns.',
-    'Hidden Gems': 'Low spend but strong revenue — a high-efficiency, underutilized product. Increase budget and scale cautiously, ensuring efficiency is preserved as volume grows.',
-    'Scalable with Caution': 'High cost matched by strong performance. These products can drive growth but require careful management to avoid inefficiencies at scale.',
-    'Low Priority': 'Low investment and low return. These products are not significant contributors and should be deprioritized unless further testing reveals hidden potential.',
-    'Zombies': 'These have almost no impressions — they\'re not receiving enough exposure. Either increase bids, check for disapprovals, or rework to improve eligibility and reach.',
-    'Parasites': 'High ad spend with zero conversions. These are extremely inefficient and should be paused immediately or re-evaluated from a creative and targeting perspective.',
-    'Collecting Data': 'Minimal spend and activity so far. These products haven\'t consumed enough budget or generated enough data points to categorize their spend efficiency.'
+  'CUSTOM_TIER_BUCKET': {
+    'Hero Products': 'Cornerstone items. Protect and maximize across all channels.',
+    'Rising Stars': 'Momentum products. Capitalize on trend quickly.',
+    'Steady Performers': 'Reliable workhorses. Maintain and optimize gradually.',
+    'Mobile Champions': 'Mobile-first winners. Prioritize mobile experience.',
+    'Desktop Dependent': 'Desktop reliant. Needs mobile optimization or acceptance.',
+    'Test & Learn': 'Ready for experimentation. Safe testing ground.',
+    'Strategic Holdings': 'Important beyond ROAS. Maintain for market position.',
+    'Watch List': 'Requires close monitoring. Unstable but potential.'
   },
   
-  // Pricing Bucket descriptions
-  'Pricing_Bucket': {
-    'Premium Product with Strong Demand': 'These products command a high price yet convert efficiently. Strong market demand justifies their price point. Ideal for profit-focused growth strategies.',
-    'Low-Ticket Impulse Buys': 'Low price and high conversion rate — perfect for volume strategies or entry-level products that feed a broader customer funnel or upsell flow.',
-    'Price Resistance': 'High price but low conversions. The value isn\'t clear to customers at the listed price. Consider price testing, bundling, or improved value communication.',
-    'Low Value No Interest': 'Low price and low conversion — customers still don\'t want it. Likely a product-market fit issue. Reconsider the product\'s positioning or remove it from active advertising.',
-    'Collecting Data': 'Insufficient conversion data to assess price-performance relationship. Need more market exposure to understand if pricing is aligned with demand.'
-  },
-  
-  // Custom Tier descriptions
-  'Custom_Tier': {
-    'Hero Product': 'Top 10% of performers. They consistently deliver the best results and should be heavily promoted and protected. Anchor your campaigns around these.',
-    'Scale-Up': 'Products with high conversion rates and low CPA — ideal for growth. Double down with additional creative, audience testing, and budget scaling.',
-    'Wasted Spend': 'Underperforming products with significant investment but no returns. These should be paused or completely reworked.',
-    'Testing Product': 'Products that haven\'t yet generated enough data to make a decision. Allow them to run with low spend until more conclusive performance data is available.',
-    'Creative Review': 'CTR is strong, so the ad is engaging — but low CVR indicates the page or offer is underwhelming. The issue is after the click. Focus on improving post-click experience.',
-    'Budget Booster': 'These convert well at very low cost. They are perfect to scale or use as fillers in campaigns with strict CPA goals.',
-    'Collecting Data': 'New or low-activity products still gathering initial performance signals. Monitor closely as data accumulates to identify their strategic tier.'
-  },
-  
-  // ML Cluster descriptions
-  'ML_Cluster': {
-    'Undervalued Winners': 'Products with low cost per click and high conversion value — often overlooked due to low initial spend. Increase focus, as these may be hidden gems.',
-    'Expensive Waste': 'High CPC and zero conversions — clear sign of inefficiency. Likely misaligned audience or poor ad creative. Should be paused or reworked.',
-    'Optimizable': 'Products with average metrics — showing potential but not yet optimized. Consider A/B testing creatives or targeting to lift performance.',
-    'High ROAS Anomalies': 'Very high ROAS with low click volume. These could be gold mines if volume can be increased — test higher bids, creatives, or broader targeting to grow reach.',
-    'Drop-Off Cluster': 'Products that perform well at the awareness or interest stage (e.g., high CTR), but drop off before conversion. Investigate the mid-funnel: checkout flow, trust elements, mobile UX.',
-    'Collecting Data': 'Not enough data points for pattern recognition. Machine learning models require minimum thresholds of activity before clustering analysis becomes meaningful.'
-  },
-
-  // Suggestions descriptions
-  'Suggestions': {
-    // Budget & Scaling
-    'Pause & Reallocate Budget': 'This product is burning money without returns. It has ROAS below 1x, falls into the worst performance buckets, and either has zero conversions despite $100+ spend or is classified as a "Parasite". Immediate action required: pause all campaigns for this product and redistribute the budget to better performers. Consider revisiting only after significant product or market changes.',
-    'Scale Aggressively': 'Strong performer ready for growth. With ROAS above 3x and classification as either "Top Performer" or "Scalable Winner", this product efficiently converts traffic into revenue. Recommended actions: increase daily budgets by 50-100%, expand to new audiences, test additional ad formats, and consider increasing bids to capture more impression share while monitoring efficiency.',
-    'Scale Moderately': 'Solid performer with ROAS between 2-3x showing consistent profitability. This product has room for growth but requires measured expansion. Recommended: increase budgets by 25-50%, test one new audience at a time, monitor performance weekly, and ensure infrastructure can handle increased volume.',
-    'Scale Cautiously': 'Profitable product with ROAS between 1.5-2x that needs careful scaling. While showing positive returns, there\'s optimization potential. Actions: increase budget by 10-25% incrementally, improve weak metrics before major scaling, test small budget increases weekly, and focus on improving efficiency alongside growth.',
-    'Test Budget Increase': 'Hidden gem with limited spend but high efficiency (ROAS > 2x on less than $200 spend). This product shows strong potential but needs more data. Recommended: double the daily budget, maintain close monitoring for 2 weeks, expand gradually if efficiency holds, and identify what makes this product successful.',
-    'Reduce Budget': 'Marginally profitable product (ROAS 0.8-1.2x) consuming significant budget. Not bad enough to pause but needs optimization. Actions: reduce budget by 30-50%, focus spend on best-performing segments, work on improving conversion metrics, and reallocate saved budget to better performers.',
-    // Bidding & Ranking
-    'Increase Visibility First': 'Not enough data to make optimization decisions. With fewer than 500 impressions or $50 in spend, this product needs more exposure before performance can be properly assessed. Recommended: increase bids to improve ad rank, broaden match types temporarily, check for ad disapprovals, ensure product feed data is complete, and allocate minimum daily budget to gather statistically significant data.',
-    'Increase Bids for Ranking': 'Good conversion rate but low visibility due to poor ad rank (indicated by low CPM and CTR). The product converts well when seen. Actions: increase bids by 20-40%, aim for top 3 positions, monitor cost per conversion, test bid adjustments by device, and consider automated bidding for efficiency.',
-    'Test Higher Positions': 'Moderate performer (ROAS 1.5-2.5x) that might benefit from better ad placement. Currently achieving profitability but potentially missing volume. Recommended: test 25% bid increase for 2 weeks, measure incremental conversions, compare CPA at different positions, and find the sweet spot between volume and efficiency.',
-    'Optimize Bid Strategy': 'Paying too much per click (2x+ average) without corresponding returns. Your bidding strategy needs refinement. Actions: switch to automated bidding (Target CPA/ROAS), add bid adjustments for poor-performing segments, review search terms for irrelevant clicks, consider dayparting based on performance.',
-    // Creative & Messaging
-    'Fix Ad Creative (Low CTR)': 'Your ads aren\'t compelling enough to generate clicks. With CTR below 50% of account average despite sufficient impressions (1000+), users are seeing but ignoring your ads. The product can convert when clicked, so focus on: new imagery, stronger headlines, clearer value propositions, testing different ad formats, and highlighting unique selling points or promotions.',
-    'Test New Title': 'Below-average CTR (50-80% of norm) suggests your title could be more compelling. With significant impressions, small improvements can have big impact. Try: adding power words, including key benefits, testing numbers/statistics, using emotional triggers, and A/B testing different angles.',
-    'Refresh Creative Assets': 'High impression count (10,000+) with declining CTR indicates ad fatigue. Your audience has seen these ads too often. Actions: develop new visual assets, test seasonal messaging, try different ad formats, highlight different product benefits, and implement creative rotation strategy.',
-    'Highlight Value Proposition': 'Low CTR despite competitive pricing suggests unclear value communication. Your ads aren\'t conveying why customers should care. Focus on: emphasizing unique benefits, adding social proof, showing price advantage clearly, using urgency/scarcity, and testing benefit-focused headlines.',
-    // Landing & Conversion
-    'Optimize Landing/Offer (Low CVR)': 'Traffic quality is good but your landing page or offer isn\'t converting. With above-average CTR but conversion rate below 50% of account average, users are interested enough to click but something prevents purchase. Review: page load speed, mobile experience, price competitiveness, shipping costs, trust signals, checkout process complexity, and product description clarity.',
-    'Improve Product Page': 'Moderate conversion rate (50-100% of average) indicates optimization opportunities. Users are somewhat convinced but need more persuasion. Enhance: product images/videos, customer reviews display, benefit bullet points, FAQ section, and comparison charts.',
-    'Add Trust Signals': 'High interest (CTR 120%+ of average) but low conversion suggests trust issues. Visitors like what they see but hesitate to buy. Add: security badges, customer testimonials, money-back guarantee, shipping/return policy visibility, and social proof elements.',
-    'Simplify Checkout': 'High traffic (200+ clicks) with very low conversion indicates checkout friction. Users want to buy but encounter obstacles. Streamline: reduce form fields, add guest checkout, show progress indicators, optimize for mobile, and clarify all costs upfront.',
-    // Targeting & Efficiency
-    'Refine Targeting & Efficiency': 'You\'re paying too much for the wrong audience. With CPC 50% above average and poor engagement metrics, your targeting is misaligned. Actions to take: review and narrow audience targeting, add negative keywords, adjust demographic targets, use audience exclusions, test manual bidding strategies, and analyze search terms report to identify irrelevant traffic.',
-    'Broaden Audience': 'Excellent conversion rate (150%+ of average) but limited reach. Your targeting may be too narrow. Expand by: testing similar audiences, broadening keyword match types, increasing geographic reach, removing restrictive demographics, and testing new placements.',
-    'Narrow Targeting': 'Poor conversion rate with high spend indicates targeting is too broad. You\'re reaching unqualified traffic. Focus by: adding negative keywords, using exact match keywords, limiting to proven demographics, excluding poor-performing placements, and using customer match lists.',
-    'Test New Segments': 'Stable performer ready for expansion testing. Current targeting works but growth requires new audiences. Try: lookalike audiences, new geographic markets, different age/gender segments, interest-based targeting, and cross-sell opportunities.',
-    // Product & Pricing
-    'Test Price Reduction': 'High interest but price resistance indicated (high CTR, low CVR, high AOV). Your price point may be limiting conversions. Test: 10-20% price reduction, limited-time promotions, volume discounts, payment plans, and competitive price matching.',
-    'Consider Bundling': 'Low AOV product with decent performance could benefit from bundling. Increase transaction value by: creating product bundles, offering quantity discounts, suggesting complementary items, implementing minimum order values, and testing "frequently bought together" offers.',
-    'Add Promotions': 'Below-average CTR with high-value products suggests need for incentives. Motivate action with: limited-time discounts, free shipping thresholds, first-time buyer offers, seasonal promotions, and exclusive deals for ad traffic.'
+  'SUGGESTIONS_BUCKET': {
+    'Pause Immediately': 'ROAS below 0.8, zero conversions despite significant spend. Immediate action required.',
+    'Scale Maximum Budget': 'ROAS above 3x with high confidence. Ready for aggressive growth.',
+    'Fix Creative Urgently': 'CTR below 0.2% with high impressions. Ad creative failing to engage.',
+    'Fix Cart Abandonment': 'Over 70% cart abandonment rate. Major checkout flow issues.',
+    'Address Checkout Friction': 'Over 50% checkout failure rate. Payment or trust issues.',
+    'Test Price Reduction': 'High clicks but CVR below 0.2%. Price resistance indicated.',
+    'Optimize Mobile Experience': 'Mobile performance significantly below desktop. UX improvements needed.',
+    'Refresh Tired Creative': 'CTR declined 40%+ over 30 days. Creative fatigue evident.',
+    'Broaden Targeting': 'High CVR but low impression share. Expand reach opportunity.',
+    'Add Trust Signals': 'New product with high checkout abandonment. Build credibility.'
   }
 };
 
@@ -405,11 +282,11 @@ async function loadAndRenderROASBuckets() {
     const filteredData = result.data;
     
     // Get bucket type to determine what to show/hide
-    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+    const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
     
     // Process historic data for area charts (hide for Suggestions)
     if (chartsContainer) {
-      if (bucketType === 'Suggestions') {
+      if (bucketType === 'SUGGESTIONS_BUCKET') {
         chartsContainer.style.display = 'none';
       } else {
         chartsContainer.style.display = '';
@@ -420,7 +297,7 @@ async function loadAndRenderROASBuckets() {
     // Render metrics table
     if (metricsTableContainer) {
       // Apply margin-top only for Suggestions bucket type
-      if (bucketType === 'Suggestions') {
+      if (bucketType === 'SUGGESTIONS_BUCKET') {
         metricsTableContainer.style.marginTop = '100px';
         renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
       } else {
@@ -432,7 +309,7 @@ async function loadAndRenderROASBuckets() {
     // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
-      if (bucketType === 'Suggestions') {
+      if (bucketType === 'SUGGESTIONS_BUCKET') {
         channelsContainer.style.display = 'none';
       } else {
         channelsContainer.style.display = '';
@@ -443,15 +320,13 @@ async function loadAndRenderROASBuckets() {
     // Initialize bucket distribution with ALL PRODUCTS data - KEEP ORIGINAL
     setTimeout(() => {
       if (!window.bucketDistributionPreferences) {
-        window.bucketDistributionPreferences = {
-          'Funnel_Bucket': true,
-          'ML_Cluster': true,
-          'Spend_Bucket': true,
-          'Custom_Tier': true,
-          'ROAS_Bucket': false,
-          'ROI_Bucket': false,
-          'Pricing_Bucket': false
-        };
+window.bucketDistributionPreferences = {
+  'PROFITABILITY_BUCKET': true,
+  'FUNNEL_STAGE_BUCKET': true,
+  'INVESTMENT_BUCKET': true,
+  'CUSTOM_TIER_BUCKET': true,
+  'SUGGESTIONS_BUCKET': false
+};
       }
       
       const rightContainer = document.querySelector('#roas_buckets .right-container');
@@ -492,53 +367,89 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
   
   let filteredData = data;
   
-  // Apply device filter if not 'all'
+  // Apply device filter - now we need to handle the new structure
   if (deviceFilter !== 'all') {
-    filteredData = data.filter(row => row.Device === deviceFilter);
+    // For specific device, we need to extract data from buckets.device_segment
+    filteredData = data.map(row => {
+      if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+        const deviceData = row['buckets.device_segment'].find(segment => 
+          segment.device_segment === deviceFilter.toLowerCase()
+        );
+        if (deviceData) {
+          // Create a new row with device-specific bucket data
+          return {
+            ...row,
+            'PROFITABILITY_BUCKET': deviceData.PROFITABILITY_BUCKET,
+            'FUNNEL_STAGE_BUCKET': deviceData.FUNNEL_STAGE_BUCKET,
+            'INVESTMENT_BUCKET': deviceData.INVESTMENT_BUCKET,
+            'CUSTOM_TIER_BUCKET': deviceData.CUSTOM_TIER_BUCKET,
+            'SUGGESTIONS_BUCKET': deviceData.SUGGESTIONS_BUCKET,
+            'Confidence_Level': deviceData.Confidence_Level,
+            'HEALTH_SCORE': deviceData.HEALTH_SCORE
+          };
+        }
+      }
+      return null;
+    }).filter(Boolean);
   } else {
-    // For 'all', use only 'All' campaign records to avoid double counting
-    filteredData = data.filter(row => row['Campaign Name'] === 'All');
+    // For 'all', use the all_devices segment data
+    filteredData = data.map(row => {
+      if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+        const allDevicesData = row['buckets.device_segment'].find(segment => 
+          segment.device_segment === 'all_devices'
+        );
+        if (allDevicesData) {
+          return {
+            ...row,
+            'PROFITABILITY_BUCKET': allDevicesData.PROFITABILITY_BUCKET,
+            'FUNNEL_STAGE_BUCKET': allDevicesData.FUNNEL_STAGE_BUCKET,
+            'INVESTMENT_BUCKET': allDevicesData.INVESTMENT_BUCKET,
+            'CUSTOM_TIER_BUCKET': allDevicesData.CUSTOM_TIER_BUCKET,
+            'SUGGESTIONS_BUCKET': allDevicesData.SUGGESTIONS_BUCKET,
+            'Confidence_Level': allDevicesData.Confidence_Level,
+            'HEALTH_SCORE': allDevicesData.HEALTH_SCORE
+          };
+        }
+      }
+      return row;
+    }).filter(Boolean);
   }
   
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   
   // Group products by bucket type
   const bucketGroups = {};
   
-  if (bucketType === 'Suggestions') {
-    const allSuggestions = new Set();
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
+    // Parse the JSON string for suggestions
     filteredData.forEach(row => {
-      if (row['Suggestions']) {
-        const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
-        suggestions.forEach(s => allSuggestions.add(s));
+      if (row['SUGGESTIONS_BUCKET']) {
+        try {
+          const suggestions = JSON.parse(row['SUGGESTIONS_BUCKET']);
+          suggestions.forEach(suggestionObj => {
+            if (!bucketGroups[suggestionObj.suggestion]) {
+              bucketGroups[suggestionObj.suggestion] = [];
+            }
+            bucketGroups[suggestionObj.suggestion].push(row);
+          });
+        } catch (e) {
+          console.error('Error parsing suggestions:', e);
+        }
       }
-    });
-    allSuggestions.forEach(suggestion => {
-      bucketGroups[suggestion] = [];
     });
   } else {
     const allBuckets = new Set(filteredData.map(row => row[bucketType]).filter(Boolean));
     allBuckets.forEach(bucket => {
       bucketGroups[bucket] = [];
     });
-  }
-  
-  // Group products
-  filteredData.forEach(product => {
-    if (bucketType === 'Suggestions') {
-      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
-      suggestions.forEach(suggestion => {
-        if (bucketGroups[suggestion]) {
-          bucketGroups[suggestion].push(product);
-        }
-      });
-    } else {
+    
+    filteredData.forEach(product => {
       const bucket = product[bucketType];
       if (bucket && bucketGroups[bucket]) {
         bucketGroups[bucket].push(product);
       }
-    }
-  });
+    });
+  }
   
   // Calculate bucket data
   const totalProductCount = Object.values(bucketGroups).reduce((sum, products) => sum + products.length, 0);
@@ -554,7 +465,7 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
 }
 
 function renderROASFunnel(container, bucketData) {
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 
   // Default bucket descriptions for ROAS_Bucket
   const defaultBucketDescriptions = {
@@ -591,7 +502,7 @@ function renderROASFunnel(container, bucketData) {
     let bucketProducts;
     
     // Handle Suggestions differently (products can have multiple suggestions)
-    if (bucketType === 'Suggestions') {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
       bucketProducts = window.roasBucketsData.filter(row => {
         const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
         return suggestions.includes(bucket.name);
@@ -629,7 +540,7 @@ function renderROASFunnel(container, bucketData) {
 const orderedBuckets = [];
 
 if (bucketConfig) {
-  if (bucketType === 'Suggestions') {
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
     // For Suggestions, order by the configuration but only include buckets that exist in the data
     const orderToUse = [...bucketConfig.order].reverse();
     orderToUse.forEach(bucketName => {
@@ -755,7 +666,7 @@ const colors = [];
 const colorIdMap = {};
 
 // For Suggestions, we need to handle dynamic bucket names
-if (bucketType === 'Suggestions') {
+if (bucketType === 'SUGGESTIONS_BUCKET') {
   // Use the actual unique bucket values found in data
   window.allBucketNames.forEach((bucketName, index) => {
     const baseColor = bucketConfig.colors[bucketName] || '#999999';
@@ -1571,10 +1482,41 @@ async function updateBucketMetrics(selectedBucket) {
     }
     
     // Filter data for selected bucket AND Campaign Name === 'All'
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-const bucketProducts = result.data.filter(row => 
-  row[bucketType] === selectedBucket && row['Campaign Name'] === 'All'
-);
+const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+// Filter data for selected bucket AND Campaign Name === 'All'
+const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+let bucketProducts = [];
+
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  bucketProducts = result.data.filter(row => {
+    if (row['Campaign Name'] !== 'All') return false;
+    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+      const allDevicesData = row['buckets.device_segment'].find(segment => 
+        segment.device_segment === 'all_devices'
+      );
+      if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
+        try {
+          const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
+          return suggestions.some(suggestionObj => suggestionObj.suggestion === selectedBucket);
+        } catch (e) {
+          return false;
+        }
+      }
+    }
+    return false;
+  });
+} else {
+  bucketProducts = result.data.filter(row => {
+    if (row['Campaign Name'] !== 'All') return false;
+    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+      const allDevicesData = row['buckets.device_segment'].find(segment => 
+        segment.device_segment === 'all_devices'
+      );
+      return allDevicesData && allDevicesData[bucketType] === selectedBucket;
+    }
+    return false;
+  });
+}
     
     if (bucketProducts.length === 0) {
       rightContainer.innerHTML = `<div style="text-align: center; margin-top: 40px; color: #666;">No products found in ${selectedBucket} bucket</div>`;
@@ -1679,15 +1621,13 @@ scrollableContent.style.cssText = `
   
   // Initialize bucket preferences if not exists
 if (!window.bucketDistributionPreferences) {
-  window.bucketDistributionPreferences = {
-    'Funnel_Bucket': true,
-    'ML_Cluster': true,
-    'Spend_Bucket': true,
-    'Custom_Tier': true,
-    'ROAS_Bucket': false,
-    'ROI_Bucket': false,
-    'Pricing_Bucket': false
-  };
+window.bucketDistributionPreferences = {
+  'PROFITABILITY_BUCKET': true,
+  'FUNNEL_STAGE_BUCKET': true,
+  'INVESTMENT_BUCKET': true,
+  'CUSTOM_TIER_BUCKET': true,
+  'SUGGESTIONS_BUCKET': false
+};
 }
   
   renderBucketDistribution(scrollableContent, products);
@@ -1710,15 +1650,13 @@ if (!window.bucketDistributionPreferences) {
 function renderBucketDistribution(container, products) {
   container.innerHTML = '';
   
-  const bucketConfigs = [
-    { key: 'Funnel_Bucket', title: 'Funnel Performance' },
-    { key: 'ML_Cluster', title: 'ML Clusters' },
-    { key: 'Spend_Bucket', title: 'Spend Buckets' },
-    { key: 'Custom_Tier', title: 'Custom Tiers' },
-    { key: 'ROAS_Bucket', title: 'ROAS Buckets' },
-    { key: 'ROI_Bucket', title: 'ROI Buckets' },
-    { key: 'Pricing_Bucket', title: 'Pricing Buckets' }
-  ];
+const bucketConfigs = [
+  { key: 'PROFITABILITY_BUCKET', title: 'Profitability Buckets' },
+  { key: 'FUNNEL_STAGE_BUCKET', title: 'Funnel Stage Analysis' },
+  { key: 'INVESTMENT_BUCKET', title: 'Investment Priority' },
+  { key: 'CUSTOM_TIER_BUCKET', title: 'Custom Tier Classification' },
+  { key: 'SUGGESTIONS_BUCKET', title: 'Action Suggestions' }
+];
   
   const distributionGrid = document.createElement('div');
   distributionGrid.style.cssText = `
@@ -1770,15 +1708,13 @@ function updateBucketDistributionPopup(products) {
   const container = document.getElementById('bucketDistributionListContainer');
   if (!container) return;
   
-  const bucketConfigs = [
-    { key: 'ROAS_Bucket', label: 'ROAS Buckets' },
-    { key: 'ROI_Bucket', label: 'ROI Buckets' },
-    { key: 'Funnel_Bucket', label: 'Funnel Performance' },
-    { key: 'Spend_Bucket', label: 'Spend Buckets' },
-    { key: 'Pricing_Bucket', label: 'Pricing Buckets' },
-    { key: 'Custom_Tier', label: 'Custom Tiers' },
-    { key: 'ML_Cluster', label: 'ML Clusters' }
-  ];
+const bucketConfigs = [
+  { key: 'PROFITABILITY_BUCKET', title: 'Profitability Buckets' },
+  { key: 'FUNNEL_STAGE_BUCKET', title: 'Funnel Stage Analysis' },
+  { key: 'INVESTMENT_BUCKET', title: 'Investment Priority' },
+  { key: 'CUSTOM_TIER_BUCKET', title: 'Custom Tier Classification' },
+  { key: 'SUGGESTIONS_BUCKET', title: 'Action Suggestions' }
+];
   
   let html = '';
   bucketConfigs.forEach(config => {
@@ -1816,9 +1752,9 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   
   // Apply bucket filter if provided
   let filteredData = data;
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   if (bucketFilter) {
-    if (bucketType === 'Suggestions') {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
       // Handle Suggestions filtering differently
       filteredData = data.filter(row => {
         const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
@@ -2125,9 +2061,9 @@ function renderROASCampaignsTableWithDevices(container, data, bucketFilter = nul
   
   // Exclude records where Campaign Name = "All", include all others for main aggregation
   let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   if (bucketFilter) {
-    if (bucketType === 'Suggestions') {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
       validRecords = validRecords.filter(row => {
         const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
         return suggestions.includes(bucketFilter);
@@ -2369,9 +2305,9 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 // Exclude records where Campaign Name = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 if (bucketFilter) {
-  if (bucketType === 'Suggestions') {
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
     filteredData = filteredData.filter(row => {
       const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
       return suggestions.includes(bucketFilter);
@@ -2644,9 +2580,9 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
 // Exclude records where Channel Type = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
 if (bucketFilter) {
-  if (bucketType === 'Suggestions') {
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
     filteredData = filteredData.filter(row => {
       const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
       return suggestions.includes(bucketFilter);
@@ -3148,7 +3084,7 @@ function renderROASHistoricCharts(container, data) {
   const mainWrapper = document.createElement('div');
   mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
   
-  // Create metrics summary row
+  // Create metrics summary row (keep this part the same)
   const metricsRow = document.createElement('div');
   metricsRow.style.cssText = `
     width: 100%;
@@ -3164,10 +3100,8 @@ function renderROASHistoricCharts(container, data) {
   
   // Filter for "All" campaign records only
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
-    // Define bucket type
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   
-  // Calculate current totals
+  // Calculate current totals (keeping the same)
   const currentTotals = allCampaignRecords.reduce((acc, product) => {
     acc.cost += parseFloat(product.Cost) || 0;
     acc.convValue += parseFloat(product.ConvValue) || 0;
@@ -3185,7 +3119,7 @@ function renderROASHistoricCharts(container, data) {
     return acc;
   }, { cost: 0, convValue: 0, impressions: 0, conversions: 0 });
   
-  // Calculate metrics
+  // Calculate metrics (keeping the same)
   const currentROAS = currentTotals.cost > 0 ? currentTotals.convValue / currentTotals.cost : 0;
   const prevROAS = prevTotals.cost > 0 ? prevTotals.convValue / prevTotals.cost : 0;
   
@@ -3195,7 +3129,7 @@ function renderROASHistoricCharts(container, data) {
   const currentCPA = currentTotals.conversions > 0 ? currentTotals.cost / currentTotals.conversions : 0;
   const prevCPA = prevTotals.conversions > 0 ? prevTotals.cost / prevTotals.conversions : 0;
   
-  // Helper function to create metric item
+  // Helper function to create metric item (keeping the same)
   const createMetricItem = (label, current, previous, format) => {
     const change = current - previous;
     const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
@@ -3243,341 +3177,180 @@ function renderROASHistoricCharts(container, data) {
   
   mainWrapper.appendChild(metricsRow);
   
-  // Create wrapper for chart and summary
+  // Create wrapper for chart
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display: flex; gap: 20px; flex: 1;';
+  wrapper.style.cssText = 'flex: 1; position: relative;';
   
-  // Left container for chart (75% width)
-  const leftContainer = document.createElement('div');
-  leftContainer.style.cssText = 'width: 75%; height: 100%; position: relative;';
-  
-  // Right container (25% width)
-  const rightContainer = document.createElement('div');
-  rightContainer.style.cssText = 'width: 25%; height: 100%; background: #f8f9fa; border-radius: 8px; padding: 15px;';
-  
-// Process historic data
-  const dateMap = new Map();
-  
-// Get unique bucket names from the data
-let bucketNames;
-if (bucketType === 'Suggestions') {
-  // For Suggestions, split the semicolon-separated values from both current and historic data
-  const allSuggestions = new Set();
-  
-  // From current data
-  allCampaignRecords.forEach(row => {
-    if (row[bucketType]) {
-      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(s => allSuggestions.add(s));
-    }
-  });
-  
-  // From historic data
-  allCampaignRecords.forEach(product => {
-    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-      product['historic_data.buckets'].forEach(histItem => {
-        if (histItem[bucketType]) {
-          const suggestions = histItem[bucketType].split(';').map(s => s.trim()).filter(s => s);
-          suggestions.forEach(s => allSuggestions.add(s));
-        }
-      });
-    }
-  });
-  
-  bucketNames = [...allSuggestions].sort();
-  console.log('[Suggestions Chart] Found bucket names:', bucketNames);
-} else {
-  bucketNames = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean).sort();
-}
-  
-  // Calculate date range based on available data
-  let minDate = moment();
-  let maxDate = moment().subtract(30, 'days');
-  
-  // Find actual date range from historic data
-  allCampaignRecords.forEach(product => {
-    if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-      product['historic_data.buckets'].forEach(histItem => {
-        if (histItem.date) {
-          const itemDate = moment(histItem.date, 'YYYY-MM-DD');
-          if (itemDate.isValid()) {
-            if (itemDate.isBefore(minDate)) minDate = itemDate.clone();
-            if (itemDate.isAfter(maxDate)) maxDate = itemDate.clone();
-          }
-        }
-      });
-    }
-  });
-  
-  // Use last 30 days or available data range
+  // Process daily metrics data
+  const dailyMetrics = {};
   const endDate = moment();
   const startDate = moment().subtract(29, 'days');
   
-  // Adjust if we have less than 30 days of data
-  if (minDate.isAfter(startDate)) {
-    startDate.set(minDate.toObject());
-  }
-  
-// Initialize date map with dynamic bucket names
-for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
-  const dateStr = d.format('YYYY-MM-DD');
-  const bucketCounts = {};
-  
-if (bucketType === 'Suggestions') {
-  // For Suggestions, use the bucketNames we already collected
-  bucketNames.forEach(name => {
-    bucketCounts[name] = 0;
-  });
-} else {
-  bucketNames.forEach(name => {
-    bucketCounts[name] = 0;
-  });
-}
-  
-  dateMap.set(dateStr, bucketCounts);
-}
-  
-// Count products per bucket per date (NO NEW bucketType declaration here)
-allCampaignRecords.forEach(product => {
-  if (product['historic_data.buckets'] && Array.isArray(product['historic_data.buckets'])) {
-    product['historic_data.buckets'].forEach(histItem => {
-      const date = histItem.date;
-      let bucketValue = histItem[bucketType];  // USE EXISTING bucketType
-      
-      // Special handling for Suggestions - if missing in historic data, recalculate
-      if (bucketType === 'Suggestions' && !bucketValue) {
-        // Historic data doesn't have Suggestions, so we skip this date
-        // Or we could recalculate based on other buckets, but that would be complex
-        return;
-      }
-      
-      if (date && bucketValue && dateMap.has(date)) {
-        const dayData = dateMap.get(date);
-        
-        if (bucketType === 'Suggestions') {
-          // For Suggestions, always split (even single values)
-          const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
-          suggestions.forEach(suggestion => {
-            if (dayData.hasOwnProperty(suggestion)) {
-              dayData[suggestion]++;
-            } else {
-              // If this suggestion isn't in our map, add it
-              console.log(`Warning: Suggestion "${suggestion}" not found in dateMap for date ${date}`);
-              dayData[suggestion] = 1;
-            }
-          });
-        } else {
-          // Normal bucket counting
-          if (dayData[bucketValue] !== undefined) {
-            dayData[bucketValue]++;
-          }
-        }
-      }
-    });
-  }
-});
-
-// Add debug to see if we found any data
-if (bucketType === 'Suggestions') {
-  let totalSuggestionCounts = 0;
-  dateMap.forEach((dayData, date) => {
-    Object.values(dayData).forEach(count => {
-      totalSuggestionCounts += count;
-    });
-  });
-  console.log('[Suggestions Chart] Total suggestion counts across all dates:', totalSuggestionCounts);
-}
-  
-  // Calculate current and previous bucket counts for trends
-  const currentBucketCounts = {};
-  const prevBucketCounts = {};
-  
-  // Initialize counts for all bucket names
-  bucketNames.forEach(name => {
-    currentBucketCounts[name] = 0;
-    prevBucketCounts[name] = 0;
-  });
-  
-  const prevBucketType = 'prev_' + bucketType;  // USE EXISTING bucketType
-  
-// Count current and previous bucket assignments
-allCampaignRecords.forEach(product => {
-  const currentBucket = product[bucketType];  // USE EXISTING bucketType
-  const prevBucket = product[prevBucketType];
-  
-  if (bucketType === 'Suggestions') {
-    // Handle current suggestions
-    if (currentBucket) {
-      const suggestions = currentBucket.split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(suggestion => {
-        if (currentBucketCounts.hasOwnProperty(suggestion)) {
-          currentBucketCounts[suggestion]++;
-        }
-      });
-    }
-    
-    // Handle previous suggestions
-    if (prevBucket) {
-      const prevSuggestions = prevBucket.split(';').map(s => s.trim()).filter(s => s);
-      prevSuggestions.forEach(suggestion => {
-        if (prevBucketCounts.hasOwnProperty(suggestion)) {
-          prevBucketCounts[suggestion]++;
-        }
-      });
-    }
-  } else {
-    // Normal bucket counting
-    if (currentBucket && currentBucketCounts.hasOwnProperty(currentBucket)) {
-      currentBucketCounts[currentBucket]++;
-    }
-    
-    if (prevBucket && prevBucketCounts.hasOwnProperty(prevBucket)) {
-      prevBucketCounts[prevBucket]++;
-    }
-  }
-});
-
-// Convert to arrays for Chart.js
-const dates = Array.from(dateMap.keys()).sort();
-
-// Debug: Check what we have in dateMap
-if (bucketType === 'Suggestions') {
-  console.log('[Suggestions Chart] Date map sample:', {
-    firstDate: dates[0],
-    firstDateData: dateMap.get(dates[0]),
-    totalDates: dates.length,
-    bucketNames: bucketNames
-  });
-}
-
-// Filter out "Collecting Data" from chart datasets
-const datasets = bucketNames
-  .filter(bucketName => bucketName !== 'Collecting Data')
-  .map((bucketName, index) => {
-    const colorPalette = [
-      { bg: 'rgba(76, 175, 80, 0.3)', border: '#4CAF50' },
-      { bg: 'rgba(33, 150, 243, 0.3)', border: '#2196F3' },
-      { bg: 'rgba(255, 152, 0, 0.3)', border: '#FF9800' },
-      { bg: 'rgba(244, 67, 54, 0.3)', border: '#F44336' },
-      { bg: 'rgba(156, 39, 176, 0.3)', border: '#9C27B0' },
-      { bg: 'rgba(0, 188, 212, 0.3)', border: '#00BCD4' },
-      { bg: 'rgba(139, 195, 74, 0.3)', border: '#8BC34A' },
-      { bg: 'rgba(255, 193, 7, 0.3)', border: '#FFC107' }
-    ];
-    
-    const colorIndex = index % colorPalette.length;
-    
-    return {
-      label: bucketName,
-      data: dates.map(date => dateMap.get(date)[bucketName]),
-      backgroundColor: colorPalette[colorIndex].bg,
-      borderColor: colorPalette[colorIndex].border,
-      borderWidth: 2,
-      fill: true,
-      tension: 0.4
+  // Initialize date map with metrics
+  for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
+    const dateStr = d.format('YYYY-MM-DD');
+    dailyMetrics[dateStr] = {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0,
+      roas: 0,
+      aov: 0,
+      cpa: 0,
+      ctr: 0,
+      cvr: 0
     };
+  }
+  
+  // Aggregate metrics by date from historic data
+  allCampaignRecords.forEach(product => {
+    if (product['historic_data'] && Array.isArray(product['historic_data'])) {
+      product['historic_data'].forEach(histItem => {
+        const date = histItem.date;
+        if (date && dailyMetrics[date]) {
+          dailyMetrics[date].impressions += parseInt(histItem.impressions) || 0;
+          dailyMetrics[date].clicks += parseInt(histItem.clicks) || 0;
+          dailyMetrics[date].cost += parseFloat(histItem.cost) || 0;
+          dailyMetrics[date].conversions += parseFloat(histItem.conversions) || 0;
+          dailyMetrics[date].convValue += parseFloat(histItem.conv_value) || 0;
+        }
+      });
+    }
   });
+  
+  // Calculate derived metrics for each day
+  Object.keys(dailyMetrics).forEach(date => {
+    const day = dailyMetrics[date];
+    day.roas = day.cost > 0 ? day.convValue / day.cost : 0;
+    day.aov = day.conversions > 0 ? day.convValue / day.conversions : 0;
+    day.cpa = day.conversions > 0 ? day.cost / day.conversions : 0;
+    day.ctr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0;
+    day.cvr = day.clicks > 0 ? (day.conversions / day.clicks) * 100 : 0;
+  });
+  
+  // Convert to arrays for Chart.js
+  const dates = Object.keys(dailyMetrics).sort();
+  
+  // Create datasets for each metric
+  const datasets = [
+    {
+      label: 'ROAS',
+      data: dates.map(date => dailyMetrics[date].roas),
+      borderColor: '#4CAF50',
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+      yAxisID: 'y-roas',
+      tension: 0.4
+    },
+    {
+      label: 'AOV',
+      data: dates.map(date => dailyMetrics[date].aov),
+      borderColor: '#2196F3',
+      backgroundColor: 'rgba(33, 150, 243, 0.1)',
+      yAxisID: 'y-currency',
+      tension: 0.4
+    },
+    {
+      label: 'CPA',
+      data: dates.map(date => dailyMetrics[date].cpa),
+      borderColor: '#FF9800',
+      backgroundColor: 'rgba(255, 152, 0, 0.1)',
+      yAxisID: 'y-currency',
+      tension: 0.4
+    },
+    {
+      label: 'CTR %',
+      data: dates.map(date => dailyMetrics[date].ctr),
+      borderColor: '#9C27B0',
+      backgroundColor: 'rgba(156, 39, 176, 0.1)',
+      yAxisID: 'y-percentage',
+      tension: 0.4
+    },
+    {
+      label: 'CVR %',
+      data: dates.map(date => dailyMetrics[date].cvr),
+      borderColor: '#00BCD4',
+      backgroundColor: 'rgba(0, 188, 212, 0.1)',
+      yAxisID: 'y-percentage',
+      tension: 0.4
+    }
+  ];
   
   // Create chart
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'width: 100%; height: 100%;';
-  leftContainer.appendChild(canvas);
+  wrapper.appendChild(canvas);
   
-new Chart(canvas, {
-  type: 'line',
-  data: {
-    labels: dates.map(date => moment(date).format('DD/MM')),
-    datasets: datasets
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dates.map(date => moment(date).format('DD/MM')),
+      datasets: datasets
     },
-    scales: {
-      x: {
-        display: true
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
       },
-      y: {
-        display: true,
+      scales: {
+        x: {
+          display: true,
+          grid: {
+            display: false
+          }
+        },
+        'y-roas': {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'ROAS'
+          },
+          grid: {
+            drawOnChartArea: false
+          }
+        },
+        'y-currency': {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Currency ($)'
+          },
+          grid: {
+            drawOnChartArea: true
+          }
+        },
+        'y-percentage': {
+          type: 'linear',
+          display: false,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Percentage (%)'
+          }
+        }
+      },
+      plugins: {
         title: {
           display: true,
-          text: 'Number of Products'
+          text: 'Key Metrics Trend - Last 30 Days'
         },
-        beginAtZero: true
-      }
-    },
-    plugins: {
-      title: {
-        display: true,
-        text: 'Historic ROAS Bucket Distribution'
-      },
-      legend: {
-        display: false
-      },
-      datalabels: {
-        display: false
+        legend: {
+          display: true,
+          position: 'bottom'
+        },
+        datalabels: {
+          display: false
+        }
       }
     }
-  }
-});
+  });
   
-// Use bucket configuration colors
-const bucketConfig = window.bucketConfig[bucketType];
-const colorPalette = bucketNames.map(name => bucketConfig.colors[name] || '#999');
-  rightContainer.innerHTML = `
-    <h4 style="margin: 0 0 20px 0; color: #333; text-align: center;">Current vs Previous</h4>
-    <div style="display: flex; flex-direction: column; gap: 12px;">
-      ${bucketNames.map((name, index) => {
-        const currentCount = currentBucketCounts[name];
-        const prevCount = prevBucketCounts[name];
-        const change = currentCount - prevCount;
-        const trendColor = change > 0 ? '#4CAF50' : change < 0 ? '#F44336' : '#666';
-        const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
-        
-        // Shorten bucket names for display
-        const shortName = name === 'Volume Driver, Low ROI' ? 'Volume Driver' : 
-                         name === 'Efficient Low Volume' ? 'Efficient Low' : name;
-        
-        return `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 8px;
-background: ${colorPalette[index % colorPalette.length]}08;
-border-left: 3px solid ${colorPalette[index % colorPalette.length]};
-            border-radius: 4px;
-          ">
-            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-              <span style="font-size: ${bucketType === 'Suggestions' ? '12px' : '18px'}; color: #666; font-weight: 500;">${shortName}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 18px; font-weight: 700; color: ${colorPalette[index % colorPalette.length]};">${currentCount}</span>
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 2px;
-                background: ${trendColor}15;
-                padding: 2px 6px;
-                border-radius: 3px;
-                min-width: 35px;
-                justify-content: center;
-              ">
-                <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${trendArrow}</span>
-                <span style="color: ${trendColor}; font-size: 10px; font-weight: 600;">${Math.abs(change)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-  
-  wrapper.appendChild(leftContainer);
-  wrapper.appendChild(rightContainer);
   mainWrapper.appendChild(wrapper);
   container.appendChild(mainWrapper);
 }
@@ -3591,46 +3364,81 @@ function renderROASMetricsTable(container, data) {
   // Get all records (including device-specific ones) for device segmentation
   const allRecords = data;
   
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   
   // Group products by bucket for main aggregation (using 'All' campaign records)
   const bucketGroups = {};
   
-  // Initialize bucket groups based on bucket type
-  if (bucketType === 'Suggestions') {
-    const allSuggestions = new Set();
-    allCampaignRecords.forEach(row => {
-      if (row['Suggestions']) {
-        const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
-        suggestions.forEach(s => allSuggestions.add(s));
-      }
-    });
-    allSuggestions.forEach(suggestion => {
-      bucketGroups[suggestion] = [];
-    });
-  } else {
-    const allBuckets = new Set(allCampaignRecords.map(row => row[bucketType]).filter(Boolean));
-    allBuckets.forEach(bucket => {
-      bucketGroups[bucket] = [];
-    });
-  }
-  
-  // Group allCampaignRecords by bucket
-  allCampaignRecords.forEach(product => {
-    if (bucketType === 'Suggestions') {
-      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
-      suggestions.forEach(suggestion => {
-        if (bucketGroups[suggestion]) {
-          bucketGroups[suggestion].push(product);
+// Initialize bucket groups based on bucket type
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  const allSuggestions = new Set();
+  allCampaignRecords.forEach(row => {
+    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+      const allDevicesData = row['buckets.device_segment'].find(segment => 
+        segment.device_segment === 'all_devices'
+      );
+      if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
+        try {
+          const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
+          suggestions.forEach(suggestionObj => {
+            allSuggestions.add(suggestionObj.suggestion);
+          });
+        } catch (e) {
+          console.error('Error parsing suggestions:', e);
         }
-      });
-    } else {
-      const bucket = product[bucketType];
-      if (bucket && bucketGroups[bucket]) {
-        bucketGroups[bucket].push(product);
       }
     }
   });
+  allSuggestions.forEach(suggestion => {
+    bucketGroups[suggestion] = [];
+  });
+} else {
+  const allBuckets = new Set();
+  allCampaignRecords.forEach(row => {
+    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+      const allDevicesData = row['buckets.device_segment'].find(segment => 
+        segment.device_segment === 'all_devices'
+      );
+      if (allDevicesData && allDevicesData[bucketType]) {
+        allBuckets.add(allDevicesData[bucketType]);
+      }
+    }
+  });
+  allBuckets.forEach(bucket => {
+    bucketGroups[bucket] = [];
+  });
+}
+  
+// Group allCampaignRecords by bucket
+allCampaignRecords.forEach(product => {
+  if (product['buckets.device_segment'] && Array.isArray(product['buckets.device_segment'])) {
+    const allDevicesData = product['buckets.device_segment'].find(segment => 
+      segment.device_segment === 'all_devices'
+    );
+    
+    if (allDevicesData) {
+      if (bucketType === 'SUGGESTIONS_BUCKET') {
+        if (allDevicesData.SUGGESTIONS_BUCKET) {
+          try {
+            const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
+            suggestions.forEach(suggestionObj => {
+              if (bucketGroups[suggestionObj.suggestion]) {
+                bucketGroups[suggestionObj.suggestion].push(product);
+              }
+            });
+          } catch (e) {
+            console.error('Error parsing suggestions:', e);
+          }
+        }
+      } else {
+        const bucket = allDevicesData[bucketType];
+        if (bucket && bucketGroups[bucket]) {
+          bucketGroups[bucket].push(product);
+        }
+      }
+    }
+  }
+});
   
   // Create device aggregation data for segmentation
   const deviceBucketGroups = {};
@@ -3639,7 +3447,7 @@ function renderROASMetricsTable(container, data) {
   allRecords.forEach(product => {
     const device = product.Device || 'Unknown';
     
-    if (bucketType === 'Suggestions') {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
       const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
       suggestions.forEach(suggestion => {
         if (!deviceBucketGroups[suggestion]) {
@@ -3816,7 +3624,7 @@ function renderROASMetricsTable(container, data) {
   const bucketColors = {};
 
   // Sort buckets by configuration order (best first)
-  if (bucketType === 'Suggestions') {
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
     // For Suggestions, sort by predefined order but allow for dynamic buckets
     bucketMetrics.sort((a, b) => {
       const orderA = bucketConfig.order.indexOf(a.bucket);
@@ -4064,14 +3872,25 @@ function renderSuggestionsMetricsTable(container, data) {
   // Filter for "All" campaign records only
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
   
-  // Get all unique suggestions from the data
-  const allSuggestions = new Set();
-  allCampaignRecords.forEach(row => {
-    if (row['Suggestions']) {
-      const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(s => allSuggestions.add(s));
+// Get all unique suggestions from the data
+const allSuggestions = new Set();
+allCampaignRecords.forEach(row => {
+  if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+    const allDevicesData = row['buckets.device_segment'].find(segment => 
+      segment.device_segment === 'all_devices'
+    );
+    if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
+      try {
+        const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
+        suggestions.forEach(suggestionObj => {
+          allSuggestions.add(suggestionObj.suggestion);
+        });
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
+      }
     }
-  });
+  }
+});
 
   // Group suggestions by category
   const groupedSuggestions = {};
@@ -4109,10 +3928,23 @@ function renderSuggestionsMetricsTable(container, data) {
 
     // Calculate metrics for suggestions in this category
     const categoryMetrics = suggestions.map(suggestion => {
-      const bucketProducts = allCampaignRecords.filter(row => {
-        const rowSuggestions = row['Suggestions'] ? row['Suggestions'].split(';').map(s => s.trim()) : [];
-        return rowSuggestions.includes(suggestion);
-      });
+const bucketProducts = allCampaignRecords.filter(row => {
+  if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
+    const allDevicesData = row['buckets.device_segment'].find(segment => 
+      segment.device_segment === 'all_devices'
+    );
+    if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
+      try {
+        const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
+        return suggestions.some(suggestionObj => suggestionObj.suggestion === suggestion);
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
+        return false;
+      }
+    }
+  }
+  return false;
+});
 
       if (bucketProducts.length === 0) {
         return {
