@@ -57,6 +57,14 @@ window.productBucketAnalyzer = {
       const rawData = productRec.data;
       console.log(`[Product Buckets V2] Processing ${rawData.length} rows of data`);
 
+      // DEBUG: Check sample of raw data
+      console.log(`[DEBUG] Sample raw data rows:`, rawData.slice(0, 3).map(row => ({
+        Product: row['Product Title']?.substring(0, 30) + '...',
+        Campaign: row['Campaign Name'],
+        Channel: row['Channel Type'],
+        Device: row.Device
+      })));
+
       // Find the max date in the data
       const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
       const maxDataDate = new Date(Math.max(...allDates));
@@ -95,24 +103,35 @@ window.productBucketAnalyzer = {
       const currentGrouped = this.groupByProductCampaignChannelDevice(last30DaysData);
       const prevGrouped = this.groupByProductCampaignChannelDevice(prev30DaysData);
 
+      // DEBUG: Log sample of grouped keys
+      const groupedKeys = Object.keys(currentGrouped);
+      console.log(`[DEBUG] Total grouped keys: ${groupedKeys.length}`);
+      console.log(`[DEBUG] Sample grouped keys:`, groupedKeys.slice(0, 10));
+
       // Get unique product+campaign+channel combinations (without device)
       const uniqueCombinations = new Set();
+      const uniqueProducts = new Set();
+      
       Object.keys(currentGrouped).forEach(key => {
         const parts = key.split('|');
         if (parts.length === 4) {
-          const combination = parts.slice(0, 3).join('|');
-          uniqueCombinations.add(combination);
+          const [product, campaign, channel, device] = parts;
+          
+          // Only add non-All combinations to uniqueCombinations
+          if (campaign !== 'All' || channel !== 'All') {
+            const combination = parts.slice(0, 3).join('|');
+            uniqueCombinations.add(combination);
+          }
+          
+          // Add all products for All/All processing
+          uniqueProducts.add(product);
         }
       });
 
-      // Also get unique products (for All/All combinations)
-      const uniqueProducts = new Set();
-      Object.keys(currentGrouped).forEach(key => {
-        const parts = key.split('|');
-        if (parts.length === 4) {
-          uniqueProducts.add(parts[0]);
-        }
-      });
+      // DEBUG: Log combinations found
+      console.log(`[DEBUG] Unique combinations found:`, Array.from(uniqueCombinations).slice(0, 10));
+      console.log(`[DEBUG] Total unique combinations (non-All): ${uniqueCombinations.size}`);
+      console.log(`[DEBUG] Total unique products: ${uniqueProducts.size}`);
 
       // Process all combinations
       const bucketData = [];
@@ -126,9 +145,9 @@ window.productBucketAnalyzer = {
         const baseCombination = allCombinations[i];
         const [productTitle, campaignName, channelType] = baseCombination.split('|');
         
-        // Skip if this is an "All/All" combination (we'll handle those separately)
-        if (campaignName === 'All' && channelType === 'All') {
-          continue;
+        // DEBUG
+        if (i < 5) {
+          console.log(`[DEBUG] Processing combination: ${baseCombination}`);
         }
         
         const rowData = this.processProductCombination(
@@ -142,6 +161,13 @@ window.productBucketAnalyzer = {
         
         if (rowData) {
           bucketData.push(rowData);
+          if (i < 5) {
+            console.log(`[DEBUG] Successfully created record for: ${baseCombination}`);
+          }
+        } else {
+          if (i < 5) {
+            console.log(`[DEBUG] No data returned for: ${baseCombination}`);
+          }
         }
       }
 
@@ -173,6 +199,19 @@ window.productBucketAnalyzer = {
       }
 
       console.log(`[Product Buckets V2] ✅ Completed processing ${bucketData.length} product bucket entries`);
+
+      // DEBUG: Analyze the output
+      const recordTypes = {
+        allRecords: bucketData.filter(r => r['Campaign Name'] === 'All' && r['Channel Type'] === 'All').length,
+        campaignRecords: bucketData.filter(r => r['Campaign Name'] !== 'All' || r['Channel Type'] !== 'All').length
+      };
+      console.log(`[DEBUG] Record breakdown:`, recordTypes);
+      console.log(`[DEBUG] Sample campaign records:`, 
+        bucketData
+          .filter(r => r['Campaign Name'] !== 'All')
+          .slice(0, 5)
+          .map(r => `${r['Product Title'].substring(0, 30)}... | ${r['Campaign Name']} | ${r['Channel Type']}`)
+      );
 
       // Save to IDB
       const tableName = prefix + "googleSheets_productBuckets_30d";
@@ -397,14 +436,30 @@ window.productBucketAnalyzer = {
   groupByProductCampaignChannelDevice(data) {
     const grouped = {};
     
+    // DEBUG: Track unique campaign/channel combinations
+    const campaignChannelCombos = new Set();
+    
     data.forEach(row => {
       const device = row.Device || 'UNKNOWN';
-      const key = `${row['Product Title']}|${row['Campaign Name']}|${row['Channel Type']}|${device}`;
+      const campaignName = row['Campaign Name'] || '';
+      const channelType = row['Channel Type'] || '';
+      const productTitle = row['Product Title'] || '';
+      
+      // Track non-All combinations
+      if (campaignName !== 'All' && channelType !== 'All' && campaignName !== '' && channelType !== '') {
+        campaignChannelCombos.add(`${campaignName}|${channelType}`);
+      }
+      
+      const key = `${productTitle}|${campaignName}|${channelType}|${device}`;
       if (!grouped[key]) {
         grouped[key] = [];
       }
       grouped[key].push(row);
     });
+
+    // DEBUG: Log campaign/channel combinations found
+    console.log(`[DEBUG] Raw data contains ${campaignChannelCombos.size} unique campaign/channel combos:`, 
+      Array.from(campaignChannelCombos).slice(0, 10));
 
     // Also create "All" campaign/channel aggregates by device
     const productDeviceData = {};
@@ -423,6 +478,11 @@ window.productBucketAnalyzer = {
       const allKey = `${productTitle}|All|All|${device}`;
       grouped[allKey] = rows;
     }
+
+    // DEBUG: Log final grouped keys
+    const nonAllKeys = Object.keys(grouped).filter(k => !k.includes('|All|All|'));
+    console.log(`[DEBUG] Grouped data contains ${nonAllKeys.length} non-All keys`);
+    console.log(`[DEBUG] Sample non-All keys:`, nonAllKeys.slice(0, 10));
 
     return grouped;
   },
