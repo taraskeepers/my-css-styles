@@ -5485,18 +5485,19 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   if (productMetrics) productMetrics.style.display = 'none';
   if (productRankingMap) productRankingMap.style.display = 'block'; // Show in performance
   if (productTables) productTables.style.display = 'none';
+
+// Keep the table hidden
+const table = document.querySelector('.google-ads-table');
+if (table) {
+  table.style.display = 'none';
+}
+
+// Hide map container
+const mapContainer = document.getElementById('googleAdsMapContainer');
+if (mapContainer) {
+  mapContainer.style.display = 'none';
+}
   
-  // Show the table
-  const table = document.querySelector('.google-ads-table');
-  if (table) {
-    table.style.display = 'table';
-    table.classList.remove('overview-mode');
-  }
-  const mapContainer = document.getElementById('googleAdsMapContainer');
-  if (mapContainer) {
-    mapContainer.style.display = 'none';
-  }
-  // END ADD
   // Hide ROAS Buckets
   const roasBuckets = document.getElementById('roas_buckets');
   if (roasBuckets) roasBuckets.style.display = 'none';
@@ -5525,6 +5526,12 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
       renderGoogleAdsPositionChart(container, container.combinationRecord);
     }
   });
+  // Populate ranking map for selected product
+if (window.selectedGoogleAdsProduct) {
+  const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+  const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
+}
 });
 
 viewMapGoogleAdsBtn.addEventListener("click", function() {
