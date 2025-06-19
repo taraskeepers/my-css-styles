@@ -5379,14 +5379,11 @@ container.innerHTML = `
               </div>
             </div>
             <div class="google-ads-buckets-switcher" id="googleAdsBucketsSwitcher" style="display: block;">
-              <button id="bucketROAS" class="active">ROAS</button>
-              <button id="bucketROI">ROI</button>
-              <button id="bucketFunnel">Funnel</button>
-              <button id="bucketSpend">Spend</button>
-              <button id="bucketPricing">Pricing</button>
-              <button id="bucketCustom">Custom</button>
-              <button id="bucketML">ML</button>
-              <button id="bucketSuggestions">Suggestions</button>
+    <button id="bucketProfitability" class="bucket-btn active">Profitability</button>
+    <button id="bucketFunnel" class="bucket-btn">Funnel</button>
+    <button id="bucketInvestment" class="bucket-btn">Investment</button>
+    <button id="bucketCustom" class="bucket-btn">Custom Tier</button>
+    <button id="bucketSuggestions" class="bucket-btn">Suggestions</button>
             </div>
           </div>
           <div id="productInfoDateRange" class="product-info-date-selector-top" style="display: none;">
