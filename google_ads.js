@@ -561,6 +561,20 @@ setTimeout(() => {
               }
             });
           }
+                    // Add event listener for device filter
+          const deviceFilterElement = document.getElementById('deviceTypeFilter');
+          if (deviceFilterElement && !deviceFilterElement.hasAttribute('data-listener-attached')) {
+            deviceFilterElement.setAttribute('data-listener-attached', 'true');
+            deviceFilterElement.addEventListener('change', function() {
+              updateProductMetricsChart();
+              if (window.selectedGoogleAdsProduct) {
+                const campaignValue = document.getElementById('campaignNameFilter').value;
+                const channelValue = document.getElementById('channelTypeFilter').value;
+                // Note: ranking map doesn't use device filter as it shows all devices
+                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+              }
+            });
+          }
         } else {
           // No data available
           if (productMetricsContainer) {
@@ -589,16 +603,18 @@ setTimeout(() => {
 function updateProductMetricsChart() {
   const campaignFilter = document.getElementById('campaignNameFilter').value;
   const channelFilter = document.getElementById('channelTypeFilter').value;
+  const deviceFilter = document.getElementById('deviceTypeFilter').value;
   
   if (window.currentProductMetricsData) {
     const chartData = processMetricsData(
       window.currentProductMetricsData,
       campaignFilter,
-      channelFilter
+      channelFilter,
+      deviceFilter
     );
     renderProductMetricsChart('productMetricsChart', chartData);
     // Update trends if visible
-updateTrendsData();
+    updateTrendsData();
   }
 }
   
@@ -1714,69 +1730,140 @@ function populateProductTables(productData, mode = 'channel') {
     return rowDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
   });
   
-  // Aggregate data by mode
+  // Aggregate data by mode and device
   const aggregatedData = {};
   const prevAggregatedData = {};
+  const deviceData = {}; // Store device-specific data
+  const prevDeviceData = {}; // Store previous period device-specific data
   
-  // Current period
+  // Helper function to process row data
+  const processRow = (targetObj, row) => {
+    targetObj.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+    targetObj.clicks += parseInt(row.Clicks) || 0;
+    targetObj.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+    targetObj.conversions += parseFloat(row.Conversions) || 0;
+    targetObj.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    targetObj.addToCartConv += parseFloat(row['Add to Cart Conv'] || 0);
+    targetObj.addToCartValue += parseFloat(String(row['Add to Cart Conv Value'] || '0').replace(/[$,]/g, '')) || 0;
+    targetObj.beginCheckoutConv += parseFloat(row['Begin Checkout Conv'] || 0);
+    targetObj.beginCheckoutValue += parseFloat(String(row['Begin Checkout Conv Value'] || '0').replace(/[$,]/g, '')) || 0;
+    targetObj.purchaseConv += parseFloat(row['Purchase Conv'] || 0);
+    targetObj.purchaseValue += parseFloat(String(row['Purchase Conv Value'] || '0').replace(/[$,]/g, '')) || 0;
+  };
+  
+  // Process current period data
   filteredData.forEach(row => {
     const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
+    const device = row.Device || 'Unknown';
     
+    // Main aggregation (all devices)
     if (!aggregatedData[key]) {
       aggregatedData[key] = {
         impressions: 0,
         clicks: 0,
         cost: 0,
         conversions: 0,
-        conversionValue: 0
+        conversionValue: 0,
+        addToCartConv: 0,
+        addToCartValue: 0,
+        beginCheckoutConv: 0,
+        beginCheckoutValue: 0,
+        purchaseConv: 0,
+        purchaseValue: 0
       };
     }
     
-    aggregatedData[key].impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
-    aggregatedData[key].clicks += parseInt(row.Clicks) || 0;
-    aggregatedData[key].cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
-    aggregatedData[key].conversions += parseFloat(row.Conversions) || 0;
-    aggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    // Device-specific aggregation
+    if (!deviceData[key]) {
+      deviceData[key] = {};
+    }
+    if (!deviceData[key][device]) {
+      deviceData[key][device] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        addToCartConv: 0,
+        addToCartValue: 0,
+        beginCheckoutConv: 0,
+        beginCheckoutValue: 0,
+        purchaseConv: 0,
+        purchaseValue: 0
+      };
+    }
+    
+    processRow(aggregatedData[key], row);
+    processRow(deviceData[key][device], row);
   });
   
-  // Previous period
+  // Process previous period data
   prevFilteredData.forEach(row => {
     const key = mode === 'channel' ? (row['Channel Type'] || 'Unknown') : (row['Campaign Name'] || 'Unknown');
+    const device = row.Device || 'Unknown';
     
+    // Main aggregation (all devices)
     if (!prevAggregatedData[key]) {
       prevAggregatedData[key] = {
         impressions: 0,
         clicks: 0,
         cost: 0,
         conversions: 0,
-        conversionValue: 0
+        conversionValue: 0,
+        addToCartConv: 0,
+        addToCartValue: 0,
+        beginCheckoutConv: 0,
+        beginCheckoutValue: 0,
+        purchaseConv: 0,
+        purchaseValue: 0
       };
     }
     
-    prevAggregatedData[key].impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
-    prevAggregatedData[key].clicks += parseInt(row.Clicks) || 0;
-    prevAggregatedData[key].cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
-    prevAggregatedData[key].conversions += parseFloat(row.Conversions) || 0;
-    prevAggregatedData[key].conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+    // Device-specific aggregation for previous period
+    if (!prevDeviceData[key]) {
+      prevDeviceData[key] = {};
+    }
+    if (!prevDeviceData[key][device]) {
+      prevDeviceData[key][device] = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        addToCartConv: 0,
+        addToCartValue: 0,
+        beginCheckoutConv: 0,
+        beginCheckoutValue: 0,
+        purchaseConv: 0,
+        purchaseValue: 0
+      };
+    }
+    
+    processRow(prevAggregatedData[key], row);
+    processRow(prevDeviceData[key][device], row);
   });
   
   // Calculate derived metrics
-  Object.keys(aggregatedData).forEach(key => {
-    const data = aggregatedData[key];
-    data.ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
-    data.cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
-    data.roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
-    data.aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
-    data.cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
+  const calculateMetrics = (data) => {
+    Object.keys(data).forEach(key => {
+      const item = data[key];
+      item.ctr = item.impressions > 0 ? (item.clicks / item.impressions) * 100 : 0;
+      item.cvr = item.clicks > 0 ? (item.conversions / item.clicks) * 100 : 0;
+      item.roas = item.cost > 0 ? item.conversionValue / item.cost : 0;
+      item.aov = item.conversions > 0 ? item.conversionValue / item.conversions : 0;
+      item.cpa = item.conversions > 0 ? item.cost / item.conversions : 0;
+    });
+  };
+  
+  calculateMetrics(aggregatedData);
+  calculateMetrics(prevAggregatedData);
+  
+  Object.keys(deviceData).forEach(key => {
+    calculateMetrics(deviceData[key]);
   });
   
-  Object.keys(prevAggregatedData).forEach(key => {
-    const data = prevAggregatedData[key];
-    data.ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
-    data.cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
-    data.roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
-    data.aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
-    data.cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
+  Object.keys(prevDeviceData).forEach(key => {
+    calculateMetrics(prevDeviceData[key]);
   });
   
   // Store current sort state
@@ -1892,7 +1979,7 @@ function populateProductTables(productData, mode = 'channel') {
       </div>` : formattedCurrent;
   }
   
-  // Create table HTML
+  // Create table HTML with device rows
   let tableHTML = `
     <div class="product-tables-content">
       <table class="product-metrics-table" id="productMetricsTableElement">
@@ -1935,9 +2022,12 @@ function populateProductTables(productData, mode = 'channel') {
       }
     }
     
+    // Main row
     tableHTML += `
-      <tr>
-        <td class="clickable-campaign" data-value="${key}" data-mode="${mode}">${key}</td>
+      <tr class="main-row" data-key="${key}">
+        <td class="clickable-campaign" data-value="${key}" data-mode="${mode}">
+          <span class="expand-toggle">▶</span> ${key}
+        </td>
         <td>
           <div class="impression-bar-container">
             <div class="impression-bar" style="width: ${impressionBarWidth}%">
@@ -1957,6 +2047,40 @@ function populateProductTables(productData, mode = 'channel') {
         <td>${formatValueWithTrend(data.cpa, prevData.cpa, 'currency', true)}</td>
       </tr>
     `;
+    
+    // Device rows
+    if (deviceData[key]) {
+      const deviceOrder = ['DESKTOP', 'MOBILE', 'TABLET'];
+      deviceOrder.forEach(device => {
+        if (deviceData[key][device]) {
+          const deviceInfo = deviceData[key][device];
+          const prevDeviceInfo = prevDeviceData[key] && prevDeviceData[key][device] ? prevDeviceData[key][device] : {
+            impressions: 0, clicks: 0, cost: 0, conversions: 0, conversionValue: 0,
+            ctr: 0, cvr: 0, roas: 0, aov: 0, cpa: 0
+          };
+          
+          const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+          
+          tableHTML += `
+            <tr class="device-row" data-parent="${key}" style="display: none;">
+              <td style="padding-left: 40px; font-size: 12px; color: #666;">
+                ${deviceIcon} ${device}
+              </td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.impressions, prevDeviceInfo.impressions, 'number')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.clicks, prevDeviceInfo.clicks, 'number')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.cost, prevDeviceInfo.cost, 'currency')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.conversions, prevDeviceInfo.conversions, 'decimal')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.conversionValue, prevDeviceInfo.conversionValue, 'currency')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.ctr, prevDeviceInfo.ctr, 'percentage')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.cvr, prevDeviceInfo.cvr, 'percentage')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.roas, prevDeviceInfo.roas, 'roas')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.aov, prevDeviceInfo.aov, 'currency')}</td>
+              <td style="font-size: 12px;">${formatValueWithTrend(deviceInfo.cpa, prevDeviceInfo.cpa, 'currency', true)}</td>
+            </tr>
+          `;
+        }
+      });
+    }
   });
   
   tableHTML += `
@@ -1966,6 +2090,27 @@ function populateProductTables(productData, mode = 'channel') {
   `;
   
   tablesContainer.innerHTML = tableHTML;
+  
+  // Add expand/collapse functionality
+  tablesContainer.querySelectorAll('.main-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+      if (!e.target.classList.contains('clickable-campaign')) {
+        const key = this.getAttribute('data-key');
+        const deviceRows = tablesContainer.querySelectorAll(`tr[data-parent="${key}"]`);
+        const expandToggle = this.querySelector('.expand-toggle');
+        
+        deviceRows.forEach(deviceRow => {
+          if (deviceRow.style.display === 'none') {
+            deviceRow.style.display = 'table-row';
+            expandToggle.textContent = '▼';
+          } else {
+            deviceRow.style.display = 'none';
+            expandToggle.textContent = '▶';
+          }
+        });
+      }
+    });
+  });
   
   // Add event listeners for sorting
   const headers = tablesContainer.querySelectorAll('th.sortable');
@@ -2014,9 +2159,40 @@ function populateProductTables(productData, mode = 'channel') {
       }
     });
   });
+  
+  // Add styling for device rows if not already added
+  if (!document.getElementById('device-row-styles')) {
+    const style = document.createElement('style');
+    style.id = 'device-row-styles';
+    style.textContent = `
+      .device-row {
+        background-color: #f8f9fa;
+        border-left: 3px solid #007aff;
+      }
+      .device-row:hover {
+        background-color: #e9ecef;
+      }
+      .main-row {
+        cursor: pointer;
+      }
+      .main-row:hover {
+        background-color: #f0f0f0;
+      }
+      .expand-toggle {
+        display: inline-block;
+        width: 20px;
+        text-align: center;
+        font-size: 10px;
+        color: #666;
+        cursor: pointer;
+        user-select: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
 
-function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all') {
+function processMetricsData(productData, campaignFilter = 'all', channelFilter = 'all', deviceFilter = 'all') {
   // Get selected date range
   const daysToShow = window.selectedDateRangeDays || 7;
   const endDate = moment().startOf('day');
@@ -2040,6 +2216,7 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     return rowDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
   });
   
+  // Apply filters
   if (campaignFilter !== 'all') {
     filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
     prevFilteredData = prevFilteredData.filter(row => row['Campaign Name'] === campaignFilter);
@@ -2047,6 +2224,20 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
   if (channelFilter !== 'all') {
     filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
     prevFilteredData = prevFilteredData.filter(row => row['Channel Type'] === channelFilter);
+  }
+  
+  // Apply device filter
+  if (deviceFilter !== 'all') {
+    const deviceMap = {
+      'desk': 'DESKTOP',
+      'mob': 'MOBILE',
+      'tab': 'TABLET'
+    };
+    const deviceValue = deviceMap[deviceFilter];
+    if (deviceValue) {
+      filteredData = filteredData.filter(row => row.Device === deviceValue);
+      prevFilteredData = prevFilteredData.filter(row => row.Device === deviceValue);
+    }
   }
   
   // Group by date and sum metrics
@@ -3040,6 +3231,15 @@ leftFilters.style.cssText = `
 `;
 
 leftFilters.innerHTML = `
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <label style="font-weight: 600; font-size: 14px;">Device:</label>
+    <select id="deviceTypeFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+      <option value="all">All Dev</option>
+      <option value="desk">Desk</option>
+      <option value="mob">Mob</option>
+      <option value="tab">Tab</option>
+    </select>
+  </div>
   <div style="display: flex; align-items: center; gap: 10px;">
     <label style="font-weight: 600; font-size: 14px;">Campaign:</label>
     <select id="campaignNameFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
@@ -5001,10 +5201,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   }
 
   // Hide buckets switcher
-const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
-  // Show additional containers
+  // Show overview containers, hide ranking map
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
   const productRankingMap = document.getElementById('product_ranking_map');
@@ -5012,7 +5212,7 @@ if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
   if (productInfo) productInfo.style.display = 'block';
   if (productMetrics) productMetrics.style.display = 'block';
-  if (productRankingMap) productRankingMap.style.display = 'block';
+  if (productRankingMap) productRankingMap.style.display = 'none'; // Hide in overview
   if (productTables) productTables.style.display = 'block';
   
   // Hide map and ROAS Buckets
@@ -5047,10 +5247,21 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
 
   // Hide buckets switcher
-const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   
-  // Show the table and hide map  // ADD THIS
+  // Hide overview containers, show ranking map
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'block'; // Show in performance
+  if (productTables) productTables.style.display = 'none';
+  
+  // Show the table
   const table = document.querySelector('.google-ads-table');
   if (table) {
     table.style.display = 'table';
