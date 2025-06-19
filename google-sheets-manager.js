@@ -180,15 +180,20 @@ window.googleSheetsManager = {
   currentSheetUrl: null,
   
   // Column mappings (same as before)
-  PRODUCT_COLUMNS: [
-    'Product Title', 'Date', 'Product ID', 'Product Brand', 
-    'Product Type L1', 'Product Type L2', 'Product Type L3', 
-    'Product Type L4', 'Product Type L5', 'Product Channel', 
-    'Product Channel Exclusivity', 'Product Condition', 'Product Country', 
-    'Campaign Name', 'Channel Type', 'Impressions', 'Clicks', 
-    'Cost', 'Conversions', 'Conversion Value', 'CTR', 'CVR', 
-    'ROAS', 'AOV', 'CPA'
-  ],
+PRODUCT_COLUMNS: [
+  'Product Title', 'Date', 'Product ID', 'Product Brand', 
+  'Product Type L1', 'Product Type L2', 'Product Type L3', 
+  'Product Type L4', 'Product Type L5', 'Product Channel', 
+  'Product Channel Exclusivity', 'Product Condition', 'Product Country', 
+  'Campaign Name', 'Channel Type', 'Device', // Added Device column
+  'Impressions', 'Clicks', 
+  'Cost', 'Conversions', 'Conversion Value', 'CTR', 'CVR', 
+  'ROAS', 'AOV', 'CPA',
+  // New columns for cart and checkout tracking
+  'Add to Cart Conv', 'Add to Cart Conv Value',
+  'Begin Checkout Conv', 'Begin Checkout Conv Value', 
+  'Purchase Conv', 'Purchase Conv Value'
+],
   
   LOCATION_COLUMNS: [
     'Campaign Name', 'Campaign Type', 'Country', 'State', 
@@ -322,10 +327,10 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     
     try {
       // Fetch sheets in parallel with progress updates
-      const fetchPromises = [
-        this.fetchSheetByName(sheetId, 'Product Performance'),
-        this.fetchSheetByName(sheetId, 'Location Revenue')
-      ];
+const fetchPromises = [
+  this.fetchSheetByName(sheetId, 'Enhanced Product Performance'), // Updated sheet name
+  this.fetchSheetByName(sheetId, 'Location Revenue')
+];
       
       // Update progress during fetch
       setTimeout(() => ProgressManager.updateProgress('fetch', 30), 1000);
@@ -340,12 +345,20 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
       try {
         productCSV = await this.fetchSheetByName(sheetId, 'ProductPerformance');
       } catch (e) {
-        try {
-          productCSV = await this.fetchSheetByName(sheetId, 'Product_Performance');
-        } catch (e2) {
-          throw new Error('Could not find "Product Performance" sheet');
-        }
-      }
+try {
+  productCSV = await this.fetchSheetByName(sheetId, 'EnhancedProductPerformance');
+} catch (e) {
+  try {
+    productCSV = await this.fetchSheetByName(sheetId, 'Enhanced_Product_Performance');
+  } catch (e2) {
+    // Also try the old sheet name as a final fallback
+    try {
+      productCSV = await this.fetchSheetByName(sheetId, 'Product Performance');
+    } catch (e3) {
+      throw new Error('Could not find "Enhanced Product Performance" sheet');
+    }
+  }
+}
       
       try {
         locationCSV = await this.fetchSheetByName(sheetId, 'LocationRevenue');
@@ -366,10 +379,10 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     // Parse with progress updates
     setTimeout(() => ProgressManager.updateProgress('parse', 50), 500);
     
-    const [productData, locationData] = await Promise.all([
-      this.parseSheetData(productCSV, 'Product Performance', this.PRODUCT_COLUMNS),
-      this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
-    ]);
+const [productData, locationData] = await Promise.all([
+  this.parseSheetData(productCSV, 'Enhanced Product Performance', this.PRODUCT_COLUMNS),
+  this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
+]);
     
 ProgressManager.completeStep('parse');
 
@@ -476,7 +489,7 @@ return { productData, locationData, productBuckets: finalBuckets };
           Make sure:
           <ul style="margin: 4px 0; padding-left: 20px;">
             <li>The sheet is shared with "Anyone with the link"</li>
-            <li>Sheet names are exactly "Product Performance" and "Location Revenue"</li>
+            <li>Sheet names are exactly "Enhanced Product Performance" and "Location Revenue"</li>
           </ul>
         </div>
       `;
