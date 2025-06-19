@@ -401,15 +401,37 @@ async function loadAndRenderROASBuckets() {
       });
     });
     
-    // Render metrics table with device aggregation
-    if (metricsTableContainer) {
-      renderROASMetricsTable(metricsTableContainer, result.data);
+    // *** PRESERVE ORIGINAL LOGIC FOR CHARTS AND TABLES ***
+    const filteredData = result.data;
+    
+    // Get bucket type to determine what to show/hide
+    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+    
+    // Process historic data for area charts (hide for Suggestions)
+    if (chartsContainer) {
+      if (bucketType === 'Suggestions') {
+        chartsContainer.style.display = 'none';
+      } else {
+        chartsContainer.style.display = '';
+        renderROASHistoricCharts(chartsContainer, filteredData);
+      }
     }
     
-    // Render channels container with device aggregation
+    // Render metrics table
+    if (metricsTableContainer) {
+      // Apply margin-top only for Suggestions bucket type
+      if (bucketType === 'Suggestions') {
+        metricsTableContainer.style.marginTop = '100px';
+        renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
+      } else {
+        metricsTableContainer.style.marginTop = '';
+        renderROASMetricsTable(metricsTableContainer, filteredData);
+      }
+    }
+    
+    // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
-      const bucketType = window.selectedBucketType || 'ROAS_Bucket';
       if (bucketType === 'Suggestions') {
         channelsContainer.style.display = 'none';
       } else {
@@ -418,9 +440,8 @@ async function loadAndRenderROASBuckets() {
       }
     }
     
-    // Initialize bucket distribution with ALL PRODUCTS data
+    // Initialize bucket distribution with ALL PRODUCTS data - KEEP ORIGINAL
     setTimeout(() => {
-      // Initialize preferences if not set
       if (!window.bucketDistributionPreferences) {
         window.bucketDistributionPreferences = {
           'Funnel_Bucket': true,
@@ -433,19 +454,15 @@ async function loadAndRenderROASBuckets() {
         };
       }
       
-      // Update right container to show overall distribution immediately
       const rightContainer = document.querySelector('#roas_buckets .right-container');
       if (rightContainer && window.roasBucketsData) {
-        // Clear the placeholder text and show actual content
         rightContainer.innerHTML = '';
         
-        // Add title
         const titleDiv = document.createElement('div');
         titleDiv.style.cssText = 'text-align: center; margin-bottom: 15px; color: #333; font-weight: 600;';
         titleDiv.textContent = 'Overall Portfolio Distribution';
         rightContainer.appendChild(titleDiv);
         
-        // Create scrollable content area
         const scrollableContent = document.createElement('div');
         scrollableContent.id = 'bucketDistributionContent';
         scrollableContent.style.cssText = `
@@ -454,12 +471,10 @@ async function loadAndRenderROASBuckets() {
           padding-right: 5px;
         `;
         
-        // Render bucket distribution
         renderBucketDistribution(scrollableContent, window.roasBucketsData);
         rightContainer.appendChild(scrollableContent);
       }
       
-      // Update channels and campaigns with no filter (show all)
       updateChannelsAndCampaignsForBucket(null);
     }, 300);
   } catch (error) {
@@ -1826,7 +1841,8 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  renderROASChannelsTableWithDevices(channelsTableContainer, filteredData, bucketFilter);
+  // *** USE ORIGINAL FUNCTION - JUST CHANGE CALL ***
+  renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
   
   // Create campaigns table
   const campaignsTitle = document.createElement('h3');
@@ -1839,7 +1855,8 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
   
-  renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+  // *** USE ORIGINAL FUNCTION - JUST CHANGE CALL ***
+  renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
 }
 
 function renderROASChannelsTableWithDevices(container, data, bucketFilter = null) {
@@ -3753,15 +3770,6 @@ function renderROASMetricsTable(container, data) {
     return acc;
   }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
   
-  // Helper function to create regular cell content
-  const createRegularCell = (value, isCenter = true) => {
-    return `
-      <div style="display: flex; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
-        <span style="font-weight: 600; font-size: 12px;">${value}</span>
-      </div>
-    `;
-  };
-  
   // Create table
   const table = document.createElement('table');
   table.style.cssText = `
@@ -3789,10 +3797,10 @@ function renderROASMetricsTable(container, data) {
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
@@ -3803,31 +3811,81 @@ function renderROASMetricsTable(container, data) {
   
   const tbody = document.createElement('tbody');
   
-  // Add bucket rows with device segmentation
+  // Use configuration colors
+  const bucketConfig = window.bucketConfig[bucketType];
+  const bucketColors = {};
+
+  // Sort buckets by configuration order (best first)
+  if (bucketType === 'Suggestions') {
+    // For Suggestions, sort by predefined order but allow for dynamic buckets
+    bucketMetrics.sort((a, b) => {
+      const orderA = bucketConfig.order.indexOf(a.bucket);
+      const orderB = bucketConfig.order.indexOf(b.bucket);
+      // If both are in order, use that
+      if (orderA !== -1 && orderB !== -1) return orderA - orderB;
+      // If only one is in order, it comes first
+      if (orderA !== -1) return -1;
+      if (orderB !== -1) return 1;
+      // Otherwise, alphabetical
+      return a.bucket.localeCompare(b.bucket);
+    });
+  } else {
+    bucketMetrics.sort((a, b) => {
+      const orderA = bucketConfig.order.indexOf(a.bucket);
+      const orderB = bucketConfig.order.indexOf(b.bucket);
+      return orderA - orderB;
+    });
+  }
+
+  bucketMetrics.forEach(bucket => {
+    bucketColors[bucket.bucket] = bucketConfig.colors[bucket.bucket] || '#999';
+  });
+  
+  // Helper function to create bar cell (stacked vertically)
+  const createBarCell = (value, total, formatValue, bucketColor) => {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+        <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+        <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+          <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+            <div style="height: 100%; background: ${bucketColor}; width: ${percentage}%; border-radius: 4px;"></div>
+          </div>
+          <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  };
+  
+  // Helper function for regular cells (with proper alignment)
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
   bucketMetrics.forEach(bucket => {
     // Main bucket row
     const row = document.createElement('tr');
     row.className = 'main-row';
-    row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #e0e0e0;';
-    
-    const roasStyle = bucket.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
-                      bucket.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
-                      'color: #F44336; font-weight: 600;';
+    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px; cursor: pointer;';
     
     row.innerHTML = `
-      <td style="padding: 12px 8px; font-weight: 600; color: #333; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9; ${roasStyle}">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.impressions.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.clicks.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.conversions.toFixed(1))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cost.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.convValue.toLocaleString())}</td>
+      <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
     `;
     
     tbody.appendChild(row);
@@ -3842,28 +3900,24 @@ function renderROASMetricsTable(container, data) {
           
           const deviceRow = document.createElement('tr');
           deviceRow.className = 'device-row';
-          deviceRow.style.cssText = 'background-color: #f8f9fa; border-left: 3px solid #007aff; font-size: 12px;';
-          
-          const deviceRoasStyle = deviceData.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
-                                  deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
-                                  'color: #F44336; font-weight: 600;';
+          deviceRow.style.cssText = 'background-color: #f8f9fa; border-left: 3px solid #007aff; font-size: 12px; height: 50px;';
           
           deviceRow.innerHTML = `
             <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
               ${deviceIcon} ${device}
             </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.roas.toFixed(2)}x</td>
             <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
             <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
             <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
             <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
           `;
           
           tbody.appendChild(deviceRow);
@@ -3871,6 +3925,70 @@ function renderROASMetricsTable(container, data) {
       });
     }
   });
+  
+  // Add summary row
+  const summaryRow = document.createElement('tr');
+  summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
+  
+  // Calculate summary metrics
+  const summary = {
+    totalProducts: bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0),
+    avgROAS: grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0,  // Use aggregate ROAS calculation
+    avgAOV: bucketMetrics.reduce((sum, bucket) => sum + (bucket.aov * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPA: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpa * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCTR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.ctr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCVR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cvr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPC: bucketMetrics.reduce((sum, bucket) => sum + (bucket.avgCPC * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    avgCPM: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpm * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
+    totalImpressions: grandTotals.impressions,
+    totalClicks: grandTotals.clicks,
+    totalConversions: grandTotals.conversions,
+    totalCost: grandTotals.cost,
+    totalConvValue: grandTotals.convValue
+  };
+  
+  summaryRow.innerHTML = `
+    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
+    </td>
+  `;
+  
+  tbody.appendChild(summaryRow);
   
   table.appendChild(thead);
   table.appendChild(tbody);
