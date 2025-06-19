@@ -8,10 +8,28 @@ window.userTrendPreferences = null;
 function getProductRecords(product) {
   if (!window.allRows || !product) return [];
   
-  return window.allRows.filter(record => 
+  const records = window.allRows.filter(record => 
     record.title === product.title && 
     record.source === product.source
   );
+  
+  console.log('[DEBUG getProductRecords] Filtering for:', {
+    title: product.title,
+    source: product.source
+  });
+  console.log('[DEBUG getProductRecords] Found records:', records.length);
+  
+  // Log unique combinations of search terms, locations, and devices
+  if (records.length > 0) {
+    const combinations = records.map(r => ({
+      searchTerm: r.q,
+      location: r.location_requested,
+      device: r.device
+    }));
+    console.log('[DEBUG getProductRecords] Unique combinations:', combinations);
+  }
+  
+  return records;
 }
 
 function getProductCombinations(product) {
@@ -2025,9 +2043,9 @@ function populateProductTables(productData, mode = 'channel') {
     // Main row
     tableHTML += `
       <tr class="main-row" data-key="${key}">
-        <td class="clickable-campaign" data-value="${key}" data-mode="${mode}">
-          <span class="expand-toggle">▶</span> ${key}
-        </td>
+<td class="clickable-campaign" data-value="${key}" data-mode="${mode}">
+  ${key}
+</td>
         <td>
           <div class="impression-bar-container">
             <div class="impression-bar" style="width: ${impressionBarWidth}%">
@@ -2062,7 +2080,7 @@ function populateProductTables(productData, mode = 'channel') {
           const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
           
           tableHTML += `
-            <tr class="device-row" data-parent="${key}" style="display: none;">
+            <tr class="device-row" data-parent="${key}">
               <td style="padding-left: 40px; font-size: 12px; color: #666;">
                 ${deviceIcon} ${device}
               </td>
@@ -2090,7 +2108,7 @@ function populateProductTables(productData, mode = 'channel') {
   `;
   
   tablesContainer.innerHTML = tableHTML;
-  
+/*  
   // Add expand/collapse functionality
   tablesContainer.querySelectorAll('.main-row').forEach(row => {
     row.addEventListener('click', function(e) {
@@ -2111,7 +2129,7 @@ function populateProductTables(productData, mode = 'channel') {
       }
     });
   });
-  
+  */
   // Add event listeners for sorting
   const headers = tablesContainer.querySelectorAll('th.sortable');
   headers.forEach(header => {
@@ -2177,15 +2195,6 @@ function populateProductTables(productData, mode = 'channel') {
       }
       .main-row:hover {
         background-color: #f0f0f0;
-      }
-      .expand-toggle {
-        display: inline-block;
-        width: 20px;
-        text-align: center;
-        font-size: 10px;
-        color: #666;
-        cursor: pointer;
-        user-select: none;
       }
     `;
     document.head.appendChild(style);
@@ -2331,7 +2340,28 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
   
   // Get ranking and visibility data from the same source as overview mode
   if (window.selectedGoogleAdsProduct) {
+    console.log('[DEBUG] Selected Product:', window.selectedGoogleAdsProduct);
+    
     const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
+    console.log('[DEBUG] Total Product Records:', productRecords.length);
+    
+    // Log first few records to see structure
+    if (productRecords.length > 0) {
+      console.log('[DEBUG] Sample Product Record Structure:', productRecords[0]);
+      console.log('[DEBUG] Record has device field?', 'device' in productRecords[0]);
+      
+      // Check what device values exist
+      const deviceValues = [...new Set(productRecords.map(r => r.device))];
+      console.log('[DEBUG] Unique device values in records:', deviceValues);
+      
+      // Check historical data structure
+      if (productRecords[0].historical_data && productRecords[0].historical_data.length > 0) {
+        console.log('[DEBUG] Sample Historical Data Item:', productRecords[0].historical_data[0]);
+      }
+    }
+    
+    // Log the device filter being applied
+    console.log('[DEBUG] Current device filter:', deviceFilter);
     
     Object.keys(groupedData).forEach(date => {
       const group = groupedData[date];
@@ -2350,24 +2380,75 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
       // Get ranking and visibility from product records for this specific date
       let totalRank = 0, totalVis = 0, rankCount = 0, visCount = 0;
       
+      // First, let's see what records we're working with for this date
+      const recordsWithDataForDate = [];
+      
       productRecords.forEach(record => {
         if (record.historical_data && Array.isArray(record.historical_data)) {
           const histItem = record.historical_data.find(item => item.date?.value === date);
           
-          // Get ranking data
-          if (histItem?.avg_position != null) {
-            totalRank += parseFloat(histItem.avg_position);
-            rankCount++;
+          if (histItem) {
+            recordsWithDataForDate.push({
+              device: record.device,
+              searchTerm: record.q,
+              location: record.location_requested,
+              avgPosition: histItem.avg_position,
+              visibility: histItem.visibility
+            });
           }
           
-          // Get daily visibility data
+          // Get ranking data
+          if (histItem?.avg_position != null) {
+            // Apply device filter if needed
+            if (deviceFilter === 'all' || !record.device) {
+              totalRank += parseFloat(histItem.avg_position);
+              rankCount++;
+            } else {
+              const deviceMap = {
+                'desk': 'desktop',
+                'mob': 'mobile',
+                'tab': 'tablet'
+              };
+              const filterDevice = deviceMap[deviceFilter];
+              
+              // Check if record device matches filter (case-insensitive)
+              if (record.device && record.device.toLowerCase().includes(filterDevice)) {
+                totalRank += parseFloat(histItem.avg_position);
+                rankCount++;
+                console.log(`[DEBUG] Matched device ${record.device} with filter ${filterDevice}`);
+              }
+            }
+          }
+          
+          // Similar logic for visibility...
           if (histItem?.visibility != null) {
-            const dailyVisibility = parseFloat(histItem.visibility);
-            totalVis += dailyVisibility;
-            visCount++;
+            if (deviceFilter === 'all' || !record.device) {
+              const dailyVisibility = parseFloat(histItem.visibility);
+              totalVis += dailyVisibility;
+              visCount++;
+            } else {
+              const deviceMap = {
+                'desk': 'desktop',
+                'mob': 'mobile',
+                'tab': 'tablet'
+              };
+              const filterDevice = deviceMap[deviceFilter];
+              
+              if (record.device && record.device.toLowerCase().includes(filterDevice)) {
+                const dailyVisibility = parseFloat(histItem.visibility);
+                totalVis += dailyVisibility;
+                visCount++;
+              }
+            }
           }
         }
       });
+      
+      // Log what we found for this date
+      if (recordsWithDataForDate.length > 0 && date === Object.keys(groupedData)[0]) { // Log only for first date
+        console.log(`[DEBUG] Records with data for ${date}:`, recordsWithDataForDate);
+        console.log(`[DEBUG] Ranking counts - Total: ${rankCount}, Visibility counts - Total: ${visCount}`);
+      }
       
       // Set ranking (null if no data available)
       group.ranking = rankCount > 0 ? Math.round((totalRank / rankCount) * 100) / 100 : null;
@@ -5212,7 +5293,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   
   if (productInfo) productInfo.style.display = 'block';
   if (productMetrics) productMetrics.style.display = 'block';
-  if (productRankingMap) productRankingMap.style.display = 'none'; // Hide in overview
+  if (productRankingMap) productRankingMap.style.display = 'none'; // ADD THIS LINE
   if (productTables) productTables.style.display = 'block';
   
   // Hide map and ROAS Buckets
