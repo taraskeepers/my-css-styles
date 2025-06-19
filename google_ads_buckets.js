@@ -277,8 +277,8 @@ async function loadAndRenderROASBuckets() {
 window.roasBucketsData = result.data;
 
 // Store all unique bucket names for suggestions
-const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
-if (bucketType === 'SUGGESTIONS_BUCKET') {
+const initialBucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+if (initialBucketType === 'SUGGESTIONS_BUCKET') {
   window.allBucketNames = Array.from(new Set(
     result.data.flatMap(row => {
       const bucketData = window.extractBucketData(row);
@@ -294,9 +294,9 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
 } else {
   // For other bucket types, get unique values
   window.allBucketNames = Array.from(new Set(
-    result.data.map(row => {
+result.data.map(row => {
       const bucketData = window.extractBucketData(row);
-      return bucketData ? bucketData[bucketType] : null;
+      return bucketData ? bucketData[initialBucketType] : null;
     }).filter(Boolean)
   ));
 }
@@ -314,15 +314,15 @@ renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'a
       });
     });
     
-    // *** PRESERVE ORIGINAL LOGIC FOR CHARTS AND TABLES ***
+// *** PRESERVE ORIGINAL LOGIC FOR CHARTS AND TABLES ***
     const filteredData = result.data;
     
     // Get bucket type to determine what to show/hide
-    const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+    const currentBucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
     
-    // Process historic data for area charts (hide for Suggestions)
+// Process historic data for area charts (hide for Suggestions)
     if (chartsContainer) {
-      if (bucketType === 'SUGGESTIONS_BUCKET') {
+      if (currentBucketType === 'SUGGESTIONS_BUCKET') {
         chartsContainer.style.display = 'none';
       } else {
         chartsContainer.style.display = '';
@@ -330,10 +330,10 @@ renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'a
       }
     }
     
-    // Render metrics table
+// Render metrics table
     if (metricsTableContainer) {
       // Apply margin-top only for Suggestions bucket type
-      if (bucketType === 'SUGGESTIONS_BUCKET') {
+      if (currentBucketType === 'SUGGESTIONS_BUCKET') {
         metricsTableContainer.style.marginTop = '100px';
         renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
       } else {
@@ -342,10 +342,10 @@ renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'a
       }
     }
     
-    // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
+// Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
-      if (bucketType === 'SUGGESTIONS_BUCKET') {
+      if (currentBucketType === 'SUGGESTIONS_BUCKET') {
         channelsContainer.style.display = 'none';
       } else {
         channelsContainer.style.display = '';
@@ -449,14 +449,14 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
       }
       return row;
     }).filter(Boolean);
-  }
+}
   
-  const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+  const currentBucketType2 = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   
-  // Group products by bucket type
+// Group products by bucket type
   const bucketGroups = {};
   
-  if (bucketType === 'SUGGESTIONS_BUCKET') {
+  if (currentBucketType2 === 'SUGGESTIONS_BUCKET') {
     // Parse the JSON string for suggestions
     filteredData.forEach(row => {
       if (row['SUGGESTIONS_BUCKET']) {
@@ -479,8 +479,8 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
       bucketGroups[bucket] = [];
     });
     
-    filteredData.forEach(product => {
-      const bucket = product[bucketType];
+filteredData.forEach(product => {
+      const bucket = product[currentBucketType2];
       if (bucket && bucketGroups[bucket]) {
         bucketGroups[bucket].push(product);
       }
