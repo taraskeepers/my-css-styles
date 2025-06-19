@@ -563,7 +563,7 @@ setTimeout(() => {
               if (window.selectedGoogleAdsProduct) {
                 const campaignValue = this.value;
                 const channelValue = document.getElementById('channelTypeFilter').value;
-                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
               }
             });
           }
@@ -575,7 +575,7 @@ setTimeout(() => {
               if (window.selectedGoogleAdsProduct) {
                 const campaignValue = document.getElementById('campaignNameFilter').value;
                 const channelValue = this.value;
-                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
               }
             });
           }
@@ -590,7 +590,7 @@ if (deviceFilterElement && !deviceFilterElement.hasAttribute('data-listener-atta
       const campaignValue = document.getElementById('campaignNameFilter').value;
       const channelValue = document.getElementById('channelTypeFilter').value;
       // Note: ranking map doesn't use device filter as it shows all devices
-      populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+      populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
     }
     
     // Update chart ranking data based on device filter
@@ -996,7 +996,7 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   });
 }
 
-function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all') {
+function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all', deviceFilter = 'all') {
   const container = document.getElementById('product_ranking_map');
   if (!container) return;
 
@@ -1037,30 +1037,55 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
     if (channelFilter !== 'all') {
       filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
     }
+    // Add device filter
+if (deviceFilter !== 'all') {
+  const deviceMap = {
+    'desk': 'DESKTOP',
+    'mob': 'MOBILE'
+  };
+  const deviceValue = deviceMap[deviceFilter];
+  if (deviceValue) {
+    filteredData = filteredData.filter(row => row.Device === deviceValue);
+  }
+}
     
     // Get ranking data from product records
     const productRecords = getProductRecords(product);
-    const rankingsByDate = new Map();
+let filteredProductRecords = productRecords;
+
+// Filter product records by device if needed
+if (deviceFilter !== 'all') {
+  const deviceMap = {
+    'desk': 'desktop',
+    'mob': 'mobile'
+  };
+  const filterDevice = deviceMap[deviceFilter];
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && record.device.toLowerCase() === filterDevice;
+  });
+}
     
-    // Collect rankings by date within the date range
-    productRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        record.historical_data.forEach(item => {
-          if (item.date?.value && item.avg_position != null) {
-            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-            if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
-              const date = item.date.value;
-              const ranking = parseFloat(item.avg_position);
-              
-              if (!rankingsByDate.has(date)) {
-                rankingsByDate.set(date, []);
-              }
-              rankingsByDate.get(date).push(ranking);
-            }
+const rankingsByDate = new Map();
+
+// Collect rankings by date within the date range
+filteredProductRecords.forEach(record => {
+  if (record.historical_data && Array.isArray(record.historical_data)) {
+    record.historical_data.forEach(item => {
+      if (item.date?.value && item.avg_position != null) {
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+          const date = item.date.value;
+          const ranking = parseFloat(item.avg_position);
+          
+          if (!rankingsByDate.has(date)) {
+            rankingsByDate.set(date, []);
           }
-        });
+          rankingsByDate.get(date).push(ranking);
+        }
       }
     });
+  }
+});
     
     // Calculate average ranking per date
     const avgRankingByDate = new Map();
@@ -1145,17 +1170,27 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
     // Check if segmented mode is on
     const isSegmented = document.getElementById('rankingMapSegmentedToggle')?.checked || false;
     
-    // Create toggle HTML
-    let containerHTML = `
-      <div class="ranking-map-segmented-toggle">
-        <label>Detailed Mode</label>
-        <label class="chart-mode-switch">
-          <input type="checkbox" id="rankingMapSegmentedToggle" ${isSegmented ? 'checked' : ''}>
-          <span class="chart-mode-slider"></span>
-        </label>
-        <label>Segmented Mode</label>
-      </div>
-    `;
+// Create toggle HTML
+let containerHTML = `
+  <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <label style="font-weight: 600; font-size: 13px;">Device:</label>
+      <select id="rankingMapDeviceFilter" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+        <option value="all" ${deviceFilter === 'all' ? 'selected' : ''}>All dev</option>
+        <option value="desk" ${deviceFilter === 'desk' ? 'selected' : ''}>Desk</option>
+        <option value="mob" ${deviceFilter === 'mob' ? 'selected' : ''}>Mob</option>
+      </select>
+    </div>
+    <div class="ranking-map-segmented-toggle">
+      <label>Detailed Mode</label>
+      <label class="chart-mode-switch">
+        <input type="checkbox" id="rankingMapSegmentedToggle" ${isSegmented ? 'checked' : ''}>
+        <span class="chart-mode-slider"></span>
+      </label>
+      <label>Segmented Mode</label>
+    </div>
+  </div>
+`;
     
     if (isSegmented) {
       // Segmented mode - aggregate into 4 segments
@@ -1368,10 +1403,16 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
     
     container.innerHTML = containerHTML;
     
-    // Add event listener for toggle
-    document.getElementById('rankingMapSegmentedToggle').addEventListener('change', function() {
-      populateProductRankingMap(product, campaignFilter, channelFilter);
-    });
+// Add event listener for toggle
+document.getElementById('rankingMapSegmentedToggle').addEventListener('change', function() {
+  populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
+});
+
+// Add event listener for device filter
+document.getElementById('rankingMapDeviceFilter').addEventListener('change', function() {
+  const newDeviceFilter = this.value;
+  populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
+});
     
   }).catch(error => {
     console.error('[populateProductRankingMap] Error:', error);
