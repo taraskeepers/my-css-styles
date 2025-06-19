@@ -321,57 +321,62 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     console.log('[Google Sheets] Sheet ID:', sheetId);
     ProgressManager.completeStep('extract');
     
-    // STEP 2: Fetch sheets data
-    ProgressManager.startStep('fetch', 'Downloading sheet data from Google...');
-    let productCSV, locationCSV;
-    
-    try {
-      // Fetch sheets in parallel with progress updates
-const fetchPromises = [
-  this.fetchSheetByName(sheetId, 'Enhanced Product Performance'), // Updated sheet name
-  this.fetchSheetByName(sheetId, 'Location Revenue')
-];
-      
-      // Update progress during fetch
-      setTimeout(() => ProgressManager.updateProgress('fetch', 30), 1000);
-      setTimeout(() => ProgressManager.updateProgress('fetch', 60), 3000);
-      setTimeout(() => ProgressManager.updateProgress('fetch', 90), 6000);
-      
-      [productCSV, locationCSV] = await Promise.all(fetchPromises);
-    } catch (fetchError) {
-      // Try alternative sheet names
-      ProgressManager.updateUI('Trying alternative sheet names...');
-      
-      try {
-        productCSV = await this.fetchSheetByName(sheetId, 'ProductPerformance');
-      } catch (e) {
+// STEP 2: Fetch sheets data
+ProgressManager.startStep('fetch', 'Downloading sheet data from Google...');
+let productCSV, locationCSV;
+
 try {
-  productCSV = await this.fetchSheetByName(sheetId, 'EnhancedProductPerformance');
-} catch (e) {
+  // Try to fetch both sheets
+  const fetchPromises = [
+    this.fetchSheetByName(sheetId, 'Enhanced Product Performance'),
+    this.fetchSheetByName(sheetId, 'Location Revenue').catch(() => null) // Don't fail if Location Revenue is missing
+  ];
+  
+  // Update progress during fetch
+  setTimeout(() => ProgressManager.updateProgress('fetch', 30), 1000);
+  setTimeout(() => ProgressManager.updateProgress('fetch', 60), 3000);
+  setTimeout(() => ProgressManager.updateProgress('fetch', 90), 6000);
+  
+  [productCSV, locationCSV] = await Promise.all(fetchPromises);
+} catch (fetchError) {
+  // Try alternative sheet names for product sheet
+  ProgressManager.updateUI('Trying alternative sheet names...');
+  
   try {
-    productCSV = await this.fetchSheetByName(sheetId, 'Enhanced_Product_Performance');
-  } catch (e2) {
-    // Also try the old sheet name as a final fallback
+    productCSV = await this.fetchSheetByName(sheetId, 'EnhancedProductPerformance');
+  } catch (e) {
     try {
-      productCSV = await this.fetchSheetByName(sheetId, 'Product Performance');
-    } catch (e3) {
-      throw new Error('Could not find "Enhanced Product Performance" sheet');
+      productCSV = await this.fetchSheetByName(sheetId, 'Enhanced_Product_Performance');
+    } catch (e2) {
+      try {
+        productCSV = await this.fetchSheetByName(sheetId, 'Product Performance');
+      } catch (e3) {
+        throw new Error('Could not find "Enhanced Product Performance" sheet');
+      }
+    }
+  }
+  
+  // Try to get Location Revenue if we haven't already
+  if (!locationCSV) {
+    try {
+      locationCSV = await this.fetchSheetByName(sheetId, 'LocationRevenue');
+    } catch (e) {
+      try {
+        locationCSV = await this.fetchSheetByName(sheetId, 'Location_Revenue');
+      } catch (e2) {
+        console.warn('[Google Sheets] Location Revenue sheet not found - continuing without it');
+        locationCSV = null;
+      }
     }
   }
 }
-      
-      try {
-        locationCSV = await this.fetchSheetByName(sheetId, 'LocationRevenue');
-      } catch (e) {
-        try {
-          locationCSV = await this.fetchSheetByName(sheetId, 'Location_Revenue');
-        } catch (e2) {
-          throw new Error('Could not find "Location Revenue" sheet');
-        }
-      }
-    }
-    
-    ProgressManager.completeStep('fetch');
+
+// Check if at least product data was fetched
+if (!productCSV) {
+  throw new Error('Could not find required product performance sheet');
+}
+
+ProgressManager.completeStep('fetch');
     
     // STEP 3: Parse the CSV data
     ProgressManager.startStep('parse', 'Processing and validating data rows...');
@@ -379,10 +384,19 @@ try {
     // Parse with progress updates
     setTimeout(() => ProgressManager.updateProgress('parse', 50), 500);
     
-const [productData, locationData] = await Promise.all([
-  this.parseSheetData(productCSV, 'Enhanced Product Performance', this.PRODUCT_COLUMNS),
-  this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS)
-]);
+// Parse product data (required)
+const productData = await this.parseSheetData(productCSV, 'Enhanced Product Performance', this.PRODUCT_COLUMNS);
+
+// Parse location data if available (optional)
+let locationData = [];
+if (locationCSV) {
+  try {
+    locationData = await this.parseSheetData(locationCSV, 'Location Revenue', this.LOCATION_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Location Revenue data:', error);
+    locationData = [];
+  }
+}
     
 ProgressManager.completeStep('parse');
 
@@ -442,8 +456,8 @@ if (statusEl) {
       ✓ Google Ads Data Uploaded Successfully
     </div>
     <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-      Product Performance: ${productData.length} rows<br>
-      Location Revenue: ${locationData.length} rows<br>
+Product Performance: ${productData.length} rows<br>
+${locationData.length > 0 ? `Location Revenue: ${locationData.length} rows<br>` : 'Location Revenue: Not available<br>'}
       ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
       <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
     </div>
