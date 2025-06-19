@@ -316,21 +316,46 @@ async function loadAndRenderROASBuckets() {
     metricsTableContainer.innerHTML = '';
   }
   
-// Create wrapper for buckets container
-const wrapper = document.createElement('div');
-wrapper.style.cssText = 'display: flex; gap: 15px; min-height: 450px; padding: 10px;';
+  // Create wrapper for buckets container
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display: flex; gap: 15px; min-height: 450px; padding: 10px;';
 
-// Left container for funnel (increased width for three columns + funnel + descriptions)
-const leftContainer = document.createElement('div');
-leftContainer.style.cssText = 'width: 520px; min-height: 100%; position: relative;';
+  // Left container for funnel (increased width for three columns + funnel + descriptions)
+  const leftContainer = document.createElement('div');
+  leftContainer.style.cssText = 'width: 520px; min-height: 100%; position: relative;';
   
-// Right container for metrics
-const rightContainer = document.createElement('div');
-rightContainer.className = 'right-container';
-rightContainer.style.cssText = 'flex: 1; min-height: 500px; max-height: 800px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
+  // Add device switcher to left container
+  const deviceSwitcherContainer = document.createElement('div');
+  deviceSwitcherContainer.style.cssText = 'margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;';
+  
+  deviceSwitcherContainer.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-weight: 600; font-size: 12px; color: #333;">Device Filter:</span>
+      <div class="device-filter-group">
+        <input type="radio" id="device_all_buckets" name="device_filter_buckets" value="all" checked>
+        <label for="device_all_buckets" style="margin-right: 15px; font-size: 12px;">All Devices</label>
+        
+        <input type="radio" id="device_desktop_buckets" name="device_filter_buckets" value="DESKTOP">
+        <label for="device_desktop_buckets" style="margin-right: 15px; font-size: 12px;">💻 Desktop</label>
+        
+        <input type="radio" id="device_mobile_buckets" name="device_filter_buckets" value="MOBILE">
+        <label for="device_mobile_buckets" style="margin-right: 15px; font-size: 12px;">📱 Mobile</label>
+        
+        <input type="radio" id="device_tablet_buckets" name="device_filter_buckets" value="TABLET">
+        <label for="device_tablet_buckets" style="font-size: 12px;">📋 Tablet</label>
+      </div>
+    </div>
+  `;
+  
+  leftContainer.appendChild(deviceSwitcherContainer);
+  
+  // Right container for metrics
+  const rightContainer = document.createElement('div');
+  rightContainer.className = 'right-container';
+  rightContainer.style.cssText = 'flex: 1; min-height: 500px; max-height: 800px; background: #f8f9fa; border-radius: 8px; padding: 20px; overflow-y: auto;';
   rightContainer.innerHTML = '<div style="color: #999; text-align: center; margin-top: 40px;">Select a bucket to view metrics</div>';
   
-wrapper.appendChild(leftContainer);
+  wrapper.appendChild(leftContainer);
   wrapper.appendChild(rightContainer);
   bucketsContainer.appendChild(wrapper);
   
@@ -339,20 +364,12 @@ wrapper.appendChild(leftContainer);
     const accountPrefix = window.currentAccount || 'acc1';
     const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
     
-    // Open IndexedDB
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
       request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open database'));
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
     });
     
-    // Check if projectData store exists
-    if (!db.objectStoreNames.contains('projectData')) {
-      console.error('[loadAndRenderROASBuckets] projectData store not found');
-      throw new Error('projectData store not found');
-    }
-    
-    // Get data from IndexedDB
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
     const getRequest = objectStore.get(tableName);
@@ -365,175 +382,160 @@ wrapper.appendChild(leftContainer);
     db.close();
     
     if (!result || !result.data) {
-      console.error('[loadAndRenderROASBuckets] No data found for', tableName);
-      leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
-      return;
+      throw new Error('No data found');
     }
     
-    // Filter for "All" campaign records only
-    const filteredData = result.data.filter(row => row['Campaign Name'] === 'All');
+    // Store data globally for device filtering
+    window.roasBucketsData = result.data;
     
-    if (!filteredData || filteredData.length === 0) {
-      leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">No bucket data available</div>';
-      return;
+    // Initial render with all devices
+    renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, 'all');
+    
+    // Add device filter event listeners
+    const deviceRadios = deviceSwitcherContainer.querySelectorAll('input[name="device_filter_buckets"]');
+    deviceRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.checked) {
+          renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, result.data, this.value);
+        }
+      });
+    });
+    
+    // Render metrics table with device aggregation
+    if (metricsTableContainer) {
+      renderROASMetricsTable(metricsTableContainer, result.data);
     }
     
-    // Store data globally for metrics updates
-    window.roasBucketsData = filteredData;
-    
-// Get bucket type to determine what to show/hide
-    const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-    
-    // Process historic data for area charts (hide for Suggestions)
-    if (chartsContainer) {
+    // Render channels container with device aggregation
+    const channelsContainer = document.getElementById('roas_channels');
+    if (channelsContainer) {
+      const bucketType = window.selectedBucketType || 'ROAS_Bucket';
       if (bucketType === 'Suggestions') {
-        chartsContainer.style.display = 'none';
+        channelsContainer.style.display = 'none';
       } else {
-        chartsContainer.style.display = '';
-        renderROASHistoricCharts(chartsContainer, filteredData);
+        channelsContainer.style.display = '';
+        renderROASChannelsContainer(channelsContainer, result.data, null);
       }
     }
     
-// Render metrics table
-if (metricsTableContainer) {
-  // Apply margin-top only for Suggestions bucket type
-  if (bucketType === 'Suggestions') {
-    metricsTableContainer.style.marginTop = '100px';
-    renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
-  } else {
-    metricsTableContainer.style.marginTop = '';
-    renderROASMetricsTable(metricsTableContainer, filteredData);
-  }
-}
-
-// Get bucket values dynamically based on selected type
-const bucketCounts = {};
-
-// Get ALL unique bucket values from the entire dataset (not just filtered data)
-// This ensures we show all possible buckets, even if they have 0 products currently
-const allData = result.data.filter(row => row['Campaign Name'] === 'All');
-let allUniqueBucketValues;
-
-if (bucketType === 'Suggestions') {
-  // For Suggestions, split the semicolon-separated values
-  const allSuggestions = new Set();
-  allData.forEach(row => {
-    if (row[bucketType]) {
-      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(s => allSuggestions.add(s));
-    }
-  });
-  allUniqueBucketValues = [...allSuggestions];
-} else {
-  allUniqueBucketValues = [...new Set(allData.map(row => row[bucketType]))].filter(Boolean);
-}
-
-// Initialize all possible buckets with 0 count
-allUniqueBucketValues.forEach(bucketValue => {
-  bucketCounts[bucketValue] = 0;
-});
-
-// Count products in each bucket from filtered data
-filteredData.forEach(row => {
-  const bucketValue = row[bucketType];
-  
-  // Handle Suggestions differently (can have multiple values)
-  if (bucketType === 'Suggestions') {
-    if (bucketValue) {
-      // Split suggestions by semicolon and count each
-      const suggestions = bucketValue.split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(suggestion => {
-        if (!bucketCounts[suggestion]) {
-          bucketCounts[suggestion] = 0;
-        }
-        bucketCounts[suggestion]++;
-      });
-    }
-  } else {
-    // Normal bucket counting
-    if (bucketValue && bucketCounts.hasOwnProperty(bucketValue)) {
-      bucketCounts[bucketValue]++;
-    }
-  }
-});
-
-// Store all unique bucket values globally for use in renderROASFunnel
-window.allBucketNames = allUniqueBucketValues;
-    
-    // Calculate grand totals from all products
-    const grandTotalImpressions = filteredData.reduce((sum, row) => sum + (parseInt(row.Impressions) || 0), 0);
-    const grandTotalClicks = filteredData.reduce((sum, row) => sum + (parseInt(row.Clicks) || 0), 0);
-    const grandTotalConversions = filteredData.reduce((sum, row) => sum + (parseFloat(row.Conversions) || 0), 0);
-    
-    // Create bucket data array
-    const total = Object.values(bucketCounts).reduce((sum, count) => sum + count, 0);
-    const bucketData = Object.entries(bucketCounts).map(([name, count]) => ({
-      name,
-      count,
-      percentage: total > 0 ? (count / total * 100).toFixed(1) : 0
-    }));
-    
-renderROASFunnel(leftContainer, bucketData);
-    
-// Render channels container (use original unfiltered data, not filteredData)
-// Hide for Suggestions bucket type
-const channelsContainer = document.getElementById('roas_channels');
-if (channelsContainer) {
-  if (bucketType === 'Suggestions') {
-    channelsContainer.style.display = 'none';
-  } else {
-    channelsContainer.style.display = '';
-    renderROASChannelsContainer(channelsContainer, result.data, null);
-  }
-}
-// Initialize bucket distribution with ALL PRODUCTS data
-setTimeout(() => {
-  // Initialize preferences if not set
-  if (!window.bucketDistributionPreferences) {
-    window.bucketDistributionPreferences = {
-      'Funnel_Bucket': true,
-      'ML_Cluster': true,
-      'Spend_Bucket': true,
-      'Custom_Tier': true,
-      'ROAS_Bucket': false,
-      'ROI_Bucket': false,
-      'Pricing_Bucket': false
-    };
-  }
-  
-  // Update right container to show overall distribution immediately
-  const rightContainer = document.querySelector('#roas_buckets .right-container');
-  if (rightContainer && window.roasBucketsData) {
-    // Clear the placeholder text and show actual content
-    rightContainer.innerHTML = '';
-    
-    // Add title
-    const titleDiv = document.createElement('div');
-    titleDiv.style.cssText = 'text-align: center; margin-bottom: 15px; color: #333; font-weight: 600;';
-    titleDiv.textContent = 'Overall Portfolio Distribution';
-    rightContainer.appendChild(titleDiv);
-    
-    // Create scrollable content area
-    const scrollableContent = document.createElement('div');
-    scrollableContent.id = 'bucketDistributionContent';
-    scrollableContent.style.cssText = `
-      height: 420px;
-      overflow-y: auto;
-      padding-right: 5px;
-    `;
-    
-    // Render bucket distribution
-    renderBucketDistribution(scrollableContent, window.roasBucketsData);
-    rightContainer.appendChild(scrollableContent);
-  }
-  
-  // Update channels and campaigns with no filter (show all)
-  updateChannelsAndCampaignsForBucket(null);
-}, 300);
+    // Initialize bucket distribution with ALL PRODUCTS data
+    setTimeout(() => {
+      // Initialize preferences if not set
+      if (!window.bucketDistributionPreferences) {
+        window.bucketDistributionPreferences = {
+          'Funnel_Bucket': true,
+          'ML_Cluster': true,
+          'Spend_Bucket': true,
+          'Custom_Tier': true,
+          'ROAS_Bucket': false,
+          'ROI_Bucket': false,
+          'Pricing_Bucket': false
+        };
+      }
+      
+      // Update right container to show overall distribution immediately
+      const rightContainer = document.querySelector('#roas_buckets .right-container');
+      if (rightContainer && window.roasBucketsData) {
+        // Clear the placeholder text and show actual content
+        rightContainer.innerHTML = '';
+        
+        // Add title
+        const titleDiv = document.createElement('div');
+        titleDiv.style.cssText = 'text-align: center; margin-bottom: 15px; color: #333; font-weight: 600;';
+        titleDiv.textContent = 'Overall Portfolio Distribution';
+        rightContainer.appendChild(titleDiv);
+        
+        // Create scrollable content area
+        const scrollableContent = document.createElement('div');
+        scrollableContent.id = 'bucketDistributionContent';
+        scrollableContent.style.cssText = `
+          height: 420px;
+          overflow-y: auto;
+          padding-right: 5px;
+        `;
+        
+        // Render bucket distribution
+        renderBucketDistribution(scrollableContent, window.roasBucketsData);
+        rightContainer.appendChild(scrollableContent);
+      }
+      
+      // Update channels and campaigns with no filter (show all)
+      updateChannelsAndCampaignsForBucket(null);
+    }, 300);
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
     leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
   }
+}
+
+// Add this new function to handle device filtering for buckets
+function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, deviceFilter) {
+  // Clear the funnel area (preserve device switcher)
+  const deviceSwitcher = leftContainer.querySelector('div');
+  leftContainer.innerHTML = '';
+  leftContainer.appendChild(deviceSwitcher);
+  
+  let filteredData = data;
+  
+  // Apply device filter if not 'all'
+  if (deviceFilter !== 'all') {
+    filteredData = data.filter(row => row.Device === deviceFilter);
+  } else {
+    // For 'all', use only 'All' campaign records to avoid double counting
+    filteredData = data.filter(row => row['Campaign Name'] === 'All');
+  }
+  
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  
+  // Group products by bucket type
+  const bucketGroups = {};
+  
+  if (bucketType === 'Suggestions') {
+    const allSuggestions = new Set();
+    filteredData.forEach(row => {
+      if (row['Suggestions']) {
+        const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
+        suggestions.forEach(s => allSuggestions.add(s));
+      }
+    });
+    allSuggestions.forEach(suggestion => {
+      bucketGroups[suggestion] = [];
+    });
+  } else {
+    const allBuckets = new Set(filteredData.map(row => row[bucketType]).filter(Boolean));
+    allBuckets.forEach(bucket => {
+      bucketGroups[bucket] = [];
+    });
+  }
+  
+  // Group products
+  filteredData.forEach(product => {
+    if (bucketType === 'Suggestions') {
+      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
+      suggestions.forEach(suggestion => {
+        if (bucketGroups[suggestion]) {
+          bucketGroups[suggestion].push(product);
+        }
+      });
+    } else {
+      const bucket = product[bucketType];
+      if (bucket && bucketGroups[bucket]) {
+        bucketGroups[bucket].push(product);
+      }
+    }
+  });
+  
+  // Calculate bucket data
+  const totalProductCount = Object.values(bucketGroups).reduce((sum, products) => sum + products.length, 0);
+  
+  const bucketData = Object.entries(bucketGroups).map(([bucketName, products]) => ({
+    name: bucketName,
+    count: products.length,
+    percentage: totalProductCount > 0 ? (products.length / totalProductCount * 100).toFixed(1) : 0
+  }));
+  
+  // Render the funnel with filtered data
+  renderROASFunnel(leftContainer, bucketData);
 }
 
 function renderROASFunnel(container, bucketData) {
@@ -1797,7 +1799,7 @@ function updateBucketDistributionPopup(products) {
 function renderROASChannelsContainer(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-// Apply bucket filter if provided
+  // Apply bucket filter if provided
   let filteredData = data;
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   if (bucketFilter) {
@@ -1824,7 +1826,7 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
+  renderROASChannelsTableWithDevices(channelsTableContainer, filteredData, bucketFilter);
   
   // Create campaigns table
   const campaignsTitle = document.createElement('h3');
@@ -1837,7 +1839,511 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
   
-  renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
+  renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+}
+
+function renderROASChannelsTableWithDevices(container, data, bucketFilter = null) {
+  container.innerHTML = '';
+  
+  // Get 'All' campaign records for main aggregation
+  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  
+  // Get all records for device segmentation
+  const allRecords = data;
+  
+  // Group by Channel Type for main aggregation
+  const channelGroups = {
+    'PERFORMANCE_MAX': [],
+    'SHOPPING': []
+  };
+  
+  allCampaignRecords.forEach(product => {
+    const channel = product['Channel Type'];
+    if (channel && channelGroups[channel]) {
+      channelGroups[channel].push(product);
+    }
+  });
+  
+  // Group by Channel Type and Device for segmentation
+  const deviceChannelGroups = {
+    'PERFORMANCE_MAX': {},
+    'SHOPPING': {}
+  };
+  
+  allRecords.forEach(product => {
+    const channel = product['Channel Type'];
+    const device = product.Device || 'Unknown';
+    
+    if (channel && deviceChannelGroups[channel]) {
+      if (!deviceChannelGroups[channel][device]) {
+        deviceChannelGroups[channel][device] = [];
+      }
+      deviceChannelGroups[channel][device].push(product);
+    }
+  });
+  
+  // Calculate aggregated metrics for each channel (main rows)
+  const channelMetrics = Object.entries(channelGroups).map(([channelName, products]) => {
+    if (products.length === 0) {
+      return {
+        channel: channelName,
+        count: 0,
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        convValue: 0,
+        avgCPC: 0,
+        cpm: 0,
+        ctr: 0,
+        cvr: 0,
+        cpa: 0,
+        roas: 0,
+        aov: 0
+      };
+    }
+    
+    const totals = products.reduce((acc, product) => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+      return acc;
+    }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+    
+    const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+    const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+    const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+    const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+    const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+    const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+    
+    return {
+      channel: channelName,
+      count: products.length,
+      impressions: totals.impressions,
+      clicks: totals.clicks,
+      cost: totals.cost,
+      conversions: totals.conversions,
+      convValue: totals.convValue,
+      avgCPC,
+      cpm,
+      ctr,
+      cvr,
+      cpa,
+      roas,
+      aov
+    };
+  });
+  
+  // Calculate device-specific metrics for each channel
+  const deviceMetrics = {};
+  Object.entries(deviceChannelGroups).forEach(([channelName, devices]) => {
+    deviceMetrics[channelName] = {};
+    Object.entries(devices).forEach(([device, products]) => {
+      const totals = products.reduce((acc, product) => {
+        acc.impressions += parseInt(product.Impressions) || 0;
+        acc.clicks += parseInt(product.Clicks) || 0;
+        acc.cost += parseFloat(product.Cost) || 0;
+        acc.conversions += parseFloat(product.Conversions) || 0;
+        acc.convValue += parseFloat(product.ConvValue) || 0;
+        return acc;
+      }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+      
+      const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+      const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+      const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+      const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+      const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+      
+      deviceMetrics[channelName][device] = {
+        count: products.length,
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        cost: totals.cost,
+        conversions: totals.conversions,
+        convValue: totals.convValue,
+        avgCPC,
+        cpm,
+        ctr,
+        cvr,
+        cpa,
+        roas,
+        aov
+      };
+    });
+  });
+  
+  // Helper function to create regular cell content
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
+  // Create table
+  const table = document.createElement('table');
+  table.style.cssText = `
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: fixed;
+  `;
+  
+  // Create header (same as bucket table but with Channel Type)
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">Channel Type</th>
+      <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+      <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+      <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
+    </tr>
+  `;
+  
+  const tbody = document.createElement('tbody');
+  
+  // Add channel rows with device segmentation
+  channelMetrics.forEach(channel => {
+    // Main channel row
+    const row = document.createElement('tr');
+    row.className = 'main-row';
+    row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #e0e0e0;';
+    
+    const roasStyle = channel.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                      channel.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                      'color: #F44336; font-weight: 600;';
+    
+    row.innerHTML = `
+      <td style="padding: 12px 8px; font-weight: 600; color: #333; vertical-align: middle; background: #ffffff;">${channel.channel}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9; ${roasStyle}">${createRegularCell(channel.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.aov.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpa.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.avgCPC.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpm.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.impressions.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.clicks.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.conversions.toFixed(1))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cost.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.convValue.toLocaleString())}</td>
+    `;
+    
+    tbody.appendChild(row);
+    
+    // Device rows
+    if (deviceMetrics[channel.channel]) {
+      const deviceOrder = ['DESKTOP', 'MOBILE', 'TABLET'];
+      deviceOrder.forEach(device => {
+        if (deviceMetrics[channel.channel][device]) {
+          const deviceData = deviceMetrics[channel.channel][device];
+          const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+          
+          const deviceRow = document.createElement('tr');
+          deviceRow.className = 'device-row';
+          deviceRow.style.cssText = 'background-color: #f8f9fa; border-left: 3px solid #007aff; font-size: 12px;';
+          
+          const deviceRoasStyle = deviceData.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                                  deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                                  'color: #F44336; font-weight: 600;';
+          
+          deviceRow.innerHTML = `
+            <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
+              ${deviceIcon} ${device}
+            </td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+          `;
+          
+          tbody.appendChild(deviceRow);
+        }
+      });
+    }
+  });
+  
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// Add this new function for campaigns table with device segmentation
+function renderROASCampaignsTableWithDevices(container, data, bucketFilter = null) {
+  container.innerHTML = '';
+  
+  // Exclude records where Campaign Name = "All", include all others for main aggregation
+  let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  if (bucketFilter) {
+    if (bucketType === 'Suggestions') {
+      validRecords = validRecords.filter(row => {
+        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+        return suggestions.includes(bucketFilter);
+      });
+    } else {
+      validRecords = validRecords.filter(row => row[bucketType] === bucketFilter);
+    }
+  }
+  
+  // Get unique campaign names
+  const uniqueCampaigns = [...new Set(validRecords.map(row => row['Campaign Name']))].filter(Boolean);
+  
+  // Group by Campaign Name for main aggregation (use only 'All' campaign equivalents or aggregate manually)
+  const campaignGroups = {};
+  uniqueCampaigns.forEach(campaignName => {
+    campaignGroups[campaignName] = validRecords.filter(row => row['Campaign Name'] === campaignName);
+  });
+  
+  // Group by Campaign Name and Device for segmentation
+  const deviceCampaignGroups = {};
+  uniqueCampaigns.forEach(campaignName => {
+    deviceCampaignGroups[campaignName] = {};
+    const campaignRecords = validRecords.filter(row => row['Campaign Name'] === campaignName);
+    
+    campaignRecords.forEach(product => {
+      const device = product.Device || 'Unknown';
+      if (!deviceCampaignGroups[campaignName][device]) {
+        deviceCampaignGroups[campaignName][device] = [];
+      }
+      deviceCampaignGroups[campaignName][device].push(product);
+    });
+  });
+  
+  // Calculate aggregated metrics for each campaign (need to aggregate across devices)
+  const campaignMetrics = Object.entries(campaignGroups).map(([campaignName, allRecords]) => {
+    // Aggregate across all device records for this campaign
+    const totals = allRecords.reduce((acc, product) => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+      return acc;
+    }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+    
+    const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+    const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+    const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+    const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+    const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+    const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+    
+    return {
+      campaign: campaignName,
+      count: allRecords.length,
+      impressions: totals.impressions,
+      clicks: totals.clicks,
+      cost: totals.cost,
+      conversions: totals.conversions,
+      convValue: totals.convValue,
+      avgCPC,
+      cpm,
+      ctr,
+      cvr,
+      cpa,
+      roas,
+      aov
+    };
+  });
+  
+  // Calculate device-specific metrics for each campaign
+  const deviceMetrics = {};
+  Object.entries(deviceCampaignGroups).forEach(([campaignName, devices]) => {
+    deviceMetrics[campaignName] = {};
+    Object.entries(devices).forEach(([device, products]) => {
+      const totals = products.reduce((acc, product) => {
+        acc.impressions += parseInt(product.Impressions) || 0;
+        acc.clicks += parseInt(product.Clicks) || 0;
+        acc.cost += parseFloat(product.Cost) || 0;
+        acc.conversions += parseFloat(product.Conversions) || 0;
+        acc.convValue += parseFloat(product.ConvValue) || 0;
+        return acc;
+      }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+      
+      const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+      const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+      const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+      const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+      const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+      
+      deviceMetrics[campaignName][device] = {
+        count: products.length,
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        cost: totals.cost,
+        conversions: totals.conversions,
+        convValue: totals.convValue,
+        avgCPC,
+        cpm,
+        ctr,
+        cvr,
+        cpa,
+        roas,
+        aov
+      };
+    });
+  });
+  
+  // Helper function to create regular cell content
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
+  // Create table
+  const table = document.createElement('table');
+  table.style.cssText = `
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: fixed;
+  `;
+  
+  // Create header (same as other tables but with Campaign Name)
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">Campaign Name</th>
+      <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+      <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+      <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
+    </tr>
+  `;
+  
+  const tbody = document.createElement('tbody');
+  
+  // Add campaign rows with device segmentation
+  campaignMetrics.forEach(campaign => {
+    // Main campaign row
+    const row = document.createElement('tr');
+    row.className = 'main-row';
+    row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #e0e0e0;';
+    
+    const roasStyle = campaign.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                      campaign.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                      'color: #F44336; font-weight: 600;';
+    
+    row.innerHTML = `
+      <td style="padding: 12px 8px; font-weight: 600; color: #333; vertical-align: middle; background: #ffffff;">${campaign.campaign}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9; ${roasStyle}">${createRegularCell(campaign.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + campaign.aov.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cpa.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + campaign.avgCPC.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cpm.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(campaign.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.impressions.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(campaign.clicks.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.conversions.toFixed(1))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cost.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + campaign.convValue.toLocaleString())}</td>
+    `;
+    
+    tbody.appendChild(row);
+    
+    // Device rows
+    if (deviceMetrics[campaign.campaign]) {
+      const deviceOrder = ['DESKTOP', 'MOBILE', 'TABLET'];
+      deviceOrder.forEach(device => {
+        if (deviceMetrics[campaign.campaign][device]) {
+          const deviceData = deviceMetrics[campaign.campaign][device];
+          const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+          
+          const deviceRow = document.createElement('tr');
+          deviceRow.className = 'device-row';
+          deviceRow.style.cssText = 'background-color: #f8f9fa; border-left: 3px solid #007aff; font-size: 12px;';
+          
+          const deviceRoasStyle = deviceData.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                                  deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                                  'color: #F44336; font-weight: 600;';
+          
+          deviceRow.innerHTML = `
+            <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
+              ${deviceIcon} ${device}
+            </td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+          `;
+          
+          tbody.appendChild(deviceRow);
+        }
+      });
+    }
+  });
+  
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
 }
 
 function renderROASCampaignsTable(container, data, bucketFilter = null) {
@@ -3062,51 +3568,86 @@ border-left: 3px solid ${colorPalette[index % colorPalette.length]};
 function renderROASMetricsTable(container, data) {
   container.innerHTML = '';
   
-  // Filter for "All" campaign records only
+  // Filter for "All" campaign records only to get the main aggregated data
   const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
   
-  // Group by ROAS Bucket
-const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+  // Get all records (including device-specific ones) for device segmentation
+  const allRecords = data;
   
-// Get unique bucket values dynamically
-let uniqueBuckets;
-if (bucketType === 'Suggestions') {
-  // For Suggestions, extract individual suggestions
-  const allSuggestions = new Set();
-  allCampaignRecords.forEach(row => {
-    if (row[bucketType]) {
-      const suggestions = row[bucketType].split(';').map(s => s.trim()).filter(s => s);
-      suggestions.forEach(s => allSuggestions.add(s));
-    }
-  });
-  uniqueBuckets = [...allSuggestions];
-} else {
-  uniqueBuckets = [...new Set(allCampaignRecords.map(row => row[bucketType]))].filter(Boolean);
-}
-
-const bucketGroups = {};
-uniqueBuckets.forEach(bucket => {
-  bucketGroups[bucket] = [];
-});
+  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   
-allCampaignRecords.forEach(product => {
+  // Group products by bucket for main aggregation (using 'All' campaign records)
+  const bucketGroups = {};
+  
+  // Initialize bucket groups based on bucket type
   if (bucketType === 'Suggestions') {
-    // Handle Suggestions differently - a product can be in multiple buckets
-    const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
-    suggestions.forEach(suggestion => {
-      if (bucketGroups[suggestion]) {
-        bucketGroups[suggestion].push(product);
+    const allSuggestions = new Set();
+    allCampaignRecords.forEach(row => {
+      if (row['Suggestions']) {
+        const suggestions = row['Suggestions'].split(';').map(s => s.trim()).filter(s => s);
+        suggestions.forEach(s => allSuggestions.add(s));
       }
     });
+    allSuggestions.forEach(suggestion => {
+      bucketGroups[suggestion] = [];
+    });
   } else {
-    const bucket = product[bucketType];
-    if (bucket && bucketGroups[bucket]) {
-      bucketGroups[bucket].push(product);
-    }
+    const allBuckets = new Set(allCampaignRecords.map(row => row[bucketType]).filter(Boolean));
+    allBuckets.forEach(bucket => {
+      bucketGroups[bucket] = [];
+    });
   }
-});
   
-  // Calculate aggregated metrics for each bucket
+  // Group allCampaignRecords by bucket
+  allCampaignRecords.forEach(product => {
+    if (bucketType === 'Suggestions') {
+      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
+      suggestions.forEach(suggestion => {
+        if (bucketGroups[suggestion]) {
+          bucketGroups[suggestion].push(product);
+        }
+      });
+    } else {
+      const bucket = product[bucketType];
+      if (bucket && bucketGroups[bucket]) {
+        bucketGroups[bucket].push(product);
+      }
+    }
+  });
+  
+  // Create device aggregation data for segmentation
+  const deviceBucketGroups = {};
+  
+  // Group ALL records (not just 'All' campaign) by bucket and device
+  allRecords.forEach(product => {
+    const device = product.Device || 'Unknown';
+    
+    if (bucketType === 'Suggestions') {
+      const suggestions = product[bucketType] ? product[bucketType].split(';').map(s => s.trim()) : [];
+      suggestions.forEach(suggestion => {
+        if (!deviceBucketGroups[suggestion]) {
+          deviceBucketGroups[suggestion] = {};
+        }
+        if (!deviceBucketGroups[suggestion][device]) {
+          deviceBucketGroups[suggestion][device] = [];
+        }
+        deviceBucketGroups[suggestion][device].push(product);
+      });
+    } else {
+      const bucket = product[bucketType];
+      if (bucket) {
+        if (!deviceBucketGroups[bucket]) {
+          deviceBucketGroups[bucket] = {};
+        }
+        if (!deviceBucketGroups[bucket][device]) {
+          deviceBucketGroups[bucket][device] = [];
+        }
+        deviceBucketGroups[bucket][device].push(product);
+      }
+    }
+  });
+  
+  // Calculate aggregated metrics for each bucket (main rows)
   const bucketMetrics = Object.entries(bucketGroups).map(([bucketName, products]) => {
     if (products.length === 0) {
       return {
@@ -3162,6 +3703,46 @@ allCampaignRecords.forEach(product => {
     };
   });
   
+  // Calculate device-specific metrics for each bucket
+  const deviceMetrics = {};
+  Object.entries(deviceBucketGroups).forEach(([bucketName, devices]) => {
+    deviceMetrics[bucketName] = {};
+    Object.entries(devices).forEach(([device, products]) => {
+      const totals = products.reduce((acc, product) => {
+        acc.impressions += parseInt(product.Impressions) || 0;
+        acc.clicks += parseInt(product.Clicks) || 0;
+        acc.cost += parseFloat(product.Cost) || 0;
+        acc.conversions += parseFloat(product.Conversions) || 0;
+        acc.convValue += parseFloat(product.ConvValue) || 0;
+        return acc;
+      }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+      
+      const avgCPC = totals.clicks > 0 ? totals.cost / totals.clicks : 0;
+      const cpm = totals.impressions > 0 ? (totals.cost / totals.impressions) * 1000 : 0;
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 0;
+      const cpa = totals.conversions > 0 ? totals.cost / totals.conversions : 0;
+      const roas = totals.cost > 0 ? totals.convValue / totals.cost : 0;
+      const aov = totals.conversions > 0 ? totals.convValue / totals.conversions : 0;
+      
+      deviceMetrics[bucketName][device] = {
+        count: products.length,
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        cost: totals.cost,
+        conversions: totals.conversions,
+        convValue: totals.convValue,
+        avgCPC,
+        cpm,
+        ctr,
+        cvr,
+        cpa,
+        roas,
+        aov
+      };
+    });
+  });
+  
   // Calculate totals for percentage bars
   const grandTotals = bucketMetrics.reduce((acc, bucket) => {
     acc.impressions += bucket.impressions;
@@ -3172,7 +3753,16 @@ allCampaignRecords.forEach(product => {
     return acc;
   }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
   
-// Create table
+  // Helper function to create regular cell content
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+  
+  // Create table
   const table = document.createElement('table');
   table.style.cssText = `
     width: 100%;
@@ -3185,7 +3775,7 @@ allCampaignRecords.forEach(product => {
     table-layout: fixed;
   `;
   
-// Create header
+  // Create header
   const thead = document.createElement('thead');
   thead.innerHTML = `
     <tr style="background: #f8f9fa;">
@@ -3199,10 +3789,10 @@ allCampaignRecords.forEach(product => {
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
-      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
       <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
@@ -3211,154 +3801,95 @@ allCampaignRecords.forEach(product => {
     </tr>
   `;
   
-  // Create body
   const tbody = document.createElement('tbody');
   
-// Use configuration colors
-const bucketConfig = window.bucketConfig[bucketType];
-const bucketColors = {};
-
-// Sort buckets by configuration order (best first)
-if (bucketType === 'Suggestions') {
-  // For Suggestions, sort by predefined order but allow for dynamic buckets
-  bucketMetrics.sort((a, b) => {
-    const orderA = bucketConfig.order.indexOf(a.bucket);
-    const orderB = bucketConfig.order.indexOf(b.bucket);
-    // If both are in order, use that
-    if (orderA !== -1 && orderB !== -1) return orderA - orderB;
-    // If only one is in order, it comes first
-    if (orderA !== -1) return -1;
-    if (orderB !== -1) return 1;
-    // Otherwise, alphabetical
-    return a.bucket.localeCompare(b.bucket);
-  });
-} else {
-  bucketMetrics.sort((a, b) => {
-    const orderA = bucketConfig.order.indexOf(a.bucket);
-    const orderB = bucketConfig.order.indexOf(b.bucket);
-    return orderA - orderB;
-  });
-}
-
-bucketMetrics.forEach(bucket => {
-  bucketColors[bucket.bucket] = bucketConfig.colors[bucket.bucket] || '#999';
-});
-  
-// Helper function to create bar cell (stacked vertically)
-  const createBarCell = (value, total, formatValue, bucketColor) => {
-    const percentage = total > 0 ? (value / total) * 100 : 0;
-    return `
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
-        <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
-        <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
-          <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
-            <div style="height: 100%; background: ${bucketColor}; width: ${percentage}%; border-radius: 4px;"></div>
-          </div>
-          <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
-        </div>
-      </div>
-    `;
-  };
-  
-  // Helper function for regular cells (with proper alignment)
-  const createRegularCell = (value, isCenter = true) => {
-    return `
-      <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
-        <span style="font-weight: 600; font-size: 12px;">${value}</span>
-      </div>
-    `;
-  };
-
+  // Add bucket rows with device segmentation
   bucketMetrics.forEach(bucket => {
+    // Main bucket row
     const row = document.createElement('tr');
-    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
+    row.className = 'main-row';
+    row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #e0e0e0;';
     
-row.innerHTML = `
-      <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.impressions, grandTotals.impressions, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.clicks, grandTotals.clicks, (v) => v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.conversions, grandTotals.conversions, (v) => v.toFixed(1), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(bucket.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
-      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(bucket.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), bucketColors[bucket.bucket])}</td>
+    const roasStyle = bucket.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                      bucket.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                      'color: #F44336; font-weight: 600;';
+    
+    row.innerHTML = `
+      <td style="padding: 12px 8px; font-weight: 600; color: #333; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9; ${roasStyle}">${createRegularCell(bucket.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.aov.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpa.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.avgCPC.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cpm.toFixed(2))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.impressions.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(bucket.clicks.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(bucket.conversions.toFixed(1))}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + bucket.cost.toLocaleString())}</td>
+      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + bucket.convValue.toLocaleString())}</td>
     `;
     
-tbody.appendChild(row);
+    tbody.appendChild(row);
+    
+    // Device rows
+    if (deviceMetrics[bucket.bucket]) {
+      const deviceOrder = ['DESKTOP', 'MOBILE', 'TABLET'];
+      deviceOrder.forEach(device => {
+        if (deviceMetrics[bucket.bucket][device]) {
+          const deviceData = deviceMetrics[bucket.bucket][device];
+          const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+          
+          const deviceRow = document.createElement('tr');
+          deviceRow.className = 'device-row';
+          deviceRow.style.cssText = 'background-color: #f8f9fa; border-left: 3px solid #007aff; font-size: 12px;';
+          
+          const deviceRoasStyle = deviceData.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
+                                  deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
+                                  'color: #F44336; font-weight: 600;';
+          
+          deviceRow.innerHTML = `
+            <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
+              ${deviceIcon} ${device}
+            </td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+          `;
+          
+          tbody.appendChild(deviceRow);
+        }
+      });
+    }
   });
-  
-  // Add summary row
-  const summaryRow = document.createElement('tr');
-  summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
-  
-// Calculate summary metrics
-  const summary = {
-    totalProducts: bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0),
-    avgROAS: grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0,  // Use aggregate ROAS calculation
-    avgAOV: bucketMetrics.reduce((sum, bucket) => sum + (bucket.aov * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    avgCPA: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpa * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    avgCTR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.ctr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    avgCVR: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cvr * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    avgCPC: bucketMetrics.reduce((sum, bucket) => sum + (bucket.avgCPC * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    avgCPM: bucketMetrics.reduce((sum, bucket) => sum + (bucket.cpm * bucket.count), 0) / bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0) || 0,
-    totalImpressions: grandTotals.impressions,
-    totalClicks: grandTotals.clicks,
-    totalConversions: grandTotals.conversions,
-    totalCost: grandTotals.cost,
-    totalConvValue: grandTotals.convValue
-  };
-  
-summaryRow.innerHTML = `
-    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
-    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
-    </td>
-    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
-    </td>
-    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
-    </td>
-    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
-    </td>
-    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #e8f5e8;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
-    </td>
-  `;
-  
-  tbody.appendChild(summaryRow);
   
   table.appendChild(thead);
   table.appendChild(tbody);
   container.appendChild(table);
+  
+  // Add device row styling if not already added
+  if (!document.getElementById('roas-device-row-styles')) {
+    const style = document.createElement('style');
+    style.id = 'roas-device-row-styles';
+    style.textContent = `
+      .device-row:hover {
+        background-color: #e9ecef !important;
+      }
+      .main-row:hover {
+        background-color: #f0f0f0;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
 
 function renderSuggestionsMetricsTable(container, data) {
