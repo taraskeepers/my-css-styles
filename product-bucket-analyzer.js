@@ -112,12 +112,15 @@ window.productBucketAnalyzer = {
       const uniqueCombinations = new Set();
       const uniqueProducts = new Set();
       
+      // Define delimiter
+      const DELIMITER = '~~~';
+      
       // DEBUG: Track what we're filtering
       let allCombinationCount = 0;
       let nonAllCombinationCount = 0;
       
       Object.keys(currentGrouped).forEach(key => {
-        const parts = key.split('|');
+        const parts = key.split(DELIMITER);
         if (parts.length === 4) {
           const [product, campaign, channel, device] = parts;
           
@@ -131,7 +134,7 @@ window.productBucketAnalyzer = {
             allCombinationCount++;
           } else {
             nonAllCombinationCount++;
-            const combination = parts.slice(0, 3).join('|');
+            const combination = parts.slice(0, 3).join(DELIMITER);
             uniqueCombinations.add(combination);
           }
           
@@ -142,7 +145,10 @@ window.productBucketAnalyzer = {
 
       // DEBUG: Log filtering results
       console.log(`[DEBUG] Filtering results: ${allCombinationCount} All/All combinations, ${nonAllCombinationCount} specific combinations`);
-      console.log(`[DEBUG] Unique combinations found:`, Array.from(uniqueCombinations).slice(0, 10));
+      console.log(`[DEBUG] Unique combinations found:`, Array.from(uniqueCombinations).slice(0, 10).map(c => {
+        const parts = c.split(DELIMITER);
+        return `${parts[0].substring(0, 30)}...|${parts[1]}|${parts[2]}`;
+      }));
       console.log(`[DEBUG] Total unique combinations (non-All): ${uniqueCombinations.size}`);
       console.log(`[DEBUG] Total unique products: ${uniqueProducts.size}`);
 
@@ -156,11 +162,11 @@ window.productBucketAnalyzer = {
       // Process each specific campaign/channel combination
       for (let i = 0; i < allCombinations.length; i++) {
         const baseCombination = allCombinations[i];
-        const [productTitle, campaignName, channelType] = baseCombination.split('|');
+        const [productTitle, campaignName, channelType] = baseCombination.split(DELIMITER);
         
         // DEBUG
         if (i < 5) {
-          console.log(`[DEBUG] Processing combination: ${baseCombination}`);
+          console.log(`[DEBUG] Processing combination: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
         }
         
         const rowData = this.processProductCombination(
@@ -169,17 +175,18 @@ window.productBucketAnalyzer = {
           campaignName,
           channelType,
           currentGrouped,
-          prevGrouped
+          prevGrouped,
+          DELIMITER
         );
         
         if (rowData) {
           bucketData.push(rowData);
           if (i < 5) {
-            console.log(`[DEBUG] Successfully created record for: ${baseCombination}`);
+            console.log(`[DEBUG] Successfully created record for: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
           }
         } else {
           if (i < 5) {
-            console.log(`[DEBUG] No data returned for: ${baseCombination}`);
+            console.log(`[DEBUG] No data returned for: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
           }
         }
       }
@@ -187,7 +194,7 @@ window.productBucketAnalyzer = {
       // Process "All/All" combinations for each product
       for (let i = 0; i < allProducts.length; i++) {
         const productTitle = allProducts[i];
-        const allCombination = `${productTitle}|All|All`;
+        const allCombination = `${productTitle}${DELIMITER}All${DELIMITER}All`;
         
         const rowData = this.processProductCombination(
           allCombination,
@@ -195,7 +202,8 @@ window.productBucketAnalyzer = {
           'All',
           'All',
           currentGrouped,
-          prevGrouped
+          prevGrouped,
+          DELIMITER
         );
         
         if (rowData) {
@@ -249,7 +257,7 @@ window.productBucketAnalyzer = {
   },
 
   // Process a single product/campaign/channel combination
-  processProductCombination(baseCombination, productTitle, campaignName, channelType, currentGrouped, prevGrouped) {
+  processProductCombination(baseCombination, productTitle, campaignName, channelType, currentGrouped, prevGrouped, delimiter = '~~~') {
     // Calculate metrics for each device segment
     const deviceSegments = ['desktop', 'mobile', 'tablet', 'all_devices'];
     const deviceMetrics = {};
@@ -257,7 +265,7 @@ window.productBucketAnalyzer = {
     
     // Calculate metrics for each actual device type
     ['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
-      const key = `${baseCombination}|${device}`;
+      const key = `${baseCombination}${delimiter}${device}`;
       const currentRows = currentGrouped[key] || [];
       const prevRows = prevGrouped[key] || [];
       
@@ -273,7 +281,7 @@ window.productBucketAnalyzer = {
     const allCurrentRows = [];
     const allPrevRows = [];
     ['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
-      const key = `${baseCombination}|${device}`;
+      const key = `${baseCombination}${delimiter}${device}`;
       if (currentGrouped[key]) allCurrentRows.push(...currentGrouped[key]);
       if (prevGrouped[key]) allPrevRows.push(...prevGrouped[key]);
     });
@@ -449,6 +457,9 @@ window.productBucketAnalyzer = {
   groupByProductCampaignChannelDevice(data) {
     const grouped = {};
     
+    // Use a delimiter that won't appear in product titles
+    const DELIMITER = '~~~';
+    
     // DEBUG: Track unique campaign/channel combinations
     const campaignChannelCombos = new Set();
     
@@ -460,10 +471,10 @@ window.productBucketAnalyzer = {
       
       // Track non-All combinations
       if (campaignName !== 'All' && channelType !== 'All' && campaignName !== '' && channelType !== '') {
-        campaignChannelCombos.add(`${campaignName}|${channelType}`);
+        campaignChannelCombos.add(`${campaignName}${DELIMITER}${channelType}`);
       }
       
-      const key = `${productTitle}|${campaignName}|${channelType}|${device}`;
+      const key = `${productTitle}${DELIMITER}${campaignName}${DELIMITER}${channelType}${DELIMITER}${device}`;
       if (!grouped[key]) {
         grouped[key] = [];
       }
@@ -472,13 +483,13 @@ window.productBucketAnalyzer = {
 
     // DEBUG: Log campaign/channel combinations found
     console.log(`[DEBUG] Raw data contains ${campaignChannelCombos.size} unique campaign/channel combos:`, 
-      Array.from(campaignChannelCombos).slice(0, 10));
+      Array.from(campaignChannelCombos).slice(0, 10).map(c => c.replace(/~~~/g, '|')));
 
     // Also create "All" campaign/channel aggregates by device
     const productDeviceData = {};
     data.forEach(row => {
       const device = row.Device || 'UNKNOWN';
-      const productKey = `${row['Product Title']}|${device}`;
+      const productKey = `${row['Product Title']}${DELIMITER}${device}`;
       if (!productDeviceData[productKey]) {
         productDeviceData[productKey] = [];
       }
@@ -487,15 +498,20 @@ window.productBucketAnalyzer = {
 
     // Add the "All" entries to grouped
     for (const [key, rows] of Object.entries(productDeviceData)) {
-      const [productTitle, device] = key.split('|');
-      const allKey = `${productTitle}|All|All|${device}`;
+      const lastDelimiterIndex = key.lastIndexOf(DELIMITER);
+      const productTitle = key.substring(0, lastDelimiterIndex);
+      const device = key.substring(lastDelimiterIndex + DELIMITER.length);
+      const allKey = `${productTitle}${DELIMITER}All${DELIMITER}All${DELIMITER}${device}`;
       grouped[allKey] = rows;
     }
 
     // DEBUG: Log final grouped keys
-    const nonAllKeys = Object.keys(grouped).filter(k => !k.includes('|All|All|'));
+    const nonAllKeys = Object.keys(grouped).filter(k => !k.includes(`${DELIMITER}All${DELIMITER}All${DELIMITER}`));
     console.log(`[DEBUG] Grouped data contains ${nonAllKeys.length} non-All keys`);
-    console.log(`[DEBUG] Sample non-All keys:`, nonAllKeys.slice(0, 10));
+    console.log(`[DEBUG] Sample non-All keys:`, nonAllKeys.slice(0, 10).map(k => {
+      const parts = k.split(DELIMITER);
+      return `${parts[0].substring(0, 50)}...|${parts[1]}|${parts[2]}|${parts[3]}`;
+    }));
 
     return grouped;
   },
