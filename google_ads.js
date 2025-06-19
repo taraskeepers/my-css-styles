@@ -419,7 +419,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
     
     if (currentViewMode === 'viewOverviewGoogleAds') {
       if (productInfoContainer) productInfoContainer.style.display = 'block';
-      if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
+      if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
       if (productTablesContainer) productTablesContainer.style.display = 'block';
       if (productMetricsContainer) productMetricsContainer.style.display = 'block';
     }
@@ -2800,29 +2800,29 @@ function renderProductMetricsChart(containerId, chartData) {
     border-radius: 8px;
     border: 1px solid #dee2e6;
   `;
-  
-// Define metrics configuration with individual y-axes
-const metricsConfig = [
-  { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y1', active: false, type: 'bar' },
-  { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y2', active: false, type: 'bar' },
-  { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y3', active: false, type: 'line' },
-  { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y4', active: true, type: 'line' },
-  { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y5', active: false, type: 'line' },
-  { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y6', active: false, type: 'line' },
-  { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y7', active: false, type: 'line' },
-  { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y8', active: false, type: 'line' },
-  { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y9', active: false, type: 'line' },
-  { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y10', active: false, type: 'line' },
-  { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y11', active: true, type: 'line' },
-  { key: 'visibility', label: 'Visibility (%)', color: '#87CEEB', yAxisID: 'y12', active: true, type: 'line', fill: true }
-];
 
-// Apply user preferences if they exist
-if (window.userMetricPreferences) {
-  metricsConfig.forEach(metric => {
-    metric.active = window.userMetricPreferences[metric.key] || false;
-  });
-}
+  // Define metrics configuration with individual y-axes
+  const metricsConfig = [
+    { key: 'impressions', label: 'Impressions', color: '#007aff', yAxisID: 'y1', active: false, type: 'bar' },
+    { key: 'clicks', label: 'Clicks', color: '#34c759', yAxisID: 'y2', active: false, type: 'bar' },
+    { key: 'cost', label: 'Cost ($)', color: '#ff3b30', yAxisID: 'y3', active: false, type: 'line' },
+    { key: 'conversions', label: 'Conversions', color: '#ff9500', yAxisID: 'y4', active: true, type: 'line' },
+    { key: 'conversionValue', label: 'Conversion Value ($)', color: '#af52de', yAxisID: 'y5', active: false, type: 'line' },
+    { key: 'ctr', label: 'CTR (%)', color: '#5ac8fa', yAxisID: 'y6', active: false, type: 'line' },
+    { key: 'cvr', label: 'CVR (%)', color: '#ffcc00', yAxisID: 'y7', active: false, type: 'line' },
+    { key: 'roas', label: 'ROAS', color: '#ff2d55', yAxisID: 'y8', active: false, type: 'line' },
+    { key: 'aov', label: 'AOV ($)', color: '#00c7be', yAxisID: 'y9', active: false, type: 'line' },
+    { key: 'cpa', label: 'CPA ($)', color: '#30b0c7', yAxisID: 'y10', active: false, type: 'line' },
+    { key: 'ranking', label: 'Avg Ranking', color: '#8e44ad', yAxisID: 'y11', active: true, type: 'line' },
+    { key: 'visibility', label: 'Visibility (%)', color: '#87CEEB', yAxisID: 'y12', active: true, type: 'line', fill: true }
+  ];
+
+  // Apply user preferences if they exist
+  if (window.userMetricPreferences) {
+    metricsConfig.forEach(metric => {
+      metric.active = window.userMetricPreferences[metric.key] || false;
+    });
+  }
   
   // Create toggle buttons
   metricsConfig.forEach(metric => {
@@ -2842,112 +2842,165 @@ if (window.userMetricPreferences) {
       user-select: none;
     `;
     
-button.addEventListener('click', () => {
-  metric.active = !metric.active;
-  button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
-  button.style.backgroundColor = metric.active ? metric.color : 'white';
-  button.style.color = metric.active ? 'white' : metric.color;
-  
-  // Save user preferences
-  if (!window.userMetricPreferences) {
-    window.userMetricPreferences = {};
-  }
-  window.userMetricPreferences[metric.key] = metric.active;
-  
-  // Update chart
-  updateChartVisibility();
-});
+    button.addEventListener('click', () => {
+      metric.active = !metric.active;
+      button.className = `metric-toggle-btn ${metric.active ? 'active' : 'inactive'}`;
+      button.style.backgroundColor = metric.active ? metric.color : 'white';
+      button.style.color = metric.active ? 'white' : metric.color;
+      
+      // Save user preferences
+      if (!window.userMetricPreferences) {
+        window.userMetricPreferences = {};
+      }
+      window.userMetricPreferences[metric.key] = metric.active;
+      
+      // Update chart
+      updateChartVisibility();
+    });
     
     toggleContainer.appendChild(button);
   });
   
   container.appendChild(toggleContainer);
   
-// Create canvas for chart
-const canvas = document.createElement('canvas');
-canvas.style.width = '100%';
-canvas.style.height = '450px'; // Fixed height instead of calc()
-canvas.style.maxHeight = '450px';
-container.appendChild(canvas);
+  // Create canvas for chart
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '450px';
+  canvas.style.maxHeight = '450px';
+  container.appendChild(canvas);
   
-// Create datasets
-const datasets = metricsConfig.map(metric => ({
-  label: metric.label,
-  data: chartData[metric.key],
-  borderColor: metric.color,
-  backgroundColor: metric.fill ? metric.color + '40' : metric.color + '20',
-  borderWidth: metric.key === 'ranking' ? 4 : 2, // 2x thicker for ranking
-  pointRadius: 3,
-  pointHoverRadius: 5,
-  tension: 0.3,
-  yAxisID: metric.yAxisID,
-  type: metric.type,
-  fill: metric.fill || false,
-  hidden: !metric.active,
-  metricKey: metric.key
-}));
+  // Create datasets
+  const datasets = [];
   
-// Create scales object for all y-axes (but only show the active ones)
-const scales = {
-  x: {
-    type: 'category',
-    title: {
-      display: true,
-      text: 'Date',
-      font: { size: 12 }
-    },
-    ticks: {
-      maxRotation: 45,
-      minRotation: 45,
-      font: { size: 10 },
-      callback: function(value, index) {
-        const dateStr = this.getLabelForValue(value);
-        if (dateStr) {
-          // Convert YYYY-MM-DD to DD/MM
-          const dateParts = dateStr.split('-');
-          if (dateParts.length === 3) {
-            return `${dateParts[2]}/${dateParts[1]}`;
+  // Special handling for ranking - create separate lines for mobile and desktop
+  const rankingMetric = metricsConfig.find(m => m.key === 'ranking');
+  if (rankingMetric) {
+    // Get ranking data from product records separated by device
+    const rankingDataByDevice = getRankingDataByDevice(chartData.dates);
+    
+    // Desktop ranking line
+    datasets.push({
+      label: 'Desktop Ranking',
+      data: rankingDataByDevice.desktop,
+      borderColor: '#6B46C1', // Purple for desktop
+      backgroundColor: '#6B46C1' + '20',
+      borderWidth: 4,
+      borderDash: [0, 0], // Solid line
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointStyle: 'rect', // Square points for desktop
+      tension: 0.3,
+      yAxisID: rankingMetric.yAxisID,
+      type: 'line',
+      fill: false,
+      hidden: !rankingMetric.active,
+      metricKey: 'ranking_desktop',
+      isRanking: true
+    });
+    
+    // Mobile ranking line
+    datasets.push({
+      label: 'Mobile Ranking',
+      data: rankingDataByDevice.mobile,
+      borderColor: '#E11D48', // Red for mobile
+      backgroundColor: '#E11D48' + '20',
+      borderWidth: 4,
+      borderDash: [8, 4], // Dashed line for mobile
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointStyle: 'circle', // Circle points for mobile
+      tension: 0.3,
+      yAxisID: rankingMetric.yAxisID,
+      type: 'line',
+      fill: false,
+      hidden: !rankingMetric.active,
+      metricKey: 'ranking_mobile',
+      isRanking: true
+    });
+  }
+  
+  // Add all other metrics
+  metricsConfig.forEach(metric => {
+    if (metric.key === 'ranking') return; // Skip ranking as we handled it above
+    
+    datasets.push({
+      label: metric.label,
+      data: chartData[metric.key],
+      borderColor: metric.color,
+      backgroundColor: metric.fill ? metric.color + '40' : metric.color + '20',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      yAxisID: metric.yAxisID,
+      type: metric.type,
+      fill: metric.fill || false,
+      hidden: !metric.active,
+      metricKey: metric.key
+    });
+  });
+  
+  // Create scales object for all y-axes
+  const scales = {
+    x: {
+      type: 'category',
+      title: {
+        display: true,
+        text: 'Date',
+        font: { size: 12 }
+      },
+      ticks: {
+        maxRotation: 45,
+        minRotation: 45,
+        font: { size: 10 },
+        callback: function(value, index) {
+          const dateStr = this.getLabelForValue(value);
+          if (dateStr) {
+            const dateParts = dateStr.split('-');
+            if (dateParts.length === 3) {
+              return `${dateParts[2]}/${dateParts[1]}`;
+            }
           }
+          return dateStr;
         }
-        return dateStr;
       }
     }
-  }
-};
-  
-// Add y-axes for each metric
-metricsConfig.forEach((metric, index) => {
-  let minValue, maxValue;
-  
-if (metric.key === 'ranking') {
-  minValue = 1;   // Best ranking (top)
-  maxValue = 40;  // Worst ranking (bottom)
-} else if (metric.key === 'visibility') {
-  minValue = 0;
-  maxValue = 100;   // 100% as actual percentage
-}
-  
-  scales[metric.yAxisID] = {
-    type: 'linear',
-    display: false, // Always hidden
-    position: index % 2 === 0 ? 'left' : 'right',
-    reverse: metric.key === 'ranking', // Reverse for ranking (lower is better)
-    min: minValue,
-    max: maxValue,
-    title: {
-      display: false, // Hide title
-      text: metric.label,
-      font: { size: 10 }
-    },
-    grid: {
-      drawOnChartArea: false // Don't draw any grid lines
-    },
-    ticks: {
-      display: false, // Hide ticks
-      font: { size: 10 }
-    }
   };
-});
+  
+  // Add y-axes for each metric
+  metricsConfig.forEach((metric, index) => {
+    let minValue, maxValue;
+    
+    if (metric.key === 'ranking') {
+      minValue = 1;
+      maxValue = 40;
+    } else if (metric.key === 'visibility') {
+      minValue = 0;
+      maxValue = 100;
+    }
+    
+    scales[metric.yAxisID] = {
+      type: 'linear',
+      display: false,
+      position: index % 2 === 0 ? 'left' : 'right',
+      reverse: metric.key === 'ranking',
+      min: minValue,
+      max: maxValue,
+      title: {
+        display: false,
+        text: metric.label,
+        font: { size: 10 }
+      },
+      grid: {
+        drawOnChartArea: false
+      },
+      ticks: {
+        display: false,
+        font: { size: 10 }
+      }
+    };
+  });
   
   // Create chart instance
   const chartInstance = new Chart(canvas, {
@@ -2963,131 +3016,174 @@ if (metric.key === 'ranking') {
         mode: 'index',
         intersect: false
       },
-plugins: {
-  legend: {
-    display: false  // Hide the default legend
-  },
-  tooltip: {
-    mode: 'index',
-    intersect: false,
-    callbacks: {
-      label: function(context) {
-        let label = context.dataset.label || '';
-        if (label) {
-          label += ': ';
-        }
-        const value = context.parsed.y;
-        
-        // Handle null values for ranking
-        if (context.dataset.metricKey === 'ranking' && (value === null || value === 40)) {
-          return label + 'no rank';
-        }
-        
-        // Format other values with proper rounding
-        if (label.includes('$')) {
-          label += '$' + (value ? value.toFixed(2) : '0.00');
-        } else if (label.includes('%')) {
-          label += (value ? value.toFixed(2) : '0.00') + '%';
-        } else if (label === 'ROAS: ') {
-          label += value ? value.toFixed(2) : '0.00';
-        } else if (label === 'Avg Ranking: ') {
-          label += value ? value.toFixed(2) : 'no rank';
-        } else if (label.includes('Visibility')) {
-          label += (value ? value.toFixed(1) : '0.0') + '%'; // Already in percentage format
-        } else {
-          // For whole numbers like impressions, clicks, conversions
-          if (context.dataset.metricKey === 'impressions' || 
-              context.dataset.metricKey === 'clicks' || 
-              context.dataset.metricKey === 'conversions') {
-            label += value ? value.toLocaleString() : '0';
-          } else {
-            label += value ? value.toFixed(2) : '0.00';
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            filter: function(item, chart) {
+              // Only show legend for ranking lines
+              return item.text.includes('Ranking');
+            },
+            usePointStyle: true,
+            padding: 15,
+            font: {
+              size: 12,
+              weight: 'bold'
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              const value = context.parsed.y;
+              
+              if (context.dataset.isRanking && (value === null || value === 40)) {
+                return label + 'no rank';
+              }
+              
+              if (label.includes('$')) {
+                label += '$' + (value ? value.toFixed(2) : '0.00');
+              } else if (label.includes('%') && !label.includes('Ranking')) {
+                label += (value ? value.toFixed(2) : '0.00') + '%';
+              } else if (label === 'ROAS: ') {
+                label += value ? value.toFixed(2) : '0.00';
+              } else if (label.includes('Ranking')) {
+                label += value ? value.toFixed(2) : 'no rank';
+              } else if (label.includes('Visibility')) {
+                label += (value ? value.toFixed(1) : '0.0') + '%';
+              } else {
+                if (context.dataset.metricKey === 'impressions' || 
+                    context.dataset.metricKey === 'clicks' || 
+                    context.dataset.metricKey === 'conversions') {
+                  label += value ? value.toLocaleString() : '0';
+                } else {
+                  label += value ? value.toFixed(2) : '0.00';
+                }
+              }
+              
+              return label;
+            }
+          }
+        },
+        datalabels: {
+          display: function(context) {
+            return !context.dataset.hidden && context.dataset.isRanking;
+          },
+          align: 'top',
+          anchor: 'end',
+          offset: 10,
+          backgroundColor: function(context) {
+            return context.dataset.borderColor + '30';
+          },
+          borderColor: function(context) {
+            return context.dataset.borderColor;
+          },
+          borderRadius: 4,
+          borderWidth: 2,
+          color: function(context) {
+            return context.dataset.borderColor;
+          },
+          font: {
+            size: 11,
+            weight: 'bold'
+          },
+          padding: {
+            top: 4,
+            bottom: 4,
+            left: 6,
+            right: 6
+          },
+          formatter: function(value, context) {
+            if (value === null || value === undefined) return '';
+            return value.toFixed(1);
           }
         }
-        
-        return label;
-      }
-    }
-  },
-  datalabels: {
-    display: function(context) {
-      return !context.dataset.hidden;
-    },
-    align: 'top',
-    anchor: 'end',
-    offset: 10,
-    backgroundColor: function(context) {
-      return context.dataset.borderColor + '20';
-    },
-    borderColor: function(context) {
-      return context.dataset.borderColor;
-    },
-    borderRadius: 4,
-    borderWidth: 1,
-    color: function(context) {
-      return context.dataset.borderColor;
-    },
-    font: {
-      size: 11,
-      weight: 'bold'
-    },
-    padding: {
-      top: 4,
-      bottom: 4,
-      left: 6,
-      right: 6
-    },
-    formatter: function(value, context) {
-      if (value === null || value === undefined) return '';
-      
-      const metricKey = context.dataset.metricKey;
-      
-      if (metricKey === 'ranking') {
-        return value.toFixed(1);
-      } else if (metricKey === 'visibility') {
-        return value.toFixed(1) + '%';
-      } else if (context.dataset.label.includes('$')) {
-        return '$' + value.toFixed(2);
-      } else if (context.dataset.label.includes('%')) {
-        return value.toFixed(1) + '%';
-      } else if (['impressions', 'clicks', 'conversions'].includes(metricKey)) {
-        return value.toLocaleString();
-      } else {
-        return value.toFixed(2);
-      }
-    }
-  }
-},
+      },
       scales: scales
     }
   });
   
-  // Function to update chart visibility and y-axes
+  // Function to update chart visibility
   function updateChartVisibility() {
-    // Update dataset visibility
+    const rankingActive = metricsConfig.find(m => m.key === 'ranking').active;
+    
     chartInstance.data.datasets.forEach((dataset, index) => {
-      const metric = metricsConfig.find(m => m.key === dataset.metricKey);
-      if (metric) {
-        dataset.hidden = !metric.active;
+      if (dataset.isRanking) {
+        dataset.hidden = !rankingActive;
+      } else {
+        const metric = metricsConfig.find(m => m.key === dataset.metricKey);
+        if (metric) {
+          dataset.hidden = !metric.active;
+        }
       }
     });
-    
-// Keep y-axes hidden (don't change display based on active state)
-metricsConfig.forEach(metric => {
-  const scale = chartInstance.options.scales[metric.yAxisID];
-  if (scale) {
-    scale.display = false; // Always keep hidden
-  }
-});
     
     chartInstance.update('none');
   }
   
-  // Initial update to show active axes
+  // Initial update
   updateChartVisibility();
   
-  // Store chart instance for potential future access
+  // Store chart instance
   container.chartInstance = chartInstance;
+}
+
+// Helper function to get ranking data separated by device
+function getRankingDataByDevice(dates) {
+  const desktopData = [];
+  const mobileData = [];
+  
+  if (!window.selectedGoogleAdsProduct || !window.allRows) {
+    return {
+      desktop: dates.map(() => null),
+      mobile: dates.map(() => null)
+    };
+  }
+  
+  const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
+  
+  // Separate records by device
+  const desktopRecords = productRecords.filter(r => r.device && r.device.toLowerCase().includes('desktop'));
+  const mobileRecords = productRecords.filter(r => r.device && r.device.toLowerCase().includes('mobile'));
+  
+  // Process each date
+  dates.forEach(date => {
+    // Desktop ranking
+    let desktopRank = null;
+    desktopRecords.forEach(record => {
+      if (record.historical_data && Array.isArray(record.historical_data)) {
+        const histItem = record.historical_data.find(item => item.date?.value === date);
+        if (histItem?.avg_position != null) {
+          desktopRank = parseFloat(histItem.avg_position);
+        }
+      }
+    });
+    desktopData.push(desktopRank);
+    
+    // Mobile ranking
+    let mobileRank = null;
+    mobileRecords.forEach(record => {
+      if (record.historical_data && Array.isArray(record.historical_data)) {
+        const histItem = record.historical_data.find(item => item.date?.value === date);
+        if (histItem?.avg_position != null) {
+          mobileRank = parseFloat(histItem.avg_position);
+        }
+      }
+    });
+    mobileData.push(mobileRank);
+  });
+  
+  return {
+    desktop: desktopData,
+    mobile: mobileData
+  };
 }
 
 function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewOverviewGoogleAds') {
