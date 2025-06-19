@@ -1,4 +1,80 @@
-// Product Bucket Analyzer V2
+// Process and create bucket analysis
+  async processProductBuckets(prefix = 'acc1_') {
+    const startTime = performance.now();
+    try {
+      console.log('[Product Buckets V2] Starting bucket analysis...');
+      
+      // Load product performance data from IDB
+      const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
+      if (!productRec?.data || !productRec.data.length) {
+        console.error('[Product Buckets V2] No product performance data found');
+        return;
+      }
+
+      const rawData = productRec.data;
+      console.log(`[Product Buckets V2] Processing ${rawData.length} rows of data`);
+
+      // DEBUG: Analyze raw data structure
+      console.log('[DEBUG] Analyzing raw data structure...');
+      const campaignNames = new Set();
+      const channelTypes = new Set();
+      const productTitles = new Set();
+      
+      rawData.forEach(row => {
+        if (row['Campaign Name']) campaignNames.add(row['Campaign Name']);
+        if (row['Channel Type']) channelTypes.add(row['Channel Type']);
+        if (row['Product Title']) productTitles.add(row['Product Title']);
+      });
+      
+      console.log(`[DEBUG] Unique Campaign Names (first 10):`, Array.from(campaignNames).slice(0, 10));
+      console.log(`[DEBUG] Total unique campaigns: ${campaignNames.size}`);
+      console.log(`[DEBUG] Unique Channel Types:`, Array.from(channelTypes));
+      console.log(`[DEBUG] Total unique products: ${productTitles.size}`);
+
+      // Find the max date in the data
+      const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+      const maxDataDate = new Date(Math.max(...allDates));
+      
+      // Calculate date ranges
+      const endDate = maxDataDate;
+      const startDate30 = new Date(maxDataDate);
+      startDate30.setDate(startDate30.getDate() - 30);
+      const startDate60 = new Date(maxDataDate);
+      startDate60.setDate(startDate60.getDate() - 60);
+
+      // Filter data for different periods
+      const last30DaysData = rawData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > startDate30 && rowDate <= endDate;
+      });
+
+      const prev30DaysData = rawData.filter(row => {
+        if (!row.Date) return false;
+        const rowDate = new Date(row.Date);
+        return rowDate > startDate60 && rowDate <= startDate30;
+      });
+
+      console.log(`[Product Buckets V2] Last 30 days: ${last30DaysData.length} rows`);
+      console.log(`[Product Buckets V2] Previous 30 days: ${prev30DaysData.length} rows`);
+
+      // DEBUG: Check campaign distribution in last 30 days
+      const last30Campaigns = new Set();
+      last30DaysData.forEach(row => {
+        if (row['Campaign Name']) last30Campaigns.add(row['Campaign Name']);
+      });
+      console.log(`[DEBUG] Campaigns in last 30 days (first 10):`, Array.from(last30Campaigns).slice(0, 10));
+
+      // Calculate dynamic defaults based on last 30 days data
+      this.calculateDynamicDefaults(last30DaysData);
+      
+      // Calculate account metrics for benchmarking
+      this.accountMetrics = this.calculateAccountMetrics(last30DaysData);
+      console.log(`[Product Buckets V2] Account Average ROAS: ${this.accountMetrics.avgROAS.toFixed(2)}x`);
+
+      // Group data by product + campaign + channel + device
+      const currentGrouped = this.groupByProductCampaignChannelDevice(last30DaysData);
+      const prevGrouped = this.groupByProduct// Product Bucket Analyzer V2
 // Implements new 5-bucket system with device segmentation
 
 window.productBucketAnalyzer = {
@@ -112,13 +188,25 @@ window.productBucketAnalyzer = {
       const uniqueCombinations = new Set();
       const uniqueProducts = new Set();
       
+      // DEBUG: Track what we're filtering
+      let allCombinationCount = 0;
+      let nonAllCombinationCount = 0;
+      
       Object.keys(currentGrouped).forEach(key => {
         const parts = key.split('|');
         if (parts.length === 4) {
           const [product, campaign, channel, device] = parts;
           
-          // Only add non-All combinations to uniqueCombinations
-          if (campaign !== 'All' || channel !== 'All') {
+          // DEBUG: Log first few keys to see structure
+          if (allCombinationCount + nonAllCombinationCount < 5) {
+            console.log(`[DEBUG] Key structure: Product="${product.substring(0,20)}..." Campaign="${campaign}" Channel="${channel}" Device="${device}"`);
+          }
+          
+          // Add combination if it's not an "All/All" combination
+          if (campaign === 'All' && channel === 'All') {
+            allCombinationCount++;
+          } else {
+            nonAllCombinationCount++;
             const combination = parts.slice(0, 3).join('|');
             uniqueCombinations.add(combination);
           }
@@ -128,7 +216,8 @@ window.productBucketAnalyzer = {
         }
       });
 
-      // DEBUG: Log combinations found
+      // DEBUG: Log filtering results
+      console.log(`[DEBUG] Filtering results: ${allCombinationCount} All/All combinations, ${nonAllCombinationCount} specific combinations`);
       console.log(`[DEBUG] Unique combinations found:`, Array.from(uniqueCombinations).slice(0, 10));
       console.log(`[DEBUG] Total unique combinations (non-All): ${uniqueCombinations.size}`);
       console.log(`[DEBUG] Total unique products: ${uniqueProducts.size}`);
