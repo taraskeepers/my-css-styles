@@ -579,20 +579,43 @@ setTimeout(() => {
               }
             });
           }
-                    // Add event listener for device filter
-          const deviceFilterElement = document.getElementById('deviceTypeFilter');
-          if (deviceFilterElement && !deviceFilterElement.hasAttribute('data-listener-attached')) {
-            deviceFilterElement.setAttribute('data-listener-attached', 'true');
-            deviceFilterElement.addEventListener('change', function() {
-              updateProductMetricsChart();
-              if (window.selectedGoogleAdsProduct) {
-                const campaignValue = document.getElementById('campaignNameFilter').value;
-                const channelValue = document.getElementById('channelTypeFilter').value;
-                // Note: ranking map doesn't use device filter as it shows all devices
-                populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
-              }
-            });
+// Add event listener for device filter
+const deviceFilterElement = document.getElementById('deviceTypeFilter');
+if (deviceFilterElement && !deviceFilterElement.hasAttribute('data-listener-attached')) {
+  deviceFilterElement.setAttribute('data-listener-attached', 'true');
+  deviceFilterElement.addEventListener('change', function() {
+    updateProductMetricsChart();
+    
+    if (window.selectedGoogleAdsProduct) {
+      const campaignValue = document.getElementById('campaignNameFilter').value;
+      const channelValue = document.getElementById('channelTypeFilter').value;
+      // Note: ranking map doesn't use device filter as it shows all devices
+      populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue);
+    }
+    
+    // Update chart ranking data based on device filter
+    const chartContainer = document.getElementById('productMetricsChart');
+    if (chartContainer && chartContainer.chartInstance) {
+      const chart = chartContainer.chartInstance;
+      
+      // Re-populate ranking data based on new filter
+      chart.data.datasets = chart.data.datasets.map(dataset => {
+        if (dataset.isRanking) {
+          const rankingData = getRankingDataByDevice(chart.data.labels);
+          if (dataset.label.includes('Desktop')) {
+            dataset.data = rankingData.desktop;
+          } else if (dataset.label.includes('Mobile')) {
+            dataset.data = rankingData.mobile;
           }
+        }
+        return dataset;
+      });
+      
+      // Force chart update
+      chart.update('none');
+    }
+  });
+}
         } else {
           // No data available
           if (productMetricsContainer) {
@@ -976,9 +999,18 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
 function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all') {
   const container = document.getElementById('product_ranking_map');
   if (!container) return;
+
+    // Check if we're in Overview mode and hide if so
+  const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+  if (overviewBtn && overviewBtn.classList.contains('active')) {
+    container.style.display = 'none';
+    container.style.visibility = 'hidden';
+    return;
+  }
   
   // Show the container
   container.style.display = 'block';
+  container.style.visibility = 'visible';
   
   // Get date range
   const daysToShow = window.selectedDateRangeDays || 7;
@@ -3135,7 +3167,7 @@ function renderProductMetricsChart(containerId, chartData) {
   container.chartInstance = chartInstance;
 }
 
-// Helper function to get ranking data separated by device
+// Replace the existing getRankingDataByDevice function with this:
 function getRankingDataByDevice(dates) {
   const desktopData = [];
   const mobileData = [];
@@ -3149,34 +3181,41 @@ function getRankingDataByDevice(dates) {
   
   const productRecords = getProductRecords(window.selectedGoogleAdsProduct);
   
+  // Get current device filter
+  const deviceFilter = document.getElementById('deviceTypeFilter')?.value || 'all';
+  
   // Separate records by device
   const desktopRecords = productRecords.filter(r => r.device && r.device.toLowerCase().includes('desktop'));
   const mobileRecords = productRecords.filter(r => r.device && r.device.toLowerCase().includes('mobile'));
   
   // Process each date
   dates.forEach(date => {
-    // Desktop ranking
+    // Desktop ranking - only populate if device filter allows
     let desktopRank = null;
-    desktopRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        const histItem = record.historical_data.find(item => item.date?.value === date);
-        if (histItem?.avg_position != null) {
-          desktopRank = parseFloat(histItem.avg_position);
+    if (deviceFilter === 'all' || deviceFilter === 'desk') {
+      desktopRecords.forEach(record => {
+        if (record.historical_data && Array.isArray(record.historical_data)) {
+          const histItem = record.historical_data.find(item => item.date?.value === date);
+          if (histItem?.avg_position != null) {
+            desktopRank = parseFloat(histItem.avg_position);
+          }
         }
-      }
-    });
+      });
+    }
     desktopData.push(desktopRank);
     
-    // Mobile ranking
+    // Mobile ranking - only populate if device filter allows
     let mobileRank = null;
-    mobileRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        const histItem = record.historical_data.find(item => item.date?.value === date);
-        if (histItem?.avg_position != null) {
-          mobileRank = parseFloat(histItem.avg_position);
+    if (deviceFilter === 'all' || deviceFilter === 'mob') {
+      mobileRecords.forEach(record => {
+        if (record.historical_data && Array.isArray(record.historical_data)) {
+          const histItem = record.historical_data.find(item => item.date?.value === date);
+          if (histItem?.avg_position != null) {
+            mobileRank = parseFloat(histItem.avg_position);
+          }
         }
-      }
-    });
+      });
+    }
     mobileData.push(mobileRank);
   });
   
@@ -5391,6 +5430,15 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (productMetrics) productMetrics.style.display = 'block';
   if (productRankingMap) productRankingMap.style.display = 'none'; // ADD THIS LINE
   if (productTables) productTables.style.display = 'block';
+
+    // Add delayed hide to ensure it stays hidden
+  setTimeout(() => {
+    const rankingMap = document.getElementById('product_ranking_map');
+    if (rankingMap) {
+      rankingMap.style.display = 'none';
+      rankingMap.style.visibility = 'hidden'; // Extra measure
+    }
+  }, 100);
   
   // Hide map and ROAS Buckets
   const mapContainer = document.getElementById('googleAdsMapContainer');
