@@ -3549,12 +3549,13 @@ productRankingMapContainer.className = 'google-ads-ranking-map-container';
 productRankingMapContainer.style.cssText = `
   width: 1195px;
   margin: 20px 0 20px 20px;
+  margin-top: 60px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 20px;
   display: none;
-  max-height: 600px;
+  max-height: auto;
   overflow-y: auto;
 `;
 
