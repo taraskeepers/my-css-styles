@@ -180,6 +180,9 @@ window.bucketDescriptions = {
 async function loadAndRenderROASBuckets() {
   const bucketsContainer = document.getElementById('roas_buckets');
   const chartsContainer = document.getElementById('roas_charts');
+if (chartsContainer) {
+  chartsContainer.style.height = '600px';
+}
   const metricsTableContainer = document.getElementById('roas_metrics_table');
   
   if (!bucketsContainer) return;
@@ -315,6 +318,18 @@ async function loadAndRenderROASBuckets() {
         channelsContainer.style.display = '';
         renderROASChannelsContainer(channelsContainer, result.data, null);
       }
+    }
+
+        // Add date range change listener for ROAS charts
+    const dateSelector = document.getElementById('productInfoDateText');
+    if (dateSelector && !dateSelector.hasAttribute('data-roas-listener')) {
+      dateSelector.setAttribute('data-roas-listener', 'true');
+      dateSelector.addEventListener('change', async function() {
+        const chartsContainer = document.getElementById('roas_charts');
+        if (chartsContainer && window.refreshROASChart) {
+          await window.refreshROASChart();
+        }
+      });
     }
     
     // Initialize bucket distribution with ALL PRODUCTS data - KEEP ORIGINAL
@@ -3016,9 +3031,65 @@ function getBucketDescription(bucketType, bucketValue) {
 }
 
 async function renderROASHistoricCharts(container, data) {
-  // Create main wrapper
+  // Clear container
+  container.innerHTML = '';
+  
+  // Create main layout wrapper
+  const layoutWrapper = document.createElement('div');
+  layoutWrapper.style.cssText = 'display: flex; height: 100%; gap: 15px;';
+  
+  // Create left side for chart
   const mainWrapper = document.createElement('div');
-  mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
+  mainWrapper.style.cssText = 'display: flex; flex-direction: column; flex: 1; gap: 15px;';
+  
+  // Create right side toggle panel
+  const togglePanel = document.createElement('div');
+  togglePanel.style.cssText = `
+    width: 140px;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  `;
+  
+  togglePanel.innerHTML = `
+    <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Chart Metrics</h4>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="roas" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #4CAF50;">ROAS</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="aov" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #2196F3;">AOV</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="cpa" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #FF9800;">CPA</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="ctr" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #9C27B0;">CTR %</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="cvr" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #00BCD4;">CVR %</span>
+      </label>
+    </div>
+  `;
+  
+  layoutWrapper.appendChild(mainWrapper);
+  layoutWrapper.appendChild(togglePanel);
+  container.appendChild(layoutWrapper);
+  
+  // Store active metrics
+  window.activeChartMetrics = {
+    roas: true,
+    aov: true,
+    cpa: true,
+    ctr: true,
+    cvr: true
+  };
   
 // Create metrics container with main and device rows
 const metricsContainer = document.createElement('div');
@@ -3075,12 +3146,39 @@ metricsRow.style.cssText = `
     return;
   }
   
-  // Parse dates and filter for last 30 days
+// Get selected date range
+  const dateRangeSelect = document.getElementById('productInfoDateText');
+  const selectedRange = dateRangeSelect ? dateRangeSelect.value : 'last_30_days';
+  
+  // Calculate date ranges based on selection
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // Last 30 days including today
-  const sixtyDaysAgo = new Date(today);
-  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59); // Previous 30 days
+  let daysBack = 30; // default
+  
+  switch(selectedRange) {
+    case 'last_7_days': daysBack = 7; break;
+    case 'last_14_days': daysBack = 14; break;
+    case 'last_30_days': daysBack = 30; break;
+    case 'last_60_days': daysBack = 60; break;
+    case 'last_90_days': daysBack = 90; break;
+  }
+  
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - (daysBack - 1));
+  const prevStartDate = new Date(today);
+  prevStartDate.setDate(prevStartDate.getDate() - (daysBack * 2 - 1));
+  const prevEndDate = new Date(today);
+  prevEndDate.setDate(prevEndDate.getDate() - daysBack);
+  
+  // Filter data for current and previous periods
+  const currentPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= startDate && rowDate <= today;
+  });
+  
+  const previousPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= prevStartDate && rowDate <= prevEndDate;
+  });
   
   const parseNumber = (value) => {
     if (!value) return 0;
@@ -3303,8 +3401,8 @@ mainWrapper.appendChild(metricsContainer);
 // Process daily metrics data from performance data
   const dailyMetrics = {};
   
-  // Initialize date map for last 30 days
-  for (let i = 0; i < 30; i++) {
+// Initialize date map for selected period
+  for (let i = 0; i < daysBack; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
@@ -3348,8 +3446,8 @@ mainWrapper.appendChild(metricsContainer);
   const dates = Object.keys(dailyMetrics).sort();
   
 // Create datasets for each metric
-  const datasets = [
-    {
+  const allDatasets = {
+    roas: {
       label: 'ROAS',
       data: dates.map(date => dailyMetrics[date].roas),
       borderColor: '#4CAF50',
@@ -3357,7 +3455,7 @@ mainWrapper.appendChild(metricsContainer);
       yAxisID: 'y-roas',
       tension: 0.4
     },
-    {
+    aov: {
       label: 'AOV',
       data: dates.map(date => dailyMetrics[date].aov),
       borderColor: '#2196F3',
@@ -3365,7 +3463,7 @@ mainWrapper.appendChild(metricsContainer);
       yAxisID: 'y-currency',
       tension: 0.4
     },
-    {
+    cpa: {
       label: 'CPA',
       data: dates.map(date => dailyMetrics[date].cpa),
       borderColor: '#FF9800',
@@ -3373,7 +3471,7 @@ mainWrapper.appendChild(metricsContainer);
       yAxisID: 'y-currency',
       tension: 0.4
     },
-    {
+    ctr: {
       label: 'CTR %',
       data: dates.map(date => dailyMetrics[date].ctr),
       borderColor: '#9C27B0',
@@ -3381,7 +3479,7 @@ mainWrapper.appendChild(metricsContainer);
       yAxisID: 'y-percentage',
       tension: 0.4
     },
-    {
+    cvr: {
       label: 'CVR %',
       data: dates.map(date => dailyMetrics[date].cvr),
       borderColor: '#00BCD4',
@@ -3389,7 +3487,13 @@ mainWrapper.appendChild(metricsContainer);
       yAxisID: 'y-percentage',
       tension: 0.4
     }
-  ];
+  };
+
+  // Filter datasets based on active metrics
+  const datasets = Object.entries(window.activeChartMetrics || {})
+    .filter(([key, active]) => active)
+    .map(([key]) => allDatasets[key])
+    .filter(Boolean);
 
   // Create chart
   const canvas = document.createElement('canvas');
@@ -3456,7 +3560,7 @@ mainWrapper.appendChild(metricsContainer);
       plugins: {
         title: {
           display: true,
-          text: 'Key Metrics Trend - Last 30 Days'
+          text: `Key Metrics Trend - Last ${daysBack} Days`
         },
         legend: {
           display: false  // Remove legend as requested
@@ -3468,8 +3572,31 @@ mainWrapper.appendChild(metricsContainer);
     }
   });
   
-  mainWrapper.appendChild(wrapper);
-  container.appendChild(mainWrapper);
+mainWrapper.appendChild(wrapper);
+  container.appendChild(layoutWrapper);
+  
+  // Add toggle event listeners
+  togglePanel.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const metric = this.getAttribute('data-metric');
+      window.activeChartMetrics[metric] = this.checked;
+      
+      // Update chart with new dataset visibility
+      const chartInstance = Chart.getChart(canvas);
+      if (chartInstance) {
+        const datasetIndex = ['roas', 'aov', 'cpa', 'ctr', 'cvr'].indexOf(metric);
+        if (datasetIndex !== -1 && chartInstance.data.datasets[datasetIndex]) {
+          chartInstance.data.datasets[datasetIndex].hidden = !this.checked;
+          chartInstance.update();
+        }
+      }
+    });
+  });
+  
+  // Store reference to refresh the chart
+  window.refreshROASChart = async () => {
+    await renderROASHistoricCharts(container, data);
+  };
 }
 
 function renderROASMetricsTable(container, data) {
