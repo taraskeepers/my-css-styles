@@ -319,18 +319,6 @@ if (chartsContainer) {
         renderROASChannelsContainer(channelsContainer, result.data, null);
       }
     }
-
-        // Add date range change listener for ROAS charts
-    const dateSelector = document.getElementById('productInfoDateText');
-    if (dateSelector && !dateSelector.hasAttribute('data-roas-listener')) {
-      dateSelector.setAttribute('data-roas-listener', 'true');
-      dateSelector.addEventListener('change', async function() {
-        const chartsContainer = document.getElementById('roas_charts');
-        if (chartsContainer && window.refreshROASChart) {
-          await window.refreshROASChart();
-        }
-      });
-    }
     
     // Initialize bucket distribution with ALL PRODUCTS data - KEEP ORIGINAL
     setTimeout(() => {
@@ -3031,16 +3019,12 @@ function getBucketDescription(bucketType, bucketValue) {
 }
 
 async function renderROASHistoricCharts(container, data) {
-  // Clear container
+// Clear container
   container.innerHTML = '';
   
-  // Create main layout wrapper
-  const layoutWrapper = document.createElement('div');
-  layoutWrapper.style.cssText = 'display: flex; height: 100%; gap: 15px;';
-  
-  // Create left side for chart
+  // Create main wrapper that contains everything
   const mainWrapper = document.createElement('div');
-  mainWrapper.style.cssText = 'display: flex; flex-direction: column; flex: 1; gap: 15px;';
+  mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
   
   // Create right side toggle panel
   const togglePanel = document.createElement('div');
@@ -3383,9 +3367,20 @@ deviceRows.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
 metricsContainer.appendChild(deviceRows);
 mainWrapper.appendChild(metricsContainer);
   
-  // Create wrapper for chart
+// Create chart layout wrapper
+  const chartLayoutWrapper = document.createElement('div');
+  chartLayoutWrapper.style.cssText = 'display: flex; flex: 1; gap: 15px;';
+  
+  // Create chart wrapper
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'flex: 1; position: relative;';
+  wrapper.style.cssText = `
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+  `;
   
 // Process daily metrics data from performance data
   const dailyMetrics = {};
@@ -3561,8 +3556,16 @@ mainWrapper.appendChild(metricsContainer);
     }
   });
   
-mainWrapper.appendChild(wrapper);
-  container.appendChild(layoutWrapper);
+// Append metrics container first
+  mainWrapper.appendChild(metricsContainer);
+  
+  // Then append chart and toggle panel in a row
+  chartLayoutWrapper.appendChild(wrapper);
+  chartLayoutWrapper.appendChild(togglePanel);
+  mainWrapper.appendChild(chartLayoutWrapper);
+  
+  // Finally append main wrapper to container
+  container.appendChild(mainWrapper);
   
   // Add toggle event listeners
   togglePanel.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
