@@ -3041,30 +3041,82 @@ metricsRow.style.cssText = `
   margin-bottom: 12px;
 `;
   
-  // Filter for "All" campaign records only
-  const allCampaignRecords = data.filter(row => 
-  row['Campaign Name'] === 'All' && 
-  row['Channel Type'] === 'All' && 
-  row.Device === 'All'
-);
+// Load product performance data instead of bucket data
+  const accountPrefix = window.currentAccount || 'acc1';
+  const performanceTableName = `${accountPrefix}_googleSheets_productPerformance`;
   
-  // Calculate current totals (keeping the same)
-  const currentTotals = allCampaignRecords.reduce((acc, product) => {
-    acc.cost += parseFloat(product.Cost) || 0;
-    acc.convValue += parseFloat(product.ConvValue) || 0;
-    acc.impressions += parseInt(product.Impressions) || 0;
-    acc.conversions += parseFloat(product.Conversions) || 0;
+  let performanceData;
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(performanceTableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.error('[renderROASHistoricCharts] No performance data found');
+      return;
+    }
+    
+    performanceData = result.data;
+  } catch (error) {
+    console.error('[renderROASHistoricCharts] Error loading performance data:', error);
+    return;
+  }
+  
+  // Parse dates and filter for last 30 days
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // Last 30 days including today
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59); // Previous 30 days
+  
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,%]/g, '')) || 0;
+  };
+  
+  // Filter data for current and previous periods
+  const currentPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= thirtyDaysAgo && rowDate <= today;
+  });
+  
+  const previousPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= sixtyDaysAgo && rowDate < thirtyDaysAgo;
+  });
+  
+// Calculate current totals from all devices
+  const currentTotals = currentPeriodData.reduce((acc, row) => {
+    acc.cost += parseNumber(row.Cost);
+    acc.convValue += parseNumber(row['Conversion Value']);
+    acc.impressions += parseInt(row.Impressions) || 0;
+    acc.conversions += parseNumber(row.Conversions);
+    acc.clicks += parseInt(row.Clicks) || 0;
     return acc;
-  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0 });
+  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 });
   
   // Calculate previous totals
-  const prevTotals = allCampaignRecords.reduce((acc, product) => {
-    acc.cost += parseFloat(product.prev_Cost) || 0;
-    acc.convValue += parseFloat(product.prev_ConvValue) || 0;
-    acc.impressions += parseInt(product.prev_Impressions) || 0;
-    acc.conversions += parseFloat(product.prev_Conversions) || 0;
+  const prevTotals = previousPeriodData.reduce((acc, row) => {
+    acc.cost += parseNumber(row.Cost);
+    acc.convValue += parseNumber(row['Conversion Value']);
+    acc.impressions += parseInt(row.Impressions) || 0;
+    acc.conversions += parseNumber(row.Conversions);
+    acc.clicks += parseInt(row.Clicks) || 0;
     return acc;
-  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0 });
+  }, { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 });
   
   // Calculate metrics (keeping the same)
   const currentROAS = currentTotals.cost > 0 ? currentTotals.convValue / currentTotals.cost : 0;
@@ -3076,54 +3128,56 @@ metricsRow.style.cssText = `
   const currentCPA = currentTotals.conversions > 0 ? currentTotals.cost / currentTotals.conversions : 0;
   const prevCPA = prevTotals.conversions > 0 ? prevTotals.cost / prevTotals.conversions : 0;
 
-  // Calculate device-specific metrics
-const deviceMetrics = {
-  DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
-  MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
-  TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0 }
-};
+// Calculate device-specific metrics
+  const deviceMetrics = {
+    DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
+    MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
+    TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 }
+  };
 
-const devicePrevMetrics = {
-  DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
-  MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
-  TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0 }
-};
+  const devicePrevMetrics = {
+    DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
+    MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
+    TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 }
+  };
 
-// Get device-specific records (Campaign="All", Channel="All", but specific devices)
-const deviceRecords = data.filter(row => 
-  row['Campaign Name'] === 'All' && 
-  row['Channel Type'] === 'All' && 
-  row.Device !== 'All'
-);
+  // Aggregate current period by device
+  currentPeriodData.forEach(row => {
+    const device = row.Device;
+    if (device && deviceMetrics[device]) {
+      deviceMetrics[device].cost += parseNumber(row.Cost);
+      deviceMetrics[device].convValue += parseNumber(row['Conversion Value']);
+      deviceMetrics[device].impressions += parseInt(row.Impressions) || 0;
+      deviceMetrics[device].conversions += parseNumber(row.Conversions);
+      deviceMetrics[device].clicks += parseInt(row.Clicks) || 0;
+    }
+  });
+  
+  // Aggregate previous period by device
+  previousPeriodData.forEach(row => {
+    const device = row.Device;
+    if (device && devicePrevMetrics[device]) {
+      devicePrevMetrics[device].cost += parseNumber(row.Cost);
+      devicePrevMetrics[device].convValue += parseNumber(row['Conversion Value']);
+      devicePrevMetrics[device].impressions += parseInt(row.Impressions) || 0;
+      devicePrevMetrics[device].conversions += parseNumber(row.Conversions);
+      devicePrevMetrics[device].clicks += parseInt(row.Clicks) || 0;
+    }
+  });
 
-deviceRecords.forEach(product => {
-  const device = product.Device;
-  if (device && deviceMetrics[device]) {
-    deviceMetrics[device].cost += parseFloat(product.Cost) || 0;
-    deviceMetrics[device].convValue += parseFloat(product.ConvValue) || 0;
-    deviceMetrics[device].impressions += parseInt(product.Impressions) || 0;
-    deviceMetrics[device].conversions += parseFloat(product.Conversions) || 0;
+  // Calculate device-specific derived metrics
+  Object.keys(deviceMetrics).forEach(device => {
+    const current = deviceMetrics[device];
+    const prev = devicePrevMetrics[device];
     
-    devicePrevMetrics[device].cost += parseFloat(product.prev_Cost) || 0;
-    devicePrevMetrics[device].convValue += parseFloat(product.prev_ConvValue) || 0;
-    devicePrevMetrics[device].impressions += parseInt(product.prev_Impressions) || 0;
-    devicePrevMetrics[device].conversions += parseFloat(product.prev_Conversions) || 0;
-  }
-});
-
-// Calculate device-specific derived metrics
-Object.keys(deviceMetrics).forEach(device => {
-  const current = deviceMetrics[device];
-  const prev = devicePrevMetrics[device];
-  
-  current.roas = current.cost > 0 ? current.convValue / current.cost : 0;
-  current.aov = current.conversions > 0 ? current.convValue / current.conversions : 0;
-  current.cpa = current.conversions > 0 ? current.cost / current.conversions : 0;
-  
-  prev.roas = prev.cost > 0 ? prev.convValue / prev.cost : 0;
-  prev.aov = prev.conversions > 0 ? prev.convValue / prev.conversions : 0;
-  prev.cpa = prev.conversions > 0 ? prev.cost / prev.conversions : 0;
-});
+    current.roas = current.cost > 0 ? current.convValue / current.cost : 0;
+    current.aov = current.conversions > 0 ? current.convValue / current.conversions : 0;
+    current.cpa = current.conversions > 0 ? current.cost / current.conversions : 0;
+    
+    prev.roas = prev.cost > 0 ? prev.convValue / prev.cost : 0;
+    prev.aov = prev.conversions > 0 ? prev.convValue / prev.conversions : 0;
+    prev.cpa = prev.conversions > 0 ? prev.cost / prev.conversions : 0;
+  });
   
   // Helper function to create metric item (keeping the same)
   const createMetricItem = (label, current, previous, format) => {
@@ -3249,24 +3303,39 @@ mainWrapper.appendChild(metricsContainer);
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'flex: 1; position: relative;';
   
-// Since we don't have daily historic data, create a comparison chart
-// showing current period (last 30 days) vs previous period
-const chartData = {
-  labels: ['Previous 30 Days', 'Last 30 Days'],
-  metrics: {
-    roas: [prevROAS, currentROAS],
-    aov: [prevAOV, currentAOV],
-    cpa: [prevCPA, currentCPA],
-    ctr: [
-      prevTotals.impressions > 0 ? (prevTotals.clicks / prevTotals.impressions) * 100 : 0,
-      currentTotals.impressions > 0 ? (currentTotals.clicks / currentTotals.impressions) * 100 : 0
-    ],
-    cvr: [
-      prevTotals.clicks > 0 ? (prevTotals.conversions / prevTotals.clicks) * 100 : 0,
-      currentTotals.clicks > 0 ? (currentTotals.conversions / currentTotals.clicks) * 100 : 0
-    ]
+// Process daily metrics data from performance data
+  const dailyMetrics = {};
+  
+  // Initialize date map for last 30 days
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    dailyMetrics[dateStr] = {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0,
+      roas: 0,
+      aov: 0,
+      cpa: 0,
+      ctr: 0,
+      cvr: 0
+    };
   }
-};
+  
+  // Aggregate metrics by date
+  currentPeriodData.forEach(row => {
+    const dateStr = row.Date;
+    if (dateStr && dailyMetrics[dateStr]) {
+      dailyMetrics[dateStr].impressions += parseInt(row.Impressions) || 0;
+      dailyMetrics[dateStr].clicks += parseInt(row.Clicks) || 0;
+      dailyMetrics[dateStr].cost += parseNumber(row.Cost);
+      dailyMetrics[dateStr].conversions += parseNumber(row.Conversions);
+      dailyMetrics[dateStr].convValue += parseNumber(row['Conversion Value']);
+    }
+  });
   
   // Calculate derived metrics for each day
   Object.keys(dailyMetrics).forEach(date => {
@@ -3281,118 +3350,126 @@ const chartData = {
   // Convert to arrays for Chart.js
   const dates = Object.keys(dailyMetrics).sort();
   
-// Create datasets for comparison chart
-const datasets = [
-  {
-    label: 'ROAS',
-    data: chartData.metrics.roas,
-    borderColor: '#4CAF50',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    yAxisID: 'y-roas'
-  },
-  {
-    label: 'AOV',
-    data: chartData.metrics.aov,
-    borderColor: '#2196F3',
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    yAxisID: 'y-currency'
-  },
-  {
-    label: 'CPA',
-    data: chartData.metrics.cpa,
-    borderColor: '#FF9800',
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    yAxisID: 'y-currency'
-  },
-  {
-    label: 'CTR %',
-    data: chartData.metrics.ctr,
-    borderColor: '#9C27B0',
-    backgroundColor: 'rgba(156, 39, 176, 0.1)',
-    yAxisID: 'y-percentage'
-  },
-  {
-    label: 'CVR %',
-    data: chartData.metrics.cvr,
-    borderColor: '#00BCD4',
-    backgroundColor: 'rgba(0, 188, 212, 0.1)',
-    yAxisID: 'y-percentage'
-  }
-];
-
-// Create chart
-const canvas = document.createElement('canvas');
-canvas.style.cssText = 'width: 100%; height: 100%;';
-wrapper.appendChild(canvas);
-
-new Chart(canvas, {
-  type: 'bar',
-  data: {
-    labels: chartData.labels,
-    datasets: datasets
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
+// Create datasets for each metric
+  const datasets = [
+    {
+      label: 'ROAS',
+      data: dates.map(date => dailyMetrics[date].roas),
+      borderColor: '#4CAF50',
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+      yAxisID: 'y-roas',
+      tension: 0.4
     },
-    scales: {
-      x: {
-        display: true,
-        grid: {
+    {
+      label: 'AOV',
+      data: dates.map(date => dailyMetrics[date].aov),
+      borderColor: '#2196F3',
+      backgroundColor: 'rgba(33, 150, 243, 0.1)',
+      yAxisID: 'y-currency',
+      tension: 0.4
+    },
+    {
+      label: 'CPA',
+      data: dates.map(date => dailyMetrics[date].cpa),
+      borderColor: '#FF9800',
+      backgroundColor: 'rgba(255, 152, 0, 0.1)',
+      yAxisID: 'y-currency',
+      tension: 0.4
+    },
+    {
+      label: 'CTR %',
+      data: dates.map(date => dailyMetrics[date].ctr),
+      borderColor: '#9C27B0',
+      backgroundColor: 'rgba(156, 39, 176, 0.1)',
+      yAxisID: 'y-percentage',
+      tension: 0.4
+    },
+    {
+      label: 'CVR %',
+      data: dates.map(date => dailyMetrics[date].cvr),
+      borderColor: '#00BCD4',
+      backgroundColor: 'rgba(0, 188, 212, 0.1)',
+      yAxisID: 'y-percentage',
+      tension: 0.4
+    }
+  ];
+
+  // Create chart
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'width: 100%; height: 100%;';
+  wrapper.appendChild(canvas);
+
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dates.map(date => {
+        const d = new Date(date);
+        return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
+      }),
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: {
+            display: false
+          }
+        },
+        'y-roas': {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'ROAS'
+          },
+          grid: {
+            drawOnChartArea: false
+          }
+        },
+        'y-currency': {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Currency ($)'
+          },
+          grid: {
+            drawOnChartArea: true
+          }
+        },
+        'y-percentage': {
+          type: 'linear',
+          display: false,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Percentage (%)'
+          }
+        }
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'Key Metrics Trend - Last 30 Days'
+        },
+        legend: {
+          display: false  // Remove legend as requested
+        },
+        datalabels: {
           display: false
         }
-      },
-      'y-roas': {
-        type: 'linear',
-        display: true,
-        position: 'left',
-        title: {
-          display: true,
-          text: 'ROAS'
-        },
-        grid: {
-          drawOnChartArea: false
-        }
-      },
-      'y-currency': {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        title: {
-          display: true,
-          text: 'Currency ($)'
-        },
-        grid: {
-          drawOnChartArea: true
-        }
-      },
-      'y-percentage': {
-        type: 'linear',
-        display: false,
-        position: 'right',
-        title: {
-          display: true,
-          text: 'Percentage (%)'
-        }
-      }
-    },
-    plugins: {
-      title: {
-        display: true,
-        text: 'Key Metrics: Previous vs Current Period'
-      },
-      legend: {
-        display: false  // Remove legend as requested
-      },
-      datalabels: {
-        display: false
       }
     }
-  }
-});
+  });
   
   mainWrapper.appendChild(wrapper);
   container.appendChild(mainWrapper);
