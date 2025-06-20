@@ -5458,6 +5458,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Hide buckets switcher
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+
+  // Show date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
   
   // Show overview containers, hide ranking map
   const productInfo = document.getElementById('product_info');
@@ -5513,6 +5517,10 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   // Hide buckets switcher
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+
+  // Show date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
   
   // Hide overview containers, show ranking map
   const productInfo = document.getElementById('product_info');
@@ -5582,6 +5590,10 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   // Hide buckets switcher
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
 if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+
+  // Show date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
   
   // Hide the product table
   const table = document.querySelector('.google-ads-table');
@@ -5679,6 +5691,10 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   // Show buckets switcher
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
 if (bucketsSwitcher) bucketsSwitcher.style.display = 'block';
+
+  // Hide date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'none';
   
   // Hide other views
   const table = document.querySelector('.google-ads-table');
