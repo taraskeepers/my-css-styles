@@ -3217,9 +3217,6 @@ metricsRow.style.cssText = `
   };
   
 metricsRow.innerHTML = `
-  <div style="width: 100%; text-align: center; margin-bottom: 8px;">
-    <div style="font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase;">All Devices</div>
-  </div>
   ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
   ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
   ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
