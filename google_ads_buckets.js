@@ -3068,7 +3068,7 @@ async function renderROASHistoricCharts(container, data) {
   
   layoutWrapper.appendChild(mainWrapper);
   layoutWrapper.appendChild(togglePanel);
-  container.appendChild(layoutWrapper);
+  container.appendChild(mainWrapper);
   
   // Store active metrics
   window.activeChartMetrics = {
