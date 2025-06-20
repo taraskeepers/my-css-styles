@@ -367,53 +367,14 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
   
   let filteredData = data;
   
-  // Apply device filter - now we need to handle the new structure
-  if (deviceFilter !== 'all') {
-    // For specific device, we need to extract data from buckets.device_segment
-    filteredData = data.map(row => {
-      if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-        const deviceData = row['buckets.device_segment'].find(segment => 
-          segment.device_segment === deviceFilter.toLowerCase()
-        );
-        if (deviceData) {
-          // Create a new row with device-specific bucket data
-          return {
-            ...row,
-            'PROFITABILITY_BUCKET': deviceData.PROFITABILITY_BUCKET,
-            'FUNNEL_STAGE_BUCKET': deviceData.FUNNEL_STAGE_BUCKET,
-            'INVESTMENT_BUCKET': deviceData.INVESTMENT_BUCKET,
-            'CUSTOM_TIER_BUCKET': deviceData.CUSTOM_TIER_BUCKET,
-            'SUGGESTIONS_BUCKET': deviceData.SUGGESTIONS_BUCKET,
-            'Confidence_Level': deviceData.Confidence_Level,
-            'HEALTH_SCORE': deviceData.HEALTH_SCORE
-          };
-        }
-      }
-      return null;
-    }).filter(Boolean);
-  } else {
-    // For 'all', use the all_devices segment data
-    filteredData = data.map(row => {
-      if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-        const allDevicesData = row['buckets.device_segment'].find(segment => 
-          segment.device_segment === 'all_devices'
-        );
-        if (allDevicesData) {
-          return {
-            ...row,
-            'PROFITABILITY_BUCKET': allDevicesData.PROFITABILITY_BUCKET,
-            'FUNNEL_STAGE_BUCKET': allDevicesData.FUNNEL_STAGE_BUCKET,
-            'INVESTMENT_BUCKET': allDevicesData.INVESTMENT_BUCKET,
-            'CUSTOM_TIER_BUCKET': allDevicesData.CUSTOM_TIER_BUCKET,
-            'SUGGESTIONS_BUCKET': allDevicesData.SUGGESTIONS_BUCKET,
-            'Confidence_Level': allDevicesData.Confidence_Level,
-            'HEALTH_SCORE': allDevicesData.HEALTH_SCORE
-          };
-        }
-      }
-      return row;
-    }).filter(Boolean);
-  }
+// Apply device filter using the new Device column
+if (deviceFilter !== 'all') {
+  // Filter for specific device type
+  filteredData = data.filter(row => row.Device === deviceFilter);
+} else {
+  // For 'all', use records where Device = "All"
+  filteredData = data.filter(row => row.Device === 'All');
+}
   
   const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
   
@@ -1770,7 +1731,11 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
   container.innerHTML = '';
   
   // Get 'All' campaign records for main aggregation
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  const allCampaignRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All' && 
+  row.Device === 'All'
+);
   
   // Get all records for device segmentation
   const allRecords = data;
@@ -3070,7 +3035,11 @@ function renderROASHistoricCharts(container, data) {
   `;
   
   // Filter for "All" campaign records only
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  const allCampaignRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All' && 
+  row.Device === 'All'
+);
   
   // Calculate current totals (keeping the same)
   const currentTotals = allCampaignRecords.reduce((acc, product) => {
@@ -3330,7 +3299,11 @@ function renderROASMetricsTable(container, data) {
   container.innerHTML = '';
   
   // Filter for "All" campaign records only to get the main aggregated data
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+  const allCampaignRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All' && 
+  row.Device === 'All'
+);
   
   // Get all records (including device-specific ones) for device segmentation
   const allRecords = data;
@@ -3340,23 +3313,18 @@ function renderROASMetricsTable(container, data) {
   // Group products by bucket for main aggregation (using 'All' campaign records)
   const bucketGroups = {};
   
-// Initialize bucket groups based on bucket type
+// Initialize bucket groups based on bucket type using direct fields
 if (bucketType === 'SUGGESTIONS_BUCKET') {
   const allSuggestions = new Set();
   allCampaignRecords.forEach(row => {
-    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-      const allDevicesData = row['buckets.device_segment'].find(segment => 
-        segment.device_segment === 'all_devices'
-      );
-      if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
-        try {
-          const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
-          suggestions.forEach(suggestionObj => {
-            allSuggestions.add(suggestionObj.suggestion);
-          });
-        } catch (e) {
-          console.error('Error parsing suggestions:', e);
-        }
+    if (row.SUGGESTIONS_BUCKET) {
+      try {
+        const suggestions = JSON.parse(row.SUGGESTIONS_BUCKET);
+        suggestions.forEach(suggestionObj => {
+          allSuggestions.add(suggestionObj.suggestion);
+        });
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
       }
     }
   });
@@ -3366,13 +3334,8 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
 } else {
   const allBuckets = new Set();
   allCampaignRecords.forEach(row => {
-    if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-      const allDevicesData = row['buckets.device_segment'].find(segment => 
-        segment.device_segment === 'all_devices'
-      );
-      if (allDevicesData && allDevicesData[bucketType]) {
-        allBuckets.add(allDevicesData[bucketType]);
-      }
+    if (row[bucketType]) {
+      allBuckets.add(row[bucketType]);
     }
   });
   allBuckets.forEach(bucket => {
@@ -3380,33 +3343,25 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
   });
 }
   
-// Group allCampaignRecords by bucket
+// Group allCampaignRecords by bucket using direct fields
 allCampaignRecords.forEach(product => {
-  if (product['buckets.device_segment'] && Array.isArray(product['buckets.device_segment'])) {
-    const allDevicesData = product['buckets.device_segment'].find(segment => 
-      segment.device_segment === 'all_devices'
-    );
-    
-    if (allDevicesData) {
-      if (bucketType === 'SUGGESTIONS_BUCKET') {
-        if (allDevicesData.SUGGESTIONS_BUCKET) {
-          try {
-            const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
-            suggestions.forEach(suggestionObj => {
-              if (bucketGroups[suggestionObj.suggestion]) {
-                bucketGroups[suggestionObj.suggestion].push(product);
-              }
-            });
-          } catch (e) {
-            console.error('Error parsing suggestions:', e);
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
+    if (product.SUGGESTIONS_BUCKET) {
+      try {
+        const suggestions = JSON.parse(product.SUGGESTIONS_BUCKET);
+        suggestions.forEach(suggestionObj => {
+          if (bucketGroups[suggestionObj.suggestion]) {
+            bucketGroups[suggestionObj.suggestion].push(product);
           }
-        }
-      } else {
-        const bucket = allDevicesData[bucketType];
-        if (bucket && bucketGroups[bucket]) {
-          bucketGroups[bucket].push(product);
-        }
+        });
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
       }
+    }
+  } else {
+    const bucket = product[bucketType];
+    if (bucket && bucketGroups[bucket]) {
+      bucketGroups[bucket].push(product);
     }
   }
 });
@@ -3841,24 +3796,23 @@ function renderSuggestionsMetricsTable(container, data) {
   };
 
   // Filter for "All" campaign records only
-  const allCampaignRecords = data.filter(row => row['Campaign Name'] === 'All');
+ const allCampaignRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All' && 
+  row.Device === 'All'
+);
   
-// Get all unique suggestions from the data
+// Get all unique suggestions from the data using direct field
 const allSuggestions = new Set();
 allCampaignRecords.forEach(row => {
-  if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-    const allDevicesData = row['buckets.device_segment'].find(segment => 
-      segment.device_segment === 'all_devices'
-    );
-    if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
-      try {
-        const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
-        suggestions.forEach(suggestionObj => {
-          allSuggestions.add(suggestionObj.suggestion);
-        });
-      } catch (e) {
-        console.error('Error parsing suggestions:', e);
-      }
+  if (row.SUGGESTIONS_BUCKET) {
+    try {
+      const suggestions = JSON.parse(row.SUGGESTIONS_BUCKET);
+      suggestions.forEach(suggestionObj => {
+        allSuggestions.add(suggestionObj.suggestion);
+      });
+    } catch (e) {
+      console.error('Error parsing suggestions:', e);
     }
   }
 });
@@ -3900,18 +3854,13 @@ allCampaignRecords.forEach(row => {
     // Calculate metrics for suggestions in this category
     const categoryMetrics = suggestions.map(suggestion => {
 const bucketProducts = allCampaignRecords.filter(row => {
-  if (row['buckets.device_segment'] && Array.isArray(row['buckets.device_segment'])) {
-    const allDevicesData = row['buckets.device_segment'].find(segment => 
-      segment.device_segment === 'all_devices'
-    );
-    if (allDevicesData && allDevicesData.SUGGESTIONS_BUCKET) {
-      try {
-        const suggestions = JSON.parse(allDevicesData.SUGGESTIONS_BUCKET);
-        return suggestions.some(suggestionObj => suggestionObj.suggestion === suggestion);
-      } catch (e) {
-        console.error('Error parsing suggestions:', e);
-        return false;
-      }
+  if (row.SUGGESTIONS_BUCKET) {
+    try {
+      const suggestions = JSON.parse(row.SUGGESTIONS_BUCKET);
+      return suggestions.some(suggestionObj => suggestionObj.suggestion === suggestion);
+    } catch (e) {
+      console.error('Error parsing suggestions:', e);
+      return false;
     }
   }
   return false;
