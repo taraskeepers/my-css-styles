@@ -3173,6 +3173,17 @@ metricsRow.style.cssText = `
     if (!value) return 0;
     return parseFloat(String(value).replace(/[$,%]/g, '')) || 0;
   };
+
+    // Filter data for current and previous periods
+  const currentPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= startDate && rowDate <= today;
+  });
+  
+  const previousPeriodData = performanceData.filter(row => {
+    const rowDate = new Date(row.Date);
+    return rowDate >= prevStartDate && rowDate <= prevEndDate;
+  });
   
 // Calculate current totals from all devices
   const currentTotals = currentPeriodData.reduce((acc, row) => {
