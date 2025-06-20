@@ -3169,17 +3169,6 @@ metricsRow.style.cssText = `
   const prevEndDate = new Date(today);
   prevEndDate.setDate(prevEndDate.getDate() - daysBack);
   
-  // Filter data for current and previous periods
-  const currentPeriodData = performanceData.filter(row => {
-    const rowDate = new Date(row.Date);
-    return rowDate >= startDate && rowDate <= today;
-  });
-  
-  const previousPeriodData = performanceData.filter(row => {
-    const rowDate = new Date(row.Date);
-    return rowDate >= prevStartDate && rowDate <= prevEndDate;
-  });
-  
   const parseNumber = (value) => {
     if (!value) return 0;
     return parseFloat(String(value).replace(/[$,%]/g, '')) || 0;
