@@ -1,5 +1,5 @@
-// Product Bucket Analyzer V2
-// Implements new 5-bucket system with device segmentation
+// Product Bucket Analyzer V3
+// Implements new 5-bucket system with individual device records
 
 window.productBucketAnalyzer = {
   // Default thresholds for metric evaluation
@@ -45,25 +45,17 @@ window.productBucketAnalyzer = {
   async processProductBuckets(prefix = 'acc1_') {
     const startTime = performance.now();
     try {
-      console.log('[Product Buckets V2] Starting bucket analysis...');
+      console.log('[Product Buckets V3] Starting bucket analysis...');
       
       // Load product performance data from IDB
       const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
       if (!productRec?.data || !productRec.data.length) {
-        console.error('[Product Buckets V2] No product performance data found');
+        console.error('[Product Buckets V3] No product performance data found');
         return;
       }
 
       const rawData = productRec.data;
-      console.log(`[Product Buckets V2] Processing ${rawData.length} rows of data`);
-
-      // DEBUG: Check sample of raw data
-      console.log(`[DEBUG] Sample raw data rows:`, rawData.slice(0, 3).map(row => ({
-        Product: row['Product Title']?.substring(0, 30) + '...',
-        Campaign: row['Campaign Name'],
-        Channel: row['Channel Type'],
-        Device: row.Device
-      })));
+      console.log(`[Product Buckets V3] Processing ${rawData.length} rows of data`);
 
       // Find the max date in the data
       const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
@@ -89,156 +81,162 @@ window.productBucketAnalyzer = {
         return rowDate > startDate60 && rowDate <= startDate30;
       });
 
-      console.log(`[Product Buckets V2] Last 30 days: ${last30DaysData.length} rows`);
-      console.log(`[Product Buckets V2] Previous 30 days: ${prev30DaysData.length} rows`);
+      console.log(`[Product Buckets V3] Last 30 days: ${last30DaysData.length} rows`);
+      console.log(`[Product Buckets V3] Previous 30 days: ${prev30DaysData.length} rows`);
 
       // Calculate dynamic defaults based on last 30 days data
       this.calculateDynamicDefaults(last30DaysData);
       
       // Calculate account metrics for benchmarking
       this.accountMetrics = this.calculateAccountMetrics(last30DaysData);
-      console.log(`[Product Buckets V2] Account Average ROAS: ${this.accountMetrics.avgROAS.toFixed(2)}x`);
+      console.log(`[Product Buckets V3] Account Average ROAS: ${this.accountMetrics.avgROAS.toFixed(2)}x`);
 
       // Group data by product + campaign + channel + device
       const currentGrouped = this.groupByProductCampaignChannelDevice(last30DaysData);
       const prevGrouped = this.groupByProductCampaignChannelDevice(prev30DaysData);
 
-      // DEBUG: Log sample of grouped keys
-      const groupedKeys = Object.keys(currentGrouped);
-      console.log(`[DEBUG] Total grouped keys: ${groupedKeys.length}`);
-      console.log(`[DEBUG] Sample grouped keys:`, groupedKeys.slice(0, 10));
-
-      // Get unique product+campaign+channel combinations (without device)
-      const uniqueCombinations = new Set();
-      const uniqueProducts = new Set();
-      
-      // Define delimiter
+      // Process all combinations
+      const bucketData = [];
       const DELIMITER = '~~~';
       
-      // DEBUG: Track what we're filtering
-      let allCombinationCount = 0;
-      let nonAllCombinationCount = 0;
-      
+      // Get unique products for tracking
+      const uniqueProducts = new Set();
       Object.keys(currentGrouped).forEach(key => {
         const parts = key.split(DELIMITER);
         if (parts.length === 4) {
-          const [product, campaign, channel, device] = parts;
-          
-          // DEBUG: Log first few keys to see structure
-          if (allCombinationCount + nonAllCombinationCount < 5) {
-            console.log(`[DEBUG] Key structure: Product="${product.substring(0,20)}..." Campaign="${campaign}" Channel="${channel}" Device="${device}"`);
-          }
-          
-          // Add combination if it's not an "All/All" combination
-          if (campaign === 'All' && channel === 'All') {
-            allCombinationCount++;
-          } else {
-            nonAllCombinationCount++;
-            const combination = parts.slice(0, 3).join(DELIMITER);
-            uniqueCombinations.add(combination);
-          }
-          
-          // Add all products for All/All processing
-          uniqueProducts.add(product);
+          uniqueProducts.add(parts[0]);
         }
       });
 
-      // DEBUG: Log filtering results
-      console.log(`[DEBUG] Filtering results: ${allCombinationCount} All/All combinations, ${nonAllCombinationCount} specific combinations`);
-      console.log(`[DEBUG] Unique combinations found:`, Array.from(uniqueCombinations).slice(0, 10).map(c => {
-        const parts = c.split(DELIMITER);
-        return `${parts[0].substring(0, 30)}...|${parts[1]}|${parts[2]}`;
-      }));
-      console.log(`[DEBUG] Total unique combinations (non-All): ${uniqueCombinations.size}`);
-      console.log(`[DEBUG] Total unique products: ${uniqueProducts.size}`);
+      console.log(`[Product Buckets V3] Found ${uniqueProducts.size} unique products`);
 
-      // Process all combinations
-      const bucketData = [];
-      const allCombinations = Array.from(uniqueCombinations);
-      const allProducts = Array.from(uniqueProducts);
-      
-      console.log(`[Product Buckets V2] Processing ${allCombinations.length} campaign combinations + ${allProducts.length} product aggregates...`);
+      // Process each specific campaign/channel/device combination
+      let processedCount = 0;
+      const specificCombinations = Object.keys(currentGrouped).filter(key => {
+        const parts = key.split(DELIMITER);
+        return parts.length === 4 && parts[1] !== 'All' && parts[2] !== 'All';
+      });
 
-      // Process each specific campaign/channel combination
-      for (let i = 0; i < allCombinations.length; i++) {
-        const baseCombination = allCombinations[i];
-        const [productTitle, campaignName, channelType] = baseCombination.split(DELIMITER);
+      console.log(`[Product Buckets V3] Processing ${specificCombinations.length} specific combinations...`);
+
+      for (const key of specificCombinations) {
+        const parts = key.split(DELIMITER);
+        const [productTitle, campaignName, channelType, device] = parts;
         
-        // DEBUG
-        if (i < 5) {
-          console.log(`[DEBUG] Processing combination: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
-        }
-        
-        const rowData = this.processProductCombination(
-          baseCombination,
+        const rowData = this.processProductRecord(
           productTitle,
           campaignName,
           channelType,
-          currentGrouped,
-          prevGrouped,
-          DELIMITER
+          device,
+          currentGrouped[key] || [],
+          prevGrouped[key] || [],
+          device === 'All' // isAllDevices flag for CUSTOM_TIER_BUCKET logic
         );
         
         if (rowData) {
           bucketData.push(rowData);
-          if (i < 5) {
-            console.log(`[DEBUG] Successfully created record for: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
-          }
-        } else {
-          if (i < 5) {
-            console.log(`[DEBUG] No data returned for: ${productTitle.substring(0, 30)}...|${campaignName}|${channelType}`);
+          processedCount++;
+          
+          if (processedCount % 100 === 0) {
+            console.log(`[Product Buckets V3] Processed ${processedCount} records...`);
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
         }
       }
 
-      // Process "All/All" combinations for each product
-      for (let i = 0; i < allProducts.length; i++) {
-        const productTitle = allProducts[i];
-        const allCombination = `${productTitle}${DELIMITER}All${DELIMITER}All`;
+      // Process aggregated campaign/channel records for each product+device
+      console.log(`[Product Buckets V3] Creating device-level aggregations...`);
+      
+      for (const productTitle of uniqueProducts) {
+        const devices = new Set();
         
-        const rowData = this.processProductCombination(
-          allCombination,
-          productTitle,
-          'All',
-          'All',
-          currentGrouped,
-          prevGrouped,
-          DELIMITER
-        );
+        // Find all devices for this product
+        Object.keys(currentGrouped).forEach(key => {
+          const parts = key.split(DELIMITER);
+          if (parts[0] === productTitle && parts[3] && parts[3] !== 'All') {
+            devices.add(parts[3]);
+          }
+        });
         
-        if (rowData) {
-          bucketData.push(rowData);
+        // Create aggregated record for each device
+        for (const device of devices) {
+          // Aggregate all campaigns/channels for this product+device
+          const currentRows = [];
+          const prevRows = [];
+          
+          Object.keys(currentGrouped).forEach(key => {
+            const parts = key.split(DELIMITER);
+            if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+              currentRows.push(...(currentGrouped[key] || []));
+            }
+          });
+          
+          Object.keys(prevGrouped).forEach(key => {
+            const parts = key.split(DELIMITER);
+            if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+              prevRows.push(...(prevGrouped[key] || []));
+            }
+          });
+          
+          if (currentRows.length > 0) {
+            const rowData = this.processProductRecord(
+              productTitle,
+              'All',
+              'All',
+              device,
+              currentRows,
+              prevRows,
+              false // Not all devices
+            );
+            
+            if (rowData) {
+              bucketData.push(rowData);
+            }
+          }
         }
         
-        // Update progress
-        const totalProcessed = bucketData.length;
-        if (totalProcessed % 50 === 0 || i === allProducts.length - 1) {
-          const progress = (totalProcessed / (allCombinations.length + allProducts.length) * 100).toFixed(1);
-          console.log(`[Product Buckets V2] Progress: ${totalProcessed} records processed (${progress}%)`);
-          await new Promise(resolve => setTimeout(resolve, 10));
+        // Create one record for all devices/campaigns/channels
+        const allCurrentRows = [];
+        const allPrevRows = [];
+        
+        Object.keys(currentGrouped).forEach(key => {
+          const parts = key.split(DELIMITER);
+          if (parts[0] === productTitle && parts[1] !== 'All') {
+            allCurrentRows.push(...(currentGrouped[key] || []));
+          }
+        });
+        
+        Object.keys(prevGrouped).forEach(key => {
+          const parts = key.split(DELIMITER);
+          if (parts[0] === productTitle && parts[1] !== 'All') {
+            allPrevRows.push(...(prevGrouped[key] || []));
+          }
+        });
+        
+        if (allCurrentRows.length > 0) {
+          const rowData = this.processProductRecord(
+            productTitle,
+            'All',
+            'All',
+            'All',
+            allCurrentRows,
+            allPrevRows,
+            true // This is all devices
+          );
+          
+          if (rowData) {
+            bucketData.push(rowData);
+          }
         }
       }
 
-      console.log(`[Product Buckets V2] ✅ Completed processing ${bucketData.length} product bucket entries`);
-
-      // DEBUG: Analyze the output
-      const recordTypes = {
-        allRecords: bucketData.filter(r => r['Campaign Name'] === 'All' && r['Channel Type'] === 'All').length,
-        campaignRecords: bucketData.filter(r => r['Campaign Name'] !== 'All' || r['Channel Type'] !== 'All').length
-      };
-      console.log(`[DEBUG] Record breakdown:`, recordTypes);
-      console.log(`[DEBUG] Sample campaign records:`, 
-        bucketData
-          .filter(r => r['Campaign Name'] !== 'All')
-          .slice(0, 5)
-          .map(r => `${r['Product Title'].substring(0, 30)}... | ${r['Campaign Name']} | ${r['Channel Type']}`)
-      );
+      console.log(`[Product Buckets V3] ✅ Completed processing ${bucketData.length} product bucket entries`);
 
       // Save to IDB
       const tableName = prefix + "googleSheets_productBuckets_30d";
       await window.embedIDB.setData(tableName, bucketData);
       
-      console.log(`[Product Buckets V2] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
+      console.log(`[Product Buckets V3] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
       
       // Store in global variable for easy access
       if (!window.googleSheetsData) window.googleSheetsData = {};
@@ -247,125 +245,110 @@ window.productBucketAnalyzer = {
       // Add timing log
       const endTime = performance.now();
       const processingTime = ((endTime - startTime) / 1000).toFixed(3);
-      console.log(`[Product Buckets V2] ✅ Processing completed in ${processingTime} seconds`);
+      console.log(`[Product Buckets V3] ✅ Processing completed in ${processingTime} seconds`);
 
       return bucketData;
     } catch (error) {
-      console.error('[Product Buckets V2] Error processing buckets:', error);
+      console.error('[Product Buckets V3] Error processing buckets:', error);
       throw error;
     }
   },
 
-  // Process a single product/campaign/channel combination
-  processProductCombination(baseCombination, productTitle, campaignName, channelType, currentGrouped, prevGrouped, delimiter = '~~~') {
-    // Calculate metrics for each device segment
-    const deviceSegments = ['desktop', 'mobile', 'tablet', 'all_devices'];
-    const deviceMetrics = {};
-    const prevDeviceMetrics = {};
-    
-    // Calculate metrics for each actual device type
-    ['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
-      const key = `${baseCombination}${delimiter}${device}`;
-      const currentRows = currentGrouped[key] || [];
-      const prevRows = prevGrouped[key] || [];
-      
-      if (currentRows.length > 0) {
-        deviceMetrics[device.toLowerCase()] = this.calculateAggregatedMetrics(currentRows);
-      }
-      if (prevRows.length > 0) {
-        prevDeviceMetrics[device.toLowerCase()] = this.calculateAggregatedMetrics(prevRows);
-      }
-    });
-    
-    // Calculate all_devices aggregate
-    const allCurrentRows = [];
-    const allPrevRows = [];
-    ['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
-      const key = `${baseCombination}${delimiter}${device}`;
-      if (currentGrouped[key]) allCurrentRows.push(...currentGrouped[key]);
-      if (prevGrouped[key]) allPrevRows.push(...prevGrouped[key]);
-    });
-    
-    if (allCurrentRows.length > 0) {
-      deviceMetrics['all_devices'] = this.calculateAggregatedMetrics(allCurrentRows);
-    } else {
-      // Skip this combination if no data in current period
+  // Process a single product record
+  processProductRecord(productTitle, campaignName, channelType, device, currentRows, prevRows, isAllDevices) {
+    if (currentRows.length === 0) {
       return null;
     }
     
-    if (allPrevRows.length > 0) {
-      prevDeviceMetrics['all_devices'] = this.calculateAggregatedMetrics(allPrevRows);
+    // Calculate metrics
+    const metrics = this.calculateAggregatedMetrics(currentRows);
+    const prevMetrics = prevRows.length > 0 ? this.calculateAggregatedMetrics(prevRows) : null;
+    
+    // Get device metrics for comparison (only needed for All devices record)
+    let allDeviceMetrics = null;
+    if (isAllDevices) {
+      allDeviceMetrics = this.getDeviceMetricsForComparison(currentRows);
     }
     
-    // Build device segment buckets array
-    const deviceBuckets = [];
-    deviceSegments.forEach(segment => {
-      const metrics = deviceMetrics[segment];
-      const prevMetrics = prevDeviceMetrics[segment];
-      
-      if (metrics) {
-        const buckets = this.assignAllBuckets(metrics, deviceMetrics);
-        const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, prevDeviceMetrics) : null;
-        
-        deviceBuckets.push({
-          device_segment: segment,
-          PROFITABILITY_BUCKET: buckets.profitability,
-          FUNNEL_STAGE_BUCKET: buckets.funnelStage,
-          INVESTMENT_BUCKET: buckets.investment,
-          CUSTOM_TIER_BUCKET: buckets.customTier,
-          SUGGESTIONS_BUCKET: JSON.stringify(buckets.suggestions), // Store as JSON string
-          prev_PROFITABILITY_BUCKET: prevBuckets?.profitability || '',
-          prev_FUNNEL_STAGE_BUCKET: prevBuckets?.funnelStage || '',
-          prev_INVESTMENT_BUCKET: prevBuckets?.investment || '',
-          prev_CUSTOM_TIER_BUCKET: prevBuckets?.customTier || '',
-          prev_SUGGESTIONS_BUCKET: prevBuckets ? JSON.stringify(prevBuckets.suggestions) : '[]',
-          HEALTH_SCORE: buckets.healthScore,
-          Confidence_Level: buckets.confidenceLevel
-        });
-      }
-    });
-    
-    // Use all_devices metrics for the main row
-    const mainMetrics = deviceMetrics['all_devices'];
-    const mainPrevMetrics = prevDeviceMetrics['all_devices'];
+    // Assign buckets
+    const buckets = this.assignAllBuckets(metrics, allDeviceMetrics, isAllDevices);
+    const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, false) : null;
     
     // Build the row data
     return {
       'Product Title': productTitle,
       'Campaign Name': campaignName,
       'Channel Type': channelType,
-      'Impressions': mainMetrics.impressions,
-      'Clicks': mainMetrics.clicks,
-      'Avg CPC': this.round2(mainMetrics.avgCpc),
-      'Cost': this.round2(mainMetrics.cost),
-      'Conversions': mainMetrics.conversions,
-      'ConvValue': this.round2(mainMetrics.convValue),
-      'CTR': this.round2(mainMetrics.ctr),
-      'CVR': this.round2(mainMetrics.cvr),
-      'ROAS': this.round2(mainMetrics.roas),
-      'AOV': this.round2(mainMetrics.aov),
-      'CPA': this.round2(mainMetrics.cpa),
-      'CPM': this.round2(mainMetrics.cpm),
+      'Device': device,
+      'Impressions': metrics.impressions,
+      'Clicks': metrics.clicks,
+      'Avg CPC': this.round2(metrics.avgCpc),
+      'Cost': this.round2(metrics.cost),
+      'Conversions': metrics.conversions,
+      'ConvValue': this.round2(metrics.convValue),
+      'CTR': this.round2(metrics.ctr),
+      'CVR': this.round2(metrics.cvr),
+      'ROAS': this.round2(metrics.roas),
+      'AOV': this.round2(metrics.aov),
+      'CPA': this.round2(metrics.cpa),
+      'CPM': this.round2(metrics.cpm),
       // New funnel metrics
-      'Cart Rate': this.round2(mainMetrics.cartRate),
-      'Checkout Rate': this.round2(mainMetrics.checkoutRate),
-      'Purchase Rate': this.round2(mainMetrics.purchaseRate),
+      'Cart Rate': this.round2(metrics.cartRate),
+      'Checkout Rate': this.round2(metrics.checkoutRate),
+      'Purchase Rate': this.round2(metrics.purchaseRate),
       // Previous period metrics
-      'prev_Impressions': mainPrevMetrics ? mainPrevMetrics.impressions : 0,
-      'prev_Clicks': mainPrevMetrics ? mainPrevMetrics.clicks : 0,
-      'prev_Avg CPC': mainPrevMetrics ? this.round2(mainPrevMetrics.avgCpc) : 0,
-      'prev_Cost': mainPrevMetrics ? this.round2(mainPrevMetrics.cost) : 0,
-      'prev_Conversions': mainPrevMetrics ? mainPrevMetrics.conversions : 0,
-      'prev_ConvValue': mainPrevMetrics ? this.round2(mainPrevMetrics.convValue) : 0,
-      'prev_CTR': mainPrevMetrics ? this.round2(mainPrevMetrics.ctr) : 0,
-      'prev_CVR': mainPrevMetrics ? this.round2(mainPrevMetrics.cvr) : 0,
-      'prev_ROAS': mainPrevMetrics ? this.round2(mainPrevMetrics.roas) : 0,
-      'prev_AOV': mainPrevMetrics ? this.round2(mainPrevMetrics.aov) : 0,
-      'prev_CPA': mainPrevMetrics ? this.round2(mainPrevMetrics.cpa) : 0,
-      'prev_CPM': mainPrevMetrics ? this.round2(mainPrevMetrics.cpm) : 0,
-      // Device segment buckets
-      'buckets.device_segment': deviceBuckets
+      'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
+      'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
+      'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
+      'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
+      'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
+      'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
+      'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
+      'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
+      'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
+      'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
+      'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+      'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
+      // Bucket assignments
+      'PROFITABILITY_BUCKET': buckets.profitability,
+      'FUNNEL_STAGE_BUCKET': buckets.funnelStage,
+      'INVESTMENT_BUCKET': buckets.investment,
+      'CUSTOM_TIER_BUCKET': buckets.customTier,
+      'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
+      'HEALTH_SCORE': buckets.healthScore,
+      'Confidence_Level': buckets.confidenceLevel,
+      // Previous bucket assignments
+      'prev_PROFITABILITY_BUCKET': prevBuckets?.profitability || '',
+      'prev_FUNNEL_STAGE_BUCKET': prevBuckets?.funnelStage || '',
+      'prev_INVESTMENT_BUCKET': prevBuckets?.investment || '',
+      'prev_CUSTOM_TIER_BUCKET': prevBuckets?.customTier || '',
+      'prev_SUGGESTIONS_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.suggestions) : '[]'
     };
+  },
+
+  // Get device metrics for comparison (used only for All devices records)
+  getDeviceMetricsForComparison(rows) {
+    const deviceData = {
+      'desktop': [],
+      'mobile': [],
+      'tablet': []
+    };
+    
+    rows.forEach(row => {
+      const device = (row.Device || '').toLowerCase();
+      if (deviceData[device]) {
+        deviceData[device].push(row);
+      }
+    });
+    
+    const deviceMetrics = {};
+    Object.entries(deviceData).forEach(([device, deviceRows]) => {
+      if (deviceRows.length > 0) {
+        deviceMetrics[device] = this.calculateAggregatedMetrics(deviceRows);
+      }
+    });
+    
+    return deviceMetrics;
   },
 
   // Calculate dynamic defaults based on actual data
@@ -425,7 +408,7 @@ window.productBucketAnalyzer = {
       ? purchaseRates.reduce((a, b) => a + b, 0) / purchaseRates.length
       : 80;
 
-    console.log('[Product Buckets V2] Calculated dynamic defaults:', this.DEFAULTS);
+    console.log('[Product Buckets V3] Calculated dynamic defaults:', this.DEFAULTS);
   },
 
   // Calculate account-wide metrics
@@ -456,12 +439,7 @@ window.productBucketAnalyzer = {
   // Group data by product + campaign + channel + device
   groupByProductCampaignChannelDevice(data) {
     const grouped = {};
-    
-    // Use a delimiter that won't appear in product titles
     const DELIMITER = '~~~';
-    
-    // DEBUG: Track unique campaign/channel combinations
-    const campaignChannelCombos = new Set();
     
     data.forEach(row => {
       const device = row.Device || 'UNKNOWN';
@@ -469,49 +447,12 @@ window.productBucketAnalyzer = {
       const channelType = row['Channel Type'] || '';
       const productTitle = row['Product Title'] || '';
       
-      // Track non-All combinations
-      if (campaignName !== 'All' && channelType !== 'All' && campaignName !== '' && channelType !== '') {
-        campaignChannelCombos.add(`${campaignName}${DELIMITER}${channelType}`);
-      }
-      
       const key = `${productTitle}${DELIMITER}${campaignName}${DELIMITER}${channelType}${DELIMITER}${device}`;
       if (!grouped[key]) {
         grouped[key] = [];
       }
       grouped[key].push(row);
     });
-
-    // DEBUG: Log campaign/channel combinations found
-    console.log(`[DEBUG] Raw data contains ${campaignChannelCombos.size} unique campaign/channel combos:`, 
-      Array.from(campaignChannelCombos).slice(0, 10).map(c => c.replace(/~~~/g, '|')));
-
-    // Also create "All" campaign/channel aggregates by device
-    const productDeviceData = {};
-    data.forEach(row => {
-      const device = row.Device || 'UNKNOWN';
-      const productKey = `${row['Product Title']}${DELIMITER}${device}`;
-      if (!productDeviceData[productKey]) {
-        productDeviceData[productKey] = [];
-      }
-      productDeviceData[productKey].push(row);
-    });
-
-    // Add the "All" entries to grouped
-    for (const [key, rows] of Object.entries(productDeviceData)) {
-      const lastDelimiterIndex = key.lastIndexOf(DELIMITER);
-      const productTitle = key.substring(0, lastDelimiterIndex);
-      const device = key.substring(lastDelimiterIndex + DELIMITER.length);
-      const allKey = `${productTitle}${DELIMITER}All${DELIMITER}All${DELIMITER}${device}`;
-      grouped[allKey] = rows;
-    }
-
-    // DEBUG: Log final grouped keys
-    const nonAllKeys = Object.keys(grouped).filter(k => !k.includes(`${DELIMITER}All${DELIMITER}All${DELIMITER}`));
-    console.log(`[DEBUG] Grouped data contains ${nonAllKeys.length} non-All keys`);
-    console.log(`[DEBUG] Sample non-All keys:`, nonAllKeys.slice(0, 10).map(k => {
-      const parts = k.split(DELIMITER);
-      return `${parts[0].substring(0, 50)}...|${parts[1]}|${parts[2]}|${parts[3]}`;
-    }));
 
     return grouped;
   },
@@ -570,14 +511,14 @@ window.productBucketAnalyzer = {
   },
 
   // Assign all buckets based on new system
-  assignAllBuckets(metrics, allDeviceMetrics) {
+  assignAllBuckets(metrics, allDeviceMetrics, isAllDevices) {
     const confidenceLevel = this.calculateConfidenceLevel(metrics);
     
     const buckets = {
       profitability: this.assignProfitabilityBucket(metrics, confidenceLevel),
       funnelStage: this.assignFunnelStageBucket(metrics),
       investment: this.assignInvestmentBucket(metrics),
-      customTier: this.assignCustomTierBucket(metrics, allDeviceMetrics),
+      customTier: this.assignCustomTierBucket(metrics, allDeviceMetrics, isAllDevices),
       confidenceLevel: confidenceLevel
     };
     
@@ -585,7 +526,7 @@ window.productBucketAnalyzer = {
     buckets.healthScore = this.calculateHealthScore(metrics, buckets);
     
     // Assign suggestions with mutex groups (returns array of objects)
-    buckets.suggestions = this.assignSuggestions(metrics, buckets);
+    buckets.suggestions = this.assignSuggestions(metrics, buckets, isAllDevices);
     
     return buckets;
   },
@@ -722,17 +663,20 @@ window.productBucketAnalyzer = {
   },
 
   // 4. CUSTOM_TIER_BUCKET
-  assignCustomTierBucket(metrics, allDeviceMetrics) {
-    // Check device performance patterns
-    const desktopMetrics = allDeviceMetrics['desktop'];
-    const mobileMetrics = allDeviceMetrics['mobile'];
-    
+  assignCustomTierBucket(metrics, allDeviceMetrics, isAllDevices) {
     let deviceFlag = 'Balanced devices';
-    if (mobileMetrics && desktopMetrics) {
-      if (mobileMetrics.roas > desktopMetrics.roas * 1.5 && mobileMetrics.impressions > metrics.impressions * 0.4) {
-        deviceFlag = 'Mobile specialist';
-      } else if (desktopMetrics.roas > mobileMetrics.roas * 2 && mobileMetrics.impressions > metrics.impressions * 0.3) {
-        deviceFlag = 'Desktop only';
+    
+    // Only check device performance patterns for "All" device records
+    if (isAllDevices && allDeviceMetrics) {
+      const desktopMetrics = allDeviceMetrics['desktop'];
+      const mobileMetrics = allDeviceMetrics['mobile'];
+      
+      if (mobileMetrics && desktopMetrics) {
+        if (mobileMetrics.roas > desktopMetrics.roas * 1.5 && mobileMetrics.impressions > metrics.impressions * 0.4) {
+          deviceFlag = 'Mobile specialist';
+        } else if (desktopMetrics.roas > mobileMetrics.roas * 2 && mobileMetrics.impressions > metrics.impressions * 0.3) {
+          deviceFlag = 'Desktop only';
+        }
       }
     }
 
@@ -748,9 +692,9 @@ window.productBucketAnalyzer = {
       return 'Rising Stars';
     } else if (metrics.roas >= 2 && metrics.roas <= 3 && isConsistent) {
       return 'Steady Performers';
-    } else if (deviceFlag === 'Mobile specialist') {
+    } else if (isAllDevices && deviceFlag === 'Mobile specialist') {
       return 'Mobile Champions';
-    } else if (deviceFlag === 'Desktop only') {
+    } else if (isAllDevices && deviceFlag === 'Desktop only') {
       return 'Desktop Dependent';
     } else if (metrics.clicks >= 30 && metrics.clicks <= 60) {
       return 'Test & Learn';
@@ -762,7 +706,7 @@ window.productBucketAnalyzer = {
   },
 
   // 5. SUGGESTIONS_BUCKET with mutex groups (returns array of objects)
-  assignSuggestions(metrics, buckets) {
+  assignSuggestions(metrics, buckets, isAllDevices) {
     const suggestions = [];
     const appliedGroups = new Set();
 
@@ -842,15 +786,13 @@ window.productBucketAnalyzer = {
       );
     }
 
-    // Medium: Optimize Mobile Experience
-    const mobileMetrics = buckets.customTier === 'Desktop Dependent' ? { cvr: 0.5 } : null; // Placeholder
-    const desktopMetrics = { cvr: 2.1 }; // Placeholder
-    if (mobileMetrics && metrics.impressions * 0.4 > 1000) {
+    // Medium: Optimize Mobile Experience (only for All devices records)
+    if (isAllDevices && buckets.customTier === 'Desktop Dependent') {
       addSuggestion(
         'Optimize Mobile Experience',
         'Medium',
         'C',
-        `Mobile: ${mobileMetrics.cvr.toFixed(1)}% vs Desktop: ${desktopMetrics.cvr.toFixed(1)}%`
+        `Mobile performance significantly lower than desktop`
       );
     }
 
@@ -861,7 +803,7 @@ window.productBucketAnalyzer = {
         'Refresh Tired Creative',
         'Medium',
         'B',
-        `CTR: ${(metrics.ctr * 1.67).toFixed(1)}%→${metrics.ctr.toFixed(1)}% last 30d`
+        `CTR declining over time`
       );
     }
 
@@ -927,5 +869,5 @@ window.productBucketAnalyzer = {
   }
 };
 
-// Log that V2 analyzer is loaded
-console.log('[Product Buckets V2] Analyzer loaded and ready');
+// Log that V3 analyzer is loaded
+console.log('[Product Buckets V3] Analyzer loaded and ready');
