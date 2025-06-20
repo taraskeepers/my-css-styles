@@ -355,6 +355,10 @@ window.bucketDistributionPreferences = {
       
       updateChannelsAndCampaignsForBucket(null);
     }, 300);
+        // Store refresh function globally
+    window.refreshROASBucketsView = async () => {
+      await loadAndRenderROASBuckets();
+    };
   } catch (error) {
     console.error('[loadAndRenderROASBuckets] Error:', error);
     leftContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Unable to load bucket data. Please ensure data is loaded.</div>';
@@ -3131,7 +3135,7 @@ metricsRow.style.cssText = `
   }
   
 // Get selected date range
-  const dateRangeSelect = document.getElementById('productInfoDateText');
+  const dateRangeSelect = document.getElementById('productInfoDateRange');
   const selectedRange = dateRangeSelect ? dateRangeSelect.value : 'last_30_days';
   
   // Calculate date ranges based on selection
@@ -4407,3 +4411,17 @@ function addBucketTooltip(element, bucketName, bucketType) {
     });
   }
 }
+
+// Listen for date range changes
+document.addEventListener('DOMContentLoaded', function() {
+  const dateRangeSelector = document.getElementById('productInfoDateRange');
+  if (dateRangeSelector) {
+    dateRangeSelector.addEventListener('change', async function() {
+      console.log('[ROAS Buckets] Date range changed, refreshing...');
+      // Refresh the entire ROAS buckets view which includes the charts
+      if (window.refreshROASBucketsView) {
+        await window.refreshROASBucketsView();
+      }
+    });
+  }
+});
