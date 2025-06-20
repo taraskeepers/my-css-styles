@@ -284,13 +284,13 @@ async function loadAndRenderROASBuckets() {
     // Get bucket type to determine what to show/hide
     const bucketType = window.selectedBucketType || 'ROAS_Bucket';
     
-    // Process historic data for area charts (hide for Suggestions)
+// Process historic data for area charts (hide for Suggestions)
     if (chartsContainer) {
-      if (bucketType === 'Suggestions') {
+      if (bucketType === 'SUGGESTIONS_BUCKET') {
         chartsContainer.style.display = 'none';
       } else {
         chartsContainer.style.display = '';
-        renderROASHistoricCharts(chartsContainer, filteredData);
+        await renderROASHistoricCharts(chartsContainer, filteredData);
       }
     }
     
@@ -3015,7 +3015,7 @@ function getBucketDescription(bucketType, bucketValue) {
   return null;
 }
 
-function renderROASHistoricCharts(container, data) {
+async function renderROASHistoricCharts(container, data) {
   // Create main wrapper
   const mainWrapper = document.createElement('div');
   mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
