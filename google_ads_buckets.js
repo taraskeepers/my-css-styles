@@ -3023,95 +3023,14 @@ function getBucketDescription(bucketType, bucketValue) {
 }
 
 async function renderROASHistoricCharts(container, data) {
-// Clear container
+  // Clear container
   container.innerHTML = '';
   
   // Create main wrapper that contains everything
   const mainWrapper = document.createElement('div');
   mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
   
-  // Create right side toggle panel
-  const togglePanel = document.createElement('div');
-  togglePanel.style.cssText = `
-    width: 140px;
-    background: white;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  `;
-  
-  togglePanel.innerHTML = `
-    <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Chart Metrics</h4>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" data-metric="roas" checked style="cursor: pointer;">
-        <span style="font-size: 12px; color: #4CAF50;">ROAS</span>
-      </label>
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" data-metric="aov" checked style="cursor: pointer;">
-        <span style="font-size: 12px; color: #2196F3;">AOV</span>
-      </label>
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" data-metric="cpa" checked style="cursor: pointer;">
-        <span style="font-size: 12px; color: #FF9800;">CPA</span>
-      </label>
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" data-metric="ctr" checked style="cursor: pointer;">
-        <span style="font-size: 12px; color: #9C27B0;">CTR %</span>
-      </label>
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" data-metric="cvr" checked style="cursor: pointer;">
-        <span style="font-size: 12px; color: #00BCD4;">CVR %</span>
-      </label>
-    </div>
-  `;
-  
-// Create a horizontal wrapper for chart and toggle panel
-  const chartAndToggleWrapper = document.createElement('div');
-  chartAndToggleWrapper.style.cssText = 'display: flex; gap: 15px; flex: 1;';
-  
-  // Append chart and toggle panel to the horizontal wrapper
-  chartAndToggleWrapper.appendChild(wrapper);
-  chartAndToggleWrapper.appendChild(togglePanel);
-  
-  // Append everything to main wrapper
-  mainWrapper.appendChild(metricsContainer);
-  mainWrapper.appendChild(chartAndToggleWrapper);
-  
-  // Append main wrapper to container
-  container.appendChild(mainWrapper);
-  
-  // Store active metrics
-  window.activeChartMetrics = {
-    roas: true,
-    aov: true,
-    cpa: true,
-    ctr: true,
-    cvr: true
-  };
-  
-// Create metrics container with main and device rows
-const metricsContainer = document.createElement('div');
-metricsContainer.style.cssText = `
-  width: 100%;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  padding: 15px;
-`;
-
-// Main metrics row
-const metricsRow = document.createElement('div');
-metricsRow.style.cssText = `
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #dee2e6;
-  margin-bottom: 12px;
-`;
-  
-// Load product performance data instead of bucket data
+  // Load product performance data instead of bucket data
   const accountPrefix = window.currentAccount || 'acc1';
   const performanceTableName = `${accountPrefix}_googleSheets_productPerformance`;
   
@@ -3145,7 +3064,7 @@ metricsRow.style.cssText = `
     return;
   }
   
-// Get selected date range
+  // Get selected date range
   const dateRangeSelect = document.getElementById('productInfoDateRange');
   const selectedRange = dateRangeSelect ? dateRangeSelect.value : 'last_30_days';
   
@@ -3173,7 +3092,7 @@ metricsRow.style.cssText = `
     return parseFloat(String(value).replace(/[$,%]/g, '')) || 0;
   };
 
-    // Filter data for current and previous periods
+  // Filter data for current and previous periods
   const currentPeriodData = performanceData.filter(row => {
     const rowDate = new Date(row.Date);
     return rowDate >= startDate && rowDate <= today;
@@ -3184,7 +3103,7 @@ metricsRow.style.cssText = `
     return rowDate >= prevStartDate && rowDate <= prevEndDate;
   });
   
-// Calculate current totals from all devices
+  // Calculate current totals from all devices
   const currentTotals = currentPeriodData.reduce((acc, row) => {
     acc.cost += parseNumber(row.Cost);
     acc.convValue += parseNumber(row['Conversion Value']);
@@ -3204,7 +3123,7 @@ metricsRow.style.cssText = `
     return acc;
   }, { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 });
   
-  // Calculate metrics (keeping the same)
+  // Calculate metrics
   const currentROAS = currentTotals.cost > 0 ? currentTotals.convValue / currentTotals.cost : 0;
   const prevROAS = prevTotals.cost > 0 ? prevTotals.convValue / prevTotals.cost : 0;
   
@@ -3214,7 +3133,7 @@ metricsRow.style.cssText = `
   const currentCPA = currentTotals.conversions > 0 ? currentTotals.cost / currentTotals.conversions : 0;
   const prevCPA = prevTotals.conversions > 0 ? prevTotals.cost / prevTotals.conversions : 0;
 
-// Calculate device-specific metrics
+  // Calculate device-specific metrics
   const deviceMetrics = {
     DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
     MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0, clicks: 0 },
@@ -3265,7 +3184,7 @@ metricsRow.style.cssText = `
     prev.cpa = prev.conversions > 0 ? prev.cost / prev.conversions : 0;
   });
   
-  // Helper function to create metric item (keeping the same)
+  // Helper function to create metric item
   const createMetricItem = (label, current, previous, format) => {
     const change = current - previous;
     const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
@@ -3302,89 +3221,105 @@ metricsRow.style.cssText = `
     `;
   };
   
-metricsRow.innerHTML = `
-  ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
-  ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
-  ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
-  ${createMetricItem('Impressions', currentTotals.impressions, prevTotals.impressions, 'number')}
-  ${createMetricItem('Cost', currentTotals.cost, prevTotals.cost, 'currency')}
-  ${createMetricItem('Revenue', currentTotals.convValue, prevTotals.convValue, 'currency')}
-`;
+  // Create metrics container with main and device rows
+  const metricsContainer = document.createElement('div');
+  metricsContainer.style.cssText = `
+    width: 100%;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 15px;
+  `;
 
-metricsContainer.appendChild(metricsRow);
-
-// Add device rows
-const deviceRows = document.createElement('div');
-deviceRows.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
-
-['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
-  const deviceRow = document.createElement('div');
-  deviceRow.style.cssText = `
+  // Main metrics row
+  const metricsRow = document.createElement('div');
+  metricsRow.style.cssText = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 6px;
-    padding: 8px 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 12px;
   `;
   
-  const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
-  const current = deviceMetrics[device];
-  const prev = devicePrevMetrics[device];
-  
-  // Create smaller metric items
-  const createSmallMetricItem = (value, prevValue, format) => {
-    const change = value - prevValue;
-    const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
-    const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
-    
-    let formattedValue;
-    switch (format) {
-      case 'currency':
-        formattedValue = '$' + value.toLocaleString();
-        break;
-      case 'number':
-        formattedValue = value.toLocaleString();
-        break;
-      case 'decimal':
-        formattedValue = value.toFixed(2) + 'x';
-        break;
-      default:
-        formattedValue = value.toFixed(2);
-    }
-    
-    return `
-      <div style="text-align: center; flex: 1;">
-        <div style="font-size: 14px; font-weight: 600; color: #333;">${formattedValue}</div>
-        <div class="${trendClass}" style="font-size: 9px; font-weight: 500; margin-top: 2px;">
-          ${trendArrow} ${Math.abs(change).toFixed(format === 'currency' ? 0 : format === 'decimal' ? 2 : 0)}
-        </div>
-      </div>
-    `;
-  };
-  
-  deviceRow.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px; min-width: 100px;">
-      <span style="font-size: 16px;">${deviceIcon}</span>
-      <span style="font-size: 11px; font-weight: 600; color: #666;">${device}</span>
-    </div>
-    ${createSmallMetricItem(current.roas, prev.roas, 'decimal')}
-    ${createSmallMetricItem(current.aov, prev.aov, 'currency')}
-    ${createSmallMetricItem(current.cpa, prev.cpa, 'currency')}
-    ${createSmallMetricItem(current.impressions, prev.impressions, 'number')}
-    ${createSmallMetricItem(current.cost, prev.cost, 'currency')}
-    ${createSmallMetricItem(current.convValue, prev.convValue, 'currency')}
+  metricsRow.innerHTML = `
+    ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
+    ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
+    ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
+    ${createMetricItem('Impressions', currentTotals.impressions, prevTotals.impressions, 'number')}
+    ${createMetricItem('Cost', currentTotals.cost, prevTotals.cost, 'currency')}
+    ${createMetricItem('Revenue', currentTotals.convValue, prevTotals.convValue, 'currency')}
   `;
-  
-  deviceRows.appendChild(deviceRow);
-});
 
-metricsContainer.appendChild(deviceRows);
-mainWrapper.appendChild(metricsContainer);
-  
-// Create chart layout wrapper
-  const chartLayoutWrapper = document.createElement('div');
-  chartLayoutWrapper.style.cssText = 'display: flex; flex: 1; gap: 15px;';
+  metricsContainer.appendChild(metricsRow);
+
+  // Add device rows
+  const deviceRows = document.createElement('div');
+  deviceRows.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+
+  ['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
+    const deviceRow = document.createElement('div');
+    deviceRow.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 6px;
+      padding: 8px 15px;
+    `;
+    
+    const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+    const current = deviceMetrics[device];
+    const prev = devicePrevMetrics[device];
+    
+    // Create smaller metric items
+    const createSmallMetricItem = (value, prevValue, format) => {
+      const change = value - prevValue;
+      const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
+      const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
+      
+      let formattedValue;
+      switch (format) {
+        case 'currency':
+          formattedValue = '$' + value.toLocaleString();
+          break;
+        case 'number':
+          formattedValue = value.toLocaleString();
+          break;
+        case 'decimal':
+          formattedValue = value.toFixed(2) + 'x';
+          break;
+        default:
+          formattedValue = value.toFixed(2);
+      }
+      
+      return `
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 14px; font-weight: 600; color: #333;">${formattedValue}</div>
+          <div class="${trendClass}" style="font-size: 9px; font-weight: 500; margin-top: 2px;">
+            ${trendArrow} ${Math.abs(change).toFixed(format === 'currency' ? 0 : format === 'decimal' ? 2 : 0)}
+          </div>
+        </div>
+      `;
+    };
+    
+    deviceRow.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px; min-width: 100px;">
+        <span style="font-size: 16px;">${deviceIcon}</span>
+        <span style="font-size: 11px; font-weight: 600; color: #666;">${device}</span>
+      </div>
+      ${createSmallMetricItem(current.roas, prev.roas, 'decimal')}
+      ${createSmallMetricItem(current.aov, prev.aov, 'currency')}
+      ${createSmallMetricItem(current.cpa, prev.cpa, 'currency')}
+      ${createSmallMetricItem(current.impressions, prev.impressions, 'number')}
+      ${createSmallMetricItem(current.cost, prev.cost, 'currency')}
+      ${createSmallMetricItem(current.convValue, prev.convValue, 'currency')}
+    `;
+    
+    deviceRows.appendChild(deviceRow);
+  });
+
+  metricsContainer.appendChild(deviceRows);
   
   // Create chart wrapper
   const wrapper = document.createElement('div');
@@ -3397,10 +3332,63 @@ mainWrapper.appendChild(metricsContainer);
     position: relative;
   `;
   
-// Process daily metrics data from performance data
+  // Create right side toggle panel
+  const togglePanel = document.createElement('div');
+  togglePanel.style.cssText = `
+    width: 140px;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  `;
+  
+  togglePanel.innerHTML = `
+    <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Chart Metrics</h4>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="roas" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #4CAF50;">ROAS</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="aov" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #2196F3;">AOV</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="cpa" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #FF9800;">CPA</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="ctr" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #9C27B0;">CTR %</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="cvr" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #00BCD4;">CVR %</span>
+      </label>
+    </div>
+  `;
+  
+  // Create a horizontal wrapper for chart and toggle panel
+  const chartAndToggleWrapper = document.createElement('div');
+  chartAndToggleWrapper.style.cssText = 'display: flex; gap: 15px; flex: 1;';
+  
+  // Now append elements in the correct order
+  chartAndToggleWrapper.appendChild(wrapper);
+  chartAndToggleWrapper.appendChild(togglePanel);
+  
+  // Store active metrics
+  window.activeChartMetrics = {
+    roas: true,
+    aov: true,
+    cpa: true,
+    ctr: true,
+    cvr: true
+  };
+  
+  // Process daily metrics data from performance data
   const dailyMetrics = {};
   
-// Initialize date map for selected period
+  // Initialize date map for selected period
   for (let i = 0; i < daysBack; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
@@ -3444,7 +3432,7 @@ mainWrapper.appendChild(metricsContainer);
   // Convert to arrays for Chart.js
   const dates = Object.keys(dailyMetrics).sort();
   
-// Create datasets for each metric
+  // Create datasets for each metric
   const allDatasets = {
     roas: {
       label: 'ROAS',
@@ -3571,13 +3559,9 @@ mainWrapper.appendChild(metricsContainer);
     }
   });
   
-// Append metrics container first
+  // Append elements to main wrapper in correct order
   mainWrapper.appendChild(metricsContainer);
-  
-  // Then append chart and toggle panel in a row
-  chartLayoutWrapper.appendChild(wrapper);
-  chartLayoutWrapper.appendChild(togglePanel);
-  mainWrapper.appendChild(chartLayoutWrapper);
+  mainWrapper.appendChild(chartAndToggleWrapper);
   
   // Finally append main wrapper to container
   container.appendChild(mainWrapper);
