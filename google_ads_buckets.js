@@ -3066,8 +3066,19 @@ async function renderROASHistoricCharts(container, data) {
     </div>
   `;
   
-  layoutWrapper.appendChild(mainWrapper);
-  layoutWrapper.appendChild(togglePanel);
+// Create a horizontal wrapper for chart and toggle panel
+  const chartAndToggleWrapper = document.createElement('div');
+  chartAndToggleWrapper.style.cssText = 'display: flex; gap: 15px; flex: 1;';
+  
+  // Append chart and toggle panel to the horizontal wrapper
+  chartAndToggleWrapper.appendChild(wrapper);
+  chartAndToggleWrapper.appendChild(togglePanel);
+  
+  // Append everything to main wrapper
+  mainWrapper.appendChild(metricsContainer);
+  mainWrapper.appendChild(chartAndToggleWrapper);
+  
+  // Append main wrapper to container
   container.appendChild(mainWrapper);
   
   // Store active metrics
