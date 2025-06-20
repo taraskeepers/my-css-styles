@@ -3020,19 +3020,26 @@ function renderROASHistoricCharts(container, data) {
   const mainWrapper = document.createElement('div');
   mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
   
-  // Create metrics summary row (keep this part the same)
-  const metricsRow = document.createElement('div');
-  metricsRow.style.cssText = `
-    width: 100%;
-    height: 80px;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 8px;
-    padding: 15px 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  `;
+// Create metrics container with main and device rows
+const metricsContainer = document.createElement('div');
+metricsContainer.style.cssText = `
+  width: 100%;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 15px;
+`;
+
+// Main metrics row
+const metricsRow = document.createElement('div');
+metricsRow.style.cssText = `
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 12px;
+`;
   
   // Filter for "All" campaign records only
   const allCampaignRecords = data.filter(row => 
@@ -3068,6 +3075,55 @@ function renderROASHistoricCharts(container, data) {
   
   const currentCPA = currentTotals.conversions > 0 ? currentTotals.cost / currentTotals.conversions : 0;
   const prevCPA = prevTotals.conversions > 0 ? prevTotals.cost / prevTotals.conversions : 0;
+
+  // Calculate device-specific metrics
+const deviceMetrics = {
+  DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
+  MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
+  TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0 }
+};
+
+const devicePrevMetrics = {
+  DESKTOP: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
+  MOBILE: { cost: 0, convValue: 0, impressions: 0, conversions: 0 },
+  TABLET: { cost: 0, convValue: 0, impressions: 0, conversions: 0 }
+};
+
+// Get device-specific records (Campaign="All", Channel="All", but specific devices)
+const deviceRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All' && 
+  row.Device !== 'All'
+);
+
+deviceRecords.forEach(product => {
+  const device = product.Device;
+  if (device && deviceMetrics[device]) {
+    deviceMetrics[device].cost += parseFloat(product.Cost) || 0;
+    deviceMetrics[device].convValue += parseFloat(product.ConvValue) || 0;
+    deviceMetrics[device].impressions += parseInt(product.Impressions) || 0;
+    deviceMetrics[device].conversions += parseFloat(product.Conversions) || 0;
+    
+    devicePrevMetrics[device].cost += parseFloat(product.prev_Cost) || 0;
+    devicePrevMetrics[device].convValue += parseFloat(product.prev_ConvValue) || 0;
+    devicePrevMetrics[device].impressions += parseInt(product.prev_Impressions) || 0;
+    devicePrevMetrics[device].conversions += parseFloat(product.prev_Conversions) || 0;
+  }
+});
+
+// Calculate device-specific derived metrics
+Object.keys(deviceMetrics).forEach(device => {
+  const current = deviceMetrics[device];
+  const prev = devicePrevMetrics[device];
+  
+  current.roas = current.cost > 0 ? current.convValue / current.cost : 0;
+  current.aov = current.conversions > 0 ? current.convValue / current.conversions : 0;
+  current.cpa = current.conversions > 0 ? current.cost / current.conversions : 0;
+  
+  prev.roas = prev.cost > 0 ? prev.convValue / prev.cost : 0;
+  prev.aov = prev.conversions > 0 ? prev.convValue / prev.conversions : 0;
+  prev.cpa = prev.conversions > 0 ? prev.cost / prev.conversions : 0;
+});
   
   // Helper function to create metric item (keeping the same)
   const createMetricItem = (label, current, previous, format) => {
@@ -3106,58 +3162,111 @@ function renderROASHistoricCharts(container, data) {
     `;
   };
   
-  metricsRow.innerHTML = `
-    ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
-    ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
-    ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
-    ${createMetricItem('Impressions', currentTotals.impressions, prevTotals.impressions, 'number')}
-    ${createMetricItem('Cost', currentTotals.cost, prevTotals.cost, 'currency')}
-    ${createMetricItem('Revenue', currentTotals.convValue, prevTotals.convValue, 'currency')}
+metricsRow.innerHTML = `
+  <div style="width: 100%; text-align: center; margin-bottom: 8px;">
+    <div style="font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase;">All Devices</div>
+  </div>
+  ${createMetricItem('ROAS', currentROAS, prevROAS, 'decimal')}
+  ${createMetricItem('AOV', currentAOV, prevAOV, 'currency')}
+  ${createMetricItem('CPA', currentCPA, prevCPA, 'currency')}
+  ${createMetricItem('Impressions', currentTotals.impressions, prevTotals.impressions, 'number')}
+  ${createMetricItem('Cost', currentTotals.cost, prevTotals.cost, 'currency')}
+  ${createMetricItem('Revenue', currentTotals.convValue, prevTotals.convValue, 'currency')}
+`;
+
+metricsContainer.appendChild(metricsRow);
+
+// Add device rows
+const deviceRows = document.createElement('div');
+deviceRows.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+
+['DESKTOP', 'MOBILE', 'TABLET'].forEach(device => {
+  const deviceRow = document.createElement('div');
+  deviceRow.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 8px 15px;
   `;
   
-  mainWrapper.appendChild(metricsRow);
+  const deviceIcon = device === 'DESKTOP' ? '💻' : device === 'MOBILE' ? '📱' : '📋';
+  const current = deviceMetrics[device];
+  const prev = devicePrevMetrics[device];
+  
+  // Create smaller metric items
+  const createSmallMetricItem = (value, prevValue, format) => {
+    const change = value - prevValue;
+    const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
+    const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
+    
+    let formattedValue;
+    switch (format) {
+      case 'currency':
+        formattedValue = '$' + value.toLocaleString();
+        break;
+      case 'number':
+        formattedValue = value.toLocaleString();
+        break;
+      case 'decimal':
+        formattedValue = value.toFixed(2) + 'x';
+        break;
+      default:
+        formattedValue = value.toFixed(2);
+    }
+    
+    return `
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 14px; font-weight: 600; color: #333;">${formattedValue}</div>
+        <div class="${trendClass}" style="font-size: 9px; font-weight: 500; margin-top: 2px;">
+          ${trendArrow} ${Math.abs(change).toFixed(format === 'currency' ? 0 : format === 'decimal' ? 2 : 0)}
+        </div>
+      </div>
+    `;
+  };
+  
+  deviceRow.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 8px; min-width: 100px;">
+      <span style="font-size: 16px;">${deviceIcon}</span>
+      <span style="font-size: 11px; font-weight: 600; color: #666;">${device}</span>
+    </div>
+    ${createSmallMetricItem(current.roas, prev.roas, 'decimal')}
+    ${createSmallMetricItem(current.aov, prev.aov, 'currency')}
+    ${createSmallMetricItem(current.cpa, prev.cpa, 'currency')}
+    ${createSmallMetricItem(current.impressions, prev.impressions, 'number')}
+    ${createSmallMetricItem(current.cost, prev.cost, 'currency')}
+    ${createSmallMetricItem(current.convValue, prev.convValue, 'currency')}
+  `;
+  
+  deviceRows.appendChild(deviceRow);
+});
+
+metricsContainer.appendChild(deviceRows);
+mainWrapper.appendChild(metricsContainer);
   
   // Create wrapper for chart
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'flex: 1; position: relative;';
   
-  // Process daily metrics data
-  const dailyMetrics = {};
-  const endDate = moment();
-  const startDate = moment().subtract(29, 'days');
-  
-  // Initialize date map with metrics
-  for (let d = startDate.clone(); d.isSameOrBefore(endDate); d.add(1, 'day')) {
-    const dateStr = d.format('YYYY-MM-DD');
-    dailyMetrics[dateStr] = {
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      convValue: 0,
-      roas: 0,
-      aov: 0,
-      cpa: 0,
-      ctr: 0,
-      cvr: 0
-    };
+// Since we don't have daily historic data, create a comparison chart
+// showing current period (last 30 days) vs previous period
+const chartData = {
+  labels: ['Previous 30 Days', 'Last 30 Days'],
+  metrics: {
+    roas: [prevROAS, currentROAS],
+    aov: [prevAOV, currentAOV],
+    cpa: [prevCPA, currentCPA],
+    ctr: [
+      prevTotals.impressions > 0 ? (prevTotals.clicks / prevTotals.impressions) * 100 : 0,
+      currentTotals.impressions > 0 ? (currentTotals.clicks / currentTotals.impressions) * 100 : 0
+    ],
+    cvr: [
+      prevTotals.clicks > 0 ? (prevTotals.conversions / prevTotals.clicks) * 100 : 0,
+      currentTotals.clicks > 0 ? (currentTotals.conversions / currentTotals.clicks) * 100 : 0
+    ]
   }
-  
-  // Aggregate metrics by date from historic data
-  allCampaignRecords.forEach(product => {
-    if (product['historic_data'] && Array.isArray(product['historic_data'])) {
-      product['historic_data'].forEach(histItem => {
-        const date = histItem.date;
-        if (date && dailyMetrics[date]) {
-          dailyMetrics[date].impressions += parseInt(histItem.impressions) || 0;
-          dailyMetrics[date].clicks += parseInt(histItem.clicks) || 0;
-          dailyMetrics[date].cost += parseFloat(histItem.cost) || 0;
-          dailyMetrics[date].conversions += parseFloat(histItem.conversions) || 0;
-          dailyMetrics[date].convValue += parseFloat(histItem.conv_value) || 0;
-        }
-      });
-    }
-  });
+};
   
   // Calculate derived metrics for each day
   Object.keys(dailyMetrics).forEach(date => {
@@ -3172,124 +3281,118 @@ function renderROASHistoricCharts(container, data) {
   // Convert to arrays for Chart.js
   const dates = Object.keys(dailyMetrics).sort();
   
-  // Create datasets for each metric
-  const datasets = [
-    {
-      label: 'ROAS',
-      data: dates.map(date => dailyMetrics[date].roas),
-      borderColor: '#4CAF50',
-      backgroundColor: 'rgba(76, 175, 80, 0.1)',
-      yAxisID: 'y-roas',
-      tension: 0.4
+// Create datasets for comparison chart
+const datasets = [
+  {
+    label: 'ROAS',
+    data: chartData.metrics.roas,
+    borderColor: '#4CAF50',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    yAxisID: 'y-roas'
+  },
+  {
+    label: 'AOV',
+    data: chartData.metrics.aov,
+    borderColor: '#2196F3',
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    yAxisID: 'y-currency'
+  },
+  {
+    label: 'CPA',
+    data: chartData.metrics.cpa,
+    borderColor: '#FF9800',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    yAxisID: 'y-currency'
+  },
+  {
+    label: 'CTR %',
+    data: chartData.metrics.ctr,
+    borderColor: '#9C27B0',
+    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+    yAxisID: 'y-percentage'
+  },
+  {
+    label: 'CVR %',
+    data: chartData.metrics.cvr,
+    borderColor: '#00BCD4',
+    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+    yAxisID: 'y-percentage'
+  }
+];
+
+// Create chart
+const canvas = document.createElement('canvas');
+canvas.style.cssText = 'width: 100%; height: 100%;';
+wrapper.appendChild(canvas);
+
+new Chart(canvas, {
+  type: 'bar',
+  data: {
+    labels: chartData.labels,
+    datasets: datasets
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
     },
-    {
-      label: 'AOV',
-      data: dates.map(date => dailyMetrics[date].aov),
-      borderColor: '#2196F3',
-      backgroundColor: 'rgba(33, 150, 243, 0.1)',
-      yAxisID: 'y-currency',
-      tension: 0.4
-    },
-    {
-      label: 'CPA',
-      data: dates.map(date => dailyMetrics[date].cpa),
-      borderColor: '#FF9800',
-      backgroundColor: 'rgba(255, 152, 0, 0.1)',
-      yAxisID: 'y-currency',
-      tension: 0.4
-    },
-    {
-      label: 'CTR %',
-      data: dates.map(date => dailyMetrics[date].ctr),
-      borderColor: '#9C27B0',
-      backgroundColor: 'rgba(156, 39, 176, 0.1)',
-      yAxisID: 'y-percentage',
-      tension: 0.4
-    },
-    {
-      label: 'CVR %',
-      data: dates.map(date => dailyMetrics[date].cvr),
-      borderColor: '#00BCD4',
-      backgroundColor: 'rgba(0, 188, 212, 0.1)',
-      yAxisID: 'y-percentage',
-      tension: 0.4
-    }
-  ];
-  
-  // Create chart
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'width: 100%; height: 100%;';
-  wrapper.appendChild(canvas);
-  
-  new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: dates.map(date => moment(date).format('DD/MM')),
-      datasets: datasets
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      scales: {
-        x: {
-          display: true,
-          grid: {
-            display: false
-          }
-        },
-        'y-roas': {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'ROAS'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        'y-currency': {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Currency ($)'
-          },
-          grid: {
-            drawOnChartArea: true
-          }
-        },
-        'y-percentage': {
-          type: 'linear',
-          display: false,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Percentage (%)'
-          }
-        }
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: 'Key Metrics Trend - Last 30 Days'
-        },
-        legend: {
-          display: true,
-          position: 'bottom'
-        },
-        datalabels: {
+    scales: {
+      x: {
+        display: true,
+        grid: {
           display: false
         }
+      },
+      'y-roas': {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        title: {
+          display: true,
+          text: 'ROAS'
+        },
+        grid: {
+          drawOnChartArea: false
+        }
+      },
+      'y-currency': {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        title: {
+          display: true,
+          text: 'Currency ($)'
+        },
+        grid: {
+          drawOnChartArea: true
+        }
+      },
+      'y-percentage': {
+        type: 'linear',
+        display: false,
+        position: 'right',
+        title: {
+          display: true,
+          text: 'Percentage (%)'
+        }
+      }
+    },
+    plugins: {
+      title: {
+        display: true,
+        text: 'Key Metrics: Previous vs Current Period'
+      },
+      legend: {
+        display: false  // Remove legend as requested
+      },
+      datalabels: {
+        display: false
       }
     }
-  });
+  }
+});
   
   mainWrapper.appendChild(wrapper);
   container.appendChild(mainWrapper);
