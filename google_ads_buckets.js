@@ -323,7 +323,7 @@ setTimeout(() => {
       dropdown.style.display = 'none';
       
 // Show loading state
-const bucketsContainer = document.getElementById('roas_buckets');
+const bucketsContainer = document.getElementById('buckets_products');
 const chartsContainer = document.getElementById('roas_charts');
 const originalBucketsHTML = bucketsContainer ? bucketsContainer.innerHTML : '';
 const originalChartsHTML = chartsContainer ? chartsContainer.innerHTML : '';
@@ -370,7 +370,7 @@ try {
 }
 
 async function loadAndRenderROASBuckets() {
-  const bucketsContainer = document.getElementById('roas_buckets');
+  const bucketsContainer = document.getElementById('buckets_products');
   const chartsContainer = document.getElementById('roas_charts');
   if (chartsContainer) {
     chartsContainer.style.height = '600px';
@@ -529,7 +529,7 @@ window.bucketDistributionPreferences = {
 };
       }
       
-      const rightContainer = document.querySelector('#roas_buckets .right-container');
+      const rightContainer = document.querySelector('#buckets_products .right-container');
       if (rightContainer && window.roasBucketsData) {
         rightContainer.innerHTML = '';
         
@@ -993,7 +993,7 @@ aggTrapezoid.addEventListener('click', function() {
   updateChannelsAndCampaignsForBucket(null);
   
   // Update right container to show overall distribution
-  const rightContainer = document.querySelector('#roas_buckets .right-container');
+  const rightContainer = document.querySelector('#buckets_products .right-container');
   if (rightContainer) {
     rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
     renderBucketDistribution(rightContainer, window.roasBucketsData);
@@ -1621,7 +1621,7 @@ svg.appendChild(textGroup);
 }
 
 async function updateBucketMetrics(selectedBucket) {
-  const rightContainer = document.querySelector('#roas_buckets .right-container');
+  const rightContainer = document.querySelector('#buckets_products .right-container');
   if (!rightContainer) return;
   
   // Show loading
