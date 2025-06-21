@@ -190,13 +190,24 @@ function setupBucketDateRangeSelector() {
     dateRangeContainer = document.createElement('div');
     dateRangeContainer.id = 'bucketDateRange';
     dateRangeContainer.className = 'bucket-date-selector-top';
-    dateRangeContainer.style.cssText = `
-      position: absolute;
-      top: -45px;
-      right: 0;
-      z-index: 100;
-      display: block;
-    `;
+dateRangeContainer.style.cssText = `
+  position: absolute;
+  top: -45px;
+  right: 0;
+  z-index: 100;
+  display: block;
+`;
+
+// Add this after creating the container to ensure proper alignment
+setTimeout(() => {
+  const chartsRect = chartsContainer.getBoundingClientRect();
+  const containerRect = dateRangeContainer.getBoundingClientRect();
+  const parentRect = chartsContainer.parentElement.getBoundingClientRect();
+  
+  // Calculate the right offset to align with charts container
+  const rightOffset = parentRect.right - chartsRect.right;
+  dateRangeContainer.style.right = rightOffset + 'px';
+}, 100);
     
     // Insert before charts container
     chartsContainer.parentElement.style.position = 'relative';
@@ -285,9 +296,29 @@ function setupBucketDateRangeSelector() {
       // Hide dropdown
       dropdown.style.display = 'none';
       
-      // Refresh the buckets view with new date range
-      console.log('[Bucket Date Range] Changed to:', days, 'days');
-      await loadAndRenderROASBuckets();
+// Show loading state
+const bucketsContainer = document.getElementById('roas_buckets');
+const chartsContainer = document.getElementById('roas_charts');
+const originalBucketsHTML = bucketsContainer ? bucketsContainer.innerHTML : '';
+const originalChartsHTML = chartsContainer ? chartsContainer.innerHTML : '';
+
+if (bucketsContainer) {
+  bucketsContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading data...</p></div>';
+}
+if (chartsContainer) {
+  chartsContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading charts...</p></div>';
+}
+
+try {
+  // Refresh the buckets view with new date range
+  console.log('[Bucket Date Range] Changed to:', days, 'days');
+  await loadAndRenderROASBuckets();
+} catch (error) {
+  console.error('[Bucket Date Range] Error refreshing:', error);
+  // Restore original content on error
+  if (bucketsContainer) bucketsContainer.innerHTML = originalBucketsHTML;
+  if (chartsContainer) chartsContainer.innerHTML = originalChartsHTML;
+}
     }
   });
   
@@ -3220,21 +3251,10 @@ async function renderROASHistoricCharts(container, data) {
     return;
   }
   
-  // Get selected date range
-  const dateRangeSelect = document.getElementById('productInfoDateRange');
-  const selectedRange = dateRangeSelect ? dateRangeSelect.value : 'last_30_days';
-  
-  // Calculate date ranges based on selection
-  const today = new Date();
-  let daysBack = 30; // default
-  
-  switch(selectedRange) {
-    case 'last_7_days': daysBack = 7; break;
-    case 'last_14_days': daysBack = 14; break;
-    case 'last_30_days': daysBack = 30; break;
-    case 'last_60_days': daysBack = 60; break;
-    case 'last_90_days': daysBack = 90; break;
-  }
+// Use bucket date range selector value
+const today = new Date();
+const daysBack = window.selectedBucketDateRangeDays || 30;
+console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
   
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (daysBack - 1));
@@ -3703,7 +3723,7 @@ async function renderROASHistoricCharts(container, data) {
       plugins: {
         title: {
           display: true,
-          text: `Key Metrics Trend - Last ${window.selectedBucketDateRangeDays || 30} Days`
+          text: `Key Metrics Trend - Last ${daysBack} Days`
         },
         legend: {
           display: false  // Remove legend as requested
