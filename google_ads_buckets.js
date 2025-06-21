@@ -82,6 +82,32 @@ window.bucketConfig = {
   }
 };
 
+// Helper function to extract bucket value from JSON
+function getBucketValue(bucketData) {
+  if (typeof bucketData === 'string') {
+    try {
+      const parsed = JSON.parse(bucketData);
+      return parsed.value || bucketData;
+    } catch (e) {
+      return bucketData;
+    }
+  }
+  return bucketData?.value || bucketData;
+}
+
+// Helper function to extract bucket explanation from JSON
+function getBucketExplanation(bucketData) {
+  if (typeof bucketData === 'string') {
+    try {
+      const parsed = JSON.parse(bucketData);
+      return parsed.explanation || '';
+    } catch (e) {
+      return '';
+    }
+  }
+  return bucketData?.explanation || '';
+}
+
 // Function to initialize bucket switcher buttons
 function initializeBucketSwitcher() {
 const bucketButtons = {
@@ -565,36 +591,36 @@ if (deviceFilter !== 'all') {
   // Group products by bucket type
   const bucketGroups = {};
   
-  if (bucketType === 'SUGGESTIONS_BUCKET') {
-    // Parse the JSON string for suggestions
-    filteredData.forEach(row => {
-      if (row['SUGGESTIONS_BUCKET']) {
-        try {
-          const suggestions = JSON.parse(row['SUGGESTIONS_BUCKET']);
-          suggestions.forEach(suggestionObj => {
-            if (!bucketGroups[suggestionObj.suggestion]) {
-              bucketGroups[suggestionObj.suggestion] = [];
-            }
-            bucketGroups[suggestionObj.suggestion].push(row);
-          });
-        } catch (e) {
-          console.error('Error parsing suggestions:', e);
-        }
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  // Parse the JSON string for suggestions
+  filteredData.forEach(row => {
+    if (row['SUGGESTIONS_BUCKET']) {
+      try {
+        const suggestions = JSON.parse(row['SUGGESTIONS_BUCKET']);
+        suggestions.forEach(suggestionObj => {
+          if (!bucketGroups[suggestionObj.suggestion]) {
+            bucketGroups[suggestionObj.suggestion] = [];
+          }
+          bucketGroups[suggestionObj.suggestion].push(row);
+        });
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
       }
-    });
-  } else {
-    const allBuckets = new Set(filteredData.map(row => row[bucketType]).filter(Boolean));
-    allBuckets.forEach(bucket => {
-      bucketGroups[bucket] = [];
-    });
-    
-    filteredData.forEach(product => {
-      const bucket = product[bucketType];
-      if (bucket && bucketGroups[bucket]) {
-        bucketGroups[bucket].push(product);
-      }
-    });
-  }
+    }
+  });
+} else {
+  const allBuckets = new Set(filteredData.map(row => getBucketValue(row[bucketType])).filter(Boolean));
+  allBuckets.forEach(bucket => {
+    bucketGroups[bucket] = [];
+  });
+  
+  filteredData.forEach(product => {
+    const bucketValue = getBucketValue(product[bucketType]);
+    if (bucketValue && bucketGroups[bucketValue]) {
+      bucketGroups[bucketValue].push(product);
+    }
+  });
+}
   
   // Calculate bucket data
   const totalProductCount = Object.values(bucketGroups).reduce((sum, products) => sum + products.length, 0);
@@ -653,7 +679,7 @@ function renderROASFunnel(container, bucketData) {
         return suggestions.includes(bucket.name);
       });
     } else {
-      bucketProducts = window.roasBucketsData.filter(row => row[bucketType] === bucket.name);
+      bucketProducts = window.roasBucketsData.filter(row => getBucketValue(row[bucketType]) === bucket.name);
     }
     
     const totalCost = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
@@ -1631,7 +1657,7 @@ const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
     // Filter data for selected bucket AND Campaign Name === 'All'
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 const bucketProducts = result.data.filter(row => 
-  row[bucketType] === selectedBucket && row['Campaign Name'] === 'All'
+  getBucketValue(row[bucketType]) === selectedBucket && row['Campaign Name'] === 'All'
 );
     
     if (bucketProducts.length === 0) {
@@ -1874,15 +1900,21 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   let filteredData = data;
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   if (bucketFilter) {
-    if (bucketType === 'Suggestions') {
-      // Handle Suggestions filtering differently
-      filteredData = data.filter(row => {
-        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-        return suggestions.includes(bucketFilter);
-      });
-    } else {
-      filteredData = data.filter(row => row[bucketType] === bucketFilter);
+if (bucketType === 'SUGGESTIONS_BUCKET') {
+  filteredData = data.filter(row => {
+    if (row[bucketType]) {
+      try {
+        const suggestions = JSON.parse(row[bucketType]);
+        return suggestions.some(s => s.suggestion === bucketFilter);
+      } catch (e) {
+        return false;
+      }
     }
+    return false;
+  });
+} else {
+  filteredData = data.filter(row => getBucketValue(row[bucketType]) === bucketFilter);
+}
   }
   
   // Create channels table
@@ -3805,8 +3837,9 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
 } else {
   const allBuckets = new Set();
   allCampaignRecords.forEach(row => {
-    if (row[bucketType]) {
-      allBuckets.add(row[bucketType]);
+    const bucketValue = getBucketValue(row[bucketType]);
+    if (bucketValue) {
+      allBuckets.add(bucketValue);
     }
   });
   allBuckets.forEach(bucket => {
@@ -3829,12 +3862,12 @@ allCampaignRecords.forEach(product => {
         console.error('Error parsing suggestions:', e);
       }
     }
-  } else {
-    const bucket = product[bucketType];
-    if (bucket && bucketGroups[bucket]) {
-      bucketGroups[bucket].push(product);
-    }
+} else {
+  const bucketValue = getBucketValue(product[bucketType]);
+  if (bucketValue && bucketGroups[bucketValue]) {
+    bucketGroups[bucketValue].push(product);
   }
+}
 });
   
   // Create device aggregation data for segmentation
@@ -3856,7 +3889,7 @@ allCampaignRecords.forEach(product => {
         deviceBucketGroups[suggestion][device].push(product);
       });
     } else {
-      const bucket = product[bucketType];
+      const bucket = getBucketValue(product[bucketType]);
       if (bucket) {
         if (!deviceBucketGroups[bucket]) {
           deviceBucketGroups[bucket] = {};
@@ -4071,11 +4104,28 @@ allCampaignRecords.forEach(product => {
     `;
   };
 
-  bucketMetrics.forEach(bucket => {
-    // Main bucket row
-    const row = document.createElement('tr');
-    row.className = 'main-row';
-    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px; cursor: pointer;';
+bucketMetrics.forEach(bucket => {
+  // Main bucket row
+  const row = document.createElement('tr');
+  row.className = 'main-row';
+  row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px; cursor: pointer;';
+  
+  // Get the explanation for this bucket
+  const bucketExplanation = (() => {
+    // Find the original bucket data with explanation
+    const sampleProduct = bucketGroups[bucket.bucket]?.[0];
+    if (sampleProduct) {
+      return getBucketExplanation(sampleProduct[bucketType]);
+    }
+    return '';
+  })();
+  
+  // Create cell content with tooltip
+  let bucketCellContent = bucket.bucket;
+  if (bucketExplanation) {
+    const escapedExplanation = bucketExplanation.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    bucketCellContent = `${bucket.bucket} <span title="${escapedExplanation}" style="cursor: help; opacity: 0.7; font-size: 12px;">ℹ️</span>`;
+  }
     
     row.innerHTML = `
       <td style="padding: 8px; font-weight: 600; color: ${bucketColors[bucket.bucket]}; vertical-align: middle; background: #ffffff;">${bucket.bucket}</td>
