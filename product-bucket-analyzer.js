@@ -264,26 +264,7 @@ async processTimePeriod(rawData, maxDataDate, days, suffix) {
     }
   }
 
-  return bucketData;
-
-      console.log(`[Product Buckets V3] ✅ Completed processing ${bucketData.length} product bucket entries`);
-
-      // Save to IDB
-      const tableName = prefix + "googleSheets_productBuckets_30d";
-      await window.embedIDB.setData(tableName, bucketData);
-      
-      console.log(`[Product Buckets V3] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
-      
-      // Store in global variable for easy access
-      if (!window.googleSheetsData) window.googleSheetsData = {};
-      window.googleSheetsData.productBuckets = bucketData;
-
-      // Add timing log
-      const endTime = performance.now();
-      const processingTime = ((endTime - startTime) / 1000).toFixed(3);
-      console.log(`[Product Buckets V3] ✅ Processing completed in ${processingTime} seconds`);
-
-      return bucketData;
+return bucketData;
     } catch (error) {
       console.error('[Product Buckets V3] Error processing buckets:', error);
       throw error;
