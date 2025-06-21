@@ -79,7 +79,7 @@ function showBucketsOverview() {
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
-  const roasBuckets = document.getElementById('buckets_products');
+  const buckets_products = document.getElementById('buckets_products');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'block';
@@ -95,7 +95,7 @@ function showBucketedProducts() {
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
-  const roasBuckets = document.getElementById('buckets_products');
+  const buckets_products = document.getElementById('buckets_products');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'none';
