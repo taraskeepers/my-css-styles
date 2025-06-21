@@ -40,6 +40,8 @@ function createBucketedProductsContainer() {
 const buckets_products = document.getElementById('buckets_products');
 if (buckets_products && buckets_products.nextSibling) {
   contentWrapper.insertBefore(bucketedProductsContainer, buckets_products.nextSibling);
+} else {
+  contentWrapper.appendChild(bucketedProductsContainer);
 }
   }
 }
@@ -85,7 +87,7 @@ function showBucketsOverview() {
   if (roasCharts) roasCharts.style.display = 'block';
   if (roasMetricsTable) roasMetricsTable.style.display = 'block';
   if (roasChannels) roasChannels.style.display = 'block';
-  if (roasBuckets) roasBuckets.style.display = 'block';
+  if (buckets_products) buckets_products.style.display = 'block';  // FIXED: use buckets_products
   if (bucketedProducts) bucketedProducts.style.display = 'none';
 }
 
@@ -101,7 +103,7 @@ function showBucketedProducts() {
   if (roasCharts) roasCharts.style.display = 'none';
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
   if (roasChannels) roasChannels.style.display = 'none';
-  if (roasBuckets) roasBuckets.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';  // FIXED: use buckets_products
   if (bucketedProducts) bucketedProducts.style.display = 'block';
   
   // Load bucketed products
