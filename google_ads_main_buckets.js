@@ -132,6 +132,11 @@ function showBucketsOverview() {
 
 // Show bucketed products view
 function showBucketedProducts() {
+  console.log('[showBucketedProducts] Starting...');
+  
+  // First ensure the container exists
+  createBucketedProductsContainer();
+  
   // Hide overview containers
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
@@ -139,11 +144,22 @@ function showBucketedProducts() {
   const buckets_products = document.getElementById('buckets_products');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
+  console.log('[showBucketedProducts] Container statuses:', {
+    roasCharts: !!roasCharts,
+    roasMetricsTable: !!roasMetricsTable,
+    roasChannels: !!roasChannels,
+    buckets_products: !!buckets_products,
+    bucketedProducts: !!bucketedProducts
+  });
+  
   if (roasCharts) roasCharts.style.display = 'none';
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
   if (roasChannels) roasChannels.style.display = 'none';
-  if (buckets_products) buckets_products.style.display = 'none';  // FIXED: use buckets_products
-  if (bucketedProducts) bucketedProducts.style.display = 'block';
+  if (buckets_products) buckets_products.style.display = 'none';
+  if (bucketedProducts) {
+    bucketedProducts.style.display = 'block';
+    console.log('[showBucketedProducts] Set container to display: block');
+  }
   
   // Load bucketed products
   loadBucketedProducts();
