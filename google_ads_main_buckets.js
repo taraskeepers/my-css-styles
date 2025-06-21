@@ -1,3 +1,9 @@
+// Import needed functions from global scope
+const getProductCombinations = window.getProductCombinations;
+const getBucketValue = window.getBucketValue;
+const calculateGoogleAdsProductMetrics = window.calculateGoogleAdsProductMetrics;
+const getGoogleAdsRatingBadgeColor = window.getGoogleAdsRatingBadgeColor;
+
 // Main Buckets Switcher functionality for Google Ads
 
 // Initialize main buckets switcher
@@ -14,8 +20,14 @@ function initializeMainBucketsSwitcher() {
 
 // Create the bucketed products container
 function createBucketedProductsContainer() {
+  console.log('[createBucketedProductsContainer] Starting...');
   const contentWrapper = document.querySelector('.google-ads-content-wrapper');
-  if (!contentWrapper) return;
+  console.log('[createBucketedProductsContainer] Content wrapper found:', contentWrapper);
+  
+  if (!contentWrapper) {
+    console.error('[createBucketedProductsContainer] Content wrapper not found!');
+    return;
+  }
   
   // Check if container already exists
   let bucketedProductsContainer = document.getElementById('bucketed_products_container');
@@ -23,18 +35,20 @@ function createBucketedProductsContainer() {
     bucketedProductsContainer = document.createElement('div');
     bucketedProductsContainer.id = 'bucketed_products_container';
     bucketedProductsContainer.className = 'google-ads-bucketed-products-container';
-    bucketedProductsContainer.style.cssText = `
-      width: 1195px;
-      min-height: 600px;
-      margin: 20px 0 20px 20px;
-      background-color: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border-radius: 12px;
-      padding: 20px;
-      display: none;
-      overflow-y: auto;
-      max-height: 80vh;
-    `;
+bucketedProductsContainer.style.cssText = `
+  width: 1195px;
+  min-height: 600px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+  overflow-y: auto;
+  max-height: 80vh;
+  position: relative;
+  z-index: 100;
+`;
     
 // Insert after buckets_products container
 const buckets_products = document.getElementById('buckets_products');
@@ -112,8 +126,13 @@ function showBucketedProducts() {
 
 // Load and display bucketed products
 async function loadBucketedProducts() {
+  console.log('[loadBucketedProducts] Starting...');
   const container = document.getElementById('bucketed_products_container');
-  if (!container) return;
+  console.log('[loadBucketedProducts] Container found:', container);
+  if (!container) {
+    console.error('[loadBucketedProducts] Container not found!');
+    return;
+  }
   
   // Show loading state
   container.innerHTML = '<div style="text-align: center; padding: 50px;"><div class="spinner"></div></div>';
@@ -206,7 +225,14 @@ function getBucketValueForProduct(product, bucketType) {
 
 // Render bucketed products
 function renderBucketedProducts(container, bucketedProducts, bucketType) {
-  container.innerHTML = '';
+  console.log('[renderBucketedProducts] Starting with products:', bucketedProducts);
+  
+  // Temporary test content
+  container.innerHTML = '<h1>Test - Products by Bucket Container is Working!</h1>';
+  container.style.display = 'block';
+  
+  // Comment out the rest temporarily to see if the container shows up
+  return;
   
   // Create header
   const header = document.createElement('div');
