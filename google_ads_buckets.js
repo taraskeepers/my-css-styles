@@ -242,7 +242,7 @@ if (chartsContainer) {
   try {
     // Get the bucket data using the same pattern as other data access
     const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_90d`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -374,13 +374,19 @@ function renderROASBucketsWithDeviceFilter(leftContainer, rightContainer, data, 
   
   let filteredData = data;
   
-// Apply device filter using the new Device column
+// Apply device filter using Campaign="All" records only
 if (deviceFilter !== 'all') {
-  // Filter for specific device type
-  filteredData = data.filter(row => row.Device === deviceFilter);
+  // Filter for specific device type with Campaign="All"
+  filteredData = data.filter(row => 
+    row['Campaign Name'] === 'All' && 
+    row.Device === deviceFilter
+  );
 } else {
-  // For 'all', use records where Device = "All"
-  filteredData = data.filter(row => row.Device === 'All');
+  // For 'all', use records where Campaign="All" AND Device="All"
+  filteredData = data.filter(row => 
+    row['Campaign Name'] === 'All' && 
+    row.Device === 'All'
+  );
 }
   
   const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
@@ -2002,8 +2008,11 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
 function renderROASCampaignsTableWithDevices(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Exclude records where Campaign Name = "All", include all others for main aggregation
-  let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+// Use device-specific records but exclude Campaign Name = "All"
+let validRecords = data.filter(row => 
+  row['Campaign Name'] && 
+  row['Campaign Name'] !== 'All'
+);
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   if (bucketFilter) {
     if (bucketType === 'Suggestions') {
@@ -2520,9 +2529,12 @@ if (bucketFilter) {
 function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-// Exclude records where Channel Type = "All", include all others
-// Apply bucket filter if provided
-let validRecords = data.filter(row => row['Channel Type'] && row['Channel Type'] !== 'All');
+// Use Campaign="All" records and exclude Channel Type = "All"
+let validRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' &&
+  row['Channel Type'] && 
+  row['Channel Type'] !== 'All'
+);
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
   if (bucketType === 'Suggestions') {
@@ -3600,8 +3612,8 @@ function renderROASMetricsTable(container, data) {
   row.Device === 'All'
 );
   
-  // Get all records (including device-specific ones) for device segmentation
-  const allRecords = data;
+// Get Campaign="All" records only for device segmentation
+const allRecords = data.filter(row => row['Campaign Name'] === 'All');
   
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   
@@ -3664,7 +3676,7 @@ allCampaignRecords.forEach(product => {
   // Create device aggregation data for segmentation
   const deviceBucketGroups = {};
   
-  // Group ALL records (not just 'All' campaign) by bucket and device
+  // Group Campaign="All" records by bucket and device
   allRecords.forEach(product => {
     const device = product.Device || 'Unknown';
     
