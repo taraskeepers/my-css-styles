@@ -340,18 +340,18 @@ window.productBucketAnalyzer = {
       'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
       'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
       // Bucket assignments
-      'PROFITABILITY_BUCKET': buckets.profitability,
-      'FUNNEL_STAGE_BUCKET': buckets.funnelStage,
-      'INVESTMENT_BUCKET': buckets.investment,
-      'CUSTOM_TIER_BUCKET': buckets.customTier,
+'PROFITABILITY_BUCKET': JSON.stringify(buckets.profitability),
+'FUNNEL_STAGE_BUCKET': JSON.stringify(buckets.funnelStage),
+'INVESTMENT_BUCKET': JSON.stringify(buckets.investment),
+'CUSTOM_TIER_BUCKET': JSON.stringify(buckets.customTier),
       'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
       'HEALTH_SCORE': buckets.healthScore,
       'Confidence_Level': buckets.confidenceLevel,
       // Previous bucket assignments
-      'prev_PROFITABILITY_BUCKET': prevBuckets?.profitability || '',
-      'prev_FUNNEL_STAGE_BUCKET': prevBuckets?.funnelStage || '',
-      'prev_INVESTMENT_BUCKET': prevBuckets?.investment || '',
-      'prev_CUSTOM_TIER_BUCKET': prevBuckets?.customTier || '',
+'prev_PROFITABILITY_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.profitability) : '{}',
+'prev_FUNNEL_STAGE_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.funnelStage) : '{}',
+'prev_INVESTMENT_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.investment) : '{}',
+'prev_CUSTOM_TIER_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.customTier) : '{}',
       'prev_SUGGESTIONS_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.suggestions) : '[]'
     };
   },
@@ -578,235 +578,348 @@ window.productBucketAnalyzer = {
     return 'Low';
   },
 
-  // 1. PROFITABILITY_BUCKET - Updated with better thresholds
-  assignProfitabilityBucket(metrics, confidenceLevel, isNew) {
-    // Updated thresholds based on time period
-    const insufficientDataThresholds = {
-      '30d': { 
-        minImpressions: 1000,  
-        minClicks: 50,         
-        minCost: 100,          
-        OR_minConversions: 3   
-      },
-      '60d': { 
-        minImpressions: 2000,
-        minClicks: 100,        
-        minCost: 200,          
-        OR_minConversions: 5
-      },
-      '90d': { 
-        minImpressions: 3000,
-        minClicks: 150,        
-        minCost: 300,          
-        OR_minConversions: 7
-      }
+// 1. PROFITABILITY_BUCKET - Updated with explanations
+assignProfitabilityBucket(metrics, confidenceLevel, isNew) {
+  // Updated thresholds based on time period
+  const insufficientDataThresholds = {
+    '30d': { 
+      minImpressions: 1000,  
+      minClicks: 50,         
+      minCost: 100,          
+      OR_minConversions: 3   
+    },
+    '60d': { 
+      minImpressions: 2000,
+      minClicks: 100,        
+      minCost: 200,          
+      OR_minConversions: 5
+    },
+    '90d': { 
+      minImpressions: 3000,
+      minClicks: 150,        
+      minCost: 300,          
+      OR_minConversions: 7
+    }
+  };
+
+  const threshold = insufficientDataThresholds[this.currentTimePeriod] || insufficientDataThresholds['30d'];
+
+  // Check for insufficient data with updated logic
+  if ((metrics.impressions < threshold.minImpressions && 
+       metrics.clicks < threshold.minClicks && 
+       metrics.cost < threshold.minCost) ||
+      (metrics.conversions < threshold.OR_minConversions && metrics.cost < threshold.minCost)) {
+    return {
+      value: 'Insufficient Data',
+      explanation: `Impressions: ${metrics.impressions} < ${threshold.minImpressions}, Clicks: ${metrics.clicks} < ${threshold.minClicks}, Cost: $${metrics.cost.toFixed(0)} < $${threshold.minCost}`
     };
+  }
 
-    const threshold = insufficientDataThresholds[this.currentTimePeriod] || insufficientDataThresholds['30d'];
+  if (metrics.roas >= 4 && (metrics.conversions >= 10 || metrics.convValue >= 5000)) {
+    return {
+      value: 'Profit Stars',
+      explanation: `ROAS: ${metrics.roas.toFixed(1)}x ≥ 4, Conversions: ${metrics.conversions} ≥ 10 or Revenue: $${metrics.convValue.toFixed(0)} ≥ $5,000`
+    };
+  } else if (metrics.roas >= 2.5 && (metrics.conversions >= 5 || metrics.convValue >= 1000)) {
+    return {
+      value: 'Strong Performers',
+      explanation: `ROAS: ${metrics.roas.toFixed(1)}x ≥ 2.5, Conversions: ${metrics.conversions} ≥ 5 or Revenue: $${metrics.convValue.toFixed(0)} ≥ $1,000`
+    };
+  } else if (metrics.roas >= 1.5 && metrics.conversions > 0) {
+    return {
+      value: 'Steady Contributors',
+      explanation: `ROAS: ${metrics.roas.toFixed(1)}x ≥ 1.5, Conversions: ${metrics.conversions} > 0`
+    };
+  } else if (metrics.roas >= 0.8 && metrics.roas < 1.5) {
+    return {
+      value: 'Break-Even Products',
+      explanation: `ROAS: ${metrics.roas.toFixed(1)}x between 0.8 and 1.5`
+    };
+  } else if (metrics.roas < 0.8) {
+    return {
+      value: 'True Losses',
+      explanation: `ROAS: ${metrics.roas.toFixed(1)}x < 0.8`
+    };
+  }
+  
+  return {
+    value: 'Insufficient Data',
+    explanation: 'Unable to classify based on available metrics'
+  };
+},
 
-    // Check for insufficient data with updated logic
-    if ((metrics.impressions < threshold.minImpressions && 
-         metrics.clicks < threshold.minClicks && 
-         metrics.cost < threshold.minCost) ||
-        (metrics.conversions < threshold.OR_minConversions && metrics.cost < threshold.minCost)) {
-      return 'Insufficient Data';
-    }
+// 2. FUNNEL_STAGE_BUCKET - Updated with explanations
+assignFunnelStageBucket(metrics, isNew) {
+  const avgCTR = this.DEFAULTS.ctr;
+  const avgCartRate = this.DEFAULTS.cartRate;
+  const avgCheckoutRate = this.DEFAULTS.checkoutRate;
+  const avgPurchaseRate = this.DEFAULTS.purchaseRate;
+  const avgROAS = this.accountMetrics.avgROAS;
+  
+  // Check for insufficient data
+  if (metrics.impressions < 5000 && metrics.clicks < 50) {
+    return {
+      value: 'Insufficient Data',
+      explanation: `Impressions: ${metrics.impressions} < 5,000 and Clicks: ${metrics.clicks} < 50`
+    };
+  }
 
-    if (metrics.roas >= 4 && (metrics.conversions >= 10 || metrics.convValue >= 5000)) {
-      return 'Profit Stars';
-    } else if (metrics.roas >= 2.5 && (metrics.conversions >= 5 || metrics.convValue >= 1000)) {
-      return 'Strong Performers';
-    } else if (metrics.roas >= 1.5 && metrics.conversions > 0) {
-      return 'Steady Contributors';
-    } else if (metrics.roas >= 0.8 && metrics.roas < 1.5) {
-      return 'Break-Even Products';
-    } else if (metrics.roas < 0.8) {
-      return 'True Losses';
-    }
+  // Full Funnel Excellence
+  if (metrics.ctr >= avgCTR && 
+      metrics.purchaseRate >= 60 &&
+      metrics.cartRate >= avgCartRate &&
+      metrics.checkoutRate >= avgCheckoutRate) {
+    return {
+      value: 'Full Funnel Excellence',
+      explanation: `CTR: ${metrics.ctr.toFixed(1)}% ≥ avg, Purchase Rate: ${metrics.purchaseRate.toFixed(0)}% ≥ 60%, all stages ≥ avg`
+    };
+  }
+
+  // Determine if there are funnel issues
+  const hasFunnelIssues = 
+    metrics.ctr < avgCTR * 0.7 ||
+    metrics.cartRate < avgCartRate * 0.7 ||
+    metrics.checkoutRate < 40 ||
+    metrics.purchaseRate < 60;
+
+  // High-Value Funnel Issues - Good ROAS but funnel problems
+  if (metrics.roas > avgROAS && hasFunnelIssues) {
+    const issues = [];
+    if (metrics.ctr < avgCTR * 0.5) issues.push(`CTR: ${metrics.ctr.toFixed(1)}% < ${(avgCTR * 0.5).toFixed(1)}%`);
+    if (metrics.cartRate < avgCartRate * 0.5) issues.push(`Cart Rate: ${metrics.cartRate.toFixed(1)}% < ${(avgCartRate * 0.5).toFixed(1)}%`);
+    if (metrics.checkoutRate < 40) issues.push(`Checkout Rate: ${metrics.checkoutRate.toFixed(0)}% < 40%`);
+    if (metrics.purchaseRate < 60) issues.push(`Purchase Rate: ${metrics.purchaseRate.toFixed(0)}% < 60%`);
     
-    return 'Insufficient Data';
-  },
+    return {
+      value: 'High-Value Funnel Issues',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x > avg but ${issues.join(', ')}`
+    };
+  }
 
-  // 2. FUNNEL_STAGE_BUCKET - Updated with profitability context
-  assignFunnelStageBucket(metrics, isNew) {
-    const avgCTR = this.DEFAULTS.ctr;
-    const avgCartRate = this.DEFAULTS.cartRate;
-    const avgCheckoutRate = this.DEFAULTS.checkoutRate;
-    const avgPurchaseRate = this.DEFAULTS.purchaseRate;
-    const avgROAS = this.accountMetrics.avgROAS;
+  // Critical Funnel Issues - Poor ROAS AND funnel problems
+  if (metrics.roas < 1.5 && hasFunnelIssues) {
+    const issues = [];
+    if (metrics.ctr < avgCTR * 0.5) issues.push(`CTR: ${metrics.ctr.toFixed(1)}%`);
+    if (metrics.cartRate < avgCartRate * 0.5) issues.push(`Cart Rate: ${metrics.cartRate.toFixed(1)}%`);
+    if (metrics.checkoutRate < 30) issues.push(`Checkout Rate: ${metrics.checkoutRate.toFixed(0)}%`);
+    if (metrics.purchaseRate < 50) issues.push(`Purchase Rate: ${metrics.purchaseRate.toFixed(0)}%`);
     
-    // Check for insufficient data
-    if (metrics.impressions < 5000 && metrics.clicks < 50) {
-      return 'Insufficient Data';
-    }
+    return {
+      value: 'Critical Funnel Issues',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x < 1.5 and ${issues.join(', ')}`
+    };
+  }
 
-    // Full Funnel Excellence
-    if (metrics.ctr >= avgCTR && 
-        metrics.purchaseRate >= 60 &&
-        metrics.cartRate >= avgCartRate &&
-        metrics.checkoutRate >= avgCheckoutRate) {
-      return 'Full Funnel Excellence';
-    }
+  // Specific funnel stage issues
+  if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
+    return {
+      value: 'Ad Engagement Issue',
+      explanation: `CTR: ${metrics.ctr.toFixed(1)}% < ${(avgCTR * 0.5).toFixed(1)}% avg with ${metrics.impressions.toLocaleString()} impressions`
+    };
+  }
 
-    // Determine if there are funnel issues
-    const hasFunnelIssues = 
-      metrics.ctr < avgCTR * 0.7 ||
-      metrics.cartRate < avgCartRate * 0.7 ||
-      metrics.checkoutRate < 40 ||
-      metrics.purchaseRate < 60;
+  if (metrics.ctr >= avgCTR && metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
+    return {
+      value: 'Product Page Dropoff',
+      explanation: `CTR OK (${metrics.ctr.toFixed(1)}%) but Cart Rate: ${metrics.cartRate.toFixed(1)}% < ${(avgCartRate * 0.5).toFixed(1)}% avg`
+    };
+  }
 
-    // High-Value Funnel Issues - Good ROAS but funnel problems
-    if (metrics.roas > avgROAS && hasFunnelIssues) {
-      if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
-        return 'High-Value Funnel Issues';
-      } else if (metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
-        return 'High-Value Funnel Issues';
-      } else if (metrics.checkoutRate < 40 && metrics.addToCartConv >= 20) {
-        return 'High-Value Funnel Issues';
-      } else if (metrics.purchaseRate < 60 && metrics.beginCheckoutConv >= 10) {
-        return 'High-Value Funnel Issues';
+  if (metrics.checkoutRate < 40 && metrics.addToCartConv >= 20) {
+    return {
+      value: 'Cart Abandonment Problem',
+      explanation: `Checkout Rate: ${metrics.checkoutRate.toFixed(0)}% < 40% with ${metrics.addToCartConv} cart adds`
+    };
+  }
+
+  if (metrics.purchaseRate < 60 && metrics.beginCheckoutConv >= 10) {
+    return {
+      value: 'Checkout Friction',
+      explanation: `Purchase Rate: ${metrics.purchaseRate.toFixed(0)}% < 60% with ${metrics.beginCheckoutConv} checkouts`
+    };
+  }
+
+  if (metrics.clicks >= 100 && metrics.cartRate < 20 && metrics.aov < this.DEFAULTS.aov * 0.7) {
+    return {
+      value: 'Price Discovery Shock',
+      explanation: `${metrics.clicks} clicks but Cart Rate: ${metrics.cartRate.toFixed(1)}% < 20% and AOV: $${metrics.aov.toFixed(0)} < avg`
+    };
+  }
+
+  // Cross-Stage Issues
+  const stageCount = [
+    metrics.ctr < avgCTR * 0.7,
+    metrics.cartRate < avgCartRate * 0.7,
+    metrics.checkoutRate < avgCheckoutRate * 0.7,
+    metrics.purchaseRate < avgPurchaseRate * 0.7
+  ].filter(Boolean).length;
+  
+  if (stageCount >= 2) {
+    return {
+      value: 'Cross-Stage Issues',
+      explanation: `${stageCount} stages performing < 70% of average`
+    };
+  }
+
+  // Optimization Opportunities
+  if (metrics.roas >= avgROAS && 
+      (metrics.ctr < avgCTR || 
+       metrics.cartRate < avgCartRate || 
+       metrics.checkoutRate < avgCheckoutRate || 
+       metrics.purchaseRate < avgPurchaseRate)) {
+    const opportunities = [];
+    if (metrics.ctr < avgCTR) opportunities.push('CTR');
+    if (metrics.cartRate < avgCartRate) opportunities.push('Cart Rate');
+    if (metrics.checkoutRate < avgCheckoutRate) opportunities.push('Checkout Rate');
+    if (metrics.purchaseRate < avgPurchaseRate) opportunities.push('Purchase Rate');
+    
+    return {
+      value: 'Optimization Opportunities',
+      explanation: `Good ROAS (${metrics.roas.toFixed(1)}x) but below avg in: ${opportunities.join(', ')}`
+    };
+  }
+
+  return {
+    value: 'Normal Performance',
+    explanation: 'All metrics within expected ranges'
+  };
+},
+
+// 3. INVESTMENT_BUCKET - Updated with explanations
+assignInvestmentBucket(metrics, prevMetrics) {
+  const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
+  const conversionTrend = prevMetrics ? this.calculateTrend(metrics.conversions, prevMetrics.conversions) : 'new';
+  const revenueShare = this.accountMetrics.totalCost > 0 ? metrics.cost / this.accountMetrics.totalCost : 0;
+  
+  // Updated priority levels
+  if (metrics.roas < 1.0 && metrics.conversions === 0 && metrics.cost > 200) {
+    return {
+      value: 'Pause Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, no conversions, $${metrics.cost.toFixed(0)} spent`
+    };
+  } else if (metrics.roas < 1.0 || (metrics.roas < 1.5 && roasTrend === 'declining')) {
+    return {
+      value: 'Reduce Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x${roasTrend === 'declining' ? ', declining trend' : ''}`
+    };
+  } else if (metrics.roas >= 1.5 && metrics.roas < 2.0 && roasTrend === 'stable') {
+    return {
+      value: 'Maintain Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, stable performance`
+    };
+  } else if (metrics.roas >= 2.0 && (roasTrend === 'growing' || conversionTrend === 'growing')) {
+    return {
+      value: 'Growth Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, ${roasTrend === 'growing' ? 'ROAS' : 'conversions'} growing`
+    };
+  } else if (metrics.roas >= 3.0 && revenueShare < 0.1) {
+    return {
+      value: 'High Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, using only ${(revenueShare * 100).toFixed(1)}% of budget`
+    };
+  } else if (metrics.roas >= 4.0 && roasTrend !== 'declining' && revenueShare < 0.05) {
+    return {
+      value: 'Maximum Priority',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, using only ${(revenueShare * 100).toFixed(1)}% of budget`
+    };
+  }
+  
+  return {
+    value: 'Maintain Priority',
+    explanation: 'Standard performance and budget allocation'
+  };
+},
+
+// 4. CUSTOM_TIER_BUCKET - Updated with explanations
+assignCustomTierBucket(metrics, prevMetrics, allDeviceMetrics, isAllDevices, isNew) {
+  let deviceFlag = 'Balanced devices';
+  
+  // Only check device performance patterns for "All" device records
+  if (isAllDevices && allDeviceMetrics) {
+    const desktopMetrics = allDeviceMetrics['desktop'];
+    const mobileMetrics = allDeviceMetrics['mobile'];
+    
+    if (mobileMetrics && desktopMetrics) {
+      if (mobileMetrics.roas > desktopMetrics.roas * 1.5 && mobileMetrics.impressions > metrics.impressions * 0.4) {
+        deviceFlag = 'Mobile specialist';
+      } else if (desktopMetrics.roas > mobileMetrics.roas * 2 && mobileMetrics.impressions > metrics.impressions * 0.3) {
+        deviceFlag = 'Desktop only';
       }
     }
+  }
 
-    // Critical Funnel Issues - Poor ROAS AND funnel problems
-    if (metrics.roas < 1.5 && hasFunnelIssues) {
-      if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
-        return 'Critical Funnel Issues';
-      } else if (metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
-        return 'Critical Funnel Issues';
-      } else if (metrics.checkoutRate < 30 && metrics.addToCartConv >= 20) {
-        return 'Critical Funnel Issues';
-      } else if (metrics.purchaseRate < 50 && metrics.beginCheckoutConv >= 10) {
-        return 'Critical Funnel Issues';
-      }
-    }
+  // Calculate performance trends
+  const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
+  const revenueTrend = prevMetrics ? this.calculateTrend(metrics.convValue, prevMetrics.convValue) : 'new';
+  
+  // New: Check if product is new
+  if (isNew && metrics.impressions < 10000) {
+    return {
+      value: 'New/Low Volume',
+      explanation: `New product with ${metrics.impressions} impressions`
+    };
+  }
 
-    // Specific funnel stage issues (for products with OK ROAS)
-    if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
-      return 'Ad Engagement Issue';
-    }
+  // Critical categories first
+  if (metrics.roas < 0.5 && metrics.cost > 500) {
+    return {
+      value: 'Pause Candidates',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x with $${metrics.cost.toFixed(0)} spent`
+    };
+  } else if (metrics.roas >= 0.5 && metrics.roas < 1.0 && metrics.cost > 200) {
+    return {
+      value: 'Turnaround Required',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x - needs immediate optimization`
+    };
+  }
 
-    if (metrics.ctr >= avgCTR && metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
-      return 'Product Page Dropoff';
-    }
+  // Performance-based categories
+  const isTopPerformer = metrics.roas >= 3 && metrics.conversions >= 10 && roasTrend !== 'declining';
+  const hasGrowth = revenueTrend === 'growing' && roasTrend === 'growing';
+  const isConsistent = roasTrend === 'stable' || (metrics.roas >= 2 && metrics.conversions >= 5);
 
-    if (metrics.checkoutRate < 40 && metrics.addToCartConv >= 20) {
-      return 'Cart Abandonment Problem';
-    }
-
-    if (metrics.purchaseRate < 60 && metrics.beginCheckoutConv >= 10) {
-      return 'Checkout Friction';
-    }
-
-    if (metrics.clicks >= 100 && metrics.cartRate < 20 && metrics.aov < this.DEFAULTS.aov * 0.7) {
-      return 'Price Discovery Shock';
-    }
-
-    // Cross-Stage Issues
-    const stageCount = [
-      metrics.ctr < avgCTR * 0.7,
-      metrics.cartRate < avgCartRate * 0.7,
-      metrics.checkoutRate < avgCheckoutRate * 0.7,
-      metrics.purchaseRate < avgPurchaseRate * 0.7
-    ].filter(Boolean).length;
-    
-    if (stageCount >= 2) {
-      return 'Cross-Stage Issues';
-    }
-
-    // Optimization Opportunities - Good ROAS but room for improvement
-    if (metrics.roas >= avgROAS && 
-        (metrics.ctr < avgCTR || 
-         metrics.cartRate < avgCartRate || 
-         metrics.checkoutRate < avgCheckoutRate || 
-         metrics.purchaseRate < avgPurchaseRate)) {
-      return 'Optimization Opportunities';
-    }
-
-    return 'Normal Performance';
-  },
-
-  // 3. INVESTMENT_BUCKET - Updated with better alignment
-  assignInvestmentBucket(metrics, prevMetrics) {
-    const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
-    const conversionTrend = prevMetrics ? this.calculateTrend(metrics.conversions, prevMetrics.conversions) : 'new';
-    const revenueShare = this.accountMetrics.totalCost > 0 ? metrics.cost / this.accountMetrics.totalCost : 0;
-    
-    // Updated priority levels
-    if (metrics.roas < 1.0 && metrics.conversions === 0 && metrics.cost > 200) {
-      return 'Pause Priority'; // Score: 0
-    } else if (metrics.roas < 1.0 || (metrics.roas < 1.5 && roasTrend === 'declining')) {
-      return 'Reduce Priority'; // Score: 1
-    } else if (metrics.roas >= 1.5 && metrics.roas < 2.0 && roasTrend === 'stable') {
-      return 'Maintain Priority'; // Score: 2
-    } else if (metrics.roas >= 2.0 && (roasTrend === 'growing' || conversionTrend === 'growing')) {
-      return 'Growth Priority'; // Score: 3
-    } else if (metrics.roas >= 3.0 && revenueShare < 0.1) {
-      return 'High Priority'; // Score: 4
-    } else if (metrics.roas >= 4.0 && roasTrend !== 'declining' && revenueShare < 0.05) {
-      return 'Maximum Priority'; // Score: 5
-    }
-    
-    return 'Maintain Priority';
-  },
-
-  // 4. CUSTOM_TIER_BUCKET - Updated with critical categories
-  assignCustomTierBucket(metrics, prevMetrics, allDeviceMetrics, isAllDevices, isNew) {
-    let deviceFlag = 'Balanced devices';
-    
-    // Only check device performance patterns for "All" device records
-    if (isAllDevices && allDeviceMetrics) {
-      const desktopMetrics = allDeviceMetrics['desktop'];
-      const mobileMetrics = allDeviceMetrics['mobile'];
-      
-      if (mobileMetrics && desktopMetrics) {
-        if (mobileMetrics.roas > desktopMetrics.roas * 1.5 && mobileMetrics.impressions > metrics.impressions * 0.4) {
-          deviceFlag = 'Mobile specialist';
-        } else if (desktopMetrics.roas > mobileMetrics.roas * 2 && mobileMetrics.impressions > metrics.impressions * 0.3) {
-          deviceFlag = 'Desktop only';
-        }
-      }
-    }
-
-    // Calculate performance trends
-    const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
-    const revenueTrend = prevMetrics ? this.calculateTrend(metrics.convValue, prevMetrics.convValue) : 'new';
-    
-    // New: Check if product is new
-    if (isNew && metrics.impressions < 10000) {
-      return 'New/Low Volume';
-    }
-
-    // Critical categories first
-    if (metrics.roas < 0.5 && metrics.cost > 500) {
-      return 'Pause Candidates';
-    } else if (metrics.roas >= 0.5 && metrics.roas < 1.0 && metrics.cost > 200) {
-      return 'Turnaround Required';
-    }
-
-    // Performance-based categories
-    const isTopPerformer = metrics.roas >= 3 && metrics.conversions >= 10 && roasTrend !== 'declining';
-    const hasGrowth = revenueTrend === 'growing' && roasTrend === 'growing';
-    const isConsistent = roasTrend === 'stable' || (metrics.roas >= 2 && metrics.conversions >= 5);
-
-    if (isTopPerformer && isConsistent) {
-      return 'Hero Products';
-    } else if (hasGrowth && metrics.conversions >= this.DEFAULTS.conversions) {
-      return 'Rising Stars';
-    } else if (metrics.roas >= 2 && metrics.roas <= 3 && isConsistent) {
-      return 'Steady Performers';
-    } else if (isAllDevices && deviceFlag === 'Mobile specialist') {
-      return 'Mobile Champions';
-    } else if (isAllDevices && deviceFlag === 'Desktop only') {
-      return 'Desktop Dependent';
-    } else if (metrics.clicks >= 30 && metrics.clicks <= 100 && metrics.roas >= 1) {
-      return 'Test & Learn';
-    } else if (metrics.roas >= 1 && metrics.roas < 1.5) {
-      return 'Monitor Closely';
-    }
-    
-    return 'Monitor Closely';
-  },
+  if (isTopPerformer && isConsistent) {
+    return {
+      value: 'Hero Products',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x with ${metrics.conversions} conversions, consistent performance`
+    };
+  } else if (hasGrowth && metrics.conversions >= this.DEFAULTS.conversions) {
+    return {
+      value: 'Rising Stars',
+      explanation: `${revenueTrend} revenue trend, ROAS ${metrics.roas.toFixed(1)}x`
+    };
+  } else if (metrics.roas >= 2 && metrics.roas <= 3 && isConsistent) {
+    return {
+      value: 'Steady Performers',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x, stable performance`
+    };
+  } else if (isAllDevices && deviceFlag === 'Mobile specialist') {
+    return {
+      value: 'Mobile Champions',
+      explanation: `Mobile ROAS ${allDeviceMetrics.mobile?.roas?.toFixed(1) || 'N/A'}x vs Desktop ${allDeviceMetrics.desktop?.roas?.toFixed(1) || 'N/A'}x`
+    };
+  } else if (isAllDevices && deviceFlag === 'Desktop only') {
+    return {
+      value: 'Desktop Dependent',
+      explanation: `Desktop ROAS ${allDeviceMetrics.desktop?.roas?.toFixed(1) || 'N/A'}x vs Mobile ${allDeviceMetrics.mobile?.roas?.toFixed(1) || 'N/A'}x`
+    };
+  } else if (metrics.clicks >= 30 && metrics.clicks <= 100 && metrics.roas >= 1) {
+    return {
+      value: 'Test & Learn',
+      explanation: `${metrics.clicks} clicks, ROAS ${metrics.roas.toFixed(1)}x - ready for testing`
+    };
+  } else if (metrics.roas >= 1 && metrics.roas < 1.5) {
+    return {
+      value: 'Monitor Closely',
+      explanation: `ROAS ${metrics.roas.toFixed(1)}x - requires monitoring`
+    };
+  }
+  
+  return {
+    value: 'Monitor Closely',
+    explanation: 'Standard monitoring required'
+  };
+},
 
   // 5. SUGGESTIONS_BUCKET - Updated with holistic performance consideration
   assignSuggestions(metrics, buckets, isAllDevices) {
