@@ -5491,7 +5491,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) mapContainer.style.display = 'none';
   const buckets_products = document.getElementById('buckets_products');
-  if (roasBuckets) roasBuckets.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
@@ -5555,7 +5555,7 @@ if (mapContainer) {
   
   // Hide ROAS Buckets
   const buckets_products = document.getElementById('buckets_products');
-  if (roasBuckets) roasBuckets.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
@@ -5623,7 +5623,7 @@ if (productInfo) productInfo.style.display = 'none';
   if (productMetrics) productMetrics.style.display = 'none';
   if (productRankingMap) productRankingMap.style.display = 'none';
   if (productTables) productTables.style.display = 'none';
-  if (roasBuckets) roasBuckets.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
@@ -5765,7 +5765,7 @@ if (window.initializeMainBucketsSwitcher) {
 const roasCharts = document.getElementById('roas_charts');
 const roasMetricsTable = document.getElementById('roas_metrics_table');
 const roasChannels = document.getElementById('roas_channels');
-const buckets_products = document.getElementById('buckets_products'); // CHANGED from 'roas_buckets'
+const buckets_products = document.getElementById('buckets_products');
 if (roasCharts) {
   roasCharts.style.display = 'block';
 }
@@ -5775,8 +5775,8 @@ if (roasMetricsTable) {
 if (roasChannels) {
   roasChannels.style.display = 'block';
 }
-if (roasBuckets) {
-  roasBuckets.style.display = 'block';
+if (buckets_products) {
+  buckets_products.style.display = 'block';
 }
   
   // Load and render both containers
