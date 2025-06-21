@@ -3636,7 +3636,7 @@ roasMetricsTableContainer.style.cssText = `
 contentWrapper.appendChild(roasMetricsTableContainer);
 
 // Create ROAS Buckets container
-const roasBucketsContainer = document.createElement('div');
+const buckets_productsContainer = document.createElement('div');
 roasBucketsContainer.id = 'buckets_products';
 roasBucketsContainer.className = 'google-ads-buckets-container';
 roasBucketsContainer.style.cssText = `
@@ -5455,7 +5455,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     table.style.display = 'none';
   }
 
-  // Hide buckets switcher
+// Hide buckets switcher AND wrapper
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
@@ -5486,7 +5488,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Hide map and ROAS Buckets
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) mapContainer.style.display = 'none';
-  const roasBuckets = document.getElementById('buckets_products');
+  const buckets_products = document.getElementById('buckets_products');
   if (roasBuckets) roasBuckets.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
@@ -5516,7 +5518,9 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
 
-  // Hide buckets switcher
+// Hide buckets switcher AND wrapper
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
@@ -5548,7 +5552,7 @@ if (mapContainer) {
 }
   
   // Hide ROAS Buckets
-  const roasBuckets = document.getElementById('buckets_products');
+  const buckets_products = document.getElementById('buckets_products');
   if (roasBuckets) roasBuckets.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
@@ -5591,9 +5595,11 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
 
-  // Hide buckets switcher
-const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+// Hide buckets switcher AND wrapper
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
   // Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
@@ -5609,7 +5615,7 @@ if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
   const productMetrics = document.getElementById('product_metrics');
   const productRankingMap = document.getElementById('product_ranking_map');
   const productTables = document.getElementById('product_tables');
-  const roasBuckets = document.getElementById('buckets_products');
+  const buckets_products = document.getElementById('buckets_products');
   
 if (productInfo) productInfo.style.display = 'none';
   if (productMetrics) productMetrics.style.display = 'none';
@@ -5696,14 +5702,15 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
 
 // Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+let switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+
 if (bucketsSwitcher) {
   // Create wrapper if it doesn't exist
-  let switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
   if (!switcherWrapper) {
     switcherWrapper = document.createElement('div');
     switcherWrapper.id = 'bucketsSwitcherWrapper';
     switcherWrapper.className = 'buckets-switcher-wrapper';
-    switcherWrapper.style.cssText = 'display: flex; gap: 15px; align-items: center;';
+    switcherWrapper.style.cssText = 'display: flex; gap: 15px; align-items: center; margin-bottom: 20px;';
     
     // Create main buckets switcher
     const mainBucketsSwitcher = document.createElement('div');
@@ -5722,7 +5729,9 @@ if (bucketsSwitcher) {
     switcherWrapper.appendChild(bucketsSwitcher);
   }
   
+  // Show both wrapper and child elements
   switcherWrapper.style.display = 'flex';
+  bucketsSwitcher.style.display = 'block';
 }
 
 // Initialize main buckets switcher
@@ -5751,22 +5760,22 @@ if (window.initializeMainBucketsSwitcher) {
   if (mapContainer) mapContainer.style.display = 'none';
   
 // Show ROAS Charts, Metrics Table, Channels and Buckets containers
-  const roasCharts = document.getElementById('roas_charts');
-  const roasMetricsTable = document.getElementById('roas_metrics_table');
-  const roasChannels = document.getElementById('roas_channels');
-  const roasBuckets = document.getElementById('buckets_products');
-  if (roasCharts) {
-    roasCharts.style.display = 'block';
-  }
-  if (roasMetricsTable) {
-    roasMetricsTable.style.display = 'block';
-  }
-  if (roasChannels) {
-    roasChannels.style.display = 'block';
-  }
-  if (roasBuckets) {
-    roasBuckets.style.display = 'block';
-  }
+const roasCharts = document.getElementById('roas_charts');
+const roasMetricsTable = document.getElementById('roas_metrics_table');
+const roasChannels = document.getElementById('roas_channels');
+const buckets_products = document.getElementById('buckets_products'); // CHANGED from 'roas_buckets'
+if (roasCharts) {
+  roasCharts.style.display = 'block';
+}
+if (roasMetricsTable) {
+  roasMetricsTable.style.display = 'block';
+}
+if (roasChannels) {
+  roasChannels.style.display = 'block';
+}
+if (roasBuckets) {
+  roasBuckets.style.display = 'block';
+}
   
   // Load and render both containers
   loadAndRenderROASBuckets();
