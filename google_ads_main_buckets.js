@@ -36,8 +36,8 @@ function createBucketedProductsContainer() {
       max-height: 80vh;
     `;
     
-    // Insert after buckets_products container
-    const roasBuckets = document.getElementById('buckets_products');
+    // Insert after roas_buckets container
+    const roasBuckets = document.getElementById('roas_buckets');
     if (roasBuckets && roasBuckets.nextSibling) {
       contentWrapper.insertBefore(bucketedProductsContainer, roasBuckets.nextSibling);
     } else {
@@ -81,7 +81,7 @@ function showBucketsOverview() {
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
-  const roasBuckets = document.getElementById('buckets_products');
+  const roasBuckets = document.getElementById('roas_buckets');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'block';
@@ -97,7 +97,7 @@ function showBucketedProducts() {
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
-  const roasBuckets = document.getElementById('buckets_products');
+  const roasBuckets = document.getElementById('roas_buckets');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'none';
