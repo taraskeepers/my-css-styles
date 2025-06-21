@@ -21,42 +21,67 @@ function initializeMainBucketsSwitcher() {
 // Create the bucketed products container
 function createBucketedProductsContainer() {
   console.log('[createBucketedProductsContainer] Starting...');
-  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  
+  // Try multiple selectors to find the content wrapper
+  let contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (!contentWrapper) {
+    // Try to find the main Google Ads container
+    const googleAdsContainer = document.getElementById('googleAdsContainer');
+    if (googleAdsContainer) {
+      contentWrapper = googleAdsContainer.querySelector('.content-wrapper');
+    }
+  }
+  
   console.log('[createBucketedProductsContainer] Content wrapper found:', contentWrapper);
   
   if (!contentWrapper) {
-    console.error('[createBucketedProductsContainer] Content wrapper not found!');
-    return;
+    console.error('[createBucketedProductsContainer] Content wrapper not found! Trying alternative approach...');
+    // As a fallback, try to append to the main container
+    const mainContainer = document.getElementById('googleAdsContainer');
+    if (mainContainer) {
+      contentWrapper = mainContainer;
+    } else {
+      return;
+    }
   }
   
   // Check if container already exists
   let bucketedProductsContainer = document.getElementById('bucketed_products_container');
   if (!bucketedProductsContainer) {
+    console.log('[createBucketedProductsContainer] Creating new container...');
     bucketedProductsContainer = document.createElement('div');
     bucketedProductsContainer.id = 'bucketed_products_container';
     bucketedProductsContainer.className = 'google-ads-bucketed-products-container';
-bucketedProductsContainer.style.cssText = `
-  width: 1195px;
-  min-height: 600px;
-  margin: 20px 0 20px 20px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 20px;
-  display: none;
-  overflow-y: auto;
-  max-height: 80vh;
-  position: relative;
-  z-index: 100;
-`;
+    bucketedProductsContainer.style.cssText = `
+      width: 1195px;
+      min-height: 600px;
+      margin: 20px 0 20px 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+      overflow-y: auto;
+      max-height: 80vh;
+      position: relative;
+      z-index: 100;
+    `;
     
-// Insert after buckets_products container
-const buckets_products = document.getElementById('buckets_products');
-if (buckets_products && buckets_products.nextSibling) {
-  contentWrapper.insertBefore(bucketedProductsContainer, buckets_products.nextSibling);
-} else {
-  contentWrapper.appendChild(bucketedProductsContainer);
-}
+    // Insert after buckets_products container
+    const buckets_products = document.getElementById('buckets_products');
+    console.log('[createBucketedProductsContainer] buckets_products found:', buckets_products);
+    
+    if (buckets_products && buckets_products.parentNode) {
+      // Insert after buckets_products
+      buckets_products.parentNode.insertBefore(bucketedProductsContainer, buckets_products.nextSibling);
+      console.log('[createBucketedProductsContainer] Container inserted after buckets_products');
+    } else {
+      // Just append to content wrapper
+      contentWrapper.appendChild(bucketedProductsContainer);
+      console.log('[createBucketedProductsContainer] Container appended to content wrapper');
+    }
+  } else {
+    console.log('[createBucketedProductsContainer] Container already exists');
   }
 }
 
