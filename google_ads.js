@@ -3652,8 +3652,6 @@ buckets_productsContainer.style.cssText = `
 
 contentWrapper.appendChild(buckets_productsContainer);
 
-contentWrapper.appendChild(roasBucketsContainer);
-
 // Create ROAS Channels container
 const roasChannelsContainer = document.createElement('div');
 roasChannelsContainer.id = 'roas_channels';
