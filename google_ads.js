@@ -3637,9 +3637,9 @@ contentWrapper.appendChild(roasMetricsTableContainer);
 
 // Create ROAS Buckets container
 const buckets_productsContainer = document.createElement('div');
-roasBucketsContainer.id = 'buckets_products';
-roasBucketsContainer.className = 'google-ads-buckets-container';
-roasBucketsContainer.style.cssText = `
+buckets_productsContainer.id = 'buckets_products';
+buckets_productsContainer.className = 'google-ads-buckets-container';
+buckets_productsContainer.style.cssText = `
   width: 1195px;
   height: auto;
   margin: 0 0 20px 20px;
@@ -3649,6 +3649,8 @@ roasBucketsContainer.style.cssText = `
   padding: 20px;
   display: none;
 `;
+
+contentWrapper.appendChild(buckets_productsContainer);
 
 contentWrapper.appendChild(roasBucketsContainer);
 
