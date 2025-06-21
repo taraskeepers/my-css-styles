@@ -36,199 +36,235 @@ window.productBucketAnalyzer = {
     }
   },
 
+    // Current time period being processed (used for bucket thresholds)
+  currentTimePeriod: '30d',
+
   // Helper to round to 2 decimal places
   round2(value) {
     return Math.round(value * 100) / 100;
   },
 
-  // Process and create bucket analysis
-  async processProductBuckets(prefix = 'acc1_') {
-    const startTime = performance.now();
-    try {
-      console.log('[Product Buckets V3] Starting bucket analysis...');
+// Process and create bucket analysis for multiple time periods
+async processProductBuckets(prefix = 'acc1_') {
+  const startTime = performance.now();
+  try {
+    console.log('[Product Buckets V3] Starting bucket analysis for 30d, 60d, and 90d...');
+    
+    // Load product performance data from IDB
+    const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
+    if (!productRec?.data || !productRec.data.length) {
+      console.error('[Product Buckets V3] No product performance data found');
+      return;
+    }
+
+    const rawData = productRec.data;
+    console.log(`[Product Buckets V3] Processing ${rawData.length} rows of data`);
+
+    // Find the max date in the data
+    const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+    const maxDataDate = new Date(Math.max(...allDates));
+    
+    // Process each time period
+    const periods = [
+      { days: 30, suffix: '30d' },
+      { days: 60, suffix: '60d' },
+      { days: 90, suffix: '90d' }
+    ];
+
+    const results = {};
+    
+    for (const period of periods) {
+      console.log(`[Product Buckets V3] Processing ${period.days}-day period...`);
       
-      // Load product performance data from IDB
-      const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
-      if (!productRec?.data || !productRec.data.length) {
-        console.error('[Product Buckets V3] No product performance data found');
-        return;
+      const bucketData = await this.processTimePeriod(rawData, maxDataDate, period.days, period.suffix);
+      
+      // Save to IDB
+      const tableName = prefix + `googleSheets_productBuckets_${period.suffix}`;
+      await window.embedIDB.setData(tableName, bucketData);
+      
+      console.log(`[Product Buckets V3] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
+      results[period.suffix] = bucketData;
+    }
+
+    // Store in global variable for easy access (use 30d as default)
+    if (!window.googleSheetsData) window.googleSheetsData = {};
+    window.googleSheetsData.productBuckets = results['30d'];
+
+    // Add timing log
+    const endTime = performance.now();
+    const processingTime = ((endTime - startTime) / 1000).toFixed(3);
+    console.log(`[Product Buckets V3] ✅ Processing completed in ${processingTime} seconds`);
+
+    return results;
+  } catch (error) {
+    console.error('[Product Buckets V3] Error processing buckets:', error);
+    throw error;
+  }
+},
+
+// New method to process a specific time period
+async processTimePeriod(rawData, maxDataDate, days, suffix) {
+  // Calculate date ranges
+  const endDate = maxDataDate;
+  const startDate = new Date(maxDataDate);
+  startDate.setDate(startDate.getDate() - days);
+  const prevStartDate = new Date(maxDataDate);
+  prevStartDate.setDate(prevStartDate.getDate() - (days * 2));
+
+  // Filter data for different periods
+  const currentPeriodData = rawData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = new Date(row.Date);
+    return rowDate > startDate && rowDate <= endDate;
+  });
+
+  const prevPeriodData = rawData.filter(row => {
+    if (!row.Date) return false;
+    const rowDate = new Date(row.Date);
+    return rowDate > prevStartDate && rowDate <= startDate;
+  });
+
+  console.log(`[Product Buckets V3] ${suffix}: Current period: ${currentPeriodData.length} rows, Previous: ${prevPeriodData.length} rows`);
+
+  // Set time period for bucket assignment logic
+  this.currentTimePeriod = suffix;
+  
+  // Calculate dynamic defaults based on current period data
+  this.calculateDynamicDefaults(currentPeriodData);
+  
+  // Calculate account metrics for benchmarking
+  this.accountMetrics = this.calculateAccountMetrics(currentPeriodData);
+
+  // Group data by product + campaign + channel + device
+  const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
+  const prevGrouped = this.groupByProductCampaignChannelDevice(prevPeriodData);
+
+  // Process all combinations (rest of the original logic)
+  const bucketData = [];
+  const DELIMITER = '~~~';
+  
+  // Get unique products for tracking
+  const uniqueProducts = new Set();
+  Object.keys(currentGrouped).forEach(key => {
+    const parts = key.split(DELIMITER);
+    if (parts.length === 4) {
+      uniqueProducts.add(parts[0]);
+    }
+  });
+
+  // Process each specific campaign/channel/device combination
+  let processedCount = 0;
+  const specificCombinations = Object.keys(currentGrouped).filter(key => {
+    const parts = key.split(DELIMITER);
+    return parts.length === 4 && parts[1] !== 'All' && parts[2] !== 'All';
+  });
+
+  for (const key of specificCombinations) {
+    const parts = key.split(DELIMITER);
+    const [productTitle, campaignName, channelType, device] = parts;
+    
+    const rowData = this.processProductRecord(
+      productTitle,
+      campaignName,
+      channelType,
+      device,
+      currentGrouped[key] || [],
+      prevGrouped[key] || [],
+      device === 'All'
+    );
+    
+    if (rowData) {
+      bucketData.push(rowData);
+      processedCount++;
+      
+      if (processedCount % 100 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
+    }
+  }
 
-      const rawData = productRec.data;
-      console.log(`[Product Buckets V3] Processing ${rawData.length} rows of data`);
-
-      // Find the max date in the data
-      const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
-      const maxDataDate = new Date(Math.max(...allDates));
+  // Process aggregated records (same logic as original)
+  for (const productTitle of uniqueProducts) {
+    const devices = new Set();
+    
+    Object.keys(currentGrouped).forEach(key => {
+      const parts = key.split(DELIMITER);
+      if (parts[0] === productTitle && parts[3] && parts[3] !== 'All') {
+        devices.add(parts[3]);
+      }
+    });
+    
+    for (const device of devices) {
+      const currentRows = [];
+      const prevRows = [];
       
-      // Calculate date ranges
-      const endDate = maxDataDate;
-      const startDate30 = new Date(maxDataDate);
-      startDate30.setDate(startDate30.getDate() - 30);
-      const startDate60 = new Date(maxDataDate);
-      startDate60.setDate(startDate60.getDate() - 60);
-
-      // Filter data for different periods
-      const last30DaysData = rawData.filter(row => {
-        if (!row.Date) return false;
-        const rowDate = new Date(row.Date);
-        return rowDate > startDate30 && rowDate <= endDate;
-      });
-
-      const prev30DaysData = rawData.filter(row => {
-        if (!row.Date) return false;
-        const rowDate = new Date(row.Date);
-        return rowDate > startDate60 && rowDate <= startDate30;
-      });
-
-      console.log(`[Product Buckets V3] Last 30 days: ${last30DaysData.length} rows`);
-      console.log(`[Product Buckets V3] Previous 30 days: ${prev30DaysData.length} rows`);
-
-      // Calculate dynamic defaults based on last 30 days data
-      this.calculateDynamicDefaults(last30DaysData);
-      
-      // Calculate account metrics for benchmarking
-      this.accountMetrics = this.calculateAccountMetrics(last30DaysData);
-      console.log(`[Product Buckets V3] Account Average ROAS: ${this.accountMetrics.avgROAS.toFixed(2)}x`);
-
-      // Group data by product + campaign + channel + device
-      const currentGrouped = this.groupByProductCampaignChannelDevice(last30DaysData);
-      const prevGrouped = this.groupByProductCampaignChannelDevice(prev30DaysData);
-
-      // Process all combinations
-      const bucketData = [];
-      const DELIMITER = '~~~';
-      
-      // Get unique products for tracking
-      const uniqueProducts = new Set();
       Object.keys(currentGrouped).forEach(key => {
         const parts = key.split(DELIMITER);
-        if (parts.length === 4) {
-          uniqueProducts.add(parts[0]);
+        if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+          currentRows.push(...(currentGrouped[key] || []));
         }
       });
-
-      console.log(`[Product Buckets V3] Found ${uniqueProducts.size} unique products`);
-
-      // Process each specific campaign/channel/device combination
-      let processedCount = 0;
-      const specificCombinations = Object.keys(currentGrouped).filter(key => {
+      
+      Object.keys(prevGrouped).forEach(key => {
         const parts = key.split(DELIMITER);
-        return parts.length === 4 && parts[1] !== 'All' && parts[2] !== 'All';
+        if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+          prevRows.push(...(prevGrouped[key] || []));
+        }
       });
-
-      console.log(`[Product Buckets V3] Processing ${specificCombinations.length} specific combinations...`);
-
-      for (const key of specificCombinations) {
-        const parts = key.split(DELIMITER);
-        const [productTitle, campaignName, channelType, device] = parts;
-        
+      
+      if (currentRows.length > 0) {
         const rowData = this.processProductRecord(
           productTitle,
-          campaignName,
-          channelType,
+          'All',
+          'All',
           device,
-          currentGrouped[key] || [],
-          prevGrouped[key] || [],
-          device === 'All' // isAllDevices flag for CUSTOM_TIER_BUCKET logic
+          currentRows,
+          prevRows,
+          false
         );
         
         if (rowData) {
           bucketData.push(rowData);
-          processedCount++;
-          
-          if (processedCount % 100 === 0) {
-            console.log(`[Product Buckets V3] Processed ${processedCount} records...`);
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
         }
       }
-
-      // Process aggregated campaign/channel records for each product+device
-      console.log(`[Product Buckets V3] Creating device-level aggregations...`);
+    }
+    
+    // Create all devices record
+    const allCurrentRows = [];
+    const allPrevRows = [];
+    
+    Object.keys(currentGrouped).forEach(key => {
+      const parts = key.split(DELIMITER);
+      if (parts[0] === productTitle && parts[1] !== 'All') {
+        allCurrentRows.push(...(currentGrouped[key] || []));
+      }
+    });
+    
+    Object.keys(prevGrouped).forEach(key => {
+      const parts = key.split(DELIMITER);
+      if (parts[0] === productTitle && parts[1] !== 'All') {
+        allPrevRows.push(...(prevGrouped[key] || []));
+      }
+    });
+    
+    if (allCurrentRows.length > 0) {
+      const rowData = this.processProductRecord(
+        productTitle,
+        'All',
+        'All',
+        'All',
+        allCurrentRows,
+        allPrevRows,
+        true
+      );
       
-      for (const productTitle of uniqueProducts) {
-        const devices = new Set();
-        
-        // Find all devices for this product
-        Object.keys(currentGrouped).forEach(key => {
-          const parts = key.split(DELIMITER);
-          if (parts[0] === productTitle && parts[3] && parts[3] !== 'All') {
-            devices.add(parts[3]);
-          }
-        });
-        
-        // Create aggregated record for each device
-        for (const device of devices) {
-          // Aggregate all campaigns/channels for this product+device
-          const currentRows = [];
-          const prevRows = [];
-          
-          Object.keys(currentGrouped).forEach(key => {
-            const parts = key.split(DELIMITER);
-            if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
-              currentRows.push(...(currentGrouped[key] || []));
-            }
-          });
-          
-          Object.keys(prevGrouped).forEach(key => {
-            const parts = key.split(DELIMITER);
-            if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
-              prevRows.push(...(prevGrouped[key] || []));
-            }
-          });
-          
-          if (currentRows.length > 0) {
-            const rowData = this.processProductRecord(
-              productTitle,
-              'All',
-              'All',
-              device,
-              currentRows,
-              prevRows,
-              false // Not all devices
-            );
-            
-            if (rowData) {
-              bucketData.push(rowData);
-            }
-          }
-        }
-        
-        // Create one record for all devices/campaigns/channels
-        const allCurrentRows = [];
-        const allPrevRows = [];
-        
-        Object.keys(currentGrouped).forEach(key => {
-          const parts = key.split(DELIMITER);
-          if (parts[0] === productTitle && parts[1] !== 'All') {
-            allCurrentRows.push(...(currentGrouped[key] || []));
-          }
-        });
-        
-        Object.keys(prevGrouped).forEach(key => {
-          const parts = key.split(DELIMITER);
-          if (parts[0] === productTitle && parts[1] !== 'All') {
-            allPrevRows.push(...(prevGrouped[key] || []));
-          }
-        });
-        
-        if (allCurrentRows.length > 0) {
-          const rowData = this.processProductRecord(
-            productTitle,
-            'All',
-            'All',
-            'All',
-            allCurrentRows,
-            allPrevRows,
-            true // This is all devices
-          );
-          
-          if (rowData) {
-            bucketData.push(rowData);
-          }
-        }
+      if (rowData) {
+        bucketData.push(rowData);
       }
+    }
+  }
+
+  return bucketData;
 
       console.log(`[Product Buckets V3] ✅ Completed processing ${bucketData.length} product bucket entries`);
 
@@ -549,10 +585,19 @@ window.productBucketAnalyzer = {
 
   // 1. PROFITABILITY_BUCKET
   assignProfitabilityBucket(metrics, confidenceLevel) {
-    // Check for insufficient data
-    if ((metrics.clicks < 10 && metrics.convValue < 500) || metrics.conversions < 3) {
-      return 'Insufficient Data';
-    }
+// Check for insufficient data with time-period specific thresholds
+const insufficientDataThresholds = {
+  '30d': { minConversions: 1, minClicks: 3, minCost: 50 },   // Most lenient
+  '60d': { minConversions: 1, minClicks: 5, minCost: 100 },  // Medium
+  '90d': { minConversions: 2, minClicks: 10, minCost: 200 }  // Most restrictive
+};
+
+const threshold = insufficientDataThresholds[this.currentTimePeriod] || insufficientDataThresholds['30d'];
+
+if (metrics.conversions < threshold.minConversions || 
+    (metrics.clicks < threshold.minClicks && metrics.cost < threshold.minCost)) {
+  return 'Insufficient Data';
+}
 
     // Check for strategic flags (would need to be passed in or determined by rules)
     const isStrategic = false; // Placeholder - implement strategic detection logic
