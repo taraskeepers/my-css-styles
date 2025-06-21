@@ -7,6 +7,7 @@ window.bucketDistributionPreferences = window.bucketDistributionPreferences || {
   'CUSTOM_TIER_BUCKET': true,
   'SUGGESTIONS_BUCKET': false
 };
+window.selectedBucketDateRangeDays = 30;
 
 // Comprehensive bucket configuration with colors and order
 window.bucketConfig = {
@@ -177,12 +178,148 @@ window.bucketDescriptions = {
   }
 };
 
+// Add this new function after initializeBucketSwitcher (around line 85)
+function setupBucketDateRangeSelector() {
+  const chartsContainer = document.getElementById('roas_charts');
+  if (!chartsContainer || !chartsContainer.parentElement) return;
+  
+  // Check if selector already exists
+  let dateRangeContainer = document.getElementById('bucketDateRange');
+  if (!dateRangeContainer) {
+    // Create the container
+    dateRangeContainer = document.createElement('div');
+    dateRangeContainer.id = 'bucketDateRange';
+    dateRangeContainer.className = 'bucket-date-selector-top';
+    dateRangeContainer.style.cssText = `
+      position: absolute;
+      top: -45px;
+      right: 0;
+      z-index: 100;
+      display: block;
+    `;
+    
+    // Insert before charts container
+    chartsContainer.parentElement.style.position = 'relative';
+    chartsContainer.parentElement.insertBefore(dateRangeContainer, chartsContainer);
+  }
+  
+  // Create the selector HTML
+  dateRangeContainer.innerHTML = `
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302);
+    ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span id="bucketDateText" style="color: #3c4043; font-size: 14px; font-weight: 500;">Last 30 days</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+    <div id="bucketDateDropdown" style="
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: none;
+      z-index: 1000;
+      min-width: 150px;
+    ">
+      <div class="bucket-date-option" data-days="30" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 30 days</div>
+      <div class="bucket-date-option" data-days="60" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 60 days</div>
+      <div class="bucket-date-option" data-days="90" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 90 days</div>
+    </div>
+  `;
+  
+  // Get elements
+  const dateRange = dateRangeContainer.querySelector('div');
+  const dropdown = document.getElementById('bucketDateDropdown');
+  const dateText = document.getElementById('bucketDateText');
+  
+  if (!dateRange || !dropdown || !dateText) return;
+  
+  // Check if listeners are already attached
+  if (dateRange.hasAttribute('data-listeners-attached')) {
+    return;
+  }
+  
+  // Mark that listeners are attached
+  dateRange.setAttribute('data-listeners-attached', 'true');
+  
+  // Sync with global date range
+  const days = window.selectedBucketDateRangeDays || 30;
+  dateText.textContent = `Last ${days} days`;
+  
+  // Toggle dropdown
+  dateRange.addEventListener('click', function(e) {
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  });
+  
+  // Handle option selection
+  dropdown.addEventListener('click', async function(e) {
+    const option = e.target.closest('.bucket-date-option');
+    if (option) {
+      const days = parseInt(option.getAttribute('data-days'));
+      window.selectedBucketDateRangeDays = days;
+      
+      // Update display text
+      dateText.textContent = option.textContent;
+      
+      // Hide dropdown
+      dropdown.style.display = 'none';
+      
+      // Refresh the buckets view with new date range
+      console.log('[Bucket Date Range] Changed to:', days, 'days');
+      await loadAndRenderROASBuckets();
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  if (!window.bucketDateClickHandler) {
+    window.bucketDateClickHandler = function(e) {
+      if (!dateRangeContainer.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', window.bucketDateClickHandler);
+  }
+  
+  // Add hover effects
+  dropdown.querySelectorAll('.bucket-date-option').forEach(option => {
+    option.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f1f3f4';
+    });
+    option.addEventListener('mouseleave', function() {
+      this.style.backgroundColor = 'transparent';
+    });
+  });
+}
+
 async function loadAndRenderROASBuckets() {
   const bucketsContainer = document.getElementById('roas_buckets');
   const chartsContainer = document.getElementById('roas_charts');
-if (chartsContainer) {
-  chartsContainer.style.height = '600px';
-}
+  if (chartsContainer) {
+    chartsContainer.style.height = '600px';
+    // Add the date selector setup here:
+    setupBucketDateRangeSelector();
+  }
   const metricsTableContainer = document.getElementById('roas_metrics_table');
   
   if (!bucketsContainer) return;
@@ -241,8 +378,11 @@ if (chartsContainer) {
   
   try {
     // Get the bucket data using the same pattern as other data access
-    const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_90d`;
+const accountPrefix = window.currentAccount || 'acc1';
+const days = window.selectedBucketDateRangeDays || 30;
+const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+console.log(`[loadAndRenderROASBuckets] Loading data for ${days} days from ${tableName}`);
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -1432,7 +1572,9 @@ async function updateBucketMetrics(selectedBucket) {
   
   try {
     const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    const days = window.selectedBucketDateRangeDays || 30;
+const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -1481,7 +1623,9 @@ async function updateChannelsAndCampaignsForBucket(selectedBucket) {
   try {
     // Get the same data as used in loadAndRenderROASBuckets
     const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_30d`;
+    const days = window.selectedBucketDateRangeDays || 30;
+const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -3559,7 +3703,7 @@ async function renderROASHistoricCharts(container, data) {
       plugins: {
         title: {
           display: true,
-          text: `Key Metrics Trend - Last ${daysBack} Days`
+          text: `Key Metrics Trend - Last ${window.selectedBucketDateRangeDays || 30} Days`
         },
         legend: {
           display: false  // Remove legend as requested
@@ -4432,3 +4576,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Add this at the very end of the file
+if (!document.getElementById('bucket-date-selector-styles')) {
+  const style = document.createElement('style');
+  style.id = 'bucket-date-selector-styles';
+  style.textContent = `
+    .bucket-date-option:hover {
+      background-color: #f1f3f4 !important;
+    }
+    .bucket-date-selector-top > div:hover {
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+      border-color: #b8bcc0 !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
