@@ -5490,6 +5490,8 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (roasBuckets) roasBuckets.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
+  const bucketedProductsContainer = document.getElementById('bucketed_products_container');
+  if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
   
   // Force re-selection of current product or select first one
   const selectedNavItem = document.querySelector('.nav-google-ads-item.selected');
@@ -5550,6 +5552,8 @@ if (mapContainer) {
   if (roasBuckets) roasBuckets.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
+  const bucketedProductsContainer = document.getElementById('bucketed_products_container');
+  if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
   
   // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
@@ -5614,6 +5618,8 @@ if (productInfo) productInfo.style.display = 'none';
   if (roasBuckets) roasBuckets.style.display = 'none';
   const roasCharts = document.getElementById('roas_charts');
   if (roasCharts) roasCharts.style.display = 'none';
+  const bucketedProductsContainer = document.getElementById('bucketed_products_container');
+  if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
   
   // Show the map container
   const mapContainer = document.getElementById('googleAdsMapContainer');
@@ -5688,9 +5694,41 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
 
-  // Show buckets switcher
+// Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-if (bucketsSwitcher) bucketsSwitcher.style.display = 'block';
+if (bucketsSwitcher) {
+  // Create wrapper if it doesn't exist
+  let switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (!switcherWrapper) {
+    switcherWrapper = document.createElement('div');
+    switcherWrapper.id = 'bucketsSwitcherWrapper';
+    switcherWrapper.className = 'buckets-switcher-wrapper';
+    switcherWrapper.style.cssText = 'display: flex; gap: 15px; align-items: center;';
+    
+    // Create main buckets switcher
+    const mainBucketsSwitcher = document.createElement('div');
+    mainBucketsSwitcher.id = 'mainBucketsSwitcher';
+    mainBucketsSwitcher.className = 'google-ads-buckets-switcher main-buckets-switcher';
+    mainBucketsSwitcher.innerHTML = `
+      <button id="mainBucketsOverview" class="active">Buckets Overview</button>
+      <button id="mainBucketedProducts">Products by Bucket</button>
+    `;
+    
+    // Insert the wrapper where bucketsSwitcher currently is
+    bucketsSwitcher.parentNode.insertBefore(switcherWrapper, bucketsSwitcher);
+    
+    // Move both switchers into the wrapper
+    switcherWrapper.appendChild(mainBucketsSwitcher);
+    switcherWrapper.appendChild(bucketsSwitcher);
+  }
+  
+  switcherWrapper.style.display = 'flex';
+}
+
+// Initialize main buckets switcher
+if (window.initializeMainBucketsSwitcher) {
+  window.initializeMainBucketsSwitcher();
+}
 
   // Hide date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
@@ -7556,6 +7594,49 @@ if (window.googleAdsApexCharts) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.buckets-switcher-wrapper {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.main-buckets-switcher {
+  background-color: #e8f0fe !important;
+  border: 1px solid #dadce0;
+}
+
+.main-buckets-switcher button {
+  color: #1a73e8 !important;
+  font-weight: 500;
+}
+
+.main-buckets-switcher button.active {
+  background-color: #1a73e8 !important;
+  color: white !important;
+}
+
+.main-buckets-switcher button:hover:not(.active) {
+  background-color: rgba(26, 115, 232, 0.1);
+}
+
+.bucketed-product-item:hover {
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  transform: translateY(-2px);
+}
+
+.bucketed-product-item .vis-water-container::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, #1e88e5 0%, rgba(30, 136, 229, 0.7) 50%, rgba(30, 136, 229, 0.3) 100%);
+  transition: height 0.3s ease-in-out;
+  z-index: 1;
+  height: var(--fill-height, 0%);
 }
     `;
     document.head.appendChild(style);
