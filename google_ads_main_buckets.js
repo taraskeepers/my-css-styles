@@ -36,13 +36,11 @@ function createBucketedProductsContainer() {
       max-height: 80vh;
     `;
     
-    // Insert after buckets_products container
-    const roasBuckets = document.getElementById('buckets_products');
-    if (roasBuckets && roasBuckets.nextSibling) {
-      contentWrapper.insertBefore(bucketedProductsContainer, roasBuckets.nextSibling);
-    } else {
-      contentWrapper.appendChild(bucketedProductsContainer);
-    }
+// Insert after buckets_products container
+const buckets_products = document.getElementById('buckets_products');
+if (buckets_products && buckets_products.nextSibling) {
+  contentWrapper.insertBefore(bucketedProductsContainer, buckets_products.nextSibling);
+}
   }
 }
 
