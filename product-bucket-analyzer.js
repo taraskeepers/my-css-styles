@@ -265,10 +265,6 @@ async processTimePeriod(rawData, maxDataDate, days, suffix) {
   }
 
 return bucketData;
-    } catch (error) {
-      console.error('[Product Buckets V3] Error processing buckets:', error);
-      throw error;
-    }
   },
 
   // Process a single product record
