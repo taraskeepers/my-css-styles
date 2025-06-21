@@ -1,5 +1,5 @@
-// Product Bucket Analyzer V3
-// Implements new 5-bucket system with individual device records
+// Product Bucket Analyzer V3 - Updated Version
+// Implements new 5-bucket system with improved logic
 
 window.productBucketAnalyzer = {
   // Default thresholds for metric evaluation
@@ -36,7 +36,7 @@ window.productBucketAnalyzer = {
     }
   },
 
-    // Current time period being processed (used for bucket thresholds)
+  // Current time period being processed (used for bucket thresholds)
   currentTimePeriod: '30d',
 
   // Helper to round to 2 decimal places
@@ -44,183 +44,235 @@ window.productBucketAnalyzer = {
     return Math.round(value * 100) / 100;
   },
 
-// Process and create bucket analysis for multiple time periods
-async processProductBuckets(prefix = 'acc1_') {
-  const startTime = performance.now();
-  try {
-    console.log('[Product Buckets V3] Starting bucket analysis for 30d, 60d, and 90d...');
-    
-    // Load product performance data from IDB
-    const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
-    if (!productRec?.data || !productRec.data.length) {
-      console.error('[Product Buckets V3] No product performance data found');
-      return;
-    }
+  // Calculate trend from previous period
+  calculateTrend(current, previous) {
+    if (!previous || previous === 0) return 'new';
+    const change = ((current - previous) / previous) * 100;
+    if (change > 20) return 'growing';
+    if (change < -20) return 'declining';
+    return 'stable';
+  },
 
-    const rawData = productRec.data;
-    console.log(`[Product Buckets V3] Processing ${rawData.length} rows of data`);
+  // Check if product is new (low previous period data)
+  isNewProduct(prevMetrics) {
+    if (!prevMetrics) return true;
+    return prevMetrics.impressions < 1000 || 
+           prevMetrics.clicks < 10 || 
+           prevMetrics.cost < 50;
+  },
 
-    // Find the max date in the data
-    const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
-    const maxDataDate = new Date(Math.max(...allDates));
-    
-    // Process each time period
-    const periods = [
-      { days: 30, suffix: '30d' },
-      { days: 60, suffix: '60d' },
-      { days: 90, suffix: '90d' }
-    ];
-
-    const results = {};
-    
-    for (const period of periods) {
-      console.log(`[Product Buckets V3] Processing ${period.days}-day period...`);
+  // Process and create bucket analysis for multiple time periods
+  async processProductBuckets(prefix = 'acc1_') {
+    const startTime = performance.now();
+    try {
+      console.log('[Product Buckets V3] Starting bucket analysis for 30d, 60d, and 90d...');
       
-      const bucketData = await this.processTimePeriod(rawData, maxDataDate, period.days, period.suffix);
-      
-      // Save to IDB
-      const tableName = prefix + `googleSheets_productBuckets_${period.suffix}`;
-      await window.embedIDB.setData(tableName, bucketData);
-      
-      console.log(`[Product Buckets V3] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
-      results[period.suffix] = bucketData;
-    }
-
-    // Store in global variable for easy access (use 30d as default)
-    if (!window.googleSheetsData) window.googleSheetsData = {};
-    window.googleSheetsData.productBuckets = results['30d'];
-
-    // Add timing log
-    const endTime = performance.now();
-    const processingTime = ((endTime - startTime) / 1000).toFixed(3);
-    console.log(`[Product Buckets V3] ✅ Processing completed in ${processingTime} seconds`);
-
-    return results;
-  } catch (error) {
-    console.error('[Product Buckets V3] Error processing buckets:', error);
-    throw error;
-  }
-},
-
-// New method to process a specific time period
-async processTimePeriod(rawData, maxDataDate, days, suffix) {
-  // Calculate date ranges
-  const endDate = maxDataDate;
-  const startDate = new Date(maxDataDate);
-  startDate.setDate(startDate.getDate() - days);
-  const prevStartDate = new Date(maxDataDate);
-  prevStartDate.setDate(prevStartDate.getDate() - (days * 2));
-
-  // Filter data for different periods
-  const currentPeriodData = rawData.filter(row => {
-    if (!row.Date) return false;
-    const rowDate = new Date(row.Date);
-    return rowDate > startDate && rowDate <= endDate;
-  });
-
-  const prevPeriodData = rawData.filter(row => {
-    if (!row.Date) return false;
-    const rowDate = new Date(row.Date);
-    return rowDate > prevStartDate && rowDate <= startDate;
-  });
-
-  console.log(`[Product Buckets V3] ${suffix}: Current period: ${currentPeriodData.length} rows, Previous: ${prevPeriodData.length} rows`);
-
-  // Set time period for bucket assignment logic
-  this.currentTimePeriod = suffix;
-  
-  // Calculate dynamic defaults based on current period data
-  this.calculateDynamicDefaults(currentPeriodData);
-  
-  // Calculate account metrics for benchmarking
-  this.accountMetrics = this.calculateAccountMetrics(currentPeriodData);
-
-  // Group data by product + campaign + channel + device
-  const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
-  const prevGrouped = this.groupByProductCampaignChannelDevice(prevPeriodData);
-
-  // Process all combinations (rest of the original logic)
-  const bucketData = [];
-  const DELIMITER = '~~~';
-  
-  // Get unique products for tracking
-  const uniqueProducts = new Set();
-  Object.keys(currentGrouped).forEach(key => {
-    const parts = key.split(DELIMITER);
-    if (parts.length === 4) {
-      uniqueProducts.add(parts[0]);
-    }
-  });
-
-  // Process each specific campaign/channel/device combination
-  let processedCount = 0;
-  const specificCombinations = Object.keys(currentGrouped).filter(key => {
-    const parts = key.split(DELIMITER);
-    return parts.length === 4 && parts[1] !== 'All' && parts[2] !== 'All';
-  });
-
-  for (const key of specificCombinations) {
-    const parts = key.split(DELIMITER);
-    const [productTitle, campaignName, channelType, device] = parts;
-    
-    const rowData = this.processProductRecord(
-      productTitle,
-      campaignName,
-      channelType,
-      device,
-      currentGrouped[key] || [],
-      prevGrouped[key] || [],
-      device === 'All'
-    );
-    
-    if (rowData) {
-      bucketData.push(rowData);
-      processedCount++;
-      
-      if (processedCount % 100 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 10));
+      // Load product performance data from IDB
+      const productRec = await window.embedIDB.getData(prefix + "googleSheets_productPerformance");
+      if (!productRec?.data || !productRec.data.length) {
+        console.error('[Product Buckets V3] No product performance data found');
+        return;
       }
-    }
-  }
 
-  // Process aggregated records (same logic as original)
-  for (const productTitle of uniqueProducts) {
-    const devices = new Set();
+      const rawData = productRec.data;
+      console.log(`[Product Buckets V3] Processing ${rawData.length} rows of data`);
+
+      // Find the max date in the data
+      const allDates = rawData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+      const maxDataDate = new Date(Math.max(...allDates));
+      
+      // Process each time period
+      const periods = [
+        { days: 30, suffix: '30d' },
+        { days: 60, suffix: '60d' },
+        { days: 90, suffix: '90d' }
+      ];
+
+      const results = {};
+      
+      for (const period of periods) {
+        console.log(`[Product Buckets V3] Processing ${period.days}-day period...`);
+        
+        const bucketData = await this.processTimePeriod(rawData, maxDataDate, period.days, period.suffix);
+        
+        // Save to IDB
+        const tableName = prefix + `googleSheets_productBuckets_${period.suffix}`;
+        await window.embedIDB.setData(tableName, bucketData);
+        
+        console.log(`[Product Buckets V3] ✅ Saved ${bucketData.length} product buckets to ${tableName}`);
+        results[period.suffix] = bucketData;
+      }
+
+      // Store in global variable for easy access (use 30d as default)
+      if (!window.googleSheetsData) window.googleSheetsData = {};
+      window.googleSheetsData.productBuckets = results['30d'];
+
+      // Add timing log
+      const endTime = performance.now();
+      const processingTime = ((endTime - startTime) / 1000).toFixed(3);
+      console.log(`[Product Buckets V3] ✅ Processing completed in ${processingTime} seconds`);
+
+      return results;
+    } catch (error) {
+      console.error('[Product Buckets V3] Error processing buckets:', error);
+      throw error;
+    }
+  },
+
+  // New method to process a specific time period
+  async processTimePeriod(rawData, maxDataDate, days, suffix) {
+    // Calculate date ranges
+    const endDate = maxDataDate;
+    const startDate = new Date(maxDataDate);
+    startDate.setDate(startDate.getDate() - days);
+    const prevStartDate = new Date(maxDataDate);
+    prevStartDate.setDate(prevStartDate.getDate() - (days * 2));
+
+    // Filter data for different periods
+    const currentPeriodData = rawData.filter(row => {
+      if (!row.Date) return false;
+      const rowDate = new Date(row.Date);
+      return rowDate > startDate && rowDate <= endDate;
+    });
+
+    const prevPeriodData = rawData.filter(row => {
+      if (!row.Date) return false;
+      const rowDate = new Date(row.Date);
+      return rowDate > prevStartDate && rowDate <= startDate;
+    });
+
+    console.log(`[Product Buckets V3] ${suffix}: Current period: ${currentPeriodData.length} rows, Previous: ${prevPeriodData.length} rows`);
+
+    // Set time period for bucket assignment logic
+    this.currentTimePeriod = suffix;
     
+    // Calculate dynamic defaults based on current period data
+    this.calculateDynamicDefaults(currentPeriodData);
+    
+    // Calculate account metrics for benchmarking
+    this.accountMetrics = this.calculateAccountMetrics(currentPeriodData);
+
+    // Group data by product + campaign + channel + device
+    const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
+    const prevGrouped = this.groupByProductCampaignChannelDevice(prevPeriodData);
+
+    // Process all combinations
+    const bucketData = [];
+    const DELIMITER = '~~~';
+    
+    // Get unique products for tracking
+    const uniqueProducts = new Set();
     Object.keys(currentGrouped).forEach(key => {
       const parts = key.split(DELIMITER);
-      if (parts[0] === productTitle && parts[3] && parts[3] !== 'All') {
-        devices.add(parts[3]);
+      if (parts.length === 4) {
+        uniqueProducts.add(parts[0]);
       }
     });
-    
-    for (const device of devices) {
-      const currentRows = [];
-      const prevRows = [];
+
+    // Process each specific campaign/channel/device combination
+    let processedCount = 0;
+    const specificCombinations = Object.keys(currentGrouped).filter(key => {
+      const parts = key.split(DELIMITER);
+      return parts.length === 4 && parts[1] !== 'All' && parts[2] !== 'All';
+    });
+
+    for (const key of specificCombinations) {
+      const parts = key.split(DELIMITER);
+      const [productTitle, campaignName, channelType, device] = parts;
+      
+      const rowData = this.processProductRecord(
+        productTitle,
+        campaignName,
+        channelType,
+        device,
+        currentGrouped[key] || [],
+        prevGrouped[key] || [],
+        device === 'All'
+      );
+      
+      if (rowData) {
+        bucketData.push(rowData);
+        processedCount++;
+        
+        if (processedCount % 100 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+    }
+
+    // Process aggregated records
+    for (const productTitle of uniqueProducts) {
+      const devices = new Set();
       
       Object.keys(currentGrouped).forEach(key => {
         const parts = key.split(DELIMITER);
-        if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
-          currentRows.push(...(currentGrouped[key] || []));
+        if (parts[0] === productTitle && parts[3] && parts[3] !== 'All') {
+          devices.add(parts[3]);
+        }
+      });
+      
+      for (const device of devices) {
+        const currentRows = [];
+        const prevRows = [];
+        
+        Object.keys(currentGrouped).forEach(key => {
+          const parts = key.split(DELIMITER);
+          if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+            currentRows.push(...(currentGrouped[key] || []));
+          }
+        });
+        
+        Object.keys(prevGrouped).forEach(key => {
+          const parts = key.split(DELIMITER);
+          if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
+            prevRows.push(...(prevGrouped[key] || []));
+          }
+        });
+        
+        if (currentRows.length > 0) {
+          const rowData = this.processProductRecord(
+            productTitle,
+            'All',
+            'All',
+            device,
+            currentRows,
+            prevRows,
+            false
+          );
+          
+          if (rowData) {
+            bucketData.push(rowData);
+          }
+        }
+      }
+      
+      // Create all devices record
+      const allCurrentRows = [];
+      const allPrevRows = [];
+      
+      Object.keys(currentGrouped).forEach(key => {
+        const parts = key.split(DELIMITER);
+        if (parts[0] === productTitle && parts[1] !== 'All') {
+          allCurrentRows.push(...(currentGrouped[key] || []));
         }
       });
       
       Object.keys(prevGrouped).forEach(key => {
         const parts = key.split(DELIMITER);
-        if (parts[0] === productTitle && parts[3] === device && parts[1] !== 'All') {
-          prevRows.push(...(prevGrouped[key] || []));
+        if (parts[0] === productTitle && parts[1] !== 'All') {
+          allPrevRows.push(...(prevGrouped[key] || []));
         }
       });
       
-      if (currentRows.length > 0) {
+      if (allCurrentRows.length > 0) {
         const rowData = this.processProductRecord(
           productTitle,
           'All',
           'All',
-          device,
-          currentRows,
-          prevRows,
-          false
+          'All',
+          allCurrentRows,
+          allPrevRows,
+          true
         );
         
         if (rowData) {
@@ -228,43 +280,8 @@ async processTimePeriod(rawData, maxDataDate, days, suffix) {
         }
       }
     }
-    
-    // Create all devices record
-    const allCurrentRows = [];
-    const allPrevRows = [];
-    
-    Object.keys(currentGrouped).forEach(key => {
-      const parts = key.split(DELIMITER);
-      if (parts[0] === productTitle && parts[1] !== 'All') {
-        allCurrentRows.push(...(currentGrouped[key] || []));
-      }
-    });
-    
-    Object.keys(prevGrouped).forEach(key => {
-      const parts = key.split(DELIMITER);
-      if (parts[0] === productTitle && parts[1] !== 'All') {
-        allPrevRows.push(...(prevGrouped[key] || []));
-      }
-    });
-    
-    if (allCurrentRows.length > 0) {
-      const rowData = this.processProductRecord(
-        productTitle,
-        'All',
-        'All',
-        'All',
-        allCurrentRows,
-        allPrevRows,
-        true
-      );
-      
-      if (rowData) {
-        bucketData.push(rowData);
-      }
-    }
-  }
 
-return bucketData;
+    return bucketData;
   },
 
   // Process a single product record
@@ -284,8 +301,8 @@ return bucketData;
     }
     
     // Assign buckets
-    const buckets = this.assignAllBuckets(metrics, allDeviceMetrics, isAllDevices);
-    const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, false) : null;
+    const buckets = this.assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices);
+    const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, null, false) : null;
     
     // Build the row data
     return {
@@ -524,14 +541,15 @@ return bucketData;
   },
 
   // Assign all buckets based on new system
-  assignAllBuckets(metrics, allDeviceMetrics, isAllDevices) {
+  assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices) {
     const confidenceLevel = this.calculateConfidenceLevel(metrics);
+    const isNew = this.isNewProduct(prevMetrics);
     
     const buckets = {
-      profitability: this.assignProfitabilityBucket(metrics, confidenceLevel),
-      funnelStage: this.assignFunnelStageBucket(metrics),
-      investment: this.assignInvestmentBucket(metrics),
-      customTier: this.assignCustomTierBucket(metrics, allDeviceMetrics, isAllDevices),
+      profitability: this.assignProfitabilityBucket(metrics, confidenceLevel, isNew),
+      funnelStage: this.assignFunnelStageBucket(metrics, isNew),
+      investment: this.assignInvestmentBucket(metrics, prevMetrics),
+      customTier: this.assignCustomTierBucket(metrics, prevMetrics, allDeviceMetrics, isAllDevices, isNew),
       confidenceLevel: confidenceLevel
     };
     
@@ -560,24 +578,39 @@ return bucketData;
     return 'Low';
   },
 
-  // 1. PROFITABILITY_BUCKET
-  assignProfitabilityBucket(metrics, confidenceLevel) {
-// Check for insufficient data with time-period specific thresholds
-const insufficientDataThresholds = {
-  '30d': { minConversions: 1, minClicks: 3, minCost: 50 },   // Most lenient
-  '60d': { minConversions: 1, minClicks: 5, minCost: 100 },  // Medium
-  '90d': { minConversions: 2, minClicks: 10, minCost: 200 }  // Most restrictive
-};
+  // 1. PROFITABILITY_BUCKET - Updated with better thresholds
+  assignProfitabilityBucket(metrics, confidenceLevel, isNew) {
+    // Updated thresholds based on time period
+    const insufficientDataThresholds = {
+      '30d': { 
+        minImpressions: 1000,  
+        minClicks: 50,         
+        minCost: 100,          
+        OR_minConversions: 3   
+      },
+      '60d': { 
+        minImpressions: 2000,
+        minClicks: 100,        
+        minCost: 200,          
+        OR_minConversions: 5
+      },
+      '90d': { 
+        minImpressions: 3000,
+        minClicks: 150,        
+        minCost: 300,          
+        OR_minConversions: 7
+      }
+    };
 
-const threshold = insufficientDataThresholds[this.currentTimePeriod] || insufficientDataThresholds['30d'];
+    const threshold = insufficientDataThresholds[this.currentTimePeriod] || insufficientDataThresholds['30d'];
 
-if (metrics.conversions < threshold.minConversions || 
-    (metrics.clicks < threshold.minClicks && metrics.cost < threshold.minCost)) {
-  return 'Insufficient Data';
-}
-
-    // Check for strategic flags (would need to be passed in or determined by rules)
-    const isStrategic = false; // Placeholder - implement strategic detection logic
+    // Check for insufficient data with updated logic
+    if ((metrics.impressions < threshold.minImpressions && 
+         metrics.clicks < threshold.minClicks && 
+         metrics.cost < threshold.minCost) ||
+        (metrics.conversions < threshold.OR_minConversions && metrics.cost < threshold.minCost)) {
+      return 'Insufficient Data';
+    }
 
     if (metrics.roas >= 4 && (metrics.conversions >= 10 || metrics.convValue >= 5000)) {
       return 'Profit Stars';
@@ -587,8 +620,6 @@ if (metrics.conversions < threshold.minConversions ||
       return 'Steady Contributors';
     } else if (metrics.roas >= 0.8 && metrics.roas < 1.5) {
       return 'Break-Even Products';
-    } else if (metrics.roas < 1 && isStrategic) {
-      return 'Strategic Loss Leaders';
     } else if (metrics.roas < 0.8) {
       return 'True Losses';
     }
@@ -596,12 +627,13 @@ if (metrics.conversions < threshold.minConversions ||
     return 'Insufficient Data';
   },
 
-  // 2. FUNNEL_STAGE_BUCKET
-  assignFunnelStageBucket(metrics) {
+  // 2. FUNNEL_STAGE_BUCKET - Updated with profitability context
+  assignFunnelStageBucket(metrics, isNew) {
     const avgCTR = this.DEFAULTS.ctr;
     const avgCartRate = this.DEFAULTS.cartRate;
     const avgCheckoutRate = this.DEFAULTS.checkoutRate;
     const avgPurchaseRate = this.DEFAULTS.purchaseRate;
+    const avgROAS = this.accountMetrics.avgROAS;
     
     // Check for insufficient data
     if (metrics.impressions < 5000 && metrics.clicks < 50) {
@@ -616,32 +648,57 @@ if (metrics.conversions < threshold.minConversions ||
       return 'Full Funnel Excellence';
     }
 
-    // Ad Engagement Issue
+    // Determine if there are funnel issues
+    const hasFunnelIssues = 
+      metrics.ctr < avgCTR * 0.7 ||
+      metrics.cartRate < avgCartRate * 0.7 ||
+      metrics.checkoutRate < 40 ||
+      metrics.purchaseRate < 60;
+
+    // High-Value Funnel Issues - Good ROAS but funnel problems
+    if (metrics.roas > avgROAS && hasFunnelIssues) {
+      if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
+        return 'High-Value Funnel Issues';
+      } else if (metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
+        return 'High-Value Funnel Issues';
+      } else if (metrics.checkoutRate < 40 && metrics.addToCartConv >= 20) {
+        return 'High-Value Funnel Issues';
+      } else if (metrics.purchaseRate < 60 && metrics.beginCheckoutConv >= 10) {
+        return 'High-Value Funnel Issues';
+      }
+    }
+
+    // Critical Funnel Issues - Poor ROAS AND funnel problems
+    if (metrics.roas < 1.5 && hasFunnelIssues) {
+      if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
+        return 'Critical Funnel Issues';
+      } else if (metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
+        return 'Critical Funnel Issues';
+      } else if (metrics.checkoutRate < 30 && metrics.addToCartConv >= 20) {
+        return 'Critical Funnel Issues';
+      } else if (metrics.purchaseRate < 50 && metrics.beginCheckoutConv >= 10) {
+        return 'Critical Funnel Issues';
+      }
+    }
+
+    // Specific funnel stage issues (for products with OK ROAS)
     if (metrics.ctr < avgCTR * 0.5 && metrics.impressions >= 5000) {
       return 'Ad Engagement Issue';
     }
 
-    // Product Page Dropoff
-    if (metrics.ctr >= avgCTR && 
-        metrics.cartRate < avgCartRate * 0.5 && 
-        metrics.clicks >= 50) {
+    if (metrics.ctr >= avgCTR && metrics.cartRate < avgCartRate * 0.5 && metrics.clicks >= 50) {
       return 'Product Page Dropoff';
     }
 
-    // Cart Abandonment Problem
     if (metrics.checkoutRate < 40 && metrics.addToCartConv >= 20) {
       return 'Cart Abandonment Problem';
     }
 
-    // Checkout Friction
     if (metrics.purchaseRate < 60 && metrics.beginCheckoutConv >= 10) {
       return 'Checkout Friction';
     }
 
-    // Price Discovery Shock
-    if (metrics.clicks >= 100 && 
-        metrics.cartRate < 20 && 
-        metrics.aov < this.DEFAULTS.aov * 0.7) {
+    if (metrics.clicks >= 100 && metrics.cartRate < 20 && metrics.aov < this.DEFAULTS.aov * 0.7) {
       return 'Price Discovery Shock';
     }
 
@@ -657,35 +714,44 @@ if (metrics.conversions < threshold.minConversions ||
       return 'Cross-Stage Issues';
     }
 
+    // Optimization Opportunities - Good ROAS but room for improvement
+    if (metrics.roas >= avgROAS && 
+        (metrics.ctr < avgCTR || 
+         metrics.cartRate < avgCartRate || 
+         metrics.checkoutRate < avgCheckoutRate || 
+         metrics.purchaseRate < avgPurchaseRate)) {
+      return 'Optimization Opportunities';
+    }
+
     return 'Normal Performance';
   },
 
-  // 3. INVESTMENT_BUCKET
-  assignInvestmentBucket(metrics) {
-    const revenueShare = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
-    const isGrowing = false; // Would need trend data
-    const hasHeadroom = true; // Would need impression share data
+  // 3. INVESTMENT_BUCKET - Updated with better alignment
+  assignInvestmentBucket(metrics, prevMetrics) {
+    const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
+    const conversionTrend = prevMetrics ? this.calculateTrend(metrics.conversions, prevMetrics.conversions) : 'new';
+    const revenueShare = this.accountMetrics.totalCost > 0 ? metrics.cost / this.accountMetrics.totalCost : 0;
     
-    // Allocation scores based on conditions
-    if (metrics.roas < 0.8 && metrics.conversions === 0 && metrics.cost > 200) {
+    // Updated priority levels
+    if (metrics.roas < 1.0 && metrics.conversions === 0 && metrics.cost > 200) {
       return 'Pause Priority'; // Score: 0
-    } else if (metrics.roas < 1.2) {
+    } else if (metrics.roas < 1.0 || (metrics.roas < 1.5 && roasTrend === 'declining')) {
       return 'Reduce Priority'; // Score: 1
-    } else if (metrics.roas >= 1.2 && metrics.roas < 2) {
+    } else if (metrics.roas >= 1.5 && metrics.roas < 2.0 && roasTrend === 'stable') {
       return 'Maintain Priority'; // Score: 2
-    } else if (metrics.roas >= 1.5 && metrics.conversions > 0 && metrics.cvr >= this.DEFAULTS.cvr) {
+    } else if (metrics.roas >= 2.0 && (roasTrend === 'growing' || conversionTrend === 'growing')) {
       return 'Growth Priority'; // Score: 3
-    } else if (metrics.roas >= 2 && hasHeadroom) {
+    } else if (metrics.roas >= 3.0 && revenueShare < 0.1) {
       return 'High Priority'; // Score: 4
-    } else if (metrics.roas >= 3 && revenueShare < 5 && isGrowing) {
+    } else if (metrics.roas >= 4.0 && roasTrend !== 'declining' && revenueShare < 0.05) {
       return 'Maximum Priority'; // Score: 5
     }
     
     return 'Maintain Priority';
   },
 
-  // 4. CUSTOM_TIER_BUCKET
-  assignCustomTierBucket(metrics, allDeviceMetrics, isAllDevices) {
+  // 4. CUSTOM_TIER_BUCKET - Updated with critical categories
+  assignCustomTierBucket(metrics, prevMetrics, allDeviceMetrics, isAllDevices, isNew) {
     let deviceFlag = 'Balanced devices';
     
     // Only check device performance patterns for "All" device records
@@ -702,11 +768,26 @@ if (metrics.conversions < threshold.minConversions ||
       }
     }
 
-    // Calculate performance metrics
-    const isTopPerformer = metrics.roas >= 3 && metrics.conversions >= 10; // Simplified top 5% logic
-    const hasGrowth = false; // Would need trend data
-    const isConsistent = true; // Would need variance calculation
-    const isStrategic = false; // Would need strategic flag logic
+    // Calculate performance trends
+    const roasTrend = prevMetrics ? this.calculateTrend(metrics.roas, prevMetrics.roas) : 'new';
+    const revenueTrend = prevMetrics ? this.calculateTrend(metrics.convValue, prevMetrics.convValue) : 'new';
+    
+    // New: Check if product is new
+    if (isNew && metrics.impressions < 10000) {
+      return 'New/Low Volume';
+    }
+
+    // Critical categories first
+    if (metrics.roas < 0.5 && metrics.cost > 500) {
+      return 'Pause Candidates';
+    } else if (metrics.roas >= 0.5 && metrics.roas < 1.0 && metrics.cost > 200) {
+      return 'Turnaround Required';
+    }
+
+    // Performance-based categories
+    const isTopPerformer = metrics.roas >= 3 && metrics.conversions >= 10 && roasTrend !== 'declining';
+    const hasGrowth = revenueTrend === 'growing' && roasTrend === 'growing';
+    const isConsistent = roasTrend === 'stable' || (metrics.roas >= 2 && metrics.conversions >= 5);
 
     if (isTopPerformer && isConsistent) {
       return 'Hero Products';
@@ -718,19 +799,20 @@ if (metrics.conversions < threshold.minConversions ||
       return 'Mobile Champions';
     } else if (isAllDevices && deviceFlag === 'Desktop only') {
       return 'Desktop Dependent';
-    } else if (metrics.clicks >= 30 && metrics.clicks <= 60) {
+    } else if (metrics.clicks >= 30 && metrics.clicks <= 100 && metrics.roas >= 1) {
       return 'Test & Learn';
-    } else if (isStrategic) {
-      return 'Strategic Holdings';
+    } else if (metrics.roas >= 1 && metrics.roas < 1.5) {
+      return 'Monitor Closely';
     }
     
-    return 'Watch List';
+    return 'Monitor Closely';
   },
 
-  // 5. SUGGESTIONS_BUCKET with mutex groups (returns array of objects)
+  // 5. SUGGESTIONS_BUCKET - Updated with holistic performance consideration
   assignSuggestions(metrics, buckets, isAllDevices) {
     const suggestions = [];
     const appliedGroups = new Set();
+    const avgROAS = this.accountMetrics.avgROAS;
 
     // Helper to add suggestion with mutex check
     const addSuggestion = (suggestion, priority, mutexGroup, context) => {
@@ -746,7 +828,7 @@ if (metrics.conversions < threshold.minConversions ||
     };
 
     // Critical: Pause Immediately
-    if (buckets.investment === 'Pause Priority') {
+    if (buckets.investment === 'Pause Priority' || buckets.customTier === 'Pause Candidates') {
       addSuggestion(
         'Pause Immediately',
         'Critical',
@@ -757,97 +839,103 @@ if (metrics.conversions < threshold.minConversions ||
 
     // Critical: Scale Maximum Budget
     if (buckets.investment === 'Maximum Priority' && buckets.confidenceLevel === 'High') {
-      const budgetUsage = 3; // Placeholder - would need actual budget data
+      const budgetUsage = ((metrics.cost / this.accountMetrics.totalCost) * 100).toFixed(0);
       addSuggestion(
         'Scale Maximum Budget',
         'Critical',
         'A',
-        `ROAS: ${metrics.roas.toFixed(1)}x, using ${budgetUsage}% of limit`
+        `ROAS: ${metrics.roas.toFixed(1)}x, using ${budgetUsage}% of total spend`
       );
     }
 
-    // High: Fix Creative Urgently
-    if (metrics.ctr < 0.2 && metrics.impressions > 10000) {
+    // Only suggest funnel fixes if ROAS is below average OR significant untapped potential
+    const hasFunnelPotential = 
+      (metrics.ctr < this.DEFAULTS.ctr * 0.5) ||
+      (metrics.cartRate < this.DEFAULTS.cartRate * 0.5) ||
+      (metrics.checkoutRate < 30) ||
+      (metrics.purchaseRate < 50);
+
+    // High: Fix Creative Urgently (only if ROAS is suffering)
+    if (metrics.roas < avgROAS && metrics.ctr < 0.2 && metrics.impressions > 10000) {
       addSuggestion(
         'Fix Creative Urgently',
         'High',
         'B',
-        `CTR: ${metrics.ctr.toFixed(2)}% vs ${this.DEFAULTS.ctr.toFixed(2)}% avg`
+        `CTR: ${metrics.ctr.toFixed(2)}% vs ${this.DEFAULTS.ctr.toFixed(2)}% avg, ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // High: Fix Cart Abandonment
-    if (metrics.checkoutRate < 30 && metrics.addToCartConv > 30) {
+    // High: Fix Cart Abandonment (only if ROAS is below average)
+    if (metrics.roas < avgROAS && metrics.checkoutRate < 30 && metrics.addToCartConv > 30) {
       const abandonRate = 100 - metrics.checkoutRate;
       addSuggestion(
         'Fix Cart Abandonment',
         'High',
         'C',
-        `${abandonRate.toFixed(0)}% abandon at cart (avg: 40%)`
+        `${abandonRate.toFixed(0)}% abandon at cart, ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // High: Address Checkout Friction
-    if (metrics.purchaseRate < 50 && metrics.beginCheckoutConv > 20) {
+    // High: Address Checkout Friction (only if impacting profitability)
+    if (metrics.roas < avgROAS && metrics.purchaseRate < 50 && metrics.beginCheckoutConv > 20) {
       const failRate = 100 - metrics.purchaseRate;
       addSuggestion(
         'Address Checkout Friction',
         'High',
         'C',
-        `${failRate.toFixed(0)}% fail at payment (avg: 20%)`
+        `${failRate.toFixed(0)}% fail at payment, ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // Medium: Test Price Reduction
-    if (metrics.clicks > 200 && metrics.cvr < 0.2) {
+    // Medium: Test Price Reduction (only for truly poor converters)
+    if (metrics.clicks > 200 && metrics.cvr < 0.5 && metrics.roas < 1.5) {
       addSuggestion(
         'Test Price Reduction',
         'Medium',
         'D',
-        `${metrics.cvr.toFixed(1)}% CVR with $${metrics.aov.toFixed(0)} AOV`
+        `${metrics.cvr.toFixed(1)}% CVR with $${metrics.aov.toFixed(0)} AOV, ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // Medium: Optimize Mobile Experience (only for All devices records)
-    if (isAllDevices && buckets.customTier === 'Desktop Dependent') {
+    // Medium: Optimize Mobile Experience (only for All devices records with real issues)
+    if (isAllDevices && buckets.customTier === 'Desktop Dependent' && metrics.roas < avgROAS) {
       addSuggestion(
         'Optimize Mobile Experience',
         'Medium',
         'C',
-        `Mobile performance significantly lower than desktop`
+        `Mobile performance significantly lower, overall ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // Medium: Refresh Tired Creative
-    const ctrDecline = 40; // Placeholder - would need trend data
-    if (ctrDecline > 40) {
+    // Medium: Refresh Tired Creative (when CTR decline impacts performance)
+    const ctrDecline = metrics.ctr < this.DEFAULTS.ctr * 0.6;
+    if (ctrDecline && metrics.roas < avgROAS) {
       addSuggestion(
         'Refresh Tired Creative',
         'Medium',
         'B',
-        `CTR declining over time`
+        `CTR below average, ROAS: ${metrics.roas.toFixed(1)}x`
       );
     }
 
-    // Low: Broaden Targeting
-    const impressionShare = 4; // Placeholder
-    if (metrics.cvr > 3 && impressionShare < 5) {
+    // Low: Broaden Targeting (for high performers with limited reach)
+    if (metrics.cvr > 3 && metrics.roas > avgROAS && metrics.impressions < 50000) {
       addSuggestion(
         'Broaden Targeting',
         'Low',
         'A',
-        `${metrics.cvr.toFixed(1)}% CVR but <${impressionShare}% reach`
+        `${metrics.cvr.toFixed(1)}% CVR, ROAS: ${metrics.roas.toFixed(1)}x, limited reach`
       );
     }
 
-    // Low: Add Trust Signals
-    const isNew = metrics.impressions < 10000; // Simplified new product check
-    if (isNew && metrics.checkoutRate < this.DEFAULTS.checkoutRate) {
+    // Low: Add Trust Signals (for new products with checkout issues)
+    const isNew = buckets.customTier === 'New/Low Volume';
+    if (isNew && metrics.checkoutRate < this.DEFAULTS.checkoutRate && metrics.roas < avgROAS) {
       addSuggestion(
         'Add Trust Signals',
         'Low',
         'C',
-        `New + ${(100 - metrics.purchaseRate).toFixed(0)}% checkout drop`
+        `New product, ${(100 - metrics.purchaseRate).toFixed(0)}% checkout drop`
       );
     }
 
@@ -879,8 +967,8 @@ if (metrics.conversions < threshold.minConversions ||
     const conversionScore = Math.min(1, metrics.conversions / 50) * 1;
     score += revenueScore + conversionScore;
     
-    // Stability (10%) - simplified without variance data
-    const hasData = metrics.impressions > 1000 && metrics.clicks > 10 ? 1 : 0.5;
+    // Stability (10%) - based on bucket confidence
+    const hasData = buckets.confidenceLevel === 'High' ? 1 : buckets.confidenceLevel === 'Medium' ? 0.7 : 0.5;
     score += hasData;
     
     // Opportunity (10%)
@@ -892,4 +980,4 @@ if (metrics.conversions < threshold.minConversions ||
 };
 
 // Log that V3 analyzer is loaded
-console.log('[Product Buckets V3] Analyzer loaded and ready');
+console.log('[Product Buckets V3 Updated] Analyzer loaded and ready');
