@@ -5734,10 +5734,12 @@ if (bucketsSwitcher) {
   bucketsSwitcher.style.display = 'block';
 }
 
-// Initialize main buckets switcher
-if (window.initializeMainBucketsSwitcher) {
-  window.initializeMainBucketsSwitcher();
-}
+// Initialize main buckets switcher with a small delay to ensure DOM is ready
+setTimeout(() => {
+  if (window.initializeMainBucketsSwitcher) {
+    window.initializeMainBucketsSwitcher();
+  }
+}, 100);
 
   // Hide date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
