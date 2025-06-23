@@ -186,60 +186,97 @@ function showBucketedProducts() {
 async function loadBucketedProducts() {
   console.log('[loadBucketedProducts] Starting...');
   const container = document.getElementById('bucketed_products_container');
-  console.log('[loadBucketedProducts] Container found:', container);
   if (!container) {
     console.error('[loadBucketedProducts] Container not found!');
     return;
   }
   
-  // Show loading state
+  // Clear and show loading
   container.innerHTML = '<div style="text-align: center; padding: 50px;"><div class="spinner"></div></div>';
   
   try {
-    // Get current bucket type
-    const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
-    console.log('[loadBucketedProducts] Using bucket type:', bucketType);
+    // Get all company products - EXACTLY like the left navigation
+    const allCompanyProducts = [];
+    const productMap = new Map();
     
-    // Get all products with their bucket assignments
-    const bucketedProducts = await getBucketedProductsData(bucketType);
-    console.log('[loadBucketedProducts] Bucketed products:', bucketedProducts);
+    if (window.allRows && Array.isArray(window.allRows)) {
+      window.allRows.forEach(product => {
+        if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+          const productKey = product.title || '';
+          
+          if (!productMap.has(productKey)) {
+            productMap.set(productKey, product);
+            allCompanyProducts.push(product);
+          }
+        }
+      });
+    }
     
-// Check if we have any products
-const totalProducts = Object.values(bucketedProducts).reduce((sum, arr) => sum + arr.length, 0);
-console.log('[loadBucketedProducts] Total products found:', totalProducts);
-
-if (totalProducts === 0) {
-  // Get all company products to show them even without bucket assignments
-  const allCompanyProducts = [];
-  if (window.allRows && Array.isArray(window.allRows)) {
-    window.allRows.forEach(product => {
-      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-        allCompanyProducts.push(product);
-      }
-    });
-  }
-  
-  if (allCompanyProducts.length > 0) {
-    // Show all products in an "Unassigned" category
-    const unassignedProducts = {
-      'Products Without Bucket Assignment': allCompanyProducts.map(product => ({
-        product: product,
-        metrics: calculateGoogleAdsProductMetrics(product)
-      }))
-    };
-    renderBucketedProducts(container, unassignedProducts, bucketType);
-  } else {
-    container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No products found. Please check if products are loaded in the left navigation.</div>';
-  }
-  return;
-}
+    console.log(`[loadBucketedProducts] Found ${allCompanyProducts.length} products`);
     
-    // Render the products
-    renderBucketedProducts(container, bucketedProducts, bucketType);
+    // Calculate metrics and sort
+    const productsWithMetrics = allCompanyProducts.map(product => ({
+      product: product,
+      metrics: calculateGoogleAdsProductMetrics(product)
+    }));
+    
+    // Separate active and inactive
+    const activeProducts = productsWithMetrics.filter(item => !item.metrics.isFullyInactive);
+    const inactiveProducts = productsWithMetrics.filter(item => item.metrics.isFullyInactive);
+    
+    // Sort by rank
+    activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
+    inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
+    
+    // Render products
+    renderProductsList(container, activeProducts, inactiveProducts);
+    
   } catch (error) {
     console.error('[loadBucketedProducts] Error:', error);
     container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading products</div>';
   }
+}
+
+// Simple render function - just like left nav but full width
+function renderProductsList(container, activeProducts, inactiveProducts) {
+  container.innerHTML = '';
+  
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
+  header.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products</h3>`;
+  container.appendChild(header);
+  
+  // Products container
+  const productsContainer = document.createElement('div');
+  productsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+  
+  // Add active products
+  activeProducts.forEach(({ product, metrics }) => {
+    const productItem = createBucketedProductItem(product, metrics);
+    productsContainer.appendChild(productItem);
+  });
+  
+  // Add separator if both exist
+  if (activeProducts.length > 0 && inactiveProducts.length > 0) {
+    const separator = document.createElement('div');
+    separator.className = 'google-ads-separator';
+    separator.innerHTML = `
+      <div class="separator-line"></div>
+      <div class="separator-text">Inactive Products</div>
+      <div class="separator-line"></div>
+    `;
+    productsContainer.appendChild(separator);
+  }
+  
+  // Add inactive products
+  inactiveProducts.forEach(({ product, metrics }) => {
+    const productItem = createBucketedProductItem(product, metrics);
+    productItem.classList.add('inactive-product');
+    productsContainer.appendChild(productItem);
+  });
+  
+  container.appendChild(productsContainer);
 }
 
 // Get bucketed products data
