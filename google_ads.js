@@ -3,6 +3,11 @@ window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
 window.userMetricPreferences = null;
 window.userTrendPreferences = null;
+// Global settings for product metrics calculation
+window.productMetricsSettings = {
+  useLatestDataDate: false, // true = use latest data date, false = use today's date
+  // Future settings can be added here
+};
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
