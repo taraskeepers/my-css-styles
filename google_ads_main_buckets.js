@@ -2,7 +2,17 @@
 
 // Import needed functions from global scope
 const getProductCombinations = window.getProductCombinations || function() { return []; };
-const getBucketValue = window.getBucketValue || function() { return null; };
+const getBucketValue = window.getBucketValue || function(bucketData) {
+  if (typeof bucketData === 'string') {
+    try {
+      const parsed = JSON.parse(bucketData);
+      return parsed.value || bucketData;
+    } catch (e) {
+      return bucketData;
+    }
+  }
+  return bucketData?.value || bucketData;
+};
 const calculateGoogleAdsProductMetrics = window.calculateGoogleAdsProductMetrics || function() { 
   return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0 }; 
 };
@@ -188,52 +198,111 @@ async function loadBucketedProducts() {
   try {
     // Get current bucket type
     const bucketType = window.selectedBucketType || 'PROFITABILITY_BUCKET';
+    console.log('[loadBucketedProducts] Using bucket type:', bucketType);
     
     // Get all products with their bucket assignments
     const bucketedProducts = await getBucketedProductsData(bucketType);
+    console.log('[loadBucketedProducts] Bucketed products:', bucketedProducts);
+    
+    // Check if we have any products
+    const totalProducts = Object.values(bucketedProducts).reduce((sum, arr) => sum + arr.length, 0);
+    console.log('[loadBucketedProducts] Total products found:', totalProducts);
+    
+    if (totalProducts === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No products found with bucket assignments. Please ensure bucket data is loaded.</div>';
+      return;
+    }
     
     // Render the products
     renderBucketedProducts(container, bucketedProducts, bucketType);
   } catch (error) {
-    console.error('Error loading bucketed products:', error);
+    console.error('[loadBucketedProducts] Error:', error);
     container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading products</div>';
   }
 }
 
 // Get bucketed products data
 async function getBucketedProductsData(bucketType) {
+  console.log('[getBucketedProductsData] Starting with bucket type:', bucketType);
   const bucketedProducts = {};
   const productMap = new Map();
   
-  // Get all company products from window.allRows
+  // First, let's check if we have the bucket data in window.allRows
   if (window.allRows && Array.isArray(window.allRows)) {
-    window.allRows.forEach(product => {
-      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-        const productKey = product.title || '';
-        
-        if (!productMap.has(productKey)) {
-          productMap.set(productKey, product);
+    console.log('[getBucketedProductsData] window.allRows length:', window.allRows.length);
+    
+    // Check the first few records to see their structure
+    if (window.allRows.length > 0) {
+      console.log('[getBucketedProductsData] Sample record:', window.allRows[0]);
+      console.log('[getBucketedProductsData] Sample record keys:', Object.keys(window.allRows[0]));
+    }
+  }
+  
+  // Try to load bucket data from IndexedDB instead
+  try {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const days = window.selectedBucketDateRangeDays || 30;
+    const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+    
+    console.log('[getBucketedProductsData] Loading from IndexedDB:', tableName);
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (result && result.data) {
+      console.log('[getBucketedProductsData] Found bucket data:', result.data.length, 'records');
+      
+      // Process the bucket data
+      result.data.forEach(record => {
+        // Only process records for the company
+        if (record['Campaign Name'] === 'All' && record['Channel Type'] === 'All' && record['Device'] === 'All') {
+          const productTitle = record['Product Title'];
+          const bucketValue = getBucketValue(record[bucketType]);
           
-          // Get bucket value for this product
-          const bucketValue = getBucketValueForProduct(product, bucketType);
+          console.log('[getBucketedProductsData] Product:', productTitle, 'Bucket:', bucketValue);
           
           if (bucketValue && bucketValue !== 'Insufficient Data') {
             if (!bucketedProducts[bucketValue]) {
               bucketedProducts[bucketValue] = [];
             }
             
-            // Calculate metrics for the product
-            const metrics = calculateGoogleAdsProductMetrics(product);
+            // Find the product in allRows to get full details
+            const product = window.allRows.find(p => 
+              p.title === productTitle && 
+              p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+            );
             
-            bucketedProducts[bucketValue].push({
-              product: product,
-              metrics: metrics
-            });
+            if (product) {
+              const metrics = calculateGoogleAdsProductMetrics(product);
+              bucketedProducts[bucketValue].push({
+                product: product,
+                metrics: metrics
+              });
+            }
           }
         }
-      }
-    });
+      });
+    }
+  } catch (error) {
+    console.error('[getBucketedProductsData] Error loading from IndexedDB:', error);
   }
+  
+  console.log('[getBucketedProductsData] Final bucketed products:', bucketedProducts);
   
   // Sort products within each bucket by average rating
   Object.keys(bucketedProducts).forEach(bucket => {
