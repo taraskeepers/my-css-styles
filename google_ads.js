@@ -5169,25 +5169,25 @@ function calculateGoogleAdsProductMetrics(product) {
         const daysDiff = today.diff(latestDate, 'days');
         combo.isActive = daysDiff <= 7;
         
-        record.historical_data.forEach(item => {
-          if (item.date && item.date.value && item.avg_position != null) {
-            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-            const position = parseFloat(item.avg_position);
-            const visibility = parseFloat(item.visibility) || 0;
-            
-            if (itemDate.isBetween(currentStartDate, currentEndDate, 'day', '[]')) {
-              combo.currentRankSum += position;
-              combo.currentRankCount++;
-              combo.currentVisibilitySum += visibility;
-              combo.currentVisibilityCount++;
-            } else if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
-              combo.prevRankSum += position;
-              combo.prevRankCount++;
-              combo.prevVisibilitySum += visibility;
-              combo.prevVisibilityCount++;
-            }
-          }
-        });
+record.historical_data.forEach(item => {
+  if (item.date && item.date.value && item.avg_position != null) {
+    const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+    const position = parseFloat(item.avg_position);
+    const visibility = (parseFloat(item.visibility) || 0) * 100; // CHANGED: multiply by 100
+    
+    if (itemDate.isBetween(currentStartDate, currentEndDate, 'day', '[]')) {
+      combo.currentRankSum += position;
+      combo.currentRankCount++;
+      combo.currentVisibilitySum += visibility;
+      combo.currentVisibilityCount++;
+    } else if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+      combo.prevRankSum += position;
+      combo.prevRankCount++;
+      combo.prevVisibilitySum += visibility;
+      combo.prevVisibilityCount++;
+    }
+  }
+});
       }
     }
   });
