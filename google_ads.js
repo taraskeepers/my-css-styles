@@ -5529,6 +5529,16 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+
+  // Expand the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.remove('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.remove('nav-collapsed');
+  }
   
   // Hide the table
   const table = document.querySelector('.google-ads-table');
@@ -5598,6 +5608,16 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+
+  // Expand the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.remove('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.remove('nav-collapsed');
+  }
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
@@ -5675,6 +5695,16 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
+
+  // Expand the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.remove('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.remove('nav-collapsed');
+  }
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
@@ -5860,8 +5890,33 @@ if (buckets_products) {
   buckets_products.style.display = 'block';
 }
   
+// Collapse the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.add('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.add('nav-collapsed');
+  }
+  
   // Load and render both containers
   loadAndRenderROASBuckets();
+});
+
+// Add click handler for collapsed nav panel
+document.addEventListener('click', function(e) {
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  if (navPanel && navPanel.classList.contains('collapsed') && navPanel.contains(e.target)) {
+    // Expand the panel and switch to Overview
+    navPanel.classList.remove('collapsed');
+    const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+    if (contentWrapper) {
+      contentWrapper.classList.remove('nav-collapsed');
+    }
+    // Switch to Overview view
+    document.getElementById('viewOverviewGoogleAds')?.click();
+  }
 });
 
 // Initialize bucket switcher (from google_ads_buckets.js)
@@ -7767,6 +7822,51 @@ if (window.googleAdsApexCharts) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+/* Navigation panel animation styles */
+#googleAdsNavPanel {
+  transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out;
+  overflow: hidden;
+  position: relative;
+}
+
+#googleAdsNavPanel.collapsed {
+  width: 12px !important;
+  min-width: 12px !important;
+}
+
+#googleAdsNavPanel.collapsed > * {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+}
+
+/* Vertical indicator for collapsed state */
+#googleAdsNavPanel.collapsed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 4px;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #007aff, #0056b3);
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: opacity 0.3s ease-in-out;
+}
+
+#googleAdsNavPanel.collapsed:hover::before {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* Adjust content wrapper when nav is collapsed */
+.google-ads-content-wrapper {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+.google-ads-content-wrapper.nav-collapsed {
+  margin-left: -388px; /* Negative margin to shift content left */
 }
     `;
     document.head.appendChild(style);
