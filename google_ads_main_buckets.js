@@ -178,6 +178,13 @@ function showBucketedProducts() {
     console.log('[showBucketedProducts] Set container to display: block');
   }
   
+  // Clear any active selection in google-ads-buckets-switcher
+  const bucketButtons = document.querySelectorAll('#googleAdsBucketsSwitcher button');
+  bucketButtons.forEach(btn => btn.classList.remove('active'));
+  
+  // Store that we're in products view with no filter
+  window.currentBucketFilter = null;
+  
   // Load bucketed products
   loadBucketedProducts();
 }
@@ -249,7 +256,7 @@ function renderProductsList(container, activeProducts, inactiveProducts) {
   
   // Products container
   const productsContainer = document.createElement('div');
-  productsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+  productsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
   
   // Add active products
   activeProducts.forEach(({ product, metrics }) => {
@@ -496,20 +503,20 @@ function renderBucketedProducts(container, bucketedProducts, bucketType) {
 function createBucketedProductItem(product, metrics) {
   const productDiv = document.createElement('div');
   productDiv.classList.add('small-ad-details', 'bucketed-product-item');
-  productDiv.style.cssText = `
-    width: 100%;
-    height: 80px;
-    background-color: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-sizing: border-box;
-  `;
+productDiv.style.cssText = `
+  width: 100%;
+  height: 70px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  padding: 1px 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-sizing: border-box;
+`;
   
   const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/60?text=No+Image';
