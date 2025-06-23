@@ -192,6 +192,8 @@ function showBucketedProducts() {
 // Load and display bucketed products
 async function loadBucketedProducts() {
   console.log('[loadBucketedProducts] Starting...');
+  console.log('[loadBucketedProducts] Current filter:', window.currentBucketFilter);
+  
   const container = document.getElementById('bucketed_products_container');
   if (!container) {
     console.error('[loadBucketedProducts] Container not found!');
@@ -248,11 +250,12 @@ async function loadBucketedProducts() {
 function renderProductsList(container, activeProducts, inactiveProducts) {
   container.innerHTML = '';
   
-  // Header
-  const header = document.createElement('div');
-  header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
-  header.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products</h3>`;
-  container.appendChild(header);
+// Header
+const header = document.createElement('div');
+header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
+const filterText = window.currentBucketFilter ? ` - Filtered by ${window.currentBucketFilter.replace(/_/g, ' ')}` : '';
+header.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}</h3>`;
+container.appendChild(header);
   
   // Products container
   const productsContainer = document.createElement('div');
