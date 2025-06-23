@@ -128,14 +128,26 @@ const bucketButtons = {
           if (btn) btn.classList.remove('active');
         });
         
-        // Set this button as active
-        this.classList.add('active');
-        
-        // Store selected bucket type globally
-        window.selectedBucketType = bucketButtons[buttonId];
-        
-        // Re-render the buckets view with the new bucket type
-        loadAndRenderROASBuckets();
+// Set this button as active
+this.classList.add('active');
+
+// Store selected bucket type globally
+window.selectedBucketType = bucketButtons[buttonId];
+
+// Check if we're in Products by Bucket view
+if (window.currentMainBucketView === 'products') {
+  // Apply filter to products view
+  window.currentBucketFilter = bucketButtons[buttonId];
+  console.log('[Bucket Filter] Applying filter:', window.currentBucketFilter);
+  
+  // Reload the products with filter
+  if (window.loadBucketedProducts) {
+    window.loadBucketedProducts();
+  }
+} else {
+  // Normal buckets overview behavior
+  loadAndRenderROASBuckets();
+}
       });
     }
   });
