@@ -530,18 +530,29 @@ productDiv.style.cssText = `
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/60?text=No+Image';
   const title = product.title || 'No title';
   
-  productDiv.innerHTML = `
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; margin-right: 15px;">
-      <div class="small-ad-pos-value" style="font-size: 22px;">${metrics.avgRating}</div>
-      <div class="small-ad-pos-trend"></div>
-    </div>
-    <div class="small-ad-vis-status" style="margin-right: 15px;">
-      <div class="vis-status-left">
-        <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%;">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        </div>
+productDiv.innerHTML = `
+  <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; margin-right: 15px;">
+    <div class="small-ad-pos-value" style="font-size: 22px;">${metrics.avgRating}</div>
+    ${metrics.rankTrend && metrics.rankTrend.arrow ? `
+      <div class="small-ad-pos-trend-container">
+        <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color}; font-size: 8px; padding: 2px 4px;">
+          ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
+        </span>
+      </div>
+    ` : ''}
+  </div>
+  <div class="small-ad-vis-status" style="margin-right: 15px;">
+    <div class="vis-status-left">
+      <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%;">
+        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
+          <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color}; font-size: 8px; padding: 2px 4px; margin-top: 2px; display: block;">
+            ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+          </span>
+        ` : ''}
       </div>
     </div>
+  </div>
     <img class="small-ad-image" 
          src="${imageUrl}" 
          alt="${title}"
