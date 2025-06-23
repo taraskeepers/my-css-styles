@@ -5052,8 +5052,19 @@ function updateChartLineVisibilityGoogleAds(chartContainer, selectedIndex) {
 
 function calculateGoogleAdsProductMetrics(product) {
   if (!window.allRows || !Array.isArray(window.allRows)) {
-    return { avgRating: 40, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0, isFullyInactive: true };
+    return { 
+      avgRating: 40, 
+      avgVisibility: 0, 
+      activeLocations: 0, 
+      inactiveLocations: 0, 
+      isFullyInactive: true,
+      rankTrend: { arrow: '', change: '', color: '#999' },
+      visibilityTrend: { arrow: '', change: '', color: '#999' }
+    };
   }
+  
+  // Configuration setting
+  const useLatestDataDate = window.productMetricsSettings?.useLatestDataDate ?? false;
   
   // Get all records for this product
   const productRecords = window.allRows.filter(record => 
@@ -5072,8 +5083,12 @@ function calculateGoogleAdsProductMetrics(product) {
     const device = record.device || '';
     const comboKey = `${searchTerm}|${location}|${device}`;
     
-    // Track location status using the same logic as getLastTrackedInfo
+    // Track location status
     if (location) {
+      if (!locationStatusMap.has(location)) {
+        locationStatusMap.set(location, { hasActive: false, hasInactive: false });
+      }
+      
       // Check if this record has been active in the last 7 days
       let isRecordActive = false;
       
@@ -5095,52 +5110,33 @@ function calculateGoogleAdsProductMetrics(product) {
         }
       }
       
-      if (isRecordActive) hasAnyActiveLocation = true;
-      
-      if (!locationStatusMap.has(location)) {
-        locationStatusMap.set(location, { hasActive: false, hasInactive: false });
-      }
       if (isRecordActive) {
+        hasAnyActiveLocation = true;
         locationStatusMap.get(location).hasActive = true;
       } else {
         locationStatusMap.get(location).hasInactive = true;
       }
     }
     
-    // Process records for metrics calculation (keep existing logic)
+    // Process records for metrics calculation
     if (!combinationMetrics.has(comboKey)) {
       combinationMetrics.set(comboKey, { 
-        rankSum: 0, 
-        rankCount: 0, 
-        visibilitySum: 0, 
-        visibilityCount: 0,
+        currentRankSum: 0, 
+        currentRankCount: 0, 
+        currentVisibilitySum: 0, 
+        currentVisibilityCount: 0,
+        prevRankSum: 0, 
+        prevRankCount: 0, 
+        prevVisibilitySum: 0, 
+        prevVisibilityCount: 0,
         record: record,
-        isActive: false // Will be updated below
+        isActive: false
       });
     }
     
     const combo = combinationMetrics.get(comboKey);
     
-    // Update the isActive status for this combination
-    if (record.historical_data && record.historical_data.length > 0) {
-      let latestDate = null;
-      record.historical_data.forEach(item => {
-        if (item.date && item.date.value) {
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          if (!latestDate || itemDate.isAfter(latestDate)) {
-            latestDate = itemDate.clone();
-          }
-        }
-      });
-      
-      if (latestDate) {
-        const today = moment().startOf('day');
-        const daysDiff = today.diff(latestDate, 'days');
-        combo.isActive = daysDiff <= 7;
-      }
-    }
-    
-    // Calculate rank from historical data (keep existing logic)
+    // Calculate current and previous period metrics from historical data
     if (record.historical_data && Array.isArray(record.historical_data)) {
       let latestDate = null;
       record.historical_data.forEach(item => {
@@ -5153,61 +5149,128 @@ function calculateGoogleAdsProductMetrics(product) {
       });
       
       if (latestDate) {
-        const endDate = latestDate.clone();
-        const startDate = endDate.clone().subtract(6, 'days');
-        
-        const recentData = record.historical_data.filter(item => {
-          if (!item.date || !item.date.value || item.avg_position == null) return false;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-        
-        if (recentData.length > 0) {
-          const avgRank = recentData.reduce((sum, item) => sum + parseFloat(item.avg_position), 0) / recentData.length;
-          combo.rankSum += avgRank;
-          combo.rankCount++;
+        // Determine end date based on configuration
+        let currentEndDate;
+        if (useLatestDataDate) {
+          currentEndDate = latestDate.clone();
+        } else {
+          currentEndDate = moment().startOf('day');
         }
         
-        // Calculate visibility only for active combinations
-        if (combo.isActive) {
-          let avgVisibility = 0;
-          if (record.avg_visibility) {
-            avgVisibility = parseFloat(record.avg_visibility) * 100;
+        // Current period: last 7 days from determined end date
+        const currentStartDate = currentEndDate.clone().subtract(6, 'days');
+        
+        // Previous period: 7 days before current period
+        const prevEndDate = currentStartDate.clone().subtract(1, 'days');
+        const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+        
+        // Update combo active status
+        const today = moment().startOf('day');
+        const daysDiff = today.diff(latestDate, 'days');
+        combo.isActive = daysDiff <= 7;
+        
+        record.historical_data.forEach(item => {
+          if (item.date && item.date.value && item.avg_position != null) {
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            const position = parseFloat(item.avg_position);
+            const visibility = parseFloat(item.visibility) || 0;
+            
+            if (itemDate.isBetween(currentStartDate, currentEndDate, 'day', '[]')) {
+              combo.currentRankSum += position;
+              combo.currentRankCount++;
+              combo.currentVisibilitySum += visibility;
+              combo.currentVisibilityCount++;
+            } else if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+              combo.prevRankSum += position;
+              combo.prevRankCount++;
+              combo.prevVisibilitySum += visibility;
+              combo.prevVisibilityCount++;
+            }
           }
-          combo.visibilitySum += avgVisibility;
-          combo.visibilityCount++;
-        }
+        });
       }
     }
-    
-    // Fallback to direct values if no historical data
-    if (combo.rankCount === 0) {
-      const directRank = record.avg_position || record.finalPosition || 40;
-      combo.rankSum += parseFloat(directRank);
-      combo.rankCount++;
-    }
   });
   
-  // Calculate averages across all combinations (keep existing logic)
-  let totalRankSum = 0;
-  let totalRankCount = 0;
-  let totalVisibilitySum = 0;
-  let totalVisibilityCount = 0;
+  // Aggregate metrics across all combinations
+  let totalCurrentRankSum = 0, totalCurrentRankCount = 0;
+  let totalCurrentVisibilitySum = 0, totalCurrentVisibilityCount = 0;
+  let totalPrevRankSum = 0, totalPrevRankCount = 0;
+  let totalPrevVisibilitySum = 0, totalPrevVisibilityCount = 0;
   
   combinationMetrics.forEach(combo => {
-    if (combo.rankCount > 0) {
-      totalRankSum += (combo.rankSum / combo.rankCount);
-      totalRankCount++;
+    if (combo.currentRankCount > 0) {
+      totalCurrentRankSum += combo.currentRankSum;
+      totalCurrentRankCount += combo.currentRankCount;
     }
-    // Only count visibility for active combinations
-    if (combo.visibilityCount > 0 && combo.isActive) {
-      totalVisibilitySum += (combo.visibilitySum / combo.visibilityCount);
-      totalVisibilityCount++;
+    if (combo.currentVisibilityCount > 0) {
+      totalCurrentVisibilitySum += combo.currentVisibilitySum;
+      totalCurrentVisibilityCount += combo.currentVisibilityCount;
+    }
+    if (combo.prevRankCount > 0) {
+      totalPrevRankSum += combo.prevRankSum;
+      totalPrevRankCount += combo.prevRankCount;
+    }
+    if (combo.prevVisibilityCount > 0) {
+      totalPrevVisibilitySum += combo.prevVisibilitySum;
+      totalPrevVisibilityCount += combo.prevVisibilityCount;
     }
   });
   
-  const avgRating = totalRankCount > 0 ? (totalRankSum / totalRankCount) : 40;
-  const avgVisibility = totalVisibilityCount > 0 ? (totalVisibilitySum / totalVisibilityCount) : 0;
+  const currentAvgRating = totalCurrentRankCount > 0 ? (totalCurrentRankSum / totalCurrentRankCount) : 40;
+  const currentAvgVisibility = totalCurrentVisibilityCount > 0 ? (totalCurrentVisibilitySum / totalCurrentVisibilityCount) : 0;
+  const prevAvgRating = totalPrevRankCount > 0 ? (totalPrevRankSum / totalPrevRankCount) : 40;
+  const prevAvgVisibility = totalPrevVisibilityCount > 0 ? (totalPrevVisibilitySum / totalPrevVisibilityCount) : 0;
+  
+  // Calculate rank trend (lower rank is better, so improvement is negative change)
+  let rankTrend = { arrow: '', change: '', color: '#999' };
+  if (totalPrevRankCount > 0) {
+    const rankChange = currentAvgRating - prevAvgRating;
+    if (rankChange < 0) {
+      rankTrend = {
+        arrow: '▲',
+        change: Math.abs(rankChange).toFixed(1),
+        color: '#4CAF50'
+      };
+    } else if (rankChange > 0) {
+      rankTrend = {
+        arrow: '▼',
+        change: rankChange.toFixed(1),
+        color: '#F44336'
+      };
+    } else {
+      rankTrend = {
+        arrow: '—',
+        change: '0.0',
+        color: '#999'
+      };
+    }
+  }
+  
+  // Calculate visibility trend (higher visibility is better)
+  let visibilityTrend = { arrow: '', change: '', color: '#999' };
+  if (totalPrevVisibilityCount > 0) {
+    const visibilityChange = currentAvgVisibility - prevAvgVisibility;
+    if (visibilityChange > 0) {
+      visibilityTrend = {
+        arrow: '▲',
+        change: visibilityChange.toFixed(1) + '%',
+        color: '#4CAF50'
+      };
+    } else if (visibilityChange < 0) {
+      visibilityTrend = {
+        arrow: '▼',
+        change: Math.abs(visibilityChange).toFixed(1) + '%',
+        color: '#F44336'
+      };
+    } else {
+      visibilityTrend = {
+        arrow: '—',
+        change: '0.0%',
+        color: '#999'
+      };
+    }
+  }
   
   // Count locations
   let activeLocations = 0;
@@ -5218,11 +5281,13 @@ function calculateGoogleAdsProductMetrics(product) {
   });
   
   return {
-    avgRating: Math.round(avgRating),
-    avgVisibility: Math.min(100, Math.max(0, avgVisibility)),
+    avgRating: Math.round(currentAvgRating),
+    avgVisibility: Math.min(100, Math.max(0, currentAvgVisibility)),
     activeLocations,
     inactiveLocations,
-    isFullyInactive: !hasAnyActiveLocation
+    isFullyInactive: !hasAnyActiveLocation,
+    rankTrend,
+    visibilityTrend
   };
 }
 
@@ -5246,28 +5311,39 @@ function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, i
     const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
     const title = product.title || 'No title';
     
-    smallCard.innerHTML = `
-      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-        <div class="small-ad-pos-value">${metrics.avgRating}</div>
-        <div class="small-ad-pos-trend"></div>
+smallCard.innerHTML = `
+  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+    <div class="small-ad-pos-value">${metrics.avgRating}</div>
+    ${metrics.rankTrend.arrow ? `
+      <div class="small-ad-pos-trend-container">
+        <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
+          ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
+        </span>
       </div>
-      <div class="small-ad-vis-status">
-        <div class="vis-status-left">
-          <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-            <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-          </div>
-        </div>
-        <div class="vis-status-right">
-          <div class="active-locations-count">${metrics.activeLocations}</div>
-          <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
-        </div>
+    ` : ''}
+  </div>
+  <div class="small-ad-vis-status">
+    <div class="vis-status-left">
+      <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+        ${metrics.visibilityTrend.arrow ? `
+          <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
+            ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+          </span>
+        ` : ''}
       </div>
-      <img class="small-ad-image" 
-           src="${imageUrl}" 
-           alt="${title}"
-           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-      <div class="small-ad-title">${title}</div>
-    `;
+    </div>
+    <div class="vis-status-right">
+      <div class="active-locations-count">${metrics.activeLocations}</div>
+      <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+    </div>
+  </div>
+  <img class="small-ad-image" 
+       src="${imageUrl}" 
+       alt="${title}"
+       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+  <div class="small-ad-title">${title}</div>
+`;
     
     navItem.appendChild(smallCard);
     
