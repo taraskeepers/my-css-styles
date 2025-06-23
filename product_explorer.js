@@ -2146,61 +2146,61 @@ function calculateProductMetrics(product) {
   const prevAvgRating = totalPrevRankCount > 0 ? (totalPrevRankSum / totalPrevRankCount) : 40;
   const prevAvgVisibility = totalPrevVisibilityCount > 0 ? (totalPrevVisibilitySum / totalPrevVisibilityCount) : 0;
   
-  // Calculate rank trend (lower rank is better, so improvement is negative change)
-  let rankTrend = { arrow: '', change: '', color: '#444' };
-  if (totalPrevRankCount > 0) {
-    const rankChange = currentAvgRating - prevAvgRating;
-    if (rankChange < 0) {
-      // Rank improved (decreased)
-      rankTrend = {
-        arrow: '▲',
-        change: Math.abs(rankChange).toFixed(1),
-        color: '#4CAF50'
-      };
-    } else if (rankChange > 0) {
-      // Rank worsened (increased)
-      rankTrend = {
-        arrow: '▼',
-        change: rankChange.toFixed(1),
-        color: '#F44336'
-      };
-    } else {
-      // No change
-      rankTrend = {
-        arrow: '—',
-        change: '0.0',
-        color: '#999'
-      };
-    }
+// Calculate rank trend (lower rank is better, so improvement is negative change)
+let rankTrend = { arrow: '', change: '', color: '#999' };
+if (totalPrevRankCount > 0) {
+  const rankChange = currentAvgRating - prevAvgRating;
+  if (rankChange < 0) {
+    // Rank improved (decreased)
+    rankTrend = {
+      arrow: '▲',
+      change: Math.abs(rankChange).toFixed(1),
+      color: '#4CAF50' // Green for improvement
+    };
+  } else if (rankChange > 0) {
+    // Rank worsened (increased)
+    rankTrend = {
+      arrow: '▼',
+      change: rankChange.toFixed(1),
+      color: '#F44336' // Red for decline
+    };
+  } else {
+    // No change
+    rankTrend = {
+      arrow: '—',
+      change: '0.0',
+      color: '#999' // Gray for no change
+    };
   }
+}
   
-  // Calculate visibility trend (higher visibility is better)
-  let visibilityTrend = { arrow: '', change: '', color: '#444' };
-  if (totalPrevVisibilityCount > 0) {
-    const visibilityChange = currentAvgVisibility - prevAvgVisibility;
-    if (visibilityChange > 0) {
-      // Visibility improved (increased)
-      visibilityTrend = {
-        arrow: '▲',
-        change: visibilityChange.toFixed(1) + '%',
-        color: '#4CAF50'
-      };
-    } else if (visibilityChange < 0) {
-      // Visibility decreased
-      visibilityTrend = {
-        arrow: '▼',
-        change: Math.abs(visibilityChange).toFixed(1) + '%',
-        color: '#F44336'
-      };
-    } else {
-      // No change
-      visibilityTrend = {
-        arrow: '—',
-        change: '0.0%',
-        color: '#999'
-      };
-    }
+// Calculate visibility trend (higher visibility is better)
+let visibilityTrend = { arrow: '', change: '', color: '#999' };
+if (totalPrevVisibilityCount > 0) {
+  const visibilityChange = currentAvgVisibility - prevAvgVisibility;
+  if (visibilityChange > 0) {
+    // Visibility improved (increased)
+    visibilityTrend = {
+      arrow: '▲',
+      change: visibilityChange.toFixed(1) + '%',
+      color: '#4CAF50' // Green for improvement
+    };
+  } else if (visibilityChange < 0) {
+    // Visibility decreased
+    visibilityTrend = {
+      arrow: '▼',
+      change: Math.abs(visibilityChange).toFixed(1) + '%',
+      color: '#F44336' // Red for decline
+    };
+  } else {
+    // No change
+    visibilityTrend = {
+      arrow: '—',
+      change: '0.0%',
+      color: '#999' // Gray for no change
+    };
   }
+}
   
   // Count locations
   let activeLocations = 0;
@@ -2242,20 +2242,22 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
     const title = product.title || 'No title';
     
     smallCard.innerHTML = `
-      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-        <div class="small-ad-pos-value">${metrics.avgRating}</div>
-        <div class="small-ad-pos-trend" style="color: ${metrics.rankTrend.color};">
-          ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
-        </div>
-      </div>
+<div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+  <div class="small-ad-pos-value">${metrics.avgRating}</div>
+  <div class="small-ad-pos-trend-container">
+    <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
+      ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
+    </span>
+  </div>
+</div>
       <div class="small-ad-vis-status">
         <div class="vis-status-left">
-          <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-            <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-            <div class="vis-trend" style="color: ${metrics.visibilityTrend.color};">
-              ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
-            </div>
-          </div>
+<div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+  <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+  <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
+    ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+  </span>
+</div>
         </div>
         <div class="vis-status-right">
           <div class="active-locations-count">${metrics.activeLocations}</div>
@@ -4245,8 +4247,48 @@ viewMapExplorerBtn.addEventListener("click", function() {
   margin-bottom: 2px; /* Space for trend below */
 }
 
-/* Ensure small-ad-pos-badge has enough height for trend */
+/* Position trend styling - small pill container */
+.small-ad-pos-trend-container {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.small-ad-pos-trend {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  color: white !important;
+  background-color: #4CAF50; /* This will be overridden by inline style */
+  padding: 2px 4px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  text-shadow: none;
+}
+
+/* Visibility trend styling - small pill under percentage */
+.vis-trend {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  color: white !important;
+  background-color: #4CAF50; /* This will be overridden by inline style */
+  padding: 2px 4px;
+  border-radius: 8px;
+  z-index: 4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Adjust containers to accommodate trends */
 .small-ad-pos-badge {
+  position: relative; /* Add this for absolute positioning of trend */
   width: 50px;
   min-width: 50px;
   height: 50px;
@@ -4257,35 +4299,35 @@ viewMapExplorerBtn.addEventListener("click", function() {
   border-radius: 4px;
   margin-right: 8px;
   font-weight: bold;
-  padding: 2px; /* Add some padding */
-  box-sizing: border-box;
+  margin-bottom: 12px; /* Add space for the trend pill */
+}
+
+.vis-water-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: visible; /* Allow trend to show outside */
+}
+
+/* Adjust vis-percentage positioning */
+.vis-percentage {
+  position: relative;
+  z-index: 3;
+  font-size: 11px;
+  font-weight: bold;
+  color: #1565c0;
+  text-align: center;
+  margin-top: -8px; /* Move up slightly to make room for trend */
 }
 
 .small-ad-pos-value {
-  font-size: 16px; /* Slightly smaller to make room for trend */
+  font-size: 18px;
   line-height: 1;
   color: white;
-  margin-bottom: 1px;
-}
-
-/* Ensure trend colors are visible against different badge backgrounds */
-.small-ad-pos-trend {
-  color: rgba(255, 255, 255, 0.95) !important;
-  text-shadow: 
-    1px 1px 2px rgba(0,0,0,0.8),
-    -1px -1px 2px rgba(0,0,0,0.8),
-    1px -1px 2px rgba(0,0,0,0.8),
-    -1px 1px 2px rgba(0,0,0,0.8);
-}
-
-/* Visibility trend styling for better visibility */
-.vis-trend {
-  color: #1565c0 !important;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 1px 3px;
-  border-radius: 3px;
-  font-size: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
     `;
     document.head.appendChild(style);
