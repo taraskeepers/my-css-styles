@@ -1,3 +1,8 @@
+// Global settings for product metrics calculation
+window.productMetricsSettings = {
+  useLatestDataDate: false, // true = use latest data date, false = use today's date
+  // Future settings can be added here
+};
 // Main Buckets Switcher functionality for Google Ads
 
 // Import needed functions from global scope
