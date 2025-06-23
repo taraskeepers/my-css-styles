@@ -204,14 +204,35 @@ async function loadBucketedProducts() {
     const bucketedProducts = await getBucketedProductsData(bucketType);
     console.log('[loadBucketedProducts] Bucketed products:', bucketedProducts);
     
-    // Check if we have any products
-    const totalProducts = Object.values(bucketedProducts).reduce((sum, arr) => sum + arr.length, 0);
-    console.log('[loadBucketedProducts] Total products found:', totalProducts);
-    
-    if (totalProducts === 0) {
-      container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No products found with bucket assignments. Please ensure bucket data is loaded.</div>';
-      return;
-    }
+// Check if we have any products
+const totalProducts = Object.values(bucketedProducts).reduce((sum, arr) => sum + arr.length, 0);
+console.log('[loadBucketedProducts] Total products found:', totalProducts);
+
+if (totalProducts === 0) {
+  // Get all company products to show them even without bucket assignments
+  const allCompanyProducts = [];
+  if (window.allRows && Array.isArray(window.allRows)) {
+    window.allRows.forEach(product => {
+      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+        allCompanyProducts.push(product);
+      }
+    });
+  }
+  
+  if (allCompanyProducts.length > 0) {
+    // Show all products in an "Unassigned" category
+    const unassignedProducts = {
+      'Products Without Bucket Assignment': allCompanyProducts.map(product => ({
+        product: product,
+        metrics: calculateGoogleAdsProductMetrics(product)
+      }))
+    };
+    renderBucketedProducts(container, unassignedProducts, bucketType);
+  } else {
+    container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No products found. Please check if products are loaded in the left navigation.</div>';
+  }
+  return;
+}
     
     // Render the products
     renderBucketedProducts(container, bucketedProducts, bucketType);
@@ -227,25 +248,32 @@ async function getBucketedProductsData(bucketType) {
   const bucketedProducts = {};
   const productMap = new Map();
   
-  // First, let's check if we have the bucket data in window.allRows
+  // First, get all company products (same as left navigation)
+  const allCompanyProducts = [];
+  
   if (window.allRows && Array.isArray(window.allRows)) {
-    console.log('[getBucketedProductsData] window.allRows length:', window.allRows.length);
-    
-    // Check the first few records to see their structure
-    if (window.allRows.length > 0) {
-      console.log('[getBucketedProductsData] Sample record:', window.allRows[0]);
-      console.log('[getBucketedProductsData] Sample record keys:', Object.keys(window.allRows[0]));
-    }
+    window.allRows.forEach(product => {
+      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+        const productKey = product.title || '';
+        
+        if (!productMap.has(productKey)) {
+          productMap.set(productKey, product);
+          allCompanyProducts.push(product);
+        }
+      }
+    });
   }
   
-  // Try to load bucket data from IndexedDB instead
+  console.log('[getBucketedProductsData] Found company products:', allCompanyProducts.length);
+  
+  // Now load bucket assignments from IndexedDB
   try {
     const accountPrefix = window.currentAccount || 'acc1';
     const days = window.selectedBucketDateRangeDays || 30;
     const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
     const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
     
-    console.log('[getBucketedProductsData] Loading from IndexedDB:', tableName);
+    console.log('[getBucketedProductsData] Loading bucket data from:', tableName);
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -265,44 +293,62 @@ async function getBucketedProductsData(bucketType) {
     db.close();
     
     if (result && result.data) {
-      console.log('[getBucketedProductsData] Found bucket data:', result.data.length, 'records');
+      console.log('[getBucketedProductsData] Bucket data records:', result.data.length);
       
-      // Process the bucket data
+      // Create a map of product titles to bucket values
+      const productBucketMap = new Map();
+      
       result.data.forEach(record => {
-        // Only process records for the company
-        if (record['Campaign Name'] === 'All' && record['Channel Type'] === 'All' && record['Device'] === 'All') {
+        if (record['Campaign Name'] === 'All' && 
+            record['Channel Type'] === 'All' && 
+            record['Device'] === 'All') {
           const productTitle = record['Product Title'];
           const bucketValue = getBucketValue(record[bucketType]);
           
-          console.log('[getBucketedProductsData] Product:', productTitle, 'Bucket:', bucketValue);
-          
           if (bucketValue && bucketValue !== 'Insufficient Data') {
-            if (!bucketedProducts[bucketValue]) {
-              bucketedProducts[bucketValue] = [];
-            }
-            
-            // Find the product in allRows to get full details
-            const product = window.allRows.find(p => 
-              p.title === productTitle && 
-              p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-            );
-            
-            if (product) {
-              const metrics = calculateGoogleAdsProductMetrics(product);
-              bucketedProducts[bucketValue].push({
-                product: product,
-                metrics: metrics
-              });
-            }
+            productBucketMap.set(productTitle, bucketValue);
           }
+        }
+      });
+      
+      console.log('[getBucketedProductsData] Products with bucket assignments:', productBucketMap.size);
+      
+      // Now assign products to buckets
+      allCompanyProducts.forEach(product => {
+        const productTitle = product.title;
+        const bucketValue = productBucketMap.get(productTitle);
+        
+        if (bucketValue) {
+          if (!bucketedProducts[bucketValue]) {
+            bucketedProducts[bucketValue] = [];
+          }
+          
+          const metrics = calculateGoogleAdsProductMetrics(product);
+          bucketedProducts[bucketValue].push({
+            product: product,
+            metrics: metrics
+          });
+          
+          console.log('[getBucketedProductsData] Assigned product to bucket:', productTitle, '->', bucketValue);
+        } else {
+          // Product doesn't have a bucket assignment yet
+          console.log('[getBucketedProductsData] No bucket for product:', productTitle);
         }
       });
     }
   } catch (error) {
-    console.error('[getBucketedProductsData] Error loading from IndexedDB:', error);
+    console.error('[getBucketedProductsData] Error loading bucket data:', error);
+    
+    // Fallback: Show all products in an "Unassigned" bucket
+    if (allCompanyProducts.length > 0) {
+      bucketedProducts['Unassigned'] = allCompanyProducts.map(product => ({
+        product: product,
+        metrics: calculateGoogleAdsProductMetrics(product)
+      }));
+    }
   }
   
-  console.log('[getBucketedProductsData] Final bucketed products:', bucketedProducts);
+  console.log('[getBucketedProductsData] Final bucketed products:', Object.keys(bucketedProducts).map(k => `${k}: ${bucketedProducts[k].length} products`));
   
   // Sort products within each bucket by average rating
   Object.keys(bucketedProducts).forEach(bucket => {
