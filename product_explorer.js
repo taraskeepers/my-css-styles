@@ -1,5 +1,10 @@
 window.pendingExplorerCharts = [];
 window.explorerApexCharts = [];
+// Global settings for product metrics calculation
+window.productMetricsSettings = {
+  useLatestDataDate: true, // true = use latest data date, false = use today's date
+  // Future settings can be added here
+};
 
 // Helper functions defined at the top level
 function getProductRecords(product) {
@@ -1945,6 +1950,9 @@ function updateChartLineVisibilityExplorer(chartContainer, selectedIndex) {
 
 // Enhanced calculateProductMetrics function with trend calculation
 function calculateProductMetrics(product) {
+  // Configuration: Set to true to use today's date, false to use latest data date
+  const useLatestDataDate = window.productMetricsSettings?.useLatestDataDate ?? true;
+  
   if (!window.allRows || !Array.isArray(window.allRows)) {
     return { 
       avgRating: 40, 
@@ -2038,14 +2046,23 @@ function calculateProductMetrics(product) {
         }
       });
       
-      if (latestDate) {
-        // Current period: last 7 days
-        const currentEndDate = latestDate.clone();
-        const currentStartDate = currentEndDate.clone().subtract(6, 'days');
-        
-        // Previous period: 7 days before current period
-        const prevEndDate = currentStartDate.clone().subtract(1, 'days');
-        const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+if (latestDate) {
+  // Determine end date based on configuration
+  let currentEndDate;
+  if (useLatestDataDate) {
+    // Method 1: Use latest available data date (current default)
+    currentEndDate = latestDate.clone();
+  } else {
+    // Method 2: Use today's date
+    currentEndDate = moment().startOf('day');
+  }
+  
+  // Current period: last 7 days from determined end date
+  const currentStartDate = currentEndDate.clone().subtract(6, 'days');
+  
+  // Previous period: 7 days before current period
+  const prevEndDate = currentStartDate.clone().subtract(1, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(6, 'days');
         
         // Update combo active status
         const today = moment().startOf('day');
@@ -2244,19 +2261,23 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
     smallCard.innerHTML = `
 <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
   <div class="small-ad-pos-value">${metrics.avgRating}</div>
-  <div class="small-ad-pos-trend-container">
-    <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
-      ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
-    </span>
-  </div>
+  ${metrics.rankTrend.arrow ? `
+    <div class="small-ad-pos-trend-container">
+      <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
+        ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
+      </span>
+    </div>
+  ` : ''}
 </div>
       <div class="small-ad-vis-status">
         <div class="vis-status-left">
 <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
   <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-  <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
-    ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
-  </span>
+  ${metrics.visibilityTrend.arrow ? `
+    <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
+      ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+    </span>
+  ` : ''}
 </div>
         </div>
         <div class="vis-status-right">
@@ -3570,19 +3591,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
       .nav-product-item .small-ad-pos-badge {
         margin-left: auto;
       }
-      
-      .small-ad-pos-badge {
-        width: 50px;
-        min-width: 50px;
-        height: 50px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        margin-right: 8px;
-        font-weight: bold;
-      }
 
       .small-ad-pos-value {
         font-size: 18px;
@@ -4218,18 +4226,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.vis-trend {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  font-weight: 700;
-  z-index: 4;
-  text-shadow: 0 1px 2px rgba(255,255,255,0.8);
-  white-space: nowrap;
-}
-
 /* Adjust vis-water-container to accommodate trend */
 .vis-water-container {
   position: relative;
@@ -4271,24 +4267,35 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 /* Visibility trend styling - small pill under percentage */
 .vis-trend {
-  position: absolute;
-  top: 60%;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   font-size: 8px;
   font-weight: 700;
   color: white !important;
-  background-color: #4CAF50; /* This will be overridden by inline style */
+  background-color: #4CAF50;
   padding: 2px 4px;
   border-radius: 8px;
   z-index: 4;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  margin-top: 2px; /* Small gap between percentage and trend */
+}
+
+.vis-percentage {
+  position: relative;
+  z-index: 3;
+  font-size: 11px;
+  font-weight: bold;
+  color: #1565c0;
+  text-align: center;
 }
 
 /* Adjust containers to accommodate trends */
+.small-ad-pos-trend-container {
+  margin-top: 2px;
+}
+
 .small-ad-pos-badge {
-  position: relative; /* Add this for absolute positioning of trend */
+  position: relative;
   width: 50px;
   min-width: 50px;
   height: 50px;
@@ -4299,7 +4306,8 @@ viewMapExplorerBtn.addEventListener("click", function() {
   border-radius: 4px;
   margin-right: 8px;
   font-weight: bold;
-  margin-bottom: 12px; /* Add space for the trend pill */
+  padding: 4px 2px; /* Add padding for internal spacing */
+  box-sizing: border-box;
 }
 
 .vis-water-container {
