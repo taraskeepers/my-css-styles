@@ -7730,6 +7730,44 @@ if (window.googleAdsApexCharts) {
   z-index: 1;
   height: var(--fill-height, 0%);
 }
+/* Position trend styling */
+.small-ad-pos-trend-container {
+  margin-top: 2px;
+  display: flex;
+  justify-content: center;
+}
+.small-ad-pos-trend {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  color: white !important;
+  padding: 2px 4px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Visibility trend styling */
+.vis-trend {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  color: white !important;
+  padding: 2px 4px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* Adjust water container for trends */
+.vis-water-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
     `;
     document.head.appendChild(style);
   }
