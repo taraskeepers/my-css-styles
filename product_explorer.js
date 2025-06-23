@@ -2,7 +2,7 @@ window.pendingExplorerCharts = [];
 window.explorerApexCharts = [];
 // Global settings for product metrics calculation
 window.productMetricsSettings = {
-  useLatestDataDate: true, // true = use latest data date, false = use today's date
+  useLatestDataDate: false, // true = use latest data date, false = use today's date
   // Future settings can be added here
 };
 
@@ -4215,16 +4215,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   transform: none;
   box-shadow: none;
 }
-/* Additional CSS styles for trend indicators */
-
-.small-ad-pos-trend {
-  font-size: 10px;
-  line-height: 1;
-  margin-top: 2px;
-  color: white;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
 
 /* Adjust vis-water-container to accommodate trend */
 .vis-water-container {
@@ -4245,11 +4235,9 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 /* Position trend styling - small pill container */
 .small-ad-pos-trend-container {
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
+  margin-top: 2px;
+  display: flex;
+  justify-content: center;
 }
 
 .small-ad-pos-trend {
@@ -4257,7 +4245,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   font-size: 8px;
   font-weight: 700;
   color: white !important;
-  background-color: #4CAF50; /* This will be overridden by inline style */
+  background-color: #4CAF50;
   padding: 2px 4px;
   border-radius: 8px;
   white-space: nowrap;
@@ -4267,17 +4255,17 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
 /* Visibility trend styling - small pill under percentage */
 .vis-trend {
-  position: relative;
+  display: block;
   font-size: 8px;
   font-weight: 700;
   color: white !important;
   background-color: #4CAF50;
   padding: 2px 4px;
   border-radius: 8px;
-  z-index: 4;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  margin-top: 2px; /* Small gap between percentage and trend */
+  margin-top: 2px;
+  text-align: center;
 }
 
 .vis-percentage {
@@ -4295,7 +4283,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
 }
 
 .small-ad-pos-badge {
-  position: relative;
   width: 50px;
   min-width: 50px;
   height: 50px;
@@ -4306,7 +4293,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   border-radius: 4px;
   margin-right: 8px;
   font-weight: bold;
-  padding: 4px 2px; /* Add padding for internal spacing */
+  padding: 4px 2px;
   box-sizing: border-box;
 }
 
@@ -4318,7 +4305,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: visible; /* Allow trend to show outside */
+  overflow: hidden;
 }
 
 /* Adjust vis-percentage positioning */
