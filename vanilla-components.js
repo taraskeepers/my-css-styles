@@ -436,41 +436,45 @@ function PLAChart(props) {
   const canvas = document.createElement('canvas');
   container.appendChild(canvas);
   
-  setTimeout(() => {
-    if (!rowData || !rowData.historical_data) return;
-    
-    // Prepare data
-    const labels = [];
-    const positionData = [];
-    const visibilityData = [];
-    
-    let currentDate = moment(start);
-    const endDate = moment(end);
-    const histMap = {};
-    
-    // Create map of historical data
-    rowData.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        histMap[item.date.value] = item;
-      }
-    });
-    
-    // Generate data points
-    while (currentDate.isSameOrBefore(endDate)) {
-      const dateStr = currentDate.format('YYYY-MM-DD');
-      labels.push(currentDate.format('MM/DD'));
-      
-      const histItem = histMap[dateStr];
-      if (histItem) {
-        positionData.push(histItem.avg_position ? parseFloat(histItem.avg_position) : null);
-        visibilityData.push(histItem.visibility ? parseFloat(histItem.visibility) * 100 : null);
-      } else {
-        positionData.push(null);
-        visibilityData.push(null);
-      }
-      
-      currentDate.add(1, 'day');
+setTimeout(() => {
+  if (!rowData || !rowData.historical_data) return;
+  
+  // Prepare data
+  const labels = [];
+  const positionData = [];
+  const visibilityData = [];
+  
+  // Use today as end date and 2 weeks ago as start date
+  const today = moment();
+  const twoWeeksAgo = today.clone().subtract(13, 'days'); // 14 days including today
+  
+  let currentDate = twoWeeksAgo.clone();
+  const endDate = today;
+  const histMap = {};
+  
+  // Create map of historical data
+  rowData.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      histMap[item.date.value] = item;
     }
+  });
+  
+  // Generate data points for the last 2 weeks
+  while (currentDate.isSameOrBefore(endDate)) {
+    const dateStr = currentDate.format('YYYY-MM-DD');
+    labels.push(currentDate.format('MM/DD'));
+    
+    const histItem = histMap[dateStr];
+    if (histItem) {
+      positionData.push(histItem.avg_position ? parseFloat(histItem.avg_position) : null);
+      visibilityData.push(histItem.visibility ? parseFloat(histItem.visibility) * 100 : null);
+    } else {
+      positionData.push(null);
+      visibilityData.push(null);
+    }
+    
+    currentDate.add(1, 'day');
+  }
     
     // Create Chart.js chart
     new Chart(canvas, {
