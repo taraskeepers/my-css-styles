@@ -4,6 +4,210 @@
  * No React, No Recharts - pure JavaScript with Chart.js
  **********************************************/
 
+// Inject styles for vanilla components
+(function() {
+  if (document.getElementById('vanilla-components-styles')) return;
+  
+  const style = document.createElement('style');
+  style.id = 'vanilla-components-styles';
+  style.textContent = `
+    /* Details Panel Styling */
+    .pla-details-panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 20px;
+    }
+
+    .pla-details-topbar {
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    .pla-details-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .tab-buttons {
+      display: inline-flex;
+      gap: 10px;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .tab-btn.active {
+      background: #007aff;
+      color: white;
+      border-color: #007aff;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: #f5f5f5;
+    }
+
+    .tab-content {
+      display: flex;
+      gap: 20px;
+    }
+
+    .pla-details-column {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .pla-details-left {
+      flex: 0 0 600px;
+    }
+
+    .pla-details-middle {
+      flex: 0 0 300px;
+    }
+
+    .pla-details-main-metrics {
+      min-width: 250px;
+    }
+
+    .pla-details-settings {
+      min-width: 200px;
+    }
+
+    .metric-row {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .metric-title {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .metric-value span {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .volatility-status {
+      font-size: 14px;
+      margin-top: 5px;
+      font-weight: 500;
+    }
+
+    /* Toggle Switch Styles */
+    .toggle-switch-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      justify-content: space-between;
+      padding: 5px 0;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      color: #555;
+      margin-right: 10px;
+      flex: 1;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    input:checked + .slider {
+      background-color: #007aff;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Close button styling */
+    .pla-details-close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+
+    .pla-details-close-btn:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* Chart container styling */
+    .pla-details-left canvas,
+    .pla-details-middle canvas {
+      background: white;
+      border-radius: 4px;
+      padding: 10px;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 // Make sure Chart.js is globally available
 if (window.Chart && window.ChartDataLabels) {
   Chart.register(window.ChartDataLabels);
@@ -77,49 +281,74 @@ function DetailsPanel(props) {
   function renderTab(tabNum) {
     tabsContainer.innerHTML = '';
     
-    if (tabNum === 1) {
-      // Position & Visibility Trends tab
-      tabsContainer.innerHTML = `
-        <div class="tab-content" style="display: flex; gap: 12px;">
-          <div class="pla-details-column pla-details-left">
-            <div id="pla-chart-${Date.now()}" style="width: 600px; height: 300px;"></div>
-          </div>
-          <div class="pla-details-column pla-details-middle">
-            <div id="apple-chart-${Date.now()}" style="width: 100%; height: 300px;"></div>
-          </div>
-          <div class="pla-details-column pla-details-main-metrics">
-            <div id="main-metrics-${Date.now()}"></div>
-          </div>
-          <div class="pla-details-column pla-details-settings">
-            <h3>Settings</h3>
-            <div id="toggles-${Date.now()}"></div>
-          </div>
-        </div>
-      `;
+if (tabNum === 1) {
+  // Position & Visibility Trends tab
+  tabsContainer.innerHTML = `
+    <div class="tab-content" style="display: flex; gap: 12px;">
+      <div class="pla-details-column pla-details-left">
+        <div id="pla-chart-${Date.now()}" style="width: 600px; height: 300px;"></div>
+      </div>
+      <div class="pla-details-column pla-details-middle">
+        <div id="apple-chart-${Date.now()}" style="width: 100%; height: 300px;"></div>
+      </div>
+      <div class="pla-details-column pla-details-main-metrics">
+        <div id="main-metrics-${Date.now()}"></div>
+      </div>
+      <div class="pla-details-column pla-details-settings">
+        <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Settings</h3>
+        <div id="toggles-${Date.now()}"></div>
+      </div>
+    </div>
+  `;
+  
+  // Render charts and components
+  setTimeout(() => {
+    const plaChartEl = tabsContainer.querySelector('[id^="pla-chart-"]');
+    const appleChartEl = tabsContainer.querySelector('[id^="apple-chart-"]');
+    const metricsEl = tabsContainer.querySelector('[id^="main-metrics-"]');
+    const togglesEl = tabsContainer.querySelector('[id^="toggles-"]');
+    
+    if (plaChartEl) {
+      const plaChart = PLAChart({ rowData, start, end });
+      plaChartEl.appendChild(plaChart);
+    }
+    
+    if (appleChartEl) {
+      const appleChart = AppleBarChart({ rowData, start, end });
+      appleChartEl.appendChild(appleChart);
+    }
+    
+    if (metricsEl) {
+      const metrics = MainMetrics({ rowData, start, end });
+      metricsEl.appendChild(metrics);
+    }
+    
+    if (togglesEl) {
+      // Create toggles
+      const toggleConfigs = [
+        { id: 'toggle-pos3', label: '3d pos trend', checked: false },
+        { id: 'toggle-pos7', label: '7d pos trend', checked: false },
+        { id: 'toggle-pos30', label: '30d pos trend', checked: false },
+        { id: 'toggle-vis3', label: '3d visib trend', checked: false },
+        { id: 'toggle-vis7', label: '7d visib trend', checked: false },
+        { id: 'toggle-vis30', label: '30d visib trend', checked: false }
+      ];
       
-      // Render charts
-      setTimeout(() => {
-        const plaChartEl = tabsContainer.querySelector('[id^="pla-chart-"]');
-        const appleChartEl = tabsContainer.querySelector('[id^="apple-chart-"]');
-        const metricsEl = tabsContainer.querySelector('[id^="main-metrics-"]');
-        
-        if (plaChartEl) {
-          const plaChart = PLAChart({ rowData, start, end });
-          plaChartEl.appendChild(plaChart);
-        }
-        
-        if (appleChartEl) {
-          const appleChart = AppleBarChart({ rowData, start, end });
-          appleChartEl.appendChild(appleChart);
-        }
-        
-        if (metricsEl) {
-          const metrics = MainMetrics({ rowData, start, end });
-          metricsEl.appendChild(metrics);
-        }
-      }, 0);
-      
-    } else if (tabNum === 2) {
+      toggleConfigs.forEach(config => {
+        const toggle = ToggleSwitch({
+          id: config.id,
+          label: config.label,
+          checked: config.checked,
+          onChange: (e) => {
+            console.log(`Toggle ${config.id} changed to:`, e.target.checked);
+            // TODO: Implement toggle functionality
+          }
+        });
+        togglesEl.appendChild(toggle);
+      });
+    }
+  }, 0);
+} else if (tabNum === 2) {
       // Prices & Reviews tab
       tabsContainer.innerHTML = `
         <div class="tab-content" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -324,89 +553,130 @@ function AppleBarChart(props) {
   setTimeout(() => {
     if (!rowData || !rowData.historical_data) return;
     
-    // Prepare visibility breakdown data
-    const labels = [];
-    const top3Data = [];
-    const top8Data = [];
-    const top14Data = [];
-    const below14Data = [];
+    // Calculate date ranges
+    const dayCount = end.diff(start, "days") + 1;
+    const prevEnd = start.clone().subtract(1, "days");
+    const prevStart = prevEnd.clone().subtract(dayCount - 1, "days");
     
-    let currentDate = moment(start);
-    const endDate = moment(end);
-    const histMap = {};
+    const allData = rowData.historical_data || [];
     
-    rowData.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        histMap[item.date.value] = item;
-      }
+    // Filter current window
+    const currentFiltered = allData.filter(item => {
+      if (!item.date || !item.date.value) return false;
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      return d.isBetween(start, end, "day", "[]");
     });
     
-    while (currentDate.isSameOrBefore(endDate)) {
-      const dateStr = currentDate.format('YYYY-MM-DD');
-      labels.push(currentDate.format('MM/DD'));
-      
-      const histItem = histMap[dateStr];
-      if (histItem) {
-        const top3 = parseFloat(histItem.top3_visibility || 0) * 100;
-        const top8 = parseFloat(histItem.top8_visibility || 0) * 100;
-        const top14 = parseFloat(histItem.top14_visibility || 0) * 100;
-        const top40 = parseFloat(histItem.top40_visibility || 0) * 100;
-        
-        top3Data.push(top3);
-        top8Data.push(Math.max(0, top8 - top3));
-        top14Data.push(Math.max(0, top14 - top8));
-        below14Data.push(Math.max(0, top40 - top14));
-      } else {
-        top3Data.push(0);
-        top8Data.push(0);
-        top14Data.push(0);
-        below14Data.push(0);
-      }
-      
-      currentDate.add(1, 'day');
+    // Filter previous window
+    const prevFiltered = allData.filter(item => {
+      if (!item.date || !item.date.value) return false;
+      const d = moment(item.date.value, "YYYY-MM-DD");
+      return d.isBetween(prevStart, prevEnd, "day", "[]");
+    });
+    
+    // Helper function to calculate average
+    function avg(arr, field, multiplier = 1) {
+      if (!arr.length) return 0;
+      let sum = 0, c = 0;
+      arr.forEach(x => {
+        if (x[field] != null) {
+          sum += parseFloat(x[field]) * multiplier;
+          c++;
+        }
+      });
+      return c > 0 ? sum / c : 0;
     }
     
+    // Calculate averages
+    const currTop3 = avg(currentFiltered, "top3_visibility", 100);
+    const currTop8 = avg(currentFiltered, "top8_visibility", 100);
+    const currTop14 = avg(currentFiltered, "top14_visibility", 100);
+    const currTop40 = avg(currentFiltered, "top40_visibility", 100) || avg(currentFiltered, "market_share", 100);
+    
+    const prevTop3 = avg(prevFiltered, "top3_visibility", 100);
+    const prevTop8 = avg(prevFiltered, "top8_visibility", 100);
+    const prevTop14 = avg(prevFiltered, "top14_visibility", 100);
+    const prevTop40 = avg(prevFiltered, "top40_visibility", 100) || avg(prevFiltered, "market_share", 100);
+    
+    // Prepare data
+    const chartData = [
+      { label: "Top3", current: currTop3, previous: prevTop3 },
+      { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
+      { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
+      { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
+    ];
+    
+    // Create horizontal bar chart
     new Chart(canvas, {
       type: 'bar',
       data: {
-        labels: labels,
+        labels: chartData.map(d => d.label),
         datasets: [
           {
-            label: 'Top 3',
-            data: top3Data,
-            backgroundColor: '#4cd964'
+            label: 'Current',
+            data: chartData.map(d => d.current),
+            backgroundColor: '#007aff',
+            borderRadius: 4
           },
           {
-            label: 'Top 4-8',
-            data: top8Data,
-            backgroundColor: '#007aff'
-          },
-          {
-            label: 'Top 9-14',
-            data: top14Data,
-            backgroundColor: '#ff9500'
-          },
-          {
-            label: 'Below 14',
-            data: below14Data,
-            backgroundColor: '#ff3b30'
+            label: 'Previous',
+            type: 'line',
+            data: chartData.map(d => d.previous),
+            borderColor: 'rgba(255,0,0,1)',
+            backgroundColor: 'rgba(255,0,0,0.2)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2
           }
         ]
       },
       options: {
+        indexAxis: 'y', // This makes it horizontal
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: true }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const val = ctx.parsed.x;
+                return `${ctx.dataset.label}: ${val.toFixed(2)}%`;
+              }
+            }
+          },
+          datalabels: {
+            display: ctx => ctx.datasetIndex === 0,
+            formatter: (value, context) => {
+              const row = chartData[context.dataIndex];
+              const mainLabel = `${row.current.toFixed(1)}%`;
+              const diff = row.current - row.previous;
+              const absDiff = Math.abs(diff).toFixed(1);
+              const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '±';
+              return [mainLabel, `${arrow}${absDiff}%`];
+            },
+            color: ctx => {
+              const row = chartData[ctx.dataIndex];
+              const diff = row.current - row.previous;
+              if (diff > 0) return 'green';
+              if (diff < 0) return 'red';
+              return '#444';
+            },
+            anchor: 'end',
+            align: 'end',
+            offset: 8,
+            font: { size: 10 }
+          }
         },
         scales: {
-          x: {
-            stacked: true
+          x: { 
+            display: false, 
+            min: 0, 
+            max: Math.max(...chartData.map(d => Math.max(d.current, d.previous))) + 10
           },
-          y: {
-            stacked: true,
-            max: 100,
-            title: { display: true, text: 'Visibility %' }
+          y: { 
+            display: true, 
+            grid: { display: false }, 
+            ticks: { font: { size: 14 } }
           }
         }
       }
