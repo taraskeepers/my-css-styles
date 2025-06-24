@@ -620,33 +620,33 @@ assignSellersToProcessedData(bucketData) {
     const revenue = record['ConvValue'] || 0;
     const roas = record['ROAS'] || 0;
     
-    // Only assign categories to All+All records
-    if (campaignName === 'All' && device === 'All') {
-      // Skip products with zero revenue
-      if (revenue <= 0) {
-        record['SELLERS'] = 'Standard';
-        return;
-      }
-      
-      // Revenue Stars: Top 10% revenue + ROAS > (account ROAS + 1.0)
-      if (revenue >= top10Threshold && roas > (accountROAS + 1.0)) {
-        record['SELLERS'] = 'Revenue Stars';
-      }
-      // Best Sellers: Top 20% revenue + ROAS > account ROAS
-      else if (revenue >= top20Threshold && roas > accountROAS) {
-        record['SELLERS'] = 'Best Sellers';
-      }
-      // Volume Leaders: Top 20% revenue regardless of ROAS
-      else if (revenue >= top20Threshold) {
-        record['SELLERS'] = 'Volume Leaders';
-      }
-      else {
-        record['SELLERS'] = 'Standard';
-      }
-    } else {
-      // All other records get N/A
-      record['SELLERS'] = 'N/A';
-    }
+// Assign categories to All+All records and All+Device records
+if (campaignName === 'All') {
+  // Skip products with zero revenue
+  if (revenue <= 0) {
+    record['SELLERS'] = 'Standard';
+    return;
+  }
+  
+  // Revenue Stars: Top 10% revenue + ROAS > (account ROAS + 1.0)
+  if (revenue >= top10Threshold && roas > (accountROAS + 1.0)) {
+    record['SELLERS'] = 'Revenue Stars';
+  }
+  // Best Sellers: Top 20% revenue + ROAS > account ROAS
+  else if (revenue >= top20Threshold && roas > accountROAS) {
+    record['SELLERS'] = 'Best Sellers';
+  }
+  // Volume Leaders: Top 20% revenue regardless of ROAS
+  else if (revenue >= top20Threshold) {
+    record['SELLERS'] = 'Volume Leaders';
+  }
+  else {
+    record['SELLERS'] = 'Standard';
+  }
+} else {
+  // All other records (specific campaign combinations) get N/A
+  record['SELLERS'] = 'N/A';
+}
   });
 },
 
