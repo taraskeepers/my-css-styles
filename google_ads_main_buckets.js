@@ -786,11 +786,12 @@ setTimeout(() => {
     });
   }
   
-  const deviceSelect = document.getElementById('productDeviceSelect');
+const deviceSelect = document.getElementById('productDeviceSelect');
   if (deviceSelect) {
     deviceSelect.addEventListener('change', (e) => {
       window.selectedDeviceFilter = e.target.value;
-      loadBucketedProducts(); // Reload with new device filter
+      renderBucketFunnels(); // Update the funnel charts
+      loadBucketedProducts(); // Reload products with new device filter
     });
   }
 }, 100);
