@@ -729,9 +729,9 @@ function createBucketedProductItem(product, metrics) {
     <!-- Position Badge with Trend -->
     <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1; color: white; font-weight: 700;">${metrics.avgRating}</div>
-${metrics.rankTrend && metrics.rankTrend.arrow ? `
+${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.change) ? `
         <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
-          <span style="background-color: ${metrics.rankTrend.color}; font-size: 9px; padding: 2px 5px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
+          <span style="background-color: ${metrics.rankTrend.color}; font-size: 9px; padding: 2px 6px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600; white-space: nowrap;">
             ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
           </span>
         </div>
@@ -743,9 +743,9 @@ ${metrics.rankTrend && metrics.rankTrend.arrow ? `
       <div class="vis-status-left">
         <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%; position: relative;">
           <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-          ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
+          ${metrics.visibilityTrend && metrics.visibilityTrend.arrow && !isNaN(metrics.visibilityTrend.change) ? `
             <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
-              <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 9px; padding: 2px 5px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
+              <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 9px; padding: 2px 6px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600; white-space: nowrap;">
                 ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change).toFixed(0)}%
               </span>
             </div>
@@ -798,11 +798,15 @@ ${metrics.rankTrend && metrics.rankTrend.arrow ? `
     this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
     this.style.transform = 'translateY(0)';
   });
+
+// Store product reference on the element
+  productDiv.productData = product;
   
-// Remove the old click handler and add new expansion functionality
+  // Add click handler (will use stored data later)
   productDiv.addEventListener('click', function(e) {
     e.stopPropagation();
-    toggleDetailedProductView(productDiv, product, bucketData);
+    // Use stored data from the element
+    toggleDetailedProductView(this, this.productData, this.bucketData);
   });
   
   return productDiv;
@@ -1059,8 +1063,8 @@ function createBucketExplanation(bucketData, bucketConfig) {
 async function loadProductBucketDataAsync(productDiv, productTitle) {
   const bucketData = await getProductBucketData(productTitle);
   
-  // Replace the click handler setup at the end of createBucketedProductItem
-  productDiv.bucketData = bucketData; // Store for later use
+  // Store bucket data on the element for later use
+  productDiv.bucketData = bucketData;
   
   productDiv.addEventListener('click', function(e) {
     e.stopPropagation();
