@@ -1,3 +1,5 @@
+// Add device filter variable
+window.selectedDeviceFilter = 'all'; // 'all', 'DESKTOP', 'MOBILE', 'TABLET'
 // Add these global variables for bucket filtering
 window.selectedBucketFilter = null; // {bucketType: 'PROFITABILITY_BUCKET', bucketValue: 'Strong Performers'}
 // Global settings for product metrics calculation
@@ -197,12 +199,13 @@ async function renderBucketFunnels() {
     
     db.close();
     
-    if (!result || !result.data) return;
+if (!result || !result.data) return;
     
-    // Filter for Campaign="All" and Device="All" records
+    // Filter for Campaign="All" and device filter
+    const deviceFilter = window.selectedDeviceFilter || 'all';
     const filteredData = result.data.filter(row => 
       row['Campaign Name'] === 'All' && 
-      row['Device'] === 'All'
+      (deviceFilter === 'all' ? row['Device'] === 'All' : row['Device'] === deviceFilter)
     );
     
     // Create funnel container
@@ -364,19 +367,21 @@ function createBucketFunnel(data, bucketType) {
                       window.selectedBucketFilter.bucketType === bucketType.key && 
                       window.selectedBucketFilter.bucketValue === bucketName;
     
-    if (window.selectedBucketFilter && !isSelected) {
+if (window.selectedBucketFilter && !isSelected) {
       // Gray out non-selected sections
       trapezoid.style.filter = 'grayscale(1) opacity(0.5)';
     } else if (isSelected) {
       // Highlight selected section
-      sectionGroup.style.transform = 'scale(1.1)';
+      sectionGroup.style.transform = 'scale(1.05)'; // Reduced from 1.1
       trapezoid.style.opacity = '1';
+      trapezoid.style.stroke = '#333'; // Add dark contour
+      trapezoid.style.strokeWidth = '3'; // Thicker stroke for selected
     }
     
     // Add hover effect
     sectionGroup.addEventListener('mouseenter', function(e) {
       if (!window.selectedBucketFilter || isSelected) {
-        this.style.transform = 'scale(1.1)';
+        this.style.transform = 'scale(1.05)';
         trapezoid.style.opacity = '1';
       }
       showFunnelTooltip(e, bucketName, count, percentage, totalProducts);
@@ -643,8 +648,13 @@ async function loadBucketedProducts() {
         // Create a set of product titles that match the filter
         const matchingProductTitles = new Set();
         
-        result.data.forEach(row => {
-          if (row['Campaign Name'] === 'All' && row['Device'] === 'All') {
+result.data.forEach(row => {
+          const deviceFilter = window.selectedDeviceFilter || 'all';
+          const deviceMatch = deviceFilter === 'all' 
+            ? row['Device'] === 'All' 
+            : row['Device'] === deviceFilter;
+            
+          if (row['Campaign Name'] === 'All' && deviceMatch) {
             let matches = false;
             
             if (window.selectedBucketFilter.bucketType === 'SUGGESTIONS_BUCKET' && row[window.selectedBucketFilter.bucketType]) {
@@ -708,45 +718,79 @@ function renderProductsList(container, activeProducts, inactiveProducts) {
   container.innerHTML = '';
   
 // Replace the header section in renderProductsList function
-// Header with settings button
+// Header with device filter and settings button
 const header = document.createElement('div');
-header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;';
+header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
+
+// Create title row
+const titleRow = document.createElement('div');
+titleRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
+
 const filterText = window.currentBucketFilter ? ` - Filtered by ${window.currentBucketFilter.replace(/_/g, ' ')}` : '';
 const bucketFilterText = window.selectedBucketFilter ? ` - ${window.selectedBucketFilter.bucketValue}` : '';
-header.innerHTML = `
+titleRow.innerHTML = `
   <h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}${bucketFilterText}</h3>
-  <button id="productsMetricsSettingsBtn" style="
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #666;
-    transition: all 0.2s;
-  " onmouseover="this.style.background='#e9e9e9'" onmouseout="this.style.background='#f5f5f5'">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"></circle>
-      <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
-    </svg>
-    Metrics Settings
-  </button>
+  <div style="display: flex; gap: 15px; align-items: center;">
+    <div id="products-device-filter" style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-weight: 600; font-size: 12px; color: #333;">Device:</span>
+      <select id="productDeviceSelect" style="
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        background: white;
+        min-width: 120px;
+      ">
+        <option value="all" ${window.selectedDeviceFilter === 'all' ? 'selected' : ''}>All Devices</option>
+        <option value="DESKTOP" ${window.selectedDeviceFilter === 'DESKTOP' ? 'selected' : ''}>💻 Desktop</option>
+        <option value="MOBILE" ${window.selectedDeviceFilter === 'MOBILE' ? 'selected' : ''}>📱 Mobile</option>
+        <option value="TABLET" ${window.selectedDeviceFilter === 'TABLET' ? 'selected' : ''}>📋 Tablet</option>
+      </select>
+    </div>
+    <button id="productsMetricsSettingsBtn" style="
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #666;
+      transition: all 0.2s;
+    " onmouseover="this.style.background='#e9e9e9'" onmouseout="this.style.background='#f5f5f5'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
+      </svg>
+      Metrics Settings
+    </button>
+  </div>
 `;
+
+header.appendChild(titleRow);
 container.appendChild(header);
 
 // Add settings popup
 createMetricsSettingsPopup(container);
 
-// Add event listener for settings button
+// Add event listeners
 setTimeout(() => {
   const settingsBtn = document.getElementById('productsMetricsSettingsBtn');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleMetricsSettingsPopup();
+    });
+  }
+  
+  const deviceSelect = document.getElementById('productDeviceSelect');
+  if (deviceSelect) {
+    deviceSelect.addEventListener('change', (e) => {
+      window.selectedDeviceFilter = e.target.value;
+      loadBucketedProducts(); // Reload with new device filter
     });
   }
 }, 100);
@@ -1004,7 +1048,7 @@ async function getBucketedProductsData(bucketType) {
   return bucketedProducts;
 }
 
-// Add this function after the getBucketedProductsData function (around line 270)
+// Replace the getProductBucketData function
 async function getProductBucketData(productTitle) {
   try {
     const accountPrefix = window.currentAccount || 'acc1';
@@ -1030,11 +1074,12 @@ async function getProductBucketData(productTitle) {
     db.close();
     
     if (result && result.data) {
-      // Find the record for this product where Campaign="All" and Device="All"
+      // Find the record for this product where Campaign="All" and Device matches filter
+      const deviceFilter = window.selectedDeviceFilter || 'all';
       const productRecord = result.data.find(record => 
         record['Product Title'] === productTitle &&
         record['Campaign Name'] === 'All' &&
-        record['Device'] === 'All'
+        (deviceFilter === 'all' ? record['Device'] === 'All' : record['Device'] === deviceFilter)
       );
       
       return productRecord || null;
