@@ -3265,6 +3265,13 @@ if (isFullscreen) {
                     // Call the original component
                     return originalDetailsPanel(props);
                   };
+
+                                  // Make sure Recharts components are available globally
+                if (window.Recharts && !window.ResponsiveContainer) {
+                  ['ResponsiveContainer', 'LineChart', 'Line', 'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend', 'Bar', 'BarChart', 'Area', 'AreaChart'].forEach(comp => {
+                    if (window.Recharts[comp]) window[comp] = window.Recharts[comp];
+                  });
+                }
                   
 // Render with our debug version
                 setTimeout(() => {
@@ -3328,9 +3335,9 @@ if (dateRange && dateRange.end) {
                       `;
                       
 // Restore original component
-                      window.DetailsPanel = originalDetailsPanel;
-                    }
-                  };
+                    window.DetailsPanel = originalDetailsPanel;
+                  }
+                }, 100);
                   
                   return false;
                 }, true);
