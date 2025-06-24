@@ -4,15 +4,15 @@ window.productMetricsSettings = {
   // Future settings can be added here
 };
 window.bucketedProductsMetricsSettings = {
-  selectedMetrics: ['ROAS', 'ConvValue', 'Cost', 'Impressions'], // Default 4 metrics
+  selectedMetrics: ['ConvValue', 'Cost', 'Impressions', 'Clicks'], // Default 4 metrics (ROAS removed)
   availableMetrics: {
     'Impressions': { label: 'Impr', key: 'Impressions' },
     'Clicks': { label: 'Clicks', key: 'Clicks' },
     'CTR': { label: 'CTR', key: 'CTR', suffix: '%' },
     'Conversions': { label: 'Conv', key: 'Conversions' },
     'ConvValue': { label: 'Value', key: 'ConvValue', prefix: '$' },
-    'Cost': { label: 'Cost', key: 'Cost', prefix: '$' },
-    'ROAS': { label: 'ROAS', key: 'ROAS', suffix: 'x' }
+    'Cost': { label: 'Cost', key: 'Cost', prefix: '$' }
+    // ROAS removed from available metrics
   }
 };
 // Main Buckets Switcher functionality for Google Ads
@@ -437,18 +437,14 @@ function updateSelectedMetrics() {
   }
 }
 
-// Refresh all product metrics displays
+// Replace the refreshAllProductMetrics function
 function refreshAllProductMetrics() {
   const productItems = document.querySelectorAll('.bucketed-product-item');
   productItems.forEach(item => {
     const metricsBox = item.querySelector('.product-metrics-box');
-    const productTitle = item.querySelector('.small-ad-title')?.textContent;
-    if (metricsBox && productTitle) {
-      // Reload the metrics for this product
-      const bucketData = item.bucketData; // We'll store this during initial load
-      if (bucketData) {
-        updateMetricsDisplay(metricsBox, bucketData);
-      }
+    const bucketData = item.bucketData;
+    if (metricsBox && bucketData) {
+      updateMetricsDisplay(metricsBox, bucketData);
     }
   });
 }
@@ -713,7 +709,7 @@ function createBucketedProductItem(product, metrics) {
   productDiv.classList.add('small-ad-details', 'bucketed-product-item');
   productDiv.style.cssText = `
     width: 100%;
-    min-height: 100px;
+    min-height: 80px;
     background-color: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -761,6 +757,11 @@ function createBucketedProductItem(product, metrics) {
       </div>
     </div>
     
+    <!-- ROAS Badge -->
+    <div class="roas-badge" style="width: 60px; height: 60px; background-color: #fff; border: 2px solid #ddd; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div class="roas-loading" style="font-size: 11px; color: #999;">-</div>
+    </div>
+    
     <!-- Product Image -->
     <img class="small-ad-image" 
          src="${imageUrl}" 
@@ -769,26 +770,21 @@ function createBucketedProductItem(product, metrics) {
          onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=No+Image';">
     
     <!-- Product Title -->
-    <div class="small-ad-title" style="font-size: 14px; line-height: 1.4; max-width: 250px; min-width: 200px; word-wrap: break-word;">${title}</div>
+    <div class="small-ad-title" style="font-size: 14px; line-height: 1.4; width: 200px; min-width: 180px; word-wrap: break-word;">${title}</div>
     
     <!-- Metrics Box -->
-    <div class="product-metrics-box" style="width: 300px; display: flex; flex-wrap: wrap; gap: 10px; padding: 5px; background: #f8f9fa; border-radius: 6px; font-size: 11px;">
-      <div class="metric-loading" style="width: 100%; text-align: center; color: #999;">Loading metrics...</div>
-    </div>
-    
-    <!-- Bucket Values -->
-    <div class="bucket-values-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px;">
-      <div class="bucket-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
+    <div class="product-metrics-box" style="width: 280px; display: flex; gap: 20px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; align-items: center;">
+      <div class="metric-loading" style="width: 100%; text-align: center; color: #999; font-size: 11px;">Loading metrics...</div>
     </div>
     
     <!-- Suggestions -->
-    <div class="suggestions-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px; max-height: 80px; overflow-y: auto;">
+    <div class="suggestions-container" style="width: 200px; display: flex; flex-direction: column; gap: 4px; max-height: 60px; overflow-y: auto;">
       <div class="suggestions-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
     </div>
     
-    <!-- Health Score & Confidence -->
-    <div class="health-confidence-container" style="width: 100px; display: flex; flex-direction: column; gap: 8px; text-align: center;">
-      <div class="health-loading" style="color: #999; font-size: 11px;">Loading...</div>
+    <!-- Health Score & Confidence (in same row) -->
+    <div class="health-confidence-container" style="width: 140px; display: flex; gap: 8px; align-items: center;">
+      <div class="health-loading" style="color: #999; font-size: 11px; width: 100%; text-align: center;">Loading...</div>
     </div>
   `;
   
@@ -821,7 +817,6 @@ function createBucketedProductItem(product, metrics) {
   return productDiv;
 }
 
-// Replace the entire loadProductBucketDataAsync function (around line 580)
 async function loadProductBucketDataAsync(productDiv, productTitle) {
   const bucketData = await getProductBucketData(productTitle);
   
@@ -831,100 +826,30 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
   if (!bucketData) {
     // Update containers with "No data" message
     productDiv.querySelector('.metric-loading').innerHTML = '<span style="color: #999;">No data</span>';
-    productDiv.querySelector('.bucket-loading').innerHTML = '<span style="color: #999;">No data</span>';
+    productDiv.querySelector('.roas-loading').innerHTML = '<span style="color: #999; font-size: 16px;">N/A</span>';
     productDiv.querySelector('.suggestions-loading').innerHTML = '<span style="color: #999;">No data</span>';
     productDiv.querySelector('.health-loading').innerHTML = '<span style="color: #999;">No data</span>';
     return;
   }
   
+  // Update ROAS Badge
+  const roasBadge = productDiv.querySelector('.roas-badge');
+  const roasValue = parseFloat(bucketData.ROAS) || 0;
+  const roasColor = roasValue >= 3 ? '#4CAF50' : roasValue >= 1.5 ? '#FF9800' : '#F44336';
+  roasBadge.style.backgroundColor = roasColor;
+  roasBadge.style.borderColor = roasColor;
+  roasBadge.innerHTML = `
+    <div style="font-size: 10px; color: white; opacity: 0.9; text-transform: uppercase;">ROAS</div>
+    <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">${roasValue.toFixed(1)}x</div>
+  `;
+  
   // Update metrics box with selected metrics
   const metricsBox = productDiv.querySelector('.product-metrics-box');
   updateMetricsDisplay(metricsBox, bucketData);
   
-  // Update bucket values with tooltips
-  const bucketContainer = productDiv.querySelector('.bucket-values-container');
-  const bucketTypes = ['CUSTOM_TIER_BUCKET', 'FUNNEL_STAGE_BUCKET', 'INVESTMENT_BUCKET', 'PROFITABILITY_BUCKET'];
-  const bucketColors = {
-    'CUSTOM_TIER_BUCKET': '#9C27B0',
-    'FUNNEL_STAGE_BUCKET': '#2196F3',
-    'INVESTMENT_BUCKET': '#FF9800',
-    'PROFITABILITY_BUCKET': '#4CAF50'
-  };
-  
-  bucketContainer.innerHTML = '';
-  bucketTypes.forEach(bucketType => {
-    const bucketDataStr = bucketData[bucketType];
-    let value = 'N/A';
-    let explanation = '';
-    
-    if (bucketDataStr) {
-      try {
-        const parsed = JSON.parse(bucketDataStr);
-        value = parsed.value || bucketDataStr;
-        explanation = parsed.explanation || '';
-      } catch (e) {
-        value = bucketDataStr;
-      }
-    }
-    
-    const color = bucketColors[bucketType] || '#666';
-    const bucketDiv = document.createElement('div');
-    bucketDiv.style.cssText = `
-      background: ${color}15; 
-      color: ${color}; 
-      padding: 2px 8px; 
-      border-radius: 4px; 
-      font-size: 10px; 
-      font-weight: 600; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis;
-      cursor: ${explanation ? 'help' : 'default'};
-      position: relative;
-    `;
-    bucketDiv.textContent = value;
-    
-    if (explanation) {
-      // Create tooltip
-      const tooltip = document.createElement('div');
-      tooltip.style.cssText = `
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%) translateY(-5px);
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: normal;
-        white-space: normal;
-        width: 200px;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s;
-        z-index: 1000;
-        line-height: 1.4;
-      `;
-      tooltip.innerHTML = explanation;
-      
-      bucketDiv.appendChild(tooltip);
-      
-      bucketDiv.addEventListener('mouseenter', () => {
-        tooltip.style.opacity = '1';
-      });
-      
-      bucketDiv.addEventListener('mouseleave', () => {
-        tooltip.style.opacity = '0';
-      });
-    }
-    
-    bucketContainer.appendChild(bucketDiv);
-  });
-  
-  // Update suggestions (same as before)
+  // Update suggestions
   const suggestionsContainer = productDiv.querySelector('.suggestions-container');
-  let suggestionsHTML = '';
+  suggestionsContainer.innerHTML = '';
   
   if (bucketData.SUGGESTIONS_BUCKET) {
     try {
@@ -933,38 +858,47 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
         const priorityColor = suggestionObj.priority === 'Critical' ? '#F44336' : 
                             suggestionObj.priority === 'High' ? '#FF9800' : 
                             suggestionObj.priority === 'Medium' ? '#FFC107' : '#9E9E9E';
-        suggestionsHTML += `
-          <div style="background: ${priorityColor}15; color: ${priorityColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${suggestionObj.suggestion}">
-            ${suggestionObj.suggestion}
-          </div>
+        const suggDiv = document.createElement('div');
+        suggDiv.style.cssText = `
+          background: ${priorityColor}15; 
+          color: ${priorityColor}; 
+          padding: 3px 10px; 
+          border-radius: 12px; 
+          font-size: 10px; 
+          font-weight: 600; 
+          white-space: nowrap; 
+          overflow: hidden; 
+          text-overflow: ellipsis;
+          border: 1px solid ${priorityColor}30;
         `;
+        suggDiv.title = suggestionObj.suggestion;
+        suggDiv.textContent = suggestionObj.suggestion;
+        suggestionsContainer.appendChild(suggDiv);
       });
     } catch (e) {
-      suggestionsHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+      suggestionsContainer.innerHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
     }
   } else {
-    suggestionsHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+    suggestionsContainer.innerHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
   }
-  suggestionsContainer.innerHTML = suggestionsHTML;
   
-  // Update health score and confidence with coloring
+  // Update health score and confidence (side by side)
   const healthContainer = productDiv.querySelector('.health-confidence-container');
   const healthScore = bucketData.HEALTH_SCORE || 0;
   const confidence = bucketData.Confidence_Level || 'N/A';
   const healthColor = healthScore >= 7 ? '#4CAF50' : healthScore >= 4 ? '#FF9800' : '#F44336';
   const confidenceColor = confidence === 'High' ? '#4CAF50' : confidence === 'Medium' ? '#FF9800' : '#F44336';
   
-  const healthHTML = `
-    <div style="background: #f0f0f0; padding: 8px; border-radius: 6px;">
-      <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Health</div>
-      <div style="font-size: 18px; font-weight: 700; color: ${healthColor};">${healthScore}/10</div>
+  healthContainer.innerHTML = `
+    <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 6px; text-align: center; flex: 1;">
+      <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Health</div>
+      <div style="font-size: 16px; font-weight: 700; color: ${healthColor};">${healthScore}/10</div>
     </div>
-    <div style="background: ${confidenceColor}15; padding: 8px; border-radius: 6px; border: 1px solid ${confidenceColor}30;">
-      <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Confidence</div>
-      <div style="font-size: 12px; font-weight: 600; color: ${confidenceColor};">${confidence}</div>
+    <div style="background: ${confidenceColor}15; padding: 6px 10px; border-radius: 6px; border: 1px solid ${confidenceColor}30; text-align: center; flex: 1;">
+      <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Confidence</div>
+      <div style="font-size: 11px; font-weight: 600; color: ${confidenceColor};">${confidence}</div>
     </div>
   `;
-  healthContainer.innerHTML = healthHTML;
 }
 
 // Helper function to update metrics display
@@ -979,39 +913,39 @@ function updateMetricsDisplay(metricsBox, bucketData) {
     
     let value = bucketData[config.key] || 0;
     let formattedValue = '';
+    let valueColor = '#333';
     
     // Format based on metric type
-    if (metricKey === 'ROAS') {
-      formattedValue = parseFloat(value).toFixed(2);
-      const roasColor = parseFloat(value) >= 2 ? '#4CAF50' : '#F44336';
+    if (config.prefix === '$') {
+      formattedValue = parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
       metricsHTML += `
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span style="color: #666; font-weight: 600;">${config.label}:</span>
-          <span style="font-weight: 700; color: ${roasColor};">${formattedValue}${config.suffix || ''}</span>
-        </div>
-      `;
-    } else if (config.prefix === '$') {
-      formattedValue = parseFloat(value).toLocaleString();
-      metricsHTML += `
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span style="color: #666; font-weight: 600;">${config.label}:</span>
-          <span>${config.prefix}${formattedValue}</span>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${config.prefix}${formattedValue}</div>
         </div>
       `;
     } else if (config.suffix === '%') {
-      formattedValue = parseFloat(value).toFixed(2);
+      formattedValue = parseFloat(value).toFixed(1);
       metricsHTML += `
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span style="color: #666; font-weight: 600;">${config.label}:</span>
-          <span>${formattedValue}${config.suffix}</span>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}${config.suffix}</div>
+        </div>
+      `;
+    } else if (metricKey === 'Conversions') {
+      formattedValue = parseFloat(value).toFixed(1);
+      metricsHTML += `
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}</div>
         </div>
       `;
     } else {
       formattedValue = parseInt(value).toLocaleString();
       metricsHTML += `
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span style="color: #666; font-weight: 600;">${config.label}:</span>
-          <span>${formattedValue}</span>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}</div>
         </div>
       `;
     }
@@ -1019,13 +953,13 @@ function updateMetricsDisplay(metricsBox, bucketData) {
   
   metricsBox.innerHTML = metricsHTML;
   metricsBox.style.cssText = `
-    width: 300px; 
+    width: 280px; 
     display: flex; 
-    gap: 15px; 
-    padding: 5px 10px; 
-    background: #f8f9fa; 
-    border-radius: 6px; 
-    font-size: 11px;
+    gap: 20px; 
+    padding: 8px 15px; 
+    background: linear-gradient(135deg, #f8f9fa, #f0f1f3);
+    border: 1px solid #e0e0e0;
+    border-radius: 8px; 
     align-items: center;
   `;
 }
