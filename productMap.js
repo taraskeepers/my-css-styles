@@ -48,25 +48,13 @@ function normalizeBucketValue(bucketValue) {
 }
 
 // Function to get bucket badge HTML
-function getBucketBadgeHTML(bucketData, bucketType = 'PROFITABILITY_BUCKET') {
-  if (!bucketData) return '';
-  
-  let bucketValue = '';
-  try {
-    // Parse the JSON value
-    const parsed = JSON.parse(bucketData[bucketType] || '{}');
-    bucketValue = parsed.value || '';
-  } catch (e) {
-    // If not JSON, use raw value
-    bucketValue = bucketData[bucketType] || '';
-  }
-  
+function getBucketBadgeHTML(bucketValue, bucketType = 'ROAS') {
   if (!bucketValue || bucketValue === '') return '';
   
   const normalizedClass = normalizeBucketValue(bucketValue);
   const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
   
-  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue}">${displayText}</div>`;
+  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue} (${bucketType})">${displayText}</div>`;
 }
 
 async function renderProductMapTable() {
@@ -91,84 +79,63 @@ async function renderProductMapTable() {
     
     console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber);
     
-// Load bucket data if enabled
-let bucketDataMap = new Map();
-if (googleAdsEnabled) {
-  const bucketTableExists = await checkTableExists(`acc${accountNumber}_googleSheets_productBuckets_30d`);
-  
-  if (bucketTableExists) {
-    // Get the bucket data from projectData store
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open database'));
-    });
-    
-    // Get data from projectData store
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(`acc${accountNumber}_googleSheets_productBuckets_30d`);
-    
-    await new Promise((resolve) => {
-      getRequest.onsuccess = () => {
-        const result = getRequest.result;
-        if (result && result.data) {
-          console.log(`[ProductMap] Bucket data structure:`, result.data[0]); // Log first item to see structure
-          
-          result.data.forEach(product => {
-            if (product['Product Title'] && product['Campaign Name'] === 'All') {
-              // Normalize device value to uppercase for consistency
-              const deviceNormalized = (product['Device'] || '').toUpperCase();
-              const key = `${product['Product Title'].toLowerCase()}|${deviceNormalized}`;
-              bucketDataMap.set(key, product);
-              
-              // Debug log for first few entries
-              if (bucketDataMap.size <= 3) {
-                console.log(`[ProductMap] Bucket entry: ${key}`, {
-                  profitability: product['PROFITABILITY_BUCKET'],
-                  device: product['Device'],
-                  campaign: product['Campaign Name']
-                });
-              }
-            }
-          });
-        }
-        console.log(`[ProductMap] Loaded ${bucketDataMap.size} product bucket entries (filtered for Campaign='All')`);
-        resolve();
-      };
+    // Load bucket data if enabled
+    let bucketDataMap = new Map();
+    if (googleAdsEnabled) {
+      const bucketTableExists = await checkTableExists(`acc${accountNumber}_googleSheets_productBuckets_30d`);
       
-      getRequest.onerror = () => {
-        console.error('[ProductMap] Error getting bucket data');
-        resolve();
-      };
-    });
-    
-    db.close();
-  }
-}
+      if (bucketTableExists) {
+        // Get the bucket data from projectData store (same pattern as google_ads_buckets.js)
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('myAppDB');
+          request.onsuccess = (event) => resolve(event.target.result);
+          request.onerror = () => reject(new Error('Failed to open database'));
+        });
+        
+        // Get data from projectData store
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+        
+        await new Promise((resolve) => {
+          getRequest.onsuccess = () => {
+            const result = getRequest.result;
+            if (result && result.data) {
+              result.data.forEach(product => {
+                if (product['Product Title']) {
+                  bucketDataMap.set(product['Product Title'].toLowerCase(), product);
+                }
+              });
+            }
+            console.log(`[ProductMap] Loaded ${bucketDataMap.size} products with bucket data`);
+            resolve();
+          };
+          
+          getRequest.onerror = () => {
+            console.error('[ProductMap] Error getting bucket data');
+            resolve();
+          };
+        });
+        
+        db.close();
+      }
+    }
   
     // Setup container with fixed height and scrolling
-container.innerHTML = `
-  <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
-    <div class="view-switcher">
-      <button id="viewProducts" class="active">Products</button>
-      <button id="viewCharts">Charts</button>
-    </div>
-    <select id="bucketTypeSelector" style="position: absolute; top: 10px; right: 320px; z-index: 100; padding: 6px 12px; border-radius: 4px; border: 1px solid #ddd;">
-      <option value="PROFITABILITY_BUCKET">Profitability</option>
-      <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
-      <option value="INVESTMENT_BUCKET">Investment</option>
-      <option value="CUSTOM_TIER_BUCKET">Custom Tier</option>
-      <option value="SELLERS">Sellers</option>
-    </select>
-    <button id="fullscreenToggle" class="fullscreen-toggle">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-      </svg>
-      Full Screen
-    </button>
-  </div>
-`;
+    container.innerHTML = `
+      <div id="productMapContainer" style="width: 100%; height: calc(100vh - 150px); overflow-y: auto; position: relative;">
+        <div class="view-switcher">
+          <button id="viewProducts" class="active">Products</button>
+          <button id="viewCharts">Charts</button>
+        </div>
+        <button id="fullscreenToggle" class="fullscreen-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Full Screen
+        </button>
+      </div>
+    `;
     
     // Create fullscreen overlay container (hidden initially)
     let fullscreenOverlay = document.getElementById('productMapFullscreenOverlay');
@@ -742,41 +709,6 @@ viewChartsBtn.addEventListener("click", function() {
     }
   });
 });
-
-// Add bucket type selector functionality
-const bucketSelector = document.getElementById("bucketTypeSelector");
-if (bucketSelector) {
-  bucketSelector.addEventListener("change", function() {
-    const selectedBucketType = this.value;
-    console.log(`[ProductMap] Switching to bucket type: ${selectedBucketType}`);
-    
-    // Update all bucket badges
-    document.querySelectorAll('.bucket-badge').forEach(badge => {
-      const adCard = badge.parentElement;
-      const plaIndex = adCard.getAttribute('data-pla-index');
-      const product = window.globalRows[plaIndex];
-      
-      if (product && googleAdsEnabled && bucketDataMap.size > 0) {
-        // Get device from the row, not from the product
-        const row = adCard.closest('tr');
-        const deviceCell = row.querySelector('.device-icon');
-        const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
-        
-        const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
-        const productBucketData = bucketDataMap.get(lookupKey);
-        
-        if (productBucketData) {
-          const newBadgeHTML = getBucketBadgeHTML(productBucketData, selectedBucketType);
-          if (newBadgeHTML) {
-            badge.outerHTML = newBadgeHTML;
-          } else {
-            badge.remove();
-          }
-        }
-      }
-    });
-  });
-}
   
     console.log("[renderProductMapTable] Using myCompany:", window.myCompany);
 
@@ -1477,79 +1409,39 @@ if (bucketSelector) {
   justify-content: center;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
-  z-index: 10; /* Increased to be above image */
+  z-index: 5;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* PROFITABILITY_BUCKET colors */
-.bucket-badge.insufficient-data { background-color: #9E9E9E; }
-.bucket-badge.profit-stars { background-color: #4CAF50; }
-.bucket-badge.strong-performers { background-color: #8BC34A; }
-.bucket-badge.steady-contributors { background-color: #2196F3; }
-.bucket-badge.break-even-products { background-color: #FF9800; }
-.bucket-badge.true-losses { background-color: #F44336; }
-
-/* FUNNEL_STAGE_BUCKET colors */
-.bucket-badge.full-funnel-excellence { background-color: #00BCD4; }
-.bucket-badge.high-value-funnel-issues { background-color: #FFC107; }
-.bucket-badge.critical-funnel-issues { background-color: #FF5722; }
-.bucket-badge.ad-engagement-issue { background-color: #E91E63; }
-.bucket-badge.product-page-dropoff { background-color: #9C27B0; }
-.bucket-badge.cart-abandonment-problem { background-color: #673AB7; }
-.bucket-badge.checkout-friction { background-color: #3F51B5; }
-.bucket-badge.price-discovery-shock { background-color: #795548; }
-.bucket-badge.cross-stage-issues { background-color: #607D8B; }
-.bucket-badge.optimization-opportunities { background-color: #009688; }
-.bucket-badge.normal-performance { background-color: #03A9F4; }
-
-/* INVESTMENT_BUCKET colors */
-.bucket-badge.pause-priority { background-color: #D32F2F; }
-.bucket-badge.reduce-priority { background-color: #F57C00; }
-.bucket-badge.maintain-priority { background-color: #FBC02D; }
-.bucket-badge.growth-priority { background-color: #689F38; }
-.bucket-badge.high-priority { background-color: #388E3C; }
-.bucket-badge.maximum-priority { background-color: #1976D2; }
-
-/* CUSTOM_TIER_BUCKET colors */
-.bucket-badge.new-low-volume { background-color: #78909C; }
-.bucket-badge.pause-candidates { background-color: #B71C1C; }
-.bucket-badge.turnaround-required { background-color: #E65100; }
-.bucket-badge.hero-products { background-color: #1B5E20; }
-.bucket-badge.rising-stars { background-color: #00695C; }
-.bucket-badge.steady-performers { background-color: #0277BD; }
-.bucket-badge.mobile-champions { background-color: #4527A0; }
-.bucket-badge.desktop-dependent { background-color: #6A1B9A; }
-.bucket-badge.test-learn { background-color: #00838F; }
-.bucket-badge.monitor-closely { background-color: #37474F; }
-
-/* SELLERS colors */
-.bucket-badge.revenue-stars { background-color: #FFD700; color: #333; }
-.bucket-badge.best-sellers { background-color: #C0C0C0; color: #333; }
-.bucket-badge.volume-leaders { background-color: #CD7F32; color: white; }
-.bucket-badge.standard { background-color: #757575; }
+/* Bucket-specific colors */
+.bucket-badge.top-performers { background-color: #4CAF50; }
+.bucket-badge.growth-drivers { background-color: #2196F3; }
+.bucket-badge.profit-champions { background-color: #9C27B0; }
+.bucket-badge.hidden-gems { background-color: #FF9800; }
+.bucket-badge.emerging-stars { background-color: #00BCD4; }
+.bucket-badge.niche-profitable { background-color: #795548; }
+.bucket-badge.collecting-data { background-color: #9E9E9E; }
+.bucket-badge.needs-attention { background-color: #F44336; }
+.bucket-badge.weak-landing { background-color: #E91E63; }
+.bucket-badge.price-resistance { background-color: #FF5722; }
 
 /* Adjust existing badges positioning when bucket-badge is present */
 .product-cell .ad-details.has-bucket .pos-badge {
-  top: 27px; /* 22px bucket height + 5px gap */
+  top: 32px; /* 22px bucket height + 10px gap */
 }
 
 .product-cell .ad-details.has-bucket .sale-badge {
-  top: 27px; /* 22px bucket height + 5px gap */
+  top: 32px; /* 22px bucket height + 10px gap */
 }
 
 .product-cell .ad-details.has-bucket .product-status-indicator {
-  top: 27px; /* 22px bucket height + 5px gap */
+  top: 32px; /* 22px bucket height + 10px gap */
 }
 
-/* Remove the margin-top for thumbnail container so bucket overlays the image */
+/* Ensure proper spacing for the thumbnail container */
 .product-cell .ad-details.has-bucket .ad-thumbnail-container {
-  margin-top: 0; /* No space needed - bucket will overlay */
-}
-
-/* Ensure the ad-details container has relative positioning for absolute children */
-.product-cell .ad-details {
-  position: relative; /* Add this if not already present */
+  margin-top: 26px; /* Give space for the bucket badge */
 }
       `;
       document.head.appendChild(style);
@@ -2593,31 +2485,18 @@ let bucketBadgeHTML = '';
 let hasBucketClass = '';
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
-  // Normalize device value from current row to uppercase
-  const deviceValue = (rowData.device || '').toUpperCase();
-  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
-  
-  console.log(`[ProductMap] Looking up bucket for: "${lookupKey}"`); // Debug log
-  
-  const productBucketData = bucketDataMap.get(lookupKey);
+  const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
   
   if (productBucketData) {
-    // Get PROFITABILITY_BUCKET value by default
-    bucketBadgeHTML = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
+    // Get ROAS_Bucket value by default
+    const bucketValue = productBucketData.ROAS_Bucket;
     
-    if (bucketBadgeHTML) {
+    if (bucketValue && bucketValue !== '') {
+      bucketBadgeHTML = getBucketBadgeHTML(bucketValue, 'ROAS');
       hasBucketClass = 'has-bucket';
       
       // Log for debugging
-      console.log(`[ProductMap] Product "${enhancedProduct.title}" on ${deviceValue} has bucket:`, productBucketData['PROFITABILITY_BUCKET']);
-    }
-  } else {
-    // Debug: log why no match
-    if (bucketDataMap.size > 0) {
-      console.log(`[ProductMap] No bucket match for: "${lookupKey}"`);
-      // Log first few keys to see format
-      const sampleKeys = Array.from(bucketDataMap.keys()).slice(0, 3);
-      console.log(`[ProductMap] Sample bucket keys:`, sampleKeys);
+      console.log(`[ProductMap] Product "${enhancedProduct.title}" has ROAS_Bucket: ${bucketValue}`);
     }
   }
 }
@@ -3252,58 +3131,6 @@ if (isFullscreen) {
                     // Call the original component
                     return originalDetailsPanel(props);
                   };
-
-// Temporarily disable the debug wrapper if Recharts is not available
-if (typeof window.Recharts === 'undefined') {
-  console.warn("[ProductMap] Recharts not available, rendering without debug wrapper");
-  
-  // Skip the debug wrapper and render directly
-  try {
-    let dateRange = getDataRange(rowData);
-    if (dateRange && dateRange.end) {
-      dateRange = {
-        end: dateRange.end.clone(),
-        start: dateRange.end.clone().subtract(6, "days")
-      };
-    }
-    
-    const rowDataCopy = { ...rowData };
-    const contentWrapper = document.getElementById('panel-content-wrapper');
-    
-    // Render without the debug wrapper
-    ReactDOM.render(
-      React.createElement(originalDetailsPanel, {
-        key: plaIndex,
-        rowData: rowDataCopy,
-        start: dateRange.start,
-        end: dateRange.end,
-        activeTab: window.savedActiveTab || 1,
-        onClose: () => {
-          detailsPanel.style.display = 'none';
-          document.body.style.overflow = 'auto';
-        }
-      }),
-      contentWrapper
-    );
-    
-    const loadingOverlay = document.getElementById('panel-loading-overlay');
-    if (loadingOverlay) {
-      loadingOverlay.style.display = 'none';
-    }
-  } catch (error) {
-    console.error("[DEBUG] Error rendering panel without debug wrapper:", error);
-    detailsPanel.innerHTML = `
-      <div style="padding: 20px; text-align: center;">
-        <h3>Error displaying product details</h3>
-        <p>${error.message}</p>
-        <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
-          Close
-        </button>
-      </div>
-    `;
-  }
-  return;
-}
                   
                   // Render with our debug version
                   setTimeout(() => {
