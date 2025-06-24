@@ -1477,7 +1477,7 @@ if (bucketSelector) {
   justify-content: center;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
-  z-index: 5;
+  z-index: 10; /* Increased to be above image */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1531,20 +1531,25 @@ if (bucketSelector) {
 
 /* Adjust existing badges positioning when bucket-badge is present */
 .product-cell .ad-details.has-bucket .pos-badge {
-  top: 32px; /* 22px bucket height + 10px gap */
+  top: 27px; /* 22px bucket height + 5px gap */
 }
 
 .product-cell .ad-details.has-bucket .sale-badge {
-  top: 32px; /* 22px bucket height + 10px gap */
+  top: 27px; /* 22px bucket height + 5px gap */
 }
 
 .product-cell .ad-details.has-bucket .product-status-indicator {
-  top: 32px; /* 22px bucket height + 10px gap */
+  top: 27px; /* 22px bucket height + 5px gap */
 }
 
-/* Ensure proper spacing for the thumbnail container */
+/* Remove the margin-top for thumbnail container so bucket overlays the image */
 .product-cell .ad-details.has-bucket .ad-thumbnail-container {
-  margin-top: 26px; /* Give space for the bucket badge */
+  margin-top: 0; /* No space needed - bucket will overlay */
+}
+
+/* Ensure the ad-details container has relative positioning for absolute children */
+.product-cell .ad-details {
+  position: relative; /* Add this if not already present */
 }
       `;
       document.head.appendChild(style);
@@ -3248,24 +3253,18 @@ if (isFullscreen) {
                     return originalDetailsPanel(props);
                   };
 
-                                  // Check if required libraries are available
-                if (!window.React || !window.ReactDOM) {
-                  console.error("[ProductMap] React or ReactDOM not available");
-                  detailsPanel.innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
-                      <h3>Error: Required libraries not loaded</h3>
-                      <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
-                        Close
-                      </button>
-                    </div>
-                  `;
-                  return;
-                }
-
-                // Ensure recharts is available for the details panel
-                if (typeof window.Recharts === 'undefined') {
-                  console.warn("[ProductMap] Recharts not available, charts may not render properly");
-                }
+// Ensure recharts is available for the details panel
+if (typeof window.Recharts === 'undefined') {
+  console.warn("[ProductMap] Recharts not available, attempting to load from CDN");
+  
+  // Try to load Recharts from CDN
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.min.js';
+  script.onload = () => {
+    console.log("[ProductMap] Recharts loaded from CDN");
+  };
+  document.head.appendChild(script);
+}
                   
                   // Render with our debug version
                   setTimeout(() => {
