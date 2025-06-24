@@ -3253,56 +3253,29 @@ if (isFullscreen) {
                     return originalDetailsPanel(props);
                   };
 
-// Temporarily disable the debug wrapper if Recharts is not available
+// Ensure recharts is available for the details panel
 if (typeof window.Recharts === 'undefined') {
-  console.warn("[ProductMap] Recharts not available, rendering without debug wrapper");
+  console.error("[ProductMap] Recharts library not loaded!");
+} else {
+  console.log("[ProductMap] Recharts is loaded, checking components...");
   
-  // Skip the debug wrapper and render directly
-  try {
-    let dateRange = getDataRange(rowData);
-    if (dateRange && dateRange.end) {
-      dateRange = {
-        end: dateRange.end.clone(),
-        start: dateRange.end.clone().subtract(6, "days")
-      };
-    }
+  // Make Recharts components globally available if they're nested
+  if (window.Recharts && !window.ResponsiveContainer) {
+    // Extract commonly used Recharts components to global scope
+    const rechartsComponents = [
+      'ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar',
+      'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
+      'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell',
+      'ComposedChart', 'ReferenceLine', 'Brush'
+    ];
     
-    const rowDataCopy = { ...rowData };
-    const contentWrapper = document.getElementById('panel-content-wrapper');
-    
-    // Render without the debug wrapper
-    ReactDOM.render(
-      React.createElement(originalDetailsPanel, {
-        key: plaIndex,
-        rowData: rowDataCopy,
-        start: dateRange.start,
-        end: dateRange.end,
-        activeTab: window.savedActiveTab || 1,
-        onClose: () => {
-          detailsPanel.style.display = 'none';
-          document.body.style.overflow = 'auto';
-        }
-      }),
-      contentWrapper
-    );
-    
-    const loadingOverlay = document.getElementById('panel-loading-overlay');
-    if (loadingOverlay) {
-      loadingOverlay.style.display = 'none';
-    }
-  } catch (error) {
-    console.error("[DEBUG] Error rendering panel without debug wrapper:", error);
-    detailsPanel.innerHTML = `
-      <div style="padding: 20px; text-align: center;">
-        <h3>Error displaying product details</h3>
-        <p>${error.message}</p>
-        <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
-          Close
-        </button>
-      </div>
-    `;
+    rechartsComponents.forEach(component => {
+      if (window.Recharts[component]) {
+        window[component] = window.Recharts[component];
+        console.log(`[ProductMap] Exposed Recharts.${component} to global scope`);
+      }
+    });
   }
-  return;
 }
                   
                   // Render with our debug version
