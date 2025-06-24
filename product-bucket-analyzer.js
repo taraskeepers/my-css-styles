@@ -580,7 +580,6 @@ assignSellersToProcessedData(bucketData) {
   
   if (allAllRecords.length === 0) {
     console.warn('[Product Buckets V3] No All+All records found for SELLERS calculation');
-    // Set all records to 'N/A'
     bucketData.forEach(record => {
       record['SELLERS'] = 'N/A';
     });
@@ -592,20 +591,25 @@ assignSellersToProcessedData(bucketData) {
   const totalRevenue = allAllRecords.reduce((sum, record) => sum + (record['ConvValue'] || 0), 0);
   const accountROAS = totalCost > 0 ? totalRevenue / totalCost : 2.5;
   
-  // Calculate revenue percentiles from All+All records
-  const productRevenues = allAllRecords.map(record => record['ConvValue'] || 0);
-  const sortedRevenues = productRevenues.sort((a, b) => b - a);
-  const total = sortedRevenues.length;
+  // Filter out products with zero revenue and sort
+  const productRevenuesWithRevenue = allAllRecords
+    .filter(record => (record['ConvValue'] || 0) > 0)
+    .map(record => record['ConvValue'] || 0)
+    .sort((a, b) => b - a);
+    
+  const totalWithRevenue = productRevenuesWithRevenue.length;
   
-  const top10Index = Math.floor(total * 0.1);
-  const top20Index = Math.floor(total * 0.2);
-  const top10Threshold = total > 0 && top10Index < total ? sortedRevenues[top10Index] : 0;
-  const top20Threshold = total > 0 && top20Index < total ? sortedRevenues[top20Index] : 0;
+  // Calculate thresholds only from products with actual revenue
+  const top10Index = Math.floor(totalWithRevenue * 0.1);
+  const top20Index = Math.floor(totalWithRevenue * 0.2);
+  const top10Threshold = totalWithRevenue > 0 && top10Index < totalWithRevenue ? productRevenuesWithRevenue[top10Index] : 0;
+  const top20Threshold = totalWithRevenue > 0 && top20Index < totalWithRevenue ? productRevenuesWithRevenue[top20Index] : 0;
   
   // Log for verification
-  const top10Count = sortedRevenues.filter(r => r >= top10Threshold).length;
-  const top20Count = sortedRevenues.filter(r => r >= top20Threshold).length;
+  const top10Count = productRevenuesWithRevenue.filter(r => r >= top10Threshold).length;
+  const top20Count = productRevenuesWithRevenue.filter(r => r >= top20Threshold).length;
   console.log(`[Product Buckets V3] SELLERS calculation - Account ROAS: ${accountROAS.toFixed(2)}x`);
+  console.log(`[Product Buckets V3] Products with revenue: ${totalWithRevenue} (out of ${allAllRecords.length} total)`);
   console.log(`[Product Buckets V3] Top 10% threshold: $${top10Threshold.toFixed(0)} (${top10Count} products)`);
   console.log(`[Product Buckets V3] Top 20% threshold: $${top20Threshold.toFixed(0)} (${top20Count} products)`);
   
@@ -618,6 +622,12 @@ assignSellersToProcessedData(bucketData) {
     
     // Only assign categories to All+All records
     if (campaignName === 'All' && device === 'All') {
+      // Skip products with zero revenue
+      if (revenue <= 0) {
+        record['SELLERS'] = 'Standard';
+        return;
+      }
+      
       // Revenue Stars: Top 10% revenue + ROAS > (account ROAS + 1.0)
       if (revenue >= top10Threshold && roas > (accountROAS + 1.0)) {
         record['SELLERS'] = 'Revenue Stars';
