@@ -758,44 +758,17 @@ function MainMetrics(props) {
     return container;
   }
   
-  // Calculate metrics using 7-day periods
-  const today = moment();
-  const currentEnd = today;
-  const currentStart = today.clone().subtract(6, 'days'); // Last 7 days
-  const prevEnd = currentStart.clone().subtract(1, 'days');
-  const prevStart = prevEnd.clone().subtract(6, 'days'); // Previous 7 days
+  // Calculate metrics
+  const historical = rowData.historical_data;
+  const positions = historical.filter(h => h.avg_position).map(h => parseFloat(h.avg_position));
+  const visibilities = historical.filter(h => h.visibility).map(h => parseFloat(h.visibility));
   
-  const historical = rowData.historical_data || [];
+  const avgPosition = positions.length ? positions.reduce((a,b) => a+b) / positions.length : 0;
+  const avgVisibility = visibilities.length ? visibilities.reduce((a,b) => a+b) / visibilities.length : 0;
   
-  // Filter for current 7-day period
-  const currentFiltered = historical.filter(item => {
-    if (!item.date || !item.date.value) return false;
-    const d = moment(item.date.value, "YYYY-MM-DD");
-    return d.isBetween(currentStart, currentEnd, "day", "[]");
-  });
-  
-  // Filter for previous 7-day period
-  const prevFiltered = historical.filter(item => {
-    if (!item.date || !item.date.value) return false;
-    const d = moment(item.date.value, "YYYY-MM-DD");
-    return d.isBetween(prevStart, prevEnd, "day", "[]");
-  });
-  
-  // Calculate averages for current period
-  const currentPositions = currentFiltered.filter(h => h.avg_position).map(h => parseFloat(h.avg_position));
-  const currentVisibilities = currentFiltered.filter(h => h.visibility).map(h => parseFloat(h.visibility));
-  const avgPosition = currentPositions.length ? currentPositions.reduce((a,b) => a+b) / currentPositions.length : 0;
-  const avgVisibility = currentVisibilities.length ? currentVisibilities.reduce((a,b) => a+b) / currentVisibilities.length : 0;
-  
-  // Calculate averages for previous period
-  const prevPositions = prevFiltered.filter(h => h.avg_position).map(h => parseFloat(h.avg_position));
-  const prevVisibilities = prevFiltered.filter(h => h.visibility).map(h => parseFloat(h.visibility));
-  const prevAvgPosition = prevPositions.length ? prevPositions.reduce((a,b) => a+b) / prevPositions.length : 0;
-  const prevAvgVisibility = prevVisibilities.length ? prevVisibilities.reduce((a,b) => a+b) / prevVisibilities.length : 0;
-  
-  // Calculate changes (current - previous)
-  const positionChange = avgPosition - prevAvgPosition;
-  const visibilityChange = avgVisibility - prevAvgVisibility;
+  // Calculate position change
+  const positionChange = positions.length >= 2 ? positions[positions.length-1] - positions[0] : 0;
+  const visibilityChange = visibilities.length >= 2 ? visibilities[visibilities.length-1] - visibilities[0] : 0;
   
   // Calculate volatility
   let volatility = 0;
