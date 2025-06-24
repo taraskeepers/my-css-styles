@@ -142,9 +142,9 @@ function createProductsBucketsFilterContainer() {
   if (!filterContainer) {
     filterContainer = document.createElement('div');
     filterContainer.id = 'products-buckets-filter-container';
-    filterContainer.style.cssText = `
+filterContainer.style.cssText = `
       width: 1195px;
-      height: 200px;
+      height: 250px;  // Changed from 200px to 250px
       margin: 110px 0 0 20px;
       background-color: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -305,7 +305,7 @@ function createBucketFunnel(data, bucketType) {
   });
   
   // Create SVG funnel
-  const svgHeight = 140;
+  const svgHeight = 190;
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', svgHeight);
@@ -402,14 +402,14 @@ if (window.selectedBucketFilter && !isSelected) {
     
     sectionGroup.appendChild(trapezoid);
     
-    // Add text with reduced font size
+// Add text with increased font size
     if (sectionHeight > 15) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', x + sectionWidth / 2);
       text.setAttribute('y', currentY + sectionHeight / 2 + 4);
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '9px'); // Reduced from 11px
+      text.setAttribute('font-size', '11px'); // Increased back to 11px
       text.setAttribute('font-weight', '600');
       text.style.pointerEvents = 'none';
       text.textContent = `${count} (${percentage.toFixed(0)}%)`;
