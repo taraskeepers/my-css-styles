@@ -842,9 +842,9 @@ function toggleDetailedProductView(productDiv, product, bucketData) {
   
   // Animate open
   setTimeout(() => {
-    detailContainer.style.maxHeight = '260px';
+    detailContainer.style.maxHeight = '400px';
     detailContainer.style.opacity = '1';
-  }, 10);
+  }, 50);
 }
 
 // Create detailed product overview container
