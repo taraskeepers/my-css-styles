@@ -1,84 +1,3 @@
-// Add this code at the very beginning of your productMap.js file
-// RIGHT AFTER the opening <script type="text/babel"> tag
-
-// ===== RECHARTS COMPONENTS EXPOSURE FIX =====
-(function ensureRechartsAvailability() {
-  console.log("[RECHARTS-FIX] Starting Recharts component exposure process");
-  
-  const exposeComponents = () => {
-    if (!window.Recharts) {
-      console.log("[RECHARTS-FIX] Recharts not loaded yet, retrying...");
-      setTimeout(exposeComponents, 100);
-      return;
-    }
-    
-    console.log("[RECHARTS-FIX] Recharts found, exposing components");
-    
-    // Core components that PLAChart needs
-    const coreComponents = [
-      'ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
-      'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-      'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'
-    ];
-    
-    let exposedCount = 0;
-    coreComponents.forEach(comp => {
-      if (window.Recharts[comp]) {
-        window[comp] = window.Recharts[comp];
-        exposedCount++;
-      } else {
-        console.warn(`[RECHARTS-FIX] Component ${comp} not found in Recharts`);
-      }
-    });
-    
-    console.log(`[RECHARTS-FIX] Successfully exposed ${exposedCount}/${coreComponents.length} components`);
-    
-    // Critical check for ResponsiveContainer
-    if (window.ResponsiveContainer) {
-      console.log("[RECHARTS-FIX] ✅ ResponsiveContainer successfully exposed");
-      window.rechartsReady = true;
-    } else {
-      console.error("[RECHARTS-FIX] ❌ ResponsiveContainer failed to expose");
-    }
-  };
-  
-  // Start the process immediately
-  exposeComponents();
-})();
-
-// ===== SAFE RECHARTS CHECKER =====
-window.ensureRechartsComponents = function() {
-  return new Promise((resolve, reject) => {
-    const maxWait = 10000; // 10 seconds max wait
-    const startTime = Date.now();
-    
-    const check = () => {
-      if (window.ResponsiveContainer && window.LineChart) {
-        console.log("[RECHARTS-FIX] Components verified as available");
-        resolve();
-      } else if (Date.now() - startTime > maxWait) {
-        console.error("[RECHARTS-FIX] Timeout waiting for Recharts components");
-        reject(new Error("Recharts components not available after timeout"));
-      } else {
-        // Re-expose if needed
-        if (window.Recharts && !window.ResponsiveContainer) {
-          const components = ['ResponsiveContainer', 'LineChart', 'Line', 'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip'];
-          components.forEach(comp => {
-            if (window.Recharts[comp]) {
-              window[comp] = window.Recharts[comp];
-            }
-          });
-        }
-        setTimeout(check, 100);
-      }
-    };
-    
-    check();
-  });
-};
-
-// ===== END RECHARTS FIX =====
-
 // Simple function to check if a table exists
 async function checkTableExists(tableName) {
   return new Promise((resolve) => {
@@ -3134,215 +3053,276 @@ if (sortedInactiveProducts.length > 0) {
 // Now create the combined array for chart rendering
 const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
 
-// Add direct click handlers to each product card
-productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
-  const plaIndex = adCard.getAttribute('data-pla-index');
-  
-  adCard.addEventListener('click', async function(e) {
-    // Prevent default and stop propagation
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    
-    console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
-    console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
-    
-    // Get the product data
-    const rowData = window.globalRows[plaIndex];
-    if (!rowData) {
-      console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
-      return;
-    }
-    
-    console.log(`[DEBUG] Found data for product: ${rowData.title}`);
-    
-    // *** CRITICAL FIX: Ensure Recharts components are ready ***
-    try {
-      console.log("[RECHARTS-FIX] Checking if Recharts components are available...");
-      
-      // Wait for Recharts to be loaded and components exposed
-      const ensureRechartsReady = () => {
-        return new Promise((resolve, reject) => {
-          const maxAttempts = 50;
-          let attempts = 0;
-          
-          const checkComponents = () => {
-            attempts++;
-            
-            if (window.ResponsiveContainer && window.LineChart && window.XAxis && window.YAxis) {
-              console.log("[RECHARTS-FIX] ✅ All components ready");
-              resolve();
-            } else if (attempts >= maxAttempts) {
-              console.error("[RECHARTS-FIX] ❌ Timeout waiting for components");
-              reject(new Error("Recharts components not ready after timeout"));
-            } else {
-              // Try to expose components if Recharts is available
-              if (window.Recharts && !window.ResponsiveContainer) {
-                const components = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
-                                 'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-                                 'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
-                components.forEach(comp => {
-                  if (window.Recharts[comp]) {
-                    window[comp] = window.Recharts[comp];
+              // Add direct click handlers to each product card
+              productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
+                const plaIndex = adCard.getAttribute('data-pla-index');
+                
+                adCard.addEventListener('click', function(e) {
+                  // Prevent default and stop propagation
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.stopImmediatePropagation();
+                  
+                  console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
+                  console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
+                  
+                  // Get the product data
+                  const rowData = window.globalRows[plaIndex];
+                  if (!rowData) {
+                    console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
+                    return;
                   }
-                });
-                console.log(`[RECHARTS-FIX] Exposed components, attempt ${attempts}`);
-              }
-              
-              setTimeout(checkComponents, 100);
-            }
-          };
-          
-          checkComponents();
-        });
-      };
-      
-      // Wait for components to be ready
-      await ensureRechartsReady();
-      
-    } catch (error) {
-      console.error("[RECHARTS-FIX] Failed to ensure Recharts readiness:", error);
-      alert("Chart components are not ready. Please refresh the page and try again.");
-      return;
-    }
-    
-    // Double-check that ResponsiveContainer is available
-    if (!window.ResponsiveContainer) {
-      console.error("[RECHARTS-FIX] ResponsiveContainer still not available after wait");
-      alert("Chart components failed to load. Please refresh the page.");
-      return;
-    }
-    
-    console.log("[RECHARTS-FIX] ✅ Proceeding with panel creation");
-    
-    // Create or get the panel container
-    let detailsPanel = document.getElementById('product-map-details-panel');
-    if (!detailsPanel) {
-      detailsPanel = document.createElement('div');
-      detailsPanel.id = 'product-map-details-panel';
-      detailsPanel.style.position = 'fixed';
-      detailsPanel.style.top = '40%';
-      detailsPanel.style.left = 'auto';
-      detailsPanel.style.right = '10px';
-      detailsPanel.style.transform = 'translateY(-50%)';
-      detailsPanel.style.zIndex = '1000';
-      detailsPanel.style.width = '1255px';
-      detailsPanel.style.maxWidth = '1255px';
-      detailsPanel.style.maxHeight = '80vh';
-      detailsPanel.style.overflow = 'auto';
-      detailsPanel.style.borderRadius = '8px';
-      detailsPanel.style.backgroundColor = '#fff';
-      detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
-      const contentWrapper = document.createElement('div');
-      contentWrapper.id = 'panel-content-wrapper';
-      contentWrapper.style.position = 'relative';
-      contentWrapper.style.width = '100%';
-      contentWrapper.style.height = '100%';
-      detailsPanel.appendChild(contentWrapper);
-      document.body.appendChild(detailsPanel);
-    }
+                  
+                  console.log(`[DEBUG] Found data for product: ${rowData.title}`);
+                  
+                  // DEEP DEBUG OF HISTORICAL DATA
+                  console.log(`[DEBUG] Historical data exists: ${Array.isArray(rowData.historical_data)}`);
 
-    // Adjust panel positioning based on fullscreen state
-    const isFullscreen = document.getElementById("productMapContainer").classList.contains("product-map-fullscreen");
-    if (isFullscreen) {
-      detailsPanel.style.position = 'absolute';
-      detailsPanel.style.top = '50%';
-      detailsPanel.style.left = '50%';
-      detailsPanel.style.transform = 'translate(-50%, -50%)';
-      detailsPanel.style.right = 'auto';
-      detailsPanel.style.zIndex = '10001';
-    } else {
-      detailsPanel.style.position = 'fixed';
-      detailsPanel.style.top = '40%';
-      detailsPanel.style.left = 'auto';
-      detailsPanel.style.right = '10px';
-      detailsPanel.style.transform = 'translateY(-50%)';
-    }
-    
-    // Get the content wrapper
-    let contentWrapper = document.getElementById('panel-content-wrapper');
-    if (!contentWrapper) {
-      contentWrapper = document.createElement('div');
-      contentWrapper.id = 'panel-content-wrapper';
-      contentWrapper.style.position = 'relative';
-      contentWrapper.style.width = '100%';
-      contentWrapper.style.height = '100%';
-      detailsPanel.appendChild(contentWrapper);
-    }
-    
-    // Show loading
-    contentWrapper.innerHTML = '<div style="padding: 20px; text-align: center;"><div class="spinner"></div><p>Loading product details...</p></div>';
-    
-    // Make sure panel is visible
-    detailsPanel.style.display = 'block';
-    
-    // Render with safety checks
-    setTimeout(() => {
-      try {
-        // Final safety check before rendering
-        if (!window.ResponsiveContainer) {
-          throw new Error("ResponsiveContainer is not available at render time");
-        }
-        
-        // Get date range
-        let dateRange = getDataRange(rowData);
+                  console.log(`[DEBUG] Historical data length: ${rowData.historical_data?.length || 0}`);
+                  
+                  if (rowData.historical_data && rowData.historical_data.length > 0) {
+                    // Log each historical entry in a structured way
+                    console.log(`[DEBUG] === FULL HISTORICAL DATA (${rowData.historical_data.length} entries) ===`);
+                    
+                    // Sort by date first to ensure they're in chronological order
+                    const sortedHistData = [...rowData.historical_data].sort((a, b) => {
+                      if (!a.date || !a.date.value) return -1;
+                      if (!b.date || !b.date.value) return 1;
+                      return a.date.value.localeCompare(b.date.value);
+                    });
+                    
+                    // Format the data as a table
+                    console.table(sortedHistData.map(entry => ({
+                      date: entry.date?.value || 'unknown',
+                      avg_position: entry.avg_position,
+                      visibility: entry.visibility,
+                      top3: entry.top3_visibility,
+                      top8: entry.top8_visibility,
+                      top14: entry.top14_visibility,
+                      top40: entry.top40_visibility
+                    })));
+                    
+                    // Show date coverage
+                    const dates = sortedHistData
+                      .filter(entry => entry.date && entry.date.value)
+                      .map(entry => entry.date.value);
+                    
+                    const uniqueDates = [...new Set(dates)];
+                    console.log(`[DEBUG] Date coverage: ${uniqueDates.length} unique dates out of ${dates.length} entries`);
+                    console.log(`[DEBUG] Date range: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length-1]}`);
+                    
+                    // Check for any data anomalies
+                    const missingPosition = sortedHistData.filter(entry => !entry.avg_position).length;
+                    const missingVisibility = sortedHistData.filter(entry => !entry.visibility).length;
+                    
+                    console.log(`[DEBUG] Data quality check:
+                      - Entries missing position: ${missingPosition}
+                      - Entries missing visibility: ${missingVisibility}
+                    `);
+                  }
+                  
+                  // Create or get the panel container
+                  let detailsPanel = document.getElementById('product-map-details-panel');
+                  if (!detailsPanel) {
+                    detailsPanel = document.createElement('div');
+                    detailsPanel.id = 'product-map-details-panel';
+                    detailsPanel.style.position = 'fixed';
+                    detailsPanel.style.top = '40%';
+                    detailsPanel.style.left = 'auto';
+                    detailsPanel.style.right = '10px';
+                    detailsPanel.style.transform = 'translateY(-50%)';
+                    detailsPanel.style.zIndex = '1000';
+                    detailsPanel.style.width = '1255px';
+                    detailsPanel.style.maxWidth = '1255px';
+                    detailsPanel.style.maxHeight = '80vh';
+                    detailsPanel.style.overflow = 'auto';
+                    detailsPanel.style.borderRadius = '8px';
+                    detailsPanel.style.backgroundColor = '#fff';
+                    detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
+                    const contentWrapper = document.createElement('div');
+                    contentWrapper.id = 'panel-content-wrapper';
+                    contentWrapper.style.position = 'relative';
+                    contentWrapper.style.width = '100%';
+                    contentWrapper.style.height = '100%';
+                    detailsPanel.appendChild(contentWrapper);
+                    document.body.appendChild(detailsPanel);
+                  }
 
-        // Override with a 7-day range specifically for product map page
-        if (dateRange && dateRange.end) {
-          dateRange = {
-            end: dateRange.end.clone(),
-            start: dateRange.end.clone().subtract(6, "days")
-          };
-        }
-        console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
-        
-        // Create a copy of rowData to pass to the component
-        const rowDataCopy = { ...rowData };
-        
-        console.log("[DEBUG] About to render DetailsPanel with ResponsiveContainer available:", !!window.ResponsiveContainer);
-        
-        // Render into the content wrapper
-        ReactDOM.render(
-          React.createElement(window.DetailsPanel, {
-            key: plaIndex,
-            rowData: rowDataCopy,
-            start: dateRange.start,
-            end: dateRange.end,
-            activeTab: window.savedActiveTab || 1,
-            onClose: () => {
-              detailsPanel.style.display = 'none';
-              document.body.style.overflow = 'auto';
-            }
-          }),
-          contentWrapper
-        );
-        
-        console.log("[DEBUG] DetailsPanel rendered successfully");
-        
-      } catch (error) {
-        console.error("[DEBUG] Error rendering panel:", error);
-        contentWrapper.innerHTML = `
-          <div style="padding: 20px; text-align: center;">
-            <h3>Error displaying product details</h3>
-            <p>${error.message}</p>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-              ResponsiveContainer available: ${!!window.ResponsiveContainer}<br>
-              Recharts available: ${!!window.Recharts}<br>
-              LineChart available: ${!!window.LineChart}
-            </p>
-            <pre style="text-align:left; max-height:200px; overflow:auto; margin-top: 10px; font-size: 11px;">${error.stack}</pre>
-            <button onclick="document.getElementById('product-map-details-panel').style.display='none';" 
-                    style="padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; margin-top: 10px;">
-              Close
-            </button>
-          </div>
-        `;
-      }
-    }, 100);
-    
-    return false;
-  });
-});
+                  // Adjust panel positioning based on fullscreen state
+const isFullscreen = document.getElementById("productMapContainer").classList.contains("product-map-fullscreen");
+if (isFullscreen) {
+  detailsPanel.style.position = 'absolute';
+  detailsPanel.style.top = '50%';
+  detailsPanel.style.left = '50%';
+  detailsPanel.style.transform = 'translate(-50%, -50%)';
+  detailsPanel.style.right = 'auto';
+  detailsPanel.style.zIndex = '10001'; // Ensure it's above the fullscreen container
+} else {
+  detailsPanel.style.position = 'fixed';
+  detailsPanel.style.top = '40%';
+  detailsPanel.style.left = 'auto';
+  detailsPanel.style.right = '10px';
+  detailsPanel.style.transform = 'translateY(-50%)';
+}
+                  
+                  // Get the content wrapper
+                  let contentWrapper = document.getElementById('panel-content-wrapper');
+                  if (!contentWrapper) {
+                    contentWrapper = document.createElement('div');
+                    contentWrapper.id = 'panel-content-wrapper';
+                    contentWrapper.style.position = 'relative';
+                    contentWrapper.style.width = '100%';
+                    contentWrapper.style.height = '100%';
+                    detailsPanel.appendChild(contentWrapper);
+                  }
+                  
+                  // Show the loading overlay
+                  let loadingOverlay = document.getElementById('panel-loading-overlay');
+                  if (!loadingOverlay) {
+                    loadingOverlay = document.createElement('div');
+                    loadingOverlay.id = 'panel-loading-overlay';
+                    loadingOverlay.style.position = 'absolute';
+                    loadingOverlay.style.top = '0';
+                    loadingOverlay.style.left = '0';
+                    loadingOverlay.style.width = '100%';
+                    loadingOverlay.style.height = '100%';
+                    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                    loadingOverlay.style.display = 'flex';
+                    loadingOverlay.style.justifyContent = 'center';
+                    loadingOverlay.style.alignItems = 'center';
+                    loadingOverlay.style.zIndex = '2000';
+                    loadingOverlay.innerHTML = '<div class="spinner"></div>';
+                    detailsPanel.appendChild(loadingOverlay);
+                  } else {
+                    loadingOverlay.style.display = 'flex';
+                  }
+                  
+                  // Make sure panel is visible
+                  detailsPanel.style.display = 'block';
+                  
+                  // Important debug approach - make a copy of the DetailsPanel component
+                  const originalDetailsPanel = window.DetailsPanel;
+                  
+                  // Create a debug version that tells us what's happening
+                  window.DetailsPanel = function(props) {
+                    // Log incoming props
+                    console.log("[DEBUG-INJECTION] DetailsPanel received props:", {
+                      has_rowData: !!props.rowData,
+                      rowData_title: props.rowData?.title,
+                      rowData_historical_length: props.rowData?.historical_data?.length,
+                      start_date: props.start?.format('YYYY-MM-DD'),
+                      end_date: props.end?.format('YYYY-MM-DD')
+                    });
+                    
+                    // Check if the PLAChart component is available to debug
+                    const originalPLAChart = window.PLAChart;
+                    if (originalPLAChart) {
+                      // Override PLAChart to debug what happens with the historical data
+                      window.PLAChart = function(plaProps) {
+                        console.log("[DEBUG-CHART] PLAChart received historical_data length:", 
+                          plaProps.rowData?.historical_data?.length || 0);
+                        
+                        // Check prepareChartData function which might be generating synthetic data
+                        const original_prepareChartData = originalPLAChart.prototype.prepareChartData;
+                        if (typeof original_prepareChartData === 'function') {
+                          originalPLAChart.prototype.prepareChartData = function(rowData, startDate, endDate) {
+                            console.log("[DEBUG-CHART] prepareChartData called with:", {
+                              has_rowData: !!rowData,
+                              historical_length: rowData?.historical_data?.length || 0,
+                              startDate: startDate?.format('YYYY-MM-DD'),
+                              endDate: endDate?.format('YYYY-MM-DD')
+                            });
+                            
+                            // Call original and log result
+                            const result = original_prepareChartData.call(this, rowData, startDate, endDate);
+                            console.log("[DEBUG-CHART] prepareChartData returned:", result.length, "data points");
+                            return result;
+                          };
+                        }
+                        
+                        // Return the original component with our debug version
+                        return originalPLAChart(plaProps);
+                      };
+                      
+                      // Restore the original after a delay
+                      setTimeout(() => {
+                        window.PLAChart = originalPLAChart;
+                      }, 2000);
+                    }
+                    
+                    // Call the original component
+                    return originalDetailsPanel(props);
+                  };
+                  
+// Render with our debug version
+                setTimeout(() => {
+                  try {
+                      // Get date range
+                      // Get the original date range first
+let dateRange = getDataRange(rowData);
+
+// Override with a 7-day range specifically for product map page
+if (dateRange && dateRange.end) {
+  // Keep the same end date but set start to 7 days before
+  dateRange = {
+    end: dateRange.end.clone(),
+    start: dateRange.end.clone().subtract(6, "days") // 7 days including end date
+  };
+}
+                      console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
+                      
+                      // Create a copy of rowData to pass to the component
+                      // This ensures we're passing exactly what we have in window.globalRows
+                      const rowDataCopy = { ...rowData };
+                      
+                      // Get the content wrapper again to ensure it exists
+                      const contentWrapper = document.getElementById('panel-content-wrapper');
+                      
+                      // Render into the content wrapper instead of detailsPanel
+                      ReactDOM.render(
+                        React.createElement(window.DetailsPanel, {
+                          key: plaIndex,
+                          rowData: rowDataCopy,
+                          start: dateRange.start,
+                          end: dateRange.end,
+                          activeTab: window.savedActiveTab || 1,
+                          onClose: () => {
+                            detailsPanel.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                          }
+                        }),
+                        contentWrapper
+                      );
+                      
+                      // Hide the loading overlay
+                      const loadingOverlay = document.getElementById('panel-loading-overlay');
+                      if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                      }
+                      
+                      // Restore original component
+                      window.DetailsPanel = originalDetailsPanel;
+                    } catch (error) {
+                      console.error("[DEBUG] Error rendering panel:", error);
+                      detailsPanel.innerHTML = `
+                        <div style="padding: 20px; text-align: center;">
+                          <h3>Error displaying product details</h3>
+                          <p>${error.message}</p>
+                          <pre style="text-align:left; max-height:200px; overflow:auto;">${error.stack}</pre>
+                          <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
+                            Close
+                          </button>
+                        </div>
+                      `;
+                      
+// Restore original component
+                    window.DetailsPanel = originalDetailsPanel;
+                  }
+                }, 100);
+                  
+                  return false;
+                }, true);
+              });
 
 // Add this right after adding products to window.globalRows 
 // (after the matchingProducts.forEach loop)
@@ -3593,11 +3573,13 @@ requestAnimationFrame(renderBatch);
     renderPendingCharts();
   }
 
-// Function to render average position chart
+// Function to render average position chart using Chart.js instead of Recharts
 function renderAvgPositionChart(container, products) {
-if (!Chart.defaults.plugins.annotation) {
-  console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
-}
+  // Check if annotation plugin is available
+  if (!Chart.defaults.plugins.annotation) {
+    console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+  }
+  
   // Clear previous content
   container.innerHTML = '';
   container.style.padding = '20px';
@@ -3649,89 +3631,89 @@ if (!Chart.defaults.plugins.annotation) {
     dateArray.splice(0, dateArray.length - 30);
   }
   
-// Create datasets for each product
-const datasets = [];
-
-products.forEach((product, index) => {
-  // Position data
-  const positionData = dateArray.map(dateStr => {
-    const histItem = product.historical_data?.find(item => 
-      item.date?.value === dateStr
-    );
-    return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
-  });
+  // Create datasets for each product
+  const datasets = [];
   
-// Visibility data - use 0 for missing values instead of null
-  const visibilityData = dateArray.map(dateStr => {
-    const histItem = product.historical_data?.find(item => 
-      item.date?.value === dateStr
-    );
-    // Return 0 if no visibility data exists, round to 1 decimal
-    if (histItem?.visibility) {
-      const visValue = parseFloat(histItem.visibility) * 100;
-      return Math.round(visValue * 10) / 10; // Round to 1 decimal place
-    }
-    return 0;
-  });
+  products.forEach((product, index) => {
+    // Position data
+    const positionData = dateArray.map(dateStr => {
+      const histItem = product.historical_data?.find(item => 
+        item.date?.value === dateStr
+      );
+      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
+    });
     
-// Generate a color for this product - grey for inactive
-  let color;
-  if (product.product_status === 'inactive') {
-    color = '#999999'; // Grey for inactive products
-  } else {
-    const colors = [
-      '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
-      '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
-    ];
-    color = colors[index % colors.length];
-  }
-  
-  // Add position line dataset
-  datasets.push({
-    label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
-    data: positionData,
-    borderColor: color,
-    backgroundColor: color + '20',
-    borderWidth: 2,
-    pointRadius: 3,
-    pointHoverRadius: 5,
-    tension: 0.3,
-    spanGaps: true,
-    yAxisID: 'y',
-    type: 'line',
-    productIndex: index, // Store product index for reference
-    dataType: 'position',
-    segment: {
-      borderDash: (ctx) => {
-        const p0 = ctx.p0;
-        const p1 = ctx.p1;
-        if (p0.skip || p1.skip) {
-          return [5, 5];
-        }
-        return undefined;
+    // Visibility data - use 0 for missing values instead of null
+    const visibilityData = dateArray.map(dateStr => {
+      const histItem = product.historical_data?.find(item => 
+        item.date?.value === dateStr
+      );
+      // Return 0 if no visibility data exists, round to 1 decimal
+      if (histItem?.visibility) {
+        const visValue = parseFloat(histItem.visibility) * 100;
+        return Math.round(visValue * 10) / 10; // Round to 1 decimal place
       }
+      return 0;
+    });
+    
+    // Generate a color for this product - grey for inactive
+    let color;
+    if (product.product_status === 'inactive') {
+      color = '#999999'; // Grey for inactive products
+    } else {
+      const colors = [
+        '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+        '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+      ];
+      color = colors[index % colors.length];
     }
+    
+    // Add position line dataset
+    datasets.push({
+      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+      data: positionData,
+      borderColor: color,
+      backgroundColor: color + '20',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: true,
+      yAxisID: 'y',
+      type: 'line',
+      productIndex: index, // Store product index for reference
+      dataType: 'position',
+      segment: {
+        borderDash: (ctx) => {
+          const p0 = ctx.p0;
+          const p1 = ctx.p1;
+          if (p0.skip || p1.skip) {
+            return [5, 5];
+          }
+          return undefined;
+        }
+      }
+    });
+    
+    // Add visibility area dataset (initially hidden)
+    datasets.push({
+      label: product.title?.substring(0, 30) + ' (Visibility)',
+      data: visibilityData,
+      borderColor: color,
+      backgroundColor: color + '30',
+      borderWidth: 2,
+      fill: true,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: false, // Don't span gaps for visibility
+      yAxisID: 'y1',
+      type: 'line',
+      hidden: true, // Initially hidden
+      productIndex: index, // Store product index for reference
+      dataType: 'visibility'
+    });
   });
-  
-// Add visibility area dataset (initially hidden)
-  datasets.push({
-    label: product.title?.substring(0, 30) + ' (Visibility)',
-    data: visibilityData,
-    borderColor: color,
-    backgroundColor: color + '30',
-    borderWidth: 2,
-    fill: true,
-    pointRadius: 3,
-    pointHoverRadius: 5,
-    tension: 0.3,
-    spanGaps: false, // Don't span gaps for visibility
-    yAxisID: 'y1',
-    type: 'line',
-    hidden: true, // Initially hidden
-    productIndex: index, // Store product index for reference
-    dataType: 'visibility'
-  });
-});
   
   // Create the chart
   container.chartInstance = new Chart(canvas, {
@@ -3747,119 +3729,120 @@ products.forEach((product, index) => {
         mode: 'index',
         intersect: false
       },
-plugins: {
-  legend: {
-    display: false
-  },
-  annotation: {
-    annotations: {
-      top8Area: {
-        type: 'box',
-        yScaleID: 'y',
-        yMin: 1,
-        yMax: 8,
-        backgroundColor: 'rgba(144, 238, 144, 0.2)', // Light green with transparency
-        borderColor: 'rgba(144, 238, 144, 0.4)',
-        borderWidth: 1,
-        borderDash: [5, 5],
-        label: {
-          content: 'TOP 8',
-          enabled: true,
-          position: 'start',
-          color: '#4CAF50',
-          font: {
-            size: 12,
-            weight: 'bold'
+      plugins: {
+        legend: {
+          display: false
+        },
+        annotation: {
+          annotations: {
+            top8Area: {
+              type: 'box',
+              yScaleID: 'y',
+              yMin: 1,
+              yMax: 8,
+              backgroundColor: 'rgba(144, 238, 144, 0.2)', // Light green with transparency
+              borderColor: 'rgba(144, 238, 144, 0.4)',
+              borderWidth: 1,
+              borderDash: [5, 5],
+              label: {
+                content: 'TOP 8',
+                enabled: true,
+                position: 'start',
+                color: '#4CAF50',
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              if (context.parsed.y !== null) {
+                if (context.dataset.dataType === 'visibility') {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                } else {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+                }
+              }
+              return context.dataset.label + ': No data';
+            },
+            filter: function(tooltipItem) {
+              // Only show visible datasets in tooltip
+              return !tooltipItem.dataset.hidden;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 },
+            autoSkip: true,
+            maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
+          },
+          grid: {
+            display: true,
+            drawBorder: true,
+            drawOnChartArea: true,
+            drawTicks: true
+          }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          reverse: true,
+          min: 1,
+          max: 40,
+          title: {
+            display: true,
+            text: 'Average Position',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 5
+          }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Visibility (%)',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 20,
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            drawOnChartArea: false // Don't draw grid lines for right axis
           }
         }
       }
     }
-  },
-        tooltip: {
-  mode: 'index',
-  intersect: false,
-  callbacks: {
-    label: function(context) {
-      if (context.parsed.y !== null) {
-        if (context.dataset.dataType === 'visibility') {
-          return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
-        } else {
-          return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
-        }
-      }
-      return context.dataset.label + ': No data';
-    },
-    filter: function(tooltipItem) {
-      // Only show visible datasets in tooltip
-      return !tooltipItem.dataset.hidden;
-    }
-  }
-}
-      },
-      scales: {
-  x: {
-    type: 'category',
-    title: {
-      display: true,
-      text: 'Date',
-      font: { size: 12 }
-    },
-    ticks: {
-      maxRotation: 45,
-      minRotation: 45,
-      font: { size: 10 },
-      autoSkip: true,
-      maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
-    },
-    grid: {
-      display: true,
-      drawBorder: true,
-      drawOnChartArea: true,
-      drawTicks: true
-    }
-  },
-  y: {
-    type: 'linear',
-    position: 'left',
-    reverse: true,
-    min: 1,
-    max: 40,
-    title: {
-      display: true,
-      text: 'Average Position',
-      font: { size: 12 }
-    },
-    ticks: {
-      font: { size: 10 },
-      stepSize: 5
-    }
-  },
-  y1: {
-    type: 'linear',
-    position: 'right',
-    min: 0,
-    max: 100,
-    title: {
-      display: true,
-      text: 'Visibility (%)',
-      font: { size: 12 }
-    },
-    ticks: {
-      font: { size: 10 },
-      stepSize: 20,
-      callback: function(value) {
-        return value + '%';
-      }
-    },
-    grid: {
-      drawOnChartArea: false // Don't draw grid lines for right axis
-    }
-  }
-}
-    }
   });
 }
 
+// Function to update chart line visibility when product is selected/deselected
 function updateChartLineVisibility(chartContainer, selectedIndex) {
   const chart = chartContainer.chartInstance;
   if (!chart) return;
