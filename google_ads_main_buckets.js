@@ -529,7 +529,10 @@ function showBucketsOverview() {
   if (roasMetricsTable) roasMetricsTable.style.display = 'block';
   if (roasChannels) roasChannels.style.display = 'block';
   if (buckets_products) buckets_products.style.display = 'block';
-  if (filterContainer) filterContainer.style.display = 'none';
+  if (filterContainer) {
+    // Only change display property, preserve other styles
+    filterContainer.style.display = 'none';
+  }
   if (bucketedProducts) bucketedProducts.style.display = 'none';
 }
 
@@ -562,8 +565,13 @@ function showBucketedProducts() {
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
   if (roasChannels) roasChannels.style.display = 'none';
   if (buckets_products) buckets_products.style.display = 'none';
-  if (filterContainer) {
+if (filterContainer) {
+    // Preserve existing styles while only changing display
     filterContainer.style.display = 'block';
+    // Ensure margins are preserved
+    if (!filterContainer.style.margin) {
+      filterContainer.style.margin = '110px 0 20px 20px';
+    }
     renderBucketFunnels(); // Render the funnels
   }
   if (bucketedProducts) {
