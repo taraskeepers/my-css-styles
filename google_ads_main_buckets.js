@@ -729,26 +729,29 @@ function createBucketedProductItem(product, metrics) {
     <!-- Position Badge with Trend -->
     <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1; color: white; font-weight: 700;">${metrics.avgRating}</div>
-      ${metrics.rankTrend && metrics.rankTrend.arrow ? `
+${metrics.rankTrend && metrics.rankTrend.arrow ? `
         <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
-          <span style="background-color: rgba(255,255,255,0.3); font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
+          <span style="background-color: ${metrics.rankTrend.color}; font-size: 9px; padding: 2px 5px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
             ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
           </span>
         </div>
       ` : ''}
     </div>
     
-    <!-- Visibility Status with Trend -->
-    <div class="small-ad-vis-status" style="width: 60px; height: 60px; background-color: #2196F3; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-      <div style="font-size: 10px; color: white; opacity: 0.9; text-transform: uppercase;">VIS</div>
-      <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">${metrics.avgVisibility.toFixed(0)}%</div>
-      ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
-        <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
-          <span style="background-color: rgba(255,255,255,0.3); font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
-            ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change)}
-          </span>
+<!-- Visibility Status with Trend -->
+    <div class="small-ad-vis-status" style="width: 60px;">
+      <div class="vis-status-left">
+        <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%; position: relative;">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+          ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
+            <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
+              <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 9px; padding: 2px 5px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
+                ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change).toFixed(0)}%
+              </span>
+            </div>
+          ` : ''}
         </div>
-      ` : ''}
+      </div>
     </div>
     
     <!-- ROAS Badge -->
@@ -796,26 +799,273 @@ function createBucketedProductItem(product, metrics) {
     this.style.transform = 'translateY(0)';
   });
   
-  // Add click handler to select product
-  productDiv.addEventListener('click', function() {
-    const navItems = document.querySelectorAll('.nav-google-ads-item');
-    navItems.forEach(navItem => {
-      const navTitle = navItem.querySelector('.small-ad-title')?.textContent;
-      if (navTitle === title) {
-        navItem.click();
-        document.getElementById('viewOverviewGoogleAds')?.click();
-      }
-    });
+// Remove the old click handler and add new expansion functionality
+  productDiv.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleDetailedProductView(productDiv, product, bucketData);
   });
   
   return productDiv;
 }
 
+// Toggle detailed product view
+function toggleDetailedProductView(productDiv, product, bucketData) {
+  // Check if detail view already exists
+  let detailView = productDiv.nextElementSibling;
+  if (detailView && detailView.classList.contains('detailed-bucketed-product-overview')) {
+    // Animate close
+    detailView.style.maxHeight = '0px';
+    detailView.style.opacity = '0';
+    setTimeout(() => {
+      detailView.remove();
+    }, 300);
+    return;
+  }
+  
+  // Close any other open detail views
+  const openDetails = document.querySelectorAll('.detailed-bucketed-product-overview');
+  openDetails.forEach(detail => {
+    detail.style.maxHeight = '0px';
+    detail.style.opacity = '0';
+    setTimeout(() => {
+      detail.remove();
+    }, 300);
+  });
+  
+  // Create and show new detail view
+  const detailContainer = createDetailedProductOverview(bucketData);
+  productDiv.parentNode.insertBefore(detailContainer, productDiv.nextSibling);
+  
+  // Animate open
+  setTimeout(() => {
+    detailContainer.style.maxHeight = '260px';
+    detailContainer.style.opacity = '1';
+  }, 10);
+}
+
+// Create detailed product overview container
+function createDetailedProductOverview(bucketData) {
+  const container = document.createElement('div');
+  container.className = 'detailed-bucketed-product-overview';
+  container.style.cssText = `
+    width: 1155px;
+    height: 260px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin: 10px 0;
+    padding: 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  `;
+  
+  if (!bucketData) {
+    container.innerHTML = '<div style="text-align: center; color: #999; padding: 50px;">No detailed data available</div>';
+    return container;
+  }
+  
+  // Create metrics section
+  const metricsSection = createDetailedMetricsSection(bucketData);
+  container.appendChild(metricsSection);
+  
+  // Create buckets section
+  const bucketsSection = createBucketsExplanationSection(bucketData);
+  container.appendChild(bucketsSection);
+  
+  return container;
+}
+
+// Create detailed metrics section with all available metrics
+function createDetailedMetricsSection(bucketData) {
+  const section = document.createElement('div');
+  section.className = 'detailed-product-metrics-box';
+  section.style.cssText = `
+    width: 100%;
+    background: linear-gradient(135deg, #f8f9fa, #f0f1f3);
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  `;
+  
+  // Define all metrics to display
+  const allMetrics = [
+    { key: 'Impressions', label: 'Impressions', format: 'number' },
+    { key: 'Clicks', label: 'Clicks', format: 'number' },
+    { key: 'CTR', label: 'CTR', format: 'percent' },
+    { key: 'CVR', label: 'CVR', format: 'percent' },
+    { key: 'Conversions', label: 'Conv', format: 'decimal' },
+    { key: 'ConvValue', label: 'Revenue', format: 'currency' },
+    { key: 'Cost', label: 'Cost', format: 'currency' },
+    { key: 'ROAS', label: 'ROAS', format: 'roas' },
+    { key: 'AOV', label: 'AOV', format: 'currency' },
+    { key: 'CPA', label: 'CPA', format: 'currency' },
+    { key: 'CPM', label: 'CPM', format: 'currency' },
+    { key: 'Cart Rate', label: 'Cart Rate', format: 'percent' },
+    { key: 'Checkout Rate', label: 'Checkout', format: 'percent' },
+    { key: 'Purchase Rate', label: 'Purchase', format: 'percent' }
+  ];
+  
+  allMetrics.forEach(metric => {
+    const metricDiv = createMetricWithTrend(bucketData, metric);
+    section.appendChild(metricDiv);
+  });
+  
+  return section;
+}
+
+// Create individual metric with trend
+function createMetricWithTrend(bucketData, metric) {
+  const value = bucketData[metric.key] || 0;
+  const prevValue = bucketData[`prev_${metric.key}`] || 0;
+  
+  // Calculate trend
+  let trend = 0;
+  let trendArrow = '';
+  let trendColor = '#666';
+  
+  if (prevValue > 0 && value > 0) {
+    trend = ((value - prevValue) / prevValue) * 100;
+    if (trend > 0) {
+      trendArrow = '▲';
+      trendColor = (metric.key === 'Cost' || metric.key === 'CPA' || metric.key === 'CPM') ? '#F44336' : '#4CAF50';
+    } else if (trend < 0) {
+      trendArrow = '▼';
+      trendColor = (metric.key === 'Cost' || metric.key === 'CPA' || metric.key === 'CPM') ? '#4CAF50' : '#F44336';
+    } else {
+      trendArrow = '—';
+    }
+  } else if (value > 0 && prevValue === 0) {
+    trendArrow = '▲';
+    trendColor = (metric.key === 'Cost' || metric.key === 'CPA' || metric.key === 'CPM') ? '#F44336' : '#4CAF50';
+    trend = 100;
+  }
+  
+  // Format value
+  let formattedValue = '';
+  switch (metric.format) {
+    case 'currency':
+      formattedValue = '$' + parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      break;
+    case 'percent':
+      formattedValue = parseFloat(value).toFixed(1) + '%';
+      break;
+    case 'decimal':
+      formattedValue = parseFloat(value).toFixed(1);
+      break;
+    case 'roas':
+      formattedValue = parseFloat(value).toFixed(2) + 'x';
+      break;
+    default:
+      formattedValue = parseInt(value).toLocaleString();
+  }
+  
+  const metricDiv = document.createElement('div');
+  metricDiv.style.cssText = 'text-align: center; min-width: 70px;';
+  metricDiv.innerHTML = `
+    <div style="font-size: 10px; color: #666; margin-bottom: 4px; text-transform: uppercase; font-weight: 600;">${metric.label}</div>
+    <div style="font-size: 16px; font-weight: 700; color: #333;">${formattedValue}</div>
+    <div style="font-size: 10px; color: ${trendColor}; font-weight: 600; margin-top: 3px;">
+      ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+    </div>
+  `;
+  
+  return metricDiv;
+}
+
+// Create buckets explanation section
+function createBucketsExplanationSection(bucketData) {
+  const section = document.createElement('div');
+  section.style.cssText = `
+    width: 100%;
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+  `;
+  
+  const bucketTypes = [
+    { key: 'PROFITABILITY_BUCKET', title: 'Profitability', color: '#4CAF50' },
+    { key: 'FUNNEL_STAGE_BUCKET', title: 'Funnel Stage', color: '#2196F3' },
+    { key: 'INVESTMENT_BUCKET', title: 'Investment', color: '#FF9800' },
+    { key: 'CUSTOM_TIER_BUCKET', title: 'Custom Tier', color: '#9C27B0' },
+    { key: 'SUGGESTIONS_BUCKET', title: 'Suggestions', color: '#F44336' }
+  ];
+  
+  bucketTypes.forEach(bucket => {
+    const bucketDiv = createBucketExplanation(bucketData, bucket);
+    section.appendChild(bucketDiv);
+  });
+  
+  return section;
+}
+
+// Create individual bucket explanation
+function createBucketExplanation(bucketData, bucketConfig) {
+  const bucketDiv = document.createElement('div');
+  bucketDiv.style.cssText = `
+    flex: 1;
+    background: ${bucketConfig.color}08;
+    border: 1px solid ${bucketConfig.color}30;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  `;
+  
+  let value = 'N/A';
+  let explanation = '';
+  
+  if (bucketConfig.key === 'SUGGESTIONS_BUCKET' && bucketData[bucketConfig.key]) {
+    // Handle suggestions differently
+    try {
+      const suggestions = JSON.parse(bucketData[bucketConfig.key]);
+      if (suggestions.length > 0) {
+        value = suggestions.map(s => s.suggestion).join(', ');
+        explanation = suggestions.map(s => s.context || '').join('; ');
+      }
+    } catch (e) {
+      value = 'Parse error';
+    }
+  } else if (bucketData[bucketConfig.key]) {
+    // Handle regular buckets
+    try {
+      const parsed = JSON.parse(bucketData[bucketConfig.key]);
+      value = parsed.value || bucketData[bucketConfig.key];
+      explanation = parsed.explanation || '';
+    } catch (e) {
+      value = bucketData[bucketConfig.key];
+    }
+  }
+  
+  bucketDiv.innerHTML = `
+    <div style="font-size: 11px; font-weight: 600; color: ${bucketConfig.color}; text-transform: uppercase;">${bucketConfig.title}</div>
+    <div style="font-size: 13px; font-weight: 700; color: #333; margin: 4px 0;">${value}</div>
+    <div style="font-size: 10px; color: #666; line-height: 1.3; max-height: 40px; overflow-y: auto;">${explanation || 'No explanation available'}</div>
+  `;
+  
+  return bucketDiv;
+}
+
 async function loadProductBucketDataAsync(productDiv, productTitle) {
   const bucketData = await getProductBucketData(productTitle);
   
-  // Store bucket data on the element for later use
-  productDiv.bucketData = bucketData;
+  // Replace the click handler setup at the end of createBucketedProductItem
+  productDiv.bucketData = bucketData; // Store for later use
+  
+  productDiv.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleDetailedProductView(productDiv, product, productDiv.bucketData);
+  });
   
   if (!bucketData) {
     // Update containers with "No data" message
