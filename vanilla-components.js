@@ -61,64 +61,70 @@
       gap: 20px;
     }
 
-    .pla-details-column {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 8px;
-    }
+.pla-details-column {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  min-height: 350px;  /* Add minimum height */
+}
 
-    .pla-details-left {
-      flex: 0 0 600px;
-    }
+.pla-details-left {
+  flex: 0 0 600px;
+}
 
-    .pla-details-middle {
-      flex: 0 0 300px;
-    }
+.pla-details-middle {
+  flex: 0 0 250px;  /* Reduced from 300px */
+}
 
-    .pla-details-main-metrics {
-      min-width: 250px;
-    }
+.pla-details-main-metrics {
+  min-width: 200px;  /* Reduced from 250px */
+}
 
     .pla-details-settings {
       min-width: 200px;
     }
 
-    .metric-row {
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #eee;
-    }
+.metric-row {
+  margin-bottom: 15px;  /* Reduced from 20px */
+  padding-bottom: 12px;  /* Reduced from 15px */
+  border-bottom: 1px solid #eee;
+}
 
     .metric-row:last-child {
       border-bottom: none;
     }
 
-    .metric-title {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
+.metric-title {
+  font-size: 13px;  /* Reduced from 14px */
+  color: #666;
+  margin-bottom: 5px;  /* Reduced from 8px */
+  font-weight: 500;
+}
 
-    .metric-value {
-      font-size: 28px;
-      font-weight: 600;
-      color: #333;
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
+.metric-value {
+  font-size: 24px;  /* Reduced from 28px */
+  font-weight: 600;
+  color: #333;
+  display: block;  /* Changed from flex to block */
+}
+
+.metric-trend {
+  font-size: 14px;  /* New style for trend values */
+  font-weight: 500;
+  margin-top: 3px;
+  display: block;
+}
 
     .metric-value span {
       font-size: 16px;
       font-weight: 500;
     }
 
-    .volatility-status {
-      font-size: 14px;
-      margin-top: 5px;
-      font-weight: 500;
-    }
+.volatility-status {
+  font-size: 13px;  /* Reduced from 14px */
+  margin-top: 3px;  /* Reduced from 5px */
+  font-weight: 500;
+}
 
     /* Toggle Switch Styles */
     .toggle-switch-container {
@@ -204,6 +210,16 @@
       border-radius: 4px;
       padding: 10px;
     }
+    .tab-btn:active,
+.tab-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+}
+
+.tab-btn.active:active,
+.tab-btn.active:focus {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
   `;
   document.head.appendChild(style);
 })();
@@ -284,7 +300,7 @@ function DetailsPanel(props) {
 if (tabNum === 1) {
   // Position & Visibility Trends tab
   tabsContainer.innerHTML = `
-    <div class="tab-content" style="display: flex; gap: 12px;">
+    <div class="tab-content" style="display: flex; gap: 12px; min-height: 350px;">
       <div class="pla-details-column pla-details-left">
         <div id="pla-chart-${Date.now()}" style="width: 600px; height: 300px;"></div>
       </div>
@@ -480,58 +496,80 @@ function PLAChart(props) {
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true },
-          annotation: {
-            annotations: {
-              topEight: {
-                type: 'box',
-                yScaleID: 'y',
-                yMin: 1,
-                yMax: 8,
-                backgroundColor: 'rgba(144, 238, 144, 0.1)',
-                borderColor: 'rgba(144, 238, 144, 0.3)',
-                borderWidth: 1,
-                label: {
-                  content: 'TOP 8',
-                  enabled: true,
-                  position: 'start'
-                }
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            display: true,
-            title: { display: true, text: 'Date' },
-            ticks: {
-              maxRotation: 45,
-              minRotation: 45
-            }
-          },
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            reverse: true,
-            min: 1,
-            max: 40,
-            title: { display: true, text: 'Position' }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            min: 0,
-            max: 100,
-            title: { display: true, text: 'Visibility %' },
-            grid: { drawOnChartArea: false }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: true },
+    annotation: {
+      annotations: {
+        topEight: {
+          type: 'box',
+          yScaleID: 'y',
+          yMin: 1,
+          yMax: 8,
+          backgroundColor: 'rgba(144, 238, 144, 0.1)',
+          borderColor: 'rgba(144, 238, 144, 0.3)',
+          borderWidth: 1,
+          label: {
+            content: 'TOP 8',
+            enabled: true,
+            position: 'start'
           }
         }
       }
+    },
+    datalabels: {
+      display: function(context) {
+        // Only show labels for position dataset
+        return context.datasetIndex === 0 && context.dataset.data[context.dataIndex] !== null;
+      },
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderColor: '#007aff',
+      borderRadius: 4,
+      borderWidth: 1,
+      color: '#007aff',
+      font: {
+        size: 11,
+        weight: 'bold'
+      },
+      padding: 4,
+      anchor: 'end',
+      align: 'top',
+      offset: 5,
+      formatter: function(value) {
+        return value.toFixed(1);
+      }
+    }
+  },
+  scales: {
+    x: {
+      display: true,
+      title: { display: true, text: 'Date' },
+      ticks: {
+        maxRotation: 45,
+        minRotation: 45
+      }
+    },
+    y: {
+      type: 'linear',
+      display: true,
+      position: 'left',
+      reverse: true,
+      min: 1,
+      max: 40,
+      title: { display: true, text: 'Position' }
+    },
+    y1: {
+      type: 'linear',
+      display: true,
+      position: 'right',
+      min: 0,
+      max: 100,
+      title: { display: true, text: 'Visibility %' },
+      grid: { drawOnChartArea: false }
+    }
+  }
+}
     });
   }, 100);
   
@@ -644,28 +682,39 @@ function AppleBarChart(props) {
               }
             }
           },
-          datalabels: {
-            display: ctx => ctx.datasetIndex === 0,
-            formatter: (value, context) => {
-              const row = chartData[context.dataIndex];
-              const mainLabel = `${row.current.toFixed(1)}%`;
-              const diff = row.current - row.previous;
-              const absDiff = Math.abs(diff).toFixed(1);
-              const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '±';
-              return [mainLabel, `${arrow}${absDiff}%`];
-            },
-            color: ctx => {
-              const row = chartData[ctx.dataIndex];
-              const diff = row.current - row.previous;
-              if (diff > 0) return 'green';
-              if (diff < 0) return 'red';
-              return '#444';
-            },
-            anchor: 'end',
-            align: 'end',
-            offset: 8,
-            font: { size: 10 }
-          }
+datalabels: {
+  display: ctx => ctx.datasetIndex === 0,
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  borderColor: function(ctx) {
+    const row = chartData[ctx.dataIndex];
+    const diff = row.current - row.previous;
+    if (diff > 0) return 'green';
+    if (diff < 0) return 'red';
+    return '#666';
+  },
+  borderRadius: 4,
+  borderWidth: 1,
+  padding: { top: 2, bottom: 2, left: 6, right: 6 },
+  formatter: (value, context) => {
+    const row = chartData[context.dataIndex];
+    const mainLabel = `${row.current.toFixed(1)}%`;
+    const diff = row.current - row.previous;
+    const absDiff = Math.abs(diff).toFixed(1);
+    const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '±';
+    return [mainLabel, `${arrow}${absDiff}%`];
+  },
+  color: ctx => {
+    const row = chartData[ctx.dataIndex];
+    const diff = row.current - row.previous;
+    if (diff > 0) return 'green';
+    if (diff < 0) return 'red';
+    return '#444';
+  },
+  anchor: 'end',
+  align: 'end',
+  offset: 8,
+  font: { size: 11 }
+}
         },
         scales: {
           x: { 
@@ -735,31 +784,27 @@ function MainMetrics(props) {
   const posArrow = positionChange < 0 ? '▲' : positionChange > 0 ? '▼' : '';
   const visArrow = visibilityChange > 0 ? '▲' : visibilityChange < 0 ? '▼' : '';
   
-  container.innerHTML = `
-    <div class="metric-row">
-      <div class="metric-title">Average Position</div>
-      <div class="metric-value" style="font-size: 32px; color: #333;">
-        ${avgPosition.toFixed(2)}
-        <span style="color: ${positionChange < 0 ? 'green' : positionChange > 0 ? 'red' : '#444'}; font-size: 18px;">
-          ${posArrow} ${Math.abs(positionChange).toFixed(2)}
-        </span>
-      </div>
+container.innerHTML = `
+  <div class="metric-row">
+    <div class="metric-title">Average Position</div>
+    <div class="metric-value">${avgPosition.toFixed(2)}</div>
+    <div class="metric-trend" style="color: ${positionChange < 0 ? 'green' : positionChange > 0 ? 'red' : '#444'};">
+      ${posArrow} ${Math.abs(positionChange).toFixed(2)}
     </div>
-    <div class="metric-row">
-      <div class="metric-title">Average Visibility</div>
-      <div class="metric-value" style="font-size: 32px; color: #333;">
-        ${(avgVisibility * 100).toFixed(2)}%
-        <span style="color: ${visibilityChange > 0 ? 'green' : visibilityChange < 0 ? 'red' : '#444'}; font-size: 18px;">
-          ${visArrow} ${Math.abs(visibilityChange * 100).toFixed(2)}%
-        </span>
-      </div>
+  </div>
+  <div class="metric-row">
+    <div class="metric-title">Average Visibility</div>
+    <div class="metric-value">${(avgVisibility * 100).toFixed(2)}%</div>
+    <div class="metric-trend" style="color: ${visibilityChange > 0 ? 'green' : visibilityChange < 0 ? 'red' : '#444'};">
+      ${visArrow} ${Math.abs(visibilityChange * 100).toFixed(2)}%
     </div>
-    <div class="metric-row">
-      <div class="metric-title">Ranking Volatility</div>
-      <div class="metric-value" style="font-size: 32px; color: ${volatilityColor};">${volatility.toFixed(2)}</div>
-      <div class="volatility-status" style="font-size: 16px; color: ${volatilityColor};">${volatilityStatus}</div>
-    </div>
-  `;
+  </div>
+  <div class="metric-row">
+    <div class="metric-title">Ranking Volatility</div>
+    <div class="metric-value" style="color: ${volatilityColor};">${volatility.toFixed(2)}</div>
+    <div class="volatility-status" style="color: ${volatilityColor};">${volatilityStatus}</div>
+  </div>
+`;
   
   return container;
 }
