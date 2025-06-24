@@ -853,7 +853,7 @@ function createDetailedProductOverview(bucketData) {
   container.className = 'detailed-bucketed-product-overview';
   container.style.cssText = `
     width: 1155px;
-    height: 260px;
+    height: 400px;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
@@ -894,41 +894,92 @@ function createDetailedMetricsSection(bucketData) {
     background: linear-gradient(135deg, #f8f9fa, #f0f1f3);
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px;
+    padding: 20px;
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+    gap: 25px;
     justify-content: space-between;
   `;
   
-  // Define all metrics to display
-  const allMetrics = [
-    { key: 'Impressions', label: 'Impressions', format: 'number' },
-    { key: 'Clicks', label: 'Clicks', format: 'number' },
-    { key: 'CTR', label: 'CTR', format: 'percent' },
-    { key: 'CVR', label: 'CVR', format: 'percent' },
-    { key: 'Conversions', label: 'Conv', format: 'decimal' },
-    { key: 'ConvValue', label: 'Revenue', format: 'currency' },
-    { key: 'Cost', label: 'Cost', format: 'currency' },
-    { key: 'ROAS', label: 'ROAS', format: 'roas' },
-    { key: 'AOV', label: 'AOV', format: 'currency' },
-    { key: 'CPA', label: 'CPA', format: 'currency' },
-    { key: 'CPM', label: 'CPM', format: 'currency' },
-    { key: 'Cart Rate', label: 'Cart Rate', format: 'percent' },
-    { key: 'Checkout Rate', label: 'Checkout', format: 'percent' },
-    { key: 'Purchase Rate', label: 'Purchase', format: 'percent' }
+  // Define metric groups
+  const metricGroups = [
+    {
+      title: 'Volume & Engagement',
+      metrics: [
+        { key: 'Impressions', label: 'Impressions', format: 'number' },
+        { key: 'Clicks', label: 'Clicks', format: 'number' },
+        { key: 'CTR', label: 'CTR', format: 'percent' }
+      ]
+    },
+    {
+      title: 'Conversion Performance',
+      metrics: [
+        { key: 'CVR', label: 'CVR', format: 'percent' },
+        { key: 'Conversions', label: 'Conversions', format: 'decimal' },
+        { key: 'ConvValue', label: 'Revenue', format: 'currency' },
+        { key: 'AOV', label: 'AOV', format: 'currency' }
+      ]
+    },
+    {
+      title: 'Cost Efficiency',
+      metrics: [
+        { key: 'Cost', label: 'Cost', format: 'currency' },
+        { key: 'CPA', label: 'CPA', format: 'currency' },
+        { key: 'CPM', label: 'CPM', format: 'currency' },
+        { key: 'ROAS', label: 'ROAS', format: 'roas', highlight: true }
+      ]
+    },
+    {
+      title: 'Funnel Analysis',
+      metrics: [
+        { key: 'Cart Rate', label: 'Cart Rate', format: 'percent' },
+        { key: 'Checkout Rate', label: 'Checkout', format: 'percent' },
+        { key: 'Purchase Rate', label: 'Purchase', format: 'percent' }
+      ]
+    }
   ];
   
-  allMetrics.forEach(metric => {
-    const metricDiv = createMetricWithTrend(bucketData, metric);
-    section.appendChild(metricDiv);
+  metricGroups.forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.style.cssText = `
+      flex: 1;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 6px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    `;
+    
+    // Group title
+    const titleDiv = document.createElement('div');
+    titleDiv.style.cssText = `
+      font-size: 11px;
+      font-weight: 700;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    `;
+    titleDiv.textContent = group.title;
+    groupDiv.appendChild(titleDiv);
+    
+    // Metrics container
+    const metricsContainer = document.createElement('div');
+    metricsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+    
+    group.metrics.forEach(metric => {
+      const metricDiv = createGroupedMetricWithTrend(bucketData, metric);
+      metricsContainer.appendChild(metricDiv);
+    });
+    
+    groupDiv.appendChild(metricsContainer);
+    section.appendChild(groupDiv);
   });
   
   return section;
 }
 
-// Create individual metric with trend
-function createMetricWithTrend(bucketData, metric) {
+// Create individual metric with trend for grouped layout
+function createGroupedMetricWithTrend(bucketData, metric) {
   const value = bucketData[metric.key] || 0;
   const prevValue = bucketData[`prev_${metric.key}`] || 0;
   
@@ -974,12 +1025,25 @@ function createMetricWithTrend(bucketData, metric) {
   }
   
   const metricDiv = document.createElement('div');
-  metricDiv.style.cssText = 'text-align: center; min-width: 70px;';
+  metricDiv.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${metric.highlight ? '8px' : '4px'} 0;
+    ${metric.highlight ? 'background: rgba(76, 175, 80, 0.1); padding: 8px; border-radius: 4px; margin: 4px 0;' : ''}
+  `;
+  
   metricDiv.innerHTML = `
-    <div style="font-size: 10px; color: #666; margin-bottom: 4px; text-transform: uppercase; font-weight: 600;">${metric.label}</div>
-    <div style="font-size: 16px; font-weight: 700; color: #333;">${formattedValue}</div>
-    <div style="font-size: 10px; color: ${trendColor}; font-weight: 600; margin-top: 3px;">
-      ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+    <div style="font-size: ${metric.highlight ? '13px' : '12px'}; color: #555; font-weight: 500;">${metric.label}</div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="font-size: ${metric.highlight ? '18px' : '16px'}; font-weight: 700; color: ${metric.highlight && metric.key === 'ROAS' ? (parseFloat(value) >= 2 ? '#4CAF50' : '#F44336') : '#333'};">
+        ${formattedValue}
+      </div>
+      ${trend !== 0 ? `
+        <div style="font-size: 11px; color: ${trendColor}; font-weight: 600; white-space: nowrap;">
+          ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+        </div>
+      ` : ''}
     </div>
   `;
   
@@ -992,8 +1056,9 @@ function createBucketsExplanationSection(bucketData) {
   section.style.cssText = `
     width: 100%;
     display: flex;
-    gap: 15px;
+    gap: 20px;  // Increased from 15px
     justify-content: space-between;
+    margin-top: 10px;  // Add some top margin
   `;
   
   const bucketTypes = [
@@ -1020,10 +1085,10 @@ function createBucketExplanation(bucketData, bucketConfig) {
     background: ${bucketConfig.color}08;
     border: 1px solid ${bucketConfig.color}30;
     border-radius: 8px;
-    padding: 12px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   `;
   
   let value = 'N/A';
@@ -1052,9 +1117,9 @@ function createBucketExplanation(bucketData, bucketConfig) {
   }
   
   bucketDiv.innerHTML = `
-    <div style="font-size: 11px; font-weight: 600; color: ${bucketConfig.color}; text-transform: uppercase;">${bucketConfig.title}</div>
-    <div style="font-size: 13px; font-weight: 700; color: #333; margin: 4px 0;">${value}</div>
-    <div style="font-size: 10px; color: #666; line-height: 1.3; max-height: 40px; overflow-y: auto;">${explanation || 'No explanation available'}</div>
+    <div style="font-size: 13px; font-weight: 700; color: ${bucketConfig.color}; text-transform: uppercase; letter-spacing: 0.5px;">${bucketConfig.title}</div>
+    <div style="font-size: 16px; font-weight: 700; color: #333; margin: 6px 0; line-height: 1.3;">${value}</div>
+    <div style="font-size: 13px; color: #555; line-height: 1.5; max-height: 80px; overflow-y: auto; padding-right: 5px;">${explanation || 'No explanation available'}</div>
   `;
   
   return bucketDiv;
