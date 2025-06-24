@@ -152,6 +152,9 @@ window.productBucketAnalyzer = {
     // Calculate account metrics for benchmarking
     this.accountMetrics = this.calculateAccountMetrics(currentPeriodData);
 
+    // Calculate revenue percentiles for seller classification
+this.revenuePercentiles = this.calculateRevenuePercentiles(currentGrouped);
+
     // Group data by product + campaign + channel + device
     const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
     const prevGrouped = this.groupByProductCampaignChannelDevice(prevPeriodData);
@@ -303,6 +306,9 @@ window.productBucketAnalyzer = {
     // Assign buckets
     const buckets = this.assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices);
     const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, null, false) : null;
+
+    // Assign sellers category
+const sellersCategory = this.assignSellersCategory(productTitle, metrics);
     
     // Build the row data
     return {
@@ -345,6 +351,7 @@ window.productBucketAnalyzer = {
 'INVESTMENT_BUCKET': JSON.stringify(buckets.investment),
 'CUSTOM_TIER_BUCKET': JSON.stringify(buckets.customTier),
       'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
+      'SELLERS': sellersCategory,
       'HEALTH_SCORE': buckets.healthScore,
       'Confidence_Level': buckets.confidenceLevel,
       // Previous bucket assignments
@@ -439,6 +446,62 @@ window.productBucketAnalyzer = {
       : 80;
 
     console.log('[Product Buckets V3] Calculated dynamic defaults:', this.DEFAULTS);
+  },
+
+    // Calculate revenue percentiles for seller classification
+  calculateRevenuePercentiles(currentGrouped) {
+    // Collect all product revenues (aggregate by product title only)
+    const productRevenues = {};
+    const DELIMITER = '~~~';
+    
+    Object.entries(currentGrouped).forEach(([key, rows]) => {
+      const parts = key.split(DELIMITER);
+      const productTitle = parts[0];
+      
+      // Only count non-aggregated records (avoid double counting)
+      if (parts[1] !== 'All' && parts[2] !== 'All' && parts[3] !== 'All') {
+        if (!productRevenues[productTitle]) {
+          productRevenues[productTitle] = 0;
+        }
+        const metrics = this.calculateAggregatedMetrics(rows);
+        productRevenues[productTitle] += metrics.convValue;
+      }
+    });
+    
+    // Sort revenues and calculate percentiles
+    const sortedRevenues = Object.values(productRevenues).sort((a, b) => b - a);
+    const total = sortedRevenues.length;
+    
+    return {
+      top10PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.1)] : 0,
+      top20PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.2)] : 0,
+      productRevenues: productRevenues
+    };
+  },
+
+    // Assign sellers category based on revenue and ROAS
+  assignSellersCategory(productTitle, metrics) {
+    const productRevenue = this.revenuePercentiles.productRevenues[productTitle] || metrics.convValue;
+    const avgROAS = this.accountMetrics.avgROAS;
+    const isTop10Revenue = productRevenue >= this.revenuePercentiles.top10PercentThreshold;
+    const isTop20Revenue = productRevenue >= this.revenuePercentiles.top20PercentThreshold;
+    
+    // Revenue Stars: Top 10% revenue + ROAS > (avg ROAS + 1.0)
+    if (isTop10Revenue && metrics.roas > (avgROAS + 1.0)) {
+      return 'Revenue Stars';
+    }
+    
+    // Best Sellers: Top 20% revenue + ROAS > avg ROAS
+    if (isTop20Revenue && metrics.roas > avgROAS) {
+      return 'Best Sellers';
+    }
+    
+    // Volume Leaders: Top 20% revenue regardless of ROAS
+    if (isTop20Revenue) {
+      return 'Volume Leaders';
+    }
+    
+    return 'Standard';
   },
 
   // Calculate account-wide metrics
