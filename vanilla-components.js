@@ -73,11 +73,13 @@
 }
 
 .pla-details-middle {
-  flex: 0 0 250px;  /* Reduced from 300px */
+  flex: 0 0 200px;  /* Reduced from 300px */
 }
 
 .pla-details-main-metrics {
-  min-width: 200px;  /* Reduced from 250px */
+  flex: 0 0 180px;   /* Reduced width with flex */
+  min-width: 180px;  /* Reduced from 200px */
+  max-width: 180px;  /* Fixed maximum width */
 }
 
     .pla-details-settings {
@@ -299,23 +301,23 @@ function DetailsPanel(props) {
     
 if (tabNum === 1) {
   // Position & Visibility Trends tab
-  tabsContainer.innerHTML = `
-    <div class="tab-content" style="display: flex; gap: 12px; min-height: 350px;">
-      <div class="pla-details-column pla-details-left">
-        <div id="pla-chart-${Date.now()}" style="width: 600px; height: 300px;"></div>
-      </div>
-      <div class="pla-details-column pla-details-middle">
-        <div id="apple-chart-${Date.now()}" style="width: 100%; height: 300px;"></div>
-      </div>
-      <div class="pla-details-column pla-details-main-metrics">
-        <div id="main-metrics-${Date.now()}"></div>
-      </div>
-      <div class="pla-details-column pla-details-settings">
-        <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Settings</h3>
-        <div id="toggles-${Date.now()}"></div>
-      </div>
+tabsContainer.innerHTML = `
+  <div class="tab-content" style="display: flex; gap: 12px; min-height: 400px; height: 400px;">
+    <div class="pla-details-column pla-details-left">
+      <div id="pla-chart-${Date.now()}" style="width: 100%; height: 100%;"></div>
     </div>
-  `;
+    <div class="pla-details-column pla-details-middle">
+      <div id="apple-chart-${Date.now()}" style="width: 100%; height: 100%;"></div>
+    </div>
+    <div class="pla-details-column pla-details-main-metrics">
+      <div id="main-metrics-${Date.now()}"></div>
+    </div>
+    <div class="pla-details-column pla-details-settings">
+      <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Settings</h3>
+      <div id="toggles-${Date.now()}"></div>
+    </div>
+  </div>
+`;
   
   // Render charts and components
   setTimeout(() => {
@@ -684,17 +686,9 @@ function AppleBarChart(props) {
           },
 datalabels: {
   display: ctx => ctx.datasetIndex === 0,
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  borderColor: function(ctx) {
-    const row = chartData[ctx.dataIndex];
-    const diff = row.current - row.previous;
-    if (diff > 0) return 'green';
-    if (diff < 0) return 'red';
-    return '#666';
-  },
-  borderRadius: 4,
-  borderWidth: 1,
-  padding: { top: 2, bottom: 2, left: 6, right: 6 },
+  backgroundColor: 'transparent',  // No background
+  borderWidth: 0,                  // No border
+  padding: 4,
   formatter: (value, context) => {
     const row = chartData[context.dataIndex];
     const mainLabel = `${row.current.toFixed(1)}%`;
@@ -713,7 +707,7 @@ datalabels: {
   anchor: 'end',
   align: 'end',
   offset: 8,
-  font: { size: 11 }
+  font: { size: 11, weight: 'bold' }
 }
         },
         scales: {
