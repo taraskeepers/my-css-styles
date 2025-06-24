@@ -3,6 +3,18 @@ window.productMetricsSettings = {
   useLatestDataDate: false, // true = use latest data date, false = use today's date
   // Future settings can be added here
 };
+window.bucketedProductsMetricsSettings = {
+  selectedMetrics: ['ROAS', 'ConvValue', 'Cost', 'Impressions'], // Default 4 metrics
+  availableMetrics: {
+    'Impressions': { label: 'Impr', key: 'Impressions' },
+    'Clicks': { label: 'Clicks', key: 'Clicks' },
+    'CTR': { label: 'CTR', key: 'CTR', suffix: '%' },
+    'Conversions': { label: 'Conv', key: 'Conversions' },
+    'ConvValue': { label: 'Value', key: 'ConvValue', prefix: '$' },
+    'Cost': { label: 'Cost', key: 'Cost', prefix: '$' },
+    'ROAS': { label: 'ROAS', key: 'ROAS', suffix: 'x' }
+  }
+};
 // Main Buckets Switcher functionality for Google Ads
 
 // Import needed functions from global scope
@@ -255,12 +267,48 @@ async function loadBucketedProducts() {
 function renderProductsList(container, activeProducts, inactiveProducts) {
   container.innerHTML = '';
   
-// Header
+// Replace the header section in renderProductsList function
+// Header with settings button
 const header = document.createElement('div');
-header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
+header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;';
 const filterText = window.currentBucketFilter ? ` - Filtered by ${window.currentBucketFilter.replace(/_/g, ' ')}` : '';
-header.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}</h3>`;
+header.innerHTML = `
+  <h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}</h3>
+  <button id="productsMetricsSettingsBtn" style="
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #666;
+    transition: all 0.2s;
+  " onmouseover="this.style.background='#e9e9e9'" onmouseout="this.style.background='#f5f5f5'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
+    </svg>
+    Metrics Settings
+  </button>
+`;
 container.appendChild(header);
+
+// Add settings popup
+createMetricsSettingsPopup(container);
+
+// Add event listener for settings button
+setTimeout(() => {
+  const settingsBtn = document.getElementById('productsMetricsSettingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMetricsSettingsPopup();
+    });
+  }
+}, 100);
   
   // Products container
   const productsContainer = document.createElement('div');
@@ -292,6 +340,117 @@ container.appendChild(header);
   });
   
   container.appendChild(productsContainer);
+}
+
+// Create metrics settings popup
+function createMetricsSettingsPopup(container) {
+  const popup = document.createElement('div');
+  popup.id = 'metricsSettingsPopup';
+  popup.style.cssText = `
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 15px;
+    display: none;
+    z-index: 1000;
+    width: 250px;
+  `;
+  
+  const title = document.createElement('div');
+  title.style.cssText = 'font-weight: 600; font-size: 14px; margin-bottom: 12px; color: #333;';
+  title.textContent = 'Select 4 Metrics to Display';
+  popup.appendChild(title);
+  
+  const metricsContainer = document.createElement('div');
+  metricsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+  
+  Object.entries(window.bucketedProductsMetricsSettings.availableMetrics).forEach(([key, metric]) => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px; border-radius: 4px; transition: background 0.2s;';
+    label.onmouseover = () => label.style.background = '#f5f5f5';
+    label.onmouseout = () => label.style.background = 'transparent';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = key;
+    checkbox.checked = window.bucketedProductsMetricsSettings.selectedMetrics.includes(key);
+    checkbox.style.cursor = 'pointer';
+    
+    checkbox.addEventListener('change', () => {
+      updateSelectedMetrics();
+    });
+    
+    const text = document.createElement('span');
+    text.style.cssText = 'font-size: 13px; color: #555;';
+    text.textContent = metric.label + (metric.prefix || '') + (metric.suffix || '');
+    
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    metricsContainer.appendChild(label);
+  });
+  
+  popup.appendChild(metricsContainer);
+  container.appendChild(popup);
+  
+  // Close popup when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!popup.contains(e.target) && e.target.id !== 'productsMetricsSettingsBtn') {
+      popup.style.display = 'none';
+    }
+  });
+}
+
+// Toggle metrics settings popup
+function toggleMetricsSettingsPopup() {
+  const popup = document.getElementById('metricsSettingsPopup');
+  if (popup) {
+    popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+// Update selected metrics
+function updateSelectedMetrics() {
+  const checkboxes = document.querySelectorAll('#metricsSettingsPopup input[type="checkbox"]');
+  const selected = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+  
+  if (selected.length > 4) {
+    // Uncheck the last checked item
+    const lastChecked = Array.from(checkboxes).find(cb => 
+      cb.checked && !window.bucketedProductsMetricsSettings.selectedMetrics.includes(cb.value)
+    );
+    if (lastChecked) {
+      lastChecked.checked = false;
+      return;
+    }
+  }
+  
+  if (selected.length === 4) {
+    window.bucketedProductsMetricsSettings.selectedMetrics = selected;
+    // Refresh all product metric displays
+    refreshAllProductMetrics();
+  }
+}
+
+// Refresh all product metrics displays
+function refreshAllProductMetrics() {
+  const productItems = document.querySelectorAll('.bucketed-product-item');
+  productItems.forEach(item => {
+    const metricsBox = item.querySelector('.product-metrics-box');
+    const productTitle = item.querySelector('.small-ad-title')?.textContent;
+    if (metricsBox && productTitle) {
+      // Reload the metrics for this product
+      const bucketData = item.bucketData; // We'll store this during initial load
+      if (bucketData) {
+        updateMetricsDisplay(metricsBox, bucketData);
+      }
+    }
+  });
 }
 
 // Get bucketed products data
@@ -662,9 +821,12 @@ function createBucketedProductItem(product, metrics) {
   return productDiv;
 }
 
-// Add this function after createBucketedProductItem (around line 550)
+// Replace the entire loadProductBucketDataAsync function (around line 580)
 async function loadProductBucketDataAsync(productDiv, productTitle) {
   const bucketData = await getProductBucketData(productTitle);
+  
+  // Store bucket data on the element for later use
+  productDiv.bucketData = bucketData;
   
   if (!bucketData) {
     // Update containers with "No data" message
@@ -675,43 +837,11 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
     return;
   }
   
-  // Update metrics box
+  // Update metrics box with selected metrics
   const metricsBox = productDiv.querySelector('.product-metrics-box');
-  const metricsHTML = `
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">Impr:</span>
-      <span>${(parseInt(bucketData.Impressions) || 0).toLocaleString()}</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">Clicks:</span>
-      <span>${(parseInt(bucketData.Clicks) || 0).toLocaleString()}</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">CTR:</span>
-      <span>${(parseFloat(bucketData.CTR) || 0).toFixed(2)}%</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">Conv:</span>
-      <span>${(parseFloat(bucketData.Conversions) || 0).toFixed(1)}</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">Value:</span>
-      <span>$${(parseFloat(bucketData.ConvValue) || 0).toLocaleString()}</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
-      <span style="color: #666; font-weight: 600;">Cost:</span>
-      <span>$${(parseFloat(bucketData.Cost) || 0).toLocaleString()}</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
-      <span style="color: #666; font-weight: 600;">ROAS:</span>
-      <span style="font-weight: 700; color: ${(parseFloat(bucketData.ROAS) || 0) >= 2 ? '#4CAF50' : '#F44336'};">
-        ${(parseFloat(bucketData.ROAS) || 0).toFixed(2)}x
-      </span>
-    </div>
-  `;
-  metricsBox.innerHTML = metricsHTML;
+  updateMetricsDisplay(metricsBox, bucketData);
   
-  // Update bucket values
+  // Update bucket values with tooltips
   const bucketContainer = productDiv.querySelector('.bucket-values-container');
   const bucketTypes = ['CUSTOM_TIER_BUCKET', 'FUNNEL_STAGE_BUCKET', 'INVESTMENT_BUCKET', 'PROFITABILITY_BUCKET'];
   const bucketColors = {
@@ -721,19 +851,78 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
     'PROFITABILITY_BUCKET': '#4CAF50'
   };
   
-  let bucketHTML = '';
+  bucketContainer.innerHTML = '';
   bucketTypes.forEach(bucketType => {
-    const value = bucketData[bucketType] || 'N/A';
+    const bucketDataStr = bucketData[bucketType];
+    let value = 'N/A';
+    let explanation = '';
+    
+    if (bucketDataStr) {
+      try {
+        const parsed = JSON.parse(bucketDataStr);
+        value = parsed.value || bucketDataStr;
+        explanation = parsed.explanation || '';
+      } catch (e) {
+        value = bucketDataStr;
+      }
+    }
+    
     const color = bucketColors[bucketType] || '#666';
-    bucketHTML += `
-      <div style="background: ${color}15; color: ${color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        ${value}
-      </div>
+    const bucketDiv = document.createElement('div');
+    bucketDiv.style.cssText = `
+      background: ${color}15; 
+      color: ${color}; 
+      padding: 2px 8px; 
+      border-radius: 4px; 
+      font-size: 10px; 
+      font-weight: 600; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis;
+      cursor: ${explanation ? 'help' : 'default'};
+      position: relative;
     `;
+    bucketDiv.textContent = value;
+    
+    if (explanation) {
+      // Create tooltip
+      const tooltip = document.createElement('div');
+      tooltip.style.cssText = `
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-5px);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: normal;
+        white-space: normal;
+        width: 200px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1000;
+        line-height: 1.4;
+      `;
+      tooltip.innerHTML = explanation;
+      
+      bucketDiv.appendChild(tooltip);
+      
+      bucketDiv.addEventListener('mouseenter', () => {
+        tooltip.style.opacity = '1';
+      });
+      
+      bucketDiv.addEventListener('mouseleave', () => {
+        tooltip.style.opacity = '0';
+      });
+    }
+    
+    bucketContainer.appendChild(bucketDiv);
   });
-  bucketContainer.innerHTML = bucketHTML;
   
-  // Update suggestions
+  // Update suggestions (same as before)
   const suggestionsContainer = productDiv.querySelector('.suggestions-container');
   let suggestionsHTML = '';
   
@@ -758,23 +947,87 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
   }
   suggestionsContainer.innerHTML = suggestionsHTML;
   
-  // Update health score and confidence
+  // Update health score and confidence with coloring
   const healthContainer = productDiv.querySelector('.health-confidence-container');
   const healthScore = bucketData.HEALTH_SCORE || 0;
   const confidence = bucketData.Confidence_Level || 'N/A';
   const healthColor = healthScore >= 7 ? '#4CAF50' : healthScore >= 4 ? '#FF9800' : '#F44336';
+  const confidenceColor = confidence === 'High' ? '#4CAF50' : confidence === 'Medium' ? '#FF9800' : '#F44336';
   
   const healthHTML = `
     <div style="background: #f0f0f0; padding: 8px; border-radius: 6px;">
       <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Health</div>
       <div style="font-size: 18px; font-weight: 700; color: ${healthColor};">${healthScore}/10</div>
     </div>
-    <div style="background: #f0f0f0; padding: 8px; border-radius: 6px;">
+    <div style="background: ${confidenceColor}15; padding: 8px; border-radius: 6px; border: 1px solid ${confidenceColor}30;">
       <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Confidence</div>
-      <div style="font-size: 12px; font-weight: 600; color: #333;">${confidence}</div>
+      <div style="font-size: 12px; font-weight: 600; color: ${confidenceColor};">${confidence}</div>
     </div>
   `;
   healthContainer.innerHTML = healthHTML;
+}
+
+// Helper function to update metrics display
+function updateMetricsDisplay(metricsBox, bucketData) {
+  const selectedMetrics = window.bucketedProductsMetricsSettings.selectedMetrics;
+  const metricConfigs = window.bucketedProductsMetricsSettings.availableMetrics;
+  
+  let metricsHTML = '';
+  selectedMetrics.forEach(metricKey => {
+    const config = metricConfigs[metricKey];
+    if (!config) return;
+    
+    let value = bucketData[config.key] || 0;
+    let formattedValue = '';
+    
+    // Format based on metric type
+    if (metricKey === 'ROAS') {
+      formattedValue = parseFloat(value).toFixed(2);
+      const roasColor = parseFloat(value) >= 2 ? '#4CAF50' : '#F44336';
+      metricsHTML += `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="color: #666; font-weight: 600;">${config.label}:</span>
+          <span style="font-weight: 700; color: ${roasColor};">${formattedValue}${config.suffix || ''}</span>
+        </div>
+      `;
+    } else if (config.prefix === '$') {
+      formattedValue = parseFloat(value).toLocaleString();
+      metricsHTML += `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="color: #666; font-weight: 600;">${config.label}:</span>
+          <span>${config.prefix}${formattedValue}</span>
+        </div>
+      `;
+    } else if (config.suffix === '%') {
+      formattedValue = parseFloat(value).toFixed(2);
+      metricsHTML += `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="color: #666; font-weight: 600;">${config.label}:</span>
+          <span>${formattedValue}${config.suffix}</span>
+        </div>
+      `;
+    } else {
+      formattedValue = parseInt(value).toLocaleString();
+      metricsHTML += `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="color: #666; font-weight: 600;">${config.label}:</span>
+          <span>${formattedValue}</span>
+        </div>
+      `;
+    }
+  });
+  
+  metricsBox.innerHTML = metricsHTML;
+  metricsBox.style.cssText = `
+    width: 300px; 
+    display: flex; 
+    gap: 15px; 
+    padding: 5px 10px; 
+    background: #f8f9fa; 
+    border-radius: 6px; 
+    font-size: 11px;
+    align-items: center;
+  `;
 }
 
 // Export functions to window
