@@ -3134,296 +3134,214 @@ if (sortedInactiveProducts.length > 0) {
 // Now create the combined array for chart rendering
 const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts];
 
-              // Add direct click handlers to each product card
-              productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
-                const plaIndex = adCard.getAttribute('data-pla-index');
-                
-adCard.addEventListener('click', async function(e) {
-  // Prevent default and stop propagation
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
+// Add direct click handlers to each product card
+productCellDiv.querySelectorAll('.ad-details').forEach(adCard => {
+  const plaIndex = adCard.getAttribute('data-pla-index');
   
-  console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
-  console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
-  
-  // Get the product data
-  const rowData = window.globalRows[plaIndex];
-  if (!rowData) {
-    console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
-    return;
-  }
-  
-  console.log(`[DEBUG] Found data for product: ${rowData.title}`);
-  
-  // *** CRITICAL FIX: Ensure Recharts components are ready ***
-  try {
-    console.log("[RECHARTS-FIX] Checking if Recharts components are available...");
+  adCard.addEventListener('click', async function(e) {
+    // Prevent default and stop propagation
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
     
-    // Wait for Recharts to be loaded and components exposed
-    const ensureRechartsReady = () => {
-      return new Promise((resolve, reject) => {
-        const maxAttempts = 50;
-        let attempts = 0;
-        
-        const checkComponents = () => {
-          attempts++;
-          
-          if (window.ResponsiveContainer && window.LineChart && window.XAxis && window.YAxis) {
-            console.log("[RECHARTS-FIX] ✅ All components ready");
-            resolve();
-          } else if (attempts >= maxAttempts) {
-            console.error("[RECHARTS-FIX] ❌ Timeout waiting for components");
-            reject(new Error("Recharts components not ready after timeout"));
-          } else {
-            // Try to expose components if Recharts is available
-            if (window.Recharts && !window.ResponsiveContainer) {
-              const components = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
-                               'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-                               'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
-              components.forEach(comp => {
-                if (window.Recharts[comp]) {
-                  window[comp] = window.Recharts[comp];
-                }
-              });
-              console.log(`[RECHARTS-FIX] Exposed components, attempt ${attempts}`);
-            }
-            
-            setTimeout(checkComponents, 100);
-          }
-        };
-        
-        checkComponents();
-      });
-    };
+    console.log(`[DEBUG] Card clicked with plaIndex: ${plaIndex}`);
+    console.log(`[DEBUG] globalRows has this key?`, plaIndex in window.globalRows);
     
-    // Wait for components to be ready
-    await ensureRechartsReady();
+    // Get the product data
+    const rowData = window.globalRows[plaIndex];
+    if (!rowData) {
+      console.error(`[DEBUG] No data found in globalRows for key: ${plaIndex}`);
+      return;
+    }
     
-  } catch (error) {
-    console.error("[RECHARTS-FIX] Failed to ensure Recharts readiness:", error);
-    alert("Chart components are not ready. Please refresh the page and try again.");
-    return;
-  }
-  
-  // Double-check that ResponsiveContainer is available
-  if (!window.ResponsiveContainer) {
-    console.error("[RECHARTS-FIX] ResponsiveContainer still not available after wait");
-    alert("Chart components failed to load. Please refresh the page.");
-    return;
-  }
-  
-  console.log("[RECHARTS-FIX] ✅ Proceeding with panel creation");
-  
-  // FIX: Ensure Recharts components are available BEFORE anything tries to use them
-  if (window.Recharts && !window.ResponsiveContainer) {
-    const rechartsComponents = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
-                               'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-                               'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
-    rechartsComponents.forEach(comp => {
-      if (window.Recharts[comp]) {
-        window[comp] = window.Recharts[comp];
-      }
-    });
-    console.log("[ProductMap] Exposed Recharts components to global scope early");
-  }
-  
-  // DEEP DEBUG OF HISTORICAL DATA
-  console.log(`[DEBUG] Historical data exists: ${Array.isArray(rowData.historical_data)}`);
-  console.log(`[DEBUG] Historical data length: ${rowData.historical_data?.length || 0}`);
-  
-  if (rowData.historical_data && rowData.historical_data.length > 0) {
-    // Log each historical entry in a structured way
-    console.log(`[DEBUG] === FULL HISTORICAL DATA (${rowData.historical_data.length} entries) ===`);
+    console.log(`[DEBUG] Found data for product: ${rowData.title}`);
     
-    // Sort by date first to ensure they're in chronological order
-    const sortedHistData = [...rowData.historical_data].sort((a, b) => {
-      if (!a.date || !a.date.value) return -1;
-      if (!b.date || !b.date.value) return 1;
-      return a.date.value.localeCompare(b.date.value);
-    });
-    
-    // Format the data as a table
-    console.table(sortedHistData.map(entry => ({
-      date: entry.date?.value || 'unknown',
-      avg_position: entry.avg_position,
-      visibility: entry.visibility,
-      top3: entry.top3_visibility,
-      top8: entry.top8_visibility,
-      top14: entry.top14_visibility,
-      top40: entry.top40_visibility
-    })));
-    
-    // Show date coverage
-    const dates = sortedHistData
-      .filter(entry => entry.date && entry.date.value)
-      .map(entry => entry.date.value);
-    
-    const uniqueDates = [...new Set(dates)];
-    console.log(`[DEBUG] Date coverage: ${uniqueDates.length} unique dates out of ${dates.length} entries`);
-    console.log(`[DEBUG] Date range: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length-1]}`);
-    
-    // Check for any data anomalies
-    const missingPosition = sortedHistData.filter(entry => !entry.avg_position).length;
-    const missingVisibility = sortedHistData.filter(entry => !entry.visibility).length;
-    
-    console.log(`[DEBUG] Data quality check:
-      - Entries missing position: ${missingPosition}
-      - Entries missing visibility: ${missingVisibility}
-    `);
-  }
-  
-  // Create or get the panel container
-  let detailsPanel = document.getElementById('product-map-details-panel');
-  if (!detailsPanel) {
-    detailsPanel = document.createElement('div');
-    detailsPanel.id = 'product-map-details-panel';
-    detailsPanel.style.position = 'fixed';
-    detailsPanel.style.top = '40%';
-    detailsPanel.style.left = 'auto';
-    detailsPanel.style.right = '10px';
-    detailsPanel.style.transform = 'translateY(-50%)';
-    detailsPanel.style.zIndex = '1000';
-    detailsPanel.style.width = '1255px';
-    detailsPanel.style.maxWidth = '1255px';
-    detailsPanel.style.maxHeight = '80vh';
-    detailsPanel.style.overflow = 'auto';
-    detailsPanel.style.borderRadius = '8px';
-    detailsPanel.style.backgroundColor = '#fff';
-    detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
-    const contentWrapper = document.createElement('div');
-    contentWrapper.id = 'panel-content-wrapper';
-    contentWrapper.style.position = 'relative';
-    contentWrapper.style.width = '100%';
-    contentWrapper.style.height = '100%';
-    detailsPanel.appendChild(contentWrapper);
-    document.body.appendChild(detailsPanel);
-  }
-
-  // Adjust panel positioning based on fullscreen state
-  const isFullscreen = document.getElementById("productMapContainer").classList.contains("product-map-fullscreen");
-  if (isFullscreen) {
-    detailsPanel.style.position = 'absolute';
-    detailsPanel.style.top = '50%';
-    detailsPanel.style.left = '50%';
-    detailsPanel.style.transform = 'translate(-50%, -50%)';
-    detailsPanel.style.right = 'auto';
-    detailsPanel.style.zIndex = '10001'; // Ensure it's above the fullscreen container
-  } else {
-    detailsPanel.style.position = 'fixed';
-    detailsPanel.style.top = '40%';
-    detailsPanel.style.left = 'auto';
-    detailsPanel.style.right = '10px';
-    detailsPanel.style.transform = 'translateY(-50%)';
-  }
-  
-  // Get the content wrapper
-  let contentWrapper = document.getElementById('panel-content-wrapper');
-  if (!contentWrapper) {
-    contentWrapper = document.createElement('div');
-    contentWrapper.id = 'panel-content-wrapper';
-    contentWrapper.style.position = 'relative';
-    contentWrapper.style.width = '100%';
-    contentWrapper.style.height = '100%';
-    detailsPanel.appendChild(contentWrapper);
-  }
-  
-  // Show the loading overlay
-  let loadingOverlay = document.getElementById('panel-loading-overlay');
-  if (!loadingOverlay) {
-    loadingOverlay = document.createElement('div');
-    loadingOverlay.id = 'panel-loading-overlay';
-    loadingOverlay.style.position = 'absolute';
-    loadingOverlay.style.top = '0';
-    loadingOverlay.style.left = '0';
-    loadingOverlay.style.width = '100%';
-    loadingOverlay.style.height = '100%';
-    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-    loadingOverlay.style.display = 'flex';
-    loadingOverlay.style.justifyContent = 'center';
-    loadingOverlay.style.alignItems = 'center';
-    loadingOverlay.style.zIndex = '2000';
-    loadingOverlay.innerHTML = '<div class="spinner"></div>';
-    detailsPanel.appendChild(loadingOverlay);
-  } else {
-    loadingOverlay.style.display = 'flex';
-  }
-  
-  // Make sure panel is visible
-  detailsPanel.style.display = 'block';
-  
-  // Render with safety checks
-  setTimeout(() => {
+    // *** CRITICAL FIX: Ensure Recharts components are ready ***
     try {
-      // Final safety check before rendering
-      if (!window.ResponsiveContainer) {
-        throw new Error("ResponsiveContainer is not available at render time");
-      }
+      console.log("[RECHARTS-FIX] Checking if Recharts components are available...");
       
-      // Get date range
-      let dateRange = getDataRange(rowData);
-
-      // Override with a 7-day range specifically for product map page
-      if (dateRange && dateRange.end) {
-        // Keep the same end date but set start to 7 days before
-        dateRange = {
-          end: dateRange.end.clone(),
-          start: dateRange.end.clone().subtract(6, "days") // 7 days including end date
-        };
-      }
-      console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
+      // Wait for Recharts to be loaded and components exposed
+      const ensureRechartsReady = () => {
+        return new Promise((resolve, reject) => {
+          const maxAttempts = 50;
+          let attempts = 0;
+          
+          const checkComponents = () => {
+            attempts++;
+            
+            if (window.ResponsiveContainer && window.LineChart && window.XAxis && window.YAxis) {
+              console.log("[RECHARTS-FIX] ✅ All components ready");
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              console.error("[RECHARTS-FIX] ❌ Timeout waiting for components");
+              reject(new Error("Recharts components not ready after timeout"));
+            } else {
+              // Try to expose components if Recharts is available
+              if (window.Recharts && !window.ResponsiveContainer) {
+                const components = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
+                                 'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
+                                 'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
+                components.forEach(comp => {
+                  if (window.Recharts[comp]) {
+                    window[comp] = window.Recharts[comp];
+                  }
+                });
+                console.log(`[RECHARTS-FIX] Exposed components, attempt ${attempts}`);
+              }
+              
+              setTimeout(checkComponents, 100);
+            }
+          };
+          
+          checkComponents();
+        });
+      };
       
-      // Create a copy of rowData to pass to the component
-      const rowDataCopy = { ...rowData };
-      
-      console.log("[DEBUG] About to render DetailsPanel with ResponsiveContainer available:", !!window.ResponsiveContainer);
-      
-      // Render into the content wrapper
-      ReactDOM.render(
-        React.createElement(window.DetailsPanel, {
-          key: plaIndex,
-          rowData: rowDataCopy,
-          start: dateRange.start,
-          end: dateRange.end,
-          activeTab: window.savedActiveTab || 1,
-          onClose: () => {
-            detailsPanel.style.display = 'none';
-            document.body.style.overflow = 'auto';
-          }
-        }),
-        contentWrapper
-      );
-      
-      // Hide the loading overlay
-      const loadingOverlay = document.getElementById('panel-loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-      }
-      
-      console.log("[DEBUG] DetailsPanel rendered successfully");
+      // Wait for components to be ready
+      await ensureRechartsReady();
       
     } catch (error) {
-      console.error("[DEBUG] Error rendering panel:", error);
-      contentWrapper.innerHTML = `
-        <div style="padding: 20px; text-align: center;">
-          <h3>Error displaying product details</h3>
-          <p>${error.message}</p>
-          <p style="font-size: 12px; color: #666; margin-top: 10px;">
-            ResponsiveContainer available: ${!!window.ResponsiveContainer}<br>
-            Recharts available: ${!!window.Recharts}<br>
-            LineChart available: ${!!window.LineChart}
-          </p>
-          <pre style="text-align:left; max-height:200px; overflow:auto; margin-top: 10px; font-size: 11px;">${error.stack}</pre>
-          <button onclick="document.getElementById('product-map-details-panel').style.display='none';" 
-                  style="padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; margin-top: 10px;">
-            Close
-          </button>
-        </div>
-      `;
+      console.error("[RECHARTS-FIX] Failed to ensure Recharts readiness:", error);
+      alert("Chart components are not ready. Please refresh the page and try again.");
+      return;
     }
-  }, 100);
-  
-  return false;
+    
+    // Double-check that ResponsiveContainer is available
+    if (!window.ResponsiveContainer) {
+      console.error("[RECHARTS-FIX] ResponsiveContainer still not available after wait");
+      alert("Chart components failed to load. Please refresh the page.");
+      return;
+    }
+    
+    console.log("[RECHARTS-FIX] ✅ Proceeding with panel creation");
+    
+    // Create or get the panel container
+    let detailsPanel = document.getElementById('product-map-details-panel');
+    if (!detailsPanel) {
+      detailsPanel = document.createElement('div');
+      detailsPanel.id = 'product-map-details-panel';
+      detailsPanel.style.position = 'fixed';
+      detailsPanel.style.top = '40%';
+      detailsPanel.style.left = 'auto';
+      detailsPanel.style.right = '10px';
+      detailsPanel.style.transform = 'translateY(-50%)';
+      detailsPanel.style.zIndex = '1000';
+      detailsPanel.style.width = '1255px';
+      detailsPanel.style.maxWidth = '1255px';
+      detailsPanel.style.maxHeight = '80vh';
+      detailsPanel.style.overflow = 'auto';
+      detailsPanel.style.borderRadius = '8px';
+      detailsPanel.style.backgroundColor = '#fff';
+      detailsPanel.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
+      const contentWrapper = document.createElement('div');
+      contentWrapper.id = 'panel-content-wrapper';
+      contentWrapper.style.position = 'relative';
+      contentWrapper.style.width = '100%';
+      contentWrapper.style.height = '100%';
+      detailsPanel.appendChild(contentWrapper);
+      document.body.appendChild(detailsPanel);
+    }
+
+    // Adjust panel positioning based on fullscreen state
+    const isFullscreen = document.getElementById("productMapContainer").classList.contains("product-map-fullscreen");
+    if (isFullscreen) {
+      detailsPanel.style.position = 'absolute';
+      detailsPanel.style.top = '50%';
+      detailsPanel.style.left = '50%';
+      detailsPanel.style.transform = 'translate(-50%, -50%)';
+      detailsPanel.style.right = 'auto';
+      detailsPanel.style.zIndex = '10001';
+    } else {
+      detailsPanel.style.position = 'fixed';
+      detailsPanel.style.top = '40%';
+      detailsPanel.style.left = 'auto';
+      detailsPanel.style.right = '10px';
+      detailsPanel.style.transform = 'translateY(-50%)';
+    }
+    
+    // Get the content wrapper
+    let contentWrapper = document.getElementById('panel-content-wrapper');
+    if (!contentWrapper) {
+      contentWrapper = document.createElement('div');
+      contentWrapper.id = 'panel-content-wrapper';
+      contentWrapper.style.position = 'relative';
+      contentWrapper.style.width = '100%';
+      contentWrapper.style.height = '100%';
+      detailsPanel.appendChild(contentWrapper);
+    }
+    
+    // Show loading
+    contentWrapper.innerHTML = '<div style="padding: 20px; text-align: center;"><div class="spinner"></div><p>Loading product details...</p></div>';
+    
+    // Make sure panel is visible
+    detailsPanel.style.display = 'block';
+    
+    // Render with safety checks
+    setTimeout(() => {
+      try {
+        // Final safety check before rendering
+        if (!window.ResponsiveContainer) {
+          throw new Error("ResponsiveContainer is not available at render time");
+        }
+        
+        // Get date range
+        let dateRange = getDataRange(rowData);
+
+        // Override with a 7-day range specifically for product map page
+        if (dateRange && dateRange.end) {
+          dateRange = {
+            end: dateRange.end.clone(),
+            start: dateRange.end.clone().subtract(6, "days")
+          };
+        }
+        console.log(`[DEBUG] Date range: start=${dateRange.start.format('YYYY-MM-DD')}, end=${dateRange.end.format('YYYY-MM-DD')}`);
+        
+        // Create a copy of rowData to pass to the component
+        const rowDataCopy = { ...rowData };
+        
+        console.log("[DEBUG] About to render DetailsPanel with ResponsiveContainer available:", !!window.ResponsiveContainer);
+        
+        // Render into the content wrapper
+        ReactDOM.render(
+          React.createElement(window.DetailsPanel, {
+            key: plaIndex,
+            rowData: rowDataCopy,
+            start: dateRange.start,
+            end: dateRange.end,
+            activeTab: window.savedActiveTab || 1,
+            onClose: () => {
+              detailsPanel.style.display = 'none';
+              document.body.style.overflow = 'auto';
+            }
+          }),
+          contentWrapper
+        );
+        
+        console.log("[DEBUG] DetailsPanel rendered successfully");
+        
+      } catch (error) {
+        console.error("[DEBUG] Error rendering panel:", error);
+        contentWrapper.innerHTML = `
+          <div style="padding: 20px; text-align: center;">
+            <h3>Error displaying product details</h3>
+            <p>${error.message}</p>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+              ResponsiveContainer available: ${!!window.ResponsiveContainer}<br>
+              Recharts available: ${!!window.Recharts}<br>
+              LineChart available: ${!!window.LineChart}
+            </p>
+            <pre style="text-align:left; max-height:200px; overflow:auto; margin-top: 10px; font-size: 11px;">${error.stack}</pre>
+            <button onclick="document.getElementById('product-map-details-panel').style.display='none';" 
+                    style="padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; margin-top: 10px;">
+              Close
+            </button>
+          </div>
+        `;
+      }
+    }, 100);
+    
+    return false;
+  });
 });
 
 // Add this right after adding products to window.globalRows 
