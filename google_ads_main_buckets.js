@@ -4,7 +4,7 @@ window.productMetricsSettings = {
   // Future settings can be added here
 };
 window.bucketedProductsMetricsSettings = {
-  selectedMetrics: ['ConvValue', 'Cost', 'Impressions', 'Clicks'], // Default 4 metrics (ROAS removed)
+  selectedMetrics: ['ConvValue', 'Cost', 'Impressions', 'Clicks', 'CTR'], // Default 5 metrics
   availableMetrics: {
     'Impressions': { label: 'Impr', key: 'Impressions' },
     'Clicks': { label: 'Clicks', key: 'Clicks' },
@@ -12,7 +12,6 @@ window.bucketedProductsMetricsSettings = {
     'Conversions': { label: 'Conv', key: 'Conversions' },
     'ConvValue': { label: 'Value', key: 'ConvValue', prefix: '$' },
     'Cost': { label: 'Cost', key: 'Cost', prefix: '$' }
-    // ROAS removed from available metrics
   }
 };
 // Main Buckets Switcher functionality for Google Ads
@@ -362,7 +361,7 @@ function createMetricsSettingsPopup(container) {
   
   const title = document.createElement('div');
   title.style.cssText = 'font-weight: 600; font-size: 14px; margin-bottom: 12px; color: #333;';
-  title.textContent = 'Select 4 Metrics to Display';
+  title.textContent = 'Select up to 5 Metrics to Display';
   popup.appendChild(title);
   
   const metricsContainer = document.createElement('div');
@@ -412,14 +411,14 @@ function toggleMetricsSettingsPopup() {
   }
 }
 
-// Update selected metrics
+// Replace the entire updateSelectedMetrics function
 function updateSelectedMetrics() {
   const checkboxes = document.querySelectorAll('#metricsSettingsPopup input[type="checkbox"]');
   const selected = Array.from(checkboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
   
-  if (selected.length > 4) {
+  if (selected.length > 5) {
     // Uncheck the last checked item
     const lastChecked = Array.from(checkboxes).find(cb => 
       cb.checked && !window.bucketedProductsMetricsSettings.selectedMetrics.includes(cb.value)
@@ -430,11 +429,9 @@ function updateSelectedMetrics() {
     }
   }
   
-  if (selected.length === 4) {
-    window.bucketedProductsMetricsSettings.selectedMetrics = selected;
-    // Refresh all product metric displays
-    refreshAllProductMetrics();
-  }
+  // Update the selected metrics and refresh display
+  window.bucketedProductsMetricsSettings.selectedMetrics = selected;
+  refreshAllProductMetrics();
 }
 
 // Replace the refreshAllProductMetrics function
@@ -720,7 +717,7 @@ function createBucketedProductItem(product, metrics) {
     cursor: pointer;
     transition: all 0.2s;
     box-sizing: border-box;
-    gap: 15px;
+    gap: 10px;
   `;
   
   const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
@@ -730,11 +727,11 @@ function createBucketedProductItem(product, metrics) {
   // Create the main structure
   productDiv.innerHTML = `
     <!-- Position Badge with Trend -->
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-      <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1;">${metrics.avgRating}</div>
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1; color: white; font-weight: 700;">${metrics.avgRating}</div>
       ${metrics.rankTrend && metrics.rankTrend.arrow ? `
-        <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
-          <span style="background-color: ${metrics.rankTrend.color}; font-size: 8px; padding: 1px 4px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px;">
+        <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
+          <span style="background-color: rgba(255,255,255,0.3); font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
             ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
           </span>
         </div>
@@ -742,19 +739,16 @@ function createBucketedProductItem(product, metrics) {
     </div>
     
     <!-- Visibility Status with Trend -->
-    <div class="small-ad-vis-status" style="width: 60px;">
-      <div class="vis-status-left">
-        <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%; position: relative;">
-          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-          ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
-            <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
-              <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 8px; padding: 1px 4px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px;">
-                ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change)}
-              </span>
-            </div>
-          ` : ''}
+    <div class="small-ad-vis-status" style="width: 60px; height: 60px; background-color: #2196F3; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="font-size: 10px; color: white; opacity: 0.9; text-transform: uppercase;">VIS</div>
+      <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">${metrics.avgVisibility.toFixed(0)}%</div>
+      ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
+        <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
+          <span style="background-color: rgba(255,255,255,0.3); font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
+            ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change)}
+          </span>
         </div>
-      </div>
+      ` : ''}
     </div>
     
     <!-- ROAS Badge -->
@@ -773,12 +767,12 @@ function createBucketedProductItem(product, metrics) {
     <div class="small-ad-title" style="font-size: 14px; line-height: 1.4; width: 200px; min-width: 180px; word-wrap: break-word;">${title}</div>
     
     <!-- Metrics Box -->
-    <div class="product-metrics-box" style="width: 280px; display: flex; gap: 20px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; align-items: center;">
+    <div class="product-metrics-box" style="width: 350px; display: flex; gap: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; align-items: center;">
       <div class="metric-loading" style="width: 100%; text-align: center; color: #999; font-size: 11px;">Loading metrics...</div>
     </div>
     
     <!-- Suggestions -->
-    <div class="suggestions-container" style="width: 200px; display: flex; flex-direction: column; gap: 4px; max-height: 60px; overflow-y: auto;">
+    <div class="suggestions-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px; max-height: 60px; overflow-y: auto;">
       <div class="suggestions-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
     </div>
     
@@ -912,8 +906,38 @@ function updateMetricsDisplay(metricsBox, bucketData) {
     if (!config) return;
     
     let value = bucketData[config.key] || 0;
+    let prevValue = bucketData[`prev_${config.key}`] || 0;
     let formattedValue = '';
+    let formattedPrevValue = '';
     let valueColor = '#333';
+    
+    // Calculate trend
+    let trend = 0;
+    let trendArrow = '';
+    let trendColor = '#666';
+    
+    if (prevValue > 0 && value > 0) {
+      trend = ((value - prevValue) / prevValue) * 100;
+      if (trend > 0) {
+        trendArrow = '▲';
+        // For cost, up is bad; for others, up is good
+        trendColor = config.key === 'Cost' ? '#F44336' : '#4CAF50';
+      } else if (trend < 0) {
+        trendArrow = '▼';
+        // For cost, down is good; for others, down is bad
+        trendColor = config.key === 'Cost' ? '#4CAF50' : '#F44336';
+      } else {
+        trendArrow = '—';
+        trendColor = '#666';
+      }
+    } else if (value > 0 && prevValue === 0) {
+      trendArrow = '▲';
+      trendColor = config.key === 'Cost' ? '#F44336' : '#4CAF50';
+      trend = 100; // New metric
+    } else {
+      trendArrow = '—';
+      trendColor = '#666';
+    }
     
     // Format based on metric type
     if (config.prefix === '$') {
@@ -922,6 +946,9 @@ function updateMetricsDisplay(metricsBox, bucketData) {
         <div style="text-align: center; flex: 1;">
           <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
           <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${config.prefix}${formattedValue}</div>
+          <div style="font-size: 9px; color: ${trendColor}; font-weight: 600; margin-top: 2px;">
+            ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+          </div>
         </div>
       `;
     } else if (config.suffix === '%') {
@@ -930,6 +957,9 @@ function updateMetricsDisplay(metricsBox, bucketData) {
         <div style="text-align: center; flex: 1;">
           <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
           <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}${config.suffix}</div>
+          <div style="font-size: 9px; color: ${trendColor}; font-weight: 600; margin-top: 2px;">
+            ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+          </div>
         </div>
       `;
     } else if (metricKey === 'Conversions') {
@@ -938,6 +968,9 @@ function updateMetricsDisplay(metricsBox, bucketData) {
         <div style="text-align: center; flex: 1;">
           <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
           <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}</div>
+          <div style="font-size: 9px; color: ${trendColor}; font-weight: 600; margin-top: 2px;">
+            ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+          </div>
         </div>
       `;
     } else {
@@ -946,6 +979,9 @@ function updateMetricsDisplay(metricsBox, bucketData) {
         <div style="text-align: center; flex: 1;">
           <div style="font-size: 9px; color: #666; margin-bottom: 3px; text-transform: uppercase; font-weight: 600;">${config.label}</div>
           <div style="font-size: 14px; font-weight: 700; color: ${valueColor};">${formattedValue}</div>
+          <div style="font-size: 9px; color: ${trendColor}; font-weight: 600; margin-top: 2px;">
+            ${trendArrow} ${Math.abs(trend).toFixed(0)}%
+          </div>
         </div>
       `;
     }
@@ -953,9 +989,9 @@ function updateMetricsDisplay(metricsBox, bucketData) {
   
   metricsBox.innerHTML = metricsHTML;
   metricsBox.style.cssText = `
-    width: 280px; 
+    width: 350px; 
     display: flex; 
-    gap: 20px; 
+    gap: 15px; 
     padding: 8px 15px; 
     background: linear-gradient(135deg, #f8f9fa, #f0f1f3);
     border: 1px solid #e0e0e0;
