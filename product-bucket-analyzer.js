@@ -61,6 +61,31 @@ window.productBucketAnalyzer = {
            prevMetrics.cost < 50;
   },
 
+    // Group data by product + campaign + channel + device
+  groupByProductCampaignChannelDevice(data) {
+    const grouped = {};
+    const DELIMITER = '~~~';
+    
+    data.forEach(row => {
+      // Extract key fields
+      const productTitle = row['Product Title'] || 'Unknown';
+      const campaignName = row['Campaign Name'] || 'Unknown';
+      const channelType = row['Channel Type'] || 'Unknown';  
+      const device = row['Device'] || 'Unknown';
+      
+      // Create unique key
+      const key = [productTitle, campaignName, channelType, device].join(DELIMITER);
+      
+      // Group rows by key
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(row);
+    });
+    
+    return grouped;
+  },
+
   // Process and create bucket analysis for multiple time periods
   async processProductBuckets(prefix = 'acc1_') {
     const startTime = performance.now();
@@ -673,6 +698,59 @@ calculateAccountMetrics(currentGrouped) {
 },
 
   // Calculate aggregated metrics for a group of rows
+  calculateAggregatedMetrics(rows) {
+    const parseNumber = (value) => {
+      if (!value) return 0;
+      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+    };
+
+    const metrics = {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0,
+      addToCartConv: 0,
+      addToCartValue: 0,
+      beginCheckoutConv: 0,
+      beginCheckoutValue: 0,
+      purchaseConv: 0,
+      purchaseValue: 0
+    };
+
+    // Aggregate metrics
+    rows.forEach(row => {
+      metrics.impressions += parseNumber(row.Impressions);
+      metrics.clicks += parseNumber(row.Clicks);
+      metrics.cost += parseNumber(row.Cost);
+      metrics.conversions += parseNumber(row.Conversions);
+      metrics.convValue += parseNumber(row['Conversion Value']);
+      metrics.addToCartConv += parseNumber(row['Add to Cart Conv']);
+      metrics.addToCartValue += parseNumber(row['Add to Cart Conv Value']);
+      metrics.beginCheckoutConv += parseNumber(row['Begin Checkout Conv']);
+      metrics.beginCheckoutValue += parseNumber(row['Begin Checkout Conv Value']);
+      metrics.purchaseConv += parseNumber(row['Purchase Conv']);
+      metrics.purchaseValue += parseNumber(row['Purchase Conv Value']);
+    });
+
+    // Calculate derived metrics
+    metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
+    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
+    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
+    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+    metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
+    metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+    metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
+    
+    // Funnel rates
+    metrics.cartRate = metrics.clicks > 0 ? (metrics.addToCartConv / metrics.clicks) * 100 : 0;
+    metrics.checkoutRate = metrics.addToCartConv > 0 ? (metrics.beginCheckoutConv / metrics.addToCartConv) * 100 : 0;
+    metrics.purchaseRate = metrics.beginCheckoutConv > 0 ? (metrics.purchaseConv / metrics.beginCheckoutConv) * 100 : 0;
+
+    return metrics;
+  },
+
+    // Calculate aggregated metrics for a group of rows
   calculateAggregatedMetrics(rows) {
     const parseNumber = (value) => {
       if (!value) return 0;
