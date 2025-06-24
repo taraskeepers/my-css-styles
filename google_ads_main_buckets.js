@@ -88,7 +88,7 @@ function createBucketedProductsContainer() {
     bucketedProductsContainer.style.cssText = `
       width: 1195px;
       min-height: 600px;
-      margin: 100px 0 20px 20px;
+      margin: 20px 0 20px 20px;
       background-color: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       border-radius: 12px;
@@ -115,6 +115,303 @@ function createBucketedProductsContainer() {
     }
   } else {
     console.log('[createBucketedProductsContainer] Container already exists');
+  }
+}
+
+// Create products buckets filter container
+function createProductsBucketsFilterContainer() {
+  let contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (!contentWrapper) {
+    const googleAdsContainer = document.getElementById('googleAdsContainer');
+    if (googleAdsContainer) {
+      contentWrapper = googleAdsContainer.querySelector('.content-wrapper');
+    }
+  }
+  
+  if (!contentWrapper) {
+    contentWrapper = document.getElementById('googleAdsContainer');
+    if (!contentWrapper) return;
+  }
+  
+  // Check if container already exists
+  let filterContainer = document.getElementById('products-buckets-filter-container');
+  if (!filterContainer) {
+    filterContainer = document.createElement('div');
+    filterContainer.id = 'products-buckets-filter-container';
+    filterContainer.style.cssText = `
+      width: 1195px;
+      height: 200px;
+      margin: 110px 0 0 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+      position: relative;
+      z-index: 100;
+    `;
+    
+    // Insert before bucketed_products_container
+    const bucketedProducts = document.getElementById('bucketed_products_container');
+    if (bucketedProducts && bucketedProducts.parentNode) {
+      bucketedProducts.parentNode.insertBefore(filterContainer, bucketedProducts);
+    } else {
+      contentWrapper.appendChild(filterContainer);
+    }
+  }
+  
+  return filterContainer;
+}
+
+// Render bucket funnels
+async function renderBucketFunnels() {
+  const filterContainer = document.getElementById('products-buckets-filter-container');
+  if (!filterContainer) return;
+  
+  // Clear existing content
+  filterContainer.innerHTML = '';
+  
+  // Get bucket data
+  const accountPrefix = window.currentAccount || 'acc1';
+  const days = window.selectedBucketDateRangeDays || 30;
+  const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+  const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+  
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return;
+    
+    // Filter for Campaign="All" and Device="All" records
+    const filteredData = result.data.filter(row => 
+      row['Campaign Name'] === 'All' && 
+      row['Device'] === 'All'
+    );
+    
+    // Create funnel container
+    const funnelContainer = document.createElement('div');
+    funnelContainer.style.cssText = 'display: flex; gap: 15px; height: 100%;';
+    
+    // Define bucket types
+    const bucketTypes = [
+      { key: 'PROFITABILITY_BUCKET', title: 'Profitability', color: '#4CAF50' },
+      { key: 'FUNNEL_STAGE_BUCKET', title: 'Funnel Stage', color: '#2196F3' },
+      { key: 'INVESTMENT_BUCKET', title: 'Investment', color: '#FF9800' },
+      { key: 'CUSTOM_TIER_BUCKET', title: 'Custom Tier', color: '#9C27B0' },
+      { key: 'SUGGESTIONS_BUCKET', title: 'Suggestions', color: '#F44336' }
+    ];
+    
+    bucketTypes.forEach(bucketType => {
+      const funnelDiv = createBucketFunnel(filteredData, bucketType);
+      funnelContainer.appendChild(funnelDiv);
+    });
+    
+    filterContainer.appendChild(funnelContainer);
+    
+  } catch (error) {
+    console.error('[renderBucketFunnels] Error:', error);
+    filterContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 50px;">Unable to load bucket data</div>';
+  }
+}
+
+// Create individual bucket funnel
+function createBucketFunnel(data, bucketType) {
+  const funnelDiv = document.createElement('div');
+  funnelDiv.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 10px;';
+  
+  // Title
+  const title = document.createElement('div');
+  title.style.cssText = `
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: ${bucketType.color};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  `;
+  title.textContent = bucketType.title;
+  funnelDiv.appendChild(title);
+  
+  // Count products by bucket value
+  const bucketCounts = {};
+  let totalProducts = 0;
+  
+  data.forEach(row => {
+    if (bucketType.key === 'SUGGESTIONS_BUCKET' && row[bucketType.key]) {
+      try {
+        const suggestions = JSON.parse(row[bucketType.key]);
+        if (suggestions.length > 0) {
+          totalProducts++;
+          suggestions.forEach(suggestionObj => {
+            const value = suggestionObj.suggestion;
+            bucketCounts[value] = (bucketCounts[value] || 0) + 1;
+          });
+        }
+      } catch (e) {
+        console.error('Error parsing suggestions:', e);
+      }
+    } else if (row[bucketType.key]) {
+      totalProducts++;
+      let value = row[bucketType.key];
+      try {
+        const parsed = JSON.parse(row[bucketType.key]);
+        value = parsed.value || value;
+      } catch (e) {
+        // Use raw value if not JSON
+      }
+      bucketCounts[value] = (bucketCounts[value] || 0) + 1;
+    }
+  });
+  
+  // Sort by count and get bucket configuration
+  const bucketConfig = window.bucketConfig && window.bucketConfig[bucketType.key];
+  let sortedBuckets = Object.entries(bucketCounts);
+  
+  if (bucketConfig && bucketConfig.order) {
+    // Sort by predefined order
+    sortedBuckets.sort((a, b) => {
+      const indexA = bucketConfig.order.indexOf(a[0]);
+      const indexB = bucketConfig.order.indexOf(b[0]);
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    });
+  } else {
+    // Sort by count descending
+    sortedBuckets.sort((a, b) => b[1] - a[1]);
+  }
+  
+  // Create SVG funnel
+  const svgHeight = 140;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', svgHeight);
+  svg.style.cssText = 'border-radius: 8px; background: #fafafa;';
+  
+  // Calculate funnel dimensions
+  const padding = 10;
+  const funnelHeight = svgHeight - padding * 2;
+  const maxWidth = 200;
+  const minWidth = 80;
+  
+  let currentY = padding;
+  const sectionHeight = funnelHeight / Math.max(sortedBuckets.length, 1);
+  
+  sortedBuckets.forEach(([bucketName, count], index) => {
+    const percentage = totalProducts > 0 ? (count / totalProducts * 100) : 0;
+    const widthRatio = (sortedBuckets.length - index) / sortedBuckets.length;
+    const sectionWidth = minWidth + (maxWidth - minWidth) * widthRatio;
+    const x = (maxWidth - sectionWidth) / 2 + 10;
+    
+    // Get color from config or use default
+    const sectionColor = bucketConfig && bucketConfig.colors && bucketConfig.colors[bucketName] 
+      ? bucketConfig.colors[bucketName] 
+      : bucketType.color;
+    
+    // Create trapezoid path
+    const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const nextWidth = index < sortedBuckets.length - 1 
+      ? minWidth + (maxWidth - minWidth) * ((sortedBuckets.length - index - 1) / sortedBuckets.length)
+      : sectionWidth - 20;
+    const nextX = (maxWidth - nextWidth) / 2 + 10;
+    
+    const path = `
+      M ${x} ${currentY}
+      L ${x + sectionWidth} ${currentY}
+      L ${nextX + nextWidth} ${currentY + sectionHeight}
+      L ${nextX} ${currentY + sectionHeight}
+      Z
+    `;
+    
+    trapezoid.setAttribute('d', path);
+    trapezoid.setAttribute('fill', sectionColor);
+    trapezoid.setAttribute('stroke', 'white');
+    trapezoid.setAttribute('stroke-width', '2');
+    trapezoid.style.cssText = 'cursor: pointer; opacity: 0.9; transition: opacity 0.2s;';
+    
+    // Add hover effect
+    trapezoid.addEventListener('mouseenter', function(e) {
+      this.style.opacity = '1';
+      showFunnelTooltip(e, bucketName, count, percentage, totalProducts);
+    });
+    
+    trapezoid.addEventListener('mouseleave', function() {
+      this.style.opacity = '0.9';
+      hideFunnelTooltip();
+    });
+    
+    svg.appendChild(trapezoid);
+    
+    // Add text
+    if (sectionHeight > 20) {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x + sectionWidth / 2);
+      text.setAttribute('y', currentY + sectionHeight / 2 + 5);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'white');
+      text.setAttribute('font-size', '11px');
+      text.setAttribute('font-weight', '600');
+      text.style.pointerEvents = 'none';
+      text.textContent = `${count} (${percentage.toFixed(0)}%)`;
+      svg.appendChild(text);
+    }
+    
+    currentY += sectionHeight;
+  });
+  
+  funnelDiv.appendChild(svg);
+  return funnelDiv;
+}
+
+// Tooltip functions
+let funnelTooltip = null;
+
+function showFunnelTooltip(event, bucketName, count, percentage, total) {
+  if (!funnelTooltip) {
+    funnelTooltip = document.createElement('div');
+    funnelTooltip.style.cssText = `
+      position: fixed;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    document.body.appendChild(funnelTooltip);
+  }
+  
+  funnelTooltip.innerHTML = `
+    <div style="font-weight: 700; margin-bottom: 5px;">${bucketName}</div>
+    <div>Products: ${count} / ${total}</div>
+    <div>Percentage: ${percentage.toFixed(1)}%</div>
+  `;
+  
+  const x = event.clientX + 10;
+  const y = event.clientY - 10;
+  funnelTooltip.style.left = x + 'px';
+  funnelTooltip.style.top = y + 'px';
+  funnelTooltip.style.opacity = '1';
+}
+
+function hideFunnelTooltip() {
+  if (funnelTooltip) {
+    funnelTooltip.style.opacity = '0';
   }
 }
 
@@ -154,12 +451,14 @@ function showBucketsOverview() {
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
   const buckets_products = document.getElementById('buckets_products');
+  const filterContainer = document.getElementById('products-buckets-filter-container');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'block';
   if (roasMetricsTable) roasMetricsTable.style.display = 'block';
   if (roasChannels) roasChannels.style.display = 'block';
   if (buckets_products) buckets_products.style.display = 'block';
+  if (filterContainer) filterContainer.style.display = 'none';
   if (bucketedProducts) bucketedProducts.style.display = 'none';
 }
 
@@ -167,7 +466,8 @@ function showBucketsOverview() {
 function showBucketedProducts() {
   console.log('[showBucketedProducts] Starting...');
   
-  // First ensure the container exists
+  // First ensure the containers exist
+  createProductsBucketsFilterContainer();
   createBucketedProductsContainer();
   
   // Hide overview containers
@@ -175,6 +475,7 @@ function showBucketedProducts() {
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
   const buckets_products = document.getElementById('buckets_products');
+  const filterContainer = document.getElementById('products-buckets-filter-container');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   console.log('[showBucketedProducts] Container statuses:', {
@@ -182,6 +483,7 @@ function showBucketedProducts() {
     roasMetricsTable: !!roasMetricsTable,
     roasChannels: !!roasChannels,
     buckets_products: !!buckets_products,
+    filterContainer: !!filterContainer,
     bucketedProducts: !!bucketedProducts
   });
   
@@ -189,6 +491,10 @@ function showBucketedProducts() {
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
   if (roasChannels) roasChannels.style.display = 'none';
   if (buckets_products) buckets_products.style.display = 'none';
+  if (filterContainer) {
+    filterContainer.style.display = 'block';
+    renderBucketFunnels(); // Render the funnels
+  }
   if (bucketedProducts) {
     bucketedProducts.style.display = 'block';
     console.log('[showBucketedProducts] Set container to display: block');
