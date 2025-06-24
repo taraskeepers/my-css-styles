@@ -149,14 +149,15 @@ window.productBucketAnalyzer = {
     // Calculate dynamic defaults based on current period data
     this.calculateDynamicDefaults(currentPeriodData);
     
-    // Calculate account metrics for benchmarking
-    this.accountMetrics = this.calculateAccountMetrics(currentPeriodData);
+// Group data by product + campaign + channel + device
+const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
 
-    // Calculate revenue percentiles for seller classification
+// Calculate account metrics for benchmarking (using grouped data)
+this.accountMetrics = this.calculateAccountMetrics(currentGrouped);
+
+// Calculate revenue percentiles for seller classification
 this.revenuePercentiles = this.calculateRevenuePercentiles(currentGrouped);
-
-    // Group data by product + campaign + channel + device
-    const currentGrouped = this.groupByProductCampaignChannelDevice(currentPeriodData);
+    
     const prevGrouped = this.groupByProductCampaignChannelDevice(prevPeriodData);
 
     // Process all combinations
@@ -284,6 +285,9 @@ this.revenuePercentiles = this.calculateRevenuePercentiles(currentGrouped);
       }
     }
 
+    // Post-process to assign SELLERS categories after all records are created
+this.assignSellersToProcessedData(bucketData);
+
     return bucketData;
   },
 
@@ -306,9 +310,6 @@ this.revenuePercentiles = this.calculateRevenuePercentiles(currentGrouped);
     // Assign buckets
     const buckets = this.assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices);
     const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, null, false) : null;
-
-    // Assign sellers category
-const sellersCategory = this.assignSellersCategory(productTitle, metrics);
     
     // Build the row data
     return {
@@ -351,7 +352,7 @@ const sellersCategory = this.assignSellersCategory(productTitle, metrics);
 'INVESTMENT_BUCKET': JSON.stringify(buckets.investment),
 'CUSTOM_TIER_BUCKET': JSON.stringify(buckets.customTier),
       'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
-      'SELLERS': sellersCategory,
+      'SELLERS': 'TBD',
       'HEALTH_SCORE': buckets.healthScore,
       'Confidence_Level': buckets.confidenceLevel,
       // Previous bucket assignments
@@ -485,11 +486,18 @@ calculateRevenuePercentiles(currentGrouped) {
     const sortedRevenues = Object.values(productRevenues).sort((a, b) => b - a);
     const total = sortedRevenues.length;
     
-    console.log(`[Product Buckets V3] Calculated percentiles for ${total} products`);
+    // Calculate actual thresholds (not indices)
+    const top10Index = Math.floor(total * 0.1);
+    const top20Index = Math.floor(total * 0.2);
+    
+    const top10Threshold = total > 0 && top10Index < total ? sortedRevenues[top10Index] : 0;
+    const top20Threshold = total > 0 && top20Index < total ? sortedRevenues[top20Index] : 0;
+    
+    console.log(`[Product Buckets V3] Calculated percentiles for ${total} products - Top 10%: $${top10Threshold.toFixed(0)}, Top 20%: $${top20Threshold.toFixed(0)}`);
     
     return {
-      top10PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.1)] || 0 : 0,
-      top20PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.2)] || 0 : 0,
+      top10PercentThreshold: top10Threshold,
+      top20PercentThreshold: top20Threshold,
       productRevenues: productRevenues
     };
   } catch (error) {
@@ -502,8 +510,13 @@ calculateRevenuePercentiles(currentGrouped) {
   }
 },
 
-// Assign sellers category based on revenue and ROAS
-assignSellersCategory(productTitle, metrics) {
+// Assign sellers category based on revenue and ROAS (only for All+All records)
+assignSellersCategory(productTitle, campaignName, device, metrics) {
+  // Only calculate for aggregated records (Campaign Name = "All" and Device = "All")
+  if (campaignName !== 'All' || device !== 'All') {
+    return 'N/A';
+  }
+
   // Add error checking
   if (!this.revenuePercentiles || !this.accountMetrics) {
     console.warn('[Product Buckets V3] Missing percentiles or account metrics, returning Standard');
@@ -533,51 +546,131 @@ assignSellersCategory(productTitle, metrics) {
   return 'Standard';
 },
 
-  // Calculate account-wide metrics
-  calculateAccountMetrics(data) {
-    const parseNumber = (value) => {
-      if (!value) return 0;
-      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
-    };
-
-    const totals = data.reduce((acc, row) => {
-      acc.cost += parseNumber(row.Cost);
-      acc.convValue += parseNumber(row['Conversion Value']);
-      acc.impressions += parseNumber(row.Impressions);
-      acc.clicks += parseNumber(row.Clicks);
-      acc.conversions += parseNumber(row.Conversions);
-      return acc;
-    }, { cost: 0, convValue: 0, impressions: 0, clicks: 0, conversions: 0 });
-
-    return {
-      avgROAS: totals.cost > 0 ? totals.convValue / totals.cost : 2.5,
-      avgCTR: totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 1.0,
-      avgCVR: totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 2.0,
-      totalRevenue: totals.convValue,
-      totalCost: totals.cost
-    };
-  },
-
-  // Group data by product + campaign + channel + device
-  groupByProductCampaignChannelDevice(data) {
-    const grouped = {};
-    const DELIMITER = '~~~';
-    
-    data.forEach(row => {
-      const device = row.Device || 'UNKNOWN';
-      const campaignName = row['Campaign Name'] || '';
-      const channelType = row['Channel Type'] || '';
-      const productTitle = row['Product Title'] || '';
-      
-      const key = `${productTitle}${DELIMITER}${campaignName}${DELIMITER}${channelType}${DELIMITER}${device}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(row);
+// Post-process to assign SELLERS categories using actual All+All records
+assignSellersToProcessedData(bucketData) {
+  // Extract only All+All records for calculations
+  const allAllRecords = bucketData.filter(record => 
+    record['Campaign Name'] === 'All' && record['Device'] === 'All'
+  );
+  
+  if (allAllRecords.length === 0) {
+    console.warn('[Product Buckets V3] No All+All records found for SELLERS calculation');
+    // Set all records to 'N/A'
+    bucketData.forEach(record => {
+      record['SELLERS'] = 'N/A';
     });
+    return;
+  }
+  
+  // Calculate account ROAS from All+All records
+  const totalCost = allAllRecords.reduce((sum, record) => sum + (record['Cost'] || 0), 0);
+  const totalRevenue = allAllRecords.reduce((sum, record) => sum + (record['ConvValue'] || 0), 0);
+  const accountROAS = totalCost > 0 ? totalRevenue / totalCost : 2.5;
+  
+  // Calculate revenue percentiles from All+All records
+  const productRevenues = allAllRecords.map(record => record['ConvValue'] || 0);
+  const sortedRevenues = productRevenues.sort((a, b) => b - a);
+  const total = sortedRevenues.length;
+  
+  const top10Index = Math.floor(total * 0.1);
+  const top20Index = Math.floor(total * 0.2);
+  const top10Threshold = total > 0 && top10Index < total ? sortedRevenues[top10Index] : 0;
+  const top20Threshold = total > 0 && top20Index < total ? sortedRevenues[top20Index] : 0;
+  
+  // Log for verification
+  const top10Count = sortedRevenues.filter(r => r >= top10Threshold).length;
+  const top20Count = sortedRevenues.filter(r => r >= top20Threshold).length;
+  console.log(`[Product Buckets V3] SELLERS calculation - Account ROAS: ${accountROAS.toFixed(2)}x`);
+  console.log(`[Product Buckets V3] Top 10% threshold: $${top10Threshold.toFixed(0)} (${top10Count} products)`);
+  console.log(`[Product Buckets V3] Top 20% threshold: $${top20Threshold.toFixed(0)} (${top20Count} products)`);
+  
+  // Assign SELLERS categories to all records
+  bucketData.forEach(record => {
+    const campaignName = record['Campaign Name'];
+    const device = record['Device'];
+    const revenue = record['ConvValue'] || 0;
+    const roas = record['ROAS'] || 0;
+    
+    // Only assign categories to All+All records
+    if (campaignName === 'All' && device === 'All') {
+      // Revenue Stars: Top 10% revenue + ROAS > (account ROAS + 1.0)
+      if (revenue >= top10Threshold && roas > (accountROAS + 1.0)) {
+        record['SELLERS'] = 'Revenue Stars';
+      }
+      // Best Sellers: Top 20% revenue + ROAS > account ROAS
+      else if (revenue >= top20Threshold && roas > accountROAS) {
+        record['SELLERS'] = 'Best Sellers';
+      }
+      // Volume Leaders: Top 20% revenue regardless of ROAS
+      else if (revenue >= top20Threshold) {
+        record['SELLERS'] = 'Volume Leaders';
+      }
+      else {
+        record['SELLERS'] = 'Standard';
+      }
+    } else {
+      // All other records get N/A
+      record['SELLERS'] = 'N/A';
+    }
+  });
+},
 
-    return grouped;
-  },
+// Calculate account-wide metrics from aggregated product data (All+All equivalent)
+calculateAccountMetrics(currentGrouped) {
+  const DELIMITER = '~~~';
+  const productMetrics = {};
+  
+  // First, aggregate all specific records by product to simulate All+All records
+  Object.entries(currentGrouped).forEach(([key, rows]) => {
+    if (!key || !rows || !Array.isArray(rows)) return;
+    
+    const parts = key.split(DELIMITER);
+    const productTitle = parts[0];
+    
+    // Only use specific records (not aggregated ones)
+    if (parts[1] !== 'All' && parts[2] !== 'All' && parts[3] !== 'All') {
+      if (!productMetrics[productTitle]) {
+        productMetrics[productTitle] = [];
+      }
+      productMetrics[productTitle].push(...rows);
+    }
+  });
+  
+  // Calculate metrics for each product (equivalent to All+All records)
+  const productTotals = [];
+  Object.entries(productMetrics).forEach(([productTitle, allRows]) => {
+    const metrics = this.calculateAggregatedMetrics(allRows);
+    productTotals.push(metrics);
+  });
+  
+  // Calculate account-wide averages from product totals
+  if (productTotals.length === 0) {
+    return {
+      avgROAS: 2.5,
+      avgCTR: 1.0,
+      avgCVR: 2.0,
+      totalRevenue: 0,
+      totalCost: 0
+    };
+  }
+  
+  const totals = productTotals.reduce((acc, metrics) => {
+    acc.cost += metrics.cost;
+    acc.convValue += metrics.convValue;
+    acc.impressions += metrics.impressions;
+    acc.clicks += metrics.clicks;
+    acc.conversions += metrics.conversions;
+    return acc;
+  }, { cost: 0, convValue: 0, impressions: 0, clicks: 0, conversions: 0 });
+
+  return {
+    avgROAS: totals.cost > 0 ? totals.convValue / totals.cost : 2.5,
+    avgCTR: totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 1.0,
+    avgCVR: totals.clicks > 0 ? (totals.conversions / totals.clicks) * 100 : 2.0,
+    totalRevenue: totals.convValue,
+    totalCost: totals.cost
+  };
+},
 
   // Calculate aggregated metrics for a group of rows
   calculateAggregatedMetrics(rows) {
