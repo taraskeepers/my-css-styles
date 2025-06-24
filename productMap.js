@@ -3201,6 +3201,19 @@ if (isFullscreen) {
                   
                   // Important debug approach - make a copy of the DetailsPanel component
                   const originalDetailsPanel = window.DetailsPanel;
+
+                  // Ensure Recharts components are available when needed
+                if (window.Recharts && !window.ResponsiveContainer) {
+                  const components = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
+                                     'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
+                                     'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
+                  components.forEach(comp => {
+                    if (window.Recharts[comp]) {
+                      window[comp] = window.Recharts[comp];
+                    }
+                  });
+                  console.log("[ProductMap] Exposed Recharts components to global scope");
+                }
                   
                   // Create a debug version that tells us what's happening
                   window.DetailsPanel = function(props) {
@@ -3252,63 +3265,9 @@ if (isFullscreen) {
                     // Call the original component
                     return originalDetailsPanel(props);
                   };
-
-// Function to wait for Recharts to be available
-function waitForRecharts(callback, maxAttempts = 20) {
-  let attempts = 0;
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (window.Recharts) {
-      clearInterval(checkInterval);
-      console.log("[ProductMap] Recharts found after " + attempts + " attempts");
-      
-      // Make Recharts components globally available
-      const rechartsComponents = [
-        'ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar',
-        'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-        'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell',
-        'ComposedChart', 'ReferenceLine', 'Brush'
-      ];
-      
-      rechartsComponents.forEach(component => {
-        if (window.Recharts[component] && !window[component]) {
-          window[component] = window.Recharts[component];
-          console.log(`[ProductMap] Exposed Recharts.${component} to global scope`);
-        }
-      });
-      
-      callback(true);
-    } else if (attempts >= maxAttempts) {
-      clearInterval(checkInterval);
-      console.error("[ProductMap] Recharts not found after " + attempts + " attempts");
-      callback(false);
-    }
-  }, 100); // Check every 100ms
-}
-
-// Check if Recharts is available immediately
-if (typeof window.Recharts === 'undefined') {
-  console.warn("[ProductMap] Recharts not immediately available, will wait...");
-} else {
-  console.log("[ProductMap] Recharts is already loaded");
-  
-  // Make components available immediately if Recharts is loaded
-  const rechartsComponents = [
-    'ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar',
-    'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
-    'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell',
-    'ComposedChart', 'ReferenceLine', 'Brush'
-  ];
-  
-  rechartsComponents.forEach(component => {
-    if (window.Recharts[component] && !window[component]) {
-      window[component] = window.Recharts[component];
-    }
-  });
-}
                   
-                // Render with our debug version
-                const renderDetailsPanel = () => {
+// Render with our debug version
+                setTimeout(() => {
                   try {
                       // Get date range
                       // Get the original date range first
@@ -3372,33 +3331,6 @@ if (dateRange && dateRange.end) {
                       window.DetailsPanel = originalDetailsPanel;
                     }
                   };
-
-                  // Wait for Recharts if needed, then render
-                  if (typeof window.Recharts === 'undefined') {
-                    waitForRecharts((success) => {
-                      if (success) {
-                        setTimeout(renderDetailsPanel, 100);
-                      } else {
-                        detailsPanel.innerHTML = `
-                          <div style="padding: 20px; text-align: center;">
-                            <h3>Error: Required libraries not loaded</h3>
-                            <p>Recharts library could not be loaded. Please refresh the page.</p>
-                            <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
-                              Close
-                            </button>
-                          </div>
-                        `;
-                        
-                        // Hide loading overlay
-                        const loadingOverlay = document.getElementById('panel-loading-overlay');
-                        if (loadingOverlay) {
-                          loadingOverlay.style.display = 'none';
-                        }
-                      }
-                    });
-                  } else {
-                    setTimeout(renderDetailsPanel, 100);
-                  }
                   
                   return false;
                 }, true);
