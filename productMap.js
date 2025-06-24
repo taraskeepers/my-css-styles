@@ -3431,8 +3431,13 @@ if (isFullscreen) {
                       }, 2000);
                     }
                     
-                    // Call the original component
-                    return originalDetailsPanel(props);
+                    // Call the original component function (vanilla JS)
+                    const element = originalDetailsPanel(props);
+                    
+                    // Log that we're returning a DOM element
+                    console.log("[DEBUG-INJECTION] Returning DOM element:", element.tagName);
+                    
+                    return element;
                   };
                   
 // Render with our debug version
@@ -3460,20 +3465,22 @@ if (dateRange && dateRange.end) {
                       const contentWrapper = document.getElementById('panel-content-wrapper');
                       
                       // Render into the content wrapper instead of detailsPanel
-                      ReactDOM.render(
-                        React.createElement(window.DetailsPanel, {
-                          key: plaIndex,
-                          rowData: rowDataCopy,
-                          start: dateRange.start,
-                          end: dateRange.end,
-                          activeTab: window.savedActiveTab || 1,
-                          onClose: () => {
-                            detailsPanel.style.display = 'none';
-                            document.body.style.overflow = 'auto';
-                          }
-                        }),
-                        contentWrapper
-                      );
+                      contentWrapper.innerHTML = '';
+                      
+                      // Create the details panel using vanilla JS
+                      const detailsPanelElement = window.DetailsPanel({
+                        rowData: rowDataCopy,
+                        start: dateRange.start,
+                        end: dateRange.end,
+                        activeTab: window.savedActiveTab || 1,
+                        onClose: () => {
+                          detailsPanel.style.display = 'none';
+                          document.body.style.overflow = 'auto';
+                        }
+                      });
+                      
+                      // Append the DOM element directly
+                      contentWrapper.appendChild(detailsPanelElement);
                       
                       // Hide the loading overlay
                       const loadingOverlay = document.getElementById('panel-loading-overlay');
@@ -4021,6 +4028,27 @@ function renderAvgPositionChart(container, products) {
       }
     }
   });
+}
+
+function closeDetailsPanel() {
+  const panel = document.getElementById('product-map-details-panel');
+  if (panel) {
+    panel.style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+  
+  // Remove selected class from all elements
+  document.querySelectorAll('.ad-details.selected').forEach(el => {
+    el.classList.remove('selected');
+  });
+  
+  // Reset global variables if they exist
+  if (typeof currentlyOpenPanel !== 'undefined') {
+    currentlyOpenPanel = null;
+  }
+  if (typeof currentlySelectedIndex !== 'undefined') {
+    currentlySelectedIndex = null;
+  }
 }
 
 // Function to update chart line visibility when product is selected/deselected
