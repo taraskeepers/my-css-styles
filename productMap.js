@@ -3253,17 +3253,56 @@ if (isFullscreen) {
                     return originalDetailsPanel(props);
                   };
 
-// Ensure recharts is available for the details panel
+// Temporarily disable the debug wrapper if Recharts is not available
 if (typeof window.Recharts === 'undefined') {
-  console.warn("[ProductMap] Recharts not available, attempting to load from CDN");
+  console.warn("[ProductMap] Recharts not available, rendering without debug wrapper");
   
-  // Try to load Recharts from CDN
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.min.js';
-  script.onload = () => {
-    console.log("[ProductMap] Recharts loaded from CDN");
-  };
-  document.head.appendChild(script);
+  // Skip the debug wrapper and render directly
+  try {
+    let dateRange = getDataRange(rowData);
+    if (dateRange && dateRange.end) {
+      dateRange = {
+        end: dateRange.end.clone(),
+        start: dateRange.end.clone().subtract(6, "days")
+      };
+    }
+    
+    const rowDataCopy = { ...rowData };
+    const contentWrapper = document.getElementById('panel-content-wrapper');
+    
+    // Render without the debug wrapper
+    ReactDOM.render(
+      React.createElement(originalDetailsPanel, {
+        key: plaIndex,
+        rowData: rowDataCopy,
+        start: dateRange.start,
+        end: dateRange.end,
+        activeTab: window.savedActiveTab || 1,
+        onClose: () => {
+          detailsPanel.style.display = 'none';
+          document.body.style.overflow = 'auto';
+        }
+      }),
+      contentWrapper
+    );
+    
+    const loadingOverlay = document.getElementById('panel-loading-overlay');
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  } catch (error) {
+    console.error("[DEBUG] Error rendering panel without debug wrapper:", error);
+    detailsPanel.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <h3>Error displaying product details</h3>
+        <p>${error.message}</p>
+        <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
+          Close
+        </button>
+      </div>
+    `;
+  }
+  return;
 }
                   
                   // Render with our debug version
