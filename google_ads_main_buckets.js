@@ -1,3 +1,5 @@
+// Add these global variables for bucket filtering
+window.selectedBucketFilter = null; // {bucketType: 'PROFITABILITY_BUCKET', bucketValue: 'Strong Performers'}
 // Global settings for product metrics calculation
 window.productMetricsSettings = {
   useLatestDataDate: false, // true = use latest data date, false = use today's date
@@ -278,28 +280,36 @@ function createBucketFunnel(data, bucketType) {
     }
   });
   
-  // Sort by count and get bucket configuration
+  // Custom sorting function - worst to best
   const bucketConfig = window.bucketConfig && window.bucketConfig[bucketType.key];
   let sortedBuckets = Object.entries(bucketCounts);
   
-  if (bucketConfig && bucketConfig.order) {
-    // Sort by predefined order
-    sortedBuckets.sort((a, b) => {
-      const indexA = bucketConfig.order.indexOf(a[0]);
-      const indexB = bucketConfig.order.indexOf(b[0]);
+  sortedBuckets.sort((a, b) => {
+    // Always put "Insufficient Data" first
+    if (a[0] === 'Insufficient Data') return -1;
+    if (b[0] === 'Insufficient Data') return 1;
+    
+    if (bucketConfig && bucketConfig.order) {
+      // Reverse the order (worst to best, top to bottom)
+      const reversedOrder = [...bucketConfig.order].reverse();
+      const indexA = reversedOrder.indexOf(a[0]);
+      const indexB = reversedOrder.indexOf(b[0]);
       return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-    });
-  } else {
-    // Sort by count descending
-    sortedBuckets.sort((a, b) => b[1] - a[1]);
-  }
+    } else {
+      // Sort by count ascending (smallest at top)
+      return a[1] - b[1];
+    }
+  });
   
   // Create SVG funnel
   const svgHeight = 140;
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', svgHeight);
-  svg.style.cssText = 'border-radius: 8px; background: #fafafa;';
+  svg.style.cssText = 'border-radius: 8px; background: #fafafa; overflow: visible;';
+  
+  // Store bucket type on SVG for reference
+  svg.bucketType = bucketType;
   
   // Calculate funnel dimensions
   const padding = 10;
@@ -321,6 +331,10 @@ function createBucketFunnel(data, bucketType) {
       ? bucketConfig.colors[bucketName] 
       : bucketType.color;
     
+    // Create group for section
+    const sectionGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    sectionGroup.style.cssText = 'cursor: pointer; transition: transform 0.3s ease;';
+    
     // Create trapezoid path
     const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const nextWidth = index < sortedBuckets.length - 1 
@@ -340,40 +354,92 @@ function createBucketFunnel(data, bucketType) {
     trapezoid.setAttribute('fill', sectionColor);
     trapezoid.setAttribute('stroke', 'white');
     trapezoid.setAttribute('stroke-width', '2');
-    trapezoid.style.cssText = 'cursor: pointer; opacity: 0.9; transition: opacity 0.2s;';
+    trapezoid.setAttribute('data-original-color', sectionColor);
+    trapezoid.setAttribute('data-bucket-name', bucketName);
+    trapezoid.setAttribute('data-bucket-type', bucketType.key);
+    trapezoid.style.cssText = 'opacity: 0.9; transition: all 0.3s ease;';
+    
+    // Check if this section is currently selected
+    const isSelected = window.selectedBucketFilter && 
+                      window.selectedBucketFilter.bucketType === bucketType.key && 
+                      window.selectedBucketFilter.bucketValue === bucketName;
+    
+    if (window.selectedBucketFilter && !isSelected) {
+      // Gray out non-selected sections
+      trapezoid.style.filter = 'grayscale(1) opacity(0.5)';
+    } else if (isSelected) {
+      // Highlight selected section
+      sectionGroup.style.transform = 'scale(1.1)';
+      trapezoid.style.opacity = '1';
+    }
     
     // Add hover effect
-    trapezoid.addEventListener('mouseenter', function(e) {
-      this.style.opacity = '1';
+    sectionGroup.addEventListener('mouseenter', function(e) {
+      if (!window.selectedBucketFilter || isSelected) {
+        this.style.transform = 'scale(1.1)';
+        trapezoid.style.opacity = '1';
+      }
       showFunnelTooltip(e, bucketName, count, percentage, totalProducts);
     });
     
-    trapezoid.addEventListener('mouseleave', function() {
-      this.style.opacity = '0.9';
+    sectionGroup.addEventListener('mouseleave', function() {
+      if (!window.selectedBucketFilter || !isSelected) {
+        this.style.transform = 'scale(1)';
+        trapezoid.style.opacity = '0.9';
+      }
       hideFunnelTooltip();
     });
     
-    svg.appendChild(trapezoid);
+    // Add click handler
+    sectionGroup.addEventListener('click', function() {
+      handleBucketFilterClick(bucketType.key, bucketName);
+    });
     
-    // Add text
-    if (sectionHeight > 20) {
+    sectionGroup.appendChild(trapezoid);
+    
+    // Add text with reduced font size
+    if (sectionHeight > 15) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', x + sectionWidth / 2);
-      text.setAttribute('y', currentY + sectionHeight / 2 + 5);
+      text.setAttribute('y', currentY + sectionHeight / 2 + 4);
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '11px');
+      text.setAttribute('font-size', '9px'); // Reduced from 11px
       text.setAttribute('font-weight', '600');
       text.style.pointerEvents = 'none';
       text.textContent = `${count} (${percentage.toFixed(0)}%)`;
-      svg.appendChild(text);
+      sectionGroup.appendChild(text);
     }
     
+    svg.appendChild(sectionGroup);
     currentY += sectionHeight;
   });
   
   funnelDiv.appendChild(svg);
   return funnelDiv;
+}
+
+// Handle bucket filter click
+function handleBucketFilterClick(bucketType, bucketValue) {
+  // Check if clicking the same bucket (deselect)
+  if (window.selectedBucketFilter && 
+      window.selectedBucketFilter.bucketType === bucketType && 
+      window.selectedBucketFilter.bucketValue === bucketValue) {
+    // Deselect
+    window.selectedBucketFilter = null;
+  } else {
+    // Select new bucket
+    window.selectedBucketFilter = {
+      bucketType: bucketType,
+      bucketValue: bucketValue
+    };
+  }
+  
+  // Re-render funnels to update visual state
+  renderBucketFunnels();
+  
+  // Reload products with filter
+  loadBucketedProducts();
 }
 
 // Tooltip functions
@@ -511,10 +577,10 @@ function showBucketedProducts() {
   loadBucketedProducts();
 }
 
-// Load and display bucketed products
 async function loadBucketedProducts() {
   console.log('[loadBucketedProducts] Starting...');
   console.log('[loadBucketedProducts] Current filter:', window.currentBucketFilter);
+  console.log('[loadBucketedProducts] Bucket filter:', window.selectedBucketFilter);
   
   const container = document.getElementById('bucketed_products_container');
   if (!container) {
@@ -545,8 +611,77 @@ async function loadBucketedProducts() {
     
     console.log(`[loadBucketedProducts] Found ${allCompanyProducts.length} products`);
     
+    // Apply bucket filter if selected
+    let filteredProducts = allCompanyProducts;
+    if (window.selectedBucketFilter) {
+      console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
+      
+      // Load bucket data to filter products
+      const accountPrefix = window.currentAccount || 'acc1';
+      const days = window.selectedBucketDateRangeDays || 30;
+      const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+      const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+      
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('myAppDB');
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = () => reject(new Error('Failed to open myAppDB'));
+      });
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      const result = await new Promise((resolve, reject) => {
+        getRequest.onsuccess = () => resolve(getRequest.result);
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+      
+      db.close();
+      
+      if (result && result.data) {
+        // Create a set of product titles that match the filter
+        const matchingProductTitles = new Set();
+        
+        result.data.forEach(row => {
+          if (row['Campaign Name'] === 'All' && row['Device'] === 'All') {
+            let matches = false;
+            
+            if (window.selectedBucketFilter.bucketType === 'SUGGESTIONS_BUCKET' && row[window.selectedBucketFilter.bucketType]) {
+              try {
+                const suggestions = JSON.parse(row[window.selectedBucketFilter.bucketType]);
+                matches = suggestions.some(s => s.suggestion === window.selectedBucketFilter.bucketValue);
+              } catch (e) {
+                console.error('Error parsing suggestions:', e);
+              }
+            } else if (row[window.selectedBucketFilter.bucketType]) {
+              let value = row[window.selectedBucketFilter.bucketType];
+              try {
+                const parsed = JSON.parse(value);
+                value = parsed.value || value;
+              } catch (e) {
+                // Use raw value if not JSON
+              }
+              matches = value === window.selectedBucketFilter.bucketValue;
+            }
+            
+            if (matches) {
+              matchingProductTitles.add(row['Product Title']);
+            }
+          }
+        });
+        
+        // Filter products based on matching titles
+        filteredProducts = allCompanyProducts.filter(product => 
+          matchingProductTitles.has(product.title)
+        );
+        
+        console.log(`[loadBucketedProducts] Filtered to ${filteredProducts.length} products`);
+      }
+    }
+    
     // Calculate metrics and sort
-    const productsWithMetrics = allCompanyProducts.map(product => ({
+    const productsWithMetrics = filteredProducts.map(product => ({
       product: product,
       metrics: calculateGoogleAdsProductMetrics(product)
     }));
@@ -577,8 +712,9 @@ function renderProductsList(container, activeProducts, inactiveProducts) {
 const header = document.createElement('div');
 header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;';
 const filterText = window.currentBucketFilter ? ` - Filtered by ${window.currentBucketFilter.replace(/_/g, ' ')}` : '';
+const bucketFilterText = window.selectedBucketFilter ? ` - ${window.selectedBucketFilter.bucketValue}` : '';
 header.innerHTML = `
-  <h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}</h3>
+  <h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}${bucketFilterText}</h3>
   <button id="productsMetricsSettingsBtn" style="
     background: #f5f5f5;
     border: 1px solid #ddd;
