@@ -842,7 +842,7 @@ function toggleDetailedProductView(productDiv, product, bucketData) {
   
   // Animate open
   setTimeout(() => {
-    detailContainer.style.maxHeight = '400px';
+    detailContainer.style.maxHeight = '550px';
     detailContainer.style.opacity = '1';
   }, 50);
 }
@@ -853,7 +853,7 @@ function createDetailedProductOverview(bucketData) {
   container.className = 'detailed-bucketed-product-overview';
   container.style.cssText = `
     width: 1155px;
-    height: 400px;
+    height: 500px;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
