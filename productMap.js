@@ -113,15 +113,27 @@ if (googleAdsEnabled) {
       getRequest.onsuccess = () => {
         const result = getRequest.result;
         if (result && result.data) {
+          console.log(`[ProductMap] Bucket data structure:`, result.data[0]); // Log first item to see structure
+          
           result.data.forEach(product => {
-            if (product['Product Title']) {
-              // Create a key that includes device and campaign
-              const key = `${product['Product Title'].toLowerCase()}|${product['Device']}|${product['Campaign Name']}`;
+            if (product['Product Title'] && product['Campaign Name'] === 'All') {
+              // Normalize device value to uppercase for consistency
+              const deviceNormalized = (product['Device'] || '').toUpperCase();
+              const key = `${product['Product Title'].toLowerCase()}|${deviceNormalized}`;
               bucketDataMap.set(key, product);
+              
+              // Debug log for first few entries
+              if (bucketDataMap.size <= 3) {
+                console.log(`[ProductMap] Bucket entry: ${key}`, {
+                  profitability: product['PROFITABILITY_BUCKET'],
+                  device: product['Device'],
+                  campaign: product['Campaign Name']
+                });
+              }
             }
           });
         }
-        console.log(`[ProductMap] Loaded ${bucketDataMap.size} product bucket entries`);
+        console.log(`[ProductMap] Loaded ${bucketDataMap.size} product bucket entries (filtered for Campaign='All')`);
         resolve();
       };
       
@@ -731,11 +743,12 @@ viewChartsBtn.addEventListener("click", function() {
   });
 });
 
-  // Add bucket type selector functionality
+// Add bucket type selector functionality
 const bucketSelector = document.getElementById("bucketTypeSelector");
 if (bucketSelector) {
   bucketSelector.addEventListener("change", function() {
     const selectedBucketType = this.value;
+    console.log(`[ProductMap] Switching to bucket type: ${selectedBucketType}`);
     
     // Update all bucket badges
     document.querySelectorAll('.bucket-badge').forEach(badge => {
@@ -744,8 +757,12 @@ if (bucketSelector) {
       const product = window.globalRows[plaIndex];
       
       if (product && googleAdsEnabled && bucketDataMap.size > 0) {
-        const deviceValue = product.device;
-        const lookupKey = `${product.title.toLowerCase()}|${deviceValue}|All`;
+        // Get device from the row, not from the product
+        const row = adCard.closest('tr');
+        const deviceCell = row.querySelector('.device-icon');
+        const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
+        
+        const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
         const productBucketData = bucketDataMap.get(lookupKey);
         
         if (productBucketData) {
@@ -2571,9 +2588,11 @@ let bucketBadgeHTML = '';
 let hasBucketClass = '';
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
-  // Create lookup key with device from current row
-  const deviceValue = rowData.device; // This is the device from the current row
-  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}|All`;
+  // Normalize device value from current row to uppercase
+  const deviceValue = (rowData.device || '').toUpperCase();
+  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
+  
+  console.log(`[ProductMap] Looking up bucket for: "${lookupKey}"`); // Debug log
   
   const productBucketData = bucketDataMap.get(lookupKey);
   
@@ -2585,7 +2604,15 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
       hasBucketClass = 'has-bucket';
       
       // Log for debugging
-      console.log(`[ProductMap] Product "${enhancedProduct.title}" on ${deviceValue} has bucket data`);
+      console.log(`[ProductMap] Product "${enhancedProduct.title}" on ${deviceValue} has bucket:`, productBucketData['PROFITABILITY_BUCKET']);
+    }
+  } else {
+    // Debug: log why no match
+    if (bucketDataMap.size > 0) {
+      console.log(`[ProductMap] No bucket match for: "${lookupKey}"`);
+      // Log first few keys to see format
+      const sampleKeys = Array.from(bucketDataMap.keys()).slice(0, 3);
+      console.log(`[ProductMap] Sample bucket keys:`, sampleKeys);
     }
   }
 }
@@ -3220,6 +3247,25 @@ if (isFullscreen) {
                     // Call the original component
                     return originalDetailsPanel(props);
                   };
+
+                                  // Check if required libraries are available
+                if (!window.React || !window.ReactDOM) {
+                  console.error("[ProductMap] React or ReactDOM not available");
+                  detailsPanel.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                      <h3>Error: Required libraries not loaded</h3>
+                      <button onclick="document.getElementById('product-map-details-panel').style.display='none';">
+                        Close
+                      </button>
+                    </div>
+                  `;
+                  return;
+                }
+
+                // Ensure recharts is available for the details panel
+                if (typeof window.Recharts === 'undefined') {
+                  console.warn("[ProductMap] Recharts not available, charts may not render properly");
+                }
                   
                   // Render with our debug version
                   setTimeout(() => {
