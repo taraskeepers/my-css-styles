@@ -448,13 +448,26 @@ const sellersCategory = this.assignSellersCategory(productTitle, metrics);
     console.log('[Product Buckets V3] Calculated dynamic defaults:', this.DEFAULTS);
   },
 
-    // Calculate revenue percentiles for seller classification
-  calculateRevenuePercentiles(currentGrouped) {
-    // Collect all product revenues (aggregate by product title only)
-    const productRevenues = {};
-    const DELIMITER = '~~~';
-    
+// Calculate revenue percentiles for seller classification
+calculateRevenuePercentiles(currentGrouped) {
+  // Add error checking
+  if (!currentGrouped || typeof currentGrouped !== 'object') {
+    console.warn('[Product Buckets V3] currentGrouped is invalid, returning default percentiles');
+    return {
+      top10PercentThreshold: 0,
+      top20PercentThreshold: 0,
+      productRevenues: {}
+    };
+  }
+
+  // Collect all product revenues (aggregate by product title only)
+  const productRevenues = {};
+  const DELIMITER = '~~~';
+  
+  try {
     Object.entries(currentGrouped).forEach(([key, rows]) => {
+      if (!key || !rows || !Array.isArray(rows)) return;
+      
       const parts = key.split(DELIMITER);
       const productTitle = parts[0];
       
@@ -472,37 +485,53 @@ const sellersCategory = this.assignSellersCategory(productTitle, metrics);
     const sortedRevenues = Object.values(productRevenues).sort((a, b) => b - a);
     const total = sortedRevenues.length;
     
+    console.log(`[Product Buckets V3] Calculated percentiles for ${total} products`);
+    
     return {
-      top10PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.1)] : 0,
-      top20PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.2)] : 0,
+      top10PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.1)] || 0 : 0,
+      top20PercentThreshold: total > 0 ? sortedRevenues[Math.floor(total * 0.2)] || 0 : 0,
       productRevenues: productRevenues
     };
-  },
+  } catch (error) {
+    console.error('[Product Buckets V3] Error in calculateRevenuePercentiles:', error);
+    return {
+      top10PercentThreshold: 0,
+      top20PercentThreshold: 0,
+      productRevenues: {}
+    };
+  }
+},
 
-    // Assign sellers category based on revenue and ROAS
-  assignSellersCategory(productTitle, metrics) {
-    const productRevenue = this.revenuePercentiles.productRevenues[productTitle] || metrics.convValue;
-    const avgROAS = this.accountMetrics.avgROAS;
-    const isTop10Revenue = productRevenue >= this.revenuePercentiles.top10PercentThreshold;
-    const isTop20Revenue = productRevenue >= this.revenuePercentiles.top20PercentThreshold;
-    
-    // Revenue Stars: Top 10% revenue + ROAS > (avg ROAS + 1.0)
-    if (isTop10Revenue && metrics.roas > (avgROAS + 1.0)) {
-      return 'Revenue Stars';
-    }
-    
-    // Best Sellers: Top 20% revenue + ROAS > avg ROAS
-    if (isTop20Revenue && metrics.roas > avgROAS) {
-      return 'Best Sellers';
-    }
-    
-    // Volume Leaders: Top 20% revenue regardless of ROAS
-    if (isTop20Revenue) {
-      return 'Volume Leaders';
-    }
-    
+// Assign sellers category based on revenue and ROAS
+assignSellersCategory(productTitle, metrics) {
+  // Add error checking
+  if (!this.revenuePercentiles || !this.accountMetrics) {
+    console.warn('[Product Buckets V3] Missing percentiles or account metrics, returning Standard');
     return 'Standard';
-  },
+  }
+
+  const productRevenue = this.revenuePercentiles.productRevenues[productTitle] || metrics.convValue || 0;
+  const avgROAS = this.accountMetrics.avgROAS || 2.5;
+  const isTop10Revenue = productRevenue >= (this.revenuePercentiles.top10PercentThreshold || 0);
+  const isTop20Revenue = productRevenue >= (this.revenuePercentiles.top20PercentThreshold || 0);
+  
+  // Revenue Stars: Top 10% revenue + ROAS > (avg ROAS + 1.0)
+  if (isTop10Revenue && metrics.roas > (avgROAS + 1.0)) {
+    return 'Revenue Stars';
+  }
+  
+  // Best Sellers: Top 20% revenue + ROAS > avg ROAS
+  if (isTop20Revenue && metrics.roas > avgROAS) {
+    return 'Best Sellers';
+  }
+  
+  // Volume Leaders: Top 20% revenue regardless of ROAS
+  if (isTop20Revenue) {
+    return 'Volume Leaders';
+  }
+  
+  return 'Standard';
+},
 
   // Calculate account-wide metrics
   calculateAccountMetrics(data) {
