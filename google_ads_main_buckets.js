@@ -145,7 +145,7 @@ function createProductsBucketsFilterContainer() {
 filterContainer.style.cssText = `
       width: 1195px;
       height: 250px;  // Changed from 200px to 250px
-      margin: 110px 0 0 20px;
+      margin: 110px 0 20px 20px;
       background-color: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       border-radius: 12px;
