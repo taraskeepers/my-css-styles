@@ -3075,8 +3075,22 @@ const allProductsForChart = [...sortedActiveProducts, ...sortedInactiveProducts]
                   
                   console.log(`[DEBUG] Found data for product: ${rowData.title}`);
                   
+// FIX: Ensure Recharts components are available BEFORE anything tries to use them
+                  if (window.Recharts && !window.ResponsiveContainer) {
+                    const rechartsComponents = ['ResponsiveContainer', 'LineChart', 'Line', 'BarChart', 'Bar', 
+                                               'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend',
+                                               'Area', 'AreaChart', 'PieChart', 'Pie', 'Cell'];
+                    rechartsComponents.forEach(comp => {
+                      if (window.Recharts[comp]) {
+                        window[comp] = window.Recharts[comp];
+                      }
+                    });
+                    console.log("[ProductMap] Exposed Recharts components to global scope early");
+                  }
+                  
                   // DEEP DEBUG OF HISTORICAL DATA
                   console.log(`[DEBUG] Historical data exists: ${Array.isArray(rowData.historical_data)}`);
+
                   console.log(`[DEBUG] Historical data length: ${rowData.historical_data?.length || 0}`);
                   
                   if (rowData.historical_data && rowData.historical_data.length > 0) {
@@ -3265,13 +3279,6 @@ if (isFullscreen) {
                     // Call the original component
                     return originalDetailsPanel(props);
                   };
-
-                                  // Make sure Recharts components are available globally
-                if (window.Recharts && !window.ResponsiveContainer) {
-                  ['ResponsiveContainer', 'LineChart', 'Line', 'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'Legend', 'Bar', 'BarChart', 'Area', 'AreaChart'].forEach(comp => {
-                    if (window.Recharts[comp]) window[comp] = window.Recharts[comp];
-                  });
-                }
                   
 // Render with our debug version
                 setTimeout(() => {
