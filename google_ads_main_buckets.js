@@ -410,6 +410,47 @@ async function getBucketedProductsData(bucketType) {
   return bucketedProducts;
 }
 
+// Add this function after the getBucketedProductsData function (around line 270)
+async function getProductBucketData(productTitle) {
+  try {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const days = window.selectedBucketDateRangeDays || 30;
+    const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+    const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (result && result.data) {
+      // Find the record for this product where Campaign="All" and Device="All"
+      const productRecord = result.data.find(record => 
+        record['Product Title'] === productTitle &&
+        record['Campaign Name'] === 'All' &&
+        record['Device'] === 'All'
+      );
+      
+      return productRecord || null;
+    }
+  } catch (error) {
+    console.error('[getProductBucketData] Error:', error);
+  }
+  return null;
+}
+
 // Get bucket value for a specific product
 function getBucketValueForProduct(product, bucketType) {
   const combinations = getProductCombinations(product);
@@ -511,65 +552,89 @@ function renderBucketedProducts(container, bucketedProducts, bucketType) {
 function createBucketedProductItem(product, metrics) {
   const productDiv = document.createElement('div');
   productDiv.classList.add('small-ad-details', 'bucketed-product-item');
-productDiv.style.cssText = `
-  width: 100%;
-  height: 70px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  padding: 1px 5px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-sizing: border-box;
-`;
+  productDiv.style.cssText = `
+    width: 100%;
+    min-height: 100px;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    gap: 15px;
+  `;
   
   const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
   const imageUrl = product.thumbnail || 'https://via.placeholder.com/60?text=No+Image';
   const title = product.title || 'No title';
   
-productDiv.innerHTML = `
-  <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; margin-right: 15px;">
-    <div class="small-ad-pos-value" style="font-size: 22px;">${metrics.avgRating}</div>
-    ${metrics.rankTrend && metrics.rankTrend.arrow ? `
-      <div class="small-ad-pos-trend-container">
-        <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color}; font-size: 8px; padding: 2px 4px;">
-          ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
-        </span>
-      </div>
-    ` : ''}
-  </div>
-  <div class="small-ad-vis-status" style="margin-right: 15px;">
-    <div class="vis-status-left">
-      <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%;">
-        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
-          <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color}; font-size: 8px; padding: 2px 4px; margin-top: 2px; display: block;">
-            ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+  // Create the main structure
+  productDiv.innerHTML = `
+    <!-- Position Badge with Trend -->
+    <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1;">${metrics.avgRating}</div>
+      ${metrics.rankTrend && metrics.rankTrend.arrow ? `
+        <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
+          <span style="background-color: ${metrics.rankTrend.color}; font-size: 8px; padding: 1px 4px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px;">
+            ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
           </span>
-        ` : ''}
+        </div>
+      ` : ''}
+    </div>
+    
+    <!-- Visibility Status with Trend -->
+    <div class="small-ad-vis-status" style="width: 60px;">
+      <div class="vis-status-left">
+        <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%; position: relative;">
+          <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+          ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
+            <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
+              <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 8px; padding: 1px 4px; border-radius: 3px; color: white; display: flex; align-items: center; gap: 2px;">
+                ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change)}
+              </span>
+            </div>
+          ` : ''}
+        </div>
       </div>
     </div>
-  </div>
+    
+    <!-- Product Image -->
     <img class="small-ad-image" 
          src="${imageUrl}" 
          alt="${title}"
-         style="width: 60px; height: 60px; margin-right: 15px; object-fit: contain; border-radius: 4px;"
+         style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px;"
          onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=No+Image';">
-    <div class="small-ad-title" style="flex: 1; font-size: 14px; line-height: 1.4;">${title}</div>
-    <div style="display: flex; align-items: center; gap: 30px; margin-left: auto;">
-      <div style="text-align: center;">
-        <div style="font-size: 12px; color: #666;">Active</div>
-        <div style="font-size: 18px; font-weight: 600; color: #4CAF50;">${metrics.activeLocations}</div>
-      </div>
-      <div style="text-align: center;">
-        <div style="font-size: 12px; color: #666;">Inactive</div>
-        <div style="font-size: 18px; font-weight: 600; color: #F44336;">${metrics.inactiveLocations}</div>
-      </div>
+    
+    <!-- Product Title -->
+    <div class="small-ad-title" style="font-size: 14px; line-height: 1.4; max-width: 250px; min-width: 200px; word-wrap: break-word;">${title}</div>
+    
+    <!-- Metrics Box -->
+    <div class="product-metrics-box" style="width: 300px; display: flex; flex-wrap: wrap; gap: 10px; padding: 5px; background: #f8f9fa; border-radius: 6px; font-size: 11px;">
+      <div class="metric-loading" style="width: 100%; text-align: center; color: #999;">Loading metrics...</div>
+    </div>
+    
+    <!-- Bucket Values -->
+    <div class="bucket-values-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px;">
+      <div class="bucket-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
+    </div>
+    
+    <!-- Suggestions -->
+    <div class="suggestions-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px; max-height: 80px; overflow-y: auto;">
+      <div class="suggestions-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
+    </div>
+    
+    <!-- Health Score & Confidence -->
+    <div class="health-confidence-container" style="width: 100px; display: flex; flex-direction: column; gap: 8px; text-align: center;">
+      <div class="health-loading" style="color: #999; font-size: 11px;">Loading...</div>
     </div>
   `;
+  
+  // Load bucket data asynchronously
+  loadProductBucketDataAsync(productDiv, title);
   
   // Add hover effect
   productDiv.addEventListener('mouseenter', function() {
@@ -584,28 +649,132 @@ productDiv.innerHTML = `
   
   // Add click handler to select product
   productDiv.addEventListener('click', function() {
-    // Find the corresponding nav item and trigger click
     const navItems = document.querySelectorAll('.nav-google-ads-item');
     navItems.forEach(navItem => {
       const navTitle = navItem.querySelector('.small-ad-title')?.textContent;
       if (navTitle === title) {
         navItem.click();
-        // Switch to overview view
         document.getElementById('viewOverviewGoogleAds')?.click();
       }
     });
   });
   
-  // Set water fill animation
-  setTimeout(() => {
-    const waterContainer = productDiv.querySelector('.vis-water-container');
-    if (waterContainer) {
-      const fillHeight = metrics.avgVisibility;
-      waterContainer.style.setProperty('--fill-height', `${fillHeight}%`);
-    }
-  }, 100);
-  
   return productDiv;
+}
+
+// Add this function after createBucketedProductItem (around line 550)
+async function loadProductBucketDataAsync(productDiv, productTitle) {
+  const bucketData = await getProductBucketData(productTitle);
+  
+  if (!bucketData) {
+    // Update containers with "No data" message
+    productDiv.querySelector('.metric-loading').innerHTML = '<span style="color: #999;">No data</span>';
+    productDiv.querySelector('.bucket-loading').innerHTML = '<span style="color: #999;">No data</span>';
+    productDiv.querySelector('.suggestions-loading').innerHTML = '<span style="color: #999;">No data</span>';
+    productDiv.querySelector('.health-loading').innerHTML = '<span style="color: #999;">No data</span>';
+    return;
+  }
+  
+  // Update metrics box
+  const metricsBox = productDiv.querySelector('.product-metrics-box');
+  const metricsHTML = `
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">Impr:</span>
+      <span>${(parseInt(bucketData.Impressions) || 0).toLocaleString()}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">Clicks:</span>
+      <span>${(parseInt(bucketData.Clicks) || 0).toLocaleString()}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">CTR:</span>
+      <span>${(parseFloat(bucketData.CTR) || 0).toFixed(2)}%</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">Conv:</span>
+      <span>${(parseFloat(bucketData.Conversions) || 0).toFixed(1)}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">Value:</span>
+      <span>$${(parseFloat(bucketData.ConvValue) || 0).toLocaleString()}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 45%;">
+      <span style="color: #666; font-weight: 600;">Cost:</span>
+      <span>$${(parseFloat(bucketData.Cost) || 0).toLocaleString()}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+      <span style="color: #666; font-weight: 600;">ROAS:</span>
+      <span style="font-weight: 700; color: ${(parseFloat(bucketData.ROAS) || 0) >= 2 ? '#4CAF50' : '#F44336'};">
+        ${(parseFloat(bucketData.ROAS) || 0).toFixed(2)}x
+      </span>
+    </div>
+  `;
+  metricsBox.innerHTML = metricsHTML;
+  
+  // Update bucket values
+  const bucketContainer = productDiv.querySelector('.bucket-values-container');
+  const bucketTypes = ['CUSTOM_TIER_BUCKET', 'FUNNEL_STAGE_BUCKET', 'INVESTMENT_BUCKET', 'PROFITABILITY_BUCKET'];
+  const bucketColors = {
+    'CUSTOM_TIER_BUCKET': '#9C27B0',
+    'FUNNEL_STAGE_BUCKET': '#2196F3',
+    'INVESTMENT_BUCKET': '#FF9800',
+    'PROFITABILITY_BUCKET': '#4CAF50'
+  };
+  
+  let bucketHTML = '';
+  bucketTypes.forEach(bucketType => {
+    const value = bucketData[bucketType] || 'N/A';
+    const color = bucketColors[bucketType] || '#666';
+    bucketHTML += `
+      <div style="background: ${color}15; color: ${color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        ${value}
+      </div>
+    `;
+  });
+  bucketContainer.innerHTML = bucketHTML;
+  
+  // Update suggestions
+  const suggestionsContainer = productDiv.querySelector('.suggestions-container');
+  let suggestionsHTML = '';
+  
+  if (bucketData.SUGGESTIONS_BUCKET) {
+    try {
+      const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET);
+      suggestions.forEach(suggestionObj => {
+        const priorityColor = suggestionObj.priority === 'Critical' ? '#F44336' : 
+                            suggestionObj.priority === 'High' ? '#FF9800' : 
+                            suggestionObj.priority === 'Medium' ? '#FFC107' : '#9E9E9E';
+        suggestionsHTML += `
+          <div style="background: ${priorityColor}15; color: ${priorityColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${suggestionObj.suggestion}">
+            ${suggestionObj.suggestion}
+          </div>
+        `;
+      });
+    } catch (e) {
+      suggestionsHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+    }
+  } else {
+    suggestionsHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+  }
+  suggestionsContainer.innerHTML = suggestionsHTML;
+  
+  // Update health score and confidence
+  const healthContainer = productDiv.querySelector('.health-confidence-container');
+  const healthScore = bucketData.HEALTH_SCORE || 0;
+  const confidence = bucketData.Confidence_Level || 'N/A';
+  const healthColor = healthScore >= 7 ? '#4CAF50' : healthScore >= 4 ? '#FF9800' : '#F44336';
+  
+  const healthHTML = `
+    <div style="background: #f0f0f0; padding: 8px; border-radius: 6px;">
+      <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Health</div>
+      <div style="font-size: 18px; font-weight: 700; color: ${healthColor};">${healthScore}/10</div>
+    </div>
+    <div style="background: #f0f0f0; padding: 8px; border-radius: 6px;">
+      <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Confidence</div>
+      <div style="font-size: 12px; font-weight: 600; color: #333;">${confidence}</div>
+    </div>
+  `;
+  healthContainer.innerHTML = healthHTML;
 }
 
 // Export functions to window
