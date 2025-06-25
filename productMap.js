@@ -534,6 +534,16 @@ async function loadCampaignsTabContent(popup, bucketData) {
       }
     }
     
+// Helper function to parse currency values
+    const parseCurrency = (value) => {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        // Remove dollar sign and commas, then parse
+        return parseFloat(value.replace(/[$,]/g, '')) || 0;
+      }
+      return 0;
+    };
+    
     // Aggregate by campaign
     const campaignData = {};
     filteredData.forEach(row => {
@@ -548,11 +558,12 @@ async function loadCampaignsTabContent(popup, bucketData) {
         };
       }
       
+      // Handle both numeric and string values
       campaignData[campaign].impressions += parseFloat(row.Impressions) || 0;
       campaignData[campaign].clicks += parseFloat(row.Clicks) || 0;
-      campaignData[campaign].cost += parseFloat(row.Cost) || 0;
+      campaignData[campaign].cost += parseCurrency(row.Cost);
       campaignData[campaign].conversions += parseFloat(row.Conversions) || 0;
-      campaignData[campaign].conversionValue += parseFloat(row['Conversion value']) || 0;
+      campaignData[campaign].conversionValue += parseCurrency(row['Conversion Value']); // Note: capital V
     });
 
         // Add debug logging here
