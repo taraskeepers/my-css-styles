@@ -3808,10 +3808,6 @@ if (dateRange && dateRange.end) {
                   return false;
                 }, true);
 
-// Add hover event listeners for metrics popup
-let hoverTimeout;
-let currentPopup = null;
-
 adCard.addEventListener('mouseenter', function(e) {
   // Clear any existing timeout
   if (hoverTimeout) {
@@ -4140,21 +4136,18 @@ requestAnimationFrame(renderBatch);
 
     // Call the batch renderer
     renderPendingCharts();
-
-    // ADD GLOBAL POPUP CLEANUP HERE - RIGHT BEFORE THE FUNCTION CLOSES
-    // Global cleanup for popups when scrolling or clicking elsewhere
-    document.addEventListener('scroll', function() {
+  // Global cleanup for popups when scrolling or clicking elsewhere
+document.addEventListener('scroll', function() {
+  if (currentPopup) {
+    currentPopup.classList.remove('visible');
+    setTimeout(() => {
       if (currentPopup) {
-        currentPopup.classList.remove('visible');
-        setTimeout(() => {
-          if (currentPopup) {
-            currentPopup.remove();
-            currentPopup = null;
-          }
-        }, 200);
+        currentPopup.remove();
+        currentPopup = null;
       }
-    }, { passive: true });
-    
+    }, 200);
+  }
+}, { passive: true });
   }
   
   }
