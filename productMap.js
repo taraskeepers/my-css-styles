@@ -4164,8 +4164,6 @@ document.addEventListener('scroll', function() {
   }
 }, { passive: true });
   }
-  
-  }
 
 // Function to render average position chart using Chart.js instead of Recharts
 function renderAvgPositionChart(container, products) {
