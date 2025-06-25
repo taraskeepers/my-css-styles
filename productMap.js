@@ -345,6 +345,8 @@ function createMetricsPopup(bucketData) {
 
 async function renderProductMapTable() {
    const useLatestRecordAsEndDate = false;
+      let hoverTimeout = null;
+    let currentPopup = null;
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
     const container = document.getElementById("productMapPage");
