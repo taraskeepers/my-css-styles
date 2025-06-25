@@ -401,8 +401,9 @@ function createMetricsPopup(bucketData) {
             self.campaignCharts = [];
           }
           self.remove();
-          if (currentPopup === self) {
-            currentPopup = null;
+// Remove global reference if it exists
+          if (window.currentMetricsPopup === self) {
+            window.currentMetricsPopup = null;
           }
         }, 200);
       }
@@ -503,10 +504,12 @@ async function loadCampaignsTabContent(popup, bucketData) {
     
     const productData = result.productData;
     
-    // Get date range (same as performance tab)
-    const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
+// Get date range - use the same approach as google_ads.js
+    const daysToShow = 30; // Default to 30 days for now
     const endDate = moment().startOf('day');
     const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+    
+    console.log('[Tab] Using date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
     
     // Filter by date range
     const filteredData = productData.filter(row => {
@@ -514,6 +517,22 @@ async function loadCampaignsTabContent(popup, bucketData) {
       const rowDate = moment(row.Date, 'YYYY-MM-DD');
       return rowDate.isBetween(startDate, endDate, 'day', '[]');
     });
+
+        // Debug logging
+    console.log('[Campaigns Tab] Product:', productTitle);
+    console.log('[Campaigns Tab] Total product data:', productData.length);
+    console.log('[Campaigns Tab] Filtered data:', filteredData.length);
+    console.log('[Campaigns Tab] Date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
+    
+    if (filteredData.length === 0) {
+      // Check if data exists outside the date range
+      const allDates = productData.map(row => row.Date).filter(d => d);
+      if (allDates.length > 0) {
+        const minDate = moment.min(allDates.map(d => moment(d)));
+        const maxDate = moment.max(allDates.map(d => moment(d)));
+        console.log('[Campaigns Tab] Data date range in DB:', minDate.format('YYYY-MM-DD'), 'to', maxDate.format('YYYY-MM-DD'));
+      }
+    }
     
     // Aggregate by campaign
     const campaignData = {};
@@ -614,9 +633,9 @@ async function loadCampaignsTabContent(popup, bucketData) {
     
     container.innerHTML = html;
     
-    // Render pie charts
+// Render pie charts
     setTimeout(() => {
-      renderCampaignPieCharts(campaignData);
+      renderCampaignPieCharts(campaignData, popup);
     }, 100);
     
   } catch (error) {
@@ -626,7 +645,7 @@ async function loadCampaignsTabContent(popup, bucketData) {
 }
 
 // Function to render campaign pie charts
-function renderCampaignPieCharts(campaignData) {
+function renderCampaignPieCharts(campaignData, popupElement) {
   const metrics = [
     { id: 'popup-cost-chart', key: 'cost' },
     { id: 'popup-revenue-chart', key: 'conversionValue' },
@@ -693,10 +712,10 @@ function renderCampaignPieCharts(campaignData) {
     chart.render();
     
     // Store reference for cleanup
-    if (!popup.campaignCharts) {
-      popup.campaignCharts = [];
+    if (!popupElement.campaignCharts) {
+      popupElement.campaignCharts = [];
     }
-    popup.campaignCharts.push(chart);
+    popupElement.campaignCharts.push(chart);
   });
 }
 
@@ -719,10 +738,12 @@ async function loadRankingTabContent(popup, bucketData) {
     
     const productData = result.productData;
     
-    // Get date range
-    const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
+// Get date range - use the same approach as google_ads.js
+    const daysToShow = 30; // Default to 30 days for now
     const endDate = moment().startOf('day');
     const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+    
+    console.log('[Tab] Using date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
     
     // Filter by date range
     const filteredData = productData.filter(row => {
