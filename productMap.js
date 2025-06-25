@@ -36,6 +36,268 @@ async function checkTableExists(tableName) {
   });
 }
 
+// Add these functions to your productMap.js file
+
+// Function to get product records from window.allRows (add this after checkGoogleAdsIntegration function)
+function getProductRecordsForPopup(productTitle, productUrl) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    console.error('[Ranking Map] window.allRows is not available or not an array');
+    return [];
+  }
+  
+  const normalizedUrl = productUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const normalizedTitle = productTitle?.toLowerCase().trim();
+  
+  console.log('[Ranking Map] Searching for product:', { normalizedTitle, normalizedUrl });
+  
+  return window.allRows.filter(row => {
+    // Match by URL
+    if (normalizedUrl && row.top_results) {
+      const hasUrlMatch = row.top_results.some(result => 
+        result.link && result.link.replace(/^https?:\/\//, '').replace(/\/$/, '') === normalizedUrl
+      );
+      if (hasUrlMatch) return true;
+    }
+    
+    // Match by title
+    if (normalizedTitle && row.top_results) {
+      const hasTitleMatch = row.top_results.some(result => 
+        result.title && result.title.toLowerCase().includes(normalizedTitle)
+      );
+      if (hasTitleMatch) return true;
+    }
+    
+    return false;
+  });
+}
+
+// Function to load ranking tab content (replace the existing placeholder function)
+async function loadRankingTabContent(popup, bucketData) {
+  const container = popup.querySelector('[data-content="ranking"]');
+  if (!container) return;
+  
+  try {
+    // Get product info
+    const productTitle = bucketData['Product Title'];
+    const productUrl = bucketData['Product_Page'] || '';
+    const currentDevice = (bucketData['Device'] || 'desktop').toLowerCase();
+    
+    console.log('[Ranking Map] Loading for:', { productTitle, currentDevice });
+    
+    // Get product records with historical ranking data
+    const productRecords = getProductRecordsForPopup(productTitle, productUrl);
+    console.log('[Ranking Map] Found records:', productRecords.length);
+    
+    // Filter records by current device
+    const deviceFilteredRecords = productRecords.filter(record => {
+      if (!record.device) return false;
+      const recordDevice = record.device.toLowerCase();
+      return (currentDevice === 'desktop' && recordDevice === 'desktop') ||
+             (currentDevice === 'mobile' && recordDevice === 'mobile');
+    });
+    
+    console.log('[Ranking Map] Device filtered records:', deviceFilteredRecords.length);
+    
+    // Extract rankings by date for last 30 days
+    const endDate = moment();
+    const startDate = moment().subtract(30, 'days');
+    const rankingsByDate = new Map();
+    
+    deviceFilteredRecords.forEach(record => {
+      if (record.historical_data && Array.isArray(record.historical_data)) {
+        record.historical_data.forEach(item => {
+          if (item.date?.value && item.avg_position != null) {
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+              const date = item.date.value;
+              const ranking = parseFloat(item.avg_position);
+              
+              if (!rankingsByDate.has(date)) {
+                rankingsByDate.set(date, []);
+              }
+              rankingsByDate.get(date).push(ranking);
+            }
+          }
+        });
+      }
+    });
+    
+    console.log('[Ranking Map] Rankings by date:', rankingsByDate.size);
+    
+    // Calculate average ranking per date
+    const avgRankingByDate = new Map();
+    rankingsByDate.forEach((rankings, date) => {
+      const avgRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
+      avgRankingByDate.set(date, avgRanking);
+    });
+    
+    // Load product metrics data for the same period
+    const result = await loadProductMetricsData(productTitle);
+    
+    if (!result || !result.productData) {
+      container.innerHTML = `
+        <div class="ranking-content">
+          <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 16px; color: #333;">
+            Performance by Ranking Position
+          </h3>
+          <div style="text-align: center; padding: 40px 20px; color: #666;">
+            No performance data available for ranking analysis
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Filter metrics by device and date range
+    const metricsData = result.productData.filter(row => {
+      const rowDevice = (row['Device'] || 'desktop').toLowerCase();
+      const rowDate = moment(row['Date'], 'YYYY-MM-DD');
+      return rowDevice === currentDevice && 
+             rowDate.isBetween(startDate, endDate, 'day', '[]');
+    });
+    
+    // Group metrics by date
+    const metricsByDate = new Map();
+    metricsData.forEach(row => {
+      const date = row['Date'];
+      if (!date) return;
+      
+      if (!metricsByDate.has(date)) {
+        metricsByDate.set(date, {
+          clicks: 0,
+          cost: 0,
+          conversions: 0,
+          conversionValue: 0
+        });
+      }
+      
+      const dayData = metricsByDate.get(date);
+      dayData.clicks += parseInt(row['Clicks']) || 0;
+      dayData.cost += parseFloat(row['Cost']) || 0;
+      dayData.conversions += parseInt(row['Conversions']) || 0;
+      dayData.conversionValue += parseFloat(row['Conv. value']) || 0;
+    });
+    
+    // Initialize position segments
+    const positionSegments = {
+      'Top 3': { min: 1, max: 3, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
+      'Top 4-8': { min: 4, max: 8, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
+      'Top 9-14': { min: 9, max: 14, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
+      'Below 14': { min: 15, max: 40, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 }
+    };
+    
+    // Match metrics with rankings by date and aggregate into segments
+    metricsByDate.forEach((dayData, date) => {
+      const avgRanking = avgRankingByDate.get(date);
+      if (!avgRanking) return; // Skip if no ranking for this date
+      
+      const roundedRanking = Math.round(avgRanking);
+      const position = Math.max(1, Math.min(40, roundedRanking));
+      
+      // Find which segment this position belongs to
+      let segmentName = null;
+      let segment = null;
+      for (const [name, data] of Object.entries(positionSegments)) {
+        if (position >= data.min && position <= data.max) {
+          segmentName = name;
+          segment = data;
+          break;
+        }
+      }
+      
+      if (segment) {
+        segment.clicks += dayData.clicks;
+        segment.cost += dayData.cost;
+        segment.conversions += dayData.conversions;
+        segment.conversionValue += dayData.conversionValue;
+        segment.days += 1;
+      }
+    });
+    
+    // Build the ranking map table
+    let tableHTML = `
+      <div class="ranking-content">
+        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 16px; color: #333;">
+          Performance by Ranking Position
+          <span style="font-size: 11px; font-weight: 400; color: #666; margin-left: 8px;">
+            (Last 30 Days - ${currentDevice === 'mobile' ? 'Mobile' : 'Desktop'})
+          </span>
+        </h3>
+        <table class="ranking-map-table">
+          <thead>
+            <tr>
+              <th>Position</th>
+              <th>Clicks</th>
+              <th>Avg CPC</th>
+              <th>Conv. Value</th>
+              <th>ROAS</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    // Add rows for each segment
+    const segmentClasses = {
+      'Top 3': 'segment-top-3',
+      'Top 4-8': 'segment-top-4-8',
+      'Top 9-14': 'segment-top-9-14',
+      'Below 14': 'segment-below-14'
+    };
+    
+    let hasData = false;
+    for (const [segmentName, segment] of Object.entries(positionSegments)) {
+      if (segment.days > 0) {
+        hasData = true;
+        const avgCPC = segment.clicks > 0 ? (segment.cost / segment.clicks).toFixed(2) : '0.00';
+        const roas = segment.cost > 0 ? (segment.conversionValue / segment.cost).toFixed(2) : '0.00';
+        const roasClass = roas >= 2.5 ? 'roas-good' : roas >= 1.5 ? 'roas-medium' : 'roas-poor';
+        
+        tableHTML += `
+          <tr class="${segmentClasses[segmentName]}">
+            <td class="segment-name">${segmentName}</td>
+            <td>${segment.clicks.toLocaleString()}</td>
+            <td>$${avgCPC}</td>
+            <td>$${segment.conversionValue.toFixed(2)}</td>
+            <td class="${roasClass}" style="font-weight: 700;">${roas}x</td>
+          </tr>
+        `;
+      }
+    }
+    
+    if (!hasData) {
+      tableHTML += `
+        <tr>
+          <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+            No ranking data available for this product in the last 30 days
+          </td>
+        </tr>
+      `;
+    }
+    
+    tableHTML += `
+          </tbody>
+        </table>
+        <div style="margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4;">
+          <strong>Note:</strong> This table shows how the product performs at different ranking positions. 
+          Performance metrics are aggregated for all days when the product was in each position range.
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = tableHTML;
+    
+  } catch (error) {
+    console.error('[Ranking Map] Error loading content:', error);
+    container.innerHTML = `
+      <div class="ranking-content">
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+          Error loading ranking data. Please try again.
+        </div>
+      </div>
+    `;
+  }
+}
+
 // Function to normalize bucket value to CSS class
 function normalizeBucketValue(bucketValue) {
   if (!bucketValue) return '';
