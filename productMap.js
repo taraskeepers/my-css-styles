@@ -1201,6 +1201,34 @@ function renderCampaignPieCharts(campaignData, popupElement) {
   });
 }
 
+// Helper function to format ROAS value
+function formatROAS(value) {
+  const num = parseFloat(value);
+  if (isNaN(num)) return '-';
+  
+  // Round to 1 decimal place
+  const rounded = Math.round(num * 10) / 10;
+  
+  // If decimal is .0, show as integer
+  if (rounded % 1 === 0) {
+    return rounded.toFixed(0);
+  }
+  
+  return rounded.toFixed(1);
+}
+
+// Helper function to get ROAS color class
+function getROASColorClass(value) {
+  const num = parseFloat(value);
+  if (isNaN(num)) return '';
+  
+  if (num >= 4) return 'roas-excellent';
+  if (num >= 2.5) return 'roas-good';
+  if (num >= 1.5) return 'roas-medium';
+  if (num >= 1) return 'roas-break-even';
+  return 'roas-poor';
+}
+
 async function renderProductMapTable() {
    const useLatestRecordAsEndDate = false;
       let hoverTimeout = null;
@@ -1289,6 +1317,10 @@ container.innerHTML = `
       <button id="viewProducts" class="active">Products</button>
       <button id="viewCharts">Charts</button>
     </div>
+    <div class="google-ads-toggle">
+      <label>Show Metrics</label>
+      <div id="metricsToggle" class="toggle-switch"></div>
+    </div>
     <select id="bucketTypeSelector" style="position: absolute; top: 10px; right: 320px; z-index: 100; padding: 6px 12px; border-radius: 4px; border: 1px solid #ddd;">
       <option value="PROFITABILITY_BUCKET">Profitability</option>
       <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
@@ -1364,6 +1396,28 @@ container.innerHTML = `
 
       // Clone the view switcher and add it to the overlay
 const originalSwitcher = document.querySelector('.view-switcher');
+
+// Clone the metrics toggle
+const originalToggle = document.querySelector('.google-ads-toggle');
+if (originalToggle) {
+  const toggleClone = originalToggle.cloneNode(true);
+  fullscreenOverlay.insertBefore(toggleClone, fullscreenOverlay.firstChild);
+  
+  // Re-attach event listener to the cloned toggle
+  const clonedToggle = toggleClone.querySelector('#metricsToggle');
+  if (clonedToggle) {
+    // Sync the state
+    if (document.getElementById('metricsToggle').classList.contains('active')) {
+      clonedToggle.classList.add('active');
+    }
+    
+    clonedToggle.addEventListener('click', function() {
+      // Sync with the original toggle
+      document.getElementById('metricsToggle').click();
+    });
+  }
+}
+
 if (originalSwitcher) {
   const switcherClone = originalSwitcher.cloneNode(true);
   fullscreenOverlay.insertBefore(switcherClone, fullscreenOverlay.firstChild);
@@ -1914,6 +1968,130 @@ const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
         }
       }
     });
+  });
+}
+
+// Add metrics toggle functionality
+const metricsToggle = document.getElementById("metricsToggle");
+if (metricsToggle) {
+  metricsToggle.addEventListener("click", function() {
+    this.classList.toggle("active");
+    const isActive = this.classList.contains("active");
+    
+    // Toggle all product metrics panels
+    document.querySelectorAll('.ad-details').forEach(adCard => {
+      const metricsPanel = adCard.querySelector('.product-metrics-panel');
+      if (!metricsPanel) return;
+      
+      if (isActive) {
+        adCard.classList.add('with-metrics');
+        metricsPanel.classList.add('show');
+        
+        // Load metrics if not already loaded
+        if (metricsPanel.getAttribute('data-metrics-loaded') !== 'true') {
+          const plaIndex = adCard.getAttribute('data-pla-index');
+          const product = window.globalRows[plaIndex];
+          
+          if (product && googleAdsEnabled && bucketDataMap.size > 0) {
+            const row = adCard.closest('tr');
+            const deviceCell = row.querySelector('.device-icon');
+            const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
+            const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
+            const productBucketData = bucketDataMap.get(lookupKey);
+            
+            if (productBucketData) {
+              // Populate metrics panel
+              let metricsHTML = '';
+              
+              // ROAS
+              if (productBucketData['ROAS'] !== undefined) {
+                const roasValue = formatROAS(productBucketData['ROAS']);
+                const roasClass = getROASColorClass(productBucketData['ROAS']);
+                metricsHTML += `
+                  <div class="product-metric">
+                    <div class="metric-label">ROAS</div>
+                    <div class="metric-value ${roasClass}">${roasValue}x</div>
+                  </div>
+                `;
+              }
+              
+              // Revenue
+              if (productBucketData['ConvValue'] !== undefined) {
+                const revenue = parseFloat(productBucketData['ConvValue']);
+                const revenueFormatted = revenue >= 1000 ? 
+                  '$' + (revenue / 1000).toFixed(1) + 'k' : 
+                  '$' + revenue.toFixed(0);
+                metricsHTML += `
+                  <div class="product-metric">
+                    <div class="metric-label">Rev</div>
+                    <div class="metric-value">${revenueFormatted}</div>
+                  </div>
+                `;
+              }
+              
+              // Conversions
+              if (productBucketData['Conversions'] !== undefined) {
+                const conversions = parseInt(productBucketData['Conversions']);
+                metricsHTML += `
+                  <div class="product-metric">
+                    <div class="metric-label">Conv</div>
+                    <div class="metric-value">${conversions}</div>
+                  </div>
+                `;
+              }
+              
+              // CTR
+              if (productBucketData['CTR'] !== undefined) {
+                const ctr = parseFloat(productBucketData['CTR']).toFixed(1);
+                metricsHTML += `
+                  <div class="product-metric">
+                    <div class="metric-label">CTR</div>
+                    <div class="metric-value">${ctr}%</div>
+                  </div>
+                `;
+              }
+              
+              // CPC
+              if (productBucketData['Avg CPC'] !== undefined) {
+                const cpc = parseFloat(productBucketData['Avg CPC']);
+                const cpcFormatted = cpc >= 10 ? 
+                  '$' + cpc.toFixed(0) : 
+                  '$' + cpc.toFixed(2);
+                metricsHTML += `
+                  <div class="product-metric">
+                    <div class="metric-label">CPC</div>
+                    <div class="metric-value">${cpcFormatted}</div>
+                  </div>
+                `;
+              }
+              
+              metricsPanel.innerHTML = metricsHTML;
+              metricsPanel.setAttribute('data-metrics-loaded', 'true');
+            }
+          }
+        }
+      } else {
+        adCard.classList.remove('with-metrics');
+        metricsPanel.classList.remove('show');
+      }
+    });
+    
+    // Update fullscreen view if active
+    const fullscreenOverlay = document.getElementById('productMapFullscreenOverlay');
+    if (fullscreenOverlay && fullscreenOverlay.style.display === 'block') {
+      fullscreenOverlay.querySelectorAll('.ad-details').forEach(adCard => {
+        const metricsPanel = adCard.querySelector('.product-metrics-panel');
+        if (metricsPanel) {
+          if (isActive) {
+            adCard.classList.add('with-metrics');
+            metricsPanel.classList.add('show');
+          } else {
+            adCard.classList.remove('with-metrics');
+            metricsPanel.classList.remove('show');
+          }
+        }
+      });
+    }
   });
 }
   
@@ -2689,6 +2867,127 @@ const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
 /* Ensure the ad-details container has relative positioning for absolute children */
 .product-cell .ad-details {
   position: relative; /* Add this if not already present */
+}
+/* ROAS badge styling */
+.roas-badge {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  background-color: #666;
+  color: white;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 12px;
+  z-index: 10;
+  min-width: 35px;
+  text-align: center;
+}
+
+.roas-badge.roas-excellent { background-color: #1b5e20; }
+.roas-badge.roas-good { background-color: #388e3c; }
+.roas-badge.roas-medium { background-color: #f57c00; }
+.roas-badge.roas-poor { background-color: #d32f2f; }
+.roas-badge.roas-break-even { background-color: #616161; }
+
+/* Google Ads metrics toggle */
+.google-ads-toggle {
+  position: absolute;
+  top: 10px;
+  right: 440px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background-color: #ccc;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.toggle-switch.active {
+  background-color: #007aff;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.toggle-switch.active::after {
+  transform: translateX(18px);
+}
+
+/* Product metrics side panel */
+.product-metrics-panel {
+  width: 0;
+  overflow: hidden;
+  background: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  border-radius: 0 8px 8px 0;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.product-metrics-panel.show {
+  width: 50px;
+  padding: 4px;
+}
+
+.product-metric {
+  text-align: center;
+  padding: 2px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.product-metric:last-child {
+  border-bottom: none;
+}
+
+.metric-label {
+  font-size: 8px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 1px;
+}
+
+.metric-value {
+  font-weight: 700;
+  color: #333;
+  font-size: 11px;
+}
+
+.metric-value.roas-good { color: #388e3c; }
+.metric-value.roas-medium { color: #f57c00; }
+.metric-value.roas-poor { color: #d32f2f; }
+
+/* Adjust ad-details when metrics panel is shown */
+.ad-details.with-metrics {
+  border-radius: 8px 0 0 8px;
 }
       `;
       document.head.appendChild(style);
@@ -4458,6 +4757,29 @@ if (hasBucketClass) {
 if (bucketBadgeHTML) {
   adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
 }
+
+// Add ROAS badge if bucket data exists
+if (googleAdsEnabled && bucketDataMap.size > 0) {
+  const deviceValue = (rowData.device || '').toUpperCase();
+  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
+  const productBucketData = bucketDataMap.get(lookupKey);
+  
+  if (productBucketData && productBucketData['ROAS'] !== undefined) {
+    const roasValue = formatROAS(productBucketData['ROAS']);
+    const roasClass = getROASColorClass(productBucketData['ROAS']);
+    
+    const roasBadge = document.createElement('div');
+    roasBadge.className = `roas-badge ${roasClass}`;
+    roasBadge.textContent = roasValue + 'x';
+    adCard.appendChild(roasBadge);
+  }
+}
+
+// Add metrics panel (initially hidden)
+const metricsPanel = document.createElement('div');
+metricsPanel.className = 'product-metrics-panel';
+metricsPanel.setAttribute('data-metrics-loaded', 'false');
+adCard.appendChild(metricsPanel);
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
@@ -4712,6 +5034,29 @@ if (hasBucketClass) {
 if (bucketBadgeHTML) {
   adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
 }
+
+// Add ROAS badge if bucket data exists
+if (googleAdsEnabled && bucketDataMap.size > 0) {
+  const deviceValue = (rowData.device || '').toUpperCase();
+  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
+  const productBucketData = bucketDataMap.get(lookupKey);
+  
+  if (productBucketData && productBucketData['ROAS'] !== undefined) {
+    const roasValue = formatROAS(productBucketData['ROAS']);
+    const roasClass = getROASColorClass(productBucketData['ROAS']);
+    
+    const roasBadge = document.createElement('div');
+    roasBadge.className = `roas-badge ${roasClass}`;
+    roasBadge.textContent = roasValue + 'x';
+    adCard.appendChild(roasBadge);
+  }
+}
+
+// Add metrics panel (initially hidden)
+const metricsPanel = document.createElement('div');
+metricsPanel.className = 'product-metrics-panel';
+metricsPanel.setAttribute('data-metrics-loaded', 'false');
+adCard.appendChild(metricsPanel);
                   
                   // Set explicit width as a safeguard
                   adCard.style.width = "150px";
