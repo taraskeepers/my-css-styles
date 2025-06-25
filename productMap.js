@@ -1844,7 +1844,27 @@ popupStyle.textContent = `
     position: sticky;
     top: 0;
     z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
+  
+  .sellers-badge {
+    background: #FFD700;
+    color: #333;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 10px;
+    white-space: nowrap;
+  }
+  
+  .sellers-badge.revenue-stars { background: #FFD700; color: #333; }
+  .sellers-badge.best-sellers { background: #C0C0C0; color: #333; }
+  .sellers-badge.volume-leaders { background: #CD7F32; color: white; }
   
   .popup-content {
     padding: 12px;
@@ -1882,18 +1902,92 @@ popupStyle.textContent = `
     border-radius: 2px;
   }
   
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+  /* Main ROAS Section */
+  .roas-hero-section {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .roas-main {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+  }
+  
+  .roas-highlight {
+    background: linear-gradient(135deg, #0066cc, #004499);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 100px;
+  }
+  
+  .roas-highlight .metric-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  
+  .roas-highlight .metric-value {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  
+  .roas-highlight .metric-trend {
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  
+  .secondary-metrics {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+  }
+  
+  .confidence-container {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
   }
   
-  .metrics-grid.two-col {
-    grid-template-columns: repeat(2, 1fr);
+  .confidence-item {
+    text-align: center;
   }
   
-  .metrics-grid.four-col {
+  .confidence-label {
+    font-size: 9px;
+    color: #6c757d;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+  }
+  
+  .confidence-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #212529;
+  }
+  
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
     grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
   }
   
   .metric-item {
@@ -1947,9 +2041,54 @@ popupStyle.textContent = `
     background: #e9ecef;
   }
   
+  /* Funnel & Classifications */
+  .funnel-classification-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .funnel-container {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  
+  .funnel-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #495057;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  
+  .funnel-rates {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
+  .funnel-item {
+    text-align: center;
+    flex: 1;
+  }
+  
+  .funnel-label {
+    font-size: 9px;
+    color: #6c757d;
+    font-weight: 600;
+  }
+  
+  .funnel-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #212529;
+  }
+  
   .bucket-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 6px;
   }
   
@@ -1987,33 +2126,40 @@ popupStyle.textContent = `
     margin-top: 2px;
   }
   
+  /* AI Recommendations */
   .suggestions-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   
   .suggestion-item {
     background: white;
     border: 1px solid #e9ecef;
-    border-radius: 6px;
-    padding: 8px;
+    border-radius: 8px;
+    padding: 10px;
     position: relative;
-    padding-left: 28px;
+    padding-left: 36px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .suggestion-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
   }
   
   .suggestion-priority {
     position: absolute;
-    left: 8px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     color: white;
   }
@@ -2029,64 +2175,35 @@ popupStyle.textContent = `
   .priority-low::after { content: 'L'; }
   
   .suggestion-text {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     color: #212529;
-    line-height: 1.2;
-    margin-bottom: 2px;
+    line-height: 1.3;
+    margin-bottom: 4px;
   }
   
   .suggestion-context {
-    font-size: 9px;
-    color: #6c757d;
-    line-height: 1.2;
-  }
-  
-  .health-score {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .health-score-value {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 11px;
+    color: #495057;
+    line-height: 1.4;
+    background: #f8f9fa;
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
   }
   
   .health-score-bar {
-    flex: 1;
+    width: 100%;
     height: 6px;
     background: #e9ecef;
     border-radius: 3px;
     overflow: hidden;
+    margin-top: 2px;
   }
   
   .health-score-fill {
     height: 100%;
     border-radius: 3px;
-  }
-  
-  .compact-metrics {
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
-  }
-  
-  .compact-metric-group {
-    text-align: center;
-  }
-  
-  .compact-label {
-    font-size: 9px;
-    color: #6c757d;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  
-  .compact-value {
-    font-size: 16px;
-    font-weight: 700;
-    color: #212529;
   }
 `;
 document.head.appendChild(popupStyle);
@@ -3926,32 +4043,41 @@ adCard.addEventListener('mouseenter', function(e) {
         if (currentPopup) {
           document.body.appendChild(currentPopup);
           
-// Position popup near the mouse cursor
+// Position popup relative to the hovered card
 const rect = adCard.getBoundingClientRect();
-const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-// Popup dimensions
 const popupWidth = 520;
 const popupMaxHeight = window.innerHeight * 0.85;
 
-let left = rect.right + scrollLeft + 10;
-let top = rect.top + scrollTop;
+// Calculate position relative to viewport
+let left = rect.right + 10;
+let top = rect.top;
 
-// Adjust if popup would go off screen
-if (left + popupWidth > window.innerWidth + scrollLeft) {
-  left = rect.left + scrollLeft - popupWidth - 10;
+// Check if popup would go off right edge
+if (left + popupWidth > window.innerWidth - 10) {
+  // Try to position on the left side
+  left = rect.left - popupWidth - 10;
+  
+  // If that would go off left edge, position at right edge of viewport
+  if (left < 10) {
+    left = window.innerWidth - popupWidth - 10;
+  }
 }
 
-// Ensure minimum left position
-if (left < scrollLeft + 10) {
-  left = scrollLeft + 10;
+// Ensure popup doesn't go off bottom of viewport
+if (top + popupMaxHeight > window.innerHeight - 10) {
+  // Position from bottom of viewport
+  top = window.innerHeight - popupMaxHeight - 10;
 }
 
-// Vertical positioning
-if (top + popupMaxHeight > window.innerHeight + scrollTop) {
-  top = Math.max(scrollTop + 10, window.innerHeight + scrollTop - popupMaxHeight - 10);
+// Ensure popup doesn't go off top
+if (top < 10) {
+  top = 10;
 }
+
+// Apply fixed positioning instead of absolute
+currentPopup.style.position = 'fixed';
+currentPopup.style.left = left + 'px';
+currentPopup.style.top = top + 'px';
           
           currentPopup.style.left = left + 'px';
           currentPopup.style.top = top + 'px';
@@ -3973,6 +4099,13 @@ adCard.addEventListener('mouseleave', function(e) {
     hoverTimeout = null;
   }
   
+  // Check if mouse is moving to the popup
+  const toElement = e.relatedTarget;
+  if (currentPopup && currentPopup.contains(toElement)) {
+    // Mouse is entering the popup, don't hide it
+    return;
+  }
+  
   // Hide popup after a short delay
   setTimeout(() => {
     if (currentPopup && !currentPopup.matches(':hover') && !adCard.matches(':hover')) {
@@ -3986,6 +4119,26 @@ adCard.addEventListener('mouseleave', function(e) {
     }
   }, 100);
 });
+
+// Also add mouseleave handler to the popup itself
+if (currentPopup) {
+  currentPopup.addEventListener('mouseleave', function(e) {
+    const toElement = e.relatedTarget;
+    // Check if mouse is returning to the card
+    if (adCard.contains(toElement)) {
+      return;
+    }
+    
+    // Otherwise hide the popup
+    currentPopup.classList.remove('visible');
+    setTimeout(() => {
+      if (currentPopup) {
+        currentPopup.remove();
+        currentPopup = null;
+      }
+    }, 200);
+  });
+}
                 
               });
 
