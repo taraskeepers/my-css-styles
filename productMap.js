@@ -145,47 +145,54 @@ function createMetricsPopup(bucketData) {
   const suggestions = parseSuggestions(bucketData['SUGGESTIONS_BUCKET']);
   
   const fullTitle = bucketData['Product Title'] || 'Unknown Product';
+  const sellers = bucketData['SELLERS'] || 'Standard';
   
   popup.innerHTML = `
     <div class="popup-header">
-      ${fullTitle}
+      <div class="header-title">${fullTitle}</div>
+      ${sellers !== 'Standard' && sellers !== 'N/A' ? `<div class="sellers-badge sellers-${sellers.toLowerCase().replace(/\s+/g, '-')}">${sellers}</div>` : ''}
     </div>
     <div class="popup-content">
-      <!-- Top Performance Bar -->
-      <div class="metric-section">
-        <div class="compact-metrics">
-          <div class="compact-metric-group">
-            <div class="compact-label">ROAS</div>
-            <div class="compact-value" style="color: ${bucketData['ROAS'] >= 2.5 ? '#28a745' : bucketData['ROAS'] >= 1.5 ? '#ffc107' : '#dc3545'}">
+      <!-- ROAS Hero Section -->
+      <div class="roas-hero-section">
+        <div class="roas-metrics">
+          <div class="roas-main">
+            <div class="roas-label">ROAS</div>
+            <div class="roas-value ${bucketData['ROAS'] >= 2.5 ? 'roas-good' : bucketData['ROAS'] >= 1.5 ? 'roas-medium' : 'roas-poor'}">
               ${formatNumber(bucketData['ROAS'], 1)}x
             </div>
             ${createTrendHTML(bucketData['ROAS'], bucketData['prev_ROAS'])}
           </div>
-          <div class="compact-metric-group">
-            <div class="compact-label">Health</div>
-            <div class="health-score">
-              <div class="health-score-value" style="color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}">
-                ${bucketData['HEALTH_SCORE'] || '-'}/10
-              </div>
-              <div class="health-score-bar">
-                <div class="health-score-fill" style="width: ${(bucketData['HEALTH_SCORE'] || 0) * 10}%; background-color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}"></div>
-              </div>
+          <div class="roas-supporting">
+            <div class="supporting-metric">
+              <div class="supporting-label">Revenue</div>
+              <div class="supporting-value">${formatCurrency(bucketData['ConvValue'])}</div>
+              ${createTrendHTML(bucketData['ConvValue'], bucketData['prev_ConvValue'])}
+            </div>
+            <div class="supporting-metric">
+              <div class="supporting-label">Conversions</div>
+              <div class="supporting-value">${formatNumber(bucketData['Conversions'], 0)}</div>
+              ${createTrendHTML(bucketData['Conversions'], bucketData['prev_Conversions'])}
             </div>
           </div>
-          <div class="compact-metric-group">
-            <div class="compact-label">Revenue</div>
-            <div class="compact-value">${formatCurrency(bucketData['ConvValue'])}</div>
-            ${createTrendHTML(bucketData['ConvValue'], bucketData['prev_ConvValue'])}
+        </div>
+        <div class="health-confidence-container">
+          <div class="health-item">
+            <div class="health-label">Health</div>
+            <div class="health-value" style="color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}">
+              ${bucketData['HEALTH_SCORE'] || '-'}/10
+            </div>
           </div>
-          <div class="compact-metric-group">
-            <div class="compact-label">Conversions</div>
-            <div class="compact-value">${formatNumber(bucketData['Conversions'], 0)}</div>
-            ${createTrendHTML(bucketData['Conversions'], bucketData['prev_Conversions'])}
+          <div class="confidence-item">
+            <div class="confidence-label">Confidence</div>
+            <div class="confidence-value confidence-${(bucketData['Confidence_Level'] || 'Low').toLowerCase()}">
+              ${bucketData['Confidence_Level'] || 'Low'}
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- Traffic & Conversions Grid -->
+      <!-- Performance Metrics -->
       <div class="metric-section">
         <div class="section-title">Performance Metrics</div>
         <div class="metrics-grid four-col">
@@ -232,62 +239,73 @@ function createMetricsPopup(bucketData) {
         </div>
       </div>
       
-      <!-- Funnel + AI Classifications -->
+      <!-- Funnel & Classifications -->
       <div class="metric-section">
         <div class="section-title">Funnel & Classifications</div>
-        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px;">
-          <!-- Funnel Rates -->
-          <div class="metrics-grid" style="grid-template-columns: repeat(3, 80px); gap: 6px;">
-            <div class="metric-item">
-              <span class="metric-label">Cart</span>
-              <div class="metric-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
+        <div class="funnel-classifications-container">
+          <div class="funnel-rates">
+            <div class="funnel-item">
+              <div class="funnel-icon">🛒</div>
+              <div class="funnel-details">
+                <div class="funnel-label">Cart</div>
+                <div class="funnel-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
+              </div>
             </div>
-            <div class="metric-item">
-              <span class="metric-label">Checkout</span>
-              <div class="metric-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-item">
+              <div class="funnel-icon">💳</div>
+              <div class="funnel-details">
+                <div class="funnel-label">Checkout</div>
+                <div class="funnel-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
+              </div>
             </div>
-            <div class="metric-item">
-              <span class="metric-label">Purchase</span>
-              <div class="metric-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-item">
+              <div class="funnel-icon">✓</div>
+              <div class="funnel-details">
+                <div class="funnel-label">Purchase</div>
+                <div class="funnel-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
+              </div>
             </div>
           </div>
           
-          <!-- Classifications -->
-          <div class="bucket-grid">
-            <div class="bucket-item">
-              <div class="bucket-label">Profitability</div>
-              <div class="bucket-value">${profitability.value}</div>
-              ${profitability.explanation ? `<div class="bucket-explanation">${profitability.explanation}</div>` : ''}
+          <div class="classifications-grid">
+            <div class="classification-item">
+              <div class="classification-label">Profitability</div>
+              <div class="classification-value">${profitability.value}</div>
+              ${profitability.explanation ? `<div class="classification-explanation">${profitability.explanation}</div>` : ''}
             </div>
-            <div class="bucket-item">
-              <div class="bucket-label">Investment</div>
-              <div class="bucket-value">${investment.value}</div>
-              ${investment.explanation ? `<div class="bucket-explanation">${investment.explanation}</div>` : ''}
+            <div class="classification-item">
+              <div class="classification-label">Investment</div>
+              <div class="classification-value">${investment.value}</div>
+              ${investment.explanation ? `<div class="classification-explanation">${investment.explanation}</div>` : ''}
             </div>
-            <div class="bucket-item">
-              <div class="bucket-label">Funnel Stage</div>
-              <div class="bucket-value">${funnelStage.value}</div>
-              ${funnelStage.explanation ? `<div class="bucket-explanation">${funnelStage.explanation}</div>` : ''}
+            <div class="classification-item">
+              <div class="classification-label">Funnel Stage</div>
+              <div class="classification-value">${funnelStage.value}</div>
+              ${funnelStage.explanation ? `<div class="classification-explanation">${funnelStage.explanation}</div>` : ''}
             </div>
-            <div class="bucket-item">
-              <div class="bucket-label">Custom Tier</div>
-              <div class="bucket-value">${customTier.value}</div>
-              ${customTier.explanation ? `<div class="bucket-explanation">${customTier.explanation}</div>` : ''}
+            <div class="classification-item">
+              <div class="classification-label">Custom Tier</div>
+              <div class="classification-value">${customTier.value}</div>
+              ${customTier.explanation ? `<div class="classification-explanation">${customTier.explanation}</div>` : ''}
             </div>
           </div>
         </div>
       </div>
       
       ${suggestions.length > 0 ? `
-      <!-- Recommendations -->
-      <div class="metric-section">
+      <!-- AI Recommendations -->
+      <div class="metric-section recommendations-section">
         <div class="section-title">AI Recommendations (${suggestions.length})</div>
-        <div class="suggestions-container">
+        <div class="recommendations-list">
           ${suggestions.map(suggestion => `
-            <div class="suggestion-item">
-              <div class="suggestion-priority priority-${suggestion.priority?.toLowerCase()}"></div>
-              <div class="suggestion-text">${suggestion.suggestion}</div>
-              ${suggestion.context ? `<div class="suggestion-context">${suggestion.context}</div>` : ''}
+            <div class="recommendation-item priority-${suggestion.priority?.toLowerCase()}">
+              <div class="recommendation-header">
+                <div class="recommendation-priority">${suggestion.priority || 'Medium'}</div>
+                <div class="recommendation-action">${suggestion.suggestion}</div>
+              </div>
+              ${suggestion.context ? `<div class="recommendation-context">${suggestion.context}</div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -1796,415 +1814,447 @@ const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
 const popupStyle = document.createElement("style");
 popupStyle.id = "product-metrics-popup-style";
 popupStyle.textContent = `
-  .product-metrics-popup {
-    position: absolute;
-    z-index: 10000;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    padding: 0;
-    width: 520px;
-    max-height: 85vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-  
-  .product-metrics-popup::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .product-metrics-popup::-webkit-scrollbar-track {
-    background: #f5f5f5;
-  }
-  
-  .product-metrics-popup::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 3px;
-  }
-  
-  .product-metrics-popup.visible {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  
-  .popup-header {
-    background: linear-gradient(135deg, #0066cc, #004499);
-    color: white;
-    padding: 10px 14px;
-    border-radius: 12px 12px 0 0;
-    font-weight: 600;
-    font-size: 13px;
-    line-height: 1.3;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .sellers-badge {
-    background: #FFD700;
-    color: #333;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-left: 10px;
-    white-space: nowrap;
-  }
-  
-  .sellers-badge.revenue-stars { background: #FFD700; color: #333; }
-  .sellers-badge.best-sellers { background: #C0C0C0; color: #333; }
-  .sellers-badge.volume-leaders { background: #CD7F32; color: white; }
-  
-  .popup-content {
-    padding: 12px;
-  }
-  
-  .metric-section {
-    margin-bottom: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 10px;
-    border: 1px solid #e9ecef;
-  }
-  
-  .metric-section:last-child {
-    margin-bottom: 0;
-  }
-  
-  .section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: #495057;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .section-title::before {
-    content: '';
-    width: 3px;
-    height: 12px;
-    background: #0066cc;
-    border-radius: 2px;
-  }
-  
-  /* Main ROAS Section */
-  .roas-hero-section {
-    display: flex;
-    gap: 12px;
-    align-items: stretch;
-  }
-  
-  .roas-main {
-    flex: 1;
-    display: flex;
-    gap: 8px;
-  }
-  
-  .roas-highlight {
-    background: linear-gradient(135deg, #0066cc, #004499);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    text-align: center;
-    min-width: 100px;
-  }
-  
-  .roas-highlight .metric-label {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  
-  .roas-highlight .metric-value {
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 1;
-  }
-  
-  .roas-highlight .metric-trend {
-    margin-top: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-  }
-  
-  .secondary-metrics {
-    display: flex;
-    gap: 6px;
-    flex: 1;
-  }
-  
-  .confidence-container {
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 8px;
-    min-width: 80px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  
-  .confidence-item {
-    text-align: center;
-  }
-  
-  .confidence-label {
-    font-size: 9px;
-    color: #6c757d;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-  }
-  
-  .confidence-value {
-    font-size: 13px;
-    font-weight: 700;
-    color: #212529;
-  }
-  
-  /* Metrics Grid */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-  }
-  
-  .metric-item {
-    background: white;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #e9ecef;
-    text-align: center;
-  }
-  
-  .metric-label {
-    font-size: 9px;
-    color: #6c757d;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    margin-bottom: 2px;
-    display: block;
-  }
-  
-  .metric-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: #212529;
-    line-height: 1;
-    margin-bottom: 2px;
-  }
-  
-  .metric-trend {
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1;
-    display: inline-block;
-    padding: 1px 4px;
-    border-radius: 3px;
-    margin-top: 2px;
-  }
-  
-  .trend-up { 
-    color: #28a745; 
-    background: #d4edda;
-  }
-  
-  .trend-down { 
-    color: #dc3545; 
-    background: #f8d7da;
-  }
-  
-  .trend-neutral { 
-    color: #6c757d; 
-    background: #e9ecef;
-  }
-  
-  /* Funnel & Classifications */
-  .funnel-classification-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  
-  .funnel-container {
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 10px;
-  }
-  
-  .funnel-title {
-    font-size: 10px;
-    font-weight: 700;
-    color: #495057;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-  
-  .funnel-rates {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  
-  .funnel-item {
-    text-align: center;
-    flex: 1;
-  }
-  
-  .funnel-label {
-    font-size: 9px;
-    color: #6c757d;
-    font-weight: 600;
-  }
-  
-  .funnel-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: #212529;
-  }
-  
-  .bucket-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-  
-  .bucket-item {
-    padding: 8px;
-    background: white;
-    border-radius: 6px;
-    border-left: 3px solid #0066cc;
-    border-right: 1px solid #e9ecef;
-    border-top: 1px solid #e9ecef;
-    border-bottom: 1px solid #e9ecef;
-  }
-  
-  .bucket-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: #6c757d;
-    margin-bottom: 2px;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-  }
-  
-  .bucket-value {
-    font-size: 12px;
-    font-weight: 700;
-    color: #212529;
-    line-height: 1.2;
-  }
-  
-  .bucket-explanation {
-    font-size: 9px;
-    color: #6c757d;
-    line-height: 1.3;
-    font-style: italic;
-    margin-top: 2px;
-  }
-  
-  /* AI Recommendations */
-  .suggestions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .suggestion-item {
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 10px;
-    position: relative;
-    padding-left: 36px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  .suggestion-item:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
-  }
-  
-  .suggestion-priority {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: white;
-  }
-  
-  .priority-critical { background: #dc3545; }
-  .priority-high { background: #fd7e14; }
-  .priority-medium { background: #ffc107; }
-  .priority-low { background: #6c757d; }
-  
-  .priority-critical::after { content: '!'; }
-  .priority-high::after { content: 'H'; }
-  .priority-medium::after { content: 'M'; }
-  .priority-low::after { content: 'L'; }
-  
-  .suggestion-text {
-    font-size: 13px;
-    font-weight: 700;
-    color: #212529;
-    line-height: 1.3;
-    margin-bottom: 4px;
-  }
-  
-  .suggestion-context {
-    font-size: 11px;
-    color: #495057;
-    line-height: 1.4;
-    background: #f8f9fa;
-    padding: 4px 6px;
-    border-radius: 4px;
-    margin-top: 4px;
-  }
-  
-  .health-score-bar {
-    width: 100%;
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: 2px;
-  }
-  
-  .health-score-fill {
-    height: 100%;
-    border-radius: 3px;
-  }
+/* Replace the existing .product-metrics-popup styles with these: */
+.product-metrics-popup {
+  position: absolute;
+  z-index: 10000;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  width: 580px;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.product-metrics-popup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.product-metrics-popup::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.product-metrics-popup::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.product-metrics-popup.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.popup-header {
+  background: linear-gradient(135deg, #0066cc, #004499);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.sellers-badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.sellers-revenue-stars { background: #FFD700; color: #333; }
+.sellers-best-sellers { background: #C0C0C0; color: #333; }
+.sellers-volume-leaders { background: #CD7F32; color: white; }
+
+.popup-content {
+  padding: 16px;
+}
+
+/* ROAS Hero Section */
+.roas-hero-section {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 10px;
+  border: 1px solid #dee2e6;
+}
+
+.roas-metrics {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+}
+
+.roas-main {
+  text-align: center;
+}
+
+.roas-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.roas-value {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.roas-good { color: #28a745; }
+.roas-medium { color: #ffc107; }
+.roas-poor { color: #dc3545; }
+
+.roas-supporting {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.supporting-metric {
+  text-align: center;
+}
+
+.supporting-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.supporting-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.health-confidence-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  min-width: 120px;
+}
+
+.health-item, .confidence-item {
+  text-align: center;
+}
+
+.health-label, .confidence-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.health-value {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.confidence-value {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.confidence-high { background: #d4edda; color: #155724; }
+.confidence-medium { background: #fff3cd; color: #856404; }
+.confidence-low { background: #f8d7da; color: #721c24; }
+
+/* Funnel & Classifications */
+.funnel-classifications-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.funnel-rates {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.funnel-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.funnel-icon {
+  font-size: 24px;
+}
+
+.funnel-details {
+  text-align: left;
+}
+
+.funnel-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+}
+
+.funnel-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.funnel-arrow {
+  font-size: 20px;
+  color: #6c757d;
+}
+
+.classifications-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.classification-item {
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #0066cc;
+  border-right: 1px solid #e9ecef;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.classification-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #6c757d;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.classification-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.classification-explanation {
+  font-size: 10px;
+  color: #6c757d;
+  line-height: 1.3;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* AI Recommendations */
+.recommendations-section {
+  background: #f0f8ff;
+  border: 1px solid #b8daff;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recommendation-item {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 4px solid;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.recommendation-item.priority-critical {
+  border-left-color: #dc3545;
+  background: #fff5f5;
+}
+
+.recommendation-item.priority-high {
+  border-left-color: #fd7e14;
+  background: #fff9f5;
+}
+
+.recommendation-item.priority-medium {
+  border-left-color: #ffc107;
+  background: #fffdf5;
+}
+
+.recommendation-item.priority-low {
+  border-left-color: #6c757d;
+  background: #f8f9fa;
+}
+
+.recommendation-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.recommendation-priority {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.priority-critical .recommendation-priority { background: #dc3545; color: white; }
+.priority-high .recommendation-priority { background: #fd7e14; color: white; }
+.priority-medium .recommendation-priority { background: #ffc107; color: #333; }
+.priority-low .recommendation-priority { background: #6c757d; color: white; }
+
+.recommendation-action {
+  font-size: 14px;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.3;
+}
+
+.recommendation-context {
+  font-size: 12px;
+  color: #495057;
+  line-height: 1.4;
+  padding-left: 4px;
+  font-weight: 500;
+}
+
+/* Keep existing styles below */
+.metric-section {
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.metric-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  background: #0066cc;
+  border-radius: 2px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.metric-item {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 9px;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.metric-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.metric-trend {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-top: 2px;
+}
+
+.trend-up { 
+  color: #28a745; 
+  background: #d4edda;
+}
+
+.trend-down { 
+  color: #dc3545; 
+  background: #f8d7da;
+}
+
+.trend-neutral { 
+  color: #6c757d; 
+  background: #e9ecef;
+}
 `;
 document.head.appendChild(popupStyle);
   
@@ -4043,41 +4093,45 @@ adCard.addEventListener('mouseenter', function(e) {
         if (currentPopup) {
           document.body.appendChild(currentPopup);
           
-// Position popup relative to the hovered card
+// Position popup near the product card
 const rect = adCard.getBoundingClientRect();
+const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+// Popup dimensions
 const popupWidth = 520;
-const popupMaxHeight = window.innerHeight * 0.85;
+const popupRect = currentPopup.getBoundingClientRect();
+const popupHeight = popupRect.height || 600; // Fallback height
 
-// Calculate position relative to viewport
+// Calculate center of the card
+const cardCenterY = rect.top + (rect.height / 2);
+const cardCenterX = rect.left + (rect.width / 2);
+
+// Try to position popup to the right of the card, centered vertically
 let left = rect.right + 10;
-let top = rect.top;
+let top = cardCenterY + scrollTop - (popupHeight / 2);
 
-// Check if popup would go off right edge
-if (left + popupWidth > window.innerWidth - 10) {
-  // Try to position on the left side
+// Check if popup would go off the right edge
+if (left + popupWidth > window.innerWidth) {
+  // Position to the left of the card instead
   left = rect.left - popupWidth - 10;
-  
-  // If that would go off left edge, position at right edge of viewport
-  if (left < 10) {
-    left = window.innerWidth - popupWidth - 10;
+}
+
+// Check if popup would go off the left edge
+if (left < 10) {
+  // Position above or below the card
+  left = Math.max(10, cardCenterX + scrollLeft - (popupWidth / 2));
+  if (cardCenterY < window.innerHeight / 2) {
+    // Card is in top half, show popup below
+    top = rect.bottom + scrollTop + 10;
+  } else {
+    // Card is in bottom half, show popup above
+    top = rect.top + scrollTop - popupHeight - 10;
   }
 }
 
-// Ensure popup doesn't go off bottom of viewport
-if (top + popupMaxHeight > window.innerHeight - 10) {
-  // Position from bottom of viewport
-  top = window.innerHeight - popupMaxHeight - 10;
-}
-
-// Ensure popup doesn't go off top
-if (top < 10) {
-  top = 10;
-}
-
-// Apply fixed positioning instead of absolute
-currentPopup.style.position = 'fixed';
-currentPopup.style.left = left + 'px';
-currentPopup.style.top = top + 'px';
+// Ensure popup doesn't go off top or bottom
+top = Math.max(10 + scrollTop, Math.min(top, window.innerHeight + scrollTop - popupHeight - 10));
           
           currentPopup.style.left = left + 'px';
           currentPopup.style.top = top + 'px';
@@ -4099,13 +4153,6 @@ adCard.addEventListener('mouseleave', function(e) {
     hoverTimeout = null;
   }
   
-  // Check if mouse is moving to the popup
-  const toElement = e.relatedTarget;
-  if (currentPopup && currentPopup.contains(toElement)) {
-    // Mouse is entering the popup, don't hide it
-    return;
-  }
-  
   // Hide popup after a short delay
   setTimeout(() => {
     if (currentPopup && !currentPopup.matches(':hover') && !adCard.matches(':hover')) {
@@ -4119,26 +4166,6 @@ adCard.addEventListener('mouseleave', function(e) {
     }
   }, 100);
 });
-
-// Also add mouseleave handler to the popup itself
-if (currentPopup) {
-  currentPopup.addEventListener('mouseleave', function(e) {
-    const toElement = e.relatedTarget;
-    // Check if mouse is returning to the card
-    if (adCard.contains(toElement)) {
-      return;
-    }
-    
-    // Otherwise hide the popup
-    currentPopup.classList.remove('visible');
-    setTimeout(() => {
-      if (currentPopup) {
-        currentPopup.remove();
-        currentPopup = null;
-      }
-    }, 200);
-  });
-}
                 
               });
 
