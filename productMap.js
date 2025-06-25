@@ -554,6 +554,15 @@ async function loadCampaignsTabContent(popup, bucketData) {
       campaignData[campaign].conversions += parseFloat(row.Conversions) || 0;
       campaignData[campaign].conversionValue += parseFloat(row['Conversion value']) || 0;
     });
+
+        // Add debug logging here
+    console.log('[Campaigns Tab] Campaign data:', campaignData);
+    console.log('[Campaigns Tab] Number of campaigns:', Object.keys(campaignData).length);
+    
+    // Log the first few rows to see data structure
+    if (filteredData.length > 0) {
+      console.log('[Campaigns Tab] Sample data row:', filteredData[0]);
+    }
     
     // Calculate totals
     const totals = {
@@ -632,6 +641,10 @@ async function loadCampaignsTabContent(popup, bucketData) {
     `;
     
     container.innerHTML = html;
+
+    // Debug - verify HTML was set
+    console.log('[Tab] Container HTML length:', container.innerHTML.length);
+    console.log('[Tab] Container visible:', container.style.display !== 'none');
     
 // Render pie charts
     setTimeout(() => {
@@ -751,6 +764,17 @@ async function loadRankingTabContent(popup, bucketData) {
       const rowDate = moment(row.Date, 'YYYY-MM-DD');
       return rowDate.isBetween(startDate, endDate, 'day', '[]');
     });
+
+        // Debug logging
+    console.log('[Ranking Tab] Product:', productTitle);
+    console.log('[Ranking Tab] Total product data:', productData.length);
+    console.log('[Ranking Tab] Filtered data:', filteredData.length);
+    
+    // Log sample data to see structure
+    if (filteredData.length > 0) {
+      console.log('[Ranking Tab] Sample data row:', filteredData[0]);
+      console.log('[Ranking Tab] Sample rank value:', filteredData[0]['Search Impression Share Rank']);
+    }
     
     // Define segments
     const segments = {
@@ -859,6 +883,10 @@ async function loadRankingTabContent(popup, bucketData) {
     `;
     
     container.innerHTML = html;
+
+    // Debug - verify HTML was set
+    console.log('[Tab] Container HTML length:', container.innerHTML.length);
+    console.log('[Tab] Container visible:', container.style.display !== 'none');
     
   } catch (error) {
     console.error('Error loading ranking data:', error);
