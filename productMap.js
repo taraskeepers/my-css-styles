@@ -146,6 +146,8 @@ function createMetricsPopup(bucketData) {
   const investment = parseBucket(bucketData['INVESTMENT_BUCKET']);
   const customTier = parseBucket(bucketData['CUSTOM_TIER_BUCKET']);
   const suggestions = parseSuggestions(bucketData['SUGGESTIONS_BUCKET']);
+
+  console.log('[Popup] BucketData device:', bucketData['Device']);
   
   const fullTitle = bucketData['Product Title'] || 'Unknown Product';
   const sellers = bucketData['SELLERS'] || 'Standard';
@@ -511,15 +513,26 @@ async function loadCampaignsTabContent(popup, bucketData) {
     
     console.log('[Tab] Using date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
     
-    // Filter by date range
+// Get device from bucketData
+    const deviceFilter = bucketData['Device'] || null;
+    
+    // Filter by date range AND device
     const filteredData = productData.filter(row => {
       if (!row.Date) return false;
       const rowDate = moment(row.Date, 'YYYY-MM-DD');
-      return rowDate.isBetween(startDate, endDate, 'day', '[]');
+      const dateMatch = rowDate.isBetween(startDate, endDate, 'day', '[]');
+      
+      // Apply device filter if available
+      if (deviceFilter && deviceFilter !== 'All') {
+        return dateMatch && row.Device === deviceFilter;
+      }
+      
+      return dateMatch;
     });
 
         // Debug logging
     console.log('[Campaigns Tab] Product:', productTitle);
+    console.log('[Campaigns Tab] Device filter:', deviceFilter || 'All devices');
     console.log('[Campaigns Tab] Total product data:', productData.length);
     console.log('[Campaigns Tab] Filtered data:', filteredData.length);
     console.log('[Campaigns Tab] Date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
@@ -590,8 +603,9 @@ async function loadCampaignsTabContent(popup, bucketData) {
     totals.roas = totals.cost > 0 ? totals.conversionValue / totals.cost : 0;
     
     // Create HTML content
-    let html = `
+let html = `
       <div class="campaigns-content">
+        ${deviceFilter && deviceFilter !== 'All' ? `<div style="text-align: center; margin-bottom: 10px; font-size: 11px; color: #666;">Showing data for: ${deviceFilter}</div>` : ''}
         <!-- Pie Charts Section -->
         <div class="campaigns-charts-section">
           <div class="campaigns-charts-grid">
@@ -762,142 +776,36 @@ async function loadRankingTabContent(popup, bucketData) {
     
     const productData = result.productData;
     
-// Get date range - use the same approach as google_ads.js
-    const daysToShow = 30; // Default to 30 days for now
-    const endDate = moment().startOf('day');
-    const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
-    
-    console.log('[Tab] Using date range:', startDate.format('YYYY-MM-DD'), 'to', endDate.format('YYYY-MM-DD'));
-    
-    // Filter by date range
-    const filteredData = productData.filter(row => {
-      if (!row.Date || !row['Search Impression Share Rank']) return false;
-      const rowDate = moment(row.Date, 'YYYY-MM-DD');
-      return rowDate.isBetween(startDate, endDate, 'day', '[]');
-    });
-
-        // Debug logging
-    console.log('[Ranking Tab] Product:', productTitle);
-    console.log('[Ranking Tab] Total product data:', productData.length);
-    console.log('[Ranking Tab] Filtered data:', filteredData.length);
-    
-    // Log sample data to see structure
-    if (filteredData.length > 0) {
-      console.log('[Ranking Tab] Sample data row:', filteredData[0]);
-      console.log('[Ranking Tab] Sample rank value:', filteredData[0]['Search Impression Share Rank']);
+    // Debug - check available fields
+    if (productData.length > 0) {
+      console.log('[Ranking Tab] All available fields:', Object.keys(productData[0]));
+      
+      // Check for any rank/position related fields
+      const rankFields = Object.keys(productData[0]).filter(key => 
+        key.toLowerCase().includes('rank') || 
+        key.toLowerCase().includes('position') ||
+        key.toLowerCase().includes('impr') ||
+        key.toLowerCase().includes('share')
+      );
+      console.log('[Ranking Tab] Potential ranking fields:', rankFields);
+      
+      // Log sample values for any found fields
+      rankFields.forEach(field => {
+        console.log(`[Ranking Tab] Sample ${field}:`, productData[0][field]);
+      });
     }
     
-    // Define segments
-    const segments = {
-      'Top 3': { range: [1, 3], data: null },
-      'Top 4-8': { range: [4, 8], data: null },
-      'Top 9-14': { range: [9, 14], data: null },
-      'Below 14': { range: [15, 40], data: null }
-    };
-    
-    // Initialize segment data
-    Object.keys(segments).forEach(segmentName => {
-      segments[segmentName].data = {
-        impressions: 0,
-        clicks: 0,
-        cost: 0,
-        conversions: 0,
-        conversionValue: 0,
-        count: 0
-      };
-    });
-    
-    // Aggregate data by position and then into segments
-    filteredData.forEach(row => {
-      const position = parseInt(row['Search Impression Share Rank']) || 0;
-      if (position < 1 || position > 40) return;
-      
-      // Find which segment this position belongs to
-      let targetSegment = null;
-      Object.entries(segments).forEach(([segmentName, segment]) => {
-        if (position >= segment.range[0] && position <= segment.range[1]) {
-          targetSegment = segment;
-        }
-      });
-      
-      if (targetSegment) {
-        targetSegment.data.impressions += parseFloat(row.Impressions) || 0;
-        targetSegment.data.clicks += parseFloat(row.Clicks) || 0;
-        targetSegment.data.cost += parseFloat(row.Cost) || 0;
-        targetSegment.data.conversions += parseFloat(row.Conversions) || 0;
-        targetSegment.data.conversionValue += parseFloat(row['Conversion value']) || 0;
-        targetSegment.data.count++;
-      }
-    });
-    
-    // Create HTML content
-    let html = `
-      <div class="ranking-content">
-        <table class="ranking-map-table">
-          <thead>
-            <tr>
-              <th>Segment</th>
-              <th>Impressions</th>
-              <th>Clicks</th>
-              <th>Avg CPC</th>
-              <th>Cost</th>
-              <th>Conversions</th>
-              <th>Conv. Value</th>
-              <th>CTR</th>
-              <th>CVR</th>
-              <th>ROAS</th>
-              <th>AOV</th>
-              <th>CPA</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    // Create rows for each segment
-    Object.entries(segments).forEach(([segmentName, segment]) => {
-      const data = segment.data;
-      const hasData = data.count > 0;
-      
-      const ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
-      const cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
-      const roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
-      const aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
-      const cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
-      const avgCpc = data.clicks > 0 ? data.cost / data.clicks : 0;
-      
-      const segmentClass = segmentName === 'Top 3' ? 'segment-top-3' : 
-                          segmentName === 'Top 4-8' ? 'segment-top-4-8' :
-                          segmentName === 'Top 9-14' ? 'segment-top-9-14' : 'segment-below-14';
-      
-      html += `
-        <tr class="${segmentClass}">
-          <td class="segment-name">${segmentName}</td>
-          <td>${hasData ? Math.round(data.impressions).toLocaleString() : '-'}</td>
-          <td>${hasData ? Math.round(data.clicks).toLocaleString() : '-'}</td>
-          <td>${hasData ? '$' + avgCpc.toFixed(2) : '-'}</td>
-          <td>${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
-          <td>${hasData ? data.conversions.toFixed(1) : '-'}</td>
-          <td>${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
-          <td>${hasData ? ctr.toFixed(2) + '%' : '-'}</td>
-          <td>${hasData ? cvr.toFixed(2) + '%' : '-'}</td>
-          <td class="${roas >= 2.5 ? 'roas-good' : roas >= 1.5 ? 'roas-medium' : 'roas-poor'}">${hasData ? roas.toFixed(2) + 'x' : '-'}</td>
-          <td>${hasData ? '$' + aov.toFixed(2) : '-'}</td>
-          <td>${hasData ? '$' + cpa.toFixed(2) : '-'}</td>
-        </tr>
-      `;
-    });
-    
-    html += `
-          </tbody>
-        </table>
+    // For now, let's create a message showing available fields
+    container.innerHTML = `
+      <div style="padding: 20px;">
+        <h3>Available Fields in Data:</h3>
+        <pre style="background: #f5f5f5; padding: 10px; overflow: auto; max-height: 400px;">
+${JSON.stringify(Object.keys(productData[0]), null, 2)}
+        </pre>
+        <p>Looking for ranking/position fields...</p>
+        ${rankFields.length > 0 ? `<p>Found potential fields: ${rankFields.join(', ')}</p>` : '<p>No ranking fields found</p>'}
       </div>
     `;
-    
-    container.innerHTML = html;
-
-    // Debug - verify HTML was set
-    console.log('[Tab] Container HTML length:', container.innerHTML.length);
-    console.log('[Tab] Container visible:', container.style.display !== 'none');
     
   } catch (error) {
     console.error('Error loading ranking data:', error);
