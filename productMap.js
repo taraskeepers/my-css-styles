@@ -223,6 +223,20 @@ window.loadRankingTabContent = async function(popup, bucketData) {
     
     console.log('[Ranking Map] Filtered metrics data:', metricsData.length);
     
+    // Debug: Log first row to see field names
+    if (metricsData.length > 0) {
+      console.log('[Ranking Map] Sample metrics row fields:', Object.keys(metricsData[0]));
+      console.log('[Ranking Map] Sample metrics row data:', {
+        Clicks: metricsData[0]['Clicks'],
+        Cost: metricsData[0]['Cost'],
+        Conversions: metricsData[0]['Conversions'],
+        'Conversion Value': metricsData[0]['Conversion Value'],
+        'ConvValue': metricsData[0]['ConvValue'],
+        'Conv. value': metricsData[0]['Conv. value'],
+        'Conv. Value': metricsData[0]['Conv. Value']
+      });
+    }
+    
     // Group metrics by date
     const metricsByDate = new Map();
     metricsData.forEach(row => {
@@ -242,10 +256,25 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       dayData.clicks += parseInt(row['Clicks']) || 0;
       dayData.cost += parseFloat(row['Cost']) || 0;
       dayData.conversions += parseInt(row['Conversions']) || 0;
-      dayData.conversionValue += parseFloat(row['Conversion Value']) || parseFloat(row['ConvValue']) || 0;
+      
+      // Try multiple possible field names for conversion value
+      const convValue = parseFloat(row['Conv. value']) ||  // This is likely the correct field
+                       parseFloat(row['Conversion Value']) || 
+                       parseFloat(row['ConvValue']) || 
+                       parseFloat(row['Conv. Value']) ||
+                       parseFloat(row['Conversion value']) || 0;
+      
+      dayData.conversionValue += convValue;
     });
     
     console.log('[Ranking Map] Metrics by date:', metricsByDate.size);
+    
+    // Debug: Check if we're getting conversion values
+    let totalConvValue = 0;
+    metricsByDate.forEach((dayData, date) => {
+      totalConvValue += dayData.conversionValue;
+    });
+    console.log('[Ranking Map] Total conversion value across all dates:', totalConvValue);
     
     // Debug: Log metrics date range
     if (metricsByDate.size > 0) {
@@ -309,6 +338,14 @@ window.loadRankingTabContent = async function(popup, bucketData) {
     console.log('[Ranking Map] Dates with metrics but no ranking:', unmatchedMetricsDates.length, unmatchedMetricsDates.slice(0, 5));
     console.log('[Ranking Map] Dates with ranking but no metrics:', unmatchedRankingDates.length, unmatchedRankingDates.slice(0, 5));
     
+    // Debug: Log segment totals
+    console.log('[Ranking Map] Segment totals:', {
+      'Top 3': positionSegments['Top 3'],
+      'Top 4-8': positionSegments['Top 4-8'],
+      'Top 9-14': positionSegments['Top 9-14'],
+      'Below 14': positionSegments['Below 14']
+    });
+    
     // Build the ranking map table
     let tableHTML = `
       <div class="ranking-content">
@@ -348,18 +385,79 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       // Determine ROAS coloring
       let roasClass = '';
       let roasDisplay = '-';
-      if (hasData && segment.cost > 0) {
-        const roasValue = parseFloat(roas);
-        roasClass = roasValue >= 2.5 ? 'roas-good' : roasValue >= 1.5 ? 'roas-medium' : 'roas-poor';
-        roasDisplay = roas + 'x';
+      if (hasData) {
+        if (segment.cost > 0) {
+          const roasValue = parseFloat(roas);
+          roasClass = roasValue >= 2.5 ? 'roas-good' : roasValue >= 1.5 ? 'roas-medium' : 'roas-poor';
+          roasDisplay = roas + 'x';
+        } else if (segment.cost === 0 && segment.conversionValue === 0) {
+          roasDisplay = '0.00x';
+          roasClass = 'roas-poor';
+        }
       }
       
       tableHTML += `
         <tr class="${segmentClasses[segmentName]}">
           <td class="segment-name">${segmentName}</td>
           <td>${hasData ? segment.clicks.toLocaleString() : '-'}</td>
-          <td>${hasData && segment.clicks > 0 ? '$' + avgCPC : '-'}</td>
-          <td>${hasData && segment.conversionValue > 0 ? '$' + segment.conversionValue.toFixed(2) : '-'}</td>
+          <td>${hasData && segment.clicks > 0 ? '
+    }
+    
+    tableHTML += `
+          </tbody>
+        </table>
+        <div style="margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4;">
+          <strong>Note:</strong> This table shows how the product performs at different ranking positions. 
+          Performance metrics are aggregated for all days when the product was in each position range.
+          <br><br>
+          <strong>Data Coverage:</strong> ${matchedDays} days with both ranking and performance data 
+          (${avgRankingByDate.size} days with rankings, ${metricsByDate.size} days with metrics)
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = tableHTML;
+    
+  } catch (error) {
+    console.error('[Ranking Map] Error loading content:', error);
+    container.innerHTML = `
+      <div class="ranking-content">
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+          Error loading ranking data. Please try again.
+        </div>
+      </div>
+    `;
+  }
+}; + avgCPC : '-'}</td>
+          <td>${hasData ? '
+    }
+    
+    tableHTML += `
+          </tbody>
+        </table>
+        <div style="margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4;">
+          <strong>Note:</strong> This table shows how the product performs at different ranking positions. 
+          Performance metrics are aggregated for all days when the product was in each position range.
+          <br><br>
+          <strong>Data Coverage:</strong> ${matchedDays} days with both ranking and performance data 
+          (${avgRankingByDate.size} days with rankings, ${metricsByDate.size} days with metrics)
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = tableHTML;
+    
+  } catch (error) {
+    console.error('[Ranking Map] Error loading content:', error);
+    container.innerHTML = `
+      <div class="ranking-content">
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+          Error loading ranking data. Please try again.
+        </div>
+      </div>
+    `;
+  }
+}; + segment.conversionValue.toFixed(2) : '-'}</td>
           <td class="${roasClass}" style="font-weight: 700;">${roasDisplay}</td>
         </tr>
       `;
