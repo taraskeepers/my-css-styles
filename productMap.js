@@ -412,6 +412,78 @@ function createMetricsPopup(bucketData) {
   return popup;
 }
 
+// Helper function to load product metrics data from IndexedDB
+async function loadProductMetricsData(productTitle) {
+  try {
+    // Get current account prefix
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    
+    // Try to access through the parent database first
+    const myAppDb = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Check if projectData exists in myAppDB
+    if (myAppDb.objectStoreNames.contains('projectData')) {
+      try {
+        const transaction = myAppDb.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        
+        // Try to get the specific key
+        const getRequest = objectStore.get(tableName);
+        
+        const data = await new Promise((resolve, reject) => {
+          getRequest.onsuccess = () => resolve(getRequest.result);
+          getRequest.onerror = () => reject(getRequest.error);
+        });
+        
+        if (data) {
+          // Process the data
+          let actualData;
+          if (data.data && Array.isArray(data.data)) {
+            actualData = data.data;
+          } else if (Array.isArray(data)) {
+            actualData = data;
+          } else {
+            myAppDb.close();
+            return null;
+          }
+          
+          // Filter for the product
+          const productData = actualData.filter(row => 
+            row['Product Title'] === productTitle
+          );
+          
+          if (productData.length > 0) {
+            const campaignNames = [...new Set(productData.map(row => row['Campaign Name']))].filter(Boolean);
+            const channelTypes = [...new Set(productData.map(row => row['Channel Type']))].filter(Boolean);
+            
+            myAppDb.close();
+            
+            return {
+              productData,
+              campaignNames,
+              channelTypes
+            };
+          }
+        }
+      } catch (e) {
+        console.log('[loadProductMetricsData] Error accessing projectData:', e);
+      }
+    }
+    
+    myAppDb.close();
+    return null;
+    
+  } catch (error) {
+    console.error('[loadProductMetricsData] Error:', error);
+    return null;
+  }
+}
+
 // Function to load campaigns tab content
 async function loadCampaignsTabContent(popup, bucketData) {
   const container = popup.querySelector('[data-content="campaigns"]');
@@ -421,30 +493,15 @@ async function loadCampaignsTabContent(popup, bucketData) {
     // Get product title for data loading
     const productTitle = bucketData['Product Title'];
     
-    // Read the performance data from CSV
-    let performanceData = [];
-    try {
-      const csvContent = await window.fs.readFile('googleSheets_productPerformance.csv', { encoding: 'utf8' });
-      const parsed = Papa.parse(csvContent, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        delimitersToGuess: [',', '\t', '|', ';']
-      });
-      performanceData = parsed.data;
-    } catch (error) {
-      console.error('Error reading performance CSV:', error);
+    // Load data using the helper function
+    const result = await loadProductMetricsData(productTitle);
+    
+    if (!result || !result.productData || result.productData.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No campaign data available</div>';
       return;
     }
     
-    // Filter data for this product
-    const productData = performanceData.filter(row => row['Product Title'] === productTitle);
-    
-    if (productData.length === 0) {
-      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No campaign data available</div>';
-      return;
-    }
+    const productData = result.productData;
     
     // Get date range (same as performance tab)
     const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
@@ -652,30 +709,15 @@ async function loadRankingTabContent(popup, bucketData) {
     // Get product title
     const productTitle = bucketData['Product Title'];
     
-    // Read the performance data from CSV
-    let performanceData = [];
-    try {
-      const csvContent = await window.fs.readFile('googleSheets_productPerformance.csv', { encoding: 'utf8' });
-      const parsed = Papa.parse(csvContent, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        delimitersToGuess: [',', '\t', '|', ';']
-      });
-      performanceData = parsed.data;
-    } catch (error) {
-      console.error('Error reading performance CSV:', error);
+    // Load data using the helper function
+    const result = await loadProductMetricsData(productTitle);
+    
+    if (!result || !result.productData || result.productData.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No ranking data available</div>';
       return;
     }
     
-    // Filter data for this product
-    const productData = performanceData.filter(row => row['Product Title'] === productTitle);
-    
-    if (productData.length === 0) {
-      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No ranking data available</div>';
-      return;
-    }
+    const productData = result.productData;
     
     // Get date range
     const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
