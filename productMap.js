@@ -121,7 +121,8 @@ window.getProductRecordsForPopup = function(productTitle, productUrl) {
   return matchedRecords;
 };
 
-// Define loadRankingTabContent in the global scope as well
+// Replace your existing window.loadRankingTabContent function with this improved version:
+
 window.loadRankingTabContent = async function(popup, bucketData) {
   const container = popup.querySelector('[data-content="ranking"]');
   if (!container) return;
@@ -153,6 +154,9 @@ window.loadRankingTabContent = async function(popup, bucketData) {
     const startDate = moment().subtract(30, 'days');
     const rankingsByDate = new Map();
     
+    // Debug: Track position distribution
+    const positionDistribution = {};
+    
     deviceFilteredRecords.forEach(record => {
       if (record.historical_data && Array.isArray(record.historical_data)) {
         record.historical_data.forEach(item => {
@@ -166,6 +170,10 @@ window.loadRankingTabContent = async function(popup, bucketData) {
                 rankingsByDate.set(date, []);
               }
               rankingsByDate.get(date).push(ranking);
+              
+              // Track position distribution
+              const roundedPos = Math.round(ranking);
+              positionDistribution[roundedPos] = (positionDistribution[roundedPos] || 0) + 1;
             }
           }
         });
@@ -173,6 +181,7 @@ window.loadRankingTabContent = async function(popup, bucketData) {
     });
     
     console.log('[Ranking Map] Rankings by date:', rankingsByDate.size);
+    console.log('[Ranking Map] Position distribution:', positionDistribution);
     
     // Calculate average ranking per date
     const avgRankingByDate = new Map();
@@ -180,6 +189,12 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       const avgRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
       avgRankingByDate.set(date, avgRanking);
     });
+    
+    // Debug: Log date ranges
+    if (rankingsByDate.size > 0) {
+      const rankingDates = Array.from(rankingsByDate.keys()).sort();
+      console.log('[Ranking Map] Ranking date range:', rankingDates[0], 'to', rankingDates[rankingDates.length - 1]);
+    }
     
     // Load product metrics data for the same period
     const result = await loadProductMetricsData(productTitle);
@@ -232,7 +247,13 @@ window.loadRankingTabContent = async function(popup, bucketData) {
     
     console.log('[Ranking Map] Metrics by date:', metricsByDate.size);
     
-    // Initialize position segments
+    // Debug: Log metrics date range
+    if (metricsByDate.size > 0) {
+      const metricsDates = Array.from(metricsByDate.keys()).sort();
+      console.log('[Ranking Map] Metrics date range:', metricsDates[0], 'to', metricsDates[metricsDates.length - 1]);
+    }
+    
+    // Initialize position segments - ALWAYS show all 4
     const positionSegments = {
       'Top 3': { min: 1, max: 3, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
       'Top 4-8': { min: 4, max: 8, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
@@ -240,11 +261,18 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       'Below 14': { min: 15, max: 40, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 }
     };
     
+    // Track unmatched dates for debugging
+    const unmatchedMetricsDates = [];
+    const unmatchedRankingDates = [];
+    
     // Match metrics with rankings by date and aggregate into segments
     let matchedDays = 0;
     metricsByDate.forEach((dayData, date) => {
       const avgRanking = avgRankingByDate.get(date);
-      if (!avgRanking) return; // Skip if no ranking for this date
+      if (!avgRanking) {
+        unmatchedMetricsDates.push(date);
+        return; // Skip if no ranking for this date
+      }
       
       matchedDays++;
       const roundedRanking = Math.round(avgRanking);
@@ -270,7 +298,16 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       }
     });
     
+    // Check for ranking dates without metrics
+    avgRankingByDate.forEach((ranking, date) => {
+      if (!metricsByDate.has(date)) {
+        unmatchedRankingDates.push(date);
+      }
+    });
+    
     console.log('[Ranking Map] Matched days with both ranking and metrics:', matchedDays);
+    console.log('[Ranking Map] Dates with metrics but no ranking:', unmatchedMetricsDates.length, unmatchedMetricsDates.slice(0, 5));
+    console.log('[Ranking Map] Dates with ranking but no metrics:', unmatchedRankingDates.length, unmatchedRankingDates.slice(0, 5));
     
     // Build the ranking map table
     let tableHTML = `
@@ -294,7 +331,7 @@ window.loadRankingTabContent = async function(popup, bucketData) {
           <tbody>
     `;
     
-    // Add rows for each segment
+    // Define segment colors
     const segmentClasses = {
       'Top 3': 'segment-top-3',
       'Top 4-8': 'segment-top-4-8',
@@ -302,32 +339,28 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       'Below 14': 'segment-below-14'
     };
     
-    let hasData = false;
+    // ALWAYS show all segments, even with zero data
     for (const [segmentName, segment] of Object.entries(positionSegments)) {
-      if (segment.days > 0) {
-        hasData = true;
-        const avgCPC = segment.clicks > 0 ? (segment.cost / segment.clicks).toFixed(2) : '0.00';
-        const roas = segment.cost > 0 ? (segment.conversionValue / segment.cost).toFixed(2) : '0.00';
-        const roasClass = roas >= 2.5 ? 'roas-good' : roas >= 1.5 ? 'roas-medium' : 'roas-poor';
-        
-        tableHTML += `
-          <tr class="${segmentClasses[segmentName]}">
-            <td class="segment-name">${segmentName}</td>
-            <td>${segment.clicks.toLocaleString()}</td>
-            <td>$${avgCPC}</td>
-            <td>$${segment.conversionValue.toFixed(2)}</td>
-            <td class="${roasClass}" style="font-weight: 700;">${roas}x</td>
-          </tr>
-        `;
+      const hasData = segment.days > 0;
+      const avgCPC = segment.clicks > 0 ? (segment.cost / segment.clicks).toFixed(2) : '0.00';
+      const roas = segment.cost > 0 ? (segment.conversionValue / segment.cost).toFixed(2) : '0.00';
+      
+      // Determine ROAS coloring
+      let roasClass = '';
+      let roasDisplay = '-';
+      if (hasData && segment.cost > 0) {
+        const roasValue = parseFloat(roas);
+        roasClass = roasValue >= 2.5 ? 'roas-good' : roasValue >= 1.5 ? 'roas-medium' : 'roas-poor';
+        roasDisplay = roas + 'x';
       }
-    }
-    
-    if (!hasData) {
+      
       tableHTML += `
-        <tr>
-          <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-            No ranking data available for this product in the last 30 days
-          </td>
+        <tr class="${segmentClasses[segmentName]}">
+          <td class="segment-name">${segmentName}</td>
+          <td>${hasData ? segment.clicks.toLocaleString() : '-'}</td>
+          <td>${hasData && segment.clicks > 0 ? '$' + avgCPC : '-'}</td>
+          <td>${hasData && segment.conversionValue > 0 ? '$' + segment.conversionValue.toFixed(2) : '-'}</td>
+          <td class="${roasClass}" style="font-weight: 700;">${roasDisplay}</td>
         </tr>
       `;
     }
@@ -338,6 +371,9 @@ window.loadRankingTabContent = async function(popup, bucketData) {
         <div style="margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4;">
           <strong>Note:</strong> This table shows how the product performs at different ranking positions. 
           Performance metrics are aggregated for all days when the product was in each position range.
+          <br><br>
+          <strong>Data Coverage:</strong> ${matchedDays} days with both ranking and performance data 
+          (${avgRankingByDate.size} days with rankings, ${metricsByDate.size} days with metrics)
         </div>
       </div>
     `;
