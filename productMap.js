@@ -374,7 +374,7 @@ function createMetricsPopup(bucketData) {
             loadCampaignsTabContent(popup, bucketData);
             targetContent.setAttribute('data-loaded', 'true');
           } else if (targetTab === 'ranking' && !targetContent.hasAttribute('data-loaded')) {
-            loadRankingTabContent(popup, bucketData);
+            window.loadRankingTabContent(popup, bucketData);
             targetContent.setAttribute('data-loaded', 'true');
           }
         }
@@ -757,8 +757,44 @@ function renderCampaignPieCharts(campaignData, popupElement) {
   });
 }
 
-// Function to load ranking tab content (replace the existing placeholder function)
-async function loadRankingTabContent(popup, bucketData) {
+indow.getProductRecordsForPopup = function(productTitle, productUrl) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    console.error('[Ranking Map] window.allRows is not available or not an array');
+    return [];
+  }
+  
+  const normalizedUrl = productUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const normalizedTitle = productTitle?.toLowerCase().trim();
+  
+  console.log('[Ranking Map] Searching for product:', { normalizedTitle, normalizedUrl });
+  console.log('[Ranking Map] Total rows in window.allRows:', window.allRows.length);
+  
+  const matchedRecords = window.allRows.filter(row => {
+    // Match by URL
+    if (normalizedUrl && row.top_results && Array.isArray(row.top_results)) {
+      const hasUrlMatch = row.top_results.some(result => 
+        result.link && result.link.replace(/^https?:\/\//, '').replace(/\/$/, '') === normalizedUrl
+      );
+      if (hasUrlMatch) return true;
+    }
+    
+    // Match by title
+    if (normalizedTitle && row.top_results && Array.isArray(row.top_results)) {
+      const hasTitleMatch = row.top_results.some(result => 
+        result.title && result.title.toLowerCase().includes(normalizedTitle)
+      );
+      if (hasTitleMatch) return true;
+    }
+    
+    return false;
+  });
+  
+  console.log('[Ranking Map] Matched records:', matchedRecords.length);
+  return matchedRecords;
+};
+
+// Define loadRankingTabContent in the global scope as well
+window.loadRankingTabContent = async function(popup, bucketData) {
   const container = popup.querySelector('[data-content="ranking"]');
   if (!container) return;
   
@@ -770,8 +806,8 @@ async function loadRankingTabContent(popup, bucketData) {
     
     console.log('[Ranking Map] Loading for:', { productTitle, currentDevice });
     
-    // Get product records with historical ranking data
-    const productRecords = getProductRecordsForPopup(productTitle, productUrl);
+    // Use the globally defined function
+    const productRecords = window.getProductRecordsForPopup(productTitle, productUrl);
     console.log('[Ranking Map] Found records:', productRecords.length);
     
     // Filter records by current device
@@ -842,6 +878,8 @@ async function loadRankingTabContent(popup, bucketData) {
              rowDate.isBetween(startDate, endDate, 'day', '[]');
     });
     
+    console.log('[Ranking Map] Filtered metrics data:', metricsData.length);
+    
     // Group metrics by date
     const metricsByDate = new Map();
     metricsData.forEach(row => {
@@ -864,6 +902,8 @@ async function loadRankingTabContent(popup, bucketData) {
       dayData.conversionValue += parseFloat(row['Conv. value']) || 0;
     });
     
+    console.log('[Ranking Map] Metrics by date:', metricsByDate.size);
+    
     // Initialize position segments
     const positionSegments = {
       'Top 3': { min: 1, max: 3, clicks: 0, cost: 0, conversions: 0, conversionValue: 0, days: 0 },
@@ -873,10 +913,12 @@ async function loadRankingTabContent(popup, bucketData) {
     };
     
     // Match metrics with rankings by date and aggregate into segments
+    let matchedDays = 0;
     metricsByDate.forEach((dayData, date) => {
       const avgRanking = avgRankingByDate.get(date);
       if (!avgRanking) return; // Skip if no ranking for this date
       
+      matchedDays++;
       const roundedRanking = Math.round(avgRanking);
       const position = Math.max(1, Math.min(40, roundedRanking));
       
@@ -899,6 +941,8 @@ async function loadRankingTabContent(popup, bucketData) {
         segment.days += 1;
       }
     });
+    
+    console.log('[Ranking Map] Matched days with both ranking and metrics:', matchedDays);
     
     // Build the ranking map table
     let tableHTML = `
@@ -982,7 +1026,7 @@ async function loadRankingTabContent(popup, bucketData) {
       </div>
     `;
   }
-}
+};
 
 async function renderProductMapTable() {
    const useLatestRecordAsEndDate = false;
@@ -3180,39 +3224,6 @@ async function checkGoogleAdsIntegration() {
     console.error('[ProductMap] Error checking Google Ads integration:', error);
     return { enabled: false };
   }
-}
-
-// Function to get product records from window.allRows (add this after checkGoogleAdsIntegration function)
-function getProductRecordsForPopup(productTitle, productUrl) {
-  if (!window.allRows || !Array.isArray(window.allRows)) {
-    console.error('[Ranking Map] window.allRows is not available or not an array');
-    return [];
-  }
-  
-  const normalizedUrl = productUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const normalizedTitle = productTitle?.toLowerCase().trim();
-  
-  console.log('[Ranking Map] Searching for product:', { normalizedTitle, normalizedUrl });
-  
-  return window.allRows.filter(row => {
-    // Match by URL
-    if (normalizedUrl && row.top_results) {
-      const hasUrlMatch = row.top_results.some(result => 
-        result.link && result.link.replace(/^https?:\/\//, '').replace(/\/$/, '') === normalizedUrl
-      );
-      if (hasUrlMatch) return true;
-    }
-    
-    // Match by title
-    if (normalizedTitle && row.top_results) {
-      const hasTitleMatch = row.top_results.some(result => 
-        result.title && result.title.toLowerCase().includes(normalizedTitle)
-      );
-      if (hasTitleMatch) return true;
-    }
-    
-    return false;
-  });
 }
 
 // Function to fetch product bucket data
