@@ -1039,7 +1039,11 @@ if (bucketSelector) {
         const deviceCell = row.querySelector('.device-icon');
         const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
         
-        const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
+        const plaIndex = adCard.getAttribute('data-pla-index');
+const productData = window.globalRows[plaIndex];
+if (!productData) return;
+const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
+        
         const productBucketData = bucketDataMap.get(lookupKey);
         
         if (productBucketData) {
@@ -3810,7 +3814,15 @@ if (dateRange && dateRange.end) {
                   return false;
                 }, true);
 
+// Replace the broken mouseenter handler (starting around line 2026) with this:
+
 adCard.addEventListener('mouseenter', function(e) {
+  // Get the product data first
+  const plaIndex = adCard.getAttribute('data-pla-index');
+  const productData = window.globalRows[plaIndex];
+  
+  if (!productData) return; // Exit if no product data
+  
   // Clear any existing timeout
   if (hoverTimeout) {
     clearTimeout(hoverTimeout);
@@ -3830,7 +3842,8 @@ adCard.addEventListener('mouseenter', function(e) {
       const deviceCell = row.querySelector('.device-icon');
       const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
       
-      const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
+      // NOW we can use productData.title safely
+      const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
       const productBucketData = bucketDataMap.get(lookupKey);
       
       if (productBucketData) {
