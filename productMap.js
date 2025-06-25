@@ -76,7 +76,7 @@ function createMetricsPopup(bucketData) {
   const popup = document.createElement('div');
   popup.className = 'product-metrics-popup';
   
-  // Helper function to format numbers
+  // Helper functions
   const formatNumber = (value, decimals = 2) => {
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
@@ -85,14 +85,12 @@ function createMetricsPopup(bucketData) {
     return num.toFixed(decimals);
   };
   
-  // Helper function to format currency
   const formatCurrency = (value) => {
     const num = parseFloat(value);
     if (isNaN(num)) return '$0';
     return '$' + num.toLocaleString('en-US', { maximumFractionDigits: 0 });
   };
   
-  // Helper function to calculate trend
   const getTrend = (current, previous) => {
     const curr = parseFloat(current) || 0;
     const prev = parseFloat(previous) || 0;
@@ -108,7 +106,6 @@ function createMetricsPopup(bucketData) {
     };
   };
   
-  // Helper function to get health score color
   const getHealthScoreColor = (score) => {
     const s = parseInt(score) || 0;
     if (s >= 8) return '#28a745';
@@ -117,7 +114,6 @@ function createMetricsPopup(bucketData) {
     return '#dc3545';
   };
   
-  // Parse bucket data
   const parseBucket = (bucketStr) => {
     try {
       return JSON.parse(bucketStr);
@@ -135,13 +131,19 @@ function createMetricsPopup(bucketData) {
     }
   };
   
+  // Create trend HTML helper
+  const createTrendHTML = (current, previous) => {
+    const trend = getTrend(current, previous);
+    if (trend.value === '-') return '';
+    return `<div class="metric-trend ${trend.class}">${trend.arrow} ${trend.value}</div>`;
+  };
+  
   const profitability = parseBucket(bucketData['PROFITABILITY_BUCKET']);
   const funnelStage = parseBucket(bucketData['FUNNEL_STAGE_BUCKET']);
   const investment = parseBucket(bucketData['INVESTMENT_BUCKET']);
   const customTier = parseBucket(bucketData['CUSTOM_TIER_BUCKET']);
   const suggestions = parseSuggestions(bucketData['SUGGESTIONS_BUCKET']);
   
-  // Get full product title
   const fullTitle = bucketData['Product Title'] || 'Unknown Product';
   
   popup.innerHTML = `
@@ -149,213 +151,146 @@ function createMetricsPopup(bucketData) {
       ${fullTitle}
     </div>
     <div class="popup-content">
-      <!-- Performance Overview -->
+      <!-- Top Performance Bar -->
       <div class="metric-section">
-        <div class="section-title">Performance Overview</div>
-        <div class="metrics-grid three-col">
-          <div class="metric-item">
-            <span class="metric-label">ROAS</span>
-            <div class="metric-value">
+        <div class="compact-metrics">
+          <div class="compact-metric-group">
+            <div class="compact-label">ROAS</div>
+            <div class="compact-value" style="color: ${bucketData['ROAS'] >= 2.5 ? '#28a745' : bucketData['ROAS'] >= 1.5 ? '#ffc107' : '#dc3545'}">
               ${formatNumber(bucketData['ROAS'], 1)}x
-              <span class="metric-trend ${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).class}">
-                ${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).arrow} ${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).value}
-              </span>
             </div>
+            ${createTrendHTML(bucketData['ROAS'], bucketData['prev_ROAS'])}
           </div>
-          <div class="metric-item">
-            <span class="metric-label">Health Score</span>
-            <div class="metric-value">
-              <div class="health-score">
-                <div class="health-score-value" style="color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}">
-                  ${bucketData['HEALTH_SCORE'] || '-'}/10
-                </div>
-                <div class="health-score-bar">
-                  <div class="health-score-fill" style="width: ${(bucketData['HEALTH_SCORE'] || 0) * 10}%; background-color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}"></div>
-                </div>
+          <div class="compact-metric-group">
+            <div class="compact-label">Health</div>
+            <div class="health-score">
+              <div class="health-score-value" style="color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}">
+                ${bucketData['HEALTH_SCORE'] || '-'}/10
+              </div>
+              <div class="health-score-bar">
+                <div class="health-score-fill" style="width: ${(bucketData['HEALTH_SCORE'] || 0) * 10}%; background-color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}"></div>
               </div>
             </div>
           </div>
-          <div class="metric-item">
-            <span class="metric-label">Confidence</span>
-            <div class="metric-value">${bucketData['Confidence_Level'] || '-'}</div>
+          <div class="compact-metric-group">
+            <div class="compact-label">Revenue</div>
+            <div class="compact-value">${formatCurrency(bucketData['ConvValue'])}</div>
+            ${createTrendHTML(bucketData['ConvValue'], bucketData['prev_ConvValue'])}
+          </div>
+          <div class="compact-metric-group">
+            <div class="compact-label">Conversions</div>
+            <div class="compact-value">${formatNumber(bucketData['Conversions'], 0)}</div>
+            ${createTrendHTML(bucketData['Conversions'], bucketData['prev_Conversions'])}
           </div>
         </div>
       </div>
       
-      <!-- Traffic & Cost -->
+      <!-- Traffic & Conversions Grid -->
       <div class="metric-section">
-        <div class="section-title">Traffic & Cost</div>
-        <div class="metrics-grid">
+        <div class="section-title">Performance Metrics</div>
+        <div class="metrics-grid four-col">
           <div class="metric-item">
             <span class="metric-label">Impressions</span>
-            <div class="metric-value">
-              ${formatNumber(bucketData['Impressions'], 0)}
-              <span class="metric-trend ${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).class}">
-                ${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).arrow} ${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).value}
-              </span>
-            </div>
+            <div class="metric-value">${formatNumber(bucketData['Impressions'], 0)}</div>
+            ${createTrendHTML(bucketData['Impressions'], bucketData['prev_Impressions'])}
           </div>
           <div class="metric-item">
             <span class="metric-label">Clicks</span>
-            <div class="metric-value">
-              ${formatNumber(bucketData['Clicks'], 0)}
-              <span class="metric-trend ${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).class}">
-                ${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).arrow} ${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).value}
-              </span>
-            </div>
+            <div class="metric-value">${formatNumber(bucketData['Clicks'], 0)}</div>
+            ${createTrendHTML(bucketData['Clicks'], bucketData['prev_Clicks'])}
           </div>
           <div class="metric-item">
             <span class="metric-label">CTR</span>
-            <div class="metric-value">
-              ${formatNumber(bucketData['CTR'], 2)}%
-              <span class="metric-trend ${getTrend(bucketData['CTR'], bucketData['prev_CTR']).class}">
-                ${getTrend(bucketData['CTR'], bucketData['prev_CTR']).arrow} ${getTrend(bucketData['CTR'], bucketData['prev_CTR']).value}
-              </span>
-            </div>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Cost</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['Cost'])}
-              <span class="metric-trend ${getTrend(bucketData['Cost'], bucketData['prev_Cost']).class}">
-                ${getTrend(bucketData['Cost'], bucketData['prev_Cost']).arrow} ${getTrend(bucketData['Cost'], bucketData['prev_Cost']).value}
-              </span>
-            </div>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Avg CPC</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['Avg CPC'])}
-              <span class="metric-trend ${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).class}">
-                ${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).arrow} ${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).value}
-              </span>
-            </div>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">CPM</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['CPM'])}
-              <span class="metric-trend ${getTrend(bucketData['CPM'], bucketData['prev_CPM']).class}">
-                ${getTrend(bucketData['CPM'], bucketData['prev_CPM']).arrow} ${getTrend(bucketData['CPM'], bucketData['prev_CPM']).value}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Conversions -->
-      <div class="metric-section">
-        <div class="section-title">Conversions</div>
-        <div class="metrics-grid">
-          <div class="metric-item">
-            <span class="metric-label">Conversions</span>
-            <div class="metric-value">
-              ${formatNumber(bucketData['Conversions'], 0)}
-              <span class="metric-trend ${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).class}">
-                ${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).arrow} ${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).value}
-              </span>
-            </div>
+            <div class="metric-value">${formatNumber(bucketData['CTR'], 2)}%</div>
+            ${createTrendHTML(bucketData['CTR'], bucketData['prev_CTR'])}
           </div>
           <div class="metric-item">
             <span class="metric-label">CVR</span>
-            <div class="metric-value">
-              ${formatNumber(bucketData['CVR'], 2)}%
-              <span class="metric-trend ${getTrend(bucketData['CVR'], bucketData['prev_CVR']).class}">
-                ${getTrend(bucketData['CVR'], bucketData['prev_CVR']).arrow} ${getTrend(bucketData['CVR'], bucketData['prev_CVR']).value}
-              </span>
-            </div>
+            <div class="metric-value">${formatNumber(bucketData['CVR'], 2)}%</div>
+            ${createTrendHTML(bucketData['CVR'], bucketData['prev_CVR'])}
           </div>
           <div class="metric-item">
-            <span class="metric-label">Revenue</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['ConvValue'])}
-              <span class="metric-trend ${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).class}">
-                ${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).arrow} ${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).value}
-              </span>
-            </div>
+            <span class="metric-label">Cost</span>
+            <div class="metric-value">${formatCurrency(bucketData['Cost'])}</div>
+            ${createTrendHTML(bucketData['Cost'], bucketData['prev_Cost'])}
           </div>
           <div class="metric-item">
-            <span class="metric-label">AOV</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['AOV'])}
-              <span class="metric-trend ${getTrend(bucketData['AOV'], bucketData['prev_AOV']).class}">
-                ${getTrend(bucketData['AOV'], bucketData['prev_AOV']).arrow} ${getTrend(bucketData['AOV'], bucketData['prev_AOV']).value}
-              </span>
-            </div>
+            <span class="metric-label">CPC</span>
+            <div class="metric-value">${formatCurrency(bucketData['Avg CPC'])}</div>
+            ${createTrendHTML(bucketData['Avg CPC'], bucketData['prev_Avg CPC'])}
           </div>
           <div class="metric-item">
             <span class="metric-label">CPA</span>
-            <div class="metric-value">
-              ${formatCurrency(bucketData['CPA'])}
-              <span class="metric-trend ${getTrend(bucketData['CPA'], bucketData['prev_CPA']).class}">
-                ${getTrend(bucketData['CPA'], bucketData['prev_CPA']).arrow} ${getTrend(bucketData['CPA'], bucketData['prev_CPA']).value}
-              </span>
+            <div class="metric-value">${formatCurrency(bucketData['CPA'])}</div>
+            ${createTrendHTML(bucketData['CPA'], bucketData['prev_CPA'])}
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">AOV</span>
+            <div class="metric-value">${formatCurrency(bucketData['AOV'])}</div>
+            ${createTrendHTML(bucketData['AOV'], bucketData['prev_AOV'])}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Funnel + AI Classifications -->
+      <div class="metric-section">
+        <div class="section-title">Funnel & Classifications</div>
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px;">
+          <!-- Funnel Rates -->
+          <div class="metrics-grid" style="grid-template-columns: repeat(3, 80px); gap: 6px;">
+            <div class="metric-item">
+              <span class="metric-label">Cart</span>
+              <div class="metric-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Checkout</span>
+              <div class="metric-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Purchase</span>
+              <div class="metric-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
+            </div>
+          </div>
+          
+          <!-- Classifications -->
+          <div class="bucket-grid">
+            <div class="bucket-item">
+              <div class="bucket-label">Profitability</div>
+              <div class="bucket-value">${profitability.value}</div>
+              ${profitability.explanation ? `<div class="bucket-explanation">${profitability.explanation}</div>` : ''}
+            </div>
+            <div class="bucket-item">
+              <div class="bucket-label">Investment</div>
+              <div class="bucket-value">${investment.value}</div>
+              ${investment.explanation ? `<div class="bucket-explanation">${investment.explanation}</div>` : ''}
+            </div>
+            <div class="bucket-item">
+              <div class="bucket-label">Funnel Stage</div>
+              <div class="bucket-value">${funnelStage.value}</div>
+              ${funnelStage.explanation ? `<div class="bucket-explanation">${funnelStage.explanation}</div>` : ''}
+            </div>
+            <div class="bucket-item">
+              <div class="bucket-label">Custom Tier</div>
+              <div class="bucket-value">${customTier.value}</div>
+              ${customTier.explanation ? `<div class="bucket-explanation">${customTier.explanation}</div>` : ''}
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Funnel Analysis -->
-      <div class="metric-section">
-        <div class="section-title">Funnel Analysis</div>
-        <div class="metrics-grid three-col">
-          <div class="metric-item">
-            <span class="metric-label">Cart Rate</span>
-            <div class="metric-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Checkout Rate</span>
-            <div class="metric-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Purchase Rate</span>
-            <div class="metric-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- AI Classifications -->
-      <div class="metric-section">
-        <div class="section-title">AI Classifications</div>
-        <div class="bucket-item">
-          <div class="bucket-label">Profitability</div>
-          <div class="bucket-value">${profitability.value}</div>
-          ${profitability.explanation ? `<div class="bucket-explanation">${profitability.explanation}</div>` : ''}
-        </div>
-        <div class="bucket-item">
-          <div class="bucket-label">Funnel Stage</div>
-          <div class="bucket-value">${funnelStage.value}</div>
-          ${funnelStage.explanation ? `<div class="bucket-explanation">${funnelStage.explanation}</div>` : ''}
-        </div>
-        <div class="bucket-item">
-          <div class="bucket-label">Investment Priority</div>
-          <div class="bucket-value">${investment.value}</div>
-          ${investment.explanation ? `<div class="bucket-explanation">${investment.explanation}</div>` : ''}
-        </div>
-        <div class="bucket-item">
-          <div class="bucket-label">Custom Tier</div>
-          <div class="bucket-value">${customTier.value}</div>
-          ${customTier.explanation ? `<div class="bucket-explanation">${customTier.explanation}</div>` : ''}
-        </div>
-        ${bucketData['SELLERS'] && bucketData['SELLERS'] !== 'N/A' ? `
-        <div class="bucket-item">
-          <div class="bucket-label">Sellers Category</div>
-          <div class="bucket-value">${bucketData['SELLERS']}</div>
-        </div>
-        ` : ''}
-      </div>
-      
       ${suggestions.length > 0 ? `
-      <!-- AI Recommendations -->
+      <!-- Recommendations -->
       <div class="metric-section">
-        <div class="section-title">AI Recommendations</div>
-        ${suggestions.map(suggestion => `
-          <div class="suggestion-item">
-            <div class="suggestion-priority priority-${suggestion.priority?.toLowerCase()}"></div>
-            <div class="suggestion-text">${suggestion.suggestion}</div>
-            ${suggestion.context ? `<div class="suggestion-context">${suggestion.context}</div>` : ''}
-          </div>
-        `).join('')}
+        <div class="section-title">AI Recommendations (${suggestions.length})</div>
+        <div class="suggestions-container">
+          ${suggestions.map(suggestion => `
+            <div class="suggestion-item">
+              <div class="suggestion-priority priority-${suggestion.priority?.toLowerCase()}"></div>
+              <div class="suggestion-text">${suggestion.suggestion}</div>
+              ${suggestion.context ? `<div class="suggestion-context">${suggestion.context}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
       </div>
       ` : ''}
     </div>
@@ -1865,36 +1800,31 @@ popupStyle.textContent = `
     position: absolute;
     z-index: 10000;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     padding: 0;
-    width: 480px;
-    max-height: 600px;
+    width: 520px;
+    max-height: 85vh;
     overflow-y: auto;
     overflow-x: hidden;
     pointer-events: none;
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
   }
   
   .product-metrics-popup::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
   
   .product-metrics-popup::-webkit-scrollbar-track {
     background: #f5f5f5;
-    border-radius: 0 16px 16px 0;
   }
   
   .product-metrics-popup::-webkit-scrollbar-thumb {
-    background: #ddd;
-    border-radius: 4px;
-  }
-  
-  .product-metrics-popup::-webkit-scrollbar-thumb:hover {
     background: #ccc;
+    border-radius: 3px;
   }
   
   .product-metrics-popup.visible {
@@ -1906,26 +1836,25 @@ popupStyle.textContent = `
   .popup-header {
     background: linear-gradient(135deg, #0066cc, #004499);
     color: white;
-    padding: 16px 20px;
-    border-radius: 16px 16px 0 0;
+    padding: 10px 14px;
+    border-radius: 12px 12px 0 0;
     font-weight: 600;
-    font-size: 15px;
-    line-height: 1.4;
-    word-wrap: break-word;
+    font-size: 13px;
+    line-height: 1.3;
     position: sticky;
     top: 0;
     z-index: 10;
   }
   
   .popup-content {
-    padding: 20px;
+    padding: 12px;
   }
   
   .metric-section {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     background: #f8f9fa;
-    border-radius: 10px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 10px;
     border: 1px solid #e9ecef;
   }
   
@@ -1934,178 +1863,165 @@ popupStyle.textContent = `
   }
   
   .section-title {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: #495057;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
+    letter-spacing: 0.4px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   
   .section-title::before {
     content: '';
-    width: 4px;
-    height: 16px;
+    width: 3px;
+    height: 12px;
     background: #0066cc;
     border-radius: 2px;
   }
   
   .metrics-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
   
-  .metrics-grid.three-col {
-    grid-template-columns: 1fr 1fr 1fr;
+  .metrics-grid.two-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .metrics-grid.four-col {
+    grid-template-columns: repeat(4, 1fr);
   }
   
   .metric-item {
     background: white;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 6px;
     border: 1px solid #e9ecef;
-    transition: all 0.2s ease;
-  }
-  
-  .metric-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    text-align: center;
   }
   
   .metric-label {
-    font-size: 11px;
+    font-size: 9px;
     color: #6c757d;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
+    letter-spacing: 0.2px;
+    margin-bottom: 2px;
     display: block;
   }
   
   .metric-value {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: #212529;
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
+    line-height: 1;
+    margin-bottom: 2px;
   }
   
   .metric-trend {
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1;
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-top: 2px;
   }
   
   .trend-up { 
     color: #28a745; 
     background: #d4edda;
-    padding: 2px 6px;
-    border-radius: 4px;
   }
   
   .trend-down { 
     color: #dc3545; 
     background: #f8d7da;
-    padding: 2px 6px;
-    border-radius: 4px;
   }
   
   .trend-neutral { 
     color: #6c757d; 
     background: #e9ecef;
-    padding: 2px 6px;
-    border-radius: 4px;
+  }
+  
+  .bucket-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
   
   .bucket-item {
-    margin-bottom: 12px;
-    padding: 12px;
+    padding: 8px;
     background: white;
-    border-radius: 8px;
-    border-left: 4px solid #0066cc;
+    border-radius: 6px;
+    border-left: 3px solid #0066cc;
     border-right: 1px solid #e9ecef;
     border-top: 1px solid #e9ecef;
     border-bottom: 1px solid #e9ecef;
   }
   
-  .bucket-item:last-child {
-    margin-bottom: 0;
-  }
-  
   .bucket-label {
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
     color: #6c757d;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
   }
   
   .bucket-value {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     color: #212529;
-    margin-bottom: 4px;
+    line-height: 1.2;
   }
   
   .bucket-explanation {
-    font-size: 11px;
+    font-size: 9px;
     color: #6c757d;
-    line-height: 1.4;
+    line-height: 1.3;
     font-style: italic;
-    margin-top: 4px;
+    margin-top: 2px;
+  }
+  
+  .suggestions-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
   
   .suggestion-item {
     background: white;
     border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 10px;
+    border-radius: 6px;
+    padding: 8px;
     position: relative;
-    padding-left: 40px;
-  }
-  
-  .suggestion-item:last-child {
-    margin-bottom: 0;
+    padding-left: 28px;
   }
   
   .suggestion-priority {
     position: absolute;
-    left: 12px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 700;
     color: white;
   }
   
-  .priority-critical { 
-    background: #dc3545;
-  }
-  
-  .priority-high { 
-    background: #fd7e14;
-  }
-  
-  .priority-medium { 
-    background: #ffc107;
-  }
-  
-  .priority-low { 
-    background: #6c757d;
-  }
+  .priority-critical { background: #dc3545; }
+  .priority-high { background: #fd7e14; }
+  .priority-medium { background: #ffc107; }
+  .priority-low { background: #6c757d; }
   
   .priority-critical::after { content: '!'; }
   .priority-high::after { content: 'H'; }
@@ -2113,49 +2029,64 @@ popupStyle.textContent = `
   .priority-low::after { content: 'L'; }
   
   .suggestion-text {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: #212529;
-    margin-bottom: 4px;
+    line-height: 1.2;
+    margin-bottom: 2px;
   }
   
   .suggestion-context {
-    font-size: 11px;
+    font-size: 9px;
     color: #6c757d;
-    line-height: 1.4;
+    line-height: 1.2;
   }
   
   .health-score {
     display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 6px;
   }
   
   .health-score-value {
-    font-size: 24px;
+    font-size: 14px;
     font-weight: 700;
   }
   
   .health-score-bar {
-    width: 100%;
-    height: 10px;
+    flex: 1;
+    height: 6px;
     background: #e9ecef;
-    border-radius: 5px;
+    border-radius: 3px;
     overflow: hidden;
   }
   
   .health-score-fill {
     height: 100%;
-    border-radius: 5px;
-    transition: width 0.3s ease;
+    border-radius: 3px;
   }
   
-  .no-data-placeholder {
+  .compact-metrics {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  
+  .compact-metric-group {
     text-align: center;
-    color: #adb5bd;
-    font-style: italic;
-    padding: 20px;
+  }
+  
+  .compact-label {
+    font-size: 9px;
+    color: #6c757d;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .compact-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #212529;
   }
 `;
 document.head.appendChild(popupStyle);
@@ -4001,8 +3932,8 @@ const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
 // Popup dimensions
-const popupWidth = 480;
-const popupMaxHeight = 600;
+const popupWidth = 520;
+const popupMaxHeight = window.innerHeight * 0.85;
 
 let left = rect.right + scrollLeft + 10;
 let top = rect.top + scrollTop;
