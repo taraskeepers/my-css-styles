@@ -70,6 +70,7 @@ function getBucketBadgeHTML(bucketData, bucketType = 'PROFITABILITY_BUCKET') {
 }
 
 async function renderProductMapTable() {
+   const useLatestRecordAsEndDate = false;
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
     console.log("[renderProductMapTable] Starting to build product map table");
     const container = document.getElementById("productMapPage");
@@ -2168,30 +2169,34 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
           }
           
           deviceHTML += `</div>`; // Close device-share
-          // Find the latest tracking date from all active products
+// Find the latest tracking date from all active products
 let latestDate = null;
 
-// Find ALL products for this term/location/device combination, regardless of status
-const allProductsForDevice = window.allRows.filter(p => 
-  p.q === term &&
-  p.location_requested === loc &&
-  p.device === rowData.device &&
-  p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
-);
+if (useLatestRecordAsEndDate) {
+  // Old logic: Find the latest date in all historical data
+  const allProductsForDevice = window.allRows.filter(p => 
+    p.q === term &&
+    p.location_requested === loc &&
+    p.device === rowData.device &&
+    p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+  );
 
-// Find the latest date in all historical data
-allProductsForDevice.forEach(product => {
-  if (product.historical_data && Array.isArray(product.historical_data)) {
-    product.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
+  allProductsForDevice.forEach(product => {
+    if (product.historical_data && Array.isArray(product.historical_data)) {
+      product.historical_data.forEach(item => {
+        if (item.date && item.date.value) {
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          if (latestDate === null || itemDate.isAfter(latestDate)) {
+            latestDate = itemDate.clone();
+          }
         }
-      }
-    });
-  }
-});
+      });
+    }
+  });
+} else {
+  // New logic: Use today's date
+  latestDate = moment();
+}
 
 // Add last tracked container
 deviceHTML += `<div class="last-tracked-container">
@@ -2338,16 +2343,22 @@ window.pendingSegmentationCharts.push(chartInfo);
 matchingProducts.forEach(product => {
   // Calculate the 7-day average position for sorting
   if (product.historical_data && product.historical_data.length > 0) {
-    // Find the latest date in the historical data
-    let latestDate = null;
-    product.historical_data.forEach(item => {
-      if (item.date && item.date.value) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (latestDate === null || itemDate.isAfter(latestDate)) {
-          latestDate = itemDate.clone();
-        }
+// Determine end date based on control variable
+let latestDate = null;
+if (useLatestRecordAsEndDate) {
+  // Old logic: Find the latest date in the historical data
+  enhancedProduct.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (latestDate === null || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
       }
-    });
+    }
+  });
+} else {
+  // New logic: Use today's date
+  latestDate = moment();
+}
     
     if (latestDate) {
       // Define the 7-day window
@@ -2439,16 +2450,22 @@ matchingProducts.sort((a, b) => {
                   // 4. Ensure other required fields are present
                   // Calculate real position and trend using historical data
                   if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
-                    // Find the latest date in the historical data
-                    let latestDate = null;
-                    enhancedProduct.historical_data.forEach(item => {
-                      if (item.date && item.date.value) {
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        if (latestDate === null || itemDate.isAfter(latestDate)) {
-                          latestDate = itemDate.clone();
-                        }
-                      }
-                    });
+// Determine end date based on control variable
+let latestDate = null;
+if (useLatestRecordAsEndDate) {
+  // Old logic: Find the latest date in the historical data
+  enhancedProduct.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (latestDate === null || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
+      }
+    }
+  });
+} else {
+  // New logic: Use today's date
+  latestDate = moment();
+}
                   
                     // If no valid dates found, we can't calculate anything
                     if (!latestDate) {
@@ -2555,7 +2572,7 @@ matchingProducts.sort((a, b) => {
                     enhancedProduct.posBadgeBackground = "gray";
                   }
               
-                  // Calculate visibility for the 7-day period
+// Calculate visibility for the 7-day period
 let visibilityBarValue = 0;
 if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
   // Use the same date range as position calculation
@@ -2700,16 +2717,22 @@ if (bucketBadgeHTML) {
                   // 4. Ensure other required fields are present
                   // Calculate real position and trend using historical data
                   if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0) {
-                    // Find the latest date in the historical data
-                    let latestDate = null;
-                    enhancedProduct.historical_data.forEach(item => {
-                      if (item.date && item.date.value) {
-                        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-                        if (latestDate === null || itemDate.isAfter(latestDate)) {
-                          latestDate = itemDate.clone();
-                        }
-                      }
-                    });
+// Determine end date based on control variable
+let latestDate = null;
+if (useLatestRecordAsEndDate) {
+  // Old logic: Find the latest date in the historical data
+  enhancedProduct.historical_data.forEach(item => {
+    if (item.date && item.date.value) {
+      const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+      if (latestDate === null || itemDate.isAfter(latestDate)) {
+        latestDate = itemDate.clone();
+      }
+    }
+  });
+} else {
+  // New logic: Use today's date
+  latestDate = moment();
+}
                   
                     // If no valid dates found, we can't calculate anything
                     if (!latestDate) {
@@ -2816,7 +2839,7 @@ if (bucketBadgeHTML) {
                     enhancedProduct.posBadgeBackground = "gray";
                   }
               
-                  // Calculate visibility for the 7-day period
+// Calculate visibility for the 7-day period
 let visibilityBarValue = 0;
 if (enhancedProduct.historical_data && enhancedProduct.historical_data.length > 0 && latestDate) {
   // Use the same date range as position calculation
