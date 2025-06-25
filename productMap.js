@@ -396,11 +396,15 @@ window.loadRankingTabContent = async function(popup, bucketData) {
         }
       }
       
-      tableHTML += `
+tableHTML += `
         <tr class="${segmentClasses[segmentName]}">
           <td class="segment-name">${segmentName}</td>
           <td>${hasData ? segment.clicks.toLocaleString() : '-'}</td>
-          <td>${hasData && segment.clicks > 0 ? '
+          <td>${hasData && segment.clicks > 0 ? '$' + avgCPC : hasData ? '$0.00' : '-'}</td>
+          <td>${hasData ? '$' + segment.conversionValue.toFixed(2) : '-'}</td>
+          <td class="${roasClass}" style="font-weight: 700;">${roasDisplay}</td>
+        </tr>
+      `;
     }
     
     tableHTML += `
