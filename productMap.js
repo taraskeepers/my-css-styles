@@ -376,7 +376,7 @@ window.loadRankingTabContent = async function(popup, bucketData) {
       'Below 14': 'segment-below-14'
     };
     
-    // ALWAYS show all segments, even with zero data
+// ALWAYS show all segments, even with zero data
     for (const [segmentName, segment] of Object.entries(positionSegments)) {
       const hasData = segment.days > 0;
       const avgCPC = segment.clicks > 0 ? (segment.cost / segment.clicks).toFixed(2) : '0.00';
@@ -396,7 +396,7 @@ window.loadRankingTabContent = async function(popup, bucketData) {
         }
       }
       
-tableHTML += `
+      tableHTML += `
         <tr class="${segmentClasses[segmentName]}">
           <td class="segment-name">${segmentName}</td>
           <td>${hasData ? segment.clicks.toLocaleString() : '-'}</td>
