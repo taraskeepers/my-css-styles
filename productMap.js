@@ -421,23 +421,28 @@ async function loadCampaignsTabContent(popup, bucketData) {
     // Get product title for data loading
     const productTitle = bucketData['Product Title'];
     
-    // Open database and load performance data
-    const db = await openDatabase('googleSheets_productPerformance');
-    const tx = db.transaction(['performance'], 'readonly');
-    const store = tx.objectStore('performance');
-    const request = store.getAll();
-    
-    const data = await new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    // Read the performance data from CSV
+    let performanceData = [];
+    try {
+      const csvContent = await window.fs.readFile('googleSheets_productPerformance.csv', { encoding: 'utf8' });
+      const parsed = Papa.parse(csvContent, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        delimitersToGuess: [',', '\t', '|', ';']
+      });
+      performanceData = parsed.data;
+    } catch (error) {
+      console.error('Error reading performance CSV:', error);
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No campaign data available</div>';
+      return;
+    }
     
     // Filter data for this product
-    const productData = data.filter(row => row['Product Title'] === productTitle);
+    const productData = performanceData.filter(row => row['Product Title'] === productTitle);
     
     if (productData.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No campaign data available</div>';
-      db.close();
       return;
     }
     
@@ -557,7 +562,6 @@ async function loadCampaignsTabContent(popup, bucketData) {
       renderCampaignPieCharts(campaignData);
     }, 100);
     
-    db.close();
   } catch (error) {
     console.error('Error loading campaigns data:', error);
     container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading campaign data</div>';
@@ -648,23 +652,28 @@ async function loadRankingTabContent(popup, bucketData) {
     // Get product title
     const productTitle = bucketData['Product Title'];
     
-    // Open database and load performance data
-    const db = await openDatabase('googleSheets_productPerformance');
-    const tx = db.transaction(['performance'], 'readonly');
-    const store = tx.objectStore('performance');
-    const request = store.getAll();
-    
-    const data = await new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    // Read the performance data from CSV
+    let performanceData = [];
+    try {
+      const csvContent = await window.fs.readFile('googleSheets_productPerformance.csv', { encoding: 'utf8' });
+      const parsed = Papa.parse(csvContent, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        delimitersToGuess: [',', '\t', '|', ';']
+      });
+      performanceData = parsed.data;
+    } catch (error) {
+      console.error('Error reading performance CSV:', error);
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No ranking data available</div>';
+      return;
+    }
     
     // Filter data for this product
-    const productData = data.filter(row => row['Product Title'] === productTitle);
+    const productData = performanceData.filter(row => row['Product Title'] === productTitle);
     
     if (productData.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No ranking data available</div>';
-      db.close();
       return;
     }
     
@@ -787,7 +796,6 @@ async function loadRankingTabContent(popup, bucketData) {
     `;
     
     container.innerHTML = html;
-    db.close();
     
   } catch (error) {
     console.error('Error loading ranking data:', error);
