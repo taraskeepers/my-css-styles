@@ -1,4 +1,5 @@
-// Define these functions early so they're available when createMetricsPopup runs
+// Replace your existing window.getProductRecordsForPopup function with this debug version:
+
 window.getProductRecordsForPopup = function(productTitle, productUrl) {
   if (!window.allRows || !Array.isArray(window.allRows)) {
     console.error('[Ranking Map] window.allRows is not available or not an array');
@@ -11,27 +12,112 @@ window.getProductRecordsForPopup = function(productTitle, productUrl) {
   console.log('[Ranking Map] Searching for product:', { normalizedTitle, normalizedUrl });
   console.log('[Ranking Map] Total rows in window.allRows:', window.allRows.length);
   
+  // Debug: Let's check the structure of the first few rows
+  if (window.allRows.length > 0) {
+    console.log('[Ranking Map DEBUG] Sample row structure:', {
+      hasTopResults: !!window.allRows[0].top_results,
+      topResultsLength: window.allRows[0].top_results?.length,
+      sampleTopResult: window.allRows[0].top_results?.[0],
+      rowKeys: Object.keys(window.allRows[0])
+    });
+  }
+  
+  // Debug: Let's try different matching approaches
   const matchedRecords = window.allRows.filter(row => {
-    // Match by URL
+    // First, let's see if the product title exists directly in the row
+    if (row.title && row.title.toLowerCase().includes(normalizedTitle)) {
+      console.log('[Ranking Map DEBUG] Found match by row.title:', row.title);
+      return true;
+    }
+    
+    // Check if there's a product_title field
+    if (row.product_title && row.product_title.toLowerCase().includes(normalizedTitle)) {
+      console.log('[Ranking Map DEBUG] Found match by row.product_title:', row.product_title);
+      return true;
+    }
+    
+    // Original logic - match by URL in top_results
     if (normalizedUrl && row.top_results && Array.isArray(row.top_results)) {
       const hasUrlMatch = row.top_results.some(result => 
         result.link && result.link.replace(/^https?:\/\//, '').replace(/\/$/, '') === normalizedUrl
       );
-      if (hasUrlMatch) return true;
+      if (hasUrlMatch) {
+        console.log('[Ranking Map DEBUG] Found match by URL in top_results');
+        return true;
+      }
     }
     
-    // Match by title
+    // Original logic - match by title in top_results
     if (normalizedTitle && row.top_results && Array.isArray(row.top_results)) {
-      const hasTitleMatch = row.top_results.some(result => 
-        result.title && result.title.toLowerCase().includes(normalizedTitle)
-      );
+      const hasTitleMatch = row.top_results.some(result => {
+        if (result.title && result.title.toLowerCase().includes(normalizedTitle)) {
+          console.log('[Ranking Map DEBUG] Found match by title in top_results:', result.title);
+          return true;
+        }
+        return false;
+      });
       if (hasTitleMatch) return true;
+    }
+    
+    // New approach: Check if this row's product matches our title
+    // Sometimes the title might be in a different format
+    if (normalizedTitle) {
+      // Check for partial matches with key words
+      const titleWords = normalizedTitle.split(' ').filter(word => word.length > 3);
+      const significantWords = titleWords.slice(0, 5); // First 5 significant words
+      
+      // Check top_results for partial matches
+      if (row.top_results && Array.isArray(row.top_results)) {
+        for (const result of row.top_results) {
+          if (result.title) {
+            const resultTitleLower = result.title.toLowerCase();
+            const matchCount = significantWords.filter(word => 
+              resultTitleLower.includes(word)
+            ).length;
+            
+            if (matchCount >= 3) { // At least 3 words match
+              console.log('[Ranking Map DEBUG] Found partial match:', {
+                searchTitle: normalizedTitle,
+                foundTitle: result.title,
+                matchedWords: matchCount
+              });
+              return true;
+            }
+          }
+        }
+      }
     }
     
     return false;
   });
   
   console.log('[Ranking Map] Matched records:', matchedRecords.length);
+  
+  // If still no matches, let's search more broadly
+  if (matchedRecords.length === 0 && normalizedTitle) {
+    console.log('[Ranking Map DEBUG] No exact matches found. Searching for Under Armour products...');
+    
+    // Look for any Under Armour products to understand the data structure
+    const underArmourProducts = window.allRows.filter(row => {
+      if (row.top_results && Array.isArray(row.top_results)) {
+        return row.top_results.some(result => 
+          result.title && result.title.toLowerCase().includes('under armour')
+        );
+      }
+      return false;
+    }).slice(0, 3); // Get first 3 for debugging
+    
+    if (underArmourProducts.length > 0) {
+      console.log('[Ranking Map DEBUG] Found Under Armour products:', 
+        underArmourProducts.map(row => ({
+          device: row.device,
+          firstResultTitle: row.top_results[0]?.title,
+          historicalDataLength: row.historical_data?.length
+        }))
+      );
+    }
+  }
+  
   return matchedRecords;
 };
 
