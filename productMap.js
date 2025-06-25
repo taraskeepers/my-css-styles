@@ -76,6 +76,9 @@ function createMetricsPopup(bucketData) {
   const popup = document.createElement('div');
   popup.className = 'product-metrics-popup';
   
+  // Store bucket data for tab switching
+  popup.bucketData = bucketData;
+  
   // Helper functions
   const formatNumber = (value, decimals = 2) => {
     const num = parseFloat(value);
@@ -147,12 +150,26 @@ function createMetricsPopup(bucketData) {
   const fullTitle = bucketData['Product Title'] || 'Unknown Product';
   const sellers = bucketData['SELLERS'] || 'Standard';
   
-  popup.innerHTML = `
+  // Create header
+  const headerHTML = `
     <div class="popup-header">
       <div class="header-title">${fullTitle}</div>
       ${sellers !== 'Standard' && sellers !== 'N/A' ? `<div class="sellers-badge sellers-${sellers.toLowerCase().replace(/\s+/g, '-')}">${sellers}</div>` : ''}
     </div>
-    <div class="popup-content">
+  `;
+  
+  // Create tabs
+  const tabsHTML = `
+    <div class="popup-tabs">
+      <button class="popup-tab active" data-tab="performance">PERFORMANCE</button>
+      <button class="popup-tab" data-tab="campaigns">CAMPAIGNS</button>
+      <button class="popup-tab" data-tab="ranking">RANKING MAP</button>
+    </div>
+  `;
+  
+  // Create performance content (current content)
+  const performanceContent = `
+    <div class="popup-tab-content active" data-content="performance">
       <!-- ROAS Hero Section -->
       <div class="roas-hero-section">
         <div class="roas-metrics">
@@ -314,7 +331,468 @@ function createMetricsPopup(bucketData) {
     </div>
   `;
   
+  // Create campaigns content placeholder
+  const campaignsContent = `
+    <div class="popup-tab-content" data-content="campaigns">
+      <div class="campaigns-loading">Loading campaign data...</div>
+    </div>
+  `;
+  
+  // Create ranking content placeholder
+  const rankingContent = `
+    <div class="popup-tab-content" data-content="ranking">
+      <div class="ranking-loading">Loading ranking map...</div>
+    </div>
+  `;
+  
+  // Assemble popup
+  popup.innerHTML = headerHTML + tabsHTML + '<div class="popup-content">' + 
+    performanceContent + campaignsContent + rankingContent + '</div>';
+  
+  // Add tab switching functionality
+  setTimeout(() => {
+    const tabs = popup.querySelectorAll('.popup-tab');
+    const contents = popup.querySelectorAll('.popup-tab-content');
+    
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const targetTab = this.getAttribute('data-tab');
+        
+        // Update active states
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        
+        this.classList.add('active');
+        const targetContent = popup.querySelector(`[data-content="${targetTab}"]`);
+        if (targetContent) {
+          targetContent.classList.add('active');
+          
+          // Load content for campaigns and ranking tabs
+          if (targetTab === 'campaigns' && !targetContent.hasAttribute('data-loaded')) {
+            loadCampaignsTabContent(popup, bucketData);
+            targetContent.setAttribute('data-loaded', 'true');
+          } else if (targetTab === 'ranking' && !targetContent.hasAttribute('data-loaded')) {
+            loadRankingTabContent(popup, bucketData);
+            targetContent.setAttribute('data-loaded', 'true');
+          }
+        }
+      });
+    });
+  }, 0);
+
+    // Add hover handlers to the popup itself to keep it open
+  popup.addEventListener('mouseenter', function() {
+    // Keep popup visible
+    this.classList.add('visible');
+  });
+
+  popup.addEventListener('mouseleave', function() {
+    // Hide popup when mouse leaves
+    const self = this;
+    setTimeout(() => {
+      if (!self.matches(':hover')) {
+        self.classList.remove('visible');
+        setTimeout(() => {
+          // Clean up any charts before removing popup
+          if (self.campaignCharts) {
+            self.campaignCharts.forEach(chart => {
+              try { chart.destroy(); } catch(e) {}
+            });
+            self.campaignCharts = [];
+          }
+          self.remove();
+          if (currentPopup === self) {
+            currentPopup = null;
+          }
+        }, 200);
+      }
+    }, 100);
+  });
+  
   return popup;
+}
+
+// Function to load campaigns tab content
+async function loadCampaignsTabContent(popup, bucketData) {
+  const container = popup.querySelector('[data-content="campaigns"]');
+  if (!container) return;
+  
+  try {
+    // Get product title for data loading
+    const productTitle = bucketData['Product Title'];
+    
+    // Open database and load performance data
+    const db = await openDatabase('googleSheets_productPerformance');
+    const tx = db.transaction(['performance'], 'readonly');
+    const store = tx.objectStore('performance');
+    const request = store.getAll();
+    
+    const data = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Filter data for this product
+    const productData = data.filter(row => row['Product Title'] === productTitle);
+    
+    if (productData.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No campaign data available</div>';
+      db.close();
+      return;
+    }
+    
+    // Get date range (same as performance tab)
+    const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
+    const endDate = moment().startOf('day');
+    const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+    
+    // Filter by date range
+    const filteredData = productData.filter(row => {
+      if (!row.Date) return false;
+      const rowDate = moment(row.Date, 'YYYY-MM-DD');
+      return rowDate.isBetween(startDate, endDate, 'day', '[]');
+    });
+    
+    // Aggregate by campaign
+    const campaignData = {};
+    filteredData.forEach(row => {
+      const campaign = row['Campaign Name'] || 'Unknown';
+      if (!campaignData[campaign]) {
+        campaignData[campaign] = {
+          impressions: 0,
+          clicks: 0,
+          cost: 0,
+          conversions: 0,
+          conversionValue: 0
+        };
+      }
+      
+      campaignData[campaign].impressions += parseFloat(row.Impressions) || 0;
+      campaignData[campaign].clicks += parseFloat(row.Clicks) || 0;
+      campaignData[campaign].cost += parseFloat(row.Cost) || 0;
+      campaignData[campaign].conversions += parseFloat(row.Conversions) || 0;
+      campaignData[campaign].conversionValue += parseFloat(row['Conversion value']) || 0;
+    });
+    
+    // Calculate totals
+    const totals = {
+      cost: 0,
+      conversionValue: 0,
+      roas: 0
+    };
+    
+    Object.values(campaignData).forEach(data => {
+      totals.cost += data.cost;
+      totals.conversionValue += data.conversionValue;
+    });
+    
+    totals.roas = totals.cost > 0 ? totals.conversionValue / totals.cost : 0;
+    
+    // Create HTML content
+    let html = `
+      <div class="campaigns-content">
+        <!-- Pie Charts Section -->
+        <div class="campaigns-charts-section">
+          <div class="campaigns-charts-grid">
+            <div class="campaign-chart-item">
+              <div id="popup-cost-chart" class="campaign-chart-container"></div>
+              <div class="campaign-chart-label">Cost</div>
+              <div class="campaign-chart-value">$${totals.cost.toFixed(2)}</div>
+            </div>
+            <div class="campaign-chart-item">
+              <div id="popup-revenue-chart" class="campaign-chart-container"></div>
+              <div class="campaign-chart-label">Conv. Value</div>
+              <div class="campaign-chart-value">$${totals.conversionValue.toFixed(2)}</div>
+            </div>
+            <div class="campaign-chart-item">
+              <div id="popup-roas-chart" class="campaign-chart-container"></div>
+              <div class="campaign-chart-label">ROAS</div>
+              <div class="campaign-chart-value">${totals.roas.toFixed(2)}x</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Table Section -->
+        <div class="campaigns-table-section">
+          <table class="campaigns-metrics-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Cost</th>
+                <th>Conv. Value</th>
+                <th>ROAS</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    // Sort campaigns by cost (descending)
+    const sortedCampaigns = Object.entries(campaignData)
+      .sort((a, b) => b[1].cost - a[1].cost)
+      .slice(0, 10); // Top 10 campaigns
+    
+    sortedCampaigns.forEach(([campaign, data]) => {
+      const roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
+      html += `
+        <tr>
+          <td class="campaign-name">${campaign}</td>
+          <td>$${data.cost.toFixed(2)}</td>
+          <td>$${data.conversionValue.toFixed(2)}</td>
+          <td class="${roas >= 2.5 ? 'roas-good' : roas >= 1.5 ? 'roas-medium' : 'roas-poor'}">${roas.toFixed(2)}x</td>
+        </tr>
+      `;
+    });
+    
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Render pie charts
+    setTimeout(() => {
+      renderCampaignPieCharts(campaignData);
+    }, 100);
+    
+    db.close();
+  } catch (error) {
+    console.error('Error loading campaigns data:', error);
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading campaign data</div>';
+  }
+}
+
+// Function to render campaign pie charts
+function renderCampaignPieCharts(campaignData) {
+  const metrics = [
+    { id: 'popup-cost-chart', key: 'cost' },
+    { id: 'popup-revenue-chart', key: 'conversionValue' },
+    { id: 'popup-roas-chart', key: 'roas' }
+  ];
+  
+  // Define colors for campaigns
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'];
+  
+  metrics.forEach(metric => {
+    const container = document.getElementById(metric.id);
+    if (!container) return;
+    
+    const series = [];
+    const labels = [];
+    
+    // Sort campaigns and get top 5
+    const sortedCampaigns = Object.entries(campaignData)
+      .sort((a, b) => b[1][metric.key === 'roas' ? 'cost' : metric.key] - a[1][metric.key === 'roas' ? 'cost' : metric.key])
+      .slice(0, 5);
+    
+    sortedCampaigns.forEach(([campaign, data]) => {
+      if (metric.key === 'roas') {
+        const roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
+        series.push(roas);
+      } else {
+        series.push(data[metric.key]);
+      }
+      labels.push(campaign.length > 20 ? campaign.substring(0, 20) + '...' : campaign);
+    });
+    
+    // Create pie chart using ApexCharts
+    const options = {
+      series: series,
+      chart: {
+        type: 'pie',
+        height: 120,
+        width: 120
+      },
+      labels: labels,
+      colors: colors,
+      legend: {
+        show: false
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function(val) {
+          return val > 5 ? Math.round(val) + '%' : '';
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function(value) {
+            if (metric.key === 'roas') {
+              return value.toFixed(2) + 'x';
+            }
+            return '$' + value.toFixed(2);
+          }
+        }
+      }
+    };
+    
+    const chart = new ApexCharts(container, options);
+    chart.render();
+    
+    // Store reference for cleanup
+    if (!popup.campaignCharts) {
+      popup.campaignCharts = [];
+    }
+    popup.campaignCharts.push(chart);
+  });
+}
+
+// Function to load ranking tab content  
+async function loadRankingTabContent(popup, bucketData) {
+  const container = popup.querySelector('[data-content="ranking"]');
+  if (!container) return;
+  
+  try {
+    // Get product title
+    const productTitle = bucketData['Product Title'];
+    
+    // Open database and load performance data
+    const db = await openDatabase('googleSheets_productPerformance');
+    const tx = db.transaction(['performance'], 'readonly');
+    const store = tx.objectStore('performance');
+    const request = store.getAll();
+    
+    const data = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Filter data for this product
+    const productData = data.filter(row => row['Product Title'] === productTitle);
+    
+    if (productData.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No ranking data available</div>';
+      db.close();
+      return;
+    }
+    
+    // Get date range
+    const daysToShow = window.selectedDateRangeDays || parseInt(bucketData.dateRange) || 7;
+    const endDate = moment().startOf('day');
+    const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
+    
+    // Filter by date range
+    const filteredData = productData.filter(row => {
+      if (!row.Date || !row['Search Impression Share Rank']) return false;
+      const rowDate = moment(row.Date, 'YYYY-MM-DD');
+      return rowDate.isBetween(startDate, endDate, 'day', '[]');
+    });
+    
+    // Define segments
+    const segments = {
+      'Top 3': { range: [1, 3], data: null },
+      'Top 4-8': { range: [4, 8], data: null },
+      'Top 9-14': { range: [9, 14], data: null },
+      'Below 14': { range: [15, 40], data: null }
+    };
+    
+    // Initialize segment data
+    Object.keys(segments).forEach(segmentName => {
+      segments[segmentName].data = {
+        impressions: 0,
+        clicks: 0,
+        cost: 0,
+        conversions: 0,
+        conversionValue: 0,
+        count: 0
+      };
+    });
+    
+    // Aggregate data by position and then into segments
+    filteredData.forEach(row => {
+      const position = parseInt(row['Search Impression Share Rank']) || 0;
+      if (position < 1 || position > 40) return;
+      
+      // Find which segment this position belongs to
+      let targetSegment = null;
+      Object.entries(segments).forEach(([segmentName, segment]) => {
+        if (position >= segment.range[0] && position <= segment.range[1]) {
+          targetSegment = segment;
+        }
+      });
+      
+      if (targetSegment) {
+        targetSegment.data.impressions += parseFloat(row.Impressions) || 0;
+        targetSegment.data.clicks += parseFloat(row.Clicks) || 0;
+        targetSegment.data.cost += parseFloat(row.Cost) || 0;
+        targetSegment.data.conversions += parseFloat(row.Conversions) || 0;
+        targetSegment.data.conversionValue += parseFloat(row['Conversion value']) || 0;
+        targetSegment.data.count++;
+      }
+    });
+    
+    // Create HTML content
+    let html = `
+      <div class="ranking-content">
+        <table class="ranking-map-table">
+          <thead>
+            <tr>
+              <th>Segment</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Avg CPC</th>
+              <th>Cost</th>
+              <th>Conversions</th>
+              <th>Conv. Value</th>
+              <th>CTR</th>
+              <th>CVR</th>
+              <th>ROAS</th>
+              <th>AOV</th>
+              <th>CPA</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    // Create rows for each segment
+    Object.entries(segments).forEach(([segmentName, segment]) => {
+      const data = segment.data;
+      const hasData = data.count > 0;
+      
+      const ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0;
+      const cvr = data.clicks > 0 ? (data.conversions / data.clicks) * 100 : 0;
+      const roas = data.cost > 0 ? data.conversionValue / data.cost : 0;
+      const aov = data.conversions > 0 ? data.conversionValue / data.conversions : 0;
+      const cpa = data.conversions > 0 ? data.cost / data.conversions : 0;
+      const avgCpc = data.clicks > 0 ? data.cost / data.clicks : 0;
+      
+      const segmentClass = segmentName === 'Top 3' ? 'segment-top-3' : 
+                          segmentName === 'Top 4-8' ? 'segment-top-4-8' :
+                          segmentName === 'Top 9-14' ? 'segment-top-9-14' : 'segment-below-14';
+      
+      html += `
+        <tr class="${segmentClass}">
+          <td class="segment-name">${segmentName}</td>
+          <td>${hasData ? Math.round(data.impressions).toLocaleString() : '-'}</td>
+          <td>${hasData ? Math.round(data.clicks).toLocaleString() : '-'}</td>
+          <td>${hasData ? '$' + avgCpc.toFixed(2) : '-'}</td>
+          <td>${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
+          <td>${hasData ? data.conversions.toFixed(1) : '-'}</td>
+          <td>${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
+          <td>${hasData ? ctr.toFixed(2) + '%' : '-'}</td>
+          <td>${hasData ? cvr.toFixed(2) + '%' : '-'}</td>
+          <td class="${roas >= 2.5 ? 'roas-good' : roas >= 1.5 ? 'roas-medium' : 'roas-poor'}">${hasData ? roas.toFixed(2) + 'x' : '-'}</td>
+          <td>${hasData ? '$' + aov.toFixed(2) : '-'}</td>
+          <td>${hasData ? '$' + cpa.toFixed(2) : '-'}</td>
+        </tr>
+      `;
+    });
+    
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+    db.close();
+    
+  } catch (error) {
+    console.error('Error loading ranking data:', error);
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading ranking data</div>';
+  }
 }
 
 async function renderProductMapTable() {
@@ -2255,6 +2733,216 @@ popupStyle.textContent = `
   color: #6c757d; 
   background: #e9ecef;
 }
+/* Popup Tabs */
+.popup-tabs {
+  display: flex;
+  background: #f5f5f5;
+  border-bottom: 2px solid #e0e0e0;
+  position: sticky;
+  top: 48px; /* After header */
+  z-index: 9;
+}
+
+.popup-tab {
+  flex: 1;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+.popup-tab:hover {
+  background: #ebebeb;
+  color: #333;
+}
+
+.popup-tab.active {
+  background: white;
+  color: #0066cc;
+  border-bottom: 2px solid #0066cc;
+  margin-bottom: -2px;
+}
+
+.popup-tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.popup-tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Campaigns Tab Styles */
+.campaigns-content {
+  padding: 16px 0;
+}
+
+.campaigns-charts-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.campaigns-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.campaign-chart-item {
+  text-align: center;
+}
+
+.campaign-chart-container {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.campaign-chart-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+.campaign-chart-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+  margin-top: 4px;
+}
+
+.campaigns-table-section {
+  padding: 0 16px;
+}
+
+.campaigns-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.campaigns-metrics-table th {
+  background: #f8f9fa;
+  padding: 8px;
+  text-align: left;
+  font-weight: 700;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 10px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.campaigns-metrics-table td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.campaigns-metrics-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.campaign-name {
+  font-weight: 600;
+  color: #333;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ranking Tab Styles */
+.ranking-content {
+  padding: 16px;
+}
+
+.ranking-map-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.ranking-map-table th {
+  background: #f8f9fa;
+  padding: 8px 6px;
+  text-align: left;
+  font-weight: 700;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 9px;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+
+.ranking-map-table td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.ranking-map-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.segment-name {
+  font-weight: 700;
+  padding: 8px 12px !important;
+  border-radius: 4px;
+}
+
+.segment-top-3 .segment-name {
+  background-color: #d4f4d4;
+  color: #2e7d32;
+}
+
+.segment-top-4-8 .segment-name {
+  background-color: #ffffc2;
+  color: #f57c00;
+}
+
+.segment-top-9-14 .segment-name {
+  background-color: #ffe0bd;
+  color: #ef6c00;
+}
+
+.segment-below-14 .segment-name {
+  background-color: #ffcfcf;
+  color: #c62828;
+}
+
+/* Loading states */
+.campaigns-loading,
+.ranking-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Ensure ROAS coloring works in all tabs */
+.roas-good { color: #28a745 !important; }
+.roas-medium { color: #ffc107 !important; }
+.roas-poor { color: #dc3545 !important; }
 `;
 document.head.appendChild(popupStyle);
   
@@ -4159,14 +4847,20 @@ adCard.addEventListener('mouseleave', function(e) {
       currentPopup.classList.remove('visible');
       setTimeout(() => {
         if (currentPopup) {
+          // Clean up any charts before removing popup
+          if (currentPopup.campaignCharts) {
+            currentPopup.campaignCharts.forEach(chart => {
+              try { chart.destroy(); } catch(e) {}
+            });
+            currentPopup.campaignCharts = [];
+          }
           currentPopup.remove();
           currentPopup = null;
         }
       }, 200);
     }
   }, 100);
-});
-                
+});             
               });
 
 // Add this right after adding products to window.globalRows 
@@ -4416,12 +5110,19 @@ requestAnimationFrame(renderBatch);
 
     // Call the batch renderer
     renderPendingCharts();
-  // Global cleanup for popups when scrolling or clicking elsewhere
+// Global cleanup for popups when scrolling or clicking elsewhere
 document.addEventListener('scroll', function() {
   if (currentPopup) {
     currentPopup.classList.remove('visible');
     setTimeout(() => {
       if (currentPopup) {
+        // Clean up any charts before removing popup
+        if (currentPopup.campaignCharts) {
+          currentPopup.campaignCharts.forEach(chart => {
+            try { chart.destroy(); } catch(e) {}
+          });
+          currentPopup.campaignCharts = [];
+        }
         currentPopup.remove();
         currentPopup = null;
       }
