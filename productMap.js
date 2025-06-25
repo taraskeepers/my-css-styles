@@ -69,6 +69,280 @@ function getBucketBadgeHTML(bucketData, bucketType = 'PROFITABILITY_BUCKET') {
   return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue}">${displayText}</div>`;
 }
 
+// Function to create metrics popup
+function createMetricsPopup(bucketData) {
+  if (!bucketData) return null;
+  
+  const popup = document.createElement('div');
+  popup.className = 'product-metrics-popup';
+  
+  // Helper function to format numbers
+  const formatNumber = (value, decimals = 2) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return '-';
+    if (num === 0) return '0';
+    return num.toFixed(decimals);
+  };
+  
+  // Helper function to calculate trend
+  const getTrend = (current, previous) => {
+    const curr = parseFloat(current) || 0;
+    const prev = parseFloat(previous) || 0;
+    if (prev === 0) return { arrow: '', class: 'trend-neutral', value: '' };
+    
+    const change = ((curr - prev) / prev) * 100;
+    if (Math.abs(change) < 0.1) return { arrow: '±', class: 'trend-neutral', value: '0%' };
+    
+    return {
+      arrow: change > 0 ? '▲' : '▼',
+      class: change > 0 ? 'trend-up' : 'trend-down',
+      value: Math.abs(change).toFixed(1) + '%'
+    };
+  };
+  
+  // Helper function to get health score color
+  const getHealthScoreColor = (score) => {
+    const s = parseInt(score) || 0;
+    if (s >= 8) return '#4CAF50';
+    if (s >= 6) return '#ff9800';
+    if (s >= 4) return '#ff5722';
+    return '#f44336';
+  };
+  
+  // Parse bucket data
+  const parseBucket = (bucketStr) => {
+    try {
+      return JSON.parse(bucketStr);
+    } catch {
+      return { value: bucketStr || 'N/A', explanation: '' };
+    }
+  };
+  
+  const parseSuggestions = (suggestionsStr) => {
+    try {
+      return JSON.parse(suggestionsStr);
+    } catch {
+      return [];
+    }
+  };
+  
+  const profitability = parseBucket(bucketData['PROFITABILITY_BUCKET']);
+  const funnelStage = parseBucket(bucketData['FUNNEL_STAGE_BUCKET']);
+  const investment = parseBucket(bucketData['INVESTMENT_BUCKET']);
+  const customTier = parseBucket(bucketData['CUSTOM_TIER_BUCKET']);
+  const suggestions = parseSuggestions(bucketData['SUGGESTIONS_BUCKET']);
+  
+  popup.innerHTML = `
+    <div class="popup-header">
+      ${bucketData['Product Title']?.substring(0, 50)}${bucketData['Product Title']?.length > 50 ? '...' : ''}
+    </div>
+    <div class="popup-content">
+      <!-- Performance Overview -->
+      <div class="metric-section">
+        <div class="section-title">Performance Overview</div>
+        <div class="metrics-grid three-col">
+          <div class="metric-item">
+            <span class="metric-label">ROAS</span>
+            <span class="metric-value">
+              ${formatNumber(bucketData['ROAS'], 1)}x
+              <span class="metric-trend ${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).class}">
+                ${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).arrow}${getTrend(bucketData['ROAS'], bucketData['prev_ROAS']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Health Score</span>
+            <span class="metric-value">
+              <div class="health-score">
+                <span>${bucketData['HEALTH_SCORE'] || '-'}/10</span>
+                <div class="health-score-bar">
+                  <div class="health-score-fill" style="width: ${(bucketData['HEALTH_SCORE'] || 0) * 10}%; background-color: ${getHealthScoreColor(bucketData['HEALTH_SCORE'])}"></div>
+                </div>
+              </div>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Confidence</span>
+            <span class="metric-value">${bucketData['Confidence_Level'] || '-'}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Traffic & Cost -->
+      <div class="metric-section">
+        <div class="section-title">Traffic & Cost</div>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <span class="metric-label">Impressions</span>
+            <span class="metric-value">
+              ${parseInt(bucketData['Impressions'] || 0).toLocaleString()}
+              <span class="metric-trend ${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).class}">
+                ${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).arrow}${getTrend(bucketData['Impressions'], bucketData['prev_Impressions']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Clicks</span>
+            <span class="metric-value">
+              ${parseInt(bucketData['Clicks'] || 0).toLocaleString()}
+              <span class="metric-trend ${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).class}">
+                ${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).arrow}${getTrend(bucketData['Clicks'], bucketData['prev_Clicks']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">CTR</span>
+            <span class="metric-value">
+              ${formatNumber(bucketData['CTR'], 2)}%
+              <span class="metric-trend ${getTrend(bucketData['CTR'], bucketData['prev_CTR']).class}">
+                ${getTrend(bucketData['CTR'], bucketData['prev_CTR']).arrow}${getTrend(bucketData['CTR'], bucketData['prev_CTR']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Cost</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['Cost'], 0)}
+              <span class="metric-trend ${getTrend(bucketData['Cost'], bucketData['prev_Cost']).class}">
+                ${getTrend(bucketData['Cost'], bucketData['prev_Cost']).arrow}${getTrend(bucketData['Cost'], bucketData['prev_Cost']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Avg CPC</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['Avg CPC'], 2)}
+              <span class="metric-trend ${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).class}">
+                ${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).arrow}${getTrend(bucketData['Avg CPC'], bucketData['prev_Avg CPC']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">CPM</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['CPM'], 2)}
+              <span class="metric-trend ${getTrend(bucketData['CPM'], bucketData['prev_CPM']).class}">
+                ${getTrend(bucketData['CPM'], bucketData['prev_CPM']).arrow}${getTrend(bucketData['CPM'], bucketData['prev_CPM']).value}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Conversions -->
+      <div class="metric-section">
+        <div class="section-title">Conversions</div>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <span class="metric-label">Conversions</span>
+            <span class="metric-value">
+              ${parseInt(bucketData['Conversions'] || 0)}
+              <span class="metric-trend ${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).class}">
+                ${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).arrow}${getTrend(bucketData['Conversions'], bucketData['prev_Conversions']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">CVR</span>
+            <span class="metric-value">
+              ${formatNumber(bucketData['CVR'], 2)}%
+              <span class="metric-trend ${getTrend(bucketData['CVR'], bucketData['prev_CVR']).class}">
+                ${getTrend(bucketData['CVR'], bucketData['prev_CVR']).arrow}${getTrend(bucketData['CVR'], bucketData['prev_CVR']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Revenue</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['ConvValue'], 0)}
+              <span class="metric-trend ${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).class}">
+                ${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).arrow}${getTrend(bucketData['ConvValue'], bucketData['prev_ConvValue']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">AOV</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['AOV'], 0)}
+              <span class="metric-trend ${getTrend(bucketData['AOV'], bucketData['prev_AOV']).class}">
+                ${getTrend(bucketData['AOV'], bucketData['prev_AOV']).arrow}${getTrend(bucketData['AOV'], bucketData['prev_AOV']).value}
+              </span>
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">CPA</span>
+            <span class="metric-value">
+              $${formatNumber(bucketData['CPA'], 0)}
+              <span class="metric-trend ${getTrend(bucketData['CPA'], bucketData['prev_CPA']).class}">
+                ${getTrend(bucketData['CPA'], bucketData['prev_CPA']).arrow}${getTrend(bucketData['CPA'], bucketData['prev_CPA']).value}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Funnel Analysis -->
+      <div class="metric-section">
+        <div class="section-title">Funnel Analysis</div>
+        <div class="metrics-grid three-col">
+          <div class="metric-item">
+            <span class="metric-label">Cart Rate</span>
+            <span class="metric-value">${formatNumber(bucketData['Cart Rate'], 1)}%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Checkout Rate</span>
+            <span class="metric-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Purchase Rate</span>
+            <span class="metric-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- AI Classifications -->
+      <div class="metric-section">
+        <div class="section-title">AI Classifications</div>
+        <div class="bucket-item">
+          <div class="bucket-label">Profitability</div>
+          <div class="bucket-value">${profitability.value}</div>
+          ${profitability.explanation ? `<div class="bucket-explanation">${profitability.explanation}</div>` : ''}
+        </div>
+        <div class="bucket-item">
+          <div class="bucket-label">Investment Priority</div>
+          <div class="bucket-value">${investment.value}</div>
+          ${investment.explanation ? `<div class="bucket-explanation">${investment.explanation}</div>` : ''}
+        </div>
+        <div class="bucket-item">
+          <div class="bucket-label">Custom Tier</div>
+          <div class="bucket-value">${customTier.value}</div>
+          ${customTier.explanation ? `<div class="bucket-explanation">${customTier.explanation}</div>` : ''}
+        </div>
+        <div class="bucket-item">
+          <div class="bucket-label">Sellers Category</div>
+          <div class="bucket-value">${bucketData['SELLERS'] || 'N/A'}</div>
+        </div>
+      </div>
+      
+      ${suggestions.length > 0 ? `
+      <!-- Recommendations -->
+      <div class="metric-section">
+        <div class="section-title">AI Recommendations</div>
+        ${suggestions.map(suggestion => `
+          <div class="suggestion-item">
+            <div class="suggestion-priority priority-${suggestion.priority?.toLowerCase()}">${suggestion.priority} Priority</div>
+            <div class="suggestion-text">${suggestion.suggestion}</div>
+            ${suggestion.context ? `<div class="suggestion-context">${suggestion.context}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+    </div>
+  `;
+  
+  return popup;
+}
+
 async function renderProductMapTable() {
    const useLatestRecordAsEndDate = false;
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
@@ -1555,6 +1829,187 @@ if (bucketSelector) {
       `;
       document.head.appendChild(style);
     }
+
+  // Add popup styles
+const popupStyle = document.createElement("style");
+popupStyle.id = "product-metrics-popup-style";
+popupStyle.textContent = `
+  .product-metrics-popup {
+    position: absolute;
+    z-index: 10000;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    width: 420px;
+    max-height: 500px;
+    overflow-y: auto;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .product-metrics-popup.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  
+  .popup-header {
+    background: linear-gradient(135deg, #007aff, #0056b3);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px 12px 0 0;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .popup-content {
+    padding: 16px;
+  }
+  
+  .metric-section {
+    margin-bottom: 16px;
+  }
+  
+  .metric-section:last-child {
+    margin-bottom: 0;
+  }
+  
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .metrics-grid.three-col {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  
+  .metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+  }
+  
+  .metric-label {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .metric-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .metric-trend {
+    font-size: 10px;
+    margin-left: 4px;
+  }
+  
+  .trend-up { color: #4CAF50; }
+  .trend-down { color: #f44336; }
+  .trend-neutral { color: #999; }
+  
+  .bucket-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #007aff;
+  }
+  
+  .bucket-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 2px;
+  }
+  
+  .bucket-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+  }
+  
+  .bucket-explanation {
+    font-size: 10px;
+    color: #777;
+    line-height: 1.3;
+  }
+  
+  .suggestion-item {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+  }
+  
+  .suggestion-priority {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  
+  .priority-critical { color: #d63031; }
+  .priority-high { color: #e17055; }
+  .priority-medium { color: #fdcb6e; }
+  .priority-low { color: #6c5ce7; }
+  
+  .suggestion-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+  }
+  
+  .suggestion-context {
+    font-size: 10px;
+    color: #666;
+    line-height: 1.3;
+  }
+  
+  .health-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .health-score-bar {
+    width: 60px;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .health-score-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+`;
+document.head.appendChild(popupStyle);
+  
     // Add this at the beginning of renderProductMapTable after checking for existing product-map-table-style
 if (!document.getElementById("centered-panel-spinner-style")) {
   const spinnerStyle = document.createElement("style");
@@ -3352,6 +3807,90 @@ if (dateRange && dateRange.end) {
                   
                   return false;
                 }, true);
+
+// Add hover event listeners for metrics popup
+let hoverTimeout;
+let currentPopup = null;
+
+adCard.addEventListener('mouseenter', function(e) {
+  // Clear any existing timeout
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout);
+  }
+  
+  // Add delay before showing popup
+  hoverTimeout = setTimeout(() => {
+    // Remove any existing popup
+    if (currentPopup) {
+      currentPopup.remove();
+      currentPopup = null;
+    }
+    
+    // Get bucket data for this product
+    if (googleAdsEnabled && bucketDataMap.size > 0) {
+      const row = adCard.closest('tr');
+      const deviceCell = row.querySelector('.device-icon');
+      const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
+      
+      const lookupKey = `${product.title.toLowerCase()}|${deviceValue}`;
+      const productBucketData = bucketDataMap.get(lookupKey);
+      
+      if (productBucketData) {
+        currentPopup = createMetricsPopup(productBucketData);
+        if (currentPopup) {
+          document.body.appendChild(currentPopup);
+          
+          // Position popup near the mouse cursor
+          const rect = adCard.getBoundingClientRect();
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+          
+          let left = rect.right + scrollLeft + 10;
+          let top = rect.top + scrollTop;
+          
+          // Adjust if popup would go off screen
+          if (left + 420 > window.innerWidth + scrollLeft) {
+            left = rect.left + scrollLeft - 430;
+          }
+          
+          if (top + 500 > window.innerHeight + scrollTop) {
+            top = window.innerHeight + scrollTop - 510;
+          }
+          
+          currentPopup.style.left = left + 'px';
+          currentPopup.style.top = top + 'px';
+          
+          // Show popup with animation
+          setTimeout(() => {
+            currentPopup.classList.add('visible');
+          }, 10);
+        }
+      }
+    }
+  }, 300); // 300ms delay
+});
+
+adCard.addEventListener('mouseleave', function(e) {
+  // Clear timeout
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout);
+    hoverTimeout = null;
+  }
+  
+  // Hide popup after a short delay
+  setTimeout(() => {
+    if (currentPopup && !currentPopup.matches(':hover') && !adCard.matches(':hover')) {
+      currentPopup.classList.remove('visible');
+      setTimeout(() => {
+        if (currentPopup) {
+          currentPopup.remove();
+          currentPopup = null;
+        }
+      }, 200);
+    }
+  }, 100);
+});
+                
               });
 
 // Add this right after adding products to window.globalRows 
@@ -3601,6 +4140,23 @@ requestAnimationFrame(renderBatch);
 
     // Call the batch renderer
     renderPendingCharts();
+
+    // ADD GLOBAL POPUP CLEANUP HERE - RIGHT BEFORE THE FUNCTION CLOSES
+    // Global cleanup for popups when scrolling or clicking elsewhere
+    document.addEventListener('scroll', function() {
+      if (currentPopup) {
+        currentPopup.classList.remove('visible');
+        setTimeout(() => {
+          if (currentPopup) {
+            currentPopup.remove();
+            currentPopup = null;
+          }
+        }, 200);
+      }
+    }, { passive: true });
+    
+  }
+  
   }
 
 // Function to render average position chart using Chart.js instead of Recharts
