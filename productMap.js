@@ -548,7 +548,7 @@ function getMetricsPanelHTML(bucketData) {
   
   const formatNumber = (value, decimals = 0) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return '-';
+    if (isNaN(num)) return '0';
     if (num === 0) return '0';
     if (num >= 1000 && decimals === 0) {
       return (num / 1000).toFixed(1) + 'k';
@@ -563,13 +563,6 @@ function getMetricsPanelHTML(bucketData) {
       return '$' + (num / 1000).toFixed(1) + 'k';
     }
     return '$' + num.toFixed(0);
-  };
-  
-  const formatCTR = (clicks, impressions) => {
-    const c = parseFloat(clicks) || 0;
-    const i = parseFloat(impressions) || 0;
-    if (i === 0) return '0%';
-    return ((c / i) * 100).toFixed(1) + '%';
   };
   
   const getTrend = (current, previous) => {
@@ -590,40 +583,22 @@ function getMetricsPanelHTML(bucketData) {
   const clicksTrend = getTrend(bucketData['Clicks'], bucketData['prev_Clicks']);
   const roasTrend = getTrend(bucketData['ROAS'], bucketData['prev_ROAS']);
   const costTrend = getTrend(bucketData['Cost'], bucketData['prev_Cost']);
-  const convTrend = getTrend(bucketData['Conversions'], bucketData['prev_Conversions']);
-  const imprTrend = getTrend(bucketData['Impressions'], bucketData['prev_Impressions']);
   
   return `
-    <div class="product-metrics-panel">
-      <div class="metric-item-small">
-        <div class="metric-label-small">Impr</div>
-        <div class="metric-value-small">${formatNumber(bucketData['Impressions'])}</div>
-        <div class="metric-trend-small ${imprTrend.class}">${imprTrend.arrow}${imprTrend.value}</div>
-      </div>
-      <div class="metric-item-small">
-        <div class="metric-label-small">Clicks</div>
-        <div class="metric-value-small">${formatNumber(bucketData['Clicks'])}</div>
-        <div class="metric-trend-small ${clicksTrend.class}">${clicksTrend.arrow}${clicksTrend.value}</div>
-      </div>
-      <div class="metric-item-small">
-        <div class="metric-label-small">CTR</div>
-        <div class="metric-value-small">${formatCTR(bucketData['Clicks'], bucketData['Impressions'])}</div>
-      </div>
-      <div class="metric-item-small">
-        <div class="metric-label-small">Cost</div>
-        <div class="metric-value-small">${formatCurrency(bucketData['Cost'])}</div>
-        <div class="metric-trend-small ${costTrend.class}">${costTrend.arrow}${costTrend.value}</div>
-      </div>
-      <div class="metric-item-small">
-        <div class="metric-label-small">ROAS</div>
-        <div class="metric-value-small">${formatNumber(bucketData['ROAS'], 1)}x</div>
-        <div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>
-      </div>
-      <div class="metric-item-small">
-        <div class="metric-label-small">Conv</div>
-        <div class="metric-value-small">${formatNumber(bucketData['Conversions'])}</div>
-        <div class="metric-trend-small ${convTrend.class}">${convTrend.arrow}${convTrend.value}</div>
-      </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">Clicks</div>
+      <div class="metric-value-small">${formatNumber(bucketData['Clicks'])}</div>
+      ${clicksTrend.value ? `<div class="metric-trend-small ${clicksTrend.class}">${clicksTrend.arrow}${clicksTrend.value}</div>` : ''}
+    </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">Cost</div>
+      <div class="metric-value-small">${formatCurrency(bucketData['Cost'])}</div>
+      ${costTrend.value ? `<div class="metric-trend-small ${costTrend.class}">${costTrend.arrow}${costTrend.value}</div>` : ''}
+    </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">ROAS</div>
+      <div class="metric-value-small">${formatNumber(bucketData['ROAS'], 1)}x</div>
+      ${roasTrend.value ? `<div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>` : ''}
     </div>
   `;
 }
@@ -2062,8 +2037,10 @@ metricsPanels.forEach(panel => {
   const wrapper = panel.closest('.card-wrapper');
   if (wrapper && wrapper.getAttribute('data-has-metrics') === 'true') {
     if (isChecked) {
+      wrapper.classList.add('with-metrics');
       panel.classList.add('visible');
     } else {
+      wrapper.classList.remove('with-metrics');
       panel.classList.remove('visible');
     }
   }
@@ -2870,70 +2847,87 @@ metricsPanels.forEach(panel => {
   width: 150px;
   flex-shrink: 0;
   margin-right: 6px;
+  position: relative;
 }
 
 .card-wrapper.with-metrics {
-  width: 210px;
+  width: 200px;
 }
 
 .product-metrics-panel {
   width: 0;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
   border-left: none;
   border-radius: 0 8px 8px 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  justify-content: center;
   padding: 0;
-  transition: width 0.3s ease, padding 0.3s ease;
+  transition: width 0.2s ease, opacity 0.2s ease;
   opacity: 0;
-  min-height: 280px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .product-metrics-panel.visible {
-  width: 60px;
-  padding: 12px 4px;
-  border-left: 1px solid #dee2e6;
+  width: 50px;
+  padding: 8px 0;
   opacity: 1;
 }
 
 .metric-item-small {
   text-align: center;
-  margin: 8px 0;
-  padding: 4px 2px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 6px 0;
+  position: relative;
+}
+
+.metric-item-small:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background-color: #f0f0f0;
 }
 
 .metric-label-small {
-  font-size: 10px;
-  color: #555;
+  font-size: 9px;
+  color: #666;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.2px;
-  line-height: 1.1;
-  margin-bottom: 3px;
-}
-
-.metric-value-small {
-  font-size: 14px;
-  font-weight: 800;
-  color: #333;
-  line-height: 1.1;
+  letter-spacing: 0.3px;
+  line-height: 1;
   margin-bottom: 2px;
 }
 
-.metric-trend-small {
-  font-size: 9px;
+.metric-value-small {
+  font-size: 13px;
   font-weight: 700;
+  color: #111;
+  line-height: 1;
+}
+
+.metric-trend-small {
+  font-size: 8px;
+  font-weight: 600;
   line-height: 1;
   margin-top: 2px;
-  padding: 1px 3px;
-  border-radius: 3px;
+  color: #666;
+}
+
+.metric-trend-small.trend-up {
+  color: #4CAF50;
+}
+
+.metric-trend-small.trend-down {
+  color: #F44336;
+}
+
+.metric-trend-small.trend-neutral {
+  color: #999;
 }
 
 .roas-good { background-color: #4CAF50; }
@@ -4795,30 +4789,42 @@ if (roasBadgeHTML) {
   }
 }
 
-// Create wrapper div that will contain both ad card and metrics panel
-const cardWrapper = document.createElement('div');
-cardWrapper.className = 'card-wrapper';
+// Check if we have actual metrics data
+const hasMetricsData = productBucketData && (
+  (productBucketData['Clicks'] && productBucketData['Clicks'] > 0) ||
+  (productBucketData['Cost'] && productBucketData['Cost'] > 0) ||
+  (productBucketData['Conversions'] && productBucketData['Conversions'] > 0) ||
+  (productBucketData['Impressions'] && productBucketData['Impressions'] > 0)
+);
 
-// Set explicit width for ad card
-adCard.style.width = "150px";
-adCard.style.flexShrink = "0";
-
-// Add the ad card to wrapper
-cardWrapper.appendChild(adCard);
-
-// Create and add metrics panel only if there's data
-if (metricsPanelHTML) {
+// Only create wrapper if we have metrics data and toggle is on
+if (hasMetricsData) {
+  // Create wrapper div that will contain both ad card and metrics panel
+  const cardWrapper = document.createElement('div');
+  cardWrapper.className = 'card-wrapper';
+  cardWrapper.setAttribute('data-has-metrics', 'true');
+  
+  // Set explicit width for ad card
+  adCard.style.width = "150px";
+  adCard.style.flexShrink = "0";
+  
+  // Add the ad card to wrapper
+  cardWrapper.appendChild(adCard);
+  
+  // Create and add metrics panel
   const metricsPanel = document.createElement('div');
   metricsPanel.className = 'product-metrics-panel';
   metricsPanel.innerHTML = metricsPanelHTML;
   cardWrapper.appendChild(metricsPanel);
-  cardWrapper.setAttribute('data-has-metrics', 'true');
+  
+  // Add wrapper to the products cell
+  productCellDiv.appendChild(cardWrapper);
 } else {
-  cardWrapper.setAttribute('data-has-metrics', 'false');
+  // No metrics data, just add the card directly
+  adCard.style.width = "150px";
+  adCard.style.flexShrink = "0";
+  productCellDiv.appendChild(adCard);
 }
-
-// Add wrapper to the products cell
-productCellDiv.appendChild(cardWrapper);
                 } catch (error) {
                   console.error("[renderProductMapTable] Error rendering product:", error);
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
