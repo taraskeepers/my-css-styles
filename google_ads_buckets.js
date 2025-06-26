@@ -497,14 +497,17 @@ console.log(`[loadAndRenderROASBuckets] Loading data for ${days} days from ${tab
     const bucketType = window.selectedBucketType || 'ROAS_Bucket';
     
 // Process historic data for area charts (hide for Suggestions)
-    if (chartsContainer) {
-      if (bucketType === 'SUGGESTIONS_BUCKET') {
-        chartsContainer.style.display = 'none';
-      } else {
-        chartsContainer.style.display = '';
-        await renderROASHistoricCharts(chartsContainer, filteredData);
-      }
-    }
+if (chartsContainer) {
+  // Check if we're in Buckets view - if so, keep it hidden
+  const bucketsViewActive = document.getElementById('viewBucketsGoogleAds')?.classList.contains('active');
+  
+  if (bucketType === 'SUGGESTIONS_BUCKET' || bucketsViewActive) {
+    chartsContainer.style.display = 'none';
+  } else {
+    chartsContainer.style.display = '';
+    await renderROASHistoricCharts(chartsContainer, filteredData);
+  }
+}
     
     // Render metrics table
     if (metricsTableContainer) {
