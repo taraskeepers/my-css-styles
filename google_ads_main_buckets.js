@@ -525,8 +525,11 @@ function showBucketsOverview() {
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
   if (roasCharts) roasCharts.style.display = 'none';
-  if (roasMetricsTable) roasMetricsTable.style.display = 'block';
-  if (roasChannels) roasChannels.style.display = 'block';
+  if (roasMetricsTable) {
+    roasMetricsTable.style.display = 'block';
+    roasMetricsTable.style.marginTop = '100px';  // Add margin-top
+  }
+  if (roasChannels) roasChannels.style.display = 'none';  // CHANGED from 'block' to 'none'
   if (buckets_products) buckets_products.style.display = 'block';
   if (filterContainer) {
     // Only change display property, preserve other styles
