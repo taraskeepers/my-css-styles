@@ -493,7 +493,7 @@ function normalizeBucketValue(bucketValue) {
 
 // Function to get bucket badge HTML
 function getBucketBadgeHTML(bucketData, bucketType = 'PROFITABILITY_BUCKET') {
-  if (!bucketData) return '';
+  if (!bucketData) return { badgeHTML: '', containerClass: '' };
   
   let bucketValue = '';
   try {
@@ -505,12 +505,25 @@ function getBucketBadgeHTML(bucketData, bucketType = 'PROFITABILITY_BUCKET') {
     bucketValue = bucketData[bucketType] || '';
   }
   
-  if (!bucketValue || bucketValue === '') return '';
+  if (!bucketValue || bucketValue === '') return { badgeHTML: '', containerClass: '' };
   
   const normalizedClass = normalizeBucketValue(bucketValue);
   const displayText = bucketValue.substring(0, 20) + (bucketValue.length > 20 ? '...' : '');
   
-  return `<div class="bucket-badge ${normalizedClass}" title="${bucketValue}">${displayText}</div>`;
+  // For SELLERS bucket type and STANDARD value, don't show badge
+  if (bucketType === 'SELLERS' && bucketValue.toLowerCase() === 'standard') {
+    return { badgeHTML: '', containerClass: '' };
+  }
+  
+  const badgeHTML = `<div class="bucket-badge ${normalizedClass}" title="${bucketValue}">${displayText}</div>`;
+  
+  // Generate container class for Sellers bucket
+  let containerClass = '';
+  if (bucketType === 'SELLERS') {
+    containerClass = `sellers-${normalizedClass}`;
+  }
+  
+  return { badgeHTML, containerClass };
 }
 
 // Function to get ROAS badge HTML
@@ -1447,12 +1460,12 @@ container.innerHTML = `
     <span class="metrics-slider"></span>
   </label>
 </div>
-    <select id="bucketTypeSelector" style="position: absolute; top: 10px; right: 320px; z-index: 100; padding: 6px 12px; border-radius: 4px; border: 1px solid #ddd;">
+   <select id="bucketTypeSelector" class="bucket-type-selector">
       <option value="PROFITABILITY_BUCKET">Profitability</option>
       <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
       <option value="INVESTMENT_BUCKET">Investment</option>
       <option value="CUSTOM_TIER_BUCKET">Custom Tier</option>
-      <option value="SELLERS">Sellers</option>
+      <option value="SELLERS" selected>Sellers</option>
     </select>
     <button id="fullscreenToggle" class="fullscreen-toggle">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2062,14 +2075,33 @@ const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
         
         const productBucketData = bucketDataMap.get(lookupKey);
         
-        if (productBucketData) {
-          const newBadgeHTML = getBucketBadgeHTML(productBucketData, selectedBucketType);
-          if (newBadgeHTML) {
-            badge.outerHTML = newBadgeHTML;
-          } else {
-            badge.remove();
-          }
-        }
+if (productBucketData) {
+  const bucketResult = getBucketBadgeHTML(productBucketData, selectedBucketType);
+  
+  // Remove existing bucket badge
+  const existingBadge = adCard.querySelector('.bucket-badge');
+  if (existingBadge) {
+    existingBadge.remove();
+  }
+  
+  // Remove existing sellers container classes
+  adCard.classList.remove('sellers-revenue-stars', 'sellers-best-sellers', 'sellers-volume-leaders', 'sellers-standard');
+  
+  // Add new badge if exists
+  if (bucketResult.badgeHTML) {
+    adCard.insertAdjacentHTML('afterbegin', bucketResult.badgeHTML);
+    if (!adCard.classList.contains('has-bucket')) {
+      adCard.classList.add('has-bucket');
+    }
+  } else {
+    adCard.classList.remove('has-bucket');
+  }
+  
+  // Add new container class for sellers bucket
+  if (bucketResult.containerClass) {
+    adCard.classList.add(bucketResult.containerClass);
+  }
+}
       }
     });
   });
@@ -2854,11 +2886,78 @@ metricsPanels.forEach(panel => {
 .bucket-badge.test-learn { background-color: #00838F; }
 .bucket-badge.monitor-closely { background-color: #37474F; }
 
-/* SELLERS colors */
-.bucket-badge.revenue-stars { background-color: #FFD700; color: #333; }
-.bucket-badge.best-sellers { background-color: #C0C0C0; color: #333; }
-.bucket-badge.volume-leaders { background-color: #CD7F32; color: white; }
-.bucket-badge.standard { background-color: #757575; }
+/* SELLERS colors - Enhanced */
+.bucket-badge.revenue-stars { 
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+  color: #333; 
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.4);
+  border: 1px solid #DAA520;
+}
+
+.bucket-badge.revenue-stars::before {
+  content: "⭐";
+  margin-right: 4px;
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.bucket-badge.best-sellers { 
+  background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 50%, #C0C0C0 100%);
+  color: #333; 
+  box-shadow: 0 2px 6px rgba(192, 192, 192, 0.4);
+  border: 1px solid #A0A0A0;
+}
+
+.bucket-badge.volume-leaders { 
+  background: linear-gradient(135deg, #CD7F32 0%, #B8860B 50%, #CD7F32 100%);
+  color: white; 
+  box-shadow: 0 2px 6px rgba(205, 127, 50, 0.4);
+  border: 1px solid #A0522D;
+}
+
+/* Hide standard bucket badge completely when SELLERS is selected */
+.bucket-badge.standard { 
+  display: none !important;
+}
+
+/* Container contour styling for Sellers bucket */
+.product-cell .ad-details.sellers-revenue-stars {
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3), 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.product-cell .ad-details.sellers-revenue-stars::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700);
+  border-radius: 10px;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+.product-cell .ad-details.sellers-best-sellers {
+  border: 2px solid #C0C0C0;
+  box-shadow: 0 0 8px rgba(192, 192, 192, 0.3), 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.product-cell .ad-details.sellers-best-sellers::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #C0C0C0, #A8A8A8, #C0C0C0);
+  border-radius: 10px;
+  z-index: -1;
+  opacity: 0.3;
+}
 
 /* Adjust existing badges positioning when bucket-badge is present */
 .product-cell .ad-details.has-bucket .pos-badge {
@@ -3275,6 +3374,36 @@ input:checked + .metrics-slider:before {
   letter-spacing: 0.2px;
   line-height: 1;
   opacity: 0.8;
+}
+/* Bucket Type Selector Styling */
+.bucket-type-selector {
+  position: absolute;
+  top: 10px;
+  right: 320px;
+  z-index: 100;
+  padding: 8px 16px;
+  border: 2px solid #007aff;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  min-width: 140px;
+}
+
+.bucket-type-selector:hover {
+  border-color: #0056b3;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.bucket-type-selector:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
       `;
       document.head.appendChild(style);
@@ -4996,8 +5125,10 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
   productBucketData = bucketDataMap.get(lookupKey); // Remove const, just assign
   
   if (productBucketData) {
-    // Get PROFITABILITY_BUCKET value by default
-    bucketBadgeHTML = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
+// Get PROFITABILITY_BUCKET value by default
+const bucketResult = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
+bucketBadgeHTML = bucketResult.badgeHTML;
+const containerClass = bucketResult.containerClass;
     
     // Get ROAS badge
     roasBadgeHTML = getROASBadgeHTML(productBucketData);
@@ -5043,6 +5174,11 @@ enhancedProduct.hasBucketClass = hasBucketClass;
 // Add has-bucket class if applicable
 if (hasBucketClass) {
   adCard.classList.add(hasBucketClass);
+}
+
+// Add container class for sellers bucket styling
+if (containerClass) {
+  adCard.classList.add(containerClass);
 }
 
 // Insert bucket badge as the first child of ad-details
@@ -5312,8 +5448,10 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
   productBucketData = bucketDataMap.get(lookupKey);
   
   if (productBucketData) {
-    // Get PROFITABILITY_BUCKET value by default
-    bucketBadgeHTML = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
+// Get SELLERS value by default (since it's now the default)
+const bucketResult = getBucketBadgeHTML(productBucketData, 'SELLERS');
+bucketBadgeHTML = bucketResult.badgeHTML;
+const containerClass = bucketResult.containerClass;
     
     // Get ROAS badge
     roasBadgeHTML = getROASBadgeHTML(productBucketData);
@@ -5345,6 +5483,11 @@ adCard.classList.remove('my-company');
 // Add has-bucket class if applicable
 if (hasBucketClass) {
   adCard.classList.add(hasBucketClass);
+}
+
+// Add container class for sellers bucket styling
+if (containerClass) {
+  adCard.classList.add(containerClass);
 }
 
 // Insert bucket badge as the first child of ad-details
