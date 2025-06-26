@@ -6048,7 +6048,6 @@ setTimeout(() => {
   if (buckets_products) buckets_products.style.display = 'block';
   
   // Show bucket date range for Buckets & Funnels
-  const bucketDateRange = document.getElementById('bucketDateRange');
   if (bucketDateRange) bucketDateRange.style.display = 'block';
   
   // Hide toggle controls
