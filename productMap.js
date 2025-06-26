@@ -2022,21 +2022,23 @@ if (metricsToggle) {
     const isChecked = this.checked;
     console.log(`[ProductMap] Metrics toggle: ${isChecked ? 'ON' : 'OFF'}`);
     
-    // Find all product cards
-    const productCards = document.querySelectorAll('.ad-details, .ad-details-with-metrics');
+    // Find all card wrappers and metrics panels
+    const cardWrappers = document.querySelectorAll('.card-wrapper');
+    const metricsPanels = document.querySelectorAll('.product-metrics-panel');
     
-    productCards.forEach(card => {
-      const metricsPanel = card.querySelector('.product-metrics-panel');
-      if (metricsPanel) {
-        if (isChecked) {
-          // Show metrics panel
-          card.classList.add('ad-details-with-metrics');
-          metricsPanel.classList.add('visible');
-        } else {
-          // Hide metrics panel
-          card.classList.remove('ad-details-with-metrics');
-          metricsPanel.classList.remove('visible');
-        }
+    cardWrappers.forEach(wrapper => {
+      if (isChecked) {
+        wrapper.classList.add('with-metrics');
+      } else {
+        wrapper.classList.remove('with-metrics');
+      }
+    });
+    
+    metricsPanels.forEach(panel => {
+      if (isChecked) {
+        panel.classList.add('visible');
+      } else {
+        panel.classList.remove('visible');
       }
     });
   });
@@ -2817,7 +2819,7 @@ if (metricsToggle) {
 }
 /* ROAS badge for bottom-left corner */
 .roas-badge {
-  position: absolute;
+  position: absolute !important;
   bottom: 5px;
   left: 5px;
   width: 40px;
@@ -2826,13 +2828,48 @@ if (metricsToggle) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 900;
-  color: white;
+  color: white !important;
   z-index: 12;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   line-height: 1;
+}
+
+.card-wrapper {
+  display: flex;
+  align-items: stretch;
+  width: 150px;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.card-wrapper.with-metrics {
+  width: 200px;
+}
+
+.product-metrics-panel {
+  width: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 0;
+  font-size: 10px;
+  transition: width 0.3s ease, padding 0.3s ease;
+  opacity: 0;
+}
+
+.product-metrics-panel.visible {
+  width: 50px;
+  padding: 4px 2px;
+  border-left: 1px solid #dee2e6;
+  opacity: 1;
 }
 
 .roas-good { background-color: #4CAF50; }
@@ -2900,31 +2937,6 @@ input:checked + .metrics-slider:before {
   font-weight: 500;
   color: #333;
   white-space: nowrap;
-}
-
-/* Product metrics panel */
-.product-metrics-panel {
-  width: 0;
-  height: 100%;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  padding: 0;
-  font-size: 10px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  opacity: 0;
-}
-
-.product-metrics-panel.visible {
-  width: 50px;
-  padding: 4px 2px;
-  opacity: 1;
-  border-left: 1px solid #dee2e6;
 }
 
 .metric-item-small {
@@ -4739,42 +4751,43 @@ enhancedProduct.hasBucketClass = hasBucketClass;
                   const adCard = tempDiv.firstElementChild;
                   adCard.classList.remove('my-company');
 
-                  // Add has-bucket class if applicable
+// Add has-bucket class if applicable
 if (hasBucketClass) {
   adCard.classList.add(hasBucketClass);
 }
 
-// Wrap the ad content for metrics panel support
-const adContent = document.createElement('div');
-adContent.className = 'ad-content';
-adContent.innerHTML = adCard.innerHTML;
-adCard.innerHTML = '';
-adCard.appendChild(adContent);
-
-// Insert bucket badge as the first child of ad-content
+// Insert bucket badge as the first child of ad-details
 if (bucketBadgeHTML) {
-  adContent.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
+  adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
 }
 
 // Insert ROAS badge over the image
 if (roasBadgeHTML) {
-  const thumbnailContainer = adContent.querySelector('.ad-thumbnail-container');
+  const thumbnailContainer = adCard.querySelector('.ad-thumbnail-container');
   if (thumbnailContainer) {
     thumbnailContainer.insertAdjacentHTML('beforeend', roasBadgeHTML);
   }
 }
 
-// Add metrics panel
-if (metricsPanelHTML) {
-  adCard.insertAdjacentHTML('beforeend', metricsPanelHTML);
-}
-                  
-                  // Set explicit width as a safeguard
-                  adCard.style.width = "150px";
-                  adCard.style.flexShrink = "0";
-                  
-                  // Add to the products cell
-                  productCellDiv.appendChild(adCard);
+// Create wrapper div that will contain both ad card and metrics panel
+const cardWrapper = document.createElement('div');
+cardWrapper.className = 'card-wrapper';
+
+// Set explicit width for ad card
+adCard.style.width = "150px";
+adCard.style.flexShrink = "0";
+
+// Add the ad card to wrapper
+cardWrapper.appendChild(adCard);
+
+// Create and add metrics panel
+const metricsPanel = document.createElement('div');
+metricsPanel.className = 'product-metrics-panel';
+metricsPanel.innerHTML = metricsPanelHTML || '';
+cardWrapper.appendChild(metricsPanel);
+
+// Add wrapper to the products cell
+productCellDiv.appendChild(cardWrapper);
                 } catch (error) {
                   console.error("[renderProductMapTable] Error rendering product:", error);
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
