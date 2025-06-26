@@ -5978,6 +5978,9 @@ if (buckets_products) {
 // Add click handler for collapsed nav panel
 document.addEventListener('click', function(e) {
   const navPanel = document.getElementById('googleAdsNavPanel');
+  // Skip if we're in initial setup mode
+  if (window._googleAdsInitializing) return;
+  
   if (navPanel && navPanel.classList.contains('collapsed') && navPanel.contains(e.target)) {
     // Expand the panel and switch to Overview
     navPanel.classList.remove('collapsed');
@@ -8056,6 +8059,9 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 setTimeout(() => {
   console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
   
+  // Set initialization flag to prevent nav panel expansion
+  window._googleAdsInitializing = true;
+  
   // FIRST: Collapse the nav panel before any selections
   const navPanel = document.getElementById('googleAdsNavPanel');
   const contentWrapper = document.querySelector('.google-ads-content-wrapper');
@@ -8122,6 +8128,8 @@ setTimeout(() => {
         if (window.loadAndRenderROASBuckets) {
           window.loadAndRenderROASBuckets();
         }
+                // Clear initialization flag
+        window._googleAdsInitializing = false;
       }
     }, 100);
     
