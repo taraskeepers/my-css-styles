@@ -5437,12 +5437,13 @@ container.innerHTML = `
         <div class="google-ads-top-controls">
           <div class="controls-left-group">
             <div class="first-row-controls">
-              <div class="google-ads-view-switcher">
-                <button id="viewBucketsGoogleAds" class="active">Buckets & Funnels</button>
-                <button id="viewOverviewGoogleAds" class="active">Overview</button>
-                <button id="viewChartsGoogleAds">Performance</button>
-                <button id="viewMapGoogleAds">Map</button>
-              </div>
+<div class="google-ads-view-switcher">
+  <button id="viewPerformanceOverviewGoogleAds" class="active">Performance Overview</button>
+  <button id="viewOverviewGoogleAds">Product Overview</button>
+  <button id="viewBucketsGoogleAds">Buckets & Funnels</button>
+  <button id="viewChartsGoogleAds">Rank Map</button>
+  <button id="viewMapGoogleAds">Map</button>
+</div>
               <div class="chart-mode-toggle-top">
                 <label>Channel Type</label>
                 <label class="chart-mode-switch">
@@ -5529,6 +5530,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+  if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -5608,6 +5610,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+  if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -5695,6 +5698,7 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
+  if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -5802,6 +5806,71 @@ if (productInfo) productInfo.style.display = 'none';
   }
 });
 
+// Add Performance Overview button functionality
+const viewPerformanceOverviewGoogleAdsBtn = document.getElementById("viewPerformanceOverviewGoogleAds");
+
+viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
+  // Clear all active states
+  viewPerformanceOverviewGoogleAdsBtn.classList.add("active");
+  viewOverviewGoogleAdsBtn.classList.remove("active");
+  viewChartsGoogleAdsBtn.classList.remove("active");
+  viewMapGoogleAdsBtn.classList.remove("active");
+  if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+
+  // Collapse the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.add('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.add('nav-collapsed');
+  }
+
+  // Hide buckets switcher AND wrapper
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+
+  // Hide date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+
+  // Hide the table
+  const table = document.querySelector('.google-ads-table');
+  if (table) table.style.display = 'none';
+
+  // Hide other containers
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  const mapContainer = document.getElementById('googleAdsMapContainer');
+  const bucketedProductsContainer = document.getElementById('bucketed_products_container');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'none';
+  if (productTables) productTables.style.display = 'none';
+  if (mapContainer) mapContainer.style.display = 'none';
+  if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
+
+  // Show ROAS Charts, Metrics Table, Channels and Buckets containers
+  const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  const buckets_products = document.getElementById('buckets_products');
+  
+  if (roasCharts) roasCharts.style.display = 'block';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'block';
+  if (roasChannels) roasChannels.style.display = 'block';
+  if (buckets_products) buckets_products.style.display = 'block';
+
+  // Load and render ROAS data
+  loadAndRenderROASBuckets();
+});
+
 const viewBucketsGoogleAdsBtn = document.getElementById("viewBucketsGoogleAds");
 
 viewBucketsGoogleAdsBtn.addEventListener("click", function() {
@@ -5810,6 +5879,7 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
+  if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
 
 // Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
@@ -7991,19 +8061,39 @@ setTimeout(() => {
     const firstProduct = allCompanyProducts[0];
     console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-    // Ensure Overview mode is set first
+// Ensure Performance Overview mode is set first
+    const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
     const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-    const performanceBtn = document.getElementById('viewPerformanceGoogleAds');
-    const chartBtn = document.getElementById('viewChartsGoogleAds');
+    const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
+    const chartsBtn = document.getElementById('viewChartsGoogleAds');
+    const mapBtn = document.getElementById('viewMapGoogleAds');
     
-    if (overviewBtn && performanceBtn && chartBtn) {
-      overviewBtn.classList.add('active');
-      performanceBtn.classList.remove('active');
-      chartBtn.classList.remove('active');
+    if (performanceOverviewBtn) {
+      performanceOverviewBtn.classList.add('active');
+    }
+    if (overviewBtn) {
+      overviewBtn.classList.remove('active');
+    }
+    if (bucketsBtn) {
+      bucketsBtn.classList.remove('active');
+    }
+    if (chartsBtn) {
+      chartsBtn.classList.remove('active');
+    }
+    if (mapBtn) {
+      mapBtn.classList.remove('active');
     }
     
     // Click the first product
     firstNavItem.click();
+    
+    // After product is selected, automatically activate Performance Overview
+    setTimeout(() => {
+      const performanceOverviewButton = document.getElementById('viewPerformanceOverviewGoogleAds');
+      if (performanceOverviewButton) {
+        performanceOverviewButton.click();
+      }
+    }, 200);
     
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
