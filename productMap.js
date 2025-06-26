@@ -575,16 +575,54 @@ function getMetricsPanelHTML(bucketData) {
     return { value: '$' + num.toFixed(0), class: '' };
   };
   
+  const getTrend = (current, previous) => {
+    const curr = parseFloat(current) || 0;
+    const prev = parseFloat(previous) || 0;
+    
+    if (prev === 0 && curr === 0) return { arrow: '', class: 'trend-neutral', value: '' };
+    if (prev === 0 && curr > 0) return { arrow: '↑', class: 'trend-up', value: '+' };
+    if (curr === 0 && prev > 0) return { arrow: '↓', class: 'trend-down', value: '-100%' };
+    
+    const change = ((curr - prev) / prev) * 100;
+    
+    if (Math.abs(change) < 0.1) return { arrow: '', class: 'trend-neutral', value: '0%' };
+    
+    let formattedChange;
+    if (Math.abs(change) >= 100) {
+      formattedChange = Math.round(change) + '%';
+    } else {
+      formattedChange = Math.abs(change).toFixed(0) + '%';
+    }
+    
+    return {
+      arrow: change > 0 ? '↑' : '↓',
+      class: change > 0 ? 'trend-up' : 'trend-down',
+      value: formattedChange
+    };
+  };
+  
   // Calculate metrics
   const ctr = bucketData['Impressions'] > 0 ? (bucketData['Clicks'] / bucketData['Impressions'] * 100) : 0;
-  const cpc = bucketData['Clicks'] > 0 ? (bucketData['Cost'] / bucketData['Clicks']) : 0;
+  const prevCtr = bucketData['prev_Impressions'] > 0 ? (bucketData['prev_Clicks'] / bucketData['prev_Impressions'] * 100) : 0;
   
+  const cpc = bucketData['Clicks'] > 0 ? (bucketData['Cost'] / bucketData['Clicks']) : 0;
+  const prevCpc = bucketData['prev_Clicks'] > 0 ? (bucketData['prev_Cost'] / bucketData['prev_Clicks']) : 0;
+  
+  // Format current values
   const impr = formatNumber(bucketData['Impressions']);
   const clicks = formatNumber(bucketData['Clicks']);
   const ctrFormatted = formatNumber(ctr, 1);
   const cpcFormatted = formatCurrency(cpc);
-  const conv = formatNumber(bucketData['Conversions']);
+  const cost = formatCurrency(bucketData['Cost']);
   const roas = formatNumber(bucketData['ROAS'], 1);
+  
+  // Get trends
+  const imprTrend = getTrend(bucketData['Impressions'], bucketData['prev_Impressions']);
+  const clicksTrend = getTrend(bucketData['Clicks'], bucketData['prev_Clicks']);
+  const ctrTrend = getTrend(ctr, prevCtr);
+  const cpcTrend = getTrend(cpc, prevCpc);
+  const costTrend = getTrend(bucketData['Cost'], bucketData['prev_Cost']);
+  const roasTrend = getTrend(bucketData['ROAS'], bucketData['prev_ROAS']);
   
   // Determine ROAS class
   let roasClass = '';
@@ -596,26 +634,32 @@ function getMetricsPanelHTML(bucketData) {
     <div class="metric-item-small">
       <div class="metric-label-small">Impr</div>
       <div class="metric-value-small ${impr.class}">${impr.value}</div>
+      ${imprTrend.value ? `<div class="metric-trend-small ${imprTrend.class}">${imprTrend.arrow}${imprTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
     <div class="metric-item-small">
       <div class="metric-label-small">Clicks</div>
       <div class="metric-value-small ${clicks.class}">${clicks.value}</div>
+      ${clicksTrend.value ? `<div class="metric-trend-small ${clicksTrend.class}">${clicksTrend.arrow}${clicksTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
     <div class="metric-item-small">
       <div class="metric-label-small">CTR</div>
       <div class="metric-value-small ${ctrFormatted.class}">${ctrFormatted.value}%</div>
+      ${ctrTrend.value ? `<div class="metric-trend-small ${ctrTrend.class}">${ctrTrend.arrow}${ctrTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
     <div class="metric-item-small">
       <div class="metric-label-small">CPC</div>
       <div class="metric-value-small ${cpcFormatted.class}">${cpcFormatted.value}</div>
+      ${cpcTrend.value ? `<div class="metric-trend-small ${cpcTrend.class}">${cpcTrend.arrow}${cpcTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
     <div class="metric-item-small">
-      <div class="metric-label-small">Conv</div>
-      <div class="metric-value-small ${conv.class}">${conv.value}</div>
+      <div class="metric-label-small">Cost</div>
+      <div class="metric-value-small ${cost.class}">${cost.value}</div>
+      ${costTrend.value ? `<div class="metric-trend-small ${costTrend.class}">${costTrend.arrow}${costTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
     <div class="metric-item-small">
       <div class="metric-label-small">ROAS</div>
       <div class="metric-value-small ${roasClass} ${roas.class}">${roas.value}x</div>
+      ${roasTrend.value ? `<div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>` : '<div class="metric-trend-small"></div>'}
     </div>
   `;
 }
@@ -3172,6 +3216,65 @@ input:checked + .metrics-slider:before {
   .metric-value-small {
     font-size: 10px;
   }
+}
+/* Trend styling for metrics panel */
+.metric-trend-small {
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: 1px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.2px;
+}
+
+.metric-trend-small.trend-up {
+  color: #28a745;
+}
+
+.metric-trend-small.trend-down {
+  color: #dc3545;
+}
+
+.metric-trend-small.trend-neutral {
+  color: #999;
+  font-size: 7px;
+}
+
+/* Adjust metric item padding to fit trends */
+.metric-item-small {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2px;
+  position: relative;
+  transition: background-color 0.1s ease;
+  min-height: 40px;
+}
+
+/* Make the metric value slightly smaller to accommodate trend */
+.metric-value-small {
+  font-size: 11px;
+  font-weight: 700;
+  color: #24292e;
+  line-height: 1;
+  margin-top: 1px;
+  letter-spacing: -0.2px;
+}
+
+/* Adjust label size */
+.metric-label-small {
+  font-size: 7px;
+  color: #6a737d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  opacity: 0.8;
 }
       `;
       document.head.appendChild(style);
