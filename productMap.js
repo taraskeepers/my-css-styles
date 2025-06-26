@@ -548,57 +548,74 @@ function getMetricsPanelHTML(bucketData) {
   
   const formatNumber = (value, decimals = 0) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return '0';
-    if (num === 0) return '0';
-    if (num >= 1000 && decimals === 0) {
-      return (num / 1000).toFixed(1) + 'k';
+    if (isNaN(num) || num === 0) return { value: '—', class: 'zero-value' };
+    
+    // Ultra-compact formatting for 50px width
+    if (num >= 1000000) {
+      return { value: (num / 1000000).toFixed(1) + 'M', class: 'large-number' };
+    } else if (num >= 10000) {
+      return { value: Math.round(num / 1000) + 'k', class: 'large-number' };
+    } else if (num >= 1000) {
+      return { value: (num / 1000).toFixed(1) + 'k', class: '' };
     }
-    return num.toFixed(decimals);
+    return { value: decimals > 0 ? num.toFixed(decimals) : Math.round(num).toString(), class: '' };
   };
   
   const formatCurrency = (value) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return '$0';
-    if (num >= 1000) {
-      return '$' + (num / 1000).toFixed(1) + 'k';
+    if (isNaN(num) || num === 0) return { value: '—', class: 'zero-value' };
+    
+    if (num >= 10000) {
+      return { value: '$' + Math.round(num / 1000) + 'k', class: 'large-number' };
+    } else if (num >= 1000) {
+      return { value: '$' + (num / 1000).toFixed(1) + 'k', class: '' };
+    } else if (num >= 100) {
+      return { value: '$' + Math.round(num), class: '' };
     }
-    return '$' + num.toFixed(0);
+    return { value: '$' + num.toFixed(0), class: '' };
   };
   
-  const getTrend = (current, previous) => {
-    const curr = parseFloat(current) || 0;
-    const prev = parseFloat(previous) || 0;
-    if (prev === 0) return { arrow: '', class: 'trend-neutral', value: '' };
-    
-    const change = ((curr - prev) / prev) * 100;
-    if (Math.abs(change) < 0.1) return { arrow: '', class: 'trend-neutral', value: '' };
-    
-    return {
-      arrow: change > 0 ? '▲' : '▼',
-      class: change > 0 ? 'trend-up' : 'trend-down',
-      value: Math.abs(change).toFixed(0) + '%'
-    };
-  };
+  // Calculate metrics
+  const ctr = bucketData['Impressions'] > 0 ? (bucketData['Clicks'] / bucketData['Impressions'] * 100) : 0;
+  const cpc = bucketData['Clicks'] > 0 ? (bucketData['Cost'] / bucketData['Clicks']) : 0;
   
-  const clicksTrend = getTrend(bucketData['Clicks'], bucketData['prev_Clicks']);
-  const roasTrend = getTrend(bucketData['ROAS'], bucketData['prev_ROAS']);
-  const costTrend = getTrend(bucketData['Cost'], bucketData['prev_Cost']);
+  const impr = formatNumber(bucketData['Impressions']);
+  const clicks = formatNumber(bucketData['Clicks']);
+  const ctrFormatted = formatNumber(ctr, 1);
+  const cpcFormatted = formatCurrency(cpc);
+  const conv = formatNumber(bucketData['Conversions']);
+  const roas = formatNumber(bucketData['ROAS'], 1);
+  
+  // Determine ROAS class
+  let roasClass = '';
+  if (bucketData['ROAS'] >= 2.5) roasClass = 'value-good';
+  else if (bucketData['ROAS'] >= 1.5) roasClass = 'value-medium';
+  else if (bucketData['ROAS'] > 0) roasClass = 'value-poor';
   
   return `
     <div class="metric-item-small">
-      <div class="metric-label-small">Clicks</div>
-      <div class="metric-value-small">${formatNumber(bucketData['Clicks'])}</div>
-      ${clicksTrend.value ? `<div class="metric-trend-small ${clicksTrend.class}">${clicksTrend.arrow}${clicksTrend.value}</div>` : ''}
+      <div class="metric-label-small">Impr</div>
+      <div class="metric-value-small ${impr.class}">${impr.value}</div>
     </div>
     <div class="metric-item-small">
-      <div class="metric-label-small">Cost</div>
-      <div class="metric-value-small">${formatCurrency(bucketData['Cost'])}</div>
-      ${costTrend.value ? `<div class="metric-trend-small ${costTrend.class}">${costTrend.arrow}${costTrend.value}</div>` : ''}
+      <div class="metric-label-small">Clicks</div>
+      <div class="metric-value-small ${clicks.class}">${clicks.value}</div>
+    </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">CTR</div>
+      <div class="metric-value-small ${ctrFormatted.class}">${ctrFormatted.value}%</div>
+    </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">CPC</div>
+      <div class="metric-value-small ${cpcFormatted.class}">${cpcFormatted.value}</div>
+    </div>
+    <div class="metric-item-small">
+      <div class="metric-label-small">Conv</div>
+      <div class="metric-value-small ${conv.class}">${conv.value}</div>
     </div>
     <div class="metric-item-small">
       <div class="metric-label-small">ROAS</div>
-      <div class="metric-value-small">${formatNumber(bucketData['ROAS'], 1)}x</div>
-      ${roasTrend.value ? `<div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>` : ''}
+      <div class="metric-value-small ${roasClass} ${roas.class}">${roas.value}x</div>
     </div>
   `;
 }
@@ -2841,75 +2858,6 @@ metricsPanels.forEach(panel => {
   line-height: 1;
 }
 
-.card-wrapper {
-  display: flex;
-  align-items: stretch;
-  width: 150px;
-  flex-shrink: 0;
-  margin-right: 6px;
-  position: relative;
-}
-
-.card-wrapper.with-metrics {
-  width: 200px;
-}
-
-.product-metrics-panel {
-  width: 0;
-  height: 100%;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0;
-  transition: width 0.2s ease, opacity 0.2s ease;
-  opacity: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.product-metrics-panel.visible {
-  width: 50px;
-  padding: 8px 0;
-  opacity: 1;
-}
-
-.metric-item-small {
-  text-align: center;
-  padding: 6px 0;
-  position: relative;
-}
-
-.metric-item-small:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  right: 20%;
-  height: 1px;
-  background-color: #f0f0f0;
-}
-
-.metric-label-small {
-  font-size: 9px;
-  color: #666;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.metric-value-small {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111;
-  line-height: 1;
-}
-
 .metric-trend-small {
   font-size: 8px;
   font-weight: 600;
@@ -3007,6 +2955,223 @@ input:checked + .metrics-slider:before {
 .ad-details-with-metrics .ad-content {
   flex: 1;
   border-radius: 8px 0 0 8px;
+}
+.card-wrapper {
+  display: flex;
+  align-items: stretch;
+  width: 150px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  position: relative;
+}
+
+.card-wrapper.with-metrics {
+  width: 200px;
+}
+
+.product-metrics-panel {
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #fafbfc 0%, #f5f6f7 100%);
+  border: none;
+  border-left: 1px solid #e1e4e8;
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  transition: width 0.15s ease, opacity 0.15s ease;
+  opacity: 0;
+  position: relative;
+}
+
+.product-metrics-panel.visible {
+  width: 50px;
+  opacity: 1;
+}
+
+/* Create a subtle inner shadow for depth */
+.product-metrics-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0 6px 6px 0;
+  box-shadow: inset 1px 0 3px rgba(0,0,0,0.06);
+  pointer-events: none;
+}
+
+.metric-item-small {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3px 2px;
+  position: relative;
+  transition: background-color 0.1s ease;
+}
+
+/* Hover effect for each metric */
+.metric-item-small:hover {
+  background-color: rgba(0, 122, 255, 0.04);
+}
+
+/* Separator lines - ultra thin */
+.metric-item-small:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(to right, 
+    transparent, 
+    rgba(0,0,0,0.06) 20%, 
+    rgba(0,0,0,0.06) 80%, 
+    transparent
+  );
+}
+
+.metric-label-small {
+  font-size: 8px;
+  color: #6a737d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.metric-value-small {
+  font-size: 11px;
+  font-weight: 700;
+  color: #24292e;
+  line-height: 1.1;
+  margin-top: 2px;
+  letter-spacing: -0.2px;
+}
+
+/* Special styling for key metrics */
+.metric-item-small:nth-child(1) .metric-label-small { /* Impressions */
+  color: #6f42c1;
+}
+
+.metric-item-small:nth-child(2) .metric-label-small { /* Clicks */
+  color: #0366d6;
+}
+
+.metric-item-small:nth-child(2) .metric-value-small { /* Clicks value */
+  color: #0366d6;
+  font-size: 12px;
+}
+
+.metric-item-small:nth-child(6) { /* ROAS */
+  background: linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0));
+}
+
+.metric-item-small:nth-child(6) .metric-label-small {
+  color: #28a745;
+  font-weight: 700;
+}
+
+.metric-item-small:nth-child(6) .metric-value-small {
+  font-size: 13px;
+  font-weight: 800;
+  position: relative;
+}
+
+/* Color coding for ROAS values */
+.value-good {
+  color: #28a745 !important;
+  text-shadow: 0 0 8px rgba(40, 167, 69, 0.2);
+}
+
+.value-medium {
+  color: #ffa500 !important;
+  text-shadow: 0 0 8px rgba(255, 165, 0, 0.2);
+}
+
+.value-poor {
+  color: #dc3545 !important;
+  text-shadow: 0 0 8px rgba(220, 53, 69, 0.2);
+}
+
+/* Micro indicators for performance */
+.metric-value-small::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show indicator on hover */
+.metric-item-small:hover .metric-value-small::before {
+  opacity: 1;
+}
+
+.metric-item-small:nth-child(1) .metric-value-small::before { background: #6f42c1; }
+.metric-item-small:nth-child(2) .metric-value-small::before { background: #0366d6; }
+.metric-item-small:nth-child(3) .metric-value-small::before { background: #28a745; }
+.metric-item-small:nth-child(4) .metric-value-small::before { background: #fb8500; }
+.metric-item-small:nth-child(5) .metric-value-small::before { background: #e85d75; }
+
+/* Add subtle animation when panel becomes visible */
+.product-metrics-panel.visible .metric-item-small {
+  animation: fadeInMetric 0.3s ease forwards;
+}
+
+.product-metrics-panel.visible .metric-item-small:nth-child(1) { animation-delay: 0.05s; }
+.product-metrics-panel.visible .metric-item-small:nth-child(2) { animation-delay: 0.1s; }
+.product-metrics-panel.visible .metric-item-small:nth-child(3) { animation-delay: 0.15s; }
+.product-metrics-panel.visible .metric-item-small:nth-child(4) { animation-delay: 0.2s; }
+.product-metrics-panel.visible .metric-item-small:nth-child(5) { animation-delay: 0.25s; }
+.product-metrics-panel.visible .metric-item-small:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes fadeInMetric {
+  from {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Compact number formatting for large values */
+.metric-value-small.large-number {
+  font-size: 10px;
+  letter-spacing: -0.3px;
+}
+
+/* Special styling for zero or null values */
+.metric-value-small.zero-value {
+  opacity: 0.4;
+  font-size: 10px;
+}
+
+/* Responsive height adjustment */
+@media (max-height: 600px) {
+  .metric-item-small {
+    padding: 2px;
+  }
+  
+  .metric-label-small {
+    font-size: 7px;
+  }
+  
+  .metric-value-small {
+    font-size: 10px;
+  }
 }
       `;
       document.head.appendChild(style);
