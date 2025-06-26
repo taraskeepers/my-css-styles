@@ -5955,12 +5955,6 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
 
   // Reset device filter to 'all' for Performance Overview
   window.selectedDeviceFilter = 'all';
-  
-  // Reset any channel filters
-  const channelFilters = document.querySelectorAll('#roas_channels select');
-  channelFilters.forEach(filter => {
-    if (filter) filter.value = 'all';
-  });
 
   // Load and render ROAS data
   loadAndRenderROASBuckets();
