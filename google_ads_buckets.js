@@ -1944,7 +1944,7 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   if (!document.getElementById(styleId)) {
     const style = document.createElement('style');
     style.id = styleId;
-style.textContent = `
+    style.textContent = `
       .channel-device-toggle:checked + .toggle-slider {
         background-color: #2196F3 !important;
       }
@@ -1987,103 +1987,50 @@ style.textContent = `
     document.head.appendChild(style);
   }
   
-  // Create channels title with toggle
-  const channelsTitleContainer = document.createElement('div');
-  channelsTitleContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;';
+  // Create single toggle at the top
+  const toggleContainer = document.createElement('div');
+  toggleContainer.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  `;
   
-  const channelsTitle = document.createElement('h3');
-  channelsTitle.style.cssText = 'margin: 0; color: #333; flex: 1; text-align: center;';
-  channelsTitle.textContent = bucketFilter ? 
-    `Performance by Channel Type (${bucketFilter})` : 
-    'Performance by Channel Type';
-  
-  const channelsToggle = document.createElement('div');
-  channelsToggle.style.cssText = 'display: flex; align-items: center; gap: 10px;';
-  channelsToggle.innerHTML = `
-    <span style="font-size: 12px; color: #666;">Show Device Breakdown:</span>
+  toggleContainer.innerHTML = `
+    <span style="font-weight: 600; font-size: 12px; color: #333;">Show Device Breakdown:</span>
     <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
-      <input type="checkbox" class="channel-device-toggle" id="channelDeviceToggle" style="opacity: 0; width: 0; height: 0;">
-      <span class="toggle-slider" style="
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 24px;
-      ">
-        <span class="toggle-knob" style="
-          position: absolute;
-          content: '';
-          height: 16px;
-          width: 16px;
-          left: 4px;
-          bottom: 4px;
-          background-color: white;
-          transition: .4s;
-          border-radius: 50%;
-        "></span>
+      <input type="checkbox" class="channel-device-toggle" id="mainDeviceToggle" style="opacity: 0; width: 0; height: 0;">
+      <span class="toggle-slider">
+        <span class="toggle-knob"></span>
       </span>
     </label>
   `;
   
-  channelsTitleContainer.appendChild(document.createElement('div')); // Empty div for spacing
-  channelsTitleContainer.appendChild(channelsTitle);
-  channelsTitleContainer.appendChild(channelsToggle);
-  container.appendChild(channelsTitleContainer);
+  container.appendChild(toggleContainer);
+  
+  // Create channels title
+  const channelsTitle = document.createElement('h3');
+  channelsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+  channelsTitle.textContent = bucketFilter ? 
+    `Performance by Channel Type (${bucketFilter})` : 
+    'Performance by Channel Type';
+  container.appendChild(channelsTitle);
   
   const channelsTableContainer = document.createElement('div');
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  // Create campaigns title with toggle
-  const campaignsTitleContainer = document.createElement('div');
-  campaignsTitleContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;';
-  
+  // Create campaigns title
   const campaignsTitle = document.createElement('h3');
-  campaignsTitle.style.cssText = 'margin: 0; color: #333; flex: 1; text-align: center;';
+  campaignsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
   campaignsTitle.textContent = bucketFilter ? 
     `Performance by Campaign (${bucketFilter})` : 
     'Performance by Campaign';
-  
-  const campaignsToggle = document.createElement('div');
-  campaignsToggle.style.cssText = 'display: flex; align-items: center; gap: 10px;';
-  campaignsToggle.innerHTML = `
-    <span style="font-size: 12px; color: #666;">Show Device Breakdown:</span>
-    <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
-      <input type="checkbox" class="channel-device-toggle" id="campaignDeviceToggle" style="opacity: 0; width: 0; height: 0;">
-      <span class="toggle-slider" style="
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 24px;
-      ">
-        <span class="toggle-knob" style="
-          position: absolute;
-          content: '';
-          height: 16px;
-          width: 16px;
-          left: 4px;
-          bottom: 4px;
-          background-color: white;
-          transition: .4s;
-          border-radius: 50%;
-        "></span>
-      </span>
-    </label>
-  `;
-  
-  campaignsTitleContainer.appendChild(document.createElement('div')); // Empty div for spacing
-  campaignsTitleContainer.appendChild(campaignsTitle);
-  campaignsTitleContainer.appendChild(campaignsToggle);
-  container.appendChild(campaignsTitleContainer);
+  container.appendChild(campaignsTitle);
   
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
@@ -2092,31 +2039,19 @@ style.textContent = `
   renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
   renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
   
-  // Add toggle event listeners
-  document.getElementById('channelDeviceToggle').addEventListener('change', function() {
+  // Add single toggle event listener for both tables
+  document.getElementById('mainDeviceToggle').addEventListener('change', function() {
     if (this.checked) {
       renderROASChannelsTableWithDevices(channelsTableContainer, filteredData, bucketFilter);
-      // Animate device rows
+      renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+      // Animate device rows for both tables
       setTimeout(() => {
-        channelsTableContainer.querySelectorAll('.device-row').forEach(row => {
+        container.querySelectorAll('.device-row').forEach(row => {
           row.classList.add('show');
         });
       }, 50);
     } else {
       renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
-    }
-  });
-  
-  document.getElementById('campaignDeviceToggle').addEventListener('change', function() {
-    if (this.checked) {
-      renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
-      // Animate device rows
-      setTimeout(() => {
-        campaignsTableContainer.querySelectorAll('.device-row').forEach(row => {
-          row.classList.add('show');
-        });
-      }, 50);
-    } else {
       renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
     }
   });
@@ -2168,7 +2103,7 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
   });
 
   // Calculate totals for percentage bars
-  const grandTotals = Object.values(channelGroups).reduce((acc, products) => {
+  const grandTotals = Object.values(campaignGroups).reduce((acc, products) => {
     products.forEach(product => {
       acc.impressions += parseInt(product.Impressions) || 0;
       acc.clicks += parseInt(product.Clicks) || 0;
@@ -2392,22 +2327,22 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
                                   deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
                                   'color: #F44336; font-weight: 600;';
           
-          deviceRow.innerHTML = `
+deviceRow.innerHTML = `
             <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
               ${deviceIcon} ${device}
             </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${createRegularCell(deviceData.roas.toFixed(2) + 'x')}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell('$' + deviceData.aov.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell('$' + deviceData.cpa.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell('$' + deviceData.avgCPC.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell('$' + deviceData.cpm.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell(deviceData.ctr.toFixed(2) + '%')}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell(deviceData.cvr.toFixed(2) + '%')}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.impressions, grandTotals.impressions, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(deviceData.clicks, grandTotals.clicks, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.conversions, grandTotals.conversions, (v) => v.toFixed(1), channelColors[channel.channel])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(deviceData.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
           `;
           
           tbody.appendChild(deviceRow);
@@ -2673,22 +2608,22 @@ let validRecords = data.filter(row =>
                                   deviceData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
                                   'color: #F44336; font-weight: 600;';
           
-          deviceRow.innerHTML = `
+deviceRow.innerHTML = `
             <td style="padding: 8px 8px 8px 40px; font-size: 11px; color: #666; vertical-align: middle;">
               ${deviceIcon} ${device}
             </td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${deviceData.roas.toFixed(2)}x</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.aov.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpa.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.avgCPC.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cpm.toFixed(2)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.ctr.toFixed(2)}%</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.cvr.toFixed(2)}%</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.impressions.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${deviceData.clicks.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${deviceData.conversions.toFixed(1)}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">$${deviceData.cost.toLocaleString()}</td>
-            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">$${deviceData.convValue.toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px; ${deviceRoasStyle}">${createRegularCell(deviceData.roas.toFixed(2) + 'x')}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell('$' + deviceData.aov.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell('$' + deviceData.cpa.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell('$' + deviceData.avgCPC.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell('$' + deviceData.cpm.toFixed(2))}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff; font-size: 11px;">${createRegularCell(deviceData.ctr.toFixed(2) + '%')}</td>
+            <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9; font-size: 11px;">${createRegularCell(deviceData.cvr.toFixed(2) + '%')}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.impressions, grandTotals.impressions, (v) => v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(deviceData.clicks, grandTotals.clicks, (v) => v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.conversions, grandTotals.conversions, (v) => v.toFixed(1), campaignColors[index % campaignColors.length])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(deviceData.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+            <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(deviceData.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
           `;
           
           tbody.appendChild(deviceRow);
