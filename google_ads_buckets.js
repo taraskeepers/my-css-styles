@@ -2486,19 +2486,6 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 // Exclude records where Campaign Name = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
-
-// DEBUG: Check what campaign data we have
-  console.log('[DEBUG renderROASCampaignsTable] Total data rows:', data.length);
-  console.log('[DEBUG renderROASCampaignsTable] Valid campaign records:', validRecords.length);
-  
-  // Check what Campaign Names exist
-  const allCampaignNames = [...new Set(data.map(row => row['Campaign Name']))];
-  console.log('[DEBUG renderROASCampaignsTable] All Campaign Names in data:', allCampaignNames);
-  
-  if (validRecords.length === 0) {
-    console.log('[DEBUG renderROASCampaignsTable] No individual campaign records found!');
-  }
-  
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
   if (bucketType === 'Suggestions') {
@@ -2771,44 +2758,43 @@ if (bucketFilter) {
 function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // ONLY THIS PART CHANGED - Filter out 'All' records instead of filtering for them
-  let validRecords = data.filter(row => 
-    row['Campaign Name'] && 
-    row['Campaign Name'] !== 'All' &&
-    row['Channel Type'] && 
-    row['Channel Type'] !== 'All'
-  );
-  
-  const bucketType = window.selectedBucketType || 'ROAS_Bucket';
-  if (bucketFilter) {
-    if (bucketType === 'Suggestions') {
-      validRecords = validRecords.filter(row => {
-        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-        return suggestions.includes(bucketFilter);
-      });
-    } else {
-      validRecords = validRecords.filter(row => getBucketValue(row[bucketType]) === bucketFilter);
-    }
+// Use Campaign="All" records and exclude Channel Type = "All"
+let validRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' &&
+  row['Channel Type'] && 
+  row['Channel Type'] !== 'All'
+);
+const bucketType = window.selectedBucketType || 'ROAS_Bucket';
+if (bucketFilter) {
+  if (bucketType === 'Suggestions') {
+    filteredData = filteredData.filter(row => {
+      const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
+      return suggestions.includes(bucketFilter);
+    });
+  } else {
+    filteredData = filteredData.filter(row => row[bucketType] === bucketFilter);
   }
+}
   
   // Group by Channel Type
-  const channelGroups = {};
+  const channelGroups = {
+    'PERFORMANCE_MAX': [],
+    'SHOPPING': []
+  };
+  
   validRecords.forEach(product => {
     const channel = product['Channel Type'];
-    if (channel) {
-      if (!channelGroups[channel]) {
-        channelGroups[channel] = [];
-      }
+    if (channel && channelGroups[channel]) {
       channelGroups[channel].push(product);
     }
   });
 
-  // Temporary debug logging
+    // Temporary debug logging
   console.log('[DEBUG] Total valid records:', validRecords.length);
-  console.log('[DEBUG] Channel groups:', Object.keys(channelGroups));
-  Object.entries(channelGroups).forEach(([channel, products]) => {
-    console.log(`[DEBUG] ${channel}: ${products.length} products`);
-  });
+  console.log('[DEBUG] PERFORMANCE_MAX products:', channelGroups['PERFORMANCE_MAX'].length);
+  console.log('[DEBUG] SHOPPING products:', channelGroups['SHOPPING'].length);
+  console.log('[DEBUG] Sample PERFORMANCE_MAX record:', channelGroups['PERFORMANCE_MAX'][0]);
+  console.log('[DEBUG] Sample SHOPPING record:', channelGroups['SHOPPING'][0]);
   
   // Calculate aggregated metrics for each channel
   const channelMetrics = Object.entries(channelGroups).map(([channelName, products]) => {
@@ -2856,115 +2842,116 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
       cost: totals.cost,
       conversions: totals.conversions,
       convValue: totals.convValue,
-      avgCPC: avgCPC,
-      cpm: cpm,
-      ctr: ctr,
-      cvr: cvr,
-      cpa: cpa,
-      roas: roas,
-      aov: aov
+      avgCPC,
+      cpm,
+      ctr,
+      cvr,
+      cpa,
+      roas,
+      aov
     };
   });
   
-  // Sort by conversion value (descending)
-  channelMetrics.sort((a, b) => b.convValue - a.convValue);
-  
-  // Calculate totals for the summary row
-  const summary = channelMetrics.reduce((acc, channel) => {
-    acc.totalImpressions += channel.impressions;
-    acc.totalClicks += channel.clicks;
-    acc.totalCost += channel.cost;
-    acc.totalConversions += channel.conversions;
-    acc.totalConvValue += channel.convValue;
+  // Calculate totals for percentage bars
+  const grandTotals = channelMetrics.reduce((acc, channel) => {
+    acc.impressions += channel.impressions;
+    acc.clicks += channel.clicks;
+    acc.cost += channel.cost;
+    acc.conversions += channel.conversions;
+    acc.convValue += channel.convValue;
     return acc;
-  }, { totalImpressions: 0, totalClicks: 0, totalCost: 0, totalConversions: 0, totalConvValue: 0 });
+  }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
   
-  // Calculate summary metrics
-  const summaryAvgCPC = summary.totalClicks > 0 ? summary.totalCost / summary.totalClicks : 0;
-  const summaryCPM = summary.totalImpressions > 0 ? (summary.totalCost / summary.totalImpressions) * 1000 : 0;
-  const summaryCTR = summary.totalImpressions > 0 ? (summary.totalClicks / summary.totalImpressions) * 100 : 0;
-  const summaryCVR = summary.totalClicks > 0 ? (summary.totalConversions / summary.totalClicks) * 100 : 0;
-  const summaryCPA = summary.totalConversions > 0 ? summary.totalCost / summary.totalConversions : 0;
-  const summaryROAS = summary.totalCost > 0 ? summary.totalConvValue / summary.totalCost : 0;
-  const summaryAOV = summary.totalConversions > 0 ? summary.totalConvValue / summary.totalConversions : 0;
+  // Helper function to create bar cell (stacked vertically)
+  const createBarCell = (value, total, formatValue, channelColor) => {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+        <span style="font-weight: 600; font-size: 12px; text-align: center;">${formatValue(value)}</span>
+        <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+          <div style="flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 30px;">
+            <div style="height: 100%; background: ${channelColor}; width: ${percentage}%; border-radius: 4px;"></div>
+          </div>
+          <span style="font-size: 9px; color: #666; min-width: 28px; text-align: right;">${percentage.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  };
   
+  // Helper function for regular cells (with proper alignment)
+  const createRegularCell = (value, isCenter = true) => {
+    return `
+      <div style="display: flex; align-items: center; justify-content: ${isCenter ? 'center' : 'flex-start'}; height: 100%; min-height: 40px;">
+        <span style="font-weight: 600; font-size: 12px;">${value}</span>
+      </div>
+    `;
+  };
+
   // Create table
   const table = document.createElement('table');
-  table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 13px;';
+  table.style.cssText = `
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: fixed;
+  `;
   
-  // Create header
+  // Create header (same as bucket table but with Channel Type)
   const thead = document.createElement('thead');
   thead.innerHTML = `
-    <tr style="background-color: #f5f5f5;">
-      <th rowspan="2" style="padding: 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; border-right: 1px solid #eee;">Channel Type</th>
-      <th colspan="5" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e8f5e9;">Performance Metrics</th>
-      <th colspan="2" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e3f2fd;">Engagement Metrics</th>
-      <th colspan="2" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e8f5e9;">Efficiency Metrics</th>
-      <th colspan="5" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #fff3e0;">Volume Metrics</th>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; width: 140px; background: #ffffff;">Channel Type</th>
+      <th colspan="3" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e8f5e8; color: #2e7d32;">Performance Metrics</th>
+      <th colspan="4" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #e3f2fd; color: #1565c0;">Engagement Metrics</th>
+      <th colspan="5" style="padding: 12px 8px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6; background: #fff3e0; color: #ef6c00;">Volume Metrics</th>
     </tr>
-    <tr style="background-color: #f5f5f5; font-size: 11px;">
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e8f5e9;">ROAS</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e8f5e9;">AOV</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e8f5e9;">CPA</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e3f2fd;">CTR</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e3f2fd;">CVR</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e8f5e9;">Avg CPC</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #e8f5e9;">CPM</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #fff3e0;">Impressions</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #fff3e0;">Clicks</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #fff3e0;">Conversions</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #fff3e0;">Cost</th>
-      <th style="padding: 8px 6px; text-align: center; border-bottom: 2px solid #ddd; background-color: #fff3e0;">Conv Value</th>
+    <tr style="background: #f8f9fa;">
+      <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; background: #ffffff;"></th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">ROAS</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #ffffff;">AOV</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #2e7d32; background: #f9f9f9;">CPA</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">CTR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CVR</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #ffffff;">Avg CPC</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #1565c0; background: #f9f9f9;">CPM</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Impressions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Clicks</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conversions</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #f9f9f9;">Cost</th>
+      <th style="padding: 8px; text-align: center; font-size: 10px; font-weight: 500; border-bottom: 1px solid #dee2e6; color: #ef6c00; background: #ffffff;">Conv Value</th>
     </tr>
   `;
   
   // Create body
   const tbody = document.createElement('tbody');
   
-  // Add data rows
-  channelMetrics.forEach((channelData, index) => {
+  const channelColors = {
+    'PERFORMANCE_MAX': '#4CAF50',
+    'SHOPPING': '#2196F3'
+  };
+  
+  channelMetrics.forEach(channel => {
     const row = document.createElement('tr');
-    row.style.cssText = `background-color: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'}; border-bottom: 1px solid #eee;`;
-    
-    const roasStyle = channelData.roas >= 2 ? 'color: #4CAF50; font-weight: 700;' : 
-                       channelData.roas >= 1 ? 'color: #FF9800; font-weight: 600;' : 
-                       'color: #F44336; font-weight: 600;';
-    
-    const impressionPct = summary.totalImpressions > 0 ? (channelData.impressions / summary.totalImpressions * 100).toFixed(0) : 0;
-    const clicksPct = summary.totalClicks > 0 ? (channelData.clicks / summary.totalClicks * 100).toFixed(0) : 0;
-    const conversionsPct = summary.totalConversions > 0 ? (channelData.conversions / summary.totalConversions * 100).toFixed(0) : 0;
-    const costPct = summary.totalCost > 0 ? (channelData.cost / summary.totalCost * 100).toFixed(0) : 0;
-    const convValuePct = summary.totalConvValue > 0 ? (channelData.convValue / summary.totalConvValue * 100).toFixed(0) : 0;
+    row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
     
     row.innerHTML = `
-      <td style="padding: 10px; font-weight: 600; color: #333; border-right: 1px solid #eee;">${channelData.channel}</td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9; ${roasStyle}">${channelData.roas.toFixed(2)}x</td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">$${channelData.aov.toFixed(2)}</td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">$${channelData.cpa.toFixed(2)}</td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">${channelData.ctr.toFixed(2)}%</td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">${channelData.cvr.toFixed(2)}%</td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">$${channelData.avgCPC.toFixed(2)}</td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">$${channelData.cpm.toFixed(2)}</td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        ${channelData.impressions.toLocaleString()}<br>
-        <span style="font-size: 10px; color: #666;">${impressionPct}%</span>
-      </td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">
-        ${channelData.clicks.toLocaleString()}<br>
-        <span style="font-size: 10px; color: #666;">${clicksPct}%</span>
-      </td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        ${channelData.conversions.toFixed(1)}<br>
-        <span style="font-size: 10px; color: #666;">${conversionsPct}%</span>
-      </td>
-      <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">
-        $${channelData.cost.toLocaleString()}<br>
-        <span style="font-size: 10px; color: #666;">${costPct}%</span>
-      </td>
-      <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        $${channelData.convValue.toLocaleString()}<br>
-        <span style="font-size: 10px; color: #666;">${convValuePct}%</span>
-      </td>
+      <td style="padding: 8px; font-weight: 600; color: ${channelColors[channel.channel]}; vertical-align: middle; background: #ffffff;">${channel.channel}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.aov.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpa.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.ctr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.cvr.toFixed(2) + '%')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.avgCPC.toFixed(2))}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpm.toFixed(2))}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.impressions, grandTotals.impressions, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.clicks, grandTotals.clicks, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.conversions, grandTotals.conversions, (v) => v.toFixed(1), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
     `;
     
     tbody.appendChild(row);
@@ -2972,40 +2959,63 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
   
   // Add summary row
   const summaryRow = document.createElement('tr');
-  summaryRow.style.cssText = 'background-color: #263238; color: white; font-weight: 700; border-top: 2px solid #1a1a1a;';
+  summaryRow.style.cssText = 'border-top: 2px solid #dee2e6; background: #f8f9fa; font-weight: 600;';
   
-  const summaryRoasStyle = summaryROAS >= 2 ? 'color: #81c784;' : 
-                           summaryROAS >= 1 ? 'color: #ffb74d;' : 
-                           'color: #e57373;';
+  // Calculate summary metrics
+  const summary = {
+    totalProducts: channelMetrics.reduce((sum, channel) => sum + channel.count, 0),
+    avgROAS: grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0,
+    avgAOV: channelMetrics.reduce((sum, channel) => sum + (channel.aov * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPA: channelMetrics.reduce((sum, channel) => sum + (channel.cpa * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCTR: channelMetrics.reduce((sum, channel) => sum + (channel.ctr * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCVR: channelMetrics.reduce((sum, channel) => sum + (channel.cvr * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPC: channelMetrics.reduce((sum, channel) => sum + (channel.avgCPC * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    avgCPM: channelMetrics.reduce((sum, channel) => sum + (channel.cpm * channel.count), 0) / channelMetrics.reduce((sum, channel) => sum + channel.count, 0) || 0,
+    totalImpressions: grandTotals.impressions,
+    totalClicks: grandTotals.clicks,
+    totalConversions: grandTotals.conversions,
+    totalCost: grandTotals.cost,
+    totalConvValue: grandTotals.convValue
+  };
   
   summaryRow.innerHTML = `
-    <td style="padding: 10px; border-right: 1px solid #37474f;">TOTAL / AVERAGE</td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40; ${summaryRoasStyle}">${summaryROAS.toFixed(2)}x</td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">$${summaryAOV.toFixed(2)}</td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">$${summaryCPA.toFixed(2)}</td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">${summaryCTR.toFixed(2)}%</td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">${summaryCVR.toFixed(2)}%</td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">$${summaryAvgCPC.toFixed(2)}</td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">$${summaryCPM.toFixed(2)}</td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      ${summary.totalImpressions.toLocaleString()}<br>
-      <span style="font-size: 10px; color: #94a1a8;">100%</span>
+    <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgCVR.toFixed(2) + '%')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgCPC.toFixed(2))}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPM.toFixed(2))}</td>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
     </td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">
-      ${summary.totalClicks.toLocaleString()}<br>
-      <span style="font-size: 10px; color: #94a1a8;">100%</span>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
     </td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      ${summary.totalConversions.toFixed(1)}<br>
-      <span style="font-size: 10px; color: #94a1a8;">100%</span>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
     </td>
-    <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">
-      $${summary.totalCost.toLocaleString()}<br>
-      <span style="font-size: 10px; color: #94a1a8;">100%</span>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
     </td>
-    <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      $${summary.totalConvValue.toLocaleString()}<br>
-      <span style="font-size: 10px; color: #94a1a8;">100%</span>
+    <td style="padding: 10px 6px; text-align: center; vertical-align: middle; background: #ffffff;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
+        <span style="font-size: 10px; color: #666;">100%</span>
+      </div>
     </td>
   `;
   
