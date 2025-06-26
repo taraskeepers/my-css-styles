@@ -5588,21 +5588,21 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
   
-  // Force re-selection of current product or select first one
-  const selectedNavItem = document.querySelector('.nav-google-ads-item.selected');
-  const firstNavItem = document.querySelector('.nav-google-ads-item');
-  
-  if (selectedNavItem) {
-    // Re-trigger selection of current product to reload data
-    console.log('[Overview] Re-triggering current product selection');
-    selectedNavItem.click();
-  } else if (firstNavItem) {
-    // No product selected, select first one
-    console.log('[Overview] Auto-selecting first product');
-    firstNavItem.click();
-  } else {
-    console.warn('[Overview] No products available');
-  }
+// Force re-selection of current product or select first one
+const selectedNavItem = document.querySelector('.nav-google-ads-item.selected');
+const firstNavItem = document.querySelector('.nav-google-ads-item');
+
+if (selectedNavItem) {
+  // Re-trigger selection of current product to reload data
+  console.log('[Performance Overview] Re-triggering current product selection');
+  selectedNavItem.click();
+} else if (firstNavItem) {
+  // No product selected, select first one
+  console.log('[Performance Overview] Auto-selecting first product');
+  firstNavItem.click();
+} else {
+  console.warn('[Performance Overview] No products available');
+}
 });
 
 viewChartsGoogleAdsBtn.addEventListener("click", function() {
@@ -5810,6 +5810,7 @@ if (productInfo) productInfo.style.display = 'none';
 const viewPerformanceOverviewGoogleAdsBtn = document.getElementById("viewPerformanceOverviewGoogleAds");
 
 viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
+  console.log('[Performance Overview] Button clicked');
   // Clear all active states
   viewPerformanceOverviewGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
@@ -8061,39 +8062,29 @@ setTimeout(() => {
     const firstProduct = allCompanyProducts[0];
     console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-// Ensure Performance Overview mode is set first
-    const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
-    const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-    const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
-    const chartsBtn = document.getElementById('viewChartsGoogleAds');
-    const mapBtn = document.getElementById('viewMapGoogleAds');
-    
-    if (performanceOverviewBtn) {
-      performanceOverviewBtn.classList.add('active');
-    }
-    if (overviewBtn) {
-      overviewBtn.classList.remove('active');
-    }
-    if (bucketsBtn) {
-      bucketsBtn.classList.remove('active');
-    }
-    if (chartsBtn) {
-      chartsBtn.classList.remove('active');
-    }
-    if (mapBtn) {
-      mapBtn.classList.remove('active');
-    }
-    
-    // Click the first product
-    firstNavItem.click();
-    
-    // After product is selected, automatically activate Performance Overview
-    setTimeout(() => {
-      const performanceOverviewButton = document.getElementById('viewPerformanceOverviewGoogleAds');
-      if (performanceOverviewButton) {
-        performanceOverviewButton.click();
-      }
-    }, 200);
+// Click the first product WITHOUT triggering any view mode changes
+firstNavItem.click();
+
+// Set Performance Overview as active without triggering other modes
+setTimeout(() => {
+  const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
+  const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+  const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
+  const chartsBtn = document.getElementById('viewChartsGoogleAds');
+  const mapBtn = document.getElementById('viewMapGoogleAds');
+
+  // Set button states WITHOUT clicking
+  if (performanceOverviewBtn) performanceOverviewBtn.classList.add('active');
+  if (overviewBtn) overviewBtn.classList.remove('active');
+  if (bucketsBtn) bucketsBtn.classList.remove('active');
+  if (chartsBtn) chartsBtn.classList.remove('active');
+  if (mapBtn) mapBtn.classList.remove('active');
+
+  // Now trigger Performance Overview view
+  if (performanceOverviewBtn) {
+    performanceOverviewBtn.click();
+  }
+}, 300);
     
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
