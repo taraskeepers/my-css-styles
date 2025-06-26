@@ -525,7 +525,7 @@ function showBucketsOverview() {
   const filterContainer = document.getElementById('products-buckets-filter-container');
   const bucketedProducts = document.getElementById('bucketed_products_container');
   
-  if (roasCharts) roasCharts.style.display = 'block';
+  if (roasCharts) roasCharts.style.display = 'none';
   if (roasMetricsTable) roasMetricsTable.style.display = 'block';
   if (roasChannels) roasChannels.style.display = 'block';
   if (buckets_products) buckets_products.style.display = 'block';
