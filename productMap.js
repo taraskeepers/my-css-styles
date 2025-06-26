@@ -2851,6 +2851,7 @@ if (metricsToggle) {
 
 .product-metrics-panel {
   width: 0;
+  height: 100%;
   overflow: hidden;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border: 1px solid #dee2e6;
@@ -2858,16 +2859,17 @@ if (metricsToggle) {
   border-radius: 0 8px 8px 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: space-evenly;
   padding: 0;
   font-size: 10px;
   transition: width 0.3s ease, padding 0.3s ease;
   opacity: 0;
+  min-height: 280px;
 }
 
 .product-metrics-panel.visible {
   width: 50px;
-  padding: 4px 2px;
+  padding: 8px 2px;
   border-left: 1px solid #dee2e6;
   opacity: 1;
 }
@@ -3100,10 +3102,6 @@ popupStyle.textContent = `
   line-height: 1;
   margin-bottom: 4px;
 }
-
-.roas-good { color: #28a745; }
-.roas-medium { color: #ffc107; }
-.roas-poor { color: #dc3545; }
 
 .roas-supporting {
   display: flex;
