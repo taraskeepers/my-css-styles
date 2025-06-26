@@ -5569,6 +5569,39 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (productRankingMap) productRankingMap.style.display = 'none'; // ADD THIS LINE
   if (productTables) productTables.style.display = 'block';
 
+  // Hide buckets-related containers
+  const buckets_products = document.getElementById('buckets_products');
+  const roasChannels = document.getElementById('roas_channels');
+  const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  
+  if (buckets_products) buckets_products.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'none';
+  if (roasCharts) roasCharts.style.display = 'none';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  
+  // Show and enable toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) {
+    chartModeToggle.style.display = 'inline-flex';
+    // Set toggle to ON (checked) by default
+    const toggleInput = chartModeToggle.querySelector('input[type="checkbox"]');
+    if (toggleInput && !toggleInput.checked) {
+      toggleInput.checked = true;
+      toggleInput.dispatchEvent(new Event('change'));
+    }
+  }
+  if (previousPeriodToggle) {
+    previousPeriodToggle.style.display = 'inline-flex';
+    // Set toggle to ON (checked) by default
+    const toggleInput = previousPeriodToggle.querySelector('input[type="checkbox"]');
+    if (toggleInput && !toggleInput.checked) {
+      toggleInput.checked = true;
+      toggleInput.dispatchEvent(new Event('change'));
+    }
+  }
+
     // Add delayed hide to ensure it stays hidden
   setTimeout(() => {
     const rankingMap = document.getElementById('product_ranking_map');
@@ -5662,6 +5695,18 @@ if (mapContainer) {
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
+
+  // Also hide roas_metrics_table and roas_channels
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'none';
+  
+  // Hide toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
   
   // Remove ranking mode from table and device containers
   document.querySelectorAll('.device-container').forEach(container => {
@@ -5741,6 +5786,18 @@ if (productInfo) productInfo.style.display = 'none';
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
+
+  // Also hide roas_metrics_table and roas_channels
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'none';
+  
+  // Hide toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
   
   // Show the map container
   const mapContainer = document.getElementById('googleAdsMapContainer');
@@ -5857,16 +5914,22 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (mapContainer) mapContainer.style.display = 'none';
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
 
-  // Show ROAS Charts, Metrics Table, Channels and Buckets containers
+// Show ONLY ROAS Charts container
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
   const buckets_products = document.getElementById('buckets_products');
   
   if (roasCharts) roasCharts.style.display = 'block';
-  if (roasMetricsTable) roasMetricsTable.style.display = 'block';
-  if (roasChannels) roasChannels.style.display = 'block';
-  if (buckets_products) buckets_products.style.display = 'block';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';
+  
+  // Hide toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
 
   // Load and render ROAS data
   loadAndRenderROASBuckets();
@@ -5943,23 +6006,21 @@ setTimeout(() => {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-// Show ROAS Charts, Metrics Table, Channels and Buckets containers
-const roasCharts = document.getElementById('roas_charts');
-const roasMetricsTable = document.getElementById('roas_metrics_table');
-const roasChannels = document.getElementById('roas_channels');
-const buckets_products = document.getElementById('buckets_products');
-if (roasCharts) {
-  roasCharts.style.display = 'block';
-}
-if (roasMetricsTable) {
-  roasMetricsTable.style.display = 'block';
-}
-if (roasChannels) {
-  roasChannels.style.display = 'block';
-}
-if (buckets_products) {
-  buckets_products.style.display = 'block';
-}
+// Show Metrics Table, Channels and Buckets containers (NOT roas_charts)
+  const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  const buckets_products = document.getElementById('buckets_products');
+  if (roasCharts) roasCharts.style.display = 'none';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'block';
+  if (roasChannels) roasChannels.style.display = 'block';
+  if (buckets_products) buckets_products.style.display = 'block';
+  
+  // Hide toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
   
 // Collapse the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -8114,25 +8175,32 @@ setTimeout(() => {
         if (productTables) productTables.style.display = 'none';
         if (mapContainer) mapContainer.style.display = 'none';
         
-        const roasCharts = document.getElementById('roas_charts');
+const roasCharts = document.getElementById('roas_charts');
         const roasMetricsTable = document.getElementById('roas_metrics_table');
         const roasChannels = document.getElementById('roas_channels');
         const buckets_products = document.getElementById('buckets_products');
         
+        // Only show roas_charts for Performance Overview
         if (roasCharts) roasCharts.style.display = 'block';
-        if (roasMetricsTable) roasMetricsTable.style.display = 'block';
-        if (roasChannels) roasChannels.style.display = 'block';
-        if (buckets_products) buckets_products.style.display = 'block';
+        if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+        if (roasChannels) roasChannels.style.display = 'none';
+        if (buckets_products) buckets_products.style.display = 'none';
+        
+        // Hide toggle controls for Performance Overview
+        const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+        const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+        if (chartModeToggle) chartModeToggle.style.display = 'none';
+        if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
         
         // Load the ROAS data
         if (window.loadAndRenderROASBuckets) {
           window.loadAndRenderROASBuckets();
         }
-                // Clear initialization flag
+        
+        // Clear initialization flag
         window._googleAdsInitializing = false;
       }
     }, 100);
-    
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
     
