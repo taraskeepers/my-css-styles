@@ -2023,7 +2023,7 @@ if (metricsToggle) {
     console.log(`[ProductMap] Metrics toggle: ${isChecked ? 'ON' : 'OFF'}`);
     
     // Find all product cards
-    const productCards = document.querySelectorAll('.ad-details');
+    const productCards = document.querySelectorAll('.ad-details, .ad-details-with-metrics');
     
     productCards.forEach(card => {
       const metricsPanel = card.querySelector('.product-metrics-panel');
@@ -2820,18 +2820,19 @@ if (metricsToggle) {
   position: absolute;
   bottom: 5px;
   left: 5px;
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: bold;
+  font-size: 10px;
+  font-weight: 900;
   color: white;
   z-index: 12;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  line-height: 1;
 }
 
 .roas-good { background-color: #4CAF50; }
@@ -2923,6 +2924,7 @@ input:checked + .metrics-slider:before {
   width: 50px;
   padding: 4px 2px;
   opacity: 1;
+  border-left: 1px solid #dee2e6;
 }
 
 .metric-item-small {
@@ -4754,9 +4756,12 @@ if (bucketBadgeHTML) {
   adContent.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
 }
 
-// Insert ROAS badge
+// Insert ROAS badge over the image
 if (roasBadgeHTML) {
-  adContent.insertAdjacentHTML('beforeend', roasBadgeHTML);
+  const thumbnailContainer = adContent.querySelector('.ad-thumbnail-container');
+  if (thumbnailContainer) {
+    thumbnailContainer.insertAdjacentHTML('beforeend', roasBadgeHTML);
+  }
 }
 
 // Add metrics panel
