@@ -1922,41 +1922,66 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   let filteredData = data;
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   if (bucketFilter) {
-if (bucketType === 'SUGGESTIONS_BUCKET') {
-  filteredData = data.filter(row => {
-    if (row[bucketType]) {
-      try {
-        const suggestions = JSON.parse(row[bucketType]);
-        return suggestions.some(s => s.suggestion === bucketFilter);
-      } catch (e) {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
+      filteredData = data.filter(row => {
+        if (row[bucketType]) {
+          try {
+            const suggestions = JSON.parse(row[bucketType]);
+            return suggestions.some(s => s.suggestion === bucketFilter);
+          } catch (e) {
+            return false;
+          }
+        }
         return false;
-      }
+      });
+    } else {
+      filteredData = data.filter(row => getBucketValue(row[bucketType]) === bucketFilter);
     }
-    return false;
-  });
-} else {
-  filteredData = data.filter(row => getBucketValue(row[bucketType]) === bucketFilter);
-}
   }
   
-  // Create device segmentation toggle
-  const toggleContainer = document.createElement('div');
-  toggleContainer.style.cssText = `
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-  `;
+  // Add toggle styles if not already added
+  const styleId = 'channel-device-toggle-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .channel-device-toggle:checked + .toggle-slider {
+        background-color: #2196F3;
+      }
+      .channel-device-toggle:checked + .toggle-slider .toggle-knob {
+        transform: translateX(20px);
+      }
+      .device-row {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease-in-out;
+      }
+      .device-row.show {
+        opacity: 1;
+        max-height: 60px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
   
-  toggleContainer.innerHTML = `
-    <span style="font-weight: 600; font-size: 12px; color: #333;">Show Device Breakdown:</span>
+  // Create channels title with toggle
+  const channelsTitleContainer = document.createElement('div');
+  channelsTitleContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;';
+  
+  const channelsTitle = document.createElement('h3');
+  channelsTitle.style.cssText = 'margin: 0; color: #333; flex: 1; text-align: center;';
+  channelsTitle.textContent = bucketFilter ? 
+    `Performance by Channel Type (${bucketFilter})` : 
+    'Performance by Channel Type';
+  
+  const channelsToggle = document.createElement('div');
+  channelsToggle.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+  channelsToggle.innerHTML = `
+    <span style="font-size: 12px; color: #666;">Show Device Breakdown:</span>
     <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
-      <input type="checkbox" id="channelDeviceToggle" style="opacity: 0; width: 0; height: 0;">
-      <span style="
+      <input type="checkbox" class="channel-device-toggle" id="channelDeviceToggle" style="opacity: 0; width: 0; height: 0;">
+      <span class="toggle-slider" style="
         position: absolute;
         cursor: pointer;
         top: 0;
@@ -1966,103 +1991,136 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
         background-color: #ccc;
         transition: .4s;
         border-radius: 24px;
-      "></span>
-      <span style="
-        position: absolute;
-        content: '';
-        height: 16px;
-        width: 16px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-      "></span>
+      ">
+        <span class="toggle-knob" style="
+          position: absolute;
+          content: '';
+          height: 16px;
+          width: 16px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          transition: .4s;
+          border-radius: 50%;
+        "></span>
+      </span>
     </label>
   `;
   
-  // Add toggle styles
-  const styleId = 'channel-device-toggle-styles';
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      #channelDeviceToggle:checked + span {
-        background-color: #2196F3;
-      }
-      #channelDeviceToggle:checked + span + span {
-        transform: translateX(20px);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  container.appendChild(toggleContainer);
-  
-  // Create channels table
-  const channelsTitle = document.createElement('h3');
-  channelsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
-  channelsTitle.textContent = bucketFilter ? 
-    `Performance by Channel Type (${bucketFilter})` : 
-    'Performance by Channel Type';
-  container.appendChild(channelsTitle);
+  channelsTitleContainer.appendChild(document.createElement('div')); // Empty div for spacing
+  channelsTitleContainer.appendChild(channelsTitle);
+  channelsTitleContainer.appendChild(channelsToggle);
+  container.appendChild(channelsTitleContainer);
   
   const channelsTableContainer = document.createElement('div');
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  // Create campaigns table
+  // Create campaigns title with toggle
+  const campaignsTitleContainer = document.createElement('div');
+  campaignsTitleContainer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;';
+  
   const campaignsTitle = document.createElement('h3');
-  campaignsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+  campaignsTitle.style.cssText = 'margin: 0; color: #333; flex: 1; text-align: center;';
   campaignsTitle.textContent = bucketFilter ? 
     `Performance by Campaign (${bucketFilter})` : 
     'Performance by Campaign';
-  container.appendChild(campaignsTitle);
+  
+  const campaignsToggle = document.createElement('div');
+  campaignsToggle.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+  campaignsToggle.innerHTML = `
+    <span style="font-size: 12px; color: #666;">Show Device Breakdown:</span>
+    <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
+      <input type="checkbox" class="channel-device-toggle" id="campaignDeviceToggle" style="opacity: 0; width: 0; height: 0;">
+      <span class="toggle-slider" style="
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+      ">
+        <span class="toggle-knob" style="
+          position: absolute;
+          content: '';
+          height: 16px;
+          width: 16px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          transition: .4s;
+          border-radius: 50%;
+        "></span>
+      </span>
+    </label>
+  `;
+  
+  campaignsTitleContainer.appendChild(document.createElement('div')); // Empty div for spacing
+  campaignsTitleContainer.appendChild(campaignsTitle);
+  campaignsTitleContainer.appendChild(campaignsToggle);
+  container.appendChild(campaignsTitleContainer);
   
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
   
-  // Function to render tables based on toggle state
-  const renderTables = (showDevices) => {
-    if (showDevices) {
+  // Initial render
+  renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
+  renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
+  
+  // Add toggle event listeners
+  document.getElementById('channelDeviceToggle').addEventListener('change', function() {
+    if (this.checked) {
       renderROASChannelsTableWithDevices(channelsTableContainer, filteredData, bucketFilter);
-      renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+      // Animate device rows
+      setTimeout(() => {
+        channelsTableContainer.querySelectorAll('.device-row').forEach(row => {
+          row.classList.add('show');
+        });
+      }, 50);
     } else {
       renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
+    }
+  });
+  
+  document.getElementById('campaignDeviceToggle').addEventListener('change', function() {
+    if (this.checked) {
+      renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+      // Animate device rows
+      setTimeout(() => {
+        campaignsTableContainer.querySelectorAll('.device-row').forEach(row => {
+          row.classList.add('show');
+        });
+      }, 50);
+    } else {
       renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
     }
-  };
-  
-  // Initial render
-  renderTables(false);
-  
-  // Add toggle event listener
-  const toggle = document.getElementById('channelDeviceToggle');
-  toggle.addEventListener('change', function() {
-    renderTables(this.checked);
   });
 }
 
 function renderROASChannelsTableWithDevices(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Get 'All' campaign records for main aggregation
-  const allCampaignRecords = data.filter(row => 
-  row['Campaign Name'] === 'All' && 
-  row['Channel Type'] === 'All' && 
-  row.Device === 'All'
-);
+// Get actual campaign records for main aggregation (exclude "All" aggregated records)
+  const channelRecords = data.filter(row => 
+    row['Campaign Name'] && 
+    row['Campaign Name'] !== 'All' &&
+    row['Channel Type'] && 
+    row['Channel Type'] !== 'All'
+  );
   
   // Get all records for device segmentation
-  const allRecords = data;
+  const allRecords = channelRecords;
   
-  // Group by Channel Type for main aggregation
+// Group by Channel Type for main aggregation
   const channelGroups = {
     'PERFORMANCE_MAX': [],
     'SHOPPING': []
   };
   
-  allCampaignRecords.forEach(product => {
+  channelRecords.forEach(product => {
     const channel = product['Channel Type'];
     if (channel && channelGroups[channel]) {
       channelGroups[channel].push(product);
