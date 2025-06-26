@@ -1939,6 +1939,66 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
 }
   }
   
+  // Create device segmentation toggle
+  const toggleContainer = document.createElement('div');
+  toggleContainer.style.cssText = `
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  `;
+  
+  toggleContainer.innerHTML = `
+    <span style="font-weight: 600; font-size: 12px; color: #333;">Show Device Breakdown:</span>
+    <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
+      <input type="checkbox" id="channelDeviceToggle" style="opacity: 0; width: 0; height: 0;">
+      <span style="
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+      "></span>
+      <span style="
+        position: absolute;
+        content: '';
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+      "></span>
+    </label>
+  `;
+  
+  // Add toggle styles
+  const styleId = 'channel-device-toggle-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      #channelDeviceToggle:checked + span {
+        background-color: #2196F3;
+      }
+      #channelDeviceToggle:checked + span + span {
+        transform: translateX(20px);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  container.appendChild(toggleContainer);
+  
   // Create channels table
   const channelsTitle = document.createElement('h3');
   channelsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
@@ -1951,9 +2011,6 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
   channelsTableContainer.style.cssText = 'margin-bottom: 30px;';
   container.appendChild(channelsTableContainer);
   
-  // *** USE ORIGINAL FUNCTION - JUST CHANGE CALL ***
-  renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
-  
   // Create campaigns table
   const campaignsTitle = document.createElement('h3');
   campaignsTitle.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
@@ -1965,8 +2022,25 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
   const campaignsTableContainer = document.createElement('div');
   container.appendChild(campaignsTableContainer);
   
-  // *** USE ORIGINAL FUNCTION - JUST CHANGE CALL ***
-  renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
+  // Function to render tables based on toggle state
+  const renderTables = (showDevices) => {
+    if (showDevices) {
+      renderROASChannelsTableWithDevices(channelsTableContainer, filteredData, bucketFilter);
+      renderROASCampaignsTableWithDevices(campaignsTableContainer, filteredData, bucketFilter);
+    } else {
+      renderROASChannelsTable(channelsTableContainer, filteredData, bucketFilter);
+      renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
+    }
+  };
+  
+  // Initial render
+  renderTables(false);
+  
+  // Add toggle event listener
+  const toggle = document.getElementById('channelDeviceToggle');
+  toggle.addEventListener('change', function() {
+    renderTables(this.checked);
+  });
 }
 
 function renderROASChannelsTableWithDevices(container, data, bucketFilter = null) {
