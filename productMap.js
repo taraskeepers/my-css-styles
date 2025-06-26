@@ -5113,6 +5113,7 @@ let bucketBadgeHTML = '';
 let roasBadgeHTML = '';
 let metricsPanelHTML = '';
 let hasBucketClass = '';
+let containerClass = '';
 let productBucketData = null; // Declare it outside the if block
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
@@ -5125,10 +5126,10 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
   productBucketData = bucketDataMap.get(lookupKey); // Remove const, just assign
   
   if (productBucketData) {
-// Get PROFITABILITY_BUCKET value by default
-const bucketResult = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
-bucketBadgeHTML = bucketResult.badgeHTML;
-const containerClass = bucketResult.containerClass;
+    // Get SELLERS value by default (since it's now the default)
+    const bucketResult = getBucketBadgeHTML(productBucketData, 'SELLERS');
+    bucketBadgeHTML = bucketResult.badgeHTML;
+    containerClass = bucketResult.containerClass;
     
     // Get ROAS badge
     roasBadgeHTML = getROASBadgeHTML(productBucketData);
@@ -5140,7 +5141,7 @@ const containerClass = bucketResult.containerClass;
       hasBucketClass = 'has-bucket';
       
       // Log for debugging
-      console.log(`[ProductMap] Product "${enhancedProduct.title}" on ${deviceValue} has bucket:`, productBucketData['PROFITABILITY_BUCKET']);
+      console.log(`[ProductMap] Product "${enhancedProduct.title}" on ${deviceValue} has bucket:`, productBucketData['SELLERS']);
     }
   } else {
     // Debug: log why no match
@@ -5161,6 +5162,7 @@ enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
 enhancedProduct.roasBadgeHTML = roasBadgeHTML;
 enhancedProduct.metricsPanelHTML = metricsPanelHTML;
 enhancedProduct.hasBucketClass = hasBucketClass;
+enhancedProduct.containerClass = containerClass;
                   
 // Now render the product with the same enhanced data
                   const html = compiledTemplate(enhancedProduct);
@@ -5439,6 +5441,7 @@ let bucketBadgeHTML = '';
 let hasBucketClass = '';
 let roasBadgeHTML = '';
 let metricsPanelHTML = '';
+let containerClass = '';
 let productBucketData = null; // Declare outside
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
@@ -5448,10 +5451,10 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
   productBucketData = bucketDataMap.get(lookupKey);
   
   if (productBucketData) {
-// Get SELLERS value by default (since it's now the default)
-const bucketResult = getBucketBadgeHTML(productBucketData, 'SELLERS');
-bucketBadgeHTML = bucketResult.badgeHTML;
-const containerClass = bucketResult.containerClass;
+    // Get SELLERS value by default (since it's now the default)
+    const bucketResult = getBucketBadgeHTML(productBucketData, 'SELLERS');
+    bucketBadgeHTML = bucketResult.badgeHTML;
+    containerClass = bucketResult.containerClass;
     
     // Get ROAS badge
     roasBadgeHTML = getROASBadgeHTML(productBucketData);
@@ -5470,6 +5473,7 @@ enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
 enhancedProduct.roasBadgeHTML = roasBadgeHTML;
 enhancedProduct.metricsPanelHTML = metricsPanelHTML;
 enhancedProduct.hasBucketClass = hasBucketClass;
+enhancedProduct.containerClass = containerClass;
                   
 // Now render the product with the same enhanced data
 const html = compiledTemplate(enhancedProduct);
