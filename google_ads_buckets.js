@@ -2771,7 +2771,7 @@ if (bucketFilter) {
 function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Filter out 'All' records and apply bucket filter if needed
+  // ONLY THIS PART CHANGED - Filter out 'All' records instead of filtering for them
   let validRecords = data.filter(row => 
     row['Campaign Name'] && 
     row['Campaign Name'] !== 'All' &&
@@ -2897,8 +2897,9 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
   thead.innerHTML = `
     <tr style="background-color: #f5f5f5;">
       <th rowspan="2" style="padding: 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; border-right: 1px solid #eee;">Channel Type</th>
-      <th colspan="6" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e8f5e9;">Performance Metrics</th>
+      <th colspan="5" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e8f5e9;">Performance Metrics</th>
       <th colspan="2" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e3f2fd;">Engagement Metrics</th>
+      <th colspan="2" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #e8f5e9;">Efficiency Metrics</th>
       <th colspan="5" style="padding: 10px; text-align: center; font-weight: 600; border-bottom: 1px solid #ddd; background-color: #fff3e0;">Volume Metrics</th>
     </tr>
     <tr style="background-color: #f5f5f5; font-size: 11px;">
@@ -2945,34 +2946,24 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
       <td style="padding: 10px 6px; text-align: center; background: #ffffff;">$${channelData.avgCPC.toFixed(2)}</td>
       <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">$${channelData.cpm.toFixed(2)}</td>
       <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-          <span style="font-weight: 600;">${channelData.impressions.toLocaleString()}</span>
-          <span style="font-size: 10px; color: #666;">${impressionPct}%</span>
-        </div>
+        ${channelData.impressions.toLocaleString()}<br>
+        <span style="font-size: 10px; color: #666;">${impressionPct}%</span>
       </td>
       <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-          <span style="font-weight: 600;">${channelData.clicks.toLocaleString()}</span>
-          <span style="font-size: 10px; color: #666;">${clicksPct}%</span>
-        </div>
+        ${channelData.clicks.toLocaleString()}<br>
+        <span style="font-size: 10px; color: #666;">${clicksPct}%</span>
       </td>
       <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-          <span style="font-weight: 600;">${channelData.conversions.toFixed(1)}</span>
-          <span style="font-size: 10px; color: #666;">${conversionsPct}%</span>
-        </div>
+        ${channelData.conversions.toFixed(1)}<br>
+        <span style="font-size: 10px; color: #666;">${conversionsPct}%</span>
       </td>
       <td style="padding: 10px 6px; text-align: center; background: #f9f9f9;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-          <span style="font-weight: 600;">$${channelData.cost.toLocaleString()}</span>
-          <span style="font-size: 10px; color: #666;">${costPct}%</span>
-        </div>
+        $${channelData.cost.toLocaleString()}<br>
+        <span style="font-size: 10px; color: #666;">${costPct}%</span>
       </td>
       <td style="padding: 10px 6px; text-align: center; background: #ffffff;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-          <span style="font-weight: 600;">$${channelData.convValue.toLocaleString()}</span>
-          <span style="font-size: 10px; color: #666;">${convValuePct}%</span>
-        </div>
+        $${channelData.convValue.toLocaleString()}<br>
+        <span style="font-size: 10px; color: #666;">${convValuePct}%</span>
       </td>
     `;
     
@@ -2997,34 +2988,24 @@ function renderROASChannelsTable(container, data, bucketFilter = null) {
     <td style="padding: 10px 6px; text-align: center; background: #263238;">$${summaryAvgCPC.toFixed(2)}</td>
     <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">$${summaryCPM.toFixed(2)}</td>
     <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalImpressions.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
+      ${summary.totalImpressions.toLocaleString()}<br>
+      <span style="font-size: 10px; color: #94a1a8;">100%</span>
     </td>
     <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalClicks.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
+      ${summary.totalClicks.toLocaleString()}<br>
+      <span style="font-size: 10px; color: #94a1a8;">100%</span>
     </td>
     <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">${summary.totalConversions.toFixed(1)}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
+      ${summary.totalConversions.toFixed(1)}<br>
+      <span style="font-size: 10px; color: #94a1a8;">100%</span>
     </td>
     <td style="padding: 10px 6px; text-align: center; background: #2e3b40;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalCost.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
+      $${summary.totalCost.toLocaleString()}<br>
+      <span style="font-size: 10px; color: #94a1a8;">100%</span>
     </td>
     <td style="padding: 10px 6px; text-align: center; background: #263238;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-        <span style="font-weight: 700; font-size: 14px; color: #2e7d32;">$${summary.totalConvValue.toLocaleString()}</span>
-        <span style="font-size: 10px; color: #666;">100%</span>
-      </div>
+      $${summary.totalConvValue.toLocaleString()}<br>
+      <span style="font-size: 10px; color: #94a1a8;">100%</span>
     </td>
   `;
   
