@@ -509,17 +509,24 @@ if (chartsContainer) {
   }
 }
     
-    // Render metrics table
-    if (metricsTableContainer) {
-      // Apply margin-top only for Suggestions bucket type
-      if (bucketType === 'Suggestions') {
-        metricsTableContainer.style.marginTop = '100px';
-        renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
-      } else {
-        metricsTableContainer.style.marginTop = '';
-        renderROASMetricsTable(metricsTableContainer, filteredData);
-      }
+// Render metrics table
+if (metricsTableContainer) {
+  // Check if we're in Buckets view
+  const bucketsViewActive = document.getElementById('viewBucketsGoogleAds')?.classList.contains('active');
+  
+  // Apply margin-top for Suggestions bucket type OR when in Buckets view
+  if (bucketType === 'Suggestions' || bucketsViewActive) {
+    metricsTableContainer.style.marginTop = '100px';
+    if (bucketType === 'Suggestions') {
+      renderSuggestionsMetricsTable(metricsTableContainer, filteredData);
+    } else {
+      renderROASMetricsTable(metricsTableContainer, filteredData);
     }
+  } else {
+    metricsTableContainer.style.marginTop = '';
+    renderROASMetricsTable(metricsTableContainer, filteredData);
+  }
+}
     
     // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
