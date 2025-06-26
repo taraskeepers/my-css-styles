@@ -515,7 +515,6 @@ function handleMainBucketSwitch(buttonId) {
   }
 }
 
-// Show buckets overview (default view)
 function showBucketsOverview() {
   // Show original buckets containers
   const roasCharts = document.getElementById('roas_charts');
@@ -534,6 +533,10 @@ function showBucketsOverview() {
     filterContainer.style.display = 'none';
   }
   if (bucketedProducts) bucketedProducts.style.display = 'none';
+  
+  // Show bucket date range for Buckets Overview
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'block';
 }
 
 // Show bucketed products view
@@ -585,6 +588,10 @@ if (filterContainer) {
   
   // Store that we're in products view with no filter
   window.currentBucketFilter = null;
+
+  // Hide bucket date range for Bucketed Products view
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Load bucketed products
   loadBucketedProducts();
