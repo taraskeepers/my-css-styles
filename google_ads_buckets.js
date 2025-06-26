@@ -528,14 +528,43 @@ if (metricsTableContainer) {
   }
 }
     
-    // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
+// Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
       if (bucketType === 'Suggestions') {
         channelsContainer.style.display = 'none';
       } else {
         channelsContainer.style.display = '';
-        renderROASChannelsContainer(channelsContainer, result.data, null);
+        
+        // Load performance data for channels table
+        try {
+          const performanceTableName = `${accountPrefix}_googleSheets_productPerformance`;
+          const perfDb = await new Promise((resolve, reject) => {
+            const request = indexedDB.open('myAppDB');
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = () => reject(new Error('Failed to open myAppDB'));
+          });
+          
+          const perfTransaction = perfDb.transaction(['projectData'], 'readonly');
+          const perfObjectStore = perfTransaction.objectStore('projectData');
+          const perfGetRequest = perfObjectStore.get(performanceTableName);
+          
+          const perfResult = await new Promise((resolve, reject) => {
+            perfGetRequest.onsuccess = () => resolve(perfGetRequest.result);
+            perfGetRequest.onerror = () => reject(perfGetRequest.error);
+          });
+          
+          perfDb.close();
+          
+          if (perfResult && perfResult.data) {
+            renderROASChannelsContainer(channelsContainer, perfResult.data, null);
+          } else {
+            renderROASChannelsContainer(channelsContainer, result.data, null);
+          }
+        } catch (error) {
+          console.error('[loadAndRenderROASBuckets] Error loading performance data:', error);
+          renderROASChannelsContainer(channelsContainer, result.data, null);
+        }
       }
     }
     
