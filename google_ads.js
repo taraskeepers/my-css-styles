@@ -6034,15 +6034,22 @@ setTimeout(() => {
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   
-// Show Metrics Table, Channels and Buckets containers (NOT roas_charts)
+// Show Metrics Table and Buckets containers (NOT roas_charts or roas_channels)
   const roasCharts = document.getElementById('roas_charts');
   const roasMetricsTable = document.getElementById('roas_metrics_table');
   const roasChannels = document.getElementById('roas_channels');
   const buckets_products = document.getElementById('buckets_products');
   if (roasCharts) roasCharts.style.display = 'none';
-  if (roasMetricsTable) roasMetricsTable.style.display = 'block';
-  if (roasChannels) roasChannels.style.display = 'block';
+  if (roasMetricsTable) {
+    roasMetricsTable.style.display = 'block';
+    roasMetricsTable.style.marginTop = '100px';  // Add margin-top
+  }
+  if (roasChannels) roasChannels.style.display = 'none';  // CHANGED from 'block' to 'none'
   if (buckets_products) buckets_products.style.display = 'block';
+  
+  // Show bucket date range for Buckets & Funnels
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'block';
   
   // Hide toggle controls
   const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
