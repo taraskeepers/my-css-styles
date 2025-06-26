@@ -5430,8 +5430,8 @@ if (window.googleAdsApexCharts) {
   window.googleAdsApexCharts = [];
   
 container.innerHTML = `
-    <div id="googleAdsContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
-      <div id="googleAdsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
+    <div id="googleAdsContainer" class="nav-collapsed" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+      <div id="googleAdsNavPanel" class="collapsed" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="google-ads-top-controls">
@@ -8056,35 +8056,74 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 setTimeout(() => {
   console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
   
+  // FIRST: Collapse the nav panel before any selections
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.add('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.add('nav-collapsed');
+  }
+  
   const firstNavItem = document.querySelector('.nav-google-ads-item');
   
   if (firstNavItem && allCompanyProducts.length > 0) {
     const firstProduct = allCompanyProducts[0];
     console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
     
-// Click the first product WITHOUT triggering any view mode changes
-firstNavItem.click();
+    // Set Performance Overview as active BEFORE clicking the product
+    const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
+    const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+    const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
+    const chartsBtn = document.getElementById('viewChartsGoogleAds');
+    const mapBtn = document.getElementById('viewMapGoogleAds');
 
-// Set Performance Overview as active without triggering other modes
-setTimeout(() => {
-  const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
-  const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-  const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
-  const chartsBtn = document.getElementById('viewChartsGoogleAds');
-  const mapBtn = document.getElementById('viewMapGoogleAds');
-
-  // Set button states WITHOUT clicking
-  if (performanceOverviewBtn) performanceOverviewBtn.classList.add('active');
-  if (overviewBtn) overviewBtn.classList.remove('active');
-  if (bucketsBtn) bucketsBtn.classList.remove('active');
-  if (chartsBtn) chartsBtn.classList.remove('active');
-  if (mapBtn) mapBtn.classList.remove('active');
-
-  // Now trigger Performance Overview view
-  if (performanceOverviewBtn) {
-    performanceOverviewBtn.click();
-  }
-}, 300);
+    // Set button states WITHOUT clicking
+    if (performanceOverviewBtn) performanceOverviewBtn.classList.add('active');
+    if (overviewBtn) overviewBtn.classList.remove('active');
+    if (bucketsBtn) bucketsBtn.classList.remove('active');
+    if (chartsBtn) chartsBtn.classList.remove('active');
+    if (mapBtn) mapBtn.classList.remove('active');
+    
+    // Now click the first product
+    firstNavItem.click();
+    
+    // Then trigger Performance Overview view with proper container setup
+    setTimeout(() => {
+      if (performanceOverviewBtn) {
+        // Manually set up the Performance Overview state without triggering clicks
+        const table = document.querySelector('.google-ads-table');
+        if (table) table.style.display = 'none';
+        
+        const productInfo = document.getElementById('product_info');
+        const productMetrics = document.getElementById('product_metrics');
+        const productRankingMap = document.getElementById('product_ranking_map');
+        const productTables = document.getElementById('product_tables');
+        const mapContainer = document.getElementById('googleAdsMapContainer');
+        
+        if (productInfo) productInfo.style.display = 'none';
+        if (productMetrics) productMetrics.style.display = 'none';
+        if (productRankingMap) productRankingMap.style.display = 'none';
+        if (productTables) productTables.style.display = 'none';
+        if (mapContainer) mapContainer.style.display = 'none';
+        
+        const roasCharts = document.getElementById('roas_charts');
+        const roasMetricsTable = document.getElementById('roas_metrics_table');
+        const roasChannels = document.getElementById('roas_channels');
+        const buckets_products = document.getElementById('buckets_products');
+        
+        if (roasCharts) roasCharts.style.display = 'block';
+        if (roasMetricsTable) roasMetricsTable.style.display = 'block';
+        if (roasChannels) roasChannels.style.display = 'block';
+        if (buckets_products) buckets_products.style.display = 'block';
+        
+        // Load the ROAS data
+        if (window.loadAndRenderROASBuckets) {
+          window.loadAndRenderROASBuckets();
+        }
+      }
+    }, 100);
     
   } else {
     console.warn('[renderGoogleAdsTable] No products found for auto-selection');
