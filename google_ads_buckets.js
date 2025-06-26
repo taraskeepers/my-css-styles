@@ -1944,12 +1944,34 @@ function renderROASChannelsContainer(container, data, bucketFilter = null) {
   if (!document.getElementById(styleId)) {
     const style = document.createElement('style');
     style.id = styleId;
-    style.textContent = `
+style.textContent = `
       .channel-device-toggle:checked + .toggle-slider {
-        background-color: #2196F3;
+        background-color: #2196F3 !important;
       }
       .channel-device-toggle:checked + .toggle-slider .toggle-knob {
-        transform: translateX(20px);
+        transform: translateX(20px) !important;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+      }
+      .toggle-knob {
+        position: absolute;
+        content: '';
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
       }
       .device-row {
         opacity: 0;
@@ -2144,6 +2166,24 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
       deviceChannelGroups[channel][device].push(product);
     }
   });
+
+  // Calculate totals for percentage bars
+  const grandTotals = Object.values(channelGroups).reduce((acc, products) => {
+    products.forEach(product => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+    });
+    return acc;
+  }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+
+  // Define channel colors
+  const channelColors = {
+    'PERFORMANCE_MAX': '#4CAF50',
+    'SHOPPING': '#2196F3'
+  };
   
   // Calculate aggregated metrics for each channel (main rows)
   const channelMetrics = Object.entries(channelGroups).map(([channelName, products]) => {
@@ -2311,11 +2351,11 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpm.toFixed(2))}</td>
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.ctr.toFixed(2) + '%')}</td>
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.cvr.toFixed(2) + '%')}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.impressions.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.clicks.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.conversions.toFixed(1))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cost.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.convValue.toLocaleString())}</td>
+<td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.impressions, grandTotals.impressions, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.clicks, grandTotals.clicks, (v) => v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.conversions, grandTotals.conversions, (v) => v.toFixed(1), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(channel.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(channel.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), channelColors[channel.channel])}</td>
     `;
     
     tbody.appendChild(row);
@@ -2409,6 +2449,24 @@ let validRecords = data.filter(row =>
       deviceCampaignGroups[campaignName][device].push(product);
     });
   });
+
+    // Calculate totals for percentage bars
+  const grandTotals = Object.values(channelGroups).reduce((acc, products) => {
+    products.forEach(product => {
+      acc.impressions += parseInt(product.Impressions) || 0;
+      acc.clicks += parseInt(product.Clicks) || 0;
+      acc.cost += parseFloat(product.Cost) || 0;
+      acc.conversions += parseFloat(product.Conversions) || 0;
+      acc.convValue += parseFloat(product.ConvValue) || 0;
+    });
+    return acc;
+  }, { impressions: 0, clicks: 0, cost: 0, conversions: 0, convValue: 0 });
+
+  // Define channel colors
+  const channelColors = {
+    'PERFORMANCE_MAX': '#4CAF50',
+    'SHOPPING': '#2196F3'
+  };
   
   // Calculate aggregated metrics for each campaign (need to aggregate across devices)
   const campaignMetrics = Object.entries(campaignGroups).map(([campaignName, allRecords]) => {
@@ -2539,7 +2597,7 @@ let validRecords = data.filter(row =>
   const tbody = document.createElement('tbody');
   
   // Add campaign rows with device segmentation
-  campaignMetrics.forEach(campaign => {
+  campaignMetrics.forEach((campaign, index) => {
     // Main campaign row
     const row = document.createElement('tr');
     row.className = 'main-row';
@@ -2558,11 +2616,11 @@ let validRecords = data.filter(row =>
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cpm.toFixed(2))}</td>
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.ctr.toFixed(2) + '%')}</td>
       <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(campaign.cvr.toFixed(2) + '%')}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.impressions.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(campaign.clicks.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.conversions.toFixed(1))}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cost.toLocaleString())}</td>
-      <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + campaign.convValue.toLocaleString())}</td>
+<td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(campaign.impressions, grandTotals.impressions, (v) => v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(campaign.clicks, grandTotals.clicks, (v) => v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(campaign.conversions, grandTotals.conversions, (v) => v.toFixed(1), campaignColors[index % campaignColors.length])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createBarCell(campaign.cost, grandTotals.cost, (v) => '$' + v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
+      <td style="padding: 6px; text-align: center; vertical-align: middle; background: #ffffff;">${createBarCell(campaign.convValue, grandTotals.convValue, (v) => '$' + v.toLocaleString(), campaignColors[index % campaignColors.length])}</td>
     `;
     
     tbody.appendChild(row);
