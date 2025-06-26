@@ -529,7 +529,7 @@ function showBucketsOverview() {
     roasMetricsTable.style.display = 'block';
     roasMetricsTable.style.marginTop = '100px';  // Add margin-top
   }
-  if (roasChannels) roasChannels.style.display = 'none';  // CHANGED from 'block' to 'none'
+  if (roasChannels) roasChannels.style.display = 'none';  // THIS IS THE KEY CHANGE
   if (buckets_products) buckets_products.style.display = 'block';
   if (filterContainer) {
     // Only change display property, preserve other styles
