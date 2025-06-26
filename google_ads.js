@@ -5650,6 +5650,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewOverviewGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -5937,7 +5938,7 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   
   if (roasCharts) roasCharts.style.display = 'block';
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
-  if (roasChannels) roasChannels.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'block';
   if (buckets_products) buckets_products.style.display = 'none';
   
   // Hide toggle controls
@@ -5947,6 +5948,15 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
 
     // Reset any filters on roas_channels
+  const channelFilters = document.querySelectorAll('#roas_channels select');
+  channelFilters.forEach(filter => {
+    if (filter) filter.value = 'all';
+  });
+
+  // Reset device filter to 'all' for Performance Overview
+  window.selectedDeviceFilter = 'all';
+  
+  // Reset any channel filters
   const channelFilters = document.querySelectorAll('#roas_channels select');
   channelFilters.forEach(filter => {
     if (filter) filter.value = 'all';
@@ -8217,11 +8227,14 @@ const roasCharts = document.getElementById('roas_charts');
         const roasChannels = document.getElementById('roas_channels');
         const buckets_products = document.getElementById('buckets_products');
         
-        // Only show roas_charts for Performance Overview
+// Only show roas_charts for Performance Overview
         if (roasCharts) roasCharts.style.display = 'block';
         if (roasMetricsTable) roasMetricsTable.style.display = 'none';
-        if (roasChannels) roasChannels.style.display = 'none';
+        if (roasChannels) roasChannels.style.display = 'block';  // CHANGED FROM 'none' TO 'block'
         if (buckets_products) buckets_products.style.display = 'none';
+        
+        // Set device filter to 'all' for initial load
+        window.selectedDeviceFilter = 'all';
         
         // Hide toggle controls for Performance Overview
         const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
