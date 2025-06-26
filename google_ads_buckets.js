@@ -2758,9 +2758,10 @@ if (bucketFilter) {
 function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-// Use Campaign="All" records and exclude Channel Type = "All"
+// Use individual campaign records (exclude "All") and exclude Channel Type = "All"
 let validRecords = data.filter(row => 
-  row['Campaign Name'] === 'All' &&
+  row['Campaign Name'] && 
+  row['Campaign Name'] !== 'All' &&
   row['Channel Type'] && 
   row['Channel Type'] !== 'All'
 );
