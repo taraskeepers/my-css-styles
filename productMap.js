@@ -540,12 +540,19 @@ function getROASBadgeHTML(bucketData) {
 
 // Function to get metrics panel HTML
 function getMetricsPanelHTML(bucketData) {
-  if (!bucketData) return '<div class="product-metrics-panel"></div>';
+  if (!bucketData) return '';
+  
+  // Check if we have any meaningful data
+  const hasData = bucketData['Clicks'] > 0 || bucketData['Cost'] > 0 || bucketData['Conversions'] > 0 || bucketData['Impressions'] > 0;
+  if (!hasData) return '';
   
   const formatNumber = (value, decimals = 0) => {
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
     if (num === 0) return '0';
+    if (num >= 1000 && decimals === 0) {
+      return (num / 1000).toFixed(1) + 'k';
+    }
     return num.toFixed(decimals);
   };
   
@@ -556,6 +563,13 @@ function getMetricsPanelHTML(bucketData) {
       return '$' + (num / 1000).toFixed(1) + 'k';
     }
     return '$' + num.toFixed(0);
+  };
+  
+  const formatCTR = (clicks, impressions) => {
+    const c = parseFloat(clicks) || 0;
+    const i = parseFloat(impressions) || 0;
+    if (i === 0) return '0%';
+    return ((c / i) * 100).toFixed(1) + '%';
   };
   
   const getTrend = (current, previous) => {
@@ -577,23 +591,33 @@ function getMetricsPanelHTML(bucketData) {
   const roasTrend = getTrend(bucketData['ROAS'], bucketData['prev_ROAS']);
   const costTrend = getTrend(bucketData['Cost'], bucketData['prev_Cost']);
   const convTrend = getTrend(bucketData['Conversions'], bucketData['prev_Conversions']);
+  const imprTrend = getTrend(bucketData['Impressions'], bucketData['prev_Impressions']);
   
   return `
     <div class="product-metrics-panel">
+      <div class="metric-item-small">
+        <div class="metric-label-small">Impr</div>
+        <div class="metric-value-small">${formatNumber(bucketData['Impressions'])}</div>
+        <div class="metric-trend-small ${imprTrend.class}">${imprTrend.arrow}${imprTrend.value}</div>
+      </div>
       <div class="metric-item-small">
         <div class="metric-label-small">Clicks</div>
         <div class="metric-value-small">${formatNumber(bucketData['Clicks'])}</div>
         <div class="metric-trend-small ${clicksTrend.class}">${clicksTrend.arrow}${clicksTrend.value}</div>
       </div>
       <div class="metric-item-small">
-        <div class="metric-label-small">ROAS</div>
-        <div class="metric-value-small">${formatNumber(bucketData['ROAS'], 1)}x</div>
-        <div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>
+        <div class="metric-label-small">CTR</div>
+        <div class="metric-value-small">${formatCTR(bucketData['Clicks'], bucketData['Impressions'])}</div>
       </div>
       <div class="metric-item-small">
         <div class="metric-label-small">Cost</div>
         <div class="metric-value-small">${formatCurrency(bucketData['Cost'])}</div>
         <div class="metric-trend-small ${costTrend.class}">${costTrend.arrow}${costTrend.value}</div>
+      </div>
+      <div class="metric-item-small">
+        <div class="metric-label-small">ROAS</div>
+        <div class="metric-value-small">${formatNumber(bucketData['ROAS'], 1)}x</div>
+        <div class="metric-trend-small ${roasTrend.class}">${roasTrend.arrow}${roasTrend.value}</div>
       </div>
       <div class="metric-item-small">
         <div class="metric-label-small">Conv</div>
@@ -2034,13 +2058,16 @@ if (metricsToggle) {
       }
     });
     
-    metricsPanels.forEach(panel => {
-      if (isChecked) {
-        panel.classList.add('visible');
-      } else {
-        panel.classList.remove('visible');
-      }
-    });
+metricsPanels.forEach(panel => {
+  const wrapper = panel.closest('.card-wrapper');
+  if (wrapper && wrapper.getAttribute('data-has-metrics') === 'true') {
+    if (isChecked) {
+      panel.classList.add('visible');
+    } else {
+      panel.classList.remove('visible');
+    }
+  }
+});
   });
 }
   
@@ -2846,7 +2873,7 @@ if (metricsToggle) {
 }
 
 .card-wrapper.with-metrics {
-  width: 200px;
+  width: 210px;
 }
 
 .product-metrics-panel {
@@ -2861,17 +2888,52 @@ if (metricsToggle) {
   flex-direction: column;
   justify-content: space-evenly;
   padding: 0;
-  font-size: 10px;
   transition: width 0.3s ease, padding 0.3s ease;
   opacity: 0;
   min-height: 280px;
 }
 
 .product-metrics-panel.visible {
-  width: 50px;
-  padding: 8px 2px;
+  width: 60px;
+  padding: 12px 4px;
   border-left: 1px solid #dee2e6;
   opacity: 1;
+}
+
+.metric-item-small {
+  text-align: center;
+  margin: 8px 0;
+  padding: 4px 2px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.metric-label-small {
+  font-size: 10px;
+  color: #555;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+  margin-bottom: 3px;
+}
+
+.metric-value-small {
+  font-size: 14px;
+  font-weight: 800;
+  color: #333;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.metric-trend-small {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 2px;
+  padding: 1px 3px;
+  border-radius: 3px;
 }
 
 .roas-good { background-color: #4CAF50; }
@@ -2939,35 +3001,6 @@ input:checked + .metrics-slider:before {
   font-weight: 500;
   color: #333;
   white-space: nowrap;
-}
-
-.metric-item-small {
-  text-align: center;
-  margin: 1px 0;
-}
-
-.metric-label-small {
-  font-size: 8px;
-  color: #666;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1;
-  margin-bottom: 1px;
-}
-
-.metric-value-small {
-  font-size: 11px;
-  font-weight: 700;
-  color: #333;
-  line-height: 1;
-}
-
-.metric-trend-small {
-  font-size: 8px;
-  font-weight: 600;
-  line-height: 1;
-  margin-top: 1px;
 }
 
 /* Update ad-details to support metrics panel */
@@ -3414,17 +3447,17 @@ popupStyle.textContent = `
 
 .trend-up { 
   color: #28a745; 
-  background: #d4edda;
+  background: rgba(40, 167, 69, 0.1);
 }
 
 .trend-down { 
   color: #dc3545; 
-  background: #f8d7da;
+  background: rgba(220, 53, 69, 0.1);
 }
 
 .trend-neutral { 
   color: #6c757d; 
-  background: #e9ecef;
+  background: rgba(108, 117, 125, 0.1);
 }
 /* Popup Tabs */
 .popup-tabs {
@@ -3631,11 +3664,6 @@ popupStyle.textContent = `
   color: #666;
   font-size: 14px;
 }
-
-/* Ensure ROAS coloring works in all tabs */
-.roas-good { color: #28a745 !important; }
-.roas-medium { color: #ffc107 !important; }
-.roas-poor { color: #dc3545 !important; }
 `;
 document.head.appendChild(popupStyle);
   
@@ -4778,11 +4806,16 @@ adCard.style.flexShrink = "0";
 // Add the ad card to wrapper
 cardWrapper.appendChild(adCard);
 
-// Create and add metrics panel
-const metricsPanel = document.createElement('div');
-metricsPanel.className = 'product-metrics-panel';
-metricsPanel.innerHTML = metricsPanelHTML || '';
-cardWrapper.appendChild(metricsPanel);
+// Create and add metrics panel only if there's data
+if (metricsPanelHTML) {
+  const metricsPanel = document.createElement('div');
+  metricsPanel.className = 'product-metrics-panel';
+  metricsPanel.innerHTML = metricsPanelHTML;
+  cardWrapper.appendChild(metricsPanel);
+  cardWrapper.setAttribute('data-has-metrics', 'true');
+} else {
+  cardWrapper.setAttribute('data-has-metrics', 'false');
+}
 
 // Add wrapper to the products cell
 productCellDiv.appendChild(cardWrapper);
