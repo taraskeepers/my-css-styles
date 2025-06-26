@@ -5033,38 +5033,30 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
 // Get bucket data for this product
 let bucketBadgeHTML = '';
 let hasBucketClass = '';
+let roasBadgeHTML = '';
+let metricsPanelHTML = '';
 let productBucketData = null; // Declare outside
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
   // Normalize device value from current row to uppercase
   const deviceValue = (rowData.device || '').toUpperCase();
   const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
-  productBucketData = bucketDataMap.get(lookupKey); // Remove const
+  productBucketData = bucketDataMap.get(lookupKey);
   
   if (productBucketData) {
-    // Get ROAS_Bucket value by default
-    const bucketValue = productBucketData.ROAS_Bucket;
+    // Get PROFITABILITY_BUCKET value by default
+    bucketBadgeHTML = getBucketBadgeHTML(productBucketData, 'PROFITABILITY_BUCKET');
     
-    if (bucketValue && bucketValue !== '') {
-      bucketBadgeHTML = getBucketBadgeHTML(bucketValue, 'ROAS');
+    // Get ROAS badge
+    roasBadgeHTML = getROASBadgeHTML(productBucketData);
+    
+    // Get metrics panel
+    metricsPanelHTML = getMetricsPanelHTML(productBucketData);
+    
+    if (bucketBadgeHTML) {
       hasBucketClass = 'has-bucket';
-      
-      // Log for debugging
-      console.log(`[ProductMap] Product "${enhancedProduct.title}" has ROAS_Bucket: ${bucketValue}`);
     }
   }
-}
-
-// Get ROAS badge and metrics panel for inactive products too
-let roasBadgeHTML = '';
-let metricsPanelHTML = '';
-
-if (productBucketData) {
-  // Get ROAS badge
-  roasBadgeHTML = getROASBadgeHTML(productBucketData);
-  
-  // Get metrics panel
-  metricsPanelHTML = getMetricsPanelHTML(productBucketData);
 }
 
 // Add bucket info to enhancedProduct
@@ -5072,7 +5064,7 @@ enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
 enhancedProduct.roasBadgeHTML = roasBadgeHTML;
 enhancedProduct.metricsPanelHTML = metricsPanelHTML;
 enhancedProduct.hasBucketClass = hasBucketClass;
-
+                  
 // Now render the product with the same enhanced data
 const html = compiledTemplate(enhancedProduct);
 const tempDiv = document.createElement('div');
@@ -5145,45 +5137,6 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-
-// Add bucket info to enhancedProduct
-enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
-enhancedProduct.hasBucketClass = hasBucketClass;
-                  
-                  // Now render the product with the same enhanced data
-                  const html = compiledTemplate(enhancedProduct);
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = html;
-                  
-                  // Get just the first element (the ad-details div)
-                  const adCard = tempDiv.firstElementChild;
-                  adCard.classList.remove('my-company');
-
-                  // Add has-bucket class if applicable
-if (hasBucketClass) {
-  adCard.classList.add(hasBucketClass);
-}
-
-// Insert bucket badge as the first child of ad-details
-if (bucketBadgeHTML) {
-  adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
-}
-                  
-                  // Set explicit width as a safeguard
-                  adCard.style.width = "150px";
-                  adCard.style.flexShrink = "0";
-                  
-                  // Add inactive class for styling
-                  adCard.classList.add('inactive-product');
-                  
-                  // Add status indicator
-                  const statusIndicator = document.createElement('div');
-                  statusIndicator.className = 'product-status-indicator product-status-inactive';
-                  statusIndicator.textContent = 'Inactive';
-                  adCard.appendChild(statusIndicator);
-                  
-                  // Add to the products cell (after active products)
-                  productCellDiv.appendChild(adCard);
                 } catch (error) {
                   console.error("[renderProductMapTable] Error rendering inactive product:", error);
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
