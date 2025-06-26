@@ -528,43 +528,14 @@ if (metricsTableContainer) {
   }
 }
     
-// Render channels container with device aggregation - KEEP ORIGINAL LOGIC
+    // Render channels container with device aggregation - KEEP ORIGINAL LOGIC
     const channelsContainer = document.getElementById('roas_channels');
     if (channelsContainer) {
       if (bucketType === 'Suggestions') {
         channelsContainer.style.display = 'none';
       } else {
         channelsContainer.style.display = '';
-        
-        // Load performance data for channels table
-        try {
-          const performanceTableName = `${accountPrefix}_googleSheets_productPerformance`;
-          const perfDb = await new Promise((resolve, reject) => {
-            const request = indexedDB.open('myAppDB');
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = () => reject(new Error('Failed to open myAppDB'));
-          });
-          
-          const perfTransaction = perfDb.transaction(['projectData'], 'readonly');
-          const perfObjectStore = perfTransaction.objectStore('projectData');
-          const perfGetRequest = perfObjectStore.get(performanceTableName);
-          
-          const perfResult = await new Promise((resolve, reject) => {
-            perfGetRequest.onsuccess = () => resolve(perfGetRequest.result);
-            perfGetRequest.onerror = () => reject(perfGetRequest.error);
-          });
-          
-          perfDb.close();
-          
-          if (perfResult && perfResult.data) {
-            renderROASChannelsContainer(channelsContainer, perfResult.data, null);
-          } else {
-            renderROASChannelsContainer(channelsContainer, result.data, null);
-          }
-        } catch (error) {
-          console.error('[loadAndRenderROASBuckets] Error loading performance data:', error);
-          renderROASChannelsContainer(channelsContainer, result.data, null);
-        }
+        renderROASChannelsContainer(channelsContainer, result.data, null);
       }
     }
     
@@ -2515,6 +2486,19 @@ function renderROASCampaignsTable(container, data, bucketFilter = null) {
 // Exclude records where Campaign Name = "All", include all others
 // Apply bucket filter if provided
 let validRecords = data.filter(row => row['Campaign Name'] && row['Campaign Name'] !== 'All');
+
+// DEBUG: Check what campaign data we have
+  console.log('[DEBUG renderROASCampaignsTable] Total data rows:', data.length);
+  console.log('[DEBUG renderROASCampaignsTable] Valid campaign records:', validRecords.length);
+  
+  // Check what Campaign Names exist
+  const allCampaignNames = [...new Set(data.map(row => row['Campaign Name']))];
+  console.log('[DEBUG renderROASCampaignsTable] All Campaign Names in data:', allCampaignNames);
+  
+  if (validRecords.length === 0) {
+    console.log('[DEBUG renderROASCampaignsTable] No individual campaign records found!');
+  }
+  
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
   if (bucketType === 'Suggestions') {
