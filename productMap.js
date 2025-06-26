@@ -4716,6 +4716,7 @@ let bucketBadgeHTML = '';
 let roasBadgeHTML = '';
 let metricsPanelHTML = '';
 let hasBucketClass = '';
+let productBucketData = null; // Declare it outside the if block
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
   // Normalize device value from current row to uppercase
@@ -4724,7 +4725,7 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
   
   console.log(`[ProductMap] Looking up bucket for: "${lookupKey}"`); // Debug log
   
-  const productBucketData = bucketDataMap.get(lookupKey);
+  productBucketData = bucketDataMap.get(lookupKey); // Remove const, just assign
   
   if (productBucketData) {
     // Get PROFITABILITY_BUCKET value by default
@@ -4797,8 +4798,8 @@ const hasMetricsData = productBucketData && (
   (productBucketData['Impressions'] && productBucketData['Impressions'] > 0)
 );
 
-// Only create wrapper if we have metrics data and toggle is on
-if (hasMetricsData) {
+// Only create wrapper if we have metrics data
+if (hasMetricsData && metricsPanelHTML) {
   // Create wrapper div that will contain both ad card and metrics panel
   const cardWrapper = document.createElement('div');
   cardWrapper.className = 'card-wrapper';
@@ -5032,9 +5033,13 @@ enhancedProduct.visibilityBarValue = visibilityBarValue || 0;
 // Get bucket data for this product
 let bucketBadgeHTML = '';
 let hasBucketClass = '';
+let productBucketData = null; // Declare outside
 
 if (googleAdsEnabled && bucketDataMap.size > 0) {
-  const productBucketData = bucketDataMap.get(enhancedProduct.title.toLowerCase());
+  // Normalize device value from current row to uppercase
+  const deviceValue = (rowData.device || '').toUpperCase();
+  const lookupKey = `${enhancedProduct.title.toLowerCase()}|${deviceValue}`;
+  productBucketData = bucketDataMap.get(lookupKey); // Remove const
   
   if (productBucketData) {
     // Get ROAS_Bucket value by default
@@ -5048,6 +5053,97 @@ if (googleAdsEnabled && bucketDataMap.size > 0) {
       console.log(`[ProductMap] Product "${enhancedProduct.title}" has ROAS_Bucket: ${bucketValue}`);
     }
   }
+}
+
+// Get ROAS badge and metrics panel for inactive products too
+let roasBadgeHTML = '';
+let metricsPanelHTML = '';
+
+if (productBucketData) {
+  // Get ROAS badge
+  roasBadgeHTML = getROASBadgeHTML(productBucketData);
+  
+  // Get metrics panel
+  metricsPanelHTML = getMetricsPanelHTML(productBucketData);
+}
+
+// Add bucket info to enhancedProduct
+enhancedProduct.bucketBadgeHTML = bucketBadgeHTML;
+enhancedProduct.roasBadgeHTML = roasBadgeHTML;
+enhancedProduct.metricsPanelHTML = metricsPanelHTML;
+enhancedProduct.hasBucketClass = hasBucketClass;
+
+// Now render the product with the same enhanced data
+const html = compiledTemplate(enhancedProduct);
+const tempDiv = document.createElement('div');
+tempDiv.innerHTML = html;
+
+// Get just the first element (the ad-details div)
+const adCard = tempDiv.firstElementChild;
+adCard.classList.remove('my-company');
+
+// Add has-bucket class if applicable
+if (hasBucketClass) {
+  adCard.classList.add(hasBucketClass);
+}
+
+// Insert bucket badge as the first child of ad-details
+if (bucketBadgeHTML) {
+  adCard.insertAdjacentHTML('afterbegin', bucketBadgeHTML);
+}
+
+// Insert ROAS badge over the image
+if (roasBadgeHTML) {
+  const thumbnailContainer = adCard.querySelector('.ad-thumbnail-container');
+  if (thumbnailContainer) {
+    thumbnailContainer.insertAdjacentHTML('beforeend', roasBadgeHTML);
+  }
+}
+
+// Add inactive class for styling
+adCard.classList.add('inactive-product');
+
+// Add status indicator
+const statusIndicator = document.createElement('div');
+statusIndicator.className = 'product-status-indicator product-status-inactive';
+statusIndicator.textContent = 'Inactive';
+adCard.appendChild(statusIndicator);
+
+// Check if we have actual metrics data
+const hasMetricsData = productBucketData && (
+  (productBucketData['Clicks'] && productBucketData['Clicks'] > 0) ||
+  (productBucketData['Cost'] && productBucketData['Cost'] > 0) ||
+  (productBucketData['Conversions'] && productBucketData['Conversions'] > 0) ||
+  (productBucketData['Impressions'] && productBucketData['Impressions'] > 0)
+);
+
+// Only create wrapper if we have metrics data
+if (hasMetricsData && metricsPanelHTML) {
+  // Create wrapper div that will contain both ad card and metrics panel
+  const cardWrapper = document.createElement('div');
+  cardWrapper.className = 'card-wrapper';
+  cardWrapper.setAttribute('data-has-metrics', 'true');
+  
+  // Set explicit width for ad card
+  adCard.style.width = "150px";
+  adCard.style.flexShrink = "0";
+  
+  // Add the ad card to wrapper
+  cardWrapper.appendChild(adCard);
+  
+  // Create and add metrics panel
+  const metricsPanel = document.createElement('div');
+  metricsPanel.className = 'product-metrics-panel';
+  metricsPanel.innerHTML = metricsPanelHTML;
+  cardWrapper.appendChild(metricsPanel);
+  
+  // Add wrapper to the products cell
+  productCellDiv.appendChild(cardWrapper);
+} else {
+  // No metrics data, just add the card directly
+  adCard.style.width = "150px";
+  adCard.style.flexShrink = "0";
+  productCellDiv.appendChild(adCard);
 }
 
 // Add bucket info to enhancedProduct
