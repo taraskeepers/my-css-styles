@@ -2103,7 +2103,7 @@ function renderROASChannelsTableWithDevices(container, data, bucketFilter = null
   });
 
   // Calculate totals for percentage bars
-  const grandTotals = Object.values(campaignGroups).reduce((acc, products) => {
+  const grandTotals = Object.values(channelGroups).reduce((acc, products) => {
     products.forEach(product => {
       acc.impressions += parseInt(product.Impressions) || 0;
       acc.clicks += parseInt(product.Clicks) || 0;
