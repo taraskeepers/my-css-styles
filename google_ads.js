@@ -5611,12 +5611,12 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     }
   }, 100);
   
-  // Hide map and ROAS Buckets
+// Hide map and ROAS Buckets
   const mapContainer = document.getElementById('googleAdsMapContainer');
   if (mapContainer) mapContainer.style.display = 'none';
-  const buckets_products = document.getElementById('buckets_products');
+  // buckets_products already declared above, just reuse it
   if (buckets_products) buckets_products.style.display = 'none';
-  const roasCharts = document.getElementById('roas_charts');
+  // roasCharts already declared above, just reuse it
   if (roasCharts) roasCharts.style.display = 'none';
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
