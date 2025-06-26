@@ -979,6 +979,9 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   if (topDateSelector) {
     topDateSelector.style.display = 'block';
   }
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Setup date range selector functionality
   setupProductInfoDateSelector();
@@ -5557,6 +5560,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Show overview containers, hide ranking map
   const productInfo = document.getElementById('product_info');
@@ -5664,6 +5670,9 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   // Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Hide overview containers, show ranking map
   const productInfo = document.getElementById('product_info');
@@ -5764,6 +5773,9 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   // Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Hide the product table
   const table = document.querySelector('.google-ads-table');
@@ -5894,6 +5906,9 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Hide date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
 
   // Hide the table
   const table = document.querySelector('.google-ads-table');
@@ -5930,6 +5945,12 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
   if (chartModeToggle) chartModeToggle.style.display = 'none';
   if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
+
+    // Reset any filters on roas_channels
+  const channelFilters = document.querySelectorAll('#roas_channels select');
+  channelFilters.forEach(filter => {
+    if (filter) filter.value = 'all';
+  });
 
   // Load and render ROAS data
   loadAndRenderROASBuckets();
@@ -5989,6 +6010,9 @@ setTimeout(() => {
   // Hide date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+  // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
   
   // Hide other views
   const table = document.querySelector('.google-ads-table');
@@ -8174,6 +8198,19 @@ setTimeout(() => {
         if (productRankingMap) productRankingMap.style.display = 'none';
         if (productTables) productTables.style.display = 'none';
         if (mapContainer) mapContainer.style.display = 'none';
+
+        // Hide productInfoDateRange for Performance Overview
+        const productInfoDateRange = document.getElementById('productInfoDateRange');
+        if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+        // Hide bucket date range
+  const bucketDateRange = document.getElementById('bucketDateRange');
+  if (bucketDateRange) bucketDateRange.style.display = 'none';
+        
+        // Hide buckets switcher for Performance Overview
+        const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+        if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+        const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+        if (switcherWrapper) switcherWrapper.style.display = 'none';
         
 const roasCharts = document.getElementById('roas_charts');
         const roasMetricsTable = document.getElementById('roas_metrics_table');
