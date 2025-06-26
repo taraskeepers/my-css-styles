@@ -2758,12 +2758,12 @@ if (bucketFilter) {
 function renderROASChannelsTable(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
-  // Filter for "All" campaign records only to get the main aggregated data
-  const allCampaignRecords = data.filter(row => 
-    row['Campaign Name'] === 'All' && 
-    row['Channel Type'] === 'All' && 
-    row.Device === 'All'
-  );
+// Use Campaign="All" records and exclude Channel Type = "All"
+let validRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' &&
+  row['Channel Type'] && 
+  row['Channel Type'] !== 'All'
+);
 const bucketType = window.selectedBucketType || 'ROAS_Bucket';
 if (bucketFilter) {
   if (bucketType === 'Suggestions') {
