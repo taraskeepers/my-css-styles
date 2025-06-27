@@ -458,9 +458,19 @@ const basicSavePromises = [
 ];
 
 await Promise.all(basicSavePromises);
+
+// Calculate and store averages
+if (productData.length > 0) {
+  try {
+    await this.calculateProductAverages(productData, prefix);
+  } catch (avgError) {
+    console.warn('[Product Averages] Failed to calculate averages:', avgError);
+  }
+}
+
 ProgressManager.completeStep('store');
-    
-    console.log('[Google Sheets] ✅ All data fetched and stored successfully');
+
+console.log('[Google Sheets] ✅ All data fetched and stored successfully');
     
 // Store basic data in global variable (buckets will be added after STEP 6)
 window.googleSheetsData = {
@@ -807,6 +817,106 @@ processSearchTermsData: async function(searchInsightsData, searchTermsData) {
 // Helper to round to 2 decimal places (if not already exists)
 round2(value) {
   return Math.round(value * 100) / 100;
+},
+
+// Calculate averages for specific metrics
+calculateProductAverages: async function(productData, prefix) {
+  console.log('[Product Averages] Starting averages calculation...');
+  
+  const averagesData = [];
+  
+  // Helper to parse numbers
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
+  
+  // Get max date to calculate 90 days back
+  const allDates = productData.map(r => new Date(r.Date)).filter(d => !isNaN(d));
+  const maxDate = new Date(Math.max(...allDates));
+  const startDate90 = new Date(maxDate);
+  startDate90.setDate(startDate90.getDate() - 90);
+  
+  // Filter for last 90 days and "All" campaign records with clicks > 0
+  const relevantData = productData.filter(row => {
+    if (!row.Date || row['Campaign Name'] !== 'All') return false;
+    const rowDate = new Date(row.Date);
+    const clicks = parseNumber(row.Clicks);
+    return rowDate > startDate90 && rowDate <= maxDate && clicks > 0;
+  });
+  
+  console.log(`[Product Averages] Processing ${relevantData.length} records from last 90 days`);
+  
+  // Group by device type
+  const deviceGroups = {};
+  const allDeviceData = []; // For "All" device calculation
+  
+  relevantData.forEach(row => {
+    const device = row.Device || 'UNKNOWN';
+    if (!deviceGroups[device]) {
+      deviceGroups[device] = [];
+    }
+    deviceGroups[device].push(row);
+    allDeviceData.push(row);
+  });
+  
+  // Calculate metrics for each device type
+  const calculateMetricsForGroup = (groupData, deviceType) => {
+    let totalClicks = 0;
+    let totalAddToCart = 0;
+    let totalBeginCheckout = 0;
+    let totalPurchase = 0;
+    
+    groupData.forEach(row => {
+      totalClicks += parseNumber(row.Clicks);
+      totalAddToCart += parseNumber(row['Add to Cart Conv']);
+      totalBeginCheckout += parseNumber(row['Begin Checkout Conv']);
+      totalPurchase += parseNumber(row['Purchase Conv']);
+    });
+    
+    // Calculate rates
+    const cartRate = totalClicks > 0 ? (totalAddToCart / totalClicks) * 100 : 0;
+    const checkoutRate = totalClicks > 0 ? (totalBeginCheckout / totalClicks) * 100 : 0;
+    const purchaseRate = totalClicks > 0 ? (totalPurchase / totalClicks) * 100 : 0;
+    
+    // Add records for this device
+    averagesData.push({
+      period: '90d',
+      metric: 'Cart Rate',
+      device: deviceType,
+      value: this.round2(cartRate)
+    });
+    
+    averagesData.push({
+      period: '90d',
+      metric: 'Checkout Rate',
+      device: deviceType,
+      value: this.round2(checkoutRate)
+    });
+    
+    averagesData.push({
+      period: '90d',
+      metric: 'Purchase Rate',
+      device: deviceType,
+      value: this.round2(purchaseRate)
+    });
+  };
+  
+  // Calculate for each device type
+  Object.entries(deviceGroups).forEach(([device, data]) => {
+    calculateMetricsForGroup(data, device);
+  });
+  
+  // Calculate for "All" devices
+  calculateMetricsForGroup(allDeviceData, 'All');
+  
+  // Save to IDB
+  const tableName = prefix + "googleSheets_productBuckets_averages";
+  await window.embedIDB.setData(tableName, averagesData);
+  
+  console.log(`[Product Averages] ✅ Saved ${averagesData.length} average metrics to ${tableName}`);
+  
+  return averagesData;
 },
 
 // Helper: Categorize products
