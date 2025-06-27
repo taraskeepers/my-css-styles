@@ -678,7 +678,7 @@ function getMetricsPanelHTML(bucketData) {
 }
 
 // Function to create metrics popup
-function createMetricsPopup(bucketData) {
+function createMetricsPopup(bucketData, bucketAveragesMap) {
   if (!bucketData) return null;
   
   const popup = document.createElement('div');
@@ -748,6 +748,43 @@ function createMetricsPopup(bucketData) {
     if (trend.value === '-') return '';
     return `<div class="metric-trend ${trend.class}">${trend.arrow} ${trend.value}</div>`;
   };
+
+  // Helper function to create comparison with averages
+const createComparisonHTML = (currentValue, metricName, device) => {
+  if (!bucketAveragesMap || bucketAveragesMap.size === 0) return '';
+  
+  // Get the average for this metric and device
+  const deviceKey = device ? device.toUpperCase() : 'ALL';
+  const avgKey = `${deviceKey}|${metricName}`;
+  const avgValue = bucketAveragesMap.get(avgKey);
+  
+  if (avgValue === undefined || avgValue === null) return '';
+  
+  const current = parseFloat(currentValue) || 0;
+  const average = parseFloat(avgValue) || 0;
+  
+  if (average === 0) return '';
+  
+  // Calculate percentage difference from average
+  const diff = current - average;
+  const percentDiff = ((current - average) / average) * 100;
+  
+  let comparisonClass = 'comparison-neutral';
+  let arrow = '±';
+  
+  if (diff > 0.1) {
+    comparisonClass = 'comparison-better';
+    arrow = '▲';
+  } else if (diff < -0.1) {
+    comparisonClass = 'comparison-worse';
+    arrow = '▼';
+  }
+  
+  // Format the comparison text
+  const comparisonText = `vs avg: ${average.toFixed(1)}% (${arrow}${Math.abs(percentDiff).toFixed(0)}%)`;
+  
+  return `<div class="funnel-comparison ${comparisonClass}">${comparisonText}</div>`;
+};
   
   const profitability = parseBucket(bucketData['PROFITABILITY_BUCKET']);
   const funnelStage = parseBucket(bucketData['FUNNEL_STAGE_BUCKET']);
@@ -870,31 +907,34 @@ function createMetricsPopup(bucketData) {
       <div class="metric-section">
         <div class="section-title">Funnel & Classifications</div>
         <div class="funnel-classifications-container">
-          <div class="funnel-rates">
-            <div class="funnel-item">
-              <div class="funnel-icon">🛒</div>
-              <div class="funnel-details">
-                <div class="funnel-label">Cart</div>
-                <div class="funnel-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
-              </div>
-            </div>
-            <div class="funnel-arrow">→</div>
-            <div class="funnel-item">
-              <div class="funnel-icon">💳</div>
-              <div class="funnel-details">
-                <div class="funnel-label">Checkout</div>
-                <div class="funnel-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
-              </div>
-            </div>
-            <div class="funnel-arrow">→</div>
-            <div class="funnel-item">
-              <div class="funnel-icon">✓</div>
-              <div class="funnel-details">
-                <div class="funnel-label">Purchase</div>
-                <div class="funnel-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
-              </div>
-            </div>
-          </div>
+<div class="funnel-rates">
+  <div class="funnel-item">
+    <div class="funnel-icon">🛒</div>
+    <div class="funnel-details">
+      <div class="funnel-label">Cart</div>
+      <div class="funnel-value">${formatNumber(bucketData['Cart Rate'], 1)}%</div>
+      ${createComparisonHTML(bucketData['Cart Rate'], 'Cart Rate', bucketData['Device'])}
+    </div>
+  </div>
+  <div class="funnel-arrow">→</div>
+  <div class="funnel-item">
+    <div class="funnel-icon">💳</div>
+    <div class="funnel-details">
+      <div class="funnel-label">Checkout</div>
+      <div class="funnel-value">${formatNumber(bucketData['Checkout Rate'], 1)}%</div>
+      ${createComparisonHTML(bucketData['Checkout Rate'], 'Checkout Rate', bucketData['Device'])}
+    </div>
+  </div>
+  <div class="funnel-arrow">→</div>
+  <div class="funnel-item">
+    <div class="funnel-icon">✓</div>
+    <div class="funnel-details">
+      <div class="funnel-label">Purchase</div>
+      <div class="funnel-value">${formatNumber(bucketData['Purchase Rate'], 1)}%</div>
+      ${createComparisonHTML(bucketData['Purchase Rate'], 'Purchase Rate', bucketData['Device'])}
+    </div>
+  </div>
+</div>
           
           <div class="classifications-grid">
             <div class="classification-item">
@@ -1395,6 +1435,13 @@ let searchTermsStatsMap = new Map();
 if (googleAdsEnabled && accountNumber) {
   searchTermsStatsMap = await loadSearchTermsStats(accountNumber);
   console.log(`[ProductMap] Search terms stats loaded: ${searchTermsStatsMap.size} entries`);
+}
+
+// Load bucket averages if enabled
+let bucketAveragesMap = new Map();
+if (googleAdsEnabled && accountNumber) {
+  bucketAveragesMap = await loadBucketAverages(accountNumber);
+  console.log(`[ProductMap] Bucket averages loaded: ${bucketAveragesMap.size} entries`);
 }
     
 // Load bucket data if enabled
@@ -3677,6 +3724,23 @@ input:checked + .metrics-slider:before {
   font-style: italic;
   opacity: 0.7;
 }
+.funnel-comparison {
+  font-size: 10px;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.funnel-comparison.comparison-better {
+  color: #28a745;
+}
+
+.funnel-comparison.comparison-worse {
+  color: #dc3545;
+}
+
+.funnel-comparison.comparison-neutral {
+  color: #6c757d;
+}
       `;
       document.head.appendChild(style);
     }
@@ -4480,6 +4544,61 @@ async function loadSearchTermsStats(accountNumber) {
     return searchTermsMap;
   } catch (error) {
     console.error('[ProductMap] Error in loadSearchTermsStats:', error);
+    return new Map();
+  }
+}
+
+// Function to load bucket averages data
+async function loadBucketAverages(accountNumber) {
+  try {
+    const tableName = `acc${accountNumber}_googleSheets_productBuckets_averages`;
+    
+    // Check if table exists
+    const tableExists = await checkTableExists(tableName);
+    if (!tableExists) {
+      console.log(`[ProductMap] Bucket averages table ${tableName} not found`);
+      return new Map();
+    }
+    
+    // Open database and get data
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const averagesMap = new Map();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data && Array.isArray(result.data)) {
+          result.data.forEach(item => {
+            if (item.device && item.metric && item.value) {
+              // Create key as "DEVICE|METRIC"
+              const key = `${item.device.toUpperCase()}|${item.metric}`;
+              averagesMap.set(key, item.value);
+            }
+          });
+          console.log(`[ProductMap] Loaded ${averagesMap.size} bucket averages`);
+        }
+        resolve();
+      };
+      
+      getRequest.onerror = () => {
+        console.error('[ProductMap] Error loading bucket averages data');
+        resolve();
+      };
+    });
+    
+    db.close();
+    return averagesMap;
+  } catch (error) {
+    console.error('[ProductMap] Error in loadBucketAverages:', error);
     return new Map();
   }
 }
@@ -6421,7 +6540,7 @@ adCard.addEventListener('mouseenter', function(e) {
       const productBucketData = bucketDataMap.get(lookupKey);
       
       if (productBucketData) {
-        currentPopup = createMetricsPopup(productBucketData);
+        currentPopup = createMetricsPopup(productBucketData, bucketAveragesMap);
         if (currentPopup) {
           document.body.appendChild(currentPopup);
           
