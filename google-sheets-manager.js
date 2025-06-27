@@ -883,12 +883,12 @@ calculateProductAverages: async function(productData, prefix) {
       recordCount++;
     });
     
-    // Calculate rates (conversions per click as percentage)
-    const cartRate = totalClicks > 0 ? (totalAddToCart / totalClicks) * 100 : 0;
-    const checkoutRate = totalClicks > 0 ? (totalBeginCheckout / totalClicks) * 100 : 0;
-    const purchaseRate = totalClicks > 0 ? (totalPurchase / totalClicks) * 100 : 0;
+// Calculate funnel rates (each step as percentage of previous step)
+const cartRate = totalClicks > 0 ? (totalAddToCart / totalClicks) * 100 : 0;
+const checkoutRate = totalAddToCart > 0 ? (totalBeginCheckout / totalAddToCart) * 100 : 0;
+const purchaseRate = totalBeginCheckout > 0 ? (totalPurchase / totalBeginCheckout) * 100 : 0;
     
-    console.log(`[Product Averages] ${deviceType}: ${recordCount} records, ${totalClicks} clicks, Cart Rate: ${cartRate.toFixed(2)}%, Checkout Rate: ${checkoutRate.toFixed(2)}%, Purchase Rate: ${purchaseRate.toFixed(2)}%`);
+    console.log(`[Product Averages] ${deviceType}: ${recordCount} records, ${totalClicks} clicks, Cart Rate: ${cartRate.toFixed(2)}% (of clicks), Checkout Rate: ${checkoutRate.toFixed(2)}% (of carts), Purchase Rate: ${purchaseRate.toFixed(2)}% (of checkouts)`);
     
     // Add records for this device
     averagesData.push({
