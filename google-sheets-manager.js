@@ -185,14 +185,17 @@ PRODUCT_COLUMNS: [
   'Product Type L1', 'Product Type L2', 'Product Type L3', 
   'Product Type L4', 'Product Type L5', 'Product Channel', 
   'Product Channel Exclusivity', 'Product Condition', 'Product Country', 
-  'Campaign Name', 'Channel Type', 'Device', // Added Device column
+  'Campaign Name', 'Channel Type', 'Device',
   'Impressions', 'Clicks', 
   'Cost', 'Conversions', 'Conversion Value', 'CTR', 'CVR', 
   'ROAS', 'AOV', 'CPA',
   // New columns for cart and checkout tracking
   'Add to Cart Conv', 'Add to Cart Conv Value',
   'Begin Checkout Conv', 'Begin Checkout Conv Value', 
-  'Purchase Conv', 'Purchase Conv Value'
+  'Purchase Conv', 'Purchase Conv Value',
+  // Add Custom Attributes
+  'Custom Attribute 0', 'Custom Attribute 1', 'Custom Attribute 2', 
+  'Custom Attribute 3', 'Custom Attribute 4'
 ],
   
   LOCATION_COLUMNS: [
