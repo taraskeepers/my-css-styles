@@ -741,23 +741,64 @@ processSearchTermsData: async function(searchInsightsData, searchTermsData) {
     totalValue += data.value;
   });
   
-  // Convert map to array and add revenue percentage
-  const searchTermsArray = Array.from(queryMap.values()).map(data => ({
+  // Convert map to array
+  const searchTermsArray = Array.from(queryMap.values());
+  
+  // Sort by value descending
+  searchTermsArray.sort((a, b) => b.value - a.value);
+  
+  // Separate blank and non-blank queries for ranking
+  const nonBlankQueries = searchTermsArray.filter(item => 
+    item.query.toLowerCase() !== 'blank'
+  );
+  const blankQueries = searchTermsArray.filter(item => 
+    item.query.toLowerCase() === 'blank'
+  );
+  
+  // Assign Top_Bucket values to non-blank queries
+  const processedArray = nonBlankQueries.map((data, index) => {
+    let topBucket = '';
+    
+    if (index === 0) topBucket = 'Top1';
+    else if (index === 1) topBucket = 'Top2';
+    else if (index === 2) topBucket = 'Top3';
+    else if (index === 3) topBucket = 'Top4';
+    else if (index === 4) topBucket = 'Top5';
+    else if (index >= 5 && index <= 9) topBucket = 'Top10';
+    // Queries beyond top 10 don't get a Top_Bucket value
+    
+    return {
+      Query: data.query,
+      Clicks: Math.round(data.clicks),
+      Impressions: Math.round(data.impressions),
+      Conversions: this.round2(data.conversions),
+      Value: this.round2(data.value),
+      '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0,
+      Top_Bucket: topBucket
+    };
+  });
+  
+  // Add blank queries back without Top_Bucket
+  const blankProcessed = blankQueries.map(data => ({
     Query: data.query,
     Clicks: Math.round(data.clicks),
     Impressions: Math.round(data.impressions),
     Conversions: this.round2(data.conversions),
     Value: this.round2(data.value),
-    '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0
+    '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0,
+    Top_Bucket: '' // No top bucket for blank queries
   }));
   
-  // Sort by value descending
-  searchTermsArray.sort((a, b) => b.Value - a.Value);
+  // Combine all queries (non-blank first, then blank)
+  const finalArray = [...processedArray, ...blankProcessed];
   
-  console.log(`[Search Terms] Processed ${searchTermsArray.length} unique search terms`);
+  console.log(`[Search Terms] Processed ${finalArray.length} unique search terms`);
   console.log(`[Search Terms] Total value: ${this.round2(totalValue)}`);
+  if (nonBlankQueries.length > 0) {
+    console.log(`[Search Terms] Top query: "${nonBlankQueries[0].query}" with value ${this.round2(nonBlankQueries[0].value)}`);
+  }
   
-  return searchTermsArray;
+  return finalArray;
 },
 
 // Helper to round to 2 decimal places (if not already exists)
