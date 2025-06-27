@@ -748,11 +748,13 @@ processSearchTermsData: async function(searchInsightsData, searchTermsData) {
     }
   });
   
-  // Calculate total value for percentage calculation
-  let totalValue = 0;
-  queryMap.forEach(data => {
+// Calculate total value for percentage calculation (excluding "blank" queries)
+let totalValue = 0;
+queryMap.forEach((data, query) => {
+  if (query.toLowerCase() !== 'blank') {
     totalValue += data.value;
-  });
+  }
+});
   
   // Convert map to array
   const searchTermsArray = Array.from(queryMap.values());
