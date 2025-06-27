@@ -201,6 +201,16 @@ PRODUCT_COLUMNS: [
     'Clicks', 'Cost', 'Conversions', 'Revenue', 
     'CTR', 'CVR', 'ROAS'
   ],
+
+  SEARCH_INSIGHTS_COLUMNS: [
+  'Campaign Name', 'Campaign ID', 'Category Label', 
+  'Clicks', 'Impr', 'Conv', 'Value', 'Bucket', 'Distance'
+],
+
+SEARCH_TERMS_COLUMNS: [
+  'Campaign Name', 'Campaign ID', 'Search Term',
+  'Clicks', 'Impr', 'Conv', 'Value'
+],
   
   // Extract sheet ID from URL
   extractSheetId: function(url) {
@@ -323,13 +333,15 @@ fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
     
 // STEP 2: Fetch sheets data
 ProgressManager.startStep('fetch', 'Downloading sheet data from Google...');
-let productCSV, locationCSV;
+let productCSV, locationCSV, searchInsightsCSV, searchTermsCSV;
 
 try {
-  // Try to fetch both sheets
+  // Try to fetch all sheets
   const fetchPromises = [
     this.fetchSheetByName(sheetId, 'Enhanced Product Performance'),
-    this.fetchSheetByName(sheetId, 'Location Revenue').catch(() => null) // Don't fail if Location Revenue is missing
+    this.fetchSheetByName(sheetId, 'Location Revenue').catch(() => null), // Don't fail if missing
+    this.fetchSheetByName(sheetId, 'Search Insights').catch(() => null), // Don't fail if missing
+    this.fetchSheetByName(sheetId, 'Search Terms').catch(() => null) // Don't fail if missing
   ];
   
   // Update progress during fetch
@@ -337,7 +349,7 @@ try {
   setTimeout(() => ProgressManager.updateProgress('fetch', 60), 3000);
   setTimeout(() => ProgressManager.updateProgress('fetch', 90), 6000);
   
-  [productCSV, locationCSV] = await Promise.all(fetchPromises);
+  [productCSV, locationCSV, searchInsightsCSV, searchTermsCSV] = await Promise.all(fetchPromises);
 } catch (fetchError) {
   // Try alternative sheet names for product sheet
   ProgressManager.updateUI('Trying alternative sheet names...');
@@ -397,15 +409,44 @@ if (locationCSV) {
     locationData = [];
   }
 }
+
+// Parse search insights data if available (optional)
+let searchInsightsData = [];
+if (searchInsightsCSV) {
+  try {
+    searchInsightsData = await this.parseSheetData(searchInsightsCSV, 'Search Insights', this.SEARCH_INSIGHTS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Insights data:', error);
+    searchInsightsData = [];
+  }
+}
+
+// Parse search terms data if available (optional)
+let searchTermsData = [];
+if (searchTermsCSV) {
+  try {
+    searchTermsData = await this.parseSheetData(searchTermsCSV, 'Search Terms', this.SEARCH_TERMS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Terms data:', error);
+    searchTermsData = [];
+  }
+}
     
 ProgressManager.completeStep('parse');
 
 // STEP 5: Store basic data only (product buckets will be created and stored in STEP 6)
 ProgressManager.startStep('store', 'Saving basic data to local storage...');
 
+// Process search terms if we have data from either sheet
+let processedSearchTerms = [];
+if (searchInsightsData.length > 0 || searchTermsData.length > 0) {
+  processedSearchTerms = await this.processSearchTermsData(searchInsightsData, searchTermsData);
+}
+
 const basicSavePromises = [
   window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
   window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
+  window.embedIDB.setData(prefix + "googleSheets_searchTerms_365d", processedSearchTerms),
   window.embedIDB.setData(prefix + "googleSheets_config", {
     url: url,
     sheetId: sheetId,
@@ -422,6 +463,7 @@ ProgressManager.completeStep('store');
 window.googleSheetsData = {
   productPerformance: productData,
   locationRevenue: locationData,
+  searchTerms: processedSearchTerms,
   productBuckets: [] // Will be populated in STEP 6
 };
     
@@ -451,18 +493,18 @@ ProgressManager.completeStep('buckets');
 // Update final status with bucket count
 const statusEl = document.getElementById('googleAdsStatus');
 if (statusEl) {
-  statusEl.innerHTML = `
-    <div style="color: #4CAF50; font-weight: 500;">
-      ✓ Google Ads Data Uploaded Successfully
-    </div>
-    <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+statusEl.innerHTML = `
+  <div style="color: #4CAF50; font-weight: 500;">
+    ✓ Google Ads Data Uploaded Successfully
+  </div>
+  <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
 Product Performance: ${productData.length} rows<br>
 ${locationData.length > 0 ? `Location Revenue: ${locationData.length} rows<br>` : 'Location Revenue: Not available<br>'}
-      ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
-      <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
-    </div>
-  `;
-}
+${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms.length} queries<br>` : 'Search Terms: Not available<br>'}
+    ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
+    <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
+  </div>
+`;
 
 // NOW show completion
 if (loader) {
@@ -629,6 +671,97 @@ processProductBucketsChunk: async function(chunk, startIndex) {
   }
   
   return buckets;
+},
+
+// Process and merge search terms data
+processSearchTermsData: async function(searchInsightsData, searchTermsData) {
+  console.log('[Search Terms] Processing search terms data...');
+  
+  // Create a map to aggregate data by query
+  const queryMap = new Map();
+  
+  // Helper to parse numeric values
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
+  
+  // Process Search Insights data
+  searchInsightsData.forEach(row => {
+    const query = (row['Category Label'] || '').trim();
+    const clicks = parseNumber(row['Clicks']);
+    
+    if (query && clicks > 1) { // Only process if clicks > 1
+      if (!queryMap.has(query)) {
+        queryMap.set(query, {
+          query: query,
+          clicks: 0,
+          impressions: 0,
+          conversions: 0,
+          value: 0
+        });
+      }
+      
+      const data = queryMap.get(query);
+      data.clicks += clicks;
+      data.impressions += parseNumber(row['Impr']);
+      data.conversions += parseNumber(row['Conv']);
+      data.value += parseNumber(row['Value']);
+    }
+  });
+  
+  // Process Search Terms data
+  searchTermsData.forEach(row => {
+    const query = (row['Search Term'] || '').trim();
+    const clicks = parseNumber(row['Clicks']);
+    
+    if (query && clicks > 1) { // Only process if clicks > 1
+      if (!queryMap.has(query)) {
+        queryMap.set(query, {
+          query: query,
+          clicks: 0,
+          impressions: 0,
+          conversions: 0,
+          value: 0
+        });
+      }
+      
+      const data = queryMap.get(query);
+      data.clicks += clicks;
+      data.impressions += parseNumber(row['Impr']);
+      data.conversions += parseNumber(row['Conv']);
+      data.value += parseNumber(row['Value']);
+    }
+  });
+  
+  // Calculate total value for percentage calculation
+  let totalValue = 0;
+  queryMap.forEach(data => {
+    totalValue += data.value;
+  });
+  
+  // Convert map to array and add revenue percentage
+  const searchTermsArray = Array.from(queryMap.values()).map(data => ({
+    Query: data.query,
+    Clicks: Math.round(data.clicks),
+    Impressions: Math.round(data.impressions),
+    Conversions: this.round2(data.conversions),
+    Value: this.round2(data.value),
+    '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0
+  }));
+  
+  // Sort by value descending
+  searchTermsArray.sort((a, b) => b.Value - a.Value);
+  
+  console.log(`[Search Terms] Processed ${searchTermsArray.length} unique search terms`);
+  console.log(`[Search Terms] Total value: ${this.round2(totalValue)}`);
+  
+  return searchTermsArray;
+},
+
+// Helper to round to 2 decimal places (if not already exists)
+round2(value) {
+  return Math.round(value * 100) / 100;
 },
 
 // Helper: Categorize products
