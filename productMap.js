@@ -3418,151 +3418,264 @@ input:checked + .metrics-slider:before {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  position: relative;
+}
+
+.search-term-tag {
+  display: inline-block;
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-weight: 500;
+  font-size: 14px;
+  border-left: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  max-width: 90%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+  white-space: normal;
+  line-height: 1.4;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.search-term-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
 .query-stats {
-  margin-top: 8px;
-  padding: 10px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 10px;
-  border: 1px solid #dee2e6;
-  font-size: 11px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  width: 90%;
-  max-width: 170px;
+  margin-top: -8px; /* Overlap slightly with search term */
+  padding-top: 20px; /* Space for the overlap */
+  width: 95%;
+  max-width: 180px;
+  background: linear-gradient(to bottom, #fafbfc 0%, #f5f6f7 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  animation: slideDown 0.4s ease-out;
+  overflow: hidden;
 }
 
-.query-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.query-stat-item {
+.query-stats:hover {
+  transform: translateY(2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* Top Bucket Badge as Header */
+.top-bucket-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
   text-align: center;
-  padding: 6px 4px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1;
 }
 
-.query-stat-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* Top Bucket color variations for header */
+.top-bucket-header.top1 {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+}
+
+.top-bucket-header.top1::after {
+  content: ' 👑';
+  font-size: 12px;
+}
+
+.top-bucket-header.top2 {
+  background: linear-gradient(135deg, #E5E5E5 0%, #C0C0C0 100%);
+  color: #333;
+}
+
+.top-bucket-header.top3 {
+  background: linear-gradient(135deg, #DEB887 0%, #CD7F32 100%);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.top-bucket-header.top4 {
+  background: linear-gradient(135deg, #6495ED 0%, #4169E1 100%);
+  color: white;
+}
+
+.top-bucket-header.top5 {
+  background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%);
+  color: white;
+}
+
+.top-bucket-header.top10 {
+  background: linear-gradient(135deg, #DDA0DD 0%, #9370DB 100%);
+  color: white;
+}
+
+/* Stats Grid */
+.query-stats-content {
+  padding: 32px 12px 12px; /* Extra top padding for header */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.query-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.query-stat-row:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #e1e4e8;
+  transform: translateX(2px);
+}
+
+.query-stat-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 2px 2px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.query-stat-row:hover::before {
+  opacity: 1;
+}
+
+.query-stat-row.sales::before {
+  background: #ff6b6b;
+}
+
+.query-stat-row.revenue::before {
+  background: #28a745;
+}
+
+.query-stat-row.cvr::before {
+  background: #007bff;
 }
 
 .query-stat-label {
-  font-size: 8px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 3px;
+  font-size: 10px;
+  color: #6a737d;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 0.8;
 }
 
 .query-stat-value {
-  font-size: 13px;
-  font-weight: 800;
-  color: #333;
-  line-height: 1.2;
-}
-
-/* Top Bucket Badge Styling */
-.top-bucket-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  border-radius: 14px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin: 0 auto;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  position: relative;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.top-bucket-badge::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
-}
-
-/* Top Bucket color variations */
-.top-bucket-top1 {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  color: #333;
-  border: 1px solid #DAA520;
-}
-
-.top-bucket-top1::after {
-  content: '👑';
-  margin-left: 4px;
   font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
 }
 
-.top-bucket-top2 {
-  background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
-  color: #333;
-  border: 1px solid #A0A0A0;
-}
-
-.top-bucket-top3 {
-  background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%);
-  color: white;
-  border: 1px solid #A0522D;
-}
-
-.top-bucket-top4 {
-  background: linear-gradient(135deg, #4169E1 0%, #1E90FF 100%);
-  color: white;
-  border: 1px solid #0000CD;
-}
-
-.top-bucket-top5 {
-  background: linear-gradient(135deg, #32CD32 0%, #228B22 100%);
-  color: white;
-  border: 1px solid #006400;
-}
-
-.top-bucket-top10 {
-  background: linear-gradient(135deg, #9370DB 0%, #8A2BE2 100%);
-  color: white;
-  border: 1px solid #6B238E;
-}
-
-/* Special formatting for stats */
-.formatted-revenue {
-  color: #28a745;
-}
-
-.formatted-cvr {
-  color: #007bff;
-}
-
-.formatted-percent {
+.query-stat-value.sales {
   color: #ff6b6b;
 }
 
-/* Make sure search term cell has proper spacing */
-.search-term-tag {
-  margin-bottom: 0;
+.query-stat-value.revenue {
+  color: #28a745;
+  text-shadow: 0 0 8px rgba(40, 167, 69, 0.15);
+}
+
+.query-stat-value.cvr {
+  color: #007bff;
+}
+
+/* Subtle animation for values */
+.query-stat-value {
+  position: relative;
+  display: inline-block;
+}
+
+.query-stat-value::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  transition: width 0.3s ease;
+}
+
+.query-stat-row:hover .query-stat-value::after {
+  width: 100%;
+}
+
+/* Mini info icons */
+.query-stat-row .info-icon {
+  position: absolute;
+  right: -6px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  background: #6a737d;
+  color: white;
+  border-radius: 50%;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: help;
+}
+
+.query-stat-row:hover .info-icon {
+  opacity: 0.4;
+}
+
+.info-icon:hover {
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+/* No stats available state */
+.no-stats-message {
+  padding: 16px;
+  text-align: center;
+  color: #6a737d;
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.7;
 }
       `;
       document.head.appendChild(style);
@@ -4814,6 +4927,8 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
 if (!termCellUsed) {
   const tdTerm = document.createElement("td");
   tdTerm.rowSpan = totalRowsForTerm;
+  tdTerm.style.verticalAlign = 'top'; // Align content to top
+  tdTerm.style.paddingTop = '16px'; // Add top padding
   
   // Create container for search term and stats
   let searchTermHTML = '<div class="search-term-with-stats">';
@@ -4825,45 +4940,55 @@ if (!termCellUsed) {
   
   if (termStats) {
     searchTermHTML += '<div class="query-stats">';
-    searchTermHTML += '<div class="query-stats-grid">';
     
-    // % of all sales
-    searchTermHTML += `
-      <div class="query-stat-item">
-        <div class="query-stat-label">% Sales</div>
-        <div class="query-stat-value formatted-percent">${termStats.percentOfRevenue.toFixed(2)}%</div>
-      </div>
-    `;
-    
-    // Revenue (1 year)
-    searchTermHTML += `
-      <div class="query-stat-item">
-        <div class="query-stat-label">Revenue</div>
-        <div class="query-stat-value formatted-revenue">${formatRevenue(termStats.revenue)}</div>
-      </div>
-    `;
-    
-    // CVR
-    searchTermHTML += `
-      <div class="query-stat-item">
-        <div class="query-stat-label">CVR</div>
-        <div class="query-stat-value formatted-cvr">${termStats.cvr.toFixed(1)}%</div>
-      </div>
-    `;
-    
-    searchTermHTML += '</div>'; // Close query-stats-grid
-    
-    // Add Top Bucket badge if available
+    // Add Top Bucket as header if available
     if (termStats.topBucket) {
-      const bucketClass = termStats.topBucket.toLowerCase().replace(/\s+/g, '');
+      const bucketNumber = termStats.topBucket.toLowerCase().replace('top', '');
       searchTermHTML += `
-        <div class="top-bucket-badge top-bucket-${bucketClass}">
+        <div class="top-bucket-header top${bucketNumber}">
           ${termStats.topBucket}
         </div>
       `;
     }
     
+    searchTermHTML += '<div class="query-stats-content">';
+    
+    // % of all sales with info icon
+    searchTermHTML += `
+      <div class="query-stat-row sales">
+        <span class="query-stat-label">% of Sales</span>
+        <span class="query-stat-value sales">${termStats.percentOfRevenue.toFixed(2)}%</span>
+        <span class="info-icon" title="Percentage of total revenue">i</span>
+      </div>
+    `;
+    
+    // Revenue (1 year) with info icon
+    searchTermHTML += `
+      <div class="query-stat-row revenue">
+        <span class="query-stat-label">Revenue</span>
+        <span class="query-stat-value revenue">${formatRevenue(termStats.revenue)}</span>
+        <span class="info-icon" title="Total revenue (1 year)">i</span>
+      </div>
+    `;
+    
+    // CVR with info icon
+    searchTermHTML += `
+      <div class="query-stat-row cvr">
+        <span class="query-stat-label">CVR</span>
+        <span class="query-stat-value cvr">${termStats.cvr.toFixed(1)}%</span>
+        <span class="info-icon" title="Conversion Rate">i</span>
+      </div>
+    `;
+    
+    searchTermHTML += '</div>'; // Close query-stats-content
     searchTermHTML += '</div>'; // Close query-stats
+  } else {
+    // Show a subtle message when no stats are available
+    searchTermHTML += `
+      <div class="query-stats" style="padding: 16px; background: #f8f9fa;">
+        <div class="no-stats-message">No performance data</div>
+      </div>
+    `;
   }
   
   searchTermHTML += '</div>'; // Close search-term-with-stats
