@@ -837,9 +837,9 @@ calculateProductAverages: async function(productData, prefix) {
   const startDate90 = new Date(maxDate);
   startDate90.setDate(startDate90.getDate() - 90);
   
-  // Filter for last 90 days and "All" campaign records with clicks > 0
+  // Filter for last 90 days with clicks > 0 (ALL campaigns, not filtered by campaign name)
   const relevantData = productData.filter(row => {
-    if (!row.Date || row['Campaign Name'] !== 'All') return false;
+    if (!row.Date) return false;
     const rowDate = new Date(row.Date);
     const clicks = parseNumber(row.Clicks);
     return rowDate > startDate90 && rowDate <= maxDate && clicks > 0;
@@ -866,18 +866,27 @@ calculateProductAverages: async function(productData, prefix) {
     let totalAddToCart = 0;
     let totalBeginCheckout = 0;
     let totalPurchase = 0;
+    let recordCount = 0;
     
     groupData.forEach(row => {
-      totalClicks += parseNumber(row.Clicks);
-      totalAddToCart += parseNumber(row['Add to Cart Conv']);
-      totalBeginCheckout += parseNumber(row['Begin Checkout Conv']);
-      totalPurchase += parseNumber(row['Purchase Conv']);
+      const clicks = parseNumber(row.Clicks);
+      const addToCart = parseNumber(row['Add to Cart Conv']);
+      const beginCheckout = parseNumber(row['Begin Checkout Conv']);
+      const purchase = parseNumber(row['Purchase Conv']);
+      
+      totalClicks += clicks;
+      totalAddToCart += addToCart;
+      totalBeginCheckout += beginCheckout;
+      totalPurchase += purchase;
+      recordCount++;
     });
     
-    // Calculate rates
+    // Calculate rates (conversions per click as percentage)
     const cartRate = totalClicks > 0 ? (totalAddToCart / totalClicks) * 100 : 0;
     const checkoutRate = totalClicks > 0 ? (totalBeginCheckout / totalClicks) * 100 : 0;
     const purchaseRate = totalClicks > 0 ? (totalPurchase / totalClicks) * 100 : 0;
+    
+    console.log(`[Product Averages] ${deviceType}: ${recordCount} records, ${totalClicks} clicks, Cart Rate: ${cartRate.toFixed(2)}%, Checkout Rate: ${checkoutRate.toFixed(2)}%, Purchase Rate: ${purchaseRate.toFixed(2)}%`);
     
     // Add records for this device
     averagesData.push({
@@ -902,13 +911,17 @@ calculateProductAverages: async function(productData, prefix) {
     });
   };
   
-  // Calculate for each device type
+  // Calculate for each specific device type
   Object.entries(deviceGroups).forEach(([device, data]) => {
-    calculateMetricsForGroup(data, device);
+    if (device && device !== 'UNKNOWN') {
+      calculateMetricsForGroup(data, device);
+    }
   });
   
-  // Calculate for "All" devices
-  calculateMetricsForGroup(allDeviceData, 'All');
+  // Calculate for "All" devices (aggregate of all device types)
+  if (allDeviceData.length > 0) {
+    calculateMetricsForGroup(allDeviceData, 'All');
+  }
   
   // Save to IDB
   const tableName = prefix + "googleSheets_productBuckets_averages";
