@@ -3487,7 +3487,7 @@ input:checked + .metrics-slider:before {
   top: 0;
   left: 0;
   right: 0;
-  padding: 5px 10px;
+  padding: 15px 10px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
