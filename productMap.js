@@ -1388,7 +1388,14 @@ async function renderProductMapTable() {
       }
     }
     
-    console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber);
+console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber);
+
+// Load search terms statistics if enabled
+let searchTermsStatsMap = new Map();
+if (googleAdsEnabled && accountNumber) {
+  searchTermsStatsMap = await loadSearchTermsStats(accountNumber);
+  console.log(`[ProductMap] Search terms stats loaded: ${searchTermsStatsMap.size} entries`);
+}
     
 // Load bucket data if enabled
 let bucketDataMap = new Map();
@@ -3405,6 +3412,158 @@ input:checked + .metrics-slider:before {
   border-color: #0056b3;
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
+/* Search term stats styling */
+.search-term-with-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.query-stats {
+  margin-top: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 10px;
+  border: 1px solid #dee2e6;
+  font-size: 11px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  width: 90%;
+  max-width: 170px;
+}
+
+.query-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.query-stat-item {
+  text-align: center;
+  padding: 6px 4px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+}
+
+.query-stat-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.query-stat-label {
+  font-size: 8px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+
+.query-stat-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: #333;
+  line-height: 1.2;
+}
+
+/* Top Bucket Badge Styling */
+.top-bucket-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0 auto;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.top-bucket-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Top Bucket color variations */
+.top-bucket-top1 {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #333;
+  border: 1px solid #DAA520;
+}
+
+.top-bucket-top1::after {
+  content: '👑';
+  margin-left: 4px;
+  font-size: 14px;
+}
+
+.top-bucket-top2 {
+  background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+  color: #333;
+  border: 1px solid #A0A0A0;
+}
+
+.top-bucket-top3 {
+  background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%);
+  color: white;
+  border: 1px solid #A0522D;
+}
+
+.top-bucket-top4 {
+  background: linear-gradient(135deg, #4169E1 0%, #1E90FF 100%);
+  color: white;
+  border: 1px solid #0000CD;
+}
+
+.top-bucket-top5 {
+  background: linear-gradient(135deg, #32CD32 0%, #228B22 100%);
+  color: white;
+  border: 1px solid #006400;
+}
+
+.top-bucket-top10 {
+  background: linear-gradient(135deg, #9370DB 0%, #8A2BE2 100%);
+  color: white;
+  border: 1px solid #6B238E;
+}
+
+/* Special formatting for stats */
+.formatted-revenue {
+  color: #28a745;
+}
+
+.formatted-cvr {
+  color: #007bff;
+}
+
+.formatted-percent {
+  color: #ff6b6b;
+}
+
+/* Make sure search term cell has proper spacing */
+.search-term-tag {
+  margin-bottom: 0;
+}
       `;
       document.head.appendChild(style);
     }
@@ -4148,6 +4307,82 @@ async function fetchProductBucketData(accountNumber, productTitle) {
     return null;
   }
 }
+
+// Function to load search terms statistics
+async function loadSearchTermsStats(accountNumber) {
+  try {
+    const tableName = `acc${accountNumber}_googleSheets_searchTerms_365d`;
+    
+    // Check if table exists
+    const tableExists = await checkTableExists(tableName);
+    if (!tableExists) {
+      console.log(`[ProductMap] Search terms table ${tableName} not found`);
+      return new Map();
+    }
+    
+    // Open database and get data
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const searchTermsMap = new Map();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data && Array.isArray(result.data)) {
+          result.data.forEach(item => {
+            if (item.Query) {
+              // Normalize the query to lowercase for consistent matching
+              const normalizedQuery = item.Query.toLowerCase().trim();
+              searchTermsMap.set(normalizedQuery, {
+                percentOfRevenue: (item['% of all revenue'] || 0) * 100, // Convert to percentage
+                revenue: item.Value || 0,
+                clicks: item.Clicks || 0,
+                conversions: item.Conversions || 0,
+                impressions: item.Impressions || 0,
+                topBucket: item.Top_Bucket || null,
+                cvr: item.Clicks > 0 ? ((item.Conversions || 0) / item.Clicks * 100) : 0
+              });
+            }
+          });
+          console.log(`[ProductMap] Loaded ${searchTermsMap.size} search term stats`);
+        }
+        resolve();
+      };
+      
+      getRequest.onerror = () => {
+        console.error('[ProductMap] Error loading search terms data');
+        resolve();
+      };
+    });
+    
+    db.close();
+    return searchTermsMap;
+  } catch (error) {
+    console.error('[ProductMap] Error in loadSearchTermsStats:', error);
+    return new Map();
+  }
+}
+
+// Helper function to format revenue numbers
+function formatRevenue(value) {
+  if (!value || value === 0) return '$0';
+  
+  if (value >= 1000000) {
+    return '$' + (value / 1000000).toFixed(1) + 'M';
+  } else if (value >= 1000) {
+    return '$' + (value / 1000).toFixed(1) + 'K';
+  } else {
+    return '$' + value.toFixed(0);
+  }
+}
   
     // Modified function to format location cell into three rows (city, state, country)
     function formatLocationCell(locationString) {
@@ -4575,14 +4810,68 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
         deviceRows.forEach(rowData => {
           const tr = document.createElement("tr");
   
-          // Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
-          if (!termCellUsed) {
-            const tdTerm = document.createElement("td");
-            tdTerm.rowSpan = totalRowsForTerm;
-            tdTerm.innerHTML = `<div class="search-term-tag">${term}</div>`;
-            tr.appendChild(tdTerm);
-            termCellUsed = true;
-          }
+// Add search term cell (with rowspan for all rows in this term) - MODIFIED as tag
+if (!termCellUsed) {
+  const tdTerm = document.createElement("td");
+  tdTerm.rowSpan = totalRowsForTerm;
+  
+  // Create container for search term and stats
+  let searchTermHTML = '<div class="search-term-with-stats">';
+  searchTermHTML += `<div class="search-term-tag">${term}</div>`;
+  
+  // Check if we have stats for this search term
+  const normalizedTerm = term.toLowerCase().trim();
+  const termStats = searchTermsStatsMap.get(normalizedTerm);
+  
+  if (termStats) {
+    searchTermHTML += '<div class="query-stats">';
+    searchTermHTML += '<div class="query-stats-grid">';
+    
+    // % of all sales
+    searchTermHTML += `
+      <div class="query-stat-item">
+        <div class="query-stat-label">% Sales</div>
+        <div class="query-stat-value formatted-percent">${termStats.percentOfRevenue.toFixed(2)}%</div>
+      </div>
+    `;
+    
+    // Revenue (1 year)
+    searchTermHTML += `
+      <div class="query-stat-item">
+        <div class="query-stat-label">Revenue</div>
+        <div class="query-stat-value formatted-revenue">${formatRevenue(termStats.revenue)}</div>
+      </div>
+    `;
+    
+    // CVR
+    searchTermHTML += `
+      <div class="query-stat-item">
+        <div class="query-stat-label">CVR</div>
+        <div class="query-stat-value formatted-cvr">${termStats.cvr.toFixed(1)}%</div>
+      </div>
+    `;
+    
+    searchTermHTML += '</div>'; // Close query-stats-grid
+    
+    // Add Top Bucket badge if available
+    if (termStats.topBucket) {
+      const bucketClass = termStats.topBucket.toLowerCase().replace(/\s+/g, '');
+      searchTermHTML += `
+        <div class="top-bucket-badge top-bucket-${bucketClass}">
+          ${termStats.topBucket}
+        </div>
+      `;
+    }
+    
+    searchTermHTML += '</div>'; // Close query-stats
+  }
+  
+  searchTermHTML += '</div>'; // Close search-term-with-stats
+  
+  tdTerm.innerHTML = searchTermHTML;
+  tr.appendChild(tdTerm);
+  termCellUsed = true;
+}
   
           // Add location cell (with rowspan for all device rows in this location)
           if (!locCellUsed) {
