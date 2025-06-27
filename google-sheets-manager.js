@@ -505,6 +505,7 @@ ${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms
     <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
   </div>
 `;
+}
 
 // NOW show completion
 if (loader) {
