@@ -336,57 +336,63 @@ this.assignSellersToProcessedData(bucketData);
     const buckets = this.assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices);
     const prevBuckets = prevMetrics ? this.assignAllBuckets(prevMetrics, null, null, false) : null;
     
-    // Build the row data
-    return {
-      'Product Title': productTitle,
-      'Campaign Name': campaignName,
-      'Channel Type': channelType,
-      'Device': device,
-      'Impressions': metrics.impressions,
-      'Clicks': metrics.clicks,
-      'Avg CPC': this.round2(metrics.avgCpc),
-      'Cost': this.round2(metrics.cost),
-      'Conversions': metrics.conversions,
-      'ConvValue': this.round2(metrics.convValue),
-      'CTR': this.round2(metrics.ctr),
-      'CVR': this.round2(metrics.cvr),
-      'ROAS': this.round2(metrics.roas),
-      'AOV': this.round2(metrics.aov),
-      'CPA': this.round2(metrics.cpa),
-      'CPM': this.round2(metrics.cpm),
-      // New funnel metrics
-      'Cart Rate': this.round2(metrics.cartRate),
-      'Checkout Rate': this.round2(metrics.checkoutRate),
-      'Purchase Rate': this.round2(metrics.purchaseRate),
-      // Previous period metrics
-      'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
-      'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
-      'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
-      'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
-      'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
-      'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
-      'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
-      'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
-      'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
-      'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
-      'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
-      'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
-      // Bucket assignments
-'PROFITABILITY_BUCKET': JSON.stringify(buckets.profitability),
-'FUNNEL_STAGE_BUCKET': JSON.stringify(buckets.funnelStage),
-'INVESTMENT_BUCKET': JSON.stringify(buckets.investment),
-'CUSTOM_TIER_BUCKET': JSON.stringify(buckets.customTier),
-      'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
-      'SELLERS': 'TBD',
-      'HEALTH_SCORE': buckets.healthScore,
-      'Confidence_Level': buckets.confidenceLevel,
-      // Previous bucket assignments
-'prev_PROFITABILITY_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.profitability) : '{}',
-'prev_FUNNEL_STAGE_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.funnelStage) : '{}',
-'prev_INVESTMENT_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.investment) : '{}',
-'prev_CUSTOM_TIER_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.customTier) : '{}',
-      'prev_SUGGESTIONS_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.suggestions) : '[]'
-    };
+// Build the row data
+return {
+  'Product Title': productTitle,
+  'Campaign Name': campaignName,
+  'Channel Type': channelType,
+  'Device': device,
+  'Impressions': metrics.impressions,
+  'Clicks': metrics.clicks,
+  'Avg CPC': this.round2(metrics.avgCpc),
+  'Cost': this.round2(metrics.cost),
+  'Conversions': metrics.conversions,
+  'ConvValue': this.round2(metrics.convValue),
+  'CTR': this.round2(metrics.ctr),
+  'CVR': this.round2(metrics.cvr),
+  'ROAS': this.round2(metrics.roas),
+  'AOV': this.round2(metrics.aov),
+  'CPA': this.round2(metrics.cpa),
+  'CPM': this.round2(metrics.cpm),
+  // New funnel metrics
+  'Cart Rate': this.round2(metrics.cartRate),
+  'Checkout Rate': this.round2(metrics.checkoutRate),
+  'Purchase Rate': this.round2(metrics.purchaseRate),
+  // Add custom attributes
+  'Custom Attribute 0': metrics.customAttribute0,
+  'Custom Attribute 1': metrics.customAttribute1,
+  'Custom Attribute 2': metrics.customAttribute2,
+  'Custom Attribute 3': metrics.customAttribute3,
+  'Custom Attribute 4': metrics.customAttribute4,
+  // Previous period metrics
+  'prev_Impressions': prevMetrics ? prevMetrics.impressions : 0,
+  'prev_Clicks': prevMetrics ? prevMetrics.clicks : 0,
+  'prev_Avg CPC': prevMetrics ? this.round2(prevMetrics.avgCpc) : 0,
+  'prev_Cost': prevMetrics ? this.round2(prevMetrics.cost) : 0,
+  'prev_Conversions': prevMetrics ? prevMetrics.conversions : 0,
+  'prev_ConvValue': prevMetrics ? this.round2(prevMetrics.convValue) : 0,
+  'prev_CTR': prevMetrics ? this.round2(prevMetrics.ctr) : 0,
+  'prev_CVR': prevMetrics ? this.round2(prevMetrics.cvr) : 0,
+  'prev_ROAS': prevMetrics ? this.round2(prevMetrics.roas) : 0,
+  'prev_AOV': prevMetrics ? this.round2(prevMetrics.aov) : 0,
+  'prev_CPA': prevMetrics ? this.round2(prevMetrics.cpa) : 0,
+  'prev_CPM': prevMetrics ? this.round2(prevMetrics.cpm) : 0,
+  // Bucket assignments
+  'PROFITABILITY_BUCKET': JSON.stringify(buckets.profitability),
+  'FUNNEL_STAGE_BUCKET': JSON.stringify(buckets.funnelStage),
+  'INVESTMENT_BUCKET': JSON.stringify(buckets.investment),
+  'CUSTOM_TIER_BUCKET': JSON.stringify(buckets.customTier),
+  'SUGGESTIONS_BUCKET': JSON.stringify(buckets.suggestions),
+  'SELLERS': 'TBD',
+  'HEALTH_SCORE': buckets.healthScore,
+  'Confidence_Level': buckets.confidenceLevel,
+  // Previous bucket assignments
+  'prev_PROFITABILITY_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.profitability) : '{}',
+  'prev_FUNNEL_STAGE_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.funnelStage) : '{}',
+  'prev_INVESTMENT_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.investment) : '{}',
+  'prev_CUSTOM_TIER_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.customTier) : '{}',
+  'prev_SUGGESTIONS_BUCKET': prevBuckets ? JSON.stringify(prevBuckets.suggestions) : '[]'
+};
   },
 
   // Get device metrics for comparison (used only for All devices records)
@@ -707,111 +713,87 @@ calculateAccountMetrics(currentGrouped) {
   };
 },
 
-  // Calculate aggregated metrics for a group of rows
-  calculateAggregatedMetrics(rows) {
-    const parseNumber = (value) => {
-      if (!value) return 0;
-      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
-    };
+// Calculate aggregated metrics for a group of rows
+calculateAggregatedMetrics(rows) {
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
 
-    const metrics = {
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      convValue: 0,
-      addToCartConv: 0,
-      addToCartValue: 0,
-      beginCheckoutConv: 0,
-      beginCheckoutValue: 0,
-      purchaseConv: 0,
-      purchaseValue: 0
-    };
+  const metrics = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    convValue: 0,
+    addToCartConv: 0,
+    addToCartValue: 0,
+    beginCheckoutConv: 0,
+    beginCheckoutValue: 0,
+    purchaseConv: 0,
+    purchaseValue: 0,
+    // Initialize custom attributes as empty
+    customAttribute0: '',
+    customAttribute1: '',
+    customAttribute2: '',
+    customAttribute3: '',
+    customAttribute4: ''
+  };
 
-    // Aggregate metrics
-    rows.forEach(row => {
-      metrics.impressions += parseNumber(row.Impressions);
-      metrics.clicks += parseNumber(row.Clicks);
-      metrics.cost += parseNumber(row.Cost);
-      metrics.conversions += parseNumber(row.Conversions);
-      metrics.convValue += parseNumber(row['Conversion Value']);
-      metrics.addToCartConv += parseNumber(row['Add to Cart Conv']);
-      metrics.addToCartValue += parseNumber(row['Add to Cart Conv Value']);
-      metrics.beginCheckoutConv += parseNumber(row['Begin Checkout Conv']);
-      metrics.beginCheckoutValue += parseNumber(row['Begin Checkout Conv Value']);
-      metrics.purchaseConv += parseNumber(row['Purchase Conv']);
-      metrics.purchaseValue += parseNumber(row['Purchase Conv Value']);
-    });
+  // Find the row with the latest date to get custom attributes
+  let latestDate = null;
+  let latestRow = null;
+  
+  rows.forEach(row => {
+    if (row.Date) {
+      const rowDate = new Date(row.Date);
+      if (!isNaN(rowDate) && (!latestDate || rowDate > latestDate)) {
+        latestDate = rowDate;
+        latestRow = row;
+      }
+    }
+  });
+  
+  // Get custom attributes from the latest row
+  if (latestRow) {
+    metrics.customAttribute0 = latestRow['Custom Attribute 0'] || '';
+    metrics.customAttribute1 = latestRow['Custom Attribute 1'] || '';
+    metrics.customAttribute2 = latestRow['Custom Attribute 2'] || '';
+    metrics.customAttribute3 = latestRow['Custom Attribute 3'] || '';
+    metrics.customAttribute4 = latestRow['Custom Attribute 4'] || '';
+  }
 
-    // Calculate derived metrics
-    metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
-    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
-    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
-    metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
-    metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
-    metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
-    
-    // Funnel rates
-    metrics.cartRate = metrics.clicks > 0 ? (metrics.addToCartConv / metrics.clicks) * 100 : 0;
-    metrics.checkoutRate = metrics.addToCartConv > 0 ? (metrics.beginCheckoutConv / metrics.addToCartConv) * 100 : 0;
-    metrics.purchaseRate = metrics.beginCheckoutConv > 0 ? (metrics.purchaseConv / metrics.beginCheckoutConv) * 100 : 0;
+  // Aggregate metrics
+  rows.forEach(row => {
+    metrics.impressions += parseNumber(row.Impressions);
+    metrics.clicks += parseNumber(row.Clicks);
+    metrics.cost += parseNumber(row.Cost);
+    metrics.conversions += parseNumber(row.Conversions);
+    metrics.convValue += parseNumber(row['Conversion Value']);
+    metrics.addToCartConv += parseNumber(row['Add to Cart Conv']);
+    metrics.addToCartValue += parseNumber(row['Add to Cart Conv Value']);
+    metrics.beginCheckoutConv += parseNumber(row['Begin Checkout Conv']);
+    metrics.beginCheckoutValue += parseNumber(row['Begin Checkout Conv Value']);
+    metrics.purchaseConv += parseNumber(row['Purchase Conv']);
+    metrics.purchaseValue += parseNumber(row['Purchase Conv Value']);
+  });
 
-    return metrics;
-  },
+  // Calculate derived metrics
+  metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
+  metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
+  metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
+  metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
+  metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
+  metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
+  metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
+  
+  // Funnel rates
+  metrics.cartRate = metrics.clicks > 0 ? (metrics.addToCartConv / metrics.clicks) * 100 : 0;
+  metrics.checkoutRate = metrics.addToCartConv > 0 ? (metrics.beginCheckoutConv / metrics.addToCartConv) * 100 : 0;
+  metrics.purchaseRate = metrics.beginCheckoutConv > 0 ? (metrics.purchaseConv / metrics.beginCheckoutConv) * 100 : 0;
 
-    // Calculate aggregated metrics for a group of rows
-  calculateAggregatedMetrics(rows) {
-    const parseNumber = (value) => {
-      if (!value) return 0;
-      return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
-    };
-
-    const metrics = {
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      convValue: 0,
-      addToCartConv: 0,
-      addToCartValue: 0,
-      beginCheckoutConv: 0,
-      beginCheckoutValue: 0,
-      purchaseConv: 0,
-      purchaseValue: 0
-    };
-
-    // Aggregate metrics
-    rows.forEach(row => {
-      metrics.impressions += parseNumber(row.Impressions);
-      metrics.clicks += parseNumber(row.Clicks);
-      metrics.cost += parseNumber(row.Cost);
-      metrics.conversions += parseNumber(row.Conversions);
-      metrics.convValue += parseNumber(row['Conversion Value']);
-      metrics.addToCartConv += parseNumber(row['Add to Cart Conv']);
-      metrics.addToCartValue += parseNumber(row['Add to Cart Conv Value']);
-      metrics.beginCheckoutConv += parseNumber(row['Begin Checkout Conv']);
-      metrics.beginCheckoutValue += parseNumber(row['Begin Checkout Conv Value']);
-      metrics.purchaseConv += parseNumber(row['Purchase Conv']);
-      metrics.purchaseValue += parseNumber(row['Purchase Conv Value']);
-    });
-
-    // Calculate derived metrics
-    metrics.avgCpc = metrics.clicks > 0 ? metrics.cost / metrics.clicks : 0;
-    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0;
-    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks) * 100 : 0;
-    metrics.roas = metrics.cost > 0 ? metrics.convValue / metrics.cost : 0;
-    metrics.aov = metrics.conversions > 0 ? metrics.convValue / metrics.conversions : 0;
-    metrics.cpa = metrics.conversions > 0 ? metrics.cost / metrics.conversions : 0;
-    metrics.cpm = metrics.impressions > 0 ? (metrics.cost / metrics.impressions) * 1000 : 0;
-    
-    // Funnel rates
-    metrics.cartRate = metrics.clicks > 0 ? (metrics.addToCartConv / metrics.clicks) * 100 : 0;
-    metrics.checkoutRate = metrics.addToCartConv > 0 ? (metrics.beginCheckoutConv / metrics.addToCartConv) * 100 : 0;
-    metrics.purchaseRate = metrics.beginCheckoutConv > 0 ? (metrics.purchaseConv / metrics.beginCheckoutConv) * 100 : 0;
-
-    return metrics;
-  },
+  return metrics;
+},
 
   // Assign all buckets based on new system
   assignAllBuckets(metrics, prevMetrics, allDeviceMetrics, isAllDevices) {
