@@ -909,10 +909,7 @@ function formatBytes(bytes) {
   }
   
   // Try multiple times to ensure DOM is ready
-  setTimeout(attachListener, 100);
-  setTimeout(attachListener, 500);
   setTimeout(attachListener, 1000);
-  setTimeout(attachListener, 2000);
 })();
 
 // Function to handle the complete IDB refresh process
