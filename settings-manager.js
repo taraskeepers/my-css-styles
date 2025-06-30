@@ -588,17 +588,17 @@ window.settingsOverlay = {
 
 function initSettingsOverlayHandlers() {
   // Initialize DOM elements storage inside the function
-  const settingsOverlayElements = {};
+  window.settingsOverlayElements = {};
   console.log("[Settings Manager] Initializing settings overlay handlers");
   
   // Cache DOM elements globally
-  settingsOverlayElements.overlay = document.getElementById("settingsOverlay");
-  settingsOverlayElements.container = document.getElementById("settingsContainer");
-  settingsOverlayElements.closeBtn = document.getElementById("closeSettingsPopup");
-  settingsOverlayElements.tabs = document.querySelectorAll(".settings-tab");
-  settingsOverlayElements.panels = document.querySelectorAll(".settings-panel");
+  window.settingsOverlayElements.overlay = document.getElementById("settingsOverlay");
+  window.settingsOverlayElements.container = document.getElementById("settingsContainer");
+  window.settingsOverlayElements.closeBtn = document.getElementById("closeSettingsPopup");
+  window.settingsOverlayElements.tabs = document.querySelectorAll(".settings-tab");
+  window.settingsOverlayElements.panels = document.querySelectorAll(".settings-panel");
   
-  if (!settingsOverlayElements.overlay || !settingsOverlayElements.container) {
+  if (!window.settingsOverlayElements.overlay || !window.settingsOverlayElements.container) {
     console.error("[Settings Manager] Settings overlay elements not found!");
     return;
   }
@@ -606,7 +606,7 @@ function initSettingsOverlayHandlers() {
   // Tab switching functionality
   function switchTab(tabName) {
     // Update tab states
-    settingsOverlayElements.tabs.forEach(tab => {
+    window.settingsOverlayElements.tabs.forEach(tab => {
       if (tab.dataset.tab === tabName) {
         tab.classList.add('active');
       } else {
@@ -615,7 +615,7 @@ function initSettingsOverlayHandlers() {
     });
     
     // Update panel visibility
-    settingsOverlayElements.panels.forEach(panel => {
+    window.settingsOverlayElements.panels.forEach(panel => {
       if (panel.dataset.panel === tabName) {
         panel.classList.add('active');
       } else {
@@ -656,19 +656,19 @@ function initSettingsOverlayHandlers() {
   }
   
   // Event listeners
-  if (settingsOverlayElements.closeBtn) {
-    settingsOverlayElements.closeBtn.addEventListener("click", window.closeSettingsOverlay);
+  if (window.settingsOverlayElements.closeBtn) {
+    window.settingsOverlayElements.closeBtn.addEventListener("click", window.closeSettingsOverlay);
   }
   
   // Click outside to close
-  settingsOverlayElements.overlay.addEventListener("click", function(e) {
-    if (e.target === settingsOverlayElements.overlay) {
+  window.settingsOverlayElements.overlay.addEventListener("click", function(e) {
+    if (e.target === window.settingsOverlayElements.overlay) {
       window.closeSettingsOverlay();
     }
   });
   
   // Tab click handlers
-  settingsOverlayElements.tabs.forEach(tab => {
+  window.settingsOverlayElements.tabs.forEach(tab => {
     tab.addEventListener("click", function() {
       switchTab(this.dataset.tab);
     });
@@ -785,7 +785,7 @@ function initSettingsOverlayHandlers() {
   
   // Create the global functions
   window.openSettingsOverlay = function(initialTab = 'company') {
-    settingsOverlayElements.overlay.style.display = "flex";
+    window.settingsOverlayElements.overlay.style.display = "flex";
     window.settingsOverlay.isOpen = true;
     switchTab(initialTab);
     
@@ -795,7 +795,7 @@ function initSettingsOverlayHandlers() {
   
   // Close settings overlay
   window.closeSettingsOverlay = function() {
-    settingsOverlayElements.overlay.style.display = "none";
+    window.settingsOverlayElements.overlay.style.display = "none";
     window.settingsOverlay.isOpen = false;
     
     // Remove escape key listener
