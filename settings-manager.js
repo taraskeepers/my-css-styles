@@ -516,17 +516,17 @@
     background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
   }
   
-  /* Panel transitions */
-  .settings-panel {
-    display: none;
-    opacity: 0;
-    animation: panelFadeIn 0.3s ease-out forwards;
-  }
-  
-  .settings-panel.active {
-    display: block;
-    opacity: 1;
-  }
+/* Panel transitions */
+.settings-panel {
+  display: none !important;
+  opacity: 0;
+  animation: panelFadeIn 0.3s ease-out forwards;
+}
+
+.settings-panel.active {
+  display: block !important;
+  opacity: 1;
+}
   
   @keyframes panelFadeIn {
     from {
@@ -678,14 +678,16 @@ function initSettingsOverlayHandlers() {
       }
     });
     
-    // Update panel visibility
-    window.settingsOverlayElements.panels.forEach(panel => {
-      if (panel.dataset.panel === tabName) {
-        panel.classList.add('active');
-      } else {
-        panel.classList.remove('active');
-      }
-    });
+// Update panel visibility
+window.settingsOverlayElements.panels.forEach(panel => {
+  if (panel.dataset.panel === tabName) {
+    panel.classList.add('active');
+    panel.style.display = 'block';
+  } else {
+    panel.classList.remove('active');
+    panel.style.display = 'none';
+  }
+});
     
     // Store active tab
     window.settingsOverlay.activeTab = tabName;
@@ -697,25 +699,40 @@ function initSettingsOverlayHandlers() {
 // Initialize content when tab is activated
   function initializeTabContent(tabName) {
     switch(tabName) {
-      case 'company':
-        updateCurrentCompanyDisplay();
-        
-        // Populate company dropdown when company tab is shown
-        const dropdown = document.getElementById("companySelectDropdown");
-        if (dropdown && window.companyStatsData) {
-          const companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
-          dropdown.innerHTML = '<option value="">-- Select Company --</option>';
-          companies.forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c;
-            opt.textContent = c;
-            if (c === window.myCompany) {
-              opt.selected = true;
-            }
-            dropdown.appendChild(opt);
-          });
-        }
-        break;
+case 'company':
+  updateCurrentCompanyDisplay();
+  
+  // Populate company dropdown when company tab is shown
+  const dropdown = document.getElementById("companySelectDropdown");
+  if (dropdown) {
+    // Try multiple data sources
+    let companies = [];
+    
+    if (window.companyStatsData && window.companyStatsData.length > 0) {
+      companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
+    } else if (window.allRows && window.allRows.length > 0) {
+      companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
+    }
+    
+    console.log("[Settings] Found companies:", companies);
+    
+    dropdown.innerHTML = '<option value="">-- Select Company --</option>';
+    companies.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      if (c === window.myCompany) {
+        opt.selected = true;
+      }
+      dropdown.appendChild(opt);
+    });
+    
+    // If no companies found, show a message
+    if (companies.length === 0) {
+      dropdown.innerHTML = '<option value="">No companies found - data may still be loading</option>';
+    }
+  }
+  break;
         
       case 'map':
         initializeMapToggles();
@@ -760,22 +777,27 @@ function initSettingsOverlayHandlers() {
   });
   
 // Update company display
-  function updateCurrentCompanyDisplay() {
-    const companyValEl = document.getElementById("currentCompanyValue");
-    if (companyValEl) {
-      let val = window.myCompany || "";
-      
-      if (!val) {
-        const cTextEl = document.getElementById("companyText");
-        if (cTextEl && cTextEl.textContent && cTextEl.textContent !== "Not Selected") {
-          val = cTextEl.textContent.trim();
-        }
+function updateCurrentCompanyDisplay() {
+  const companyValEl = document.getElementById("currentCompanyValue");
+  if (companyValEl) {
+    let val = window.myCompany || "";
+    
+    if (!val) {
+      const cTextEl = document.getElementById("companyText");
+      if (cTextEl && cTextEl.textContent && cTextEl.textContent !== "Not Selected") {
+        val = cTextEl.textContent.trim();
       }
-      
-      companyValEl.textContent = val || "Not Selected";
-      console.log("[Settings] Updated company display to:", val || "Not Selected");
     }
+    
+    // Also check filterState
+    if (!val && window.filterState && window.filterState.company) {
+      val = window.filterState.company;
+    }
+    
+    companyValEl.textContent = val || "Not Selected";
+    console.log("[Settings] Updated company display to:", val || "Not Selected");
   }
+}
   
   // Initialize map toggles
   function initializeMapToggles() {
@@ -895,14 +917,18 @@ function initSettingsOverlayHandlers() {
   }
   
   // Create the global functions
-  window.openSettingsOverlay = function(initialTab = 'company') {
-    window.settingsOverlayElements.overlay.style.display = "flex";
-    window.settingsOverlay.isOpen = true;
+window.openSettingsOverlay = function(initialTab = 'company') {
+  window.settingsOverlayElements.overlay.style.display = "flex";
+  window.settingsOverlay.isOpen = true;
+  
+  // Add a small delay to ensure data is available
+  setTimeout(() => {
     switchTab(initialTab);
-    
-    // Add escape key listener
-    document.addEventListener('keydown', handleEscapeKey);
-  };
+  }, 100);
+  
+  // Add escape key listener
+  document.addEventListener('keydown', handleEscapeKey);
+};
   
   // Close settings overlay
   window.closeSettingsOverlay = function() {
