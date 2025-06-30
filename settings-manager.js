@@ -886,21 +886,13 @@ window.openSettingsOverlay = function(initialTab = 'company') {
     panel.style.display = 'none';
   });
   
-  // Log all possible company values
-  console.log("[Settings] Current company values:", {
-    myCompany: window.myCompany,
-    filterStateCompany: window.filterState?.company,
-    localStorage: localStorage.getItem("my_company")
-  });
-  
-  // Force set the company value from myCompany
-  const companyValEl = document.getElementById("currentCompanyValue");
-  if (companyValEl) {
-    companyValEl.textContent = window.myCompany || "Not Selected";
-  }
-  
   // Switch to initial tab
   switchTab(initialTab);
+  
+  // Update company display after a short delay to ensure window.myCompany is set
+  setTimeout(() => {
+    updateCurrentCompanyDisplay();
+  }, 100);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
