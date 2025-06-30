@@ -394,19 +394,38 @@
             color: #6b7280;
           ">No data uploaded yet</div>
           
-          <button id="provideFeedFileBtn" style="
-            width: 100%;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.25);
-          ">Provide Feed File</button>
+          <div style="margin-top: 24px;">
+            <label style="
+              display: block;
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 8px;
+              text-align: left;
+            ">Google Sheets URL:</label>
+            <input type="text" id="googleSheetsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="
+              width: 100%;
+              padding: 10px 12px;
+              font-size: 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              box-sizing: border-box;
+            " />
+            
+            <button id="googleSheetsUrlUpload" style="
+              width: 100%;
+              padding: 12px 24px;
+              background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+              color: white;
+              border: none;
+              border-radius: 10px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 15px rgba(66, 133, 244, 0.25);
+            ">Upload Google Sheets Data</button>
+          </div>
         </div>
       </div>
     </div>
