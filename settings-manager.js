@@ -884,17 +884,39 @@ function updateCurrentCompanyDisplay() {
     };
   }
   
-  // Google Ads button handler
-  const provideFeedBtn = document.getElementById("provideFeedFileBtn");
-  if (provideFeedBtn) {
-    provideFeedBtn.addEventListener("click", function() {
-      window.closeSettingsOverlay();
-      const urlOverlay = document.getElementById("googleSheetsUrlOverlay");
-      if (urlOverlay) {
-        urlOverlay.style.display = "flex";
+// Google Ads upload button handler (integrated)
+const uploadBtn = document.getElementById("googleSheetsUrlUpload");
+if (uploadBtn) {
+  uploadBtn.addEventListener("click", async function() {
+    const urlInput = document.getElementById("googleSheetsUrlInput");
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+      alert("Please enter a Google Sheets URL");
+      return;
+    }
+    
+    if (!url.includes("docs.google.com/spreadsheets")) {
+      alert("Please enter a valid Google Sheets URL");
+      return;
+    }
+    
+    try {
+      // Determine current account prefix
+      const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+      if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreFromUrl === "function") {
+        await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
+        
+        // Clear the input and update status
+        urlInput.value = "";
+        updateGoogleAdsStatus();
+        alert("Google Sheets data uploaded successfully!");
       }
-    });
-  }
+    } catch (error) {
+      alert(`Failed to process Google Sheets: ${error.message}`);
+    }
+  });
+}
   
   // Refresh IDB button handler
   const refreshIDBBtn = document.getElementById("refreshIDBButton");
@@ -1142,76 +1164,6 @@ window.refreshIDBData = async function() {
 if (!window.localEmbedToggles) {
   window.localEmbedToggles = {};
 }
-
-// Google Sheets URL popup handlers
-document.addEventListener('DOMContentLoaded', function() {
-  const provideFeedBtn = document.getElementById("provideFeedFileBtn");
-  const urlOverlay = document.getElementById("googleSheetsUrlOverlay");
-  const urlInput = document.getElementById("googleSheetsUrlInput");
-  const cancelBtn = document.getElementById("googleSheetsUrlCancel");
-  const uploadBtn = document.getElementById("googleSheetsUrlUpload");
-
-  if (provideFeedBtn && urlOverlay) {
-    // Show popup when Provide Feed File is clicked
-    provideFeedBtn.addEventListener("click", () => {
-      urlOverlay.style.display = "flex";
-      urlInput.value = ""; // Clear previous input
-      urlInput.focus();
-    });
-    
-    // Hide popup on cancel
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
-        urlOverlay.style.display = "none";
-      });
-    }
-    
-    // Process URL on upload
-    if (uploadBtn) {
-      uploadBtn.addEventListener("click", async () => {
-        const url = urlInput.value.trim();
-        
-        if (!url) {
-          alert("Please enter a Google Sheets URL");
-          return;
-        }
-        
-        if (!url.includes("docs.google.com/spreadsheets")) {
-          alert("Please enter a valid Google Sheets URL");
-          return;
-        }
-        
-        // Hide the URL popup
-        urlOverlay.style.display = "none";
-        
-        try {
-          // Determine current account prefix
-          const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-          if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreFromUrl === "function") {
-            await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
-          }
-          
-          // Optionally close the settings overlay too
-          const settingsOverlay = document.getElementById("settingsOverlay");
-          if (settingsOverlay) {
-            settingsOverlay.style.display = "none";
-          }
-        } catch (error) {
-          alert(`Failed to process Google Sheets: ${error.message}`);
-        }
-      });
-    }
-    
-    // Allow Enter key to submit
-    if (urlInput) {
-      urlInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          uploadBtn.click();
-        }
-      });
-    }
-  }
-});
 
 // Helper function to update toggle state
 function updateToggle(toggleId, newValue) {
