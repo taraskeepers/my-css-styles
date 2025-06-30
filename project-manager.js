@@ -830,3 +830,199 @@ function createLocationListItem(loc) {
 
   return li;
 }
+
+/**
+ * Helper function to reload the correct tables (with either demo_ or acc1_ prefix),
+ * read them from IDB (if fresh), or request from the server if missing/stale,
+ * and then rebuild the embed’s UI.
+ */
+
+ async function switchAccountAndReload(prefix, projectNumber) {
+  console.group("[switchAccountAndReload DEBUG]");
+  console.log("Called with prefix:", prefix, "projectNumber:", projectNumber);
+  console.log("Previous dataPrefix:", window.dataPrefix);
+  console.log("Previous projectData source:", window.projectData === window.demoProjectData ? "DEMO" : 
+               (window.projectData === window.realProjectData ? "Account 1" : "UNKNOWN"));
+  console.groupEnd();
+
+  console.warn("[🚨 switchAccountAndReload()] Triggered for project_number =", projectNumber);
+  console.warn("🚨 switchAccountAndReload() was called with prefix:", prefix);
+
+  // Show loader immediately with progress
+  window.loaderManager.show('Loading data...');
+  window.loaderManager.updateStep('connect', 'active');
+
+  // Clear ALL global data variables
+  window.companyStatsData = [];
+  window.marketTrendsData = [];
+  window.allRows = [];  // Add this
+  window.filteredData = [];  // Add this
+  window.cachedRows = [];  // Add this
+  window.globalRows = {};  // Add this (as object, not array)
+  window.projectTableData = null;  // Add this if exists
+  window.homeData = null;  // Add this if exists
+  window.projectData = [];  // Add this
+
+  if (window.dataCache) {
+    window.dataCache.clear();
+  }
+
+  // 2) Update the global prefix
+  window.dataPrefix = prefix;
+  console.log("[DEBUG] dataPrefix now:", window.dataPrefix);
+  synchronizeProjectData();  // Keep this important call
+
+  // 3) Attempt to read IDB records for processed, serp, and market_trends
+  try {
+    window.filterState.activeProjectNumber = projectNumber;
+    const processedKey = prefix + "processed";
+    const serpKey = prefix + "company_serp_stats";
+    const trendsKey = prefix + "market_trends";
+
+    console.group("[📦 IDB Access: Requested Tables]");
+    console.log("✅ Processed:", processedKey);
+    console.log("✅ SERP Stats:", serpKey);
+    console.log("✅ Market Trends:", trendsKey);
+    console.groupEnd();
+
+    const [processedRec, serpStatsRec, marketTrendsRec] = await Promise.all([
+      window.embedIDB.getData(processedKey),
+      window.embedIDB.getData(serpKey),
+      window.embedIDB.getData(trendsKey)
+    ]);
+
+    console.group("[🧪 switchAccountAndReload] Raw IDB results:");
+    console.log("serpStatsRec =", serpStatsRec);
+    console.log("serpStatsRec?.data =", serpStatsRec?.data);
+    console.groupEnd();
+
+    // 🧠 Inject project_number into each serpStats row based on serpKey
+    if (Array.isArray(serpStatsRec?.data)) {
+      const match = serpKey.match(/pr(\d+)_/);
+      const prNumber = match ? parseInt(match[1], 10) : null;
+
+      if (prNumber) {
+        serpStatsRec.data.forEach((row, idx) => {
+          if (row.project_number == null) {
+            row.project_number = prNumber;
+          }
+          if (row.source == null) {
+            row.source = window.myCompany || "Unknown";
+          }
+        });
+
+        console.log("[🧪 TEST] Sample patched row:");
+        console.log(serpStatsRec.data[0]);
+
+        const countMissing = serpStatsRec.data.filter(r => r.project_number == null).length;
+        const countValid = serpStatsRec.data.filter(r => r.project_number === prNumber).length;
+        console.log(`[🔍] project_number injection: ${countValid} assigned, ${countMissing} missing`);
+      } else {
+        console.warn(`[❌] Could not extract project_number from prefix:`, prefix);
+      }
+    }
+
+    // Simple helper to decide if data is present & fresh
+    const isFresh = (rec) => {
+      if (!rec || !rec.data || !rec.data.length) return false;
+      return isToday(rec.savedAt);  // uses your existing isToday(timestamp) check
+    };
+
+    const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec);
+    console.log("[🧪 isFresh checks]",
+      "processed =", isFresh(processedRec),
+      "serp =", isFresh(serpStatsRec),
+      "trends =", isFresh(marketTrendsRec)
+    );
+
+    if (allFresh) {
+      console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
+      
+      // CRITICAL: Set the global data BEFORE calling onReceivedRows
+      window.companyStatsData = serpStatsRec.data || [];   
+      window.marketTrendsData = marketTrendsRec.data || [];
+
+      // Also load Google Sheets data from IDB if available
+      const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+      Promise.all([
+        window.embedIDB.getData(currentPrefix + "googleSheets_productPerformance"),
+        window.embedIDB.getData(currentPrefix + "googleSheets_locationRevenue")
+      ]).then(([productRec, locationRec]) => {
+        if (productRec?.data && locationRec?.data) {
+          console.log("[Google Sheets] Loaded from IDB cache");
+          window.googleSheetsData = {
+            productPerformance: productRec.data,
+            locationRevenue: locationRec.data
+          };
+        } else {
+          // Check if googleSheetsManager exists before using it
+          if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreAll === 'function') {
+            console.log("[Google Sheets] No cache found, trying to fetch if available...");
+            window.googleSheetsManager.fetchAndStoreAll(currentPrefix)
+              .then(({ productData, locationData }) => {
+                window.googleSheetsData = {
+                  productPerformance: productData,
+                  locationRevenue: locationData
+                };
+              })
+              .catch(err => {
+                console.log("[Google Sheets] No data available (user hasn't uploaded sheets yet)");
+                window.googleSheetsData = {
+                  productPerformance: [],
+                  locationRevenue: []
+                };
+              });
+          } else {
+            console.log("[Google Sheets] googleSheetsManager not available, skipping");
+            window.googleSheetsData = {
+              productPerformance: [],
+              locationRevenue: []
+            };
+          }
+        }
+      }).catch(err => {
+        console.log("[Google Sheets] Using empty data due to error:", err.message);
+        window.googleSheetsData = {
+          productPerformance: [],
+          locationRevenue: []
+        };
+      });
+
+      const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
+      console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
+      if (loadedProjectNumbers.size !== 1) {
+        console.warn("[⚠️] Loaded companyStatsData has multiple project_numbers!");
+      }      
+
+      console.group("[📊 Data Injected Into Page]");
+      console.log("window.dataPrefix =", window.dataPrefix);
+      console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
+      console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
+      console.groupEnd();
+
+      // MODIFIED: Pass all data to avoid double-loading
+      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
+      
+    } else {
+      // If missing/stale => request fresh tables from the server
+      window.parent.postMessage(
+        { command: "requestServerData", projectNumber: projectNumber },
+        "*"
+      );
+    }
+
+  } catch(e) {
+    console.error("switchAccountAndReload error:", e);
+    // fallback => ask server for data if anything fails
+    window.parent.postMessage(
+      { command: "requestServerData", projectNumber: projectNumber },
+      "*"
+    );
+  } finally {
+    // 4) Hide the loader once loading is done or if we asked server
+    if (loader) {
+      loader.style.opacity = "0";
+      setTimeout(() => { loader.style.display = "none"; }, 500);
+    }
+  }
+}
