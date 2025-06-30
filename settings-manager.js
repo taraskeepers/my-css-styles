@@ -897,10 +897,22 @@ function formatBytes(bytes) {
         }
         
         console.log("[Settings] Opening settings overlay");
+        
+        // Check if the function exists
         if (typeof window.openSettingsOverlay === "function") {
           window.openSettingsOverlay();
         } else {
-          console.error("[Settings] window.openSettingsOverlay is not defined");
+          console.error("[Settings] window.openSettingsOverlay is not defined. Initializing now...");
+          // Try to initialize the handlers first
+          if (typeof initSettingsOverlayHandlers === "function") {
+            initSettingsOverlayHandlers();
+            // Now try again
+            if (typeof window.openSettingsOverlay === "function") {
+              window.openSettingsOverlay();
+            } else {
+              console.error("[Settings] Still cannot find openSettingsOverlay after init");
+            }
+          }
         }
       });
     } else {
@@ -909,11 +921,8 @@ function formatBytes(bytes) {
     }
   }
   
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachButtonListener);
-  } else {
-    attachButtonListener();
-  }
+  // Use a delay to ensure everything is initialized
+  setTimeout(attachButtonListener, 1000);
 })();
 
 // Function to handle the complete IDB refresh process
