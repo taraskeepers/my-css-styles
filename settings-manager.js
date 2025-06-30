@@ -730,15 +730,16 @@ function updateCurrentCompanyDisplay() {
   if (companyValEl) {
     let val = "";
     
-    // Check the actual variables used in the embed_element
-    if (window.myCompany && window.myCompany.trim()) {
-      val = window.myCompany.trim();
-    } else if (window.frontendCompany && window.frontendCompany.trim()) {
-      val = window.frontendCompany.trim();
-    } else if (window.filterState && window.filterState.company && window.filterState.company.trim()) {
+    // Check filterState.company first (this is what gets updated when user selects from dropdown)
+    if (window.filterState && window.filterState.company && window.filterState.company.trim()) {
       val = window.filterState.company.trim();
-    } else {
-      // Check localStorage as fallback
+    }
+    // Then check window.myCompany as fallback
+    else if (window.myCompany && window.myCompany.trim()) {
+      val = window.myCompany.trim();
+    }
+    // Finally check localStorage
+    else {
       const storedCompany = localStorage.getItem("my_company") || localStorage.getItem("real_company");
       if (storedCompany && storedCompany.trim()) {
         val = storedCompany.trim();
@@ -747,12 +748,7 @@ function updateCurrentCompanyDisplay() {
     
     // Update display
     companyValEl.textContent = val || "Not Selected";
-    console.log("[Settings] Company display updated to:", val || "Not Selected", {
-      myCompany: window.myCompany,
-      frontendCompany: window.frontendCompany,
-      filterStateCompany: window.filterState?.company,
-      localStorage: localStorage.getItem("my_company")
-    });
+    console.log("[Settings] Company display updated to:", val || "Not Selected");
   }
 }
   
