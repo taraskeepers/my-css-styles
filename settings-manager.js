@@ -574,40 +574,40 @@
   document.body.appendChild(tempDiv.firstElementChild);
   
   console.log("[Settings Manager] Settings overlay HTML injected");
-}
-
-// Wait for DOM to be ready before initializing
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSettingsOverlayHandlers);
-} else {
-  initSettingsOverlayHandlers();
-}
+})();
 
 // ========================================
 // SETTINGS OVERLAY MANAGEMENT
 // ========================================
 
+// Initialize global settings overlay object
+window.settingsOverlay = {
+  isOpen: false,
+  activeTab: 'company'
+};
+
+// Global variables for DOM elements
+let settingsOverlayElements = {};
+
 function initSettingsOverlayHandlers() {
   console.log("[Settings Manager] Initializing settings overlay handlers");
   
-  // Cache DOM elements
-  const overlay = document.getElementById("settingsOverlay");
-  const container = document.getElementById("settingsContainer");
-  const closeBtn = document.getElementById("closeSettingsPopup");
-  const tabs = document.querySelectorAll(".settings-tab");
-  const panels = document.querySelectorAll(".settings-panel");
+  // Cache DOM elements globally
+  settingsOverlayElements.overlay = document.getElementById("settingsOverlay");
+  settingsOverlayElements.container = document.getElementById("settingsContainer");
+  settingsOverlayElements.closeBtn = document.getElementById("closeSettingsPopup");
+  settingsOverlayElements.tabs = document.querySelectorAll(".settings-tab");
+  settingsOverlayElements.panels = document.querySelectorAll(".settings-panel");
   
-  if (!overlay || !container) {
+  if (!settingsOverlayElements.overlay || !settingsOverlayElements.container) {
     console.error("[Settings Manager] Settings overlay elements not found!");
     return;
   }
   
-  // Rest of the initialization code...
-  
   // Tab switching functionality
   function switchTab(tabName) {
     // Update tab states
-    tabs.forEach(tab => {
+    settingsOverlayElements.tabs.forEach(tab => {
       if (tab.dataset.tab === tabName) {
         tab.classList.add('active');
       } else {
@@ -616,7 +616,7 @@ function initSettingsOverlayHandlers() {
     });
     
     // Update panel visibility
-    panels.forEach(panel => {
+    settingsOverlayElements.panels.forEach(panel => {
       if (panel.dataset.panel === tabName) {
         panel.classList.add('active');
       } else {
@@ -649,25 +649,6 @@ function initSettingsOverlayHandlers() {
     }
   }
   
-  // Open settings overlay
-  window.openSettingsOverlay = function(initialTab = 'company') {
-    overlay.style.display = "flex";
-    window.settingsOverlay.isOpen = true;
-    switchTab(initialTab);
-    
-    // Add escape key listener
-    document.addEventListener('keydown', handleEscapeKey);
-  };
-  
-  // Close settings overlay
-  window.closeSettingsOverlay = function() {
-    overlay.style.display = "none";
-    window.settingsOverlay.isOpen = false;
-    
-    // Remove escape key listener
-    document.removeEventListener('keydown', handleEscapeKey);
-  };
-  
   // Handle escape key
   function handleEscapeKey(e) {
     if (e.key === 'Escape' && window.settingsOverlay.isOpen) {
@@ -676,19 +657,19 @@ function initSettingsOverlayHandlers() {
   }
   
   // Event listeners
-  if (closeBtn) {
-    closeBtn.addEventListener("click", window.closeSettingsOverlay);
+  if (settingsOverlayElements.closeBtn) {
+    settingsOverlayElements.closeBtn.addEventListener("click", window.closeSettingsOverlay);
   }
   
   // Click outside to close
-  overlay.addEventListener("click", function(e) {
-    if (e.target === overlay) {
+  settingsOverlayElements.overlay.addEventListener("click", function(e) {
+    if (e.target === settingsOverlayElements.overlay) {
       window.closeSettingsOverlay();
     }
   });
   
   // Tab click handlers
-  tabs.forEach(tab => {
+  settingsOverlayElements.tabs.forEach(tab => {
     tab.addEventListener("click", function() {
       switchTab(this.dataset.tab);
     });
@@ -725,14 +706,16 @@ function initSettingsOverlayHandlers() {
     Object.entries(mapToggles).forEach(([key, toggle]) => {
       if (toggle) {
         // Set initial state
-        const savedValue = window.localEmbedToggles[key];
+        const savedValue = window.localEmbedToggles?.[key];
         if (typeof savedValue === "boolean") {
           toggle.checked = savedValue;
         }
         
         // Add change listener
         toggle.addEventListener("change", function() {
-          updateToggle(key, this.checked);
+          if (typeof updateToggle === "function") {
+            updateToggle(key, this.checked);
+          }
           if (typeof updateHomeMapMetrics === "function") {
             updateHomeMapMetrics();
           }
@@ -794,11 +777,39 @@ function initSettingsOverlayHandlers() {
       
       if (confirmRefresh) {
         window.closeSettingsOverlay();
-        window.refreshIDBData();
+        if (typeof window.refreshIDBData === "function") {
+          window.refreshIDBData();
+        }
       }
     });
   }
-})();
+  
+  // Create the global functions
+  window.openSettingsOverlay = function(initialTab = 'company') {
+    settingsOverlayElements.overlay.style.display = "flex";
+    window.settingsOverlay.isOpen = true;
+    switchTab(initialTab);
+    
+    // Add escape key listener
+    document.addEventListener('keydown', handleEscapeKey);
+  };
+  
+  // Close settings overlay
+  window.closeSettingsOverlay = function() {
+    settingsOverlayElements.overlay.style.display = "none";
+    window.settingsOverlay.isOpen = false;
+    
+    // Remove escape key listener
+    document.removeEventListener('keydown', handleEscapeKey);
+  };
+}
+
+// Wait for DOM to be ready before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSettingsOverlayHandlers);
+} else {
+  initSettingsOverlayHandlers();
+}
 
 // Update database usage bars
 window.updateDatabaseUsageBars = function() {
@@ -806,49 +817,51 @@ window.updateDatabaseUsageBars = function() {
   if (!container) return;
   
   // Get all IDB tables and calculate sizes
-  window.embedIDB.open().then(db => {
-    if (!db) return;
-    
-    const tx = db.transaction("projectData", "readonly");
-    const store = tx.objectStore("projectData");
-    const req = store.getAll();
-    
-    req.onsuccess = (event) => {
-      const allData = event.target.result || [];
-      const sizes = {};
-      let totalSize = 0;
+  if (window.embedIDB && typeof window.embedIDB.open === "function") {
+    window.embedIDB.open().then(db => {
+      if (!db) return;
       
-      allData.forEach(record => {
-        const size = new Blob([JSON.stringify(record.data)]).size;
-        sizes[record.tableName] = size;
-        totalSize += size;
-      });
+      const tx = db.transaction("projectData", "readonly");
+      const store = tx.objectStore("projectData");
+      const req = store.getAll();
       
-      // Render the bars
-      container.innerHTML = `
-        <div class="storage-bar-item">
-          <div class="storage-bar-label">
-            <span>Total Storage</span>
-            <span>${formatBytes(totalSize)}</span>
-          </div>
-          <div class="storage-bar-container">
-            <div class="storage-bar-fill" style="width: 100%;"></div>
-          </div>
-        </div>
-        ${Object.entries(sizes).map(([name, size]) => `
+      req.onsuccess = (event) => {
+        const allData = event.target.result || [];
+        const sizes = {};
+        let totalSize = 0;
+        
+        allData.forEach(record => {
+          const size = new Blob([JSON.stringify(record.data)]).size;
+          sizes[record.tableName] = size;
+          totalSize += size;
+        });
+        
+        // Render the bars
+        container.innerHTML = `
           <div class="storage-bar-item">
             <div class="storage-bar-label">
-              <span style="font-size: 12px; color: #9ca3af;">${name}</span>
-              <span style="font-size: 12px;">${formatBytes(size)}</span>
+              <span>Total Storage</span>
+              <span>${formatBytes(totalSize)}</span>
             </div>
             <div class="storage-bar-container">
-              <div class="storage-bar-fill" style="width: ${(size/totalSize*100).toFixed(1)}%; opacity: 0.7;"></div>
+              <div class="storage-bar-fill" style="width: 100%;"></div>
             </div>
           </div>
-        `).join('')}
-      `;
-    };
-  });
+          ${Object.entries(sizes).map(([name, size]) => `
+            <div class="storage-bar-item">
+              <div class="storage-bar-label">
+                <span style="font-size: 12px; color: #9ca3af;">${name}</span>
+                <span style="font-size: 12px;">${formatBytes(size)}</span>
+              </div>
+              <div class="storage-bar-container">
+                <div class="storage-bar-fill" style="width: ${(size/totalSize*100).toFixed(1)}%; opacity: 0.7;"></div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      };
+    });
+  }
 };
 
 // Helper function to format bytes
@@ -860,95 +873,104 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-    function updateToggle(toggleId, newValue) {
-    window.localEmbedToggles[toggleId] = newValue;
-  
-    // 2) Post message to the parent page
-    window.parent.postMessage({
-      command: "saveUserSettings",
-      token: window.embedToken,           // This was set earlier by the parent 
-      data: JSON.stringify({ 
-        toggleId, 
-        isChecked: newValue 
-      })
-    }, "*");
-  }
-
 // Update existing settings button to use new overlay
 (function updateSettingsButton() {
-  const settingsButton = document.getElementById("openSettingsPopup");
-  if (settingsButton) {
-    // Remove old listeners
-    const newButton = settingsButton.cloneNode(true);
-    settingsButton.parentNode.replaceChild(newButton, settingsButton);
-    
-    // Add new listener
-    newButton.addEventListener("click", function() {
-      const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+  // Wait for DOM if needed
+  function attachButtonListener() {
+    const settingsButton = document.getElementById("openSettingsPopup");
+    if (settingsButton) {
+      console.log("[Settings Manager] Attaching click listener to settings button");
       
-      if (isDemo) {
-        console.log("[Settings] Skipping settings overlay for DEMO account");
-        return;
-      }
+      // Remove old listeners by cloning
+      const newButton = settingsButton.cloneNode(true);
+      settingsButton.parentNode.replaceChild(newButton, settingsButton);
       
-      window.openSettingsOverlay();
-    });
+      // Add new listener
+      newButton.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+        
+        if (isDemo) {
+          console.log("[Settings] Skipping settings overlay for DEMO account");
+          return;
+        }
+        
+        console.log("[Settings] Opening settings overlay");
+        if (typeof window.openSettingsOverlay === "function") {
+          window.openSettingsOverlay();
+        } else {
+          console.error("[Settings] window.openSettingsOverlay is not defined");
+        }
+      });
+    } else {
+      console.warn("[Settings Manager] Settings button not found, retrying...");
+      setTimeout(attachButtonListener, 500);
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachButtonListener);
+  } else {
+    attachButtonListener();
   }
 })();
 
-
 // Function to handle the complete IDB refresh process
-  window.refreshIDBData = async function() {
-    try {
-      console.log("[🔄 IDB Refresh] Starting complete database refresh...");
-      
-      // Show loading overlay
-      const loader = document.getElementById("overlayLoader");
-      if (loader) {
-        loader.style.display = "flex";
-        loader.style.opacity = "1";
-      }
-  
-      // Step 1: Delete the existing database
-      console.log("[🔄 IDB Refresh] Step 1: Deleting existing database...");
+window.refreshIDBData = async function() {
+  try {
+    console.log("[🔄 IDB Refresh] Starting complete database refresh...");
+    
+    // Show loading overlay
+    const loader = document.getElementById("overlayLoader");
+    if (loader) {
+      loader.style.display = "flex";
+      loader.style.opacity = "1";
+    }
+
+    // Step 1: Delete the existing database
+    console.log("[🔄 IDB Refresh] Step 1: Deleting existing database...");
+    if (window.embedIDB && typeof window.embedIDB.deleteDatabase === "function") {
       await window.embedIDB.deleteDatabase();
-      
-      // Step 2: Clear only table data, preserve project structure temporarily
-      const savedProjectData = window.projectData;
-      const savedDemoProjectData = window.demoProjectData;
-      const savedRealProjectData = window.realProjectData;
-      
-      window.allRows = [];
-      window.companyStatsData = [];
-      window.marketTrendsData = [];
-      window.googleSheetsData = null;
-      // Don't clear project data yet - we'll restore it after
-      
-      console.log("[🔄 IDB Refresh] Step 2: Cleared cached data");
+    }
+    
+    // Step 2: Clear only table data, preserve project structure temporarily
+    const savedProjectData = window.projectData;
+    const savedDemoProjectData = window.demoProjectData;
+    const savedRealProjectData = window.realProjectData;
+    
+    window.allRows = [];
+    window.companyStatsData = [];
+    window.marketTrendsData = [];
+    window.googleSheetsData = null;
+    
+    console.log("[🔄 IDB Refresh] Step 2: Cleared cached data");
 
-      // Restore project data immediately
-window.projectData = savedProjectData;
-window.demoProjectData = savedDemoProjectData;
-window.realProjectData = savedRealProjectData;
-  
-      // Step 3: Request fresh data from server
-      console.log("[🔄 IDB Refresh] Step 3: Requesting fresh data from server...");
-      
-      // Set a flag to indicate we're doing a full refresh
-      window._isRefreshingIDB = true;
-      window._refreshRequestCount = 0;
-      window._refreshExpectedCount = 2; // Expecting both demo and real account data
-      
-      // Request both demo and real account data
-      window.parent.postMessage({
-        command: "requestServerData", 
-        projectNumber: 1,
-        forceRefresh: true,
-        requestBoth: true  // Signal to parent to send both demo and real data
-      }, "*");
+    // Restore project data immediately
+    window.projectData = savedProjectData;
+    window.demoProjectData = savedDemoProjectData;
+    window.realProjectData = savedRealProjectData;
 
-      // Also fetch fresh Google Sheets data if available
-      const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+    // Step 3: Request fresh data from server
+    console.log("[🔄 IDB Refresh] Step 3: Requesting fresh data from server...");
+    
+    // Set a flag to indicate we're doing a full refresh
+    window._isRefreshingIDB = true;
+    window._refreshRequestCount = 0;
+    window._refreshExpectedCount = 2; // Expecting both demo and real account data
+    
+    // Request both demo and real account data
+    window.parent.postMessage({
+      command: "requestServerData", 
+      projectNumber: 1,
+      forceRefresh: true,
+      requestBoth: true  // Signal to parent to send both demo and real data
+    }, "*");
+
+    // Also fetch fresh Google Sheets data if available
+    const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+    if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreAll === "function") {
       window.googleSheetsManager.fetchAndStoreAll(currentPrefix)
         .then(({ productData, locationData }) => {
           window.googleSheetsData = {
@@ -964,95 +986,210 @@ window.realProjectData = savedRealProjectData;
             locationRevenue: []
           };
         });
-  
-    } catch (error) {
-      console.error("[🔄 IDB Refresh] Error during refresh:", error);
-      
-      // Hide loader on error
-      const loader = document.getElementById("overlayLoader");
-      if (loader) {
-        loader.style.opacity = "0";
-        setTimeout(() => { loader.style.display = "none"; }, 500);
-      }
-      
-      alert("Error refreshing database. Please try again or refresh the page.");
     }
-  };
 
-  // =====================================
-  // 2. TABS FUNCTIONALITY 
-  // =====================================
-  (function initTabsSystem() {
-    console.log("[INIT] Setting up tabs system");
+  } catch (error) {
+    console.error("[🔄 IDB Refresh] Error during refresh:", error);
     
-    const tabs = document.querySelectorAll("#tabsContainer .my-tab");
-  
-    // Get references to your containers
-    const productsContainer  = document.getElementById("productsContainer");
-    const companiesContainer = document.getElementById("companiesContainer");
-    const explorerContainer  = document.getElementById("explorerContainer");
-    const serpContainer      = document.getElementById("serpContainer");
-    const pricesContainer    = document.getElementById("pricesContainer");
-  
-    function showTab(tabName) {
-      // 1) Hide all main content containers
-      productsContainer.style.display  = "none";
-      companiesContainer.style.display = "none";
-      explorerContainer.style.display  = "none";
-      serpContainer.style.display      = "none";
-      pricesContainer.style.display    = "none";
+    // Hide loader on error
+    const loader = document.getElementById("overlayLoader");
+    if (loader) {
+      loader.style.opacity = "0";
+      setTimeout(() => { loader.style.display = "none"; }, 500);
+    }
     
-      // 2) Hide layout toggle containers by default
-      document.getElementById("layoutToggleContainer").style.display     = "none";
-      document.getElementById("layoutCompToggleContainer").style.display = "none";
+    alert("Error refreshing database. Please try again or refresh the page.");
+  }
+};
+
+// Ensure localEmbedToggles exists
+if (!window.localEmbedToggles) {
+  window.localEmbedToggles = {};
+}
+
+// Google Sheets URL popup handlers
+document.addEventListener('DOMContentLoaded', function() {
+  const provideFeedBtn = document.getElementById("provideFeedFileBtn");
+  const urlOverlay = document.getElementById("googleSheetsUrlOverlay");
+  const urlInput = document.getElementById("googleSheetsUrlInput");
+  const cancelBtn = document.getElementById("googleSheetsUrlCancel");
+  const uploadBtn = document.getElementById("googleSheetsUrlUpload");
+
+  if (provideFeedBtn && urlOverlay) {
+    // Show popup when Provide Feed File is clicked
+    provideFeedBtn.addEventListener("click", () => {
+      urlOverlay.style.display = "flex";
+      urlInput.value = ""; // Clear previous input
+      urlInput.focus();
+    });
     
-      // 3) Show/Hide top bar elements depending on tab
-      if (tabName === "companies") {
-        document.getElementById("filterSliders").style.display    = "none";
-        document.getElementById("companySelector").style.display  = "none";
-      } else if (tabName === "products") {
-        document.getElementById("filterSliders").style.display    = "flex";
-        document.getElementById("companySelector").style.display  = "block";
-      } else if (tabName === "serp") {
-        // For SERP Analysis, hide only the filter sliders but show the companySelector
-        document.getElementById("filterSliders").style.display   = "none";
-        document.getElementById("companySelector").style.display = "block";
-      } else {
-        // For explorer and prices, hide both elements
-        document.getElementById("filterSliders").style.display   = "none";
-        document.getElementById("companySelector").style.display = "none";
-      }
+    // Hide popup on cancel
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        urlOverlay.style.display = "none";
+      });
+    }
     
-      // 4) Show the chosen tab + the correct layout toggle (if any)
-      if (tabName === "products") {
-        productsContainer.style.display = "block";
-        document.getElementById("layoutToggleContainer").style.display = "block";
-      } else if (tabName === "companies") {
-        companiesContainer.style.display = "block";
-        renderCompaniesTab();  // your existing function to load company data
-        document.getElementById("layoutCompToggleContainer").style.display = "block";
-      } else if (tabName === "explorer") {
-        explorerContainer.style.display = "block";
-      } else if (tabName === "serp") {
-        serpContainer.style.display = "block";
-        renderSerpMarketShareBigChart(window.companyStatsData);
-        if (window.companyStatsData) {
-          renderSerpMarketShareBigChart(window.companyStatsData);
-        } else {
-          // or request the data: requestProjectData("company_serp_stats");
+    // Process URL on upload
+    if (uploadBtn) {
+      uploadBtn.addEventListener("click", async () => {
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+          alert("Please enter a Google Sheets URL");
+          return;
         }
-      } else if (tabName === "prices") {
-        pricesContainer.style.display = "block";
+        
+        if (!url.includes("docs.google.com/spreadsheets")) {
+          alert("Please enter a valid Google Sheets URL");
+          return;
+        }
+        
+        // Hide the URL popup
+        urlOverlay.style.display = "none";
+        
+        try {
+          // Determine current account prefix
+          const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+          if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreFromUrl === "function") {
+            await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
+          }
+          
+          // Optionally close the settings overlay too
+          const settingsOverlay = document.getElementById("settingsOverlay");
+          if (settingsOverlay) {
+            settingsOverlay.style.display = "none";
+          }
+        } catch (error) {
+          alert(`Failed to process Google Sheets: ${error.message}`);
+        }
+      });
+    }
+    
+    // Allow Enter key to submit
+    if (urlInput) {
+      urlInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          uploadBtn.click();
+        }
+      });
+    }
+  }
+});
+
+// Helper function to update toggle state
+function updateToggle(toggleId, newValue) {
+  if (!window.localEmbedToggles) {
+    window.localEmbedToggles = {};
+  }
+  window.localEmbedToggles[toggleId] = newValue;
+
+  // Post message to the parent page
+  if (window.parent && window.embedToken) {
+    window.parent.postMessage({
+      command: "saveUserSettings",
+      token: window.embedToken,
+      data: JSON.stringify({ 
+        toggleId, 
+        isChecked: newValue 
+      })
+    }, "*");
+  }
+}
+
+// Helper function to apply local toggle states
+function applyLocalToggleStates() {
+  if (!window.localEmbedToggles) return;
+  
+  // Map Settings toggles
+  const mapToggles = ["toggleMap", "toggleDesktopShare", "toggleDesktopRank", "toggleMobileShare", "toggleMobileRank"];
+  mapToggles.forEach(toggleId => {
+    const checkbox = document.getElementById(toggleId);
+    if (checkbox && typeof window.localEmbedToggles[toggleId] === "boolean") {
+      checkbox.checked = window.localEmbedToggles[toggleId];
+    }
+  });
+  
+  // You can add other toggle states here as needed
+}
+
+// =====================================
+// 2. TABS FUNCTIONALITY 
+// =====================================
+(function initTabsSystem() {
+  console.log("[INIT] Setting up tabs system");
+  
+  const tabs = document.querySelectorAll("#tabsContainer .my-tab");
+
+  // Get references to your containers
+  const productsContainer  = document.getElementById("productsContainer");
+  const companiesContainer = document.getElementById("companiesContainer");
+  const explorerContainer  = document.getElementById("explorerContainer");
+  const serpContainer      = document.getElementById("serpContainer");
+  const pricesContainer    = document.getElementById("pricesContainer");
+
+  function showTab(tabName) {
+    // 1) Hide all main content containers
+    productsContainer.style.display  = "none";
+    companiesContainer.style.display = "none";
+    explorerContainer.style.display  = "none";
+    serpContainer.style.display      = "none";
+    pricesContainer.style.display    = "none";
+  
+    // 2) Hide layout toggle containers by default
+    document.getElementById("layoutToggleContainer").style.display     = "none";
+    document.getElementById("layoutCompToggleContainer").style.display = "none";
+  
+    // 3) Show/Hide top bar elements depending on tab
+    if (tabName === "companies") {
+      document.getElementById("filterSliders").style.display    = "none";
+      document.getElementById("companySelector").style.display  = "none";
+    } else if (tabName === "products") {
+      document.getElementById("filterSliders").style.display    = "flex";
+      document.getElementById("companySelector").style.display  = "block";
+    } else if (tabName === "serp") {
+      // For SERP Analysis, hide only the filter sliders but show the companySelector
+      document.getElementById("filterSliders").style.display   = "none";
+      document.getElementById("companySelector").style.display = "block";
+    } else {
+      // For explorer and prices, hide both elements
+      document.getElementById("filterSliders").style.display   = "none";
+      document.getElementById("companySelector").style.display = "none";
+    }
+  
+    // 4) Show the chosen tab + the correct layout toggle (if any)
+    if (tabName === "products") {
+      productsContainer.style.display = "block";
+      document.getElementById("layoutToggleContainer").style.display = "block";
+    } else if (tabName === "companies") {
+      companiesContainer.style.display = "block";
+      if (typeof renderCompaniesTab === "function") {
+        renderCompaniesTab();  // your existing function to load company data
       }
-    
-      // 5) Reset/close the Settings panel
+      document.getElementById("layoutCompToggleContainer").style.display = "block";
+    } else if (tabName === "explorer") {
+      explorerContainer.style.display = "block";
+    } else if (tabName === "serp") {
+      serpContainer.style.display = "block";
+      if (typeof renderSerpMarketShareBigChart === "function" && window.companyStatsData) {
+        renderSerpMarketShareBigChart(window.companyStatsData);
+      }
+    } else if (tabName === "prices") {
+      pricesContainer.style.display = "block";
+    }
+  
+    // 5) Reset/close the Settings panel if it exists
+    const settingsDropdown = document.getElementById("settingsDropdown");
+    if (settingsDropdown) {
       settingsDropdown.classList.remove("show");
-    
-      // 6) Update the Settings panel's HTML + attach toggles
-      if (tabName === "products") {
-        // A) PRODUCTS TAB => set the products settings HTML
+    }
+  
+    // 6) Update the Settings panel's HTML + attach toggles
+    if (tabName === "products") {
+      // A) PRODUCTS TAB => set the products settings HTML
+      if (settingsDropdown && window.productsSettingsHTML) {
         settingsDropdown.innerHTML = window.productsSettingsHTML;
-    
+  
         // Then re-attach any event listeners for the product toggles
         const toggleTrendBox      = document.getElementById("toggleTrendBox");
         const togglePosBadge      = document.getElementById("togglePosBadge");
@@ -1060,13 +1197,13 @@ window.realProjectData = savedRealProjectData;
         const toggleCompanyStats  = document.getElementById("toggleCompanyStats");
         
         // Example: if you have a function "updateAdCards()" that re-checks these toggles
-        if (toggleTrendBox) {
+        if (toggleTrendBox && typeof updateAdCards === "function") {
           toggleTrendBox.addEventListener("change", updateAdCards);
         }
-        if (togglePosBadge) {
+        if (togglePosBadge && typeof updateAdCards === "function") {
           togglePosBadge.addEventListener("change", updateAdCards);
         }
-        if (toggleVisBadge) {
+        if (toggleVisBadge && typeof updateAdCards === "function") {
           toggleVisBadge.addEventListener("change", updateAdCards);
         }
         if (toggleCompanyStats) {
@@ -1078,10 +1215,12 @@ window.realProjectData = savedRealProjectData;
           });
         }
         applyLocalToggleStates();
-      } else if (tabName === "companies") {
-        // B) COMPANIES TAB => set the companies settings HTML
+      }
+    } else if (tabName === "companies") {
+      // B) COMPANIES TAB => set the companies settings HTML
+      if (settingsDropdown && window.companiesSettingsHTML) {
         settingsDropdown.innerHTML = window.companiesSettingsHTML;
-    
+  
         // ----- Company Settings Toggles (affecting .company-details) -----
         const toggleProdTrends   = document.getElementById("toggleProdTrends");
         const toggleProdChart    = document.getElementById("toggleProdChart");
@@ -1131,12 +1270,12 @@ window.realProjectData = savedRealProjectData;
             });
           });
         }
-    
+  
         // ----- Segment Settings Toggles (affecting .company-insights .mini-market-chart) -----
         const toggleMarketShare   = document.getElementById("toggleMarketShare");
         const toggleRank          = document.getElementById("toggleRank");
         const toggleAvgProducts   = document.getElementById("toggleAvgProducts");
-    
+  
         if (toggleMarketShare) {
           toggleMarketShare.addEventListener("change", function() {
             updateToggle("toggleMarketShare", this.checked);
@@ -1168,404 +1307,28 @@ window.realProjectData = savedRealProjectData;
           });
         }
         applyLocalToggleStates();
-      } else {
-        // C) Other tabs (explorer, serp, prices): no toggles or empty out
+      }
+    } else {
+      // C) Other tabs (explorer, serp, prices): no toggles or empty out
+      if (settingsDropdown) {
         settingsDropdown.innerHTML = "";
       }
-    }      
-    
-    // Attach click handlers on each .my-tab
-    tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        tabs.forEach(t => t.classList.remove("selected"));
-        tab.classList.add("selected");
-        showTab(tab.dataset.tab);
-      });
+    }
+  }      
+  
+  // Attach click handlers on each .my-tab
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("selected"));
+      tab.classList.add("selected");
+      showTab(tab.dataset.tab);
     });
-    
-    // By default, show the PRODUCTS tab
-    showTab("products");
-  })();
-
-  // Google Sheets URL popup handlers
-const provideFeedBtn = document.getElementById("provideFeedFileBtn");
-const urlOverlay = document.getElementById("googleSheetsUrlOverlay");
-const urlInput = document.getElementById("googleSheetsUrlInput");
-const cancelBtn = document.getElementById("googleSheetsUrlCancel");
-const uploadBtn = document.getElementById("googleSheetsUrlUpload");
-
-if (provideFeedBtn && urlOverlay) {
-  // Show popup when Provide Feed File is clicked
-  provideFeedBtn.addEventListener("click", () => {
-    urlOverlay.style.display = "flex";
-    urlInput.value = ""; // Clear previous input
-    urlInput.focus();
   });
   
-  // Hide popup on cancel
-  cancelBtn.addEventListener("click", () => {
-    urlOverlay.style.display = "none";
-  });
-  
-  // Process URL on upload
-  uploadBtn.addEventListener("click", async () => {
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-      alert("Please enter a Google Sheets URL");
-      return;
-    }
-    
-    if (!url.includes("docs.google.com/spreadsheets")) {
-      alert("Please enter a valid Google Sheets URL");
-      return;
-    }
-    
-    // Hide the URL popup
-    urlOverlay.style.display = "none";
-    
-    try {
-      // Determine current account prefix
-const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
-      
-      // Optionally close the settings overlay too
-      const settingsOverlay = document.getElementById("settingsOverlay");
-      if (settingsOverlay) {
-        settingsOverlay.style.display = "none";
-      }
-    } catch (error) {
-      alert(`Failed to process Google Sheets: ${error.message}`);
-    }
-  });
-  
-  // Allow Enter key to submit
-  urlInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      uploadBtn.click();
-    }
-  });
-  };
+  // By default, show the PRODUCTS tab
+  showTab("products");
+})();
 
- function applyLocalToggleStates() {
-    // 1) Toggle: Show Trend Box (Products tab)
-    const toggleTrendBox = document.getElementById("toggleTrendBox");
-    if (toggleTrendBox) {
-      const val = window.localEmbedToggles["toggleTrendBox"];
-      if (typeof val === "boolean") {
-        toggleTrendBox.checked = val;
-      }
-      toggleTrendBox.addEventListener("change", function() {
-        updateToggle("toggleTrendBox", this.checked);
-        updateAdCards(); 
-      });
-    }
-  
-    // 2) Toggle: Show Pos Badge (Products tab)
-    const togglePosBadge = document.getElementById("togglePosBadge");
-    if (togglePosBadge) {
-      const val = window.localEmbedToggles["togglePosBadge"];
-      if (typeof val === "boolean") {
-        togglePosBadge.checked = val;
-      }
-      togglePosBadge.addEventListener("change", function() {
-        updateToggle("togglePosBadge", this.checked);
-        updateAdCards();
-      });
-    }
-  
-    // 3) Toggle: Show Vis Badge (Products tab)
-    const toggleVisBadge = document.getElementById("toggleVisBadge");
-    if (toggleVisBadge) {
-      const val = window.localEmbedToggles["toggleVisBadge"];
-      if (typeof val === "boolean") {
-        toggleVisBadge.checked = val;
-      }
-      toggleVisBadge.addEventListener("change", function() {
-        updateToggle("toggleVisBadge", this.checked);
-        updateAdCards();
-      });
-    }
-  
-    // 4) Toggle: Company Stats (Products tab)
-    const toggleCompanyStats = document.getElementById("toggleCompanyStats");
-    if (toggleCompanyStats) {
-      if (typeof window.localEmbedToggles["toggleCompanyStats"] === "boolean") {
-        toggleCompanyStats.checked = window.localEmbedToggles["toggleCompanyStats"];
-      }
-      toggleCompanyStats.addEventListener("change", function() {
-        updateToggle("toggleCompanyStats", this.checked);
-        // Show/hide your stats container:
-        const statsEl = document.getElementById("companyStats");
-        if (statsEl) {
-          statsEl.style.display = this.checked ? "flex" : "none";
-        }
-      });
-    }
-  
-    // 5) Toggle: Product Trends (Companies tab)
-    const toggleProdTrends = document.getElementById("toggleProdTrends");
-    if (toggleProdTrends) {
-      const val = window.localEmbedToggles["toggleProdTrends"];
-      if (typeof val === "boolean") {
-        toggleProdTrends.checked = val;
-      }
-      // Then hide/show .trend-table-row or similar
-      document.querySelectorAll(".company-details .trend-table-row").forEach(el => {
-        el.style.display = toggleProdTrends.checked ? "" : "none";
-      });
-    }
-  
-    // 6) Toggle: Product Chart (Companies tab)
-    const toggleProdChart = document.getElementById("toggleProdChart");
-    if (toggleProdChart) {
-      const val = window.localEmbedToggles["toggleProdChart"];
-      if (typeof val === "boolean") {
-        toggleProdChart.checked = val;
-      }
-      // Hide or show the mini-chart canvas in .product-trend-row
-      document.querySelectorAll(".company-details .product-trend-row canvas")
-        .forEach(el => {
-          el.style.display = toggleProdChart.checked ? "block" : "none";
-        });
-    }
-  
-    // 7) Toggle: Ranking (Companies tab)
-    const toggleRanking = document.getElementById("toggleRanking");
-    if (toggleRanking) {
-      const val = window.localEmbedToggles["toggleRanking"];
-      if (typeof val === "boolean") {
-        toggleRanking.checked = val;
-      }
-      // Hide/show the .rank-history or rank UI
-      document.querySelectorAll(".company-details .rank-history").forEach(el => {
-        el.style.display = toggleRanking.checked ? "flex" : "none";
-      });
-    }
-  
-    // 8) Toggle: Pricing Trends (Companies tab)
-    const togglePricingTrends = document.getElementById("togglePricingTrends");
-    if (togglePricingTrends) {
-      const val = window.localEmbedToggles["togglePricingTrends"];
-      if (typeof val === "boolean") {
-        togglePricingTrends.checked = val;
-      }
-      // Show/hide .pricing-row
-      document.querySelectorAll(".company-details .pricing-row").forEach(el => {
-        el.style.display = togglePricingTrends.checked ? "" : "none";
-      });
-    }
-  
-    // 9) Toggle: Extensions (Companies tab)
-    const toggleExtensions = document.getElementById("toggleExtensions");
-    if (toggleExtensions) {
-      const val = window.localEmbedToggles["toggleExtensions"];
-      if (typeof val === "boolean") {
-        toggleExtensions.checked = val;
-      }
-      // Show/hide .extensions-content
-      document.querySelectorAll(".company-details .extensions-content").forEach(el => {
-        el.style.display = toggleExtensions.checked ? "" : "none";
-      });
-    }
-  
-    // 10) Toggle: Market Share (Companies tab → insights)
-    const toggleMarketShare = document.getElementById("toggleMarketShare");
-    if (toggleMarketShare) {
-      const val = window.localEmbedToggles["toggleMarketShare"];
-      if (typeof val === "boolean") {
-        toggleMarketShare.checked = val;
-      }
-      // Possibly toggle the "Market share" series in an ApexCharts
-      // or show/hide an element in .company-insights
-    }
-  
-    // 11) Toggle: Rank (Companies tab → insights)
-    const toggleRank = document.getElementById("toggleRank");
-    if (toggleRank) {
-      const val = window.localEmbedToggles["toggleRank"];
-      if (typeof val === "boolean") {
-        toggleRank.checked = val;
-      }
-      // Toggle the "Rank" series in your insights chart
-    }
-  
-    // 12) Toggle: Avg Products (Companies tab → insights)
-    const toggleAvgProducts = document.getElementById("toggleAvgProducts");
-    if (toggleAvgProducts) {
-      const val = window.localEmbedToggles["toggleAvgProducts"];
-      if (typeof val === "boolean") {
-        toggleAvgProducts.checked = val;
-      }
-      // Toggle the "Avg Products" series
-    }
-
-    // ----------------------------
-    // HOME PAGE toggles (7 new)
-    // ----------------------------
-  
-    // 1) Toggle: Map
-    const toggleMap = document.getElementById("toggleMap");
-    if (toggleMap) {
-      const val = window.localEmbedToggles["toggleMap"];
-      if (typeof val === "boolean") {
-        toggleMap.checked = val;
-      }
-      toggleMap.addEventListener("change", function() {
-        updateToggle("toggleMap", this.checked);
-        updateHomeMapMetrics(); // or hide/show #mapInfoWrapper
-      });
-    }
-  
-    // 2) Toggle: Desktop Market Share
-    const toggleDesktopShare = document.getElementById("toggleDesktopShare");
-    if (toggleDesktopShare) {
-      const val = window.localEmbedToggles["toggleDesktopShare"];
-      if (typeof val === "boolean") {
-        toggleDesktopShare.checked = val;
-      }
-      toggleDesktopShare.addEventListener("change", function() {
-        updateToggle("toggleDesktopShare", this.checked);
-        updateHomeMapMetrics();
-      });
-    }
-  
-    // 3) Toggle: Desktop Avg Rank
-    const toggleDesktopRank = document.getElementById("toggleDesktopRank");
-    if (toggleDesktopRank) {
-      const val = window.localEmbedToggles["toggleDesktopRank"];
-      if (typeof val === "boolean") {
-        toggleDesktopRank.checked = val;
-      }
-      toggleDesktopRank.addEventListener("change", function() {
-        updateToggle("toggleDesktopRank", this.checked);
-        updateHomeMapMetrics();
-      });
-    }
-  
-    // 4) Toggle: Mobile Market Share
-    const toggleMobileShare = document.getElementById("toggleMobileShare");
-    if (toggleMobileShare) {
-      const val = window.localEmbedToggles["toggleMobileShare"];
-      if (typeof val === "boolean") {
-        toggleMobileShare.checked = val;
-      }
-      toggleMobileShare.addEventListener("change", function() {
-        updateToggle("toggleMobileShare", this.checked);
-        updateHomeMapMetrics();
-      });
-    }
-  
-    // 5) Toggle: Mobile Avg Rank
-    const toggleMobileRank = document.getElementById("toggleMobileRank");
-    if (toggleMobileRank) {
-      const val = window.localEmbedToggles["toggleMobileRank"];
-      if (typeof val === "boolean") {
-        toggleMobileRank.checked = val;
-      }
-      toggleMobileRank.addEventListener("change", function() {
-        updateToggle("toggleMobileRank", this.checked);
-        updateHomeMapMetrics();
-      });
-    }
-  
-    // 6) Toggle: Rank History
-    const toggleRankHistory = document.getElementById("toggleRankHistory");
-    if (toggleRankHistory) {
-      const val = window.localEmbedToggles["toggleRankHistory"];
-      if (typeof val === "boolean") {
-        toggleRankHistory.checked = val;
-      }
-      toggleRankHistory.addEventListener("change", function() {
-        updateToggle("toggleRankHistory", this.checked);
-        updateHistoryRows(); // a function that hides/shows .history-rank-row
-      });
-    }
-  
-    // 7) Toggle: Market Share History
-    const toggleMarketShareHistory = document.getElementById("toggleMarketShareHistory");
-    if (toggleMarketShareHistory) {
-      const val = window.localEmbedToggles["toggleMarketShareHistory"];
-      if (typeof val === "boolean") {
-        toggleMarketShareHistory.checked = val;
-      }
-      toggleMarketShareHistory.addEventListener("change", function() {
-        updateToggle("toggleMarketShareHistory", this.checked);
-        updateHistoryRows(); // a function that hides/shows .history-share-row
-      });
-    }
-  
-    updateAdCards();
-  }  
-
-  function openMapSettingsPopup(clickedBtn) {
-    const popup = document.getElementById("mapSettingsPopup");
-    if (!popup || !clickedBtn) return;
-  
-    const rect = clickedBtn.getBoundingClientRect();
-  
-    // ⬆️ Position ABOVE and to the LEFT
-    const popupWidth = 300;
-    const popupHeight = 240; // match real height with padding
-  
-    const top  = rect.top - popupHeight - 10;
-    const left = rect.right - popupWidth;
-  
-    popup.style.display = "block";
-    popup.style.opacity = "0";
-    popup.style.transform = "scale(0.9)";
-    popup.style.top  = `${top}px`;
-    popup.style.left = `${left}px`;
-  
-    setTimeout(() => {
-      popup.style.opacity = "1";
-      popup.style.transform = "scale(1)";
-    }, 10);
-  
-    const toggles = [
-      "toggleMap", "toggleDesktopShare", "toggleDesktopRank",
-      "toggleMobileShare", "toggleMobileRank"
-    ];
-  
-    toggles.forEach(id => {
-      const checkbox = document.getElementById("mapToggle_" + id);
-      if (!checkbox) return;
-      checkbox.checked = !!window.localEmbedToggles?.[id];
-      checkbox.onchange = () => {
-        updateToggle(id, checkbox.checked);
-        updateHomeMapMetrics();
-      };
-    });
-  }
-  
-  function closeMapSettingsPopup() {
-  const popup = document.getElementById("mapSettingsPopup");
-  if (!popup) return;
-
-  popup.style.opacity = "0";
-  popup.style.transform = "scale(0.9)";
-  setTimeout(() => {
-    popup.style.display = "none";
-    // Reset all small button styles
-    document.querySelectorAll("#mapSmallButton").forEach(b => b.classList.remove("selected"));
-  }, 200);
-}
-  
-  // ✅ Attach click to *both* buttons (homePage + projectPage)
-  document.querySelectorAll("#mapSmallButton").forEach(btn => {
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-
-    const popup = document.getElementById("mapSettingsPopup");
-
-    // If popup is visible => close it and reset button style
-    if (popup.style.display === "block") {
-      closeMapSettingsPopup();
-      btn.classList.remove("selected");
-    } else {
-      // Open popup and apply clicked style
-      openMapSettingsPopup(btn);
-      btn.classList.add("selected");
-    }
-  });
-});
+// Export functions for external use
+window.updateToggle = updateToggle;
+window.applyLocalToggleStates = applyLocalToggleStates;
