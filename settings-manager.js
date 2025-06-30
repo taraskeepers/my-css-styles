@@ -880,21 +880,27 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Ensure all panels are hidden before switching
+  // Ensure all panels are hidden
   const allPanels = document.querySelectorAll('.settings-panel');
   allPanels.forEach(panel => {
     panel.style.display = 'none';
   });
   
-  // First, always switch to company tab to populate the data
-  switchTab('company');
+  // Log all possible company values
+  console.log("[Settings] Current company values:", {
+    myCompany: window.myCompany,
+    filterStateCompany: window.filterState?.company,
+    localStorage: localStorage.getItem("my_company")
+  });
   
-  // If a different tab was requested, switch to it after a delay
-  if (initialTab !== 'company') {
-    setTimeout(() => {
-      switchTab(initialTab);
-    }, 100);
+  // Force set the company value from myCompany
+  const companyValEl = document.getElementById("currentCompanyValue");
+  if (companyValEl) {
+    companyValEl.textContent = window.myCompany || "Not Selected";
   }
+  
+  // Switch to initial tab
+  switchTab(initialTab);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
