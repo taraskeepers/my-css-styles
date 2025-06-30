@@ -717,33 +717,6 @@ function initializeTabContent(tabName) {
 case 'googleads':
   console.log("[DEBUG] Google Ads tab initialized");
   updateGoogleAdsStatus();
-  
-  // Debug: Check if elements exist
-  const uploadBtn = document.getElementById("googleSheetsUrlUpload");
-  const urlInput = document.getElementById("googleSheetsUrlInput");
-  
-  console.log("[DEBUG] Upload button found:", !!uploadBtn);
-  console.log("[DEBUG] URL input found:", !!urlInput);
-  
-  if (uploadBtn) {
-    console.log("[DEBUG] Adding click handler to upload button");
-    
-    uploadBtn.onclick = async function() {
-      console.log("[DEBUG] Upload button clicked!");
-      
-      const url = urlInput.value.trim();
-      console.log("[DEBUG] URL value:", url);
-      
-      if (!url) {
-        alert("Please enter a Google Sheets URL");
-        return;
-      }
-      
-      alert("Button clicked and URL found: " + url);
-    };
-  } else {
-    console.log("[DEBUG] Upload button not found!");
-  }
   break;
   }
 }
