@@ -723,32 +723,51 @@ case 'company':
       switchTab(this.dataset.tab);
     };
   });
-  
-// Update company display
+
 function updateCurrentCompanyDisplay() {
   const companyValEl = document.getElementById("currentCompanyValue");
   if (companyValEl) {
+    
+    // DEBUG: Log all possible values
+    console.log("[DEBUG] All company values:", {
+      "window.filterState": window.filterState,
+      "window.filterState.company": window.filterState?.company,
+      "window.myCompany": window.myCompany,
+      "window.frontendCompany": window.frontendCompany,
+      "localStorage.my_company": localStorage.getItem("my_company"),
+      "localStorage.real_company": localStorage.getItem("real_company"),
+      "companyText.textContent": document.getElementById("companyText")?.textContent
+    });
+    
     let val = "";
     
     // Check filterState.company first (this is what gets updated when user selects from dropdown)
     if (window.filterState && window.filterState.company && window.filterState.company.trim()) {
       val = window.filterState.company.trim();
+      console.log("[DEBUG] Using filterState.company:", val);
     }
     // Then check window.myCompany as fallback
     else if (window.myCompany && window.myCompany.trim()) {
       val = window.myCompany.trim();
+      console.log("[DEBUG] Using window.myCompany:", val);
+    }
+    // Check frontendCompany
+    else if (window.frontendCompany && window.frontendCompany.trim()) {
+      val = window.frontendCompany.trim();
+      console.log("[DEBUG] Using window.frontendCompany:", val);
     }
     // Finally check localStorage
     else {
       const storedCompany = localStorage.getItem("my_company") || localStorage.getItem("real_company");
       if (storedCompany && storedCompany.trim()) {
         val = storedCompany.trim();
+        console.log("[DEBUG] Using localStorage:", val);
       }
     }
     
     // Update display
     companyValEl.textContent = val || "Not Selected";
-    console.log("[Settings] Company display updated to:", val || "Not Selected");
+    console.log("[Settings] Company display final result:", val || "Not Selected");
   }
 }
   
