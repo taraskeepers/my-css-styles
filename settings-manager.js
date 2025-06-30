@@ -586,10 +586,9 @@ window.settingsOverlay = {
   activeTab: 'company'
 };
 
-// Global variables for DOM elements
-let settingsOverlayElements = {};
-
 function initSettingsOverlayHandlers() {
+  // Initialize DOM elements storage inside the function
+  const settingsOverlayElements = {};
   console.log("[Settings Manager] Initializing settings overlay handlers");
   
   // Cache DOM elements globally
@@ -1328,6 +1327,43 @@ function applyLocalToggleStates() {
   // By default, show the PRODUCTS tab
   showTab("products");
 })();
+
+// Add references to external functions that might not be defined yet
+if (typeof updateHomeMapMetrics === 'undefined') {
+  window.updateHomeMapMetrics = function() {
+    console.log("[Settings] updateHomeMapMetrics called but not yet defined");
+  };
+}
+
+if (typeof updateHistoryRows === 'undefined') {
+  window.updateHistoryRows = function() {
+    console.log("[Settings] updateHistoryRows called but not yet defined");
+  };
+}
+
+if (typeof updateAdCards === 'undefined') {
+  window.updateAdCards = function() {
+    console.log("[Settings] updateAdCards called but not yet defined");
+  };
+}
+
+if (typeof renderCompaniesTab === 'undefined') {
+  window.renderCompaniesTab = function() {
+    console.log("[Settings] renderCompaniesTab called but not yet defined");
+  };
+}
+
+if (typeof renderSerpMarketShareBigChart === 'undefined') {
+  window.renderSerpMarketShareBigChart = function() {
+    console.log("[Settings] renderSerpMarketShareBigChart called but not yet defined");
+  };
+}
+
+if (typeof openSelectCompanyPopup === 'undefined') {
+  window.openSelectCompanyPopup = function() {
+    console.log("[Settings] openSelectCompanyPopup called but not yet defined");
+  };
+}
 
 // Export functions for external use
 window.updateToggle = updateToggle;
