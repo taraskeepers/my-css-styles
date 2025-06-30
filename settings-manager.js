@@ -730,45 +730,29 @@ function updateCurrentCompanyDisplay() {
   if (companyValEl) {
     let val = "";
     
-    // Check multiple sources for company value
+    // Check the actual variables used in the embed_element
     if (window.myCompany && window.myCompany.trim()) {
       val = window.myCompany.trim();
-    } else if (window.filterState && window.filterState.company) {
-      val = window.filterState.company;
+    } else if (window.frontendCompany && window.frontendCompany.trim()) {
+      val = window.frontendCompany.trim();
+    } else if (window.filterState && window.filterState.company && window.filterState.company.trim()) {
+      val = window.filterState.company.trim();
     } else {
-      // Check the main UI company text
-      const cTextEl = document.getElementById("companyText");
-      if (cTextEl && cTextEl.textContent && cTextEl.textContent.trim() !== "Not Selected") {
-        val = cTextEl.textContent.trim();
-      }
-    }
-    
-    // If still no value, try to get from the first company in the data
-    if (!val && window.companyStatsData && window.companyStatsData.length > 0) {
-      // Get unique companies from the data
-      const companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
-      
-      // Check if any of these companies match what might be stored
-      if (companies.length > 0) {
-        // Try to find if one is selected based on other UI elements
-        const selectedCompanyCard = document.querySelector('.ad-card.selected');
-        if (selectedCompanyCard) {
-          const cardCompany = selectedCompanyCard.querySelector('.company-name');
-          if (cardCompany && cardCompany.textContent) {
-            val = cardCompany.textContent.trim();
-          }
-        }
+      // Check localStorage as fallback
+      const storedCompany = localStorage.getItem("my_company") || localStorage.getItem("real_company");
+      if (storedCompany && storedCompany.trim()) {
+        val = storedCompany.trim();
       }
     }
     
     // Update display
     companyValEl.textContent = val || "Not Selected";
-    console.log("[Settings] Company display updated to:", val || "Not Selected");
-    
-    // Also update window.myCompany if we found a value
-    if (val && !window.myCompany) {
-      window.myCompany = val;
-    }
+    console.log("[Settings] Company display updated to:", val || "Not Selected", {
+      myCompany: window.myCompany,
+      frontendCompany: window.frontendCompany,
+      filterStateCompany: window.filterState?.company,
+      localStorage: localStorage.getItem("my_company")
+    });
   }
 }
   
