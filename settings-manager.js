@@ -20,7 +20,7 @@
 ">
   <div id="settingsContainer" style="
     width: 900px;
-    height: 600px;
+    max-height: 80vh;
     background: #ffffff;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -121,13 +121,14 @@
       ">Google Ads</button>
     </div>
 
-    <!-- Tab Content Container -->
-    <div class="settings-content" style="
-      flex: 1;
-      padding: 32px;
-      overflow-y: auto;
-      background: #ffffff;
-    ">
+<!-- Tab Content Container -->
+<div class="settings-content" style="
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+  background: #ffffff;
+  max-height: calc(80vh - 120px);
+">
 <!-- Company Tab -->
       <div class="settings-panel active" data-panel="company">
         <div style="
@@ -605,6 +606,8 @@ function initSettingsOverlayHandlers() {
   
   // Tab switching functionality
   function switchTab(tabName) {
+      // Always update company display when switching tabs
+  updateCurrentCompanyDisplay();
     // Update tab states
     window.settingsOverlayElements.tabs.forEach(tab => {
       if (tab.dataset.tab === tabName) {
@@ -857,10 +860,16 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Add a small delay to ensure data is available
+  // Force hide all panels first
+  window.settingsOverlayElements.panels.forEach(panel => {
+    panel.style.display = 'none';
+    panel.classList.remove('active');
+  });
+  
+  // Add a small delay to ensure DOM is ready, then switch to the initial tab
   setTimeout(() => {
     switchTab(initialTab);
-  }, 100);
+  }, 10);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
