@@ -1,4 +1,889 @@
-  // Function to handle the complete IDB refresh process
+// ========================================
+// SETTINGS OVERLAY HTML INJECTION
+// ========================================
+
+(function createSettingsOverlay() {
+  // Create the settings overlay HTML
+  const settingsHTML = `
+<div id="settingsOverlay" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  z-index: 9999999;
+  align-items: center;
+  justify-content: center;
+">
+  <div id="settingsContainer" style="
+    width: 900px;
+    height: 600px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    position: relative;
+    overflow: hidden;
+    animation: settingsSlideIn 0.3s ease-out forwards;
+  ">
+    <!-- Header -->
+    <div style="
+      padding: 24px 32px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fafbfc;
+    ">
+      <h2 style="
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a1a;
+        letter-spacing: -0.5px;
+      ">Settings</h2>
+      
+      <!-- Close button -->
+      <button id="closeSettingsPopup" style="
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      ">&times;</button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="settings-tabs" style="
+      display: flex;
+      padding: 0 32px;
+      background: #fafbfc;
+      border-bottom: 1px solid #e5e7eb;
+    ">
+      <button class="settings-tab active" data-tab="company" style="
+        padding: 16px 24px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      ">Company</button>
+      
+      <button class="settings-tab" data-tab="map" style="
+        padding: 16px 24px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      ">Map Settings</button>
+      
+      <button class="settings-tab" data-tab="database" style="
+        padding: 16px 24px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      ">Database</button>
+      
+      <button class="settings-tab" data-tab="googleads" style="
+        padding: 16px 24px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      ">Google Ads</button>
+    </div>
+
+    <!-- Tab Content Container -->
+    <div class="settings-content" style="
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      background: #ffffff;
+    ">
+      <!-- Company Tab -->
+      <div class="settings-panel active" data-panel="company">
+        <div style="
+          max-width: 500px;
+          margin: 0 auto;
+          text-align: center;
+          padding: 40px 0;
+        ">
+          <div style="
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <svg width="40" height="40" fill="white" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
+          </div>
+          
+          <h3 style="
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+          ">Select Your Company</h3>
+          
+          <p style="
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.6;
+          ">Choose your company to personalize reports and analytics</p>
+          
+          <div style="
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+          ">
+            <div style="
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 8px;
+            ">Current Company</div>
+            <div style="
+              font-size: 18px;
+              font-weight: 600;
+              color: #1a1a1a;
+            " id="currentCompanyValue">---</div>
+          </div>
+          
+          <button id="changeCompanyButton" style="
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
+          ">Change Company</button>
+        </div>
+      </div>
+
+      <!-- Map Settings Tab -->
+      <div class="settings-panel" data-panel="map">
+        <div style="max-width: 600px; margin: 0 auto;">
+          <h3 style="
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+          ">Map Display Options</h3>
+          
+          <div class="settings-group" style="
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+          ">
+            <div class="toggle-item" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            ">
+              <div>
+                <div style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Show Map</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Display geographical data visualization</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleMap" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div class="toggle-item" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            ">
+              <div>
+                <div style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Desktop Market Share</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Show market share for desktop devices</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleDesktopShare">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div class="toggle-item" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            ">
+              <div>
+                <div style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Desktop Average Rank</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Display ranking data for desktop</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleDesktopRank">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div class="toggle-item" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            ">
+              <div>
+                <div style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Mobile Market Share</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Show market share for mobile devices</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleMobileShare">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div class="toggle-item" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            ">
+              <div>
+                <div style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Mobile Average Rank</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Display ranking data for mobile</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleMobileRank">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database Tab -->
+      <div class="settings-panel" data-panel="database">
+        <div style="max-width: 600px; margin: 0 auto;">
+          <h3 style="
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+          ">Database Management</h3>
+          
+          <div style="
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+          ">
+            <h4 style="
+              font-size: 14px;
+              font-weight: 600;
+              color: #1a1a1a;
+              margin-bottom: 16px;
+            ">Storage Usage</h4>
+            <div id="databaseUsageBars">
+              <!-- Storage bars will be populated by JavaScript -->
+            </div>
+          </div>
+          
+          <div style="
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+          ">
+            <h4 style="
+              font-size: 14px;
+              font-weight: 600;
+              color: #dc2626;
+              margin-bottom: 8px;
+            ">Clear Cache</h4>
+            <p style="
+              font-size: 13px;
+              color: #7f1d1d;
+              margin-bottom: 16px;
+              line-height: 1.5;
+            ">This will delete all cached data and reload fresh data from the server. The process may take a few moments.</p>
+            <button id="refreshIDBButton" style="
+              padding: 10px 20px;
+              background: #dc2626;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s ease;
+            ">Refresh Database</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Ads Tab -->
+      <div class="settings-panel" data-panel="googleads">
+        <div style="max-width: 500px; margin: 0 auto; text-align: center; padding: 40px 0;">
+          <div style="
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <svg width="40" height="40" fill="white" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+            </svg>
+          </div>
+          
+          <h3 style="
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+          ">Google Ads Integration</h3>
+          
+          <div id="googleAdsStatus" style="
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #6b7280;
+          ">No data uploaded yet</div>
+          
+          <button id="provideFeedFileBtn" style="
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.25);
+          ">Provide Feed File</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes settingsSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Tab styles */
+  .settings-tab {
+    position: relative;
+  }
+  
+  .settings-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s ease;
+  }
+  
+  .settings-tab:hover {
+    color: #4b5563 !important;
+  }
+  
+  .settings-tab.active {
+    color: #667eea !important;
+  }
+  
+  .settings-tab.active::after {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  /* Panel transitions */
+  .settings-panel {
+    display: none;
+    opacity: 0;
+    animation: panelFadeIn 0.3s ease-out forwards;
+  }
+  
+  .settings-panel.active {
+    display: block;
+    opacity: 1;
+  }
+  
+  @keyframes panelFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Toggle switch styles */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+  }
+  
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e5e7eb;
+    transition: .3s;
+    border-radius: 26px;
+  }
+  
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  
+  .toggle-switch input:checked + .toggle-slider {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+  }
+  
+  /* Button hover effects */
+  #changeCompanyButton:hover,
+  #provideFeedFileBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  }
+  
+  #refreshIDBButton:hover {
+    background: #b91c1c;
+    transform: scale(1.05);
+  }
+  
+  #closeSettingsPopup:hover {
+    background: #e5e7eb;
+    color: #1a1a1a;
+  }
+  
+  /* Storage usage bars */
+  .storage-bar-item {
+    margin-bottom: 16px;
+  }
+  
+  .storage-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+  
+  .storage-bar-container {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .storage-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+</style>
+`;
+
+  // Inject the HTML into the body
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = settingsHTML;
+  document.body.appendChild(tempDiv.firstElementChild);
+  
+  console.log("[Settings Manager] Settings overlay HTML injected");
+})();
+
+// Wait for DOM to be ready before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSettingsOverlayHandlers);
+} else {
+  initSettingsOverlayHandlers();
+}
+
+// ========================================
+// SETTINGS OVERLAY MANAGEMENT
+// ========================================
+
+function initSettingsOverlayHandlers() {
+  console.log("[Settings Manager] Initializing settings overlay handlers");
+  
+  // Cache DOM elements
+  const overlay = document.getElementById("settingsOverlay");
+  const container = document.getElementById("settingsContainer");
+  const closeBtn = document.getElementById("closeSettingsPopup");
+  const tabs = document.querySelectorAll(".settings-tab");
+  const panels = document.querySelectorAll(".settings-panel");
+  
+  if (!overlay || !container) {
+    console.error("[Settings Manager] Settings overlay elements not found!");
+    return;
+  }
+  
+  // Rest of the initialization code...
+  
+  // Tab switching functionality
+  function switchTab(tabName) {
+    // Update tab states
+    tabs.forEach(tab => {
+      if (tab.dataset.tab === tabName) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+    
+    // Update panel visibility
+    panels.forEach(panel => {
+      if (panel.dataset.panel === tabName) {
+        panel.classList.add('active');
+      } else {
+        panel.classList.remove('active');
+      }
+    });
+    
+    // Store active tab
+    window.settingsOverlay.activeTab = tabName;
+    
+    // Initialize tab-specific content
+    initializeTabContent(tabName);
+  }
+  
+  // Initialize content when tab is activated
+  function initializeTabContent(tabName) {
+    switch(tabName) {
+      case 'company':
+        updateCurrentCompanyDisplay();
+        break;
+      case 'map':
+        initializeMapToggles();
+        break;
+      case 'database':
+        updateDatabaseUsageBars();
+        break;
+      case 'googleads':
+        updateGoogleAdsStatus();
+        break;
+    }
+  }
+  
+  // Open settings overlay
+  window.openSettingsOverlay = function(initialTab = 'company') {
+    overlay.style.display = "flex";
+    window.settingsOverlay.isOpen = true;
+    switchTab(initialTab);
+    
+    // Add escape key listener
+    document.addEventListener('keydown', handleEscapeKey);
+  };
+  
+  // Close settings overlay
+  window.closeSettingsOverlay = function() {
+    overlay.style.display = "none";
+    window.settingsOverlay.isOpen = false;
+    
+    // Remove escape key listener
+    document.removeEventListener('keydown', handleEscapeKey);
+  };
+  
+  // Handle escape key
+  function handleEscapeKey(e) {
+    if (e.key === 'Escape' && window.settingsOverlay.isOpen) {
+      window.closeSettingsOverlay();
+    }
+  }
+  
+  // Event listeners
+  if (closeBtn) {
+    closeBtn.addEventListener("click", window.closeSettingsOverlay);
+  }
+  
+  // Click outside to close
+  overlay.addEventListener("click", function(e) {
+    if (e.target === overlay) {
+      window.closeSettingsOverlay();
+    }
+  });
+  
+  // Tab click handlers
+  tabs.forEach(tab => {
+    tab.addEventListener("click", function() {
+      switchTab(this.dataset.tab);
+    });
+  });
+  
+  // Update company display
+  function updateCurrentCompanyDisplay() {
+    const companyValEl = document.getElementById("currentCompanyValue");
+    if (companyValEl) {
+      let val = (window.myCompany && window.myCompany.trim()) ? window.myCompany.trim() : "";
+      
+      if (!val) {
+        const cTextEl = document.getElementById("companyText");
+        if (cTextEl && cTextEl.textContent.trim()) {
+          val = cTextEl.textContent.trim();
+        }
+      }
+      
+      if (!val) val = "Not Selected";
+      companyValEl.textContent = val;
+    }
+  }
+  
+  // Initialize map toggles
+  function initializeMapToggles() {
+    const mapToggles = {
+      toggleMap: document.getElementById("toggleMap"),
+      toggleDesktopShare: document.getElementById("toggleDesktopShare"),
+      toggleDesktopRank: document.getElementById("toggleDesktopRank"),
+      toggleMobileShare: document.getElementById("toggleMobileShare"),
+      toggleMobileRank: document.getElementById("toggleMobileRank")
+    };
+    
+    Object.entries(mapToggles).forEach(([key, toggle]) => {
+      if (toggle) {
+        // Set initial state
+        const savedValue = window.localEmbedToggles[key];
+        if (typeof savedValue === "boolean") {
+          toggle.checked = savedValue;
+        }
+        
+        // Add change listener
+        toggle.addEventListener("change", function() {
+          updateToggle(key, this.checked);
+          if (typeof updateHomeMapMetrics === "function") {
+            updateHomeMapMetrics();
+          }
+        });
+      }
+    });
+  }
+  
+  // Update Google Ads status
+  function updateGoogleAdsStatus() {
+    const statusEl = document.getElementById("googleAdsStatus");
+    if (statusEl && window.googleSheetsData) {
+      const hasData = window.googleSheetsData.productPerformance?.length > 0 || 
+                     window.googleSheetsData.locationRevenue?.length > 0;
+      
+      if (hasData) {
+        statusEl.innerHTML = `
+          <div style="color: #059669; font-weight: 500;">✓ Google Sheets data loaded</div>
+          <div style="font-size: 12px; margin-top: 4px;">
+            ${window.googleSheetsData.productPerformance?.length || 0} products, 
+            ${window.googleSheetsData.locationRevenue?.length || 0} locations
+          </div>
+        `;
+      }
+    }
+  }
+  
+  // Company change button handler
+  const changeCompanyBtn = document.getElementById("changeCompanyButton");
+  if (changeCompanyBtn) {
+    changeCompanyBtn.addEventListener("click", function() {
+      window.closeSettingsOverlay();
+      if (typeof openSelectCompanyPopup === "function") {
+        openSelectCompanyPopup();
+      }
+    });
+  }
+  
+  // Google Ads button handler
+  const provideFeedBtn = document.getElementById("provideFeedFileBtn");
+  if (provideFeedBtn) {
+    provideFeedBtn.addEventListener("click", function() {
+      window.closeSettingsOverlay();
+      const urlOverlay = document.getElementById("googleSheetsUrlOverlay");
+      if (urlOverlay) {
+        urlOverlay.style.display = "flex";
+      }
+    });
+  }
+  
+  // Refresh IDB button handler
+  const refreshIDBBtn = document.getElementById("refreshIDBButton");
+  if (refreshIDBBtn) {
+    refreshIDBBtn.addEventListener("click", function() {
+      const confirmRefresh = confirm(
+        "This will delete all cached data and reload fresh data from the server. " +
+        "The process may take a few moments. Continue?"
+      );
+      
+      if (confirmRefresh) {
+        window.closeSettingsOverlay();
+        window.refreshIDBData();
+      }
+    });
+  }
+})();
+
+// Update database usage bars
+window.updateDatabaseUsageBars = function() {
+  const container = document.getElementById("databaseUsageBars");
+  if (!container) return;
+  
+  // Get all IDB tables and calculate sizes
+  window.embedIDB.open().then(db => {
+    if (!db) return;
+    
+    const tx = db.transaction("projectData", "readonly");
+    const store = tx.objectStore("projectData");
+    const req = store.getAll();
+    
+    req.onsuccess = (event) => {
+      const allData = event.target.result || [];
+      const sizes = {};
+      let totalSize = 0;
+      
+      allData.forEach(record => {
+        const size = new Blob([JSON.stringify(record.data)]).size;
+        sizes[record.tableName] = size;
+        totalSize += size;
+      });
+      
+      // Render the bars
+      container.innerHTML = `
+        <div class="storage-bar-item">
+          <div class="storage-bar-label">
+            <span>Total Storage</span>
+            <span>${formatBytes(totalSize)}</span>
+          </div>
+          <div class="storage-bar-container">
+            <div class="storage-bar-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+        ${Object.entries(sizes).map(([name, size]) => `
+          <div class="storage-bar-item">
+            <div class="storage-bar-label">
+              <span style="font-size: 12px; color: #9ca3af;">${name}</span>
+              <span style="font-size: 12px;">${formatBytes(size)}</span>
+            </div>
+            <div class="storage-bar-container">
+              <div class="storage-bar-fill" style="width: ${(size/totalSize*100).toFixed(1)}%; opacity: 0.7;"></div>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    };
+  });
+};
+
+// Helper function to format bytes
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Update existing settings button to use new overlay
+(function updateSettingsButton() {
+  const settingsButton = document.getElementById("openSettingsPopup");
+  if (settingsButton) {
+    // Remove old listeners
+    const newButton = settingsButton.cloneNode(true);
+    settingsButton.parentNode.replaceChild(newButton, settingsButton);
+    
+    // Add new listener
+    newButton.addEventListener("click", function() {
+      const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+      
+      if (isDemo) {
+        console.log("[Settings] Skipping settings overlay for DEMO account");
+        return;
+      }
+      
+      window.openSettingsOverlay();
+    });
+  }
+})();
+
+
+// Function to handle the complete IDB refresh process
   window.refreshIDBData = async function() {
     try {
       console.log("[🔄 IDB Refresh] Starting complete database refresh...");
@@ -286,106 +1171,6 @@ window.realProjectData = savedRealProjectData;
     
     // By default, show the PRODUCTS tab
     showTab("products");
-  })();
-
-// =====================================
-  // 3. SETTINGS BUTTON
-  // =====================================
-  (function initSettingsButton() {
-    console.log("[INIT] Setting up settings button");
-    
-    // 1) Basic references for your Settings popup
-    const settingsButton  = document.getElementById("openSettingsPopup");
-    const overlay         = document.getElementById("settingsOverlay");
-    const closeBtn        = document.getElementById("closeSettingsPopup");
-  
-    // 2) Show/hide the popup
-    if (settingsButton && overlay && closeBtn) {
-      settingsButton.addEventListener("click", () => {
-        // When opening the popup, fill #currentCompanyValue
-        const companyValEl = document.getElementById("currentCompanyValue");
-        if (companyValEl) {
-          // 2A) Try window.myCompany
-          let val = (window.myCompany && window.myCompany.trim())
-                      ? window.myCompany.trim()
-                      : "";
-      
-          // 2B) If still empty, fallback to #companyText (the label near "Companies:")
-          if (!val) {
-            const cTextEl = document.getElementById("companyText");
-            if (cTextEl && cTextEl.textContent.trim()) {
-              val = cTextEl.textContent.trim();
-            }
-          }
-      
-          // 2C) Final fallback
-          if (!val) val = "(none)";
-          companyValEl.textContent = val;
-        }
-      
-        // Finally, show the overlay
-        overlay.style.display = "flex";
-        
-        // Update database usage bars when opening settings
-        if (typeof updateDatabaseUsageBars === "function") {
-          updateDatabaseUsageBars();
-        }
-      });
-  
-      closeBtn.addEventListener("click", () => {
-        overlay.style.display = "none";
-      });
-    } else {
-      console.warn("⚠️ Settings popup elements not found");
-    }
-  
-    // 3) The "Change" button => open the existing select-company popup
-    const changeBtn = document.getElementById("changeCompanyButton");
-    if (changeBtn) {
-      changeBtn.addEventListener("click", function() {
-        // We assume you have a function openSelectCompanyPopup() that shows the form
-        if (typeof openSelectCompanyPopup === "function") {
-          openSelectCompanyPopup();
-        } else {
-          console.warn("⚠️ openSelectCompanyPopup() not defined yet.");
-        }
-      });
-    }
-
-    console.log("refreshIDBData function exists:", typeof window.refreshIDBData);
-
-    // Setup Refresh IDB button
-const refreshIDBBtn = document.getElementById("refreshIDBButton");
-if (refreshIDBBtn) {
-  refreshIDBBtn.addEventListener("click", function() {
-    const confirmRefresh = confirm(
-      "This will delete all cached data and reload fresh data from the server. " +
-      "The process may take a few moments. Continue?"
-    );
-    
-    if (confirmRefresh) {
-      // Close the settings overlay
-      const overlay = document.getElementById("settingsOverlay");
-      if (overlay) {
-        overlay.style.display = "none";
-      }
-      
-      // Start the refresh process
-      window.refreshIDBData();
-    }
-  });
-  
-  // Add hover effect
-  refreshIDBBtn.addEventListener("mouseenter", function() {
-    this.style.backgroundColor = "#ff5252";
-  });
-  
-  refreshIDBBtn.addEventListener("mouseleave", function() {
-    this.style.backgroundColor = "#ff6b6b";
-  });
-} else {
-  console.warn("⚠️ Refresh IDB button not found in DOM");
-}
   })();
 
   // Google Sheets URL popup handlers
