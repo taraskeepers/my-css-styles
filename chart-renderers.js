@@ -414,6 +414,20 @@
     container._chartInstance = chart;
   } 
 
+      function updateMarketShareCharts() {
+        if (window.companyStatsData) {
+          // Clear the market share container.
+          const marketShareContainer = document.getElementById("marketShareChart");
+          if (marketShareContainer) {
+            marketShareContainer.innerHTML = "";
+          }
+          // Re-render both charts using the unified functions.
+          //renderMarketSharePieChart(window.companyStatsData);
+          renderMarketShareStackedArea(window.companyStatsData);
+          renderCompaniesTable();
+        }
+      }
+
       function renderMarketShareStackedArea(marketData) {
         // 1) Grab the chart container
         const chartEl = document.getElementById("marketShareChart");
