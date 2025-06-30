@@ -639,60 +639,67 @@ function switchTab(tabName) {
 }
   
 // Initialize content when tab is activated
-  function initializeTabContent(tabName) {
-    switch(tabName) {
-case 'company':
-  updateCurrentCompanyDisplay();
-  
-  // Populate company dropdown when company tab is shown
-  const dropdown = document.getElementById("companySelectDropdown");
-        // If myCompany is not set but we have a selected option, set it
-  if (!window.myCompany && dropdown.value) {
-    window.myCompany = dropdown.value;
-    updateCurrentCompanyDisplay();
-  }
+function initializeTabContent(tabName) {
+  switch(tabName) {
+    case 'company':
+      console.log("[Settings] Initializing company tab content");
+      
+      // FORCE call updateCurrentCompanyDisplay first
+      updateCurrentCompanyDisplay();
+      
+      // Populate company dropdown when company tab is shown
+      const dropdown = document.getElementById("companySelectDropdown");
+      
+      if (dropdown) {
+        // Try multiple data sources
+        let companies = [];
         
-  if (dropdown) {
-    // Try multiple data sources
-    let companies = [];
-    
-    if (window.companyStatsData && window.companyStatsData.length > 0) {
-      companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
-    } else if (window.allRows && window.allRows.length > 0) {
-      companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
-    }
-    
-    console.log("[Settings] Found companies:", companies);
-    
-    dropdown.innerHTML = '<option value="">-- Select Company --</option>';
-    companies.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      if (c === window.myCompany) {
-        opt.selected = true;
+        if (window.companyStatsData && window.companyStatsData.length > 0) {
+          companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
+        } else if (window.allRows && window.allRows.length > 0) {
+          companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
+        }
+        
+        console.log("[Settings] Found companies:", companies);
+        
+        dropdown.innerHTML = '<option value="">-- Select Company --</option>';
+        companies.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          
+          // Check against multiple sources for current selection
+          const currentCompany = window.filterState?.company || window.myCompany;
+          
+          if (c === currentCompany) {
+            opt.selected = true;
+          }
+          dropdown.appendChild(opt);
+        });
+        
+        // If no companies found, show a message
+        if (companies.length === 0) {
+          dropdown.innerHTML = '<option value="">No companies found - data may still be loading</option>';
+        }
       }
-      dropdown.appendChild(opt);
-    });
-    
-    // If no companies found, show a message
-    if (companies.length === 0) {
-      dropdown.innerHTML = '<option value="">No companies found - data may still be loading</option>';
-    }
+      
+      // Call updateCurrentCompanyDisplay again after dropdown is populated
+      setTimeout(() => {
+        updateCurrentCompanyDisplay();
+      }, 50);
+      break;
+      
+    case 'map':
+      initializeMapToggles();
+      break;
+    case 'database':
+      updateDatabaseUsageBars();
+      break;
+    case 'googleads':
+      updateGoogleAdsStatus();
+      break;
   }
-  break;
-        
-      case 'map':
-        initializeMapToggles();
-        break;
-      case 'database':
-        updateDatabaseUsageBars();
-        break;
-      case 'googleads':
-        updateGoogleAdsStatus();
-        break;
-    }
-  }
+}
   
   // Handle escape key
   function handleEscapeKey(e) {
@@ -904,10 +911,9 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   // Switch to initial tab
   switchTab(initialTab);
   
-  // Update company display after a short delay to ensure window.myCompany is set
-  setTimeout(() => {
-    updateCurrentCompanyDisplay();
-  }, 100);
+  // FORCE call updateCurrentCompanyDisplay immediately
+  console.log("[Settings] Calling updateCurrentCompanyDisplay on overlay open");
+  updateCurrentCompanyDisplay();
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
