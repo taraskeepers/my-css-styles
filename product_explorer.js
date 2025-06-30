@@ -602,10 +602,111 @@ if (initialViewMode === 'viewRankingExplorer') {
 } else {
   setTimeout(() => {
     const targetButton = document.getElementById(initialViewMode);
-    if (targetButton && !targetButton.classList.contains('active')) {
-      targetButton.click();
+    if (targetButton) {
+      if (!targetButton.classList.contains('active')) {
+        targetButton.click();
+      } else {
+        // Button is already active, but we need to apply the view mode for the new product
+        if (initialViewMode === 'viewChartsExplorer') {
+          // Apply Charts mode logic directly
+          const table = document.querySelector('.product-explorer-table');
+          if (table) {
+            table.style.display = 'table';
+            table.classList.remove('ranking-mode');
+          }
+          const mapContainer = document.getElementById('productExplorerMapContainer');
+          if (mapContainer) {
+            mapContainer.style.display = 'none';
+          }
+          
+          // Remove ranking mode from device containers
+          document.querySelectorAll('.device-container').forEach(container => {
+            container.classList.remove('ranking-mode');
+          });
+          
+          // Show segmentation charts and hide rank history
+          document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
+            container.style.display = 'flex';
+          });
+          document.querySelectorAll('.rank-market-share-history').forEach(container => {
+            container.style.display = 'none';
+          });
+          
+          // Show and render position charts
+          document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
+            container.style.display = 'flex';
+            
+            // Render position chart if record data is available
+            if (container.combinationRecord) {
+              renderProductPositionChart(container, container.combinationRecord);
+            }
+          });
+        } else if (initialViewMode === 'viewMapExplorer') {
+          // Apply Map mode logic directly
+          const table = document.querySelector('.product-explorer-table');
+          if (table) {
+            table.style.display = 'none';
+          }
+          
+          const mapContainer = document.getElementById('productExplorerMapContainer');
+          if (mapContainer) {
+            mapContainer.style.display = 'block';
+            
+            // Clear existing content
+            mapContainer.innerHTML = '';
+            
+            // Create map wrapper
+            const mapWrapper = document.createElement('div');
+            mapWrapper.id = 'mapWrapper';
+            mapWrapper.style.width = '100%';
+            mapWrapper.style.height = 'calc(100% - 60px)';
+            mapContainer.appendChild(mapWrapper);
+            
+            // Create toggle button
+            const toggleContainer = document.createElement('div');
+            toggleContainer.className = 'location-blocks-toggle';
+            toggleContainer.innerHTML = `
+              <button id="toggleLocationBlocks" class="active">
+                Hide Location Details
+              </button>
+            `;
+            mapContainer.appendChild(toggleContainer);
+            
+            // Build map data for the selected product
+            const mapProject = buildMapDataForSelectedProduct();
+            
+            // Draw the US map using the mapsLib function
+            if (window.mapHelpers && window.mapHelpers.drawUsMapWithLocations) {
+              window.mapHelpers.drawUsMapWithLocations(mapProject, '#mapWrapper', 'explorer');
+              
+              // Add location blocks after map is drawn
+              setTimeout(() => {
+                addLocationBlocksToMap(mapProject, '#mapWrapper');
+              }, 500);
+            }
+            
+            // Add toggle functionality
+            document.getElementById('toggleLocationBlocks').addEventListener('click', function() {
+              const blocks = document.querySelectorAll('.location-block');
+              const button = this;
+              
+              if (button.classList.contains('active')) {
+                blocks.forEach(block => block.style.display = 'none');
+                button.textContent = 'Show Location Details';
+                button.classList.remove('active');
+                button.classList.add('inactive');
+              } else {
+                blocks.forEach(block => block.style.display = 'block');
+                button.textContent = 'Hide Location Details';
+                button.classList.add('active');
+                button.classList.remove('inactive');
+              }
+            });
+          }
+        }
+      }
     }
-  }, 100);
+  }, 150); // Increased timeout to ensure chart data is attached
 }
 }
 
