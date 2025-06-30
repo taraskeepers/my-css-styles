@@ -902,16 +902,15 @@ window.openSettingsOverlay = function(initialTab = 'company') {
     panel.style.display = 'none';
   });
   
-  // Initialize the company tab content FIRST to populate data
-  initializeTabContent('company');
+  // First, always switch to company tab to populate the data
+  switchTab('company');
   
-  // Then update company display after data is populated
-  setTimeout(() => {
-    updateCurrentCompanyDisplay();
-    
-    // Now switch to the requested tab
-    switchTab(initialTab);
-  }, 50);
+  // If a different tab was requested, switch to it after a delay
+  if (initialTab !== 'company') {
+    setTimeout(() => {
+      switchTab(initialTab);
+    }, 100);
+  }
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
