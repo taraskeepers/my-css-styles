@@ -889,7 +889,6 @@ function updateCurrentCompanyDisplay() {
     });
   }
   
-  // Create the global functions
 window.openSettingsOverlay = function(initialTab = 'company') {
   console.log("[Settings] Opening overlay");
   
@@ -897,17 +896,22 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Force update company display first
-  updateCurrentCompanyDisplay();
-  
   // Ensure all panels are hidden before switching
   const allPanels = document.querySelectorAll('.settings-panel');
   allPanels.forEach(panel => {
     panel.style.display = 'none';
   });
   
-  // Switch to initial tab
-  switchTab(initialTab);
+  // Initialize the company tab content FIRST to populate data
+  initializeTabContent('company');
+  
+  // Then update company display after data is populated
+  setTimeout(() => {
+    updateCurrentCompanyDisplay();
+    
+    // Now switch to the requested tab
+    switchTab(initialTab);
+  }, 50);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
