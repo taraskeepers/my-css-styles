@@ -1010,28 +1010,24 @@ function formatBytes(bytes) {
     
     console.log("[Settings] Found button, attaching listener");
     
-    settingsButton.onclick = function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      console.log("[Settings] Button clicked!");
-      
-      const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
-      
-      if (isDemo) {
-        console.log("[Settings] Skipping settings overlay for DEMO account");
-        return;
-      }
-      
-      const overlay = document.getElementById("settingsOverlay");
-      if (overlay) {
-        console.log("[Settings] Showing overlay directly");
-        overlay.style.display = "flex";
-        window.settingsOverlay.isOpen = true;
-      } else {
-        console.error("[Settings] Overlay element not found!");
-      }
-    };
+settingsButton.onclick = function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  console.log("[Settings] Button clicked!");
+  
+  const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+  
+  if (isDemo) {
+    console.log("[Settings] Skipping settings overlay for DEMO account");
+    return;
+  }
+  
+  // Call the proper function that includes updateCurrentCompanyDisplay
+  if (typeof window.openSettingsOverlay === "function") {
+    window.openSettingsOverlay('company');
+  }
+};
   }
   
   // Try multiple times to ensure DOM is ready
