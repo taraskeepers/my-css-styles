@@ -574,7 +574,7 @@
   document.body.appendChild(tempDiv.firstElementChild);
   
   console.log("[Settings Manager] Settings overlay HTML injected");
-})();
+}
 
 // Wait for DOM to be ready before initializing
 if (document.readyState === 'loading') {
@@ -859,6 +859,20 @@ function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+    function updateToggle(toggleId, newValue) {
+    window.localEmbedToggles[toggleId] = newValue;
+  
+    // 2) Post message to the parent page
+    window.parent.postMessage({
+      command: "saveUserSettings",
+      token: window.embedToken,           // This was set earlier by the parent 
+      data: JSON.stringify({ 
+        toggleId, 
+        isChecked: newValue 
+      })
+    }, "*");
+  }
 
 // Update existing settings button to use new overlay
 (function updateSettingsButton() {
@@ -1231,21 +1245,7 @@ await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
       uploadBtn.click();
     }
   });
-
-    function updateToggle(toggleId, newValue) {
-    window.localEmbedToggles[toggleId] = newValue;
-  
-    // 2) Post message to the parent page
-    window.parent.postMessage({
-      command: "saveUserSettings",
-      token: window.embedToken,           // This was set earlier by the parent 
-      data: JSON.stringify({ 
-        toggleId, 
-        isChecked: newValue 
-      })
-    }, "*");
-  }
-}
+  };
 
  function applyLocalToggleStates() {
     // 1) Toggle: Show Trend Box (Products tab)
