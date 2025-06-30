@@ -646,6 +646,12 @@ case 'company':
   
   // Populate company dropdown when company tab is shown
   const dropdown = document.getElementById("companySelectDropdown");
+        // If myCompany is not set but we have a selected option, set it
+  if (!window.myCompany && dropdown.value) {
+    window.myCompany = dropdown.value;
+    updateCurrentCompanyDisplay();
+  }
+        
   if (dropdown) {
     // Try multiple data sources
     let companies = [];
@@ -730,14 +736,39 @@ function updateCurrentCompanyDisplay() {
     } else if (window.filterState && window.filterState.company) {
       val = window.filterState.company;
     } else {
+      // Check the main UI company text
       const cTextEl = document.getElementById("companyText");
       if (cTextEl && cTextEl.textContent && cTextEl.textContent.trim() !== "Not Selected") {
         val = cTextEl.textContent.trim();
       }
     }
     
+    // If still no value, try to get from the first company in the data
+    if (!val && window.companyStatsData && window.companyStatsData.length > 0) {
+      // Get unique companies from the data
+      const companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
+      
+      // Check if any of these companies match what might be stored
+      if (companies.length > 0) {
+        // Try to find if one is selected based on other UI elements
+        const selectedCompanyCard = document.querySelector('.ad-card.selected');
+        if (selectedCompanyCard) {
+          const cardCompany = selectedCompanyCard.querySelector('.company-name');
+          if (cardCompany && cardCompany.textContent) {
+            val = cardCompany.textContent.trim();
+          }
+        }
+      }
+    }
+    
+    // Update display
     companyValEl.textContent = val || "Not Selected";
     console.log("[Settings] Company display updated to:", val || "Not Selected");
+    
+    // Also update window.myCompany if we found a value
+    if (val && !window.myCompany) {
+      window.myCompany = val;
+    }
   }
 }
   
