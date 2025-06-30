@@ -714,9 +714,49 @@ function initializeTabContent(tabName) {
     case 'database':
       updateDatabaseUsageBars();
       break;
-    case 'googleads':
-      updateGoogleAdsStatus();
-      break;
+case 'googleads':
+  updateGoogleAdsStatus();
+  
+  // Set up the upload button handler
+  const uploadBtn = document.getElementById("googleSheetsUrlUpload");
+  if (uploadBtn) {
+    // Remove any existing event listeners to prevent duplicates
+    uploadBtn.replaceWith(uploadBtn.cloneNode(true));
+    const newUploadBtn = document.getElementById("googleSheetsUrlUpload");
+    
+    newUploadBtn.addEventListener("click", async function() {
+      const urlInput = document.getElementById("googleSheetsUrlInput");
+      const url = urlInput.value.trim();
+      
+      if (!url) {
+        alert("Please enter a Google Sheets URL");
+        return;
+      }
+      
+      if (!url.includes("docs.google.com/spreadsheets")) {
+        alert("Please enter a valid Google Sheets URL");
+        return;
+      }
+      
+      try {
+        // Determine current account prefix
+        const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
+        if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreFromUrl === "function") {
+          await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
+          
+          // Clear the input and update status
+          urlInput.value = "";
+          updateGoogleAdsStatus();
+          alert("Google Sheets data uploaded successfully!");
+        } else {
+          alert("Google Sheets manager not available");
+        }
+      } catch (error) {
+        alert(`Failed to process Google Sheets: ${error.message}`);
+      }
+    });
+  }
+  break;
   }
 }
   
