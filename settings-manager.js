@@ -200,8 +200,8 @@
           ">Save Company Selection</button>
         </div>
       </div>
-      <!-- Map Settings Tab -->
-      <div class="settings-panel" data-panel="map">
+<!-- Map Settings Tab -->
+<div class="settings-panel" data-panel="map" style="display: none;">
         <div style="max-width: 600px; margin: 0 auto;">
           <h3 style="
             font-size: 18px;
@@ -298,8 +298,8 @@
         </div>
       </div>
 
-      <!-- Database Tab -->
-      <div class="settings-panel" data-panel="database">
+<!-- Database Tab -->
+<div class="settings-panel" data-panel="database" style="display: none;">
         <div style="max-width: 600px; margin: 0 auto;">
           <h3 style="
             font-size: 18px;
@@ -359,8 +359,8 @@
         </div>
       </div>
 
-      <!-- Google Ads Tab -->
-      <div class="settings-panel" data-panel="googleads">
+<!-- Google Ads Tab -->
+<div class="settings-panel" data-panel="googleads" style="display: none;">
         <div style="max-width: 500px; margin: 0 auto; text-align: center; padding: 40px 0;">
           <div style="
             width: 80px;
@@ -605,35 +605,38 @@ function initSettingsOverlayHandlers() {
   }
   
   // Tab switching functionality
-  function switchTab(tabName) {
-      // Always update company display when switching tabs
-  updateCurrentCompanyDisplay();
-    // Update tab states
-    window.settingsOverlayElements.tabs.forEach(tab => {
-      if (tab.dataset.tab === tabName) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
-    });
-    
-// Update panel visibility
-window.settingsOverlayElements.panels.forEach(panel => {
-  if (panel.dataset.panel === tabName) {
-    panel.classList.add('active');
-    panel.style.display = 'block';
-  } else {
-    panel.classList.remove('active');
+function switchTab(tabName) {
+  console.log("[Settings] Switching to tab:", tabName);
+  
+  // Update tab states
+  window.settingsOverlayElements.tabs.forEach(tab => {
+    if (tab.dataset.tab === tabName) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  
+  // Force hide ALL panels first
+  const allPanels = document.querySelectorAll('.settings-panel');
+  allPanels.forEach(panel => {
     panel.style.display = 'none';
+    panel.classList.remove('active');
+  });
+  
+  // Then show only the selected panel
+  const activePanel = document.querySelector(`[data-panel="${tabName}"]`);
+  if (activePanel) {
+    activePanel.style.display = 'block';
+    activePanel.classList.add('active');
   }
-});
-    
-    // Store active tab
-    window.settingsOverlay.activeTab = tabName;
-    
-    // Initialize tab-specific content
-    initializeTabContent(tabName);
-  }
+  
+  // Store active tab
+  window.settingsOverlay.activeTab = tabName;
+  
+  // Initialize tab-specific content
+  initializeTabContent(tabName);
+}
   
 // Initialize content when tab is activated
   function initializeTabContent(tabName) {
@@ -719,22 +722,22 @@ case 'company':
 function updateCurrentCompanyDisplay() {
   const companyValEl = document.getElementById("currentCompanyValue");
   if (companyValEl) {
-    let val = window.myCompany || "";
+    let val = "";
     
-    if (!val) {
+    // Check multiple sources for company value
+    if (window.myCompany && window.myCompany.trim()) {
+      val = window.myCompany.trim();
+    } else if (window.filterState && window.filterState.company) {
+      val = window.filterState.company;
+    } else {
       const cTextEl = document.getElementById("companyText");
-      if (cTextEl && cTextEl.textContent && cTextEl.textContent !== "Not Selected") {
+      if (cTextEl && cTextEl.textContent && cTextEl.textContent.trim() !== "Not Selected") {
         val = cTextEl.textContent.trim();
       }
     }
     
-    // Also check filterState
-    if (!val && window.filterState && window.filterState.company) {
-      val = window.filterState.company;
-    }
-    
     companyValEl.textContent = val || "Not Selected";
-    console.log("[Settings] Updated company display to:", val || "Not Selected");
+    console.log("[Settings] Company display updated to:", val || "Not Selected");
   }
 }
   
@@ -857,19 +860,23 @@ function updateCurrentCompanyDisplay() {
   
   // Create the global functions
 window.openSettingsOverlay = function(initialTab = 'company') {
+  console.log("[Settings] Opening overlay");
+  
+  // Show overlay
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Force hide all panels first
-  window.settingsOverlayElements.panels.forEach(panel => {
+  // Force update company display first
+  updateCurrentCompanyDisplay();
+  
+  // Ensure all panels are hidden before switching
+  const allPanels = document.querySelectorAll('.settings-panel');
+  allPanels.forEach(panel => {
     panel.style.display = 'none';
-    panel.classList.remove('active');
   });
   
-  // Add a small delay to ensure DOM is ready, then switch to the initial tab
-  setTimeout(() => {
-    switchTab(initialTab);
-  }, 10);
+  // Switch to initial tab
+  switchTab(initialTab);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
