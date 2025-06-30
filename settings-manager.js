@@ -14,8 +14,9 @@
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
   z-index: 9999999;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 250px;
 ">
   <div id="settingsContainer" style="
     width: 900px;
@@ -127,14 +128,77 @@
       overflow-y: auto;
       background: #ffffff;
     ">
-      <!-- Company Tab -->
+<!-- Company Tab -->
       <div class="settings-panel active" data-panel="company">
         <div style="
-          max-width: 500px;
+          max-width: 600px;
           margin: 0 auto;
-          text-align: center;
-          padding: 40px 0;
+          padding: 40px 20px;
         ">
+          <h3 style="
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+            text-align: center;
+          ">Select Your Company</h3>
+          
+          <div style="
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+          ">
+            <div style="
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 8px;
+            ">Current Company</div>
+            <div style="
+              font-size: 18px;
+              font-weight: 600;
+              color: #1a1a1a;
+            " id="currentCompanyValue">Not Selected</div>
+          </div>
+          
+          <div style="
+            margin-bottom: 20px;
+          ">
+            <label style="
+              display: block;
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 8px;
+            ">Choose your company:</label>
+            <select id="companySelectDropdown" style="
+              width: 100%;
+              padding: 10px 12px;
+              font-size: 15px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              background: white;
+              cursor: pointer;
+            ">
+              <option value="">-- Select Company --</option>
+            </select>
+          </div>
+          
+          <button id="saveCompanyButton" style="
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
+          ">Save Company Selection</button>
+        </div>
+      </div>
           <div style="
             width: 80px;
             height: 80px;
@@ -630,12 +694,29 @@ function initSettingsOverlayHandlers() {
     initializeTabContent(tabName);
   }
   
-  // Initialize content when tab is activated
+// Initialize content when tab is activated
   function initializeTabContent(tabName) {
     switch(tabName) {
       case 'company':
         updateCurrentCompanyDisplay();
+        
+        // Populate company dropdown when company tab is shown
+        const dropdown = document.getElementById("companySelectDropdown");
+        if (dropdown && window.companyStatsData) {
+          const companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
+          dropdown.innerHTML = '<option value="">-- Select Company --</option>';
+          companies.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c;
+            if (c === window.myCompany) {
+              opt.selected = true;
+            }
+            dropdown.appendChild(opt);
+          });
+        }
         break;
+        
       case 'map':
         initializeMapToggles();
         break;
@@ -667,28 +748,32 @@ function initSettingsOverlayHandlers() {
     }
   });
   
-  // Tab click handlers
+// Tab click handlers
   window.settingsOverlayElements.tabs.forEach(tab => {
-    tab.addEventListener("click", function() {
+    // Use direct onclick instead of addEventListener
+    tab.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("[Settings] Tab clicked:", this.dataset.tab);
       switchTab(this.dataset.tab);
-    });
+    };
   });
   
-  // Update company display
+// Update company display
   function updateCurrentCompanyDisplay() {
     const companyValEl = document.getElementById("currentCompanyValue");
     if (companyValEl) {
-      let val = (window.myCompany && window.myCompany.trim()) ? window.myCompany.trim() : "";
+      let val = window.myCompany || "";
       
       if (!val) {
         const cTextEl = document.getElementById("companyText");
-        if (cTextEl && cTextEl.textContent.trim()) {
+        if (cTextEl && cTextEl.textContent && cTextEl.textContent !== "Not Selected") {
           val = cTextEl.textContent.trim();
         }
       }
       
-      if (!val) val = "Not Selected";
-      companyValEl.textContent = val;
+      companyValEl.textContent = val || "Not Selected";
+      console.log("[Settings] Updated company display to:", val || "Not Selected");
     }
   }
   
@@ -742,15 +827,41 @@ function initSettingsOverlayHandlers() {
     }
   }
   
-  // Company change button handler
-  const changeCompanyBtn = document.getElementById("changeCompanyButton");
-  if (changeCompanyBtn) {
-    changeCompanyBtn.addEventListener("click", function() {
-      window.closeSettingsOverlay();
-      if (typeof openSelectCompanyPopup === "function") {
-        openSelectCompanyPopup();
+// Company save button handler
+  const saveCompanyBtn = document.getElementById("saveCompanyButton");
+  if (saveCompanyBtn) {
+    saveCompanyBtn.onclick = function() {
+      const dropdown = document.getElementById("companySelectDropdown");
+      const selectedVal = dropdown.value.trim();
+      
+      if (!selectedVal) {
+        alert("Please select a company first");
+        return;
       }
-    });
+      
+      // Update myCompany
+      window.myCompany = selectedVal;
+      window.filterState.company = selectedVal;
+      
+      // Tell parent to save
+      if (window.parent && window.embedToken) {
+        window.parent.postMessage({
+          command: "saveMyCompany",
+          newValue: selectedVal
+        }, "*");
+      }
+      
+      // Update display
+      updateCurrentCompanyDisplay();
+      
+      // Update the company text in main UI
+      const companyText = document.getElementById("companyText");
+      if (companyText) {
+        companyText.textContent = selectedVal;
+      }
+      
+      alert("Company saved successfully!");
+    };
   }
   
   // Google Ads button handler
