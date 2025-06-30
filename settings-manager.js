@@ -874,55 +874,45 @@ function formatBytes(bytes) {
 
 // Update existing settings button to use new overlay
 (function updateSettingsButton() {
-  // Wait for DOM if needed
-  function attachButtonListener() {
+  // Ensure DOM is ready
+  function attachListener() {
     const settingsButton = document.getElementById("openSettingsPopup");
-    if (settingsButton) {
-      console.log("[Settings Manager] Attaching click listener to settings button");
-      
-      // Remove old listeners by cloning
-      const newButton = settingsButton.cloneNode(true);
-      settingsButton.parentNode.replaceChild(newButton, settingsButton);
-      
-      // Add new listener
-      newButton.addEventListener("click", function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
-        
-        if (isDemo) {
-          console.log("[Settings] Skipping settings overlay for DEMO account");
-          return;
-        }
-        
-        console.log("[Settings] Opening settings overlay");
-        
-        // Check if the function exists
-        if (typeof window.openSettingsOverlay === "function") {
-          window.openSettingsOverlay();
-        } else {
-          console.error("[Settings] window.openSettingsOverlay is not defined. Initializing now...");
-          // Try to initialize the handlers first
-          if (typeof initSettingsOverlayHandlers === "function") {
-            initSettingsOverlayHandlers();
-            // Now try again
-            if (typeof window.openSettingsOverlay === "function") {
-              window.openSettingsOverlay();
-            } else {
-              console.error("[Settings] Still cannot find openSettingsOverlay after init");
-            }
-          }
-        }
-      });
-    } else {
-      console.warn("[Settings Manager] Settings button not found, retrying...");
-      setTimeout(attachButtonListener, 500);
+    if (!settingsButton) {
+      console.error("[Settings] Button #openSettingsPopup not found!");
+      return;
     }
+    
+    console.log("[Settings] Found button, attaching listener");
+    
+    settingsButton.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log("[Settings] Button clicked!");
+      
+      const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+      
+      if (isDemo) {
+        console.log("[Settings] Skipping settings overlay for DEMO account");
+        return;
+      }
+      
+      const overlay = document.getElementById("settingsOverlay");
+      if (overlay) {
+        console.log("[Settings] Showing overlay directly");
+        overlay.style.display = "flex";
+        window.settingsOverlay.isOpen = true;
+      } else {
+        console.error("[Settings] Overlay element not found!");
+      }
+    };
   }
   
-  // Use a delay to ensure everything is initialized
-  setTimeout(attachButtonListener, 1000);
+  // Try multiple times to ensure DOM is ready
+  setTimeout(attachListener, 100);
+  setTimeout(attachListener, 500);
+  setTimeout(attachListener, 1000);
+  setTimeout(attachListener, 2000);
 })();
 
 // Function to handle the complete IDB refresh process
