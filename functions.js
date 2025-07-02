@@ -416,17 +416,23 @@ menuItem.addEventListener("click", async (e) => {
   const newPrefix = `acc1_pr${project.project_number}_`;
   if (window.dataPrefix !== newPrefix) {
     console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} => ${newPrefix}`);
-    switchAccountAndReload(newPrefix, project.project_number)
-      .then(() => {
-        populateProjectPage();
-      })
+switchAccountAndReload(newPrefix, project.project_number)
+  .then(() => {
+    // Reset flags to allow re-population with new project data
+    window._projectPageInitialized = false;
+    window._projectPageInitializing = false;
+    populateProjectPage();
+  })
       .catch(err => {
         console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
       });
-  } else {
-    console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
-    populateProjectPage();
-  }
+} else {
+  console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
+  // Reset flags to allow re-population when switching between projects
+  window._projectPageInitialized = false;
+  window._projectPageInitializing = false;
+  populateProjectPage();
+}
 }); // end menuItem.addEventListener
 
   // 8) Add a toggle button to collapse the entire left column
