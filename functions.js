@@ -1,3 +1,111 @@
+/**
+ * Check if all required datasets exist in IDB for a given project
+ * @param {number} projectNumber - The project number to check
+ * @returns {Promise<boolean>} - True if all datasets exist, false otherwise
+ */
+async function checkProjectDatasetsInIDB(projectNumber) {
+  try {
+    // Determine the prefix based on current account type
+    const accountStr = document.getElementById("selectedAccountText")?.textContent?.trim()?.toLowerCase() || "";
+    const isDemo = accountStr.includes("demo");
+    const prefix = isDemo ? `demo_acc1_pr${projectNumber}_` : `acc1_pr${projectNumber}_`;
+    
+    console.log(`[checkProjectDatasetsInIDB] Checking datasets for prefix: ${prefix}`);
+    
+    // Check all three required tables
+    const [processed, serpStats, marketTrends] = await Promise.all([
+      window.embedIDB.getData(prefix + "processed"),
+      window.embedIDB.getData(prefix + "company_serp_stats"),
+      window.embedIDB.getData(prefix + "market_trends")
+    ]);
+    
+    // Check if all tables have data
+    const hasProcessed = processed?.data?.length > 0;
+    const hasSerpStats = serpStats?.data?.length > 0;
+    const hasMarketTrends = marketTrends?.data?.length > 0;
+    
+    console.log(`[checkProjectDatasetsInIDB] Results for ${prefix}:`, {
+      hasProcessed,
+      hasSerpStats,
+      hasMarketTrends
+    });
+    
+    return hasProcessed && hasSerpStats && hasMarketTrends;
+  } catch (error) {
+    console.error("[checkProjectDatasetsInIDB] Error checking datasets:", error);
+    return false;
+  }
+}
+
+/**
+ * Show popup message when datasets are not available
+ */
+function showDatasetNotAvailablePopup() {
+  // Check if popup already exists
+  let popup = document.getElementById("datasetNotAvailablePopup");
+  
+  if (!popup) {
+    // Create popup HTML
+    popup = document.createElement("div");
+    popup.id = "datasetNotAvailablePopup";
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      text-align: center;
+      max-width: 400px;
+      display: none;
+    `;
+    
+    popup.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Data Collection in Progress</h3>
+      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.5;">
+        We collect the requested Data. The Data will be available during the next 24 hours.
+      </p>
+      <button id="datasetPopupOkBtn" style="
+        background: #007AFF;
+        color: white;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+      ">OK</button>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Add event listener to OK button
+    document.getElementById("datasetPopupOkBtn").addEventListener("click", () => {
+      popup.style.display = "none";
+    });
+    
+    // Add hover effect
+    const okBtn = document.getElementById("datasetPopupOkBtn");
+    okBtn.addEventListener("mouseenter", () => {
+      okBtn.style.background = "#0051D5";
+    });
+    okBtn.addEventListener("mouseleave", () => {
+      okBtn.style.background = "#007AFF";
+    });
+  }
+  
+  // Show popup
+  popup.style.display = "block";
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    popup.style.display = "none";
+  }, 5000);
+}
+
 /*******************************************************
   2) Format Helper for Locations
 *******************************************************/
@@ -244,73 +352,82 @@ function renderProjects() {
     projectListContainer.appendChild(subMenu);
     console.log("[renderProjects]   ➕ Inserted project-menu-item & sub-menu into #project-list_container.");
 
-    // -- click event on the project "menuItem"
-    menuItem.addEventListener("click", (e) => {
-      // If we previously set window._ignoreProjectMenuClick due to sub-click:
-      if (window._ignoreProjectMenuClick) {
-        console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
-        window._ignoreProjectMenuClick = false;
-        return;
-      }
+// -- click event on the project "menuItem"
+menuItem.addEventListener("click", async (e) => {
+  // If we previously set window._ignoreProjectMenuClick due to sub-click:
+  if (window._ignoreProjectMenuClick) {
+    console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
+    window._ignoreProjectMenuClick = false;
+    return;
+  }
 
-      // If the user literally clicked on .search-card inside here, do nothing
-      if (e.target.closest(".search-card")) {
-        console.log("[renderProjects] 🛑 project-menu-item click ignored (inner .search-card was clicked)");
-        return; 
-      }
+  // If the user literally clicked on .search-card inside here, do nothing
+  if (e.target.closest(".search-card")) {
+    console.log("[renderProjects] 🛑 project-menu-item click ignored (inner .search-card was clicked)");
+    return; 
+  }
 
-      console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
-      document.querySelectorAll(".search-card.selected").forEach(card => {
-        card.classList.remove("selected");
-      });
-
-      // 1) Mark which project_number is active
-      if (!window.filterState) window.filterState = {};
-      window.filterState.activeProjectNumber = project.project_number;
-      console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
-
-      // 2) Highlight the current item
-      document.querySelectorAll(".project-menu-item.selected").forEach(item => {
-        item.classList.remove("selected");
-      });
-      menuItem.classList.add("selected");
-
-      // 3) Expand sub-menu for this project; collapse for all others
-      document.querySelectorAll(".sub-menu.expanded").forEach(other => {
-        if (other !== subMenu) other.classList.remove("expanded");
-      });
-      subMenu.classList.add("expanded");
-
-      // 4) Switch UI to the Project Page
-      const homePageEl = document.getElementById("homePage");
-      const mainPageEl = document.getElementById("main");
-      const projectPageEl = document.getElementById("projectPage");
-
-      homePageEl.style.display = "none";
-      mainPageEl.style.display = "none";
-      projectPageEl.style.display = "block";
-
-      document.getElementById("homeButton").classList.remove("selected");
-      document.getElementById("mainButton").classList.remove("selected");
-      document.getElementById("projectButton").classList.add("selected");
-
-      // 5) Possibly switch dataPrefix if needed, then call populateProjectPage
-      const newPrefix = `acc1_pr${project.project_number}_`;
-      if (window.dataPrefix !== newPrefix) {
-        console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} => ${newPrefix}`);
-        switchAccountAndReload(newPrefix, project.project_number)
-          .then(() => {
-            populateProjectPage();
-          })
-          .catch(err => {
-            console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
-          });
-      } else {
-        console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
-        populateProjectPage();
-      }
-    }); // end menuItem.addEventListener
+  console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
+  
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
+  const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
+  if (!datasetsAvailable) {
+    console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
+    showDatasetNotAvailablePopup();
+    return; // Exit early, don't select this project
+  }
+  
+  // Clear other selections
+  document.querySelectorAll(".search-card.selected").forEach(card => {
+    card.classList.remove("selected");
   });
+
+  // 1) Mark which project_number is active
+  if (!window.filterState) window.filterState = {};
+  window.filterState.activeProjectNumber = project.project_number;
+  console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
+
+  // 2) Highlight the current item
+  document.querySelectorAll(".project-menu-item.selected").forEach(item => {
+    item.classList.remove("selected");
+  });
+  menuItem.classList.add("selected");
+
+  // 3) Expand sub-menu for this project; collapse for all others
+  document.querySelectorAll(".sub-menu.expanded").forEach(other => {
+    if (other !== subMenu) other.classList.remove("expanded");
+  });
+  subMenu.classList.add("expanded");
+
+  // 4) Switch UI to the Project Page
+  const homePageEl = document.getElementById("homePage");
+  const mainPageEl = document.getElementById("main");
+  const projectPageEl = document.getElementById("projectPage");
+
+  homePageEl.style.display = "none";
+  mainPageEl.style.display = "none";
+  projectPageEl.style.display = "block";
+
+  document.getElementById("homeButton").classList.remove("selected");
+  document.getElementById("mainButton").classList.remove("selected");
+  document.getElementById("projectButton").classList.add("selected");
+
+  // 5) Possibly switch dataPrefix if needed, then call populateProjectPage
+  const newPrefix = `acc1_pr${project.project_number}_`;
+  if (window.dataPrefix !== newPrefix) {
+    console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} => ${newPrefix}`);
+    switchAccountAndReload(newPrefix, project.project_number)
+      .then(() => {
+        populateProjectPage();
+      })
+      .catch(err => {
+        console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
+      });
+  } else {
+    console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
+    populateProjectPage();
+  }
+}); // end menuItem.addEventListener
 
   // 8) Add a toggle button to collapse the entire left column
   const toggleButton = document.createElement("div");
@@ -405,40 +522,71 @@ function createSearchCard(search, parentProject) {
     locItem.className = "location-item";
     locItem.textContent = loc;
   
-    // ➜ Make each location row clickable
-    locItem.addEventListener("click", (e) => {
-      e.stopPropagation();   // prevent card's click event from firing
+locItem.addEventListener("click", async (e) => {
+  e.stopPropagation();   // prevent card's click event from firing
   
-      // 1) Clear existing “selected” location rows in this submenu
-      locationsSubmenu.querySelectorAll(".location-item.selected")
-                      .forEach(item => item.classList.remove("selected"));
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
+  const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
+  if (!datasetsAvailable) {
+    console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
+    showDatasetNotAvailablePopup();
+    return; // Exit early, don't select this location
+  }
   
-      // 2) Make this loc row “selected”
-      locItem.classList.add("selected");
-  
-      // 3) Also ensure the card is marked “selected”
-      clearSelectedSearchCards(); 
-      card.classList.add("selected");
-  
-      // 4) If location hasn't changed, skip
-      const prevLocation = window.filterState.location;
-      if (prevLocation === loc) {
-        console.log("[🛑] Same location clicked again — skipping");
-        return;
-      }
-  
-      // 5) Update global filter state
-      window.filterState.location = loc;
-  
-      // 6) Update the right column UI
-      document.getElementById("locationHeader").dataset.locations = JSON.stringify([loc]);
-      document.getElementById("locationText").textContent = formatLocation(loc);
-  
-      // 7) Trigger main page logic
-      document.getElementById("mainButton").click();
-  
-      // ✅ Do NOT call renderData() or populateHomePage() again — mainButton does it
-    });
+  // 1) Hide all other location submenus
+  document.querySelectorAll(".locations-submenu").forEach(sub => {
+    if (sub !== locationsSubmenu) sub.style.display = "none";
+  });
+
+  // 2) Clear other selections and select this location item
+  document.querySelectorAll(".location-item.selected").forEach(el => {
+    el.classList.remove("selected");
+  });
+  locItem.classList.add("selected");
+
+  // 3) Also ensure the card is marked "selected"
+  clearSelectedSearchCards(); 
+  card.classList.add("selected");
+
+  // 4) If location hasn't changed, skip
+  const prevLocation = window.filterState.location;
+  if (prevLocation === loc) {
+    console.log("[🛑] Same location clicked again — skipping");
+    return;
+  }
+
+  // 5) Apply search filters
+  updateFilterContainer(search);
+
+  // 6) Derive and set the project prefix
+  const accountStr = document
+    .getElementById("selectedAccountText")
+    .textContent
+    .trim()
+    .toLowerCase();
+
+  let accountNormalized = "acc1";
+  if (accountStr.includes("demo")) {
+    accountNormalized = "demo_acc1";
+  } else if (accountStr.includes("account 1")) {
+    accountNormalized = "acc1";
+  }
+
+  const newPrefix = accountNormalized + "_pr" + parentProject.project_number + "_";
+  window.dataPrefix = newPrefix;
+
+  // 7) Update global filter state
+  window.filterState.location = loc;
+
+  // 8) Update the right column UI
+  document.getElementById("locationHeader").dataset.locations = JSON.stringify([loc]);
+  document.getElementById("locationText").textContent = formatLocation(loc);
+
+  // 9) Trigger main page logic
+  document.getElementById("mainButton").click();
+
+  // ✅ Do NOT call renderData() or populateHomePage() again — mainButton does it
+});
   
     locationsSubmenu.appendChild(locItem);
   });  
@@ -447,57 +595,65 @@ function createSearchCard(search, parentProject) {
   wrapper.appendChild(card);
   wrapper.appendChild(locationsSubmenu);
 
-  // 5) Card click => highlight + toggle the location submenu
-  card.addEventListener("click", (e) => {
-    e.stopPropagation();
+// 5) Card click => highlight + toggle the location submenu
+card.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
+  const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
+  if (!datasetsAvailable) {
+    console.log(`[createSearchCard] ⚠️ Datasets not available for project #${parentProject.project_number}`);
+    showDatasetNotAvailablePopup();
+    return; // Exit early, don't select this card
+  }
 
-    // a) Clear other selections and highlight this card
-    clearSelectedSearchCards();
-    card.classList.add("selected");
+  // a) Clear other selections and highlight this card
+  clearSelectedSearchCards();
+  card.classList.add("selected");
 
-    // b) Debug logging
-    console.group("[🔍 Search Card Click]");
-    console.log("project-number:", card.getAttribute("project-number"));
-    console.log("dsearch-term:",  card.getAttribute("dsearch-term"));
-    console.log("engine:",        card.getAttribute("engine"));
-    console.log("device:",        JSON.parse(card.getAttribute("device") || "[]"));
-    console.log("location:",      JSON.parse(card.getAttribute("location") || "[]"));
-    console.groupEnd();
+  // b) Debug logging
+  console.group("[🔍 Search Card Click]");
+  console.log("project-number:", card.getAttribute("project-number"));
+  console.log("dsearch-term:",  card.getAttribute("dsearch-term"));
+  console.log("engine:",        card.getAttribute("engine"));
+  console.log("device:",        JSON.parse(card.getAttribute("device") || "[]"));
+  console.log("location:",      JSON.parse(card.getAttribute("location") || "[]"));
+  console.groupEnd();
 
-    // c) Derive prefix from account + project
-    const accountStr = document
-      .getElementById("selectedAccountText")
-      .textContent
-      .trim()
-      .toLowerCase();
+  // c) Derive prefix from account + project
+  const accountStr = document
+    .getElementById("selectedAccountText")
+    .textContent
+    .trim()
+    .toLowerCase();
 
-    let accountNormalized = "acc1";
-    if (accountStr.includes("demo")) {
-      accountNormalized = "demo_acc1";
-    } else if (accountStr.includes("account 1")) {
-      accountNormalized = "acc1";
-    }
+  let accountNormalized = "acc1";
+  if (accountStr.includes("demo")) {
+    accountNormalized = "demo_acc1";
+  } else if (accountStr.includes("account 1")) {
+    accountNormalized = "acc1";
+  }
 
-    const newPrefix = accountNormalized + "_pr" + parentProject.project_number + "_";
-    const oldPrefix = window.dataPrefix || "";
+  const newPrefix = accountNormalized + "_pr" + parentProject.project_number + "_";
+  const oldPrefix = window.dataPrefix || "";
 
-    if (newPrefix === oldPrefix) {
-      // same project => just reapply filters
-      updateFilterContainer(search);
-      if (typeof renderData === "function") {
-        console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
-        console.trace();
-        renderData();
-      } else {
-        console.warn("renderData() not yet defined — skipping this trace");
-      }      
-      populateHomePage(true);
-
+  if (newPrefix === oldPrefix) {
+    // same project => just reapply filters
+    updateFilterContainer(search);
+    if (typeof renderData === "function") {
+      console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
+      console.trace();
+      renderData();
     } else {
-      // new project => reload from IDB or server
-      console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
+      console.warn("renderData() not yet defined — skipping this trace");
+    }      
+    populateHomePage(true);
 
-      switchAccountAndReload(newPrefix, parentProject.project_number)
+  } else {
+    // new project => reload from IDB or server
+    console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
+
+    switchAccountAndReload(newPrefix, parentProject.project_number)
       .then(() => {
         updateFilterContainer(search);
         if (typeof renderData === "function") {
@@ -519,38 +675,40 @@ function createSearchCard(search, parentProject) {
         document.getElementById("mainButton").classList.remove("selected");
         document.getElementById("projectButton").classList.remove("selected");
       })    
-        .catch(err => {
-          console.error("❌ Failed to switch project:", err);
-        });
-    }
+      .catch(err => {
+        console.error("❌ Failed to switch project:", err);
+      });
+  }
 
-    // d) Show/hide the location submenu under the card
-    if (locationsSubmenu.style.display === "block") {
-      locationsSubmenu.style.display = "none";
-    } else {
-      locationsSubmenu.style.display = "block";
-    }
-    // ✅ Show Home Page explicitly (instead of using homeButton.click())
-document.getElementById("homePage").style.display = "block";
-document.getElementById("main").style.display = "none";
-document.getElementById("projectPage").style.display = "none";
-hideFiltersOnProjectAndHome();
+  // d) Show/hide the location submenu under the card
+  if (locationsSubmenu.style.display === "block") {
+    locationsSubmenu.style.display = "none";
+  } else {
+    locationsSubmenu.style.display = "block";
+  }
+  
+  // ✅ Show Home Page explicitly (instead of using homeButton.click())
+  document.getElementById("homePage").style.display = "block";
+  document.getElementById("main").style.display = "none";
+  document.getElementById("projectPage").style.display = "none";
+  hideFiltersOnProjectAndHome();
 
-// ✅ Highlight correct nav button
-document.getElementById("homeButton").classList.add("selected");
-document.getElementById("mainButton").classList.remove("selected");
-document.getElementById("projectButton").classList.remove("selected");
+  // ✅ Highlight correct nav button
+  document.getElementById("homeButton").classList.add("selected");
+  document.getElementById("mainButton").classList.remove("selected");
+  document.getElementById("projectButton").classList.remove("selected");
 
-// ✅ Set activeProjectNumber globally
-const projNum = parseInt(card.getAttribute("project-number"), 10);
-window.filterState.activeProjectNumber = projNum;
+  // ✅ Set activeProjectNumber globally
+  const projNum = parseInt(card.getAttribute("project-number"), 10);
+  window.filterState.activeProjectNumber = projNum;
 
-// ✅ Highlight only the correct .project-menu-item
-// ✅ Prevent triggering the projectPage when setting .selected
-window._ignoreProjectMenuClick = true;
+  // ✅ Highlight only the correct .project-menu-item
+  // ✅ Prevent triggering the projectPage when setting .selected
+  window._ignoreProjectMenuClick = true;
 
-document.querySelectorAll(".project-menu-item.selected").forEach(el => {
-  el.classList.remove("selected");
+  document.querySelectorAll(".project-menu-item.selected").forEach(el => {
+    el.classList.remove("selected");
+  });
 });
 
 const matchingItem = document.querySelector(`.project-menu-item .project-number`);
