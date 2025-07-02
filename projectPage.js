@@ -47,13 +47,7 @@ function populateProjectPage() {
         setTimeout(() => { loader.style.display = "none"; }, 500);
       }
       
-      // Show the "data not available" popup
-      if (typeof showDatasetNotAvailablePopup === 'function') {
-        showDatasetNotAvailablePopup();
-      } else {
-        // Fallback alert if the popup function isn't available
-        alert("We collect the requested Data. The Data will be available during the next 24 hours.");
-      }
+console.log("No data available for project", projectNumber);
       
       // Reset the counter after showing the message
       window._projectLoadAttempts[projectKey] = 0;
