@@ -1,45 +1,122 @@
-  function populateProjectPage() {
+// Global flags to prevent infinite loops
+window._isLoadingProjectData = false;
+window._projectLoadAttempts = {}; // Track attempts per project
+
+function populateProjectPage() {
     logAvailableCompanies();
     // Log when the function is called
     console.log("[📊 POPULATEPROJECTPAGE] Called at:", new Date().toISOString());
   
-    // ADD THIS BLOCK - Check if data is available and load it if needed
-    if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
-      console.warn("[populateProjectPage] No companyStatsData available, attempting to load data...");
+// Check if data is available and load it if needed
+  if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
+    console.warn("[populateProjectPage] No companyStatsData available, attempting to load data...");
+    
+    // Get the current project number
+    const projectNumber = window.filterState?.activeProjectNumber || 1;
+    const projectKey = `pr${projectNumber}`;
+    
+    // Initialize attempt counter for this project if not exists
+    if (!window._projectLoadAttempts[projectKey]) {
+      window._projectLoadAttempts[projectKey] = 0;
+    }
+    
+    // Check if we've already tried too many times for this project
+    if (window._projectLoadAttempts[projectKey] >= 3) {
+      console.warn(`[populateProjectPage] Max attempts (3) reached for project ${projectNumber}. Stopping.`);
       
-      // Get the current project number or default to 1
-      const projectNumber = window.filterState?.activeProjectNumber || 1;
-      const prefix = window.dataPrefix || "acc1_pr1_";
-      
-      // Show loading indicator
+      // Hide loader
       const loader = document.getElementById("overlayLoader");
       if (loader) {
-        loader.style.display = "flex";
-        loader.style.opacity = "1";
+        loader.style.opacity = "0";
+        setTimeout(() => { loader.style.display = "none"; }, 500);
       }
       
-      // Call switchAccountAndReload to properly load the data
-      switchAccountAndReload(prefix, projectNumber)
-        .then(() => {
-          console.log("[populateProjectPage] Successfully loaded data, now continuing with page population");
-          // Hide loader
-          if (loader) {
-            loader.style.opacity = "0";
-            setTimeout(() => { loader.style.display = "none"; }, 500);
-          }
+      // Show the "data not available" popup
+      if (typeof showDatasetNotAvailablePopup === 'function') {
+        showDatasetNotAvailablePopup();
+      } else {
+        // Fallback alert if the popup function isn't available
+        alert("We collect the requested Data. The Data will be available during the next 24 hours.");
+      }
+      
+      // Reset the counter after showing the message
+      window._projectLoadAttempts[projectKey] = 0;
+      return;
+    }
+    
+    // Check if we're already loading data
+    if (window._isLoadingProjectData) {
+      console.warn("[populateProjectPage] Already loading project data, skipping duplicate call");
+      return;
+    }
+    
+    // Increment attempt counter
+    window._projectLoadAttempts[projectKey]++;
+    console.log(`[populateProjectPage] Load attempt ${window._projectLoadAttempts[projectKey]} for project ${projectNumber}`);
+    
+    // Set loading flag
+    window._isLoadingProjectData = true;
+    
+    const prefix = window.dataPrefix || "acc1_pr1_";
+    
+    // Show loading indicator
+    const loader = document.getElementById("overlayLoader");
+    if (loader) {
+      loader.style.display = "flex";
+      loader.style.opacity = "1";
+    }
+    
+    // Call switchAccountAndReload to properly load the data
+    switchAccountAndReload(prefix, projectNumber)
+      .then(() => {
+        console.log("[populateProjectPage] Successfully loaded data, now continuing with page population");
+        
+        // Reset flags
+        window._isLoadingProjectData = false;
+        
+        // Hide loader
+        if (loader) {
+          loader.style.opacity = "0";
+          setTimeout(() => { loader.style.display = "none"; }, 500);
+        }
+        
+        // Check if data is now available
+        if (window.companyStatsData && window.companyStatsData.length > 0) {
+          // Reset attempt counter on success
+          window._projectLoadAttempts[projectKey] = 0;
           // Call populateProjectPage again now that data is loaded
           populateProjectPage();
-        })
-        .catch(err => {
-          console.error("[populateProjectPage] Failed to load data:", err);
-          // Hide loader
-          if (loader) {
-            loader.style.opacity = "0";
-            setTimeout(() => { loader.style.display = "none"; }, 500);
-          }
-        });
-      return; // Exit early - we'll be called again after data loads
-    }
+        } else {
+          console.error("[populateProjectPage] Data still not available after switchAccountAndReload");
+          // The next call to populateProjectPage will increment the counter
+          window._isLoadingProjectData = false;
+          // Try again (this will be caught by the attempt counter)
+          populateProjectPage();
+        }
+      })
+      .catch(err => {
+        console.error("[populateProjectPage] Failed to load data:", err);
+        
+        // Reset loading flag
+        window._isLoadingProjectData = false;
+        
+        // Hide loader
+        if (loader) {
+          loader.style.opacity = "0";
+          setTimeout(() => { loader.style.display = "none"; }, 500);
+        }
+        
+        // Try again (this will be caught by the attempt counter)
+        populateProjectPage();
+      });
+    
+    return; // Exit early - we'll be called again after data loads or max attempts reached
+  }
+  
+  // If we get here, data is available - reset attempt counter
+  const projectNumber = window.filterState?.activeProjectNumber || 1;
+  const projectKey = `pr${projectNumber}`;
+  window._projectLoadAttempts[projectKey] = 0;
 
     // Main logic for handling the project page population
     console.log("[📊 POPULATEPROJECTPAGE] myCompany used:", window.myCompany);
@@ -1217,3 +1294,10 @@ function renderProjectDailyRankBoxes(projectData) {
     container.appendChild(box);
   });
 }
+
+// Helper function to reset all loading states (useful for debugging)
+window.resetProjectLoadingStates = function() {
+  window._isLoadingProjectData = false;
+  window._projectLoadAttempts = {};
+  console.log("[resetProjectLoadingStates] All loading states have been reset");
+};
