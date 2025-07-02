@@ -110,11 +110,17 @@ function populateProjectPage() {
                                (window.companyStatsData?.[0]?.source) || 
                                "";
           }
-          // Allow re-initialization with fresh data
+// Allow re-initialization with fresh data
 window._projectPageInitialized = false;
-          // Call populateProjectPage again now that data is loaded
-          console.log("[populateProjectPage] Data loaded, calling populateProjectPage again");
-          populateProjectPage();
+window._projectPageInitializing = true;
+
+// Call populateProjectPage again now that data is loaded
+console.log("[populateProjectPage] Data loaded, calling populateProjectPage again");
+populateProjectPage();
+
+// Mark as initialized after calling
+window._projectPageInitialized = true;
+window._projectPageInitializing = false;
         } else {
           console.error("[populateProjectPage] Data still not available after switchAccountAndReload");
           // The next call to populateProjectPage will increment the counter
