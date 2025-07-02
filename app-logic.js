@@ -601,7 +601,14 @@ function waitForProjectDataThenPopulate(attempts = 0) {
     console.log("[✅] projectData is now available. Populating project page.");
     console.log("[POPULATEPROJECTPAGE] projectData is available.");
     console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
-    populateProjectPage();
+    
+    // Check if already populated
+    if (!window._projectPagePopulated) {
+      window._projectPagePopulated = true;
+      populateProjectPage();
+    } else {
+      console.log("[waitForProjectDataThenPopulate] Project page already populated, skipping");
+    }
   } else if (attempts < 10) {
     console.log(`[⏳] Waiting for projectData... (attempt ${attempts})`);
     setTimeout(() => waitForProjectDataThenPopulate(attempts + 1), 100);
