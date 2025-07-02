@@ -38,69 +38,72 @@ async function checkProjectDatasetsInIDB(projectNumber) {
 }
 
 /**
- * Show popup message near the clicked element when datasets are not available
- * @param {HTMLElement} clickedElement - The element that was clicked
+ * Show popup message when datasets are not available
  */
-function showDatasetNotAvailablePopup(clickedElement) {
-  // Remove any existing popup
-  const existingPopup = document.querySelector(".dataset-unavailable-popup");
-  if (existingPopup) {
-    existingPopup.remove();
-  }
-
-  // Create new popup
-  const popup = document.createElement("div");
-  popup.className = "dataset-unavailable-popup";
-  popup.innerHTML = `
-    <div class="popup-arrow"></div>
-    <div class="popup-content">
-      <div class="popup-icon">⏳</div>
-      <div class="popup-text">
-        <strong>Data Collection in Progress</strong>
-        <p>The data will be available within 24 hours.</p>
-      </div>
-    </div>
-  `;
-
-  // Add to body
-  document.body.appendChild(popup);
-
-  // Position the popup near the clicked element
-  const rect = clickedElement.getBoundingClientRect();
-  const popupRect = popup.getBoundingClientRect();
+function showDatasetNotAvailablePopup() {
+  // Check if popup already exists
+  let popup = document.getElementById("datasetNotAvailablePopup");
   
-  // Calculate position (prefer right side, fallback to left if not enough space)
-  let left = rect.right + 10;
-  let top = rect.top + (rect.height - popupRect.height) / 2;
-  
-  // Check if popup would go off-screen
-  if (left + popupRect.width > window.innerWidth - 20) {
-    // Show on left side instead
-    left = rect.left - popupRect.width - 10;
-    popup.classList.add("arrow-right");
-  }
-  
-  // Ensure popup doesn't go off top/bottom
-  top = Math.max(20, Math.min(top, window.innerHeight - popupRect.height - 20));
-  
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-
-  // Auto-hide after 3 seconds
-  setTimeout(() => {
-    popup.style.opacity = "0";
-    setTimeout(() => popup.remove(), 300);
-  }, 3000);
-
-  // Hide on click outside
-  setTimeout(() => {
-    document.addEventListener("click", function hidePopup(e) {
-      if (!popup.contains(e.target)) {
-        popup.remove();
-        document.removeEventListener("click", hidePopup);
-      }
+  if (!popup) {
+    // Create popup HTML
+    popup = document.createElement("div");
+    popup.id = "datasetNotAvailablePopup";
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      text-align: center;
+      max-width: 400px;
+      display: none;
+    `;
+    
+    popup.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Data Collection in Progress</h3>
+      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.5;">
+        We collect the requested Data. The Data will be available during the next 24 hours.
+      </p>
+      <button id="datasetPopupOkBtn" style="
+        background: #007AFF;
+        color: white;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+      ">OK</button>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Add event listener to OK button
+    document.getElementById("datasetPopupOkBtn").addEventListener("click", () => {
+      popup.style.display = "none";
     });
-  }, 100);
+    
+    // Add hover effect
+    const okBtn = document.getElementById("datasetPopupOkBtn");
+    okBtn.addEventListener("mouseenter", () => {
+      okBtn.style.background = "#0051D5";
+    });
+    okBtn.addEventListener("mouseleave", () => {
+      okBtn.style.background = "#007AFF";
+    });
+  }
+  
+  // Show popup
+  popup.style.display = "block";
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    popup.style.display = "none";
+  }, 5000);
 }
 
 /*******************************************************
@@ -351,7 +354,6 @@ function renderProjects() {
 
 // -- click event on the project "menuItem"
 menuItem.addEventListener("click", async (e) => {
-  e.preventDefault(); // Always prevent default
   // If we previously set window._ignoreProjectMenuClick due to sub-click:
   if (window._ignoreProjectMenuClick) {
     console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
@@ -367,11 +369,11 @@ menuItem.addEventListener("click", async (e) => {
 
   console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
   
-  // *** Check if datasets exist in IDB before proceeding ***
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
   const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
   if (!datasetsAvailable) {
     console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
-    showDatasetNotAvailablePopup(menuItem); // Pass the clicked element
+    showDatasetNotAvailablePopup();
     return; // Exit early, don't select this project
   }
   
@@ -527,14 +529,13 @@ function createSearchCard(search, parentProject) {
     locItem.textContent = loc;
   
 locItem.addEventListener("click", async (e) => {
-  e.preventDefault();
   e.stopPropagation();   // prevent card's click event from firing
   
-  // *** Check if datasets exist in IDB before proceeding ***
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup(locItem); // Pass the clicked element
+    showDatasetNotAvailablePopup();
     return; // Exit early, don't select this location
   }
   
@@ -602,14 +603,13 @@ locItem.addEventListener("click", async (e) => {
 
 // 5) Card click => highlight + toggle the location submenu
 card.addEventListener("click", async (e) => {
-  e.preventDefault();
   e.stopPropagation();
   
-  // *** Check if datasets exist in IDB before proceeding ***
+  // *** NEW: Check if datasets exist in IDB before proceeding ***
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[createSearchCard] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup(card); // Pass the clicked element
+    showDatasetNotAvailablePopup();
     return; // Exit early, don't select this card
   }
 
@@ -3507,35 +3507,4 @@ document.addEventListener("click", function(e) {
         updateTrendTotals(latestDate);
         renderCompaniesTrendChart(latestDate);
         renderProductsTrendChart(latestDate);
-      }  
-
-/**
- * Update styling of all project elements based on data availability
- */
-async function updateProjectDataAvailability() {
-  console.log("[updateProjectDataAvailability] Checking all projects for data...");
-  
-  // Get all project menu items
-  const projectMenuItems = document.querySelectorAll(".project-menu-item");
-  
-  for (const menuItem of projectMenuItems) {
-    const projectNumber = menuItem.getAttribute("project-number");
-    if (!projectNumber) continue;
-    
-    const hasData = await checkProjectDatasetsInIDB(projectNumber);
-    
-    if (hasData) {
-      menuItem.classList.remove("no-data");
-      // Also update any search cards within this project
-      const searchCards = menuItem.nextElementSibling?.querySelectorAll(".search-card");
-      searchCards?.forEach(card => card.classList.remove("no-data"));
-    } else {
-      menuItem.classList.add("no-data");
-      // Also update any search cards within this project
-      const searchCards = menuItem.nextElementSibling?.querySelectorAll(".search-card");
-      searchCards?.forEach(card => card.classList.add("no-data"));
-    }
-  }
-  
-  console.log("[updateProjectDataAvailability] Finished updating project styles");
-}
+      }                 
