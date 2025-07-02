@@ -6,6 +6,14 @@ function populateProjectPage() {
     logAvailableCompanies();
     // Log when the function is called
     console.log("[📊 POPULATEPROJECTPAGE] Called at:", new Date().toISOString());
+    console.log("[📊 POPULATEPROJECTPAGE] Data state:", {
+      companyStatsData: window.companyStatsData?.length || 0,
+      projectData: window.projectData?.length || 0,
+      myCompany: window.myCompany,
+      frontendCompany: window.frontendCompany,
+      dataPrefix: window.dataPrefix,
+      activeProjectNumber: window.filterState?.activeProjectNumber
+    });
   
 // Check if data is available and load it if needed
   if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
@@ -66,7 +74,7 @@ function populateProjectPage() {
       loader.style.opacity = "1";
     }
     
-    // Call switchAccountAndReload to properly load the data
+// Call switchAccountAndReload to properly load the data
     switchAccountAndReload(prefix, projectNumber)
       .then(() => {
         console.log("[populateProjectPage] Successfully loaded data, now continuing with page population");
@@ -84,7 +92,19 @@ function populateProjectPage() {
         if (window.companyStatsData && window.companyStatsData.length > 0) {
           // Reset attempt counter on success
           window._projectLoadAttempts[projectKey] = 0;
+          
+          // IMPORTANT: Ensure myCompany is set before continuing
+          const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+          if (!isDemo && !window.myCompany) {
+            console.log("[populateProjectPage] Setting myCompany after data load");
+            window.myCompany = window.frontendCompany || 
+                               localStorage.getItem("my_company") || 
+                               (window.companyStatsData?.[0]?.source) || 
+                               "";
+          }
+          
           // Call populateProjectPage again now that data is loaded
+          console.log("[populateProjectPage] Data loaded, calling populateProjectPage again");
           populateProjectPage();
         } else {
           console.error("[populateProjectPage] Data still not available after switchAccountAndReload");
