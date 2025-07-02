@@ -3,17 +3,25 @@ window._isLoadingProjectData = false;
 window._projectLoadAttempts = {}; // Track attempts per project
 
 function populateProjectPage() {
-    logAvailableCompanies();
-    // Log when the function is called
-    console.log("[📊 POPULATEPROJECTPAGE] Called at:", new Date().toISOString());
-    console.log("[📊 POPULATEPROJECTPAGE] Data state:", {
-      companyStatsData: window.companyStatsData?.length || 0,
-      projectData: window.projectData?.length || 0,
-      myCompany: window.myCompany,
-      frontendCompany: window.frontendCompany,
-      dataPrefix: window.dataPrefix,
-      activeProjectNumber: window.filterState?.activeProjectNumber
-    });
+    // Prevent multiple simultaneous executions
+    if (window._projectPageProcessing) {
+        console.log("[populateProjectPage] Already processing, skipping duplicate call");
+        return;
+    }
+    window._projectPageProcessing = true;
+    
+    try {
+        logAvailableCompanies();
+        // Log when the function is called
+        console.log("[📊 POPULATEPROJECTPAGE] Called at:", new Date().toISOString());
+        console.log("[📊 POPULATEPROJECTPAGE] Data state:", {
+          companyStatsData: window.companyStatsData?.length || 0,
+          projectData: window.projectData?.length || 0,
+          myCompany: window.myCompany,
+          frontendCompany: window.frontendCompany,
+          dataPrefix: window.dataPrefix,
+          activeProjectNumber: window.filterState?.activeProjectNumber
+        });
   
 // Check if data is available and load it if needed
   if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
@@ -102,7 +110,8 @@ function populateProjectPage() {
                                (window.companyStatsData?.[0]?.source) || 
                                "";
           }
-          
+          // Allow re-initialization with fresh data
+window._projectPageInitialized = false;
           // Call populateProjectPage again now that data is loaded
           console.log("[populateProjectPage] Data loaded, calling populateProjectPage again");
           populateProjectPage();
@@ -794,8 +803,11 @@ if (projectPageEl && projectPageEl.style.display !== "none") {
 } else {
   console.log("[SKIP CHECK] ⛔ projectPage not visible — skipping map render.");
 }  
-    hideFiltersOnProjectAndHome();   
-  }
+hideFiltersOnProjectAndHome();
+    } finally {
+        window._projectPageProcessing = false;
+    }
+}
   
   function buildProjectDataForMap() {
     console.log("[buildProjectDataForMap()] Debug");
