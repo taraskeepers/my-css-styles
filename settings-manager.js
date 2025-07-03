@@ -476,14 +476,14 @@
   
 /* Panel transitions */
 .settings-panel {
-  display: none !important;
+  display: none;
   opacity: 0;
-  animation: panelFadeIn 0.3s ease-out forwards;
 }
 
 .settings-panel.active {
   display: block !important;
   opacity: 1;
+  animation: panelFadeIn 0.3s ease-out forwards;
 }
   
   @keyframes panelFadeIn {
