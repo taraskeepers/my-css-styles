@@ -994,12 +994,41 @@ function createLocationListItem(loc) {
         console.warn("[⚠️] Loaded companyStatsData has multiple project_numbers!");
       }      
 
-      console.group("[📊 Data Injected Into Page]");
+console.group("[📊 Data Injected Into Page]");
       console.log("window.dataPrefix =", window.dataPrefix);
       console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
       console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
       console.groupEnd();
-
+      
+      // Update company from myCompanyArray for current project
+      if (typeof updateCompanySelector === 'function') {
+        updateCompanySelector();
+        console.log("[switchAccountAndReload] Called updateCompanySelector after data load");
+      } else {
+        // Fallback if updateCompanySelector is not available
+        if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+          const projectKeyForMatching = window.dataPrefix.replace(/_+$/, '');
+          const projectMatch = window.myCompanyArray.find(item => {
+            if (!item) return false;
+            const [key] = item.split(' - ');
+            return key === projectKeyForMatching;
+          });
+          
+          if (projectMatch) {
+            const company = projectMatch.split(' - ')[1] || "";
+            window.myCompany = company;
+            window.filterState.company = company;
+            console.log("[switchAccountAndReload] Updated myCompany to:", company);
+            
+            // Update UI
+            const companyText = document.getElementById("companyText");
+            if (companyText) {
+              companyText.textContent = company;
+            }
+          }
+        }
+      }
+      
       // MODIFIED: Pass all data to avoid double-loading
       onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
       
@@ -1010,7 +1039,6 @@ function createLocationListItem(loc) {
         "*"
       );
     }
-
   } catch(e) {
     console.error("switchAccountAndReload error:", e);
     // fallback => ask server for data if anything fails
