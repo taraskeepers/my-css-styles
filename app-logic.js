@@ -40,6 +40,9 @@ function updateCompanySelector() {
   const currentCompany = getCurrentProjectCompany();
   console.log("[updateCompanySelector] Updating to:", currentCompany);
   
+  // Store the previous company to detect changes
+  const previousCompany = window.filterState.company;
+  
   if (currentCompany) {
     window.filterState.company = currentCompany;
     document.getElementById("companyText").textContent = currentCompany;
@@ -65,6 +68,12 @@ function updateCompanySelector() {
     if (companyClear) {
       companyClear.style.display = "none";
     }
+  }
+  
+  // Clear cache if company changed
+  if (previousCompany !== window.filterState.company && window.dataCache) {
+    console.log("[updateCompanySelector] Company changed, clearing cache");
+    window.dataCache.clear();
   }
 }
 
