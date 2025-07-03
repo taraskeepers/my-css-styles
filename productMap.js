@@ -1507,13 +1507,20 @@ container.innerHTML = `
       <button id="viewProducts" class="active">Products</button>
       <button id="viewCharts">Charts</button>
     </div>
+<div class="all-products-toggle-container">
+      <label class="all-products-toggle-label">All Products</label>
+      <label class="all-products-toggle">
+        <input type="checkbox" id="allProductsToggle">
+        <span class="all-products-slider"></span>
+      </label>
+    </div>
     <div class="metrics-toggle-container">
-  <label class="metrics-toggle-label">Google Ads Metrics</label>
-  <label class="metrics-toggle">
-    <input type="checkbox" id="metricsToggle">
-    <span class="metrics-slider"></span>
-  </label>
-</div>
+      <label class="metrics-toggle-label">Google Ads Metrics</label>
+      <label class="metrics-toggle">
+        <input type="checkbox" id="metricsToggle">
+        <span class="metrics-slider"></span>
+      </label>
+    </div>
    <select id="bucketTypeSelector" class="bucket-type-selector">
       <option value="PROFITABILITY_BUCKET">Profitability</option>
       <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
@@ -2192,6 +2199,21 @@ metricsPanels.forEach(panel => {
     }
   }
 });
+  });
+}
+
+  // Add all products toggle functionality
+const allProductsToggle = document.getElementById("allProductsToggle");
+if (allProductsToggle) {
+  allProductsToggle.addEventListener("change", function() {
+    const isChecked = this.checked;
+    console.log(`[ProductMap] All Products toggle: ${isChecked ? 'ON' : 'OFF'}`);
+    
+    // Store the toggle state
+    window.showAllProductsInMap = isChecked;
+    
+    // Re-render the entire table
+    renderProductMapTable();
   });
 }
   
@@ -4410,6 +4432,74 @@ popupStyle.textContent = `
   color: #666;
   font-size: 14px;
 }
+/* All Products Toggle */
+.all-products-toggle-container {
+  position: absolute;
+  top: 10px;
+  right: 640px; /* Positioned before metrics toggle */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.all-products-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.all-products-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.all-products-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.all-products-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .all-products-slider {
+  background-color: #007aff;
+}
+
+input:checked + .all-products-slider:before {
+  transform: translateX(20px);
+}
+
+.all-products-toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Style for myCompany products when showing all */
+.product-cell .ad-details.my-company-highlight {
+  border: 3px solid #28a745 !important;
+  box-shadow: 0 0 8px rgba(40, 167, 69, 0.3);
+}
 `;
 document.head.appendChild(popupStyle);
   
@@ -5343,24 +5433,52 @@ tdProducts.appendChild(productsChartContainer);
           if (window.allRows && Array.isArray(window.allRows)) {
             console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
             
-            const matchingProducts = window.allRows.filter(p => 
-              p.q === term &&
-              p.location_requested === loc &&
-              p.device === rowData.device &&
-              p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
-            );
+// Check if we should show all products or just myCompany
+            const showAllProducts = window.showAllProductsInMap || false;
+            
+            let matchingProducts;
+            if (showAllProducts) {
+              // Show all products that match term, location, and device
+              matchingProducts = window.allRows.filter(p => 
+                p.q === term &&
+                p.location_requested === loc &&
+                p.device === rowData.device
+              );
+            } else {
+              // Show only myCompany products (default behavior)
+              matchingProducts = window.allRows.filter(p => 
+                p.q === term &&
+                p.location_requested === loc &&
+                p.device === rowData.device &&
+                p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+              );
+            }
+            
+            // Mark which products are from myCompany for styling
+            matchingProducts.forEach(product => {
+              product._isMyCompany = product.source && 
+                product.source.toLowerCase() === (companyToFilter || "").toLowerCase();
+            });
   
             console.log(`[renderProductMapTable] Found ${matchingProducts.length} matching products for ${window.myCompany}`);
   
-// First, just calculate the aggregate data and store references
-const chartData = calculateAggregateSegmentData(matchingProducts);
+// Store the data we'll need later
+// For chart data, ALWAYS use myCompany filtered products
+const myCompanyProducts = window.allRows.filter(p => 
+  p.q === term &&
+  p.location_requested === loc &&
+  p.device === rowData.device &&
+  p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+);
 
-// Filter active and inactive products
-const activeProducts = matchingProducts.filter(product => 
+const chartData = calculateAggregateSegmentData(myCompanyProducts);
+
+// Filter active and inactive products FROM myCompany products for stats
+const activeProducts = myCompanyProducts.filter(product => 
   product.product_status === 'active' || !product.product_status
 );
 
-const inactiveProducts = matchingProducts.filter(product => 
+const inactiveProducts = myCompanyProducts.filter(product => 
   product.product_status === 'inactive'
 );
 
@@ -5724,6 +5842,10 @@ enhancedProduct.containerClass = containerClass;
                   // Get just the first element (the ad-details div)
                   const adCard = tempDiv.firstElementChild;
                   adCard.classList.remove('my-company');
+                  // Add highlight if showing all products and this is myCompany
+                  if (window.showAllProductsInMap && enhancedProduct._isMyCompany) {
+                    adCard.classList.add('my-company-highlight');
+                  }
 
 // Add has-bucket class if applicable
 if (hasBucketClass) {
@@ -6035,6 +6157,10 @@ tempDiv.innerHTML = html;
 // Get just the first element (the ad-details div)
 const adCard = tempDiv.firstElementChild;
 adCard.classList.remove('my-company');
+// Add highlight if showing all products and this is myCompany
+                  if (window.showAllProductsInMap && enhancedProduct._isMyCompany) {
+                    adCard.classList.add('my-company-highlight');
+                  }
 
 // Add has-bucket class if applicable
 if (hasBucketClass) {
