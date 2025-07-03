@@ -1,5 +1,73 @@
 /* app-logic.js */
 
+// Helper function to get the current project's company from myCompanyArray
+function getCurrentProjectCompany() {
+  // If in demo mode, always return "Nike"
+  if (window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true) {
+    return "Nike";
+  }
+  
+  // Extract company from myCompanyArray for current project
+  if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+    const currentProjectKey = window.dataPrefix || "acc1_pr1_";
+    const projectKeyForMatching = currentProjectKey.replace(/_+$/, ''); // Remove trailing underscores
+    
+    const projectMatch = window.myCompanyArray.find(item => {
+      if (!item) return false;
+      const [key] = item.split(' - ');
+      return key === projectKeyForMatching;
+    });
+    
+    if (projectMatch) {
+      const company = projectMatch.split(' - ')[1] || "";
+      console.log("[getCurrentProjectCompany] Found company:", company, "for project:", projectKeyForMatching);
+      return company;
+    }
+  }
+  
+  // Fallback to window.myCompany if set
+  if (window.myCompany && window.myCompany.trim()) {
+    return window.myCompany.trim();
+  }
+  
+  // No fallback - return empty string
+  console.warn("[getCurrentProjectCompany] No company found for current project");
+  return "";
+}
+
+// Helper function to update the company selector UI
+function updateCompanySelector() {
+  const currentCompany = getCurrentProjectCompany();
+  console.log("[updateCompanySelector] Updating to:", currentCompany);
+  
+  if (currentCompany) {
+    window.filterState.company = currentCompany;
+    document.getElementById("companyText").textContent = currentCompany;
+    
+    // Update window.myCompany to match current project
+    window.myCompany = currentCompany;
+    
+    // If company selector has the "has-value" class logic
+    const companySelector = document.getElementById("companySelector");
+    if (companySelector) {
+      companySelector.classList.add("has-value");
+    }
+    
+    // Show the clear button if it exists
+    const companyClear = document.getElementById("companyClear");
+    if (companyClear) {
+      companyClear.style.display = "inline-block";
+    }
+  } else {
+    // No company found - show placeholder
+    document.getElementById("companyText").textContent = "Not Selected";
+    const companyClear = document.getElementById("companyClear");
+    if (companyClear) {
+      companyClear.style.display = "none";
+    }
+  }
+}
+
 // 1) Global variables
 Chart.register(window["ChartDataLabels"]);
 
@@ -456,16 +524,11 @@ async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
   autoPickDefaultFirstGroup(rows);
 
   // 2) Set default company
-  if (!window.filterState.company || window.filterState.company.trim() === "") {
-    if (window.myCompany && window.myCompany.trim()) {
-      window.filterState.company = window.myCompany.trim();
-    } else {
-      window.filterState.company = "Under Armour";
-    }
-  }
-
-  // 3) Update UI
+if (!window.filterState.company || window.filterState.company.trim() === "") {
+  updateCompanySelector();
+} else {
   document.getElementById("companyText").textContent = window.filterState.company;
+}
 
     // 4) Set default active project if not already set
   if (!window.filterState.activeProjectNumber) {
@@ -526,16 +589,11 @@ async function onReceivedRows(rows) {
   autoPickDefaultFirstGroup(rows);
 
   // 2) Set default company from `myCompany` or fallback
-  if (!window.filterState.company || window.filterState.company.trim() === "") {
-    if (window.myCompany && window.myCompany.trim()) {
-      window.filterState.company = window.myCompany.trim();
-    } else {
-      window.filterState.company = "Under Armour";  // fallback
-    }
-  }
-
-  // 3) Update the UI label for company selector
+if (!window.filterState.company || window.filterState.company.trim() === "") {
+  updateCompanySelector();
+} else {
   document.getElementById("companyText").textContent = window.filterState.company;
+}
 
   // 4) Set default active project if not already set
   if (!window.filterState.activeProjectNumber) {
@@ -651,17 +709,20 @@ function populateHomePage(triggeredByClick = false) {
     "\n   marketTrendsData.length =", window.marketTrendsData?.length
   );
   const st = window.filterState; 
-  let targetCompany = "";
-  if (window.myCompany && window.myCompany.trim()) {
-    targetCompany = window.myCompany.trim();
-  } else if (st.company && st.company.trim()) {
-    targetCompany = st.company.trim();
-  } else {
-    targetCompany = "Under Armour";   // fallback
+let targetCompany = "";
+if (st.company && st.company.trim()) {
+  targetCompany = st.company.trim();
+} else {
+  targetCompany = getCurrentProjectCompany();
+  if (!targetCompany) {
+    // If no company is set, don't show home page data
+    const locListContainer = document.getElementById("locList");
+    locListContainer.innerHTML = "<p>Please select a company to view data.</p>";
+    return;
   }
-
-  window.filterState.company = targetCompany;
-  document.getElementById("companyText").textContent = targetCompany;
+}
+window.filterState.company = targetCompany;
+document.getElementById("companyText").textContent = targetCompany;
   
   // 1) Check that mapHelpers is ready
   if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
