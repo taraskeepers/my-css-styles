@@ -703,7 +703,7 @@ function initializeTabContent(tabName) {
       if (projectsList) {
         projectsList.innerHTML = ""; // Clear existing
         
-/ Get all projects for current account
+// Get all projects for current account
         let projects = [];
         if (window.projectData && Array.isArray(window.projectData)) {
           projects = window.projectData;
