@@ -1268,6 +1268,9 @@ settingsButton.onclick = function(e) {
   // Call the proper function that includes updateCurrentCompanyDisplay
   if (typeof window.openSettingsOverlay === "function") {
     window.openSettingsOverlay('company');
+        setTimeout(() => {
+      document.querySelector('[data-tab="company"]')?.click();
+    }, 150);
   }
 };
   }
