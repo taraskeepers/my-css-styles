@@ -168,12 +168,15 @@
         font-size: 14px;
         color: #6b7280;
         margin-bottom: 8px;
-      ">Current Company</div>
+      ">My Companies</div>
       <div style="
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: #1a1a1a;
-      " id="currentCompanyValue">Not Selected</div>
+        line-height: 1.6;
+      " id="myCompaniesDisplay">
+        <!-- Will be dynamically populated -->
+      </div>
     </div>
     
     <div id="companyProjectsList" style="
@@ -184,28 +187,6 @@
     ">
       <!-- Project company selections will be dynamically added here -->
     </div>
-    
-    <label style="
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      color: #374151;
-      margin-bottom: 8px;
-    ">Choose your company:</label>
-    
-    <select id="companySelectDropdown" style="
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 14px;
-      background: white;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-bottom: 24px;
-    ">
-      <option value="">-- Select Company --</option>
-    </select>
     
     <button id="saveCompanySelection" style="
       width: 100%;
@@ -690,6 +671,23 @@ case 'company':
     requiredMsg.style.display = "block";
   }
   
+  // Display current company selections
+  const myCompaniesDisplay = document.getElementById("myCompaniesDisplay");
+  if (myCompaniesDisplay) {
+    if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+      const companiesHtml = window.myCompanyArray.map(item => {
+        const [projectKey, company] = item.split(' - ');
+        const projectNum = projectKey.replace('acc1_pr', '').replace('acc1pr', '');
+        return `Project ${projectNum}: <span style="color: #764ba2;">${company}</span>`;
+      }).join('<br>');
+      myCompaniesDisplay.innerHTML = companiesHtml;
+    } else if (window.myCompany) {
+      myCompaniesDisplay.innerHTML = `All Projects: <span style="color: #764ba2;">${window.myCompany}</span>`;
+    } else {
+      myCompaniesDisplay.innerHTML = '<span style="color: #9ca3af;">No companies selected yet</span>';
+    }
+  }
+  
   // Get project list
   const projectsList = document.getElementById("companyProjectsList");
   if (projectsList) {
@@ -725,6 +723,9 @@ case 'company':
         if (match) {
           currentCompany = match.split(' - ')[1] || "";
         }
+      } else if (projectNum === 1 && window.myCompany) {
+        // Fallback for project 1 if using old format
+        currentCompany = window.myCompany;
       }
       
       const rowHTML = `
@@ -769,6 +770,17 @@ case 'company':
       `;
       
       projectsList.innerHTML += rowHTML;
+    });
+    
+    // Add change event listeners to update display in real-time
+    projectsList.querySelectorAll('select[data-project]').forEach(select => {
+      select.addEventListener('change', function() {
+        const projectKey = this.dataset.project;
+        const displayEl = document.getElementById(`currentCompany_${projectKey}`);
+        if (displayEl) {
+          displayEl.textContent = this.value || "Not Selected";
+        }
+      });
     });
     
     // Add save button handler
