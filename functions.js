@@ -1,4 +1,87 @@
 /**
+ * Update project-info elements styling based on data availability
+ */
+async function updateProjectInfoStyling() {
+  console.log("[updateProjectInfoStyling] Checking all projects for data availability");
+  
+  const projectMenuItems = document.querySelectorAll('.project-menu-item');
+  
+  for (const menuItem of projectMenuItems) {
+    const projectNumber = parseInt(menuItem.getAttribute('project-number'));
+    if (!projectNumber) continue;
+    
+    const hasData = await checkProjectDatasetsInIDB(projectNumber);
+    
+    if (!hasData) {
+      menuItem.classList.add('no-data');
+      
+      // Store reference to show popup function on the element
+      menuItem._showNoDataPopup = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showCustomDatasetPopup(e);
+        return false;
+      };
+      
+      // Add handler at capture phase to intercept before bubble phase
+      menuItem.addEventListener('click', menuItem._showNoDataPopup, true);
+    } else {
+      menuItem.classList.remove('no-data');
+      
+      // Remove the capture phase handler if it exists
+      if (menuItem._showNoDataPopup) {
+        menuItem.removeEventListener('click', menuItem._showNoDataPopup, true);
+        delete menuItem._showNoDataPopup;
+      }
+    }
+  }
+}
+
+/**
+ * Show custom popup near the clicked element
+ */
+function showCustomDatasetPopup(event) {
+  // Remove any existing popup
+  const existingPopup = document.querySelector('.dataset-popup');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+  
+  // Create new popup
+  const popup = document.createElement('div');
+  popup.className = 'dataset-popup';
+  popup.innerHTML = `
+    <h4>Data Collection in Progress</h4>
+    <p>We are collecting the requested data. The data will be available within the next 24 hours.</p>
+  `;
+  
+  // Position the popup
+  document.body.appendChild(popup);
+  
+  const rect = event.currentTarget.getBoundingClientRect();
+  const popupRect = popup.getBoundingClientRect();
+  
+  // Position below the clicked element
+  popup.style.left = rect.left + (rect.width / 2) - (popupRect.width / 2) + 'px';
+  popup.style.top = rect.bottom + 10 + 'px';
+  
+  // Remove popup after 3 seconds or on click anywhere
+  setTimeout(() => popup.remove(), 3000);
+  
+  const removeOnClick = (e) => {
+    if (!popup.contains(e.target)) {
+      popup.remove();
+      document.removeEventListener('click', removeOnClick);
+    }
+  };
+  
+  setTimeout(() => {
+    document.addEventListener('click', removeOnClick);
+  }, 100);
+}
+
+/**
  * Check if all required datasets exist in IDB for a given project
  * @param {number} projectNumber - The project number to check
  * @returns {Promise<boolean>} - True if all datasets exist, false otherwise
