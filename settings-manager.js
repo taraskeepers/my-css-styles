@@ -873,7 +873,10 @@ function initializeTabContent(tabName) {
             
             // Close overlay
             window.closeSettingsOverlay();
-            
+              // Update the company selector display
+  if (typeof updateCompanySelector === 'function') {
+    updateCompanySelector();
+  }         
             // Refresh data if needed
             if (typeof renderData === 'function') {
               renderData();
