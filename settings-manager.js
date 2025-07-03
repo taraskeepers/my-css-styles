@@ -1563,12 +1563,6 @@ if (typeof renderSerpMarketShareBigChart === 'undefined') {
   };
 }
 
-if (typeof openSelectCompanyPopup === 'undefined') {
-  window.openSelectCompanyPopup = function() {
-    console.log("[Settings] openSelectCompanyPopup called but not yet defined");
-  };
-}
-
 // Export functions for external use
 window.updateToggle = updateToggle;
 window.applyLocalToggleStates = applyLocalToggleStates;
