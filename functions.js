@@ -462,6 +462,10 @@ console.log(`[🆕 NEW CODE] Data check passed - continuing with normal flow`);
   } else {
     console.warn("[renderProjects] ⚠️ No matching project-menu-item found for default project_number =", defaultProjectNum);
   }
+    // Update company selector after rendering projects
+  if (typeof updateCompanySelector === 'function') {
+    updateCompanySelector();
+  }
 }
 
 /*******************************************************
