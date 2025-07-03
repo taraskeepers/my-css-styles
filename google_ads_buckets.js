@@ -668,7 +668,14 @@ function renderROASFunnel(container, bucketData) {
     'Underperformers': 'Products that have both low ROAS and low conversion volume. These require immediate action - either optimize campaigns (ad creative, targeting, bidding), adjust pricing, or pause to reallocate budget to better-performing products.'
   };
 
-    // Ensure all bucket names are represented in bucketData (including those with 0 products)
+  // Get bucket configuration EARLY - before using it
+  const bucketConfig = window.bucketConfig[bucketType];
+  if (!bucketConfig) {
+    console.error(`[renderROASFunnel] No configuration found for bucket type: ${bucketType}`);
+    return;
+  }
+
+  // Ensure all bucket names are represented in bucketData (including those with 0 products)
   if (window.allBucketNames) {
     const bucketDataMap = new Map(bucketData.map(item => [item.name, item]));
     
@@ -690,15 +697,22 @@ function renderROASFunnel(container, bucketData) {
     bucketDescriptions = window.bucketDescriptions[bucketType];
   }
 
-// Calculate additional metrics for each bucket
+  // Calculate additional metrics for each bucket
   const enhancedBucketData = bucketData.map(bucket => {
     let bucketProducts;
     
     // Handle Suggestions differently (products can have multiple suggestions)
-    if (bucketType === 'Suggestions') {
+    if (bucketType === 'SUGGESTIONS_BUCKET') {
       bucketProducts = window.roasBucketsData.filter(row => {
-        const suggestions = row[bucketType] ? row[bucketType].split(';').map(s => s.trim()) : [];
-        return suggestions.includes(bucket.name);
+        if (row[bucketType]) {
+          try {
+            const suggestions = JSON.parse(row[bucketType]);
+            return suggestions.some(s => s.suggestion === bucket.name);
+          } catch (e) {
+            return false;
+          }
+        }
+        return false;
       });
     } else {
       bucketProducts = window.roasBucketsData.filter(row => getBucketValue(row[bucketType]) === bucket.name);
@@ -729,11 +743,10 @@ function renderROASFunnel(container, bucketData) {
     bucket.productPercentage = totalProducts > 0 ? (bucket.count / totalProducts * 100) : 0;
   });
 
-// Use configuration-based ordering
-const orderedBuckets = [];
+  // Use configuration-based ordering
+  const orderedBuckets = [];
 
-if (bucketConfig) {
-  if (bucketType === 'Suggestions') {
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
     // For Suggestions, order by the configuration but only include buckets that exist in the data
     const orderToUse = [...bucketConfig.order].reverse();
     orderToUse.forEach(bucketName => {
@@ -772,62 +785,57 @@ if (bucketConfig) {
       }
     });
   }
-} else {
-  // Fallback - use all buckets from enhancedBucketData if no config
-  enhancedBucketData.forEach(bucket => {
-    orderedBuckets.push(bucket);
-  });
-}
-// Store reference for click handling
-container.bucketData = orderedBuckets;
 
-// Calculate aggregated totals for all products
-const allProducts = window.roasBucketsData;
-const totalProductCount = allProducts.length;
-const totalCostAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
-const totalRevenueAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
-const avgROASAll = totalCostAll > 0 ? totalRevenueAll / totalCostAll : 0;
+  // Store reference for click handling
+  container.bucketData = orderedBuckets;
 
-// Create main container with columns and funnel (no title, full height)
-const mainContainer = document.createElement('div');
-mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
+  // Calculate aggregated totals for all products
+  const allProducts = window.roasBucketsData;
+  const totalProductCount = allProducts.length;
+  const totalCostAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.Cost) || 0), 0);
+  const totalRevenueAll = allProducts.reduce((sum, product) => sum + (parseFloat(product.ConvValue) || 0), 0);
+  const avgROASAll = totalCostAll > 0 ? totalRevenueAll / totalCostAll : 0;
+
+  // Create main container with columns and funnel (no title, full height)
+  const mainContainer = document.createElement('div');
+  mainContainer.style.cssText = 'width: 100%; max-width: 520px; height: 100%; display: flex; align-items: flex-start; gap: 10px; margin: 0 auto;';
   
   container.appendChild(mainContainer);
   
-// Create ROAS column
-const roasColumn = document.createElement('div');
-roasColumn.style.cssText = 'width: 80px; display: flex; flex-direction: column; padding: 20px 0;';
+  // Create ROAS column
+  const roasColumn = document.createElement('div');
+  roasColumn.style.cssText = 'width: 80px; display: flex; flex-direction: column; padding: 20px 0;';
 
-// Create Cost/Revenue column
-const metricsColumn = document.createElement('div');
-metricsColumn.style.cssText = 'width: 140px; display: flex; flex-direction: column; padding: 20px 0;';
+  // Create Cost/Revenue column
+  const metricsColumn = document.createElement('div');
+  metricsColumn.style.cssText = 'width: 140px; display: flex; flex-direction: column; padding: 20px 0;';
   
-// SVG container for funnel  
-const svgContainer = document.createElement('div');
-svgContainer.style.cssText = 'width: 280px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
+  // SVG container for funnel  
+  const svgContainer = document.createElement('div');
+  svgContainer.style.cssText = 'width: 280px; display: flex; justify-content: flex-start; align-items: flex-start; position: relative; padding-top: 20px;';
   
   mainContainer.appendChild(roasColumn);
   mainContainer.appendChild(metricsColumn);
   mainContainer.appendChild(svgContainer);
 
-// Calculate dynamic height based on number of buckets
-const sectionHeight = 90;  // Height per bucket
-const gap = 5;
-const aggregatedRowHeight = 70;
-const separatorGap = 15;
-const numBuckets = orderedBuckets.length;
-const calculatedHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
+  // Calculate dynamic height based on number of buckets
+  const sectionHeight = 90;  // Height per bucket
+  const gap = 5;
+  const aggregatedRowHeight = 70;
+  const separatorGap = 15;
+  const numBuckets = orderedBuckets.length;
+  const calculatedHeight = aggregatedRowHeight + separatorGap + (numBuckets * (sectionHeight + gap)) + 40; // 40 for padding
 
-// SVG dimensions - match the actual content size
-const width = 280;
-const height = Math.max(520, calculatedHeight); // Ensure minimum height
+  // SVG dimensions - match the actual content size
+  const width = 280;
+  const height = Math.max(520, calculatedHeight); // Ensure minimum height
 
-// Create SVG
-const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-svg.setAttribute('width', width);
-svg.setAttribute('height', height);
-svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-svg.style.marginLeft = '0';
+  // Create SVG
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.style.marginLeft = '0';
   
   // Define gradients and filters
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -847,84 +855,79 @@ svg.style.marginLeft = '0';
   `;
   defs.appendChild(filter);
   
-// Get bucket configuration
-const bucketConfig = window.bucketConfig[bucketType];
-if (!bucketConfig) {
-  console.error(`[renderROASFunnel] No configuration found for bucket type: ${bucketType}`);
-  return;
-}
+  // Create color gradients based on bucket configuration
+  const colors = [];
+  const colorIdMap = {};
 
-// Create color gradients based on bucket configuration
-const colors = [];
-const colorIdMap = {};
-
-// For Suggestions, we need to handle dynamic bucket names
-if (bucketType === 'Suggestions') {
-  // Use the actual unique bucket values found in data
-  window.allBucketNames.forEach((bucketName, index) => {
-    const baseColor = bucketConfig.colors[bucketName] || '#999999';
-    const colorId = `bucket-${index}`;
-    colorIdMap[bucketName] = colorId;
-    
-    // Create a slightly lighter version for gradient end
-    const lighterColor = adjustColorBrightness(baseColor, 20);
-    
-    colors.push({
-      id: colorId,
-      start: baseColor,
-      end: lighterColor,
-      bucketName: bucketName
+  // For Suggestions, we need to handle dynamic bucket names
+  if (bucketType === 'SUGGESTIONS_BUCKET') {
+    // Use the actual unique bucket values found in data
+    if (window.allBucketNames) {
+      window.allBucketNames.forEach((bucketName, index) => {
+        const baseColor = bucketConfig.colors[bucketName] || '#999999';
+        const colorId = `bucket-${index}`;
+        colorIdMap[bucketName] = colorId;
+        
+        // Create a slightly lighter version for gradient end
+        const lighterColor = adjustColorBrightness(baseColor, 20);
+        
+        colors.push({
+          id: colorId,
+          start: baseColor,
+          end: lighterColor,
+          bucketName: bucketName
+        });
+      });
+    }
+  } else {
+    bucketConfig.order.forEach((bucketName, index) => {
+      const baseColor = bucketConfig.colors[bucketName];
+      const colorId = `bucket-${index}`;
+      colorIdMap[bucketName] = colorId;
+      
+      // Create a slightly lighter version for gradient end
+      const lighterColor = adjustColorBrightness(baseColor, 20);
+      
+      colors.push({
+        id: colorId,
+        start: baseColor,
+        end: lighterColor,
+        bucketName: bucketName
+      });
     });
-  });
-} else {
-  bucketConfig.order.forEach((bucketName, index) => {
-    const baseColor = bucketConfig.colors[bucketName];
-    const colorId = `bucket-${index}`;
-    colorIdMap[bucketName] = colorId;
-    
-    // Create a slightly lighter version for gradient end
-    const lighterColor = adjustColorBrightness(baseColor, 20);
-    
-    colors.push({
-      id: colorId,
-      start: baseColor,
-      end: lighterColor,
-      bucketName: bucketName
-    });
-  });
-}
+  }
 
-// Helper function to lighten colors
-function adjustColorBrightness(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = (num >> 16) + amt;
-  const G = (num >> 8 & 0x00FF) + amt;
-  const B = (num & 0x0000FF) + amt;
-  return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
-}
+  // Helper function to lighten colors
+  function adjustColorBrightness(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+  }
 
   // Add gradient for "ALL PRODUCTS" row
-const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-allGradient.setAttribute('id', 'gradient-all');
-allGradient.setAttribute('x1', '0%');
-allGradient.setAttribute('y1', '0%');
-allGradient.setAttribute('x2', '100%');
-allGradient.setAttribute('y2', '0%');
+  const allGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  allGradient.setAttribute('id', 'gradient-all');
+  allGradient.setAttribute('x1', '0%');
+  allGradient.setAttribute('y1', '0%');
+  allGradient.setAttribute('x2', '100%');
+  allGradient.setAttribute('y2', '0%');
 
-const allStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-allStop1.setAttribute('offset', '0%');
-allStop1.setAttribute('style', 'stop-color:#424242;stop-opacity:1');
+  const allStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  allStop1.setAttribute('offset', '0%');
+  allStop1.setAttribute('style', 'stop-color:#424242;stop-opacity:1');
 
-const allStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-allStop2.setAttribute('offset', '100%');
-allStop2.setAttribute('style', 'stop-color:#616161;stop-opacity:1');
+  const allStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  allStop2.setAttribute('offset', '100%');
+  allStop2.setAttribute('style', 'stop-color:#616161;stop-opacity:1');
 
-allGradient.appendChild(allStop1);
-allGradient.appendChild(allStop2);
-defs.appendChild(allGradient);
+  allGradient.appendChild(allStop1);
+  allGradient.appendChild(allStop2);
+  defs.appendChild(allGradient);
   
   colors.forEach(color => {
     const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -950,280 +953,280 @@ defs.appendChild(allGradient);
   svg.appendChild(defs);
   
   // Calculate max percentage for width scaling
-const fixedTrapezoidWidth = 350;
+  const fixedTrapezoidWidth = 350;
   
-// Set startY (other dimensions already defined above)
-const startY = 0;
+  // Set startY (other dimensions already defined above)
+  const startY = 0;
 
-// First, create the aggregated row
-const aggregatedY = startY;
+  // First, create the aggregated row
+  const aggregatedY = startY;
 
-// Aggregated row trapezoid
-const aggTrapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-const aggTopWidth = 280;
-const aggBottomWidth = 250;
-const aggPoints = `0,${aggregatedY} ${aggTopWidth},${aggregatedY} ${aggBottomWidth},${aggregatedY + aggregatedRowHeight} 0,${aggregatedY + aggregatedRowHeight}`;
+  // Aggregated row trapezoid
+  const aggTrapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  const aggTopWidth = 280;
+  const aggBottomWidth = 250;
+  const aggPoints = `0,${aggregatedY} ${aggTopWidth},${aggregatedY} ${aggBottomWidth},${aggregatedY + aggregatedRowHeight} 0,${aggregatedY + aggregatedRowHeight}`;
 
-aggTrapezoid.setAttribute('points', aggPoints);
-aggTrapezoid.setAttribute('fill', 'url(#gradient-all)');
-aggTrapezoid.setAttribute('filter', 'url(#dropshadow)');
-aggTrapezoid.style.cursor = 'default';
-aggTrapezoid.style.stroke = '#333';
-aggTrapezoid.style.strokeWidth = '2';
-aggTrapezoid.style.strokeDasharray = '5,5';
+  aggTrapezoid.setAttribute('points', aggPoints);
+  aggTrapezoid.setAttribute('fill', 'url(#gradient-all)');
+  aggTrapezoid.setAttribute('filter', 'url(#dropshadow)');
+  aggTrapezoid.style.cursor = 'default';
+  aggTrapezoid.style.stroke = '#333';
+  aggTrapezoid.style.strokeWidth = '2';
+  aggTrapezoid.style.strokeDasharray = '5,5';
 
-svg.appendChild(aggTrapezoid);
+  svg.appendChild(aggTrapezoid);
 
-// Add "ALL PRODUCTS" text in aggregated trapezoid
-const aggTextGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-aggTextGroup.style.pointerEvents = 'none';
+  // Add "ALL PRODUCTS" text in aggregated trapezoid
+  const aggTextGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  aggTextGroup.style.pointerEvents = 'none';
 
-const allProductsLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-allProductsLabel.setAttribute('x', 140);
-allProductsLabel.setAttribute('y', aggregatedY + 30);
-allProductsLabel.setAttribute('text-anchor', 'middle');
-allProductsLabel.setAttribute('fill', 'white');
-allProductsLabel.setAttribute('font-weight', '700');
-allProductsLabel.setAttribute('font-size', '16px');
-allProductsLabel.textContent = 'ALL PRODUCTS';
+  const allProductsLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  allProductsLabel.setAttribute('x', 140);
+  allProductsLabel.setAttribute('y', aggregatedY + 30);
+  allProductsLabel.setAttribute('text-anchor', 'middle');
+  allProductsLabel.setAttribute('fill', 'white');
+  allProductsLabel.setAttribute('font-weight', '700');
+  allProductsLabel.setAttribute('font-size', '16px');
+  allProductsLabel.textContent = 'ALL PRODUCTS';
 
-const allProductsCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-allProductsCount.setAttribute('x', 140);
-allProductsCount.setAttribute('y', aggregatedY + 50);
-allProductsCount.setAttribute('text-anchor', 'middle');
-allProductsCount.setAttribute('fill', 'white');
-allProductsCount.setAttribute('font-weight', '700');
-allProductsCount.setAttribute('font-size', '24px');
-allProductsCount.textContent = totalProductCount;
+  const allProductsCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  allProductsCount.setAttribute('x', 140);
+  allProductsCount.setAttribute('y', aggregatedY + 50);
+  allProductsCount.setAttribute('text-anchor', 'middle');
+  allProductsCount.setAttribute('fill', 'white');
+  allProductsCount.setAttribute('font-weight', '700');
+  allProductsCount.setAttribute('font-size', '24px');
+  allProductsCount.textContent = totalProductCount;
 
-aggTextGroup.appendChild(allProductsLabel);
-aggTextGroup.appendChild(allProductsCount);
-svg.appendChild(aggTextGroup);
+  aggTextGroup.appendChild(allProductsLabel);
+  aggTextGroup.appendChild(allProductsCount);
+  svg.appendChild(aggTextGroup);
 
-// Make aggregated trapezoid clickable
-aggTrapezoid.style.cursor = 'pointer';
-aggTrapezoid.addEventListener('click', function() {
-  // Remove previous selection from all trapezoids
-  svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
-  
-  // Highlight selected (use different style for aggregated)
-  this.style.stroke = '#333';
-  this.style.strokeWidth = '3';
-  this.style.strokeDasharray = 'none';
-  
-  // Update channels and campaigns with no filter (show all)
-  updateChannelsAndCampaignsForBucket(null);
-  
-  // Update right container to show overall distribution
-  const rightContainer = document.querySelector('#buckets_products .right-container');
-  if (rightContainer) {
-    rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
-    renderBucketDistribution(rightContainer, window.roasBucketsData);
-  }
-});
-
-// Create aggregated row indicators in columns
-const aggRoasIndicator = document.createElement('div');
-aggRoasIndicator.style.cssText = `
-  height: ${aggregatedRowHeight}px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, #424242, #616161);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  margin-bottom: ${separatorGap}px;
-  border: 2px dashed #999;
-`;
-
-aggRoasIndicator.innerHTML = `
-  <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">AVG ROAS</div>
-  <div style="font-size: 18px; font-weight: 700;">${avgROASAll.toFixed(1)}x</div>
-`;
-
-roasColumn.appendChild(aggRoasIndicator);
-
-const aggMetricsIndicator = document.createElement('div');
-aggMetricsIndicator.style.cssText = `
-  height: ${aggregatedRowHeight}px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  margin-bottom: ${separatorGap}px;
-  padding: 4px;
-  border: 2px dashed #999;
-`;
-
-// For aggregated row, show 100% bars
-const aggBarHeight = 20;
-const aggBarWidth = 132;
-
-// Products bar (100%)
-const aggProductsBarContainer = document.createElement('div');
-aggProductsBarContainer.style.cssText = `
-  width: ${aggBarWidth}px;
-  height: ${aggBarHeight}px;
-  position: relative;
-  margin-bottom: 1px;
-  background: #2196F3;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const aggProductsLabel = document.createElement('div');
-aggProductsLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 7px;
-  font-weight: 500;
-  color: white;
-`;
-aggProductsLabel.textContent = '# Products';
-
-const aggProductsValue = document.createElement('div');
-aggProductsValue.style.cssText = `
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-`;
-aggProductsValue.textContent = '100%';
-
-aggProductsBarContainer.appendChild(aggProductsLabel);
-aggProductsBarContainer.appendChild(aggProductsValue);
-
-// Cost bar (100%)
-const aggCostBarContainer = document.createElement('div');
-aggCostBarContainer.style.cssText = `
-  width: ${aggBarWidth}px;
-  height: ${aggBarHeight}px;
-  position: relative;
-  margin-bottom: 1px;
-  background: #FF9800;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const aggCostLabel = document.createElement('div');
-aggCostLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 7px;
-  font-weight: 500;
-  color: white;
-`;
-aggCostLabel.textContent = 'Cost';
-
-const aggCostValue = document.createElement('div');
-aggCostValue.style.cssText = `
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-`;
-aggCostValue.textContent = '100%';
-
-aggCostBarContainer.appendChild(aggCostLabel);
-aggCostBarContainer.appendChild(aggCostValue);
-
-// Revenue bar (100%)
-const aggRevenueBarContainer = document.createElement('div');
-aggRevenueBarContainer.style.cssText = `
-  width: ${aggBarWidth}px;
-  height: ${aggBarHeight}px;
-  position: relative;
-  background: #4CAF50;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const aggRevenueLabel = document.createElement('div');
-aggRevenueLabel.style.cssText = `
-  position: absolute;
-  left: 2px;
-  top: 1px;
-  font-size: 7px;
-  font-weight: 500;
-  color: white;
-`;
-aggRevenueLabel.textContent = 'Revenue';
-
-const aggRevenueValue = document.createElement('div');
-aggRevenueValue.style.cssText = `
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-`;
-aggRevenueValue.textContent = '100%';
-
-aggRevenueBarContainer.appendChild(aggRevenueLabel);
-aggRevenueBarContainer.appendChild(aggRevenueValue);
-
-aggMetricsIndicator.appendChild(aggProductsBarContainer);
-aggMetricsIndicator.appendChild(aggCostBarContainer);
-aggMetricsIndicator.appendChild(aggRevenueBarContainer);
-
-metricsColumn.appendChild(aggMetricsIndicator);
-
-// Now create bucket sections with adjusted Y position
-const bucketStartY = aggregatedY + aggregatedRowHeight + separatorGap;
-
-orderedBuckets.forEach((bucket, index) => {
-  const y = bucketStartY + index * (sectionHeight + gap);
+  // Make aggregated trapezoid clickable
+  aggTrapezoid.style.cursor = 'pointer';
+  aggTrapezoid.addEventListener('click', function() {
+    // Remove previous selection from all trapezoids
+    svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
     
-// Fixed dimensions for all trapezoids
-const trapezoidTopWidth = 280;
-const trapezoidBottomWidth = 250;
-const leftEdge = 0; // Start from left edge
-
-// Calculate trapezoid points - same for all
-const topLeft = 0;
-const topRight = trapezoidTopWidth;
-const bottomLeft = 0;
-const bottomRight = trapezoidBottomWidth;
-
-// Create inverted trapezoid
-const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
+    // Highlight selected (use different style for aggregated)
+    this.style.stroke = '#333';
+    this.style.strokeWidth = '3';
+    this.style.strokeDasharray = 'none';
     
-trapezoid.setAttribute('points', points);
-const colorConfig = colors.find(c => c.bucketName === bucket.name);
-if (!colorConfig && bucketType === 'Suggestions') {
-  // For suggestions without predefined colors, use a default
-  trapezoid.setAttribute('fill', '#999999');
-} else {
-  trapezoid.setAttribute('fill', `url(#${colorConfig ? colorConfig.id : colors[0]?.id || 'gradient-all'})`);
-}
+    // Update channels and campaigns with no filter (show all)
+    updateChannelsAndCampaignsForBucket(null);
+    
+    // Update right container to show overall distribution
+    const rightContainer = document.querySelector('#buckets_products .right-container');
+    if (rightContainer) {
+      rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px; color: #333; font-weight: 600;">Overall Portfolio Distribution</div>';
+      renderBucketDistribution(rightContainer, window.roasBucketsData);
+    }
+  });
+
+  // Create aggregated row indicators in columns
+  const aggRoasIndicator = document.createElement('div');
+  aggRoasIndicator.style.cssText = `
+    height: ${aggregatedRowHeight}px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #424242, #616161);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-bottom: ${separatorGap}px;
+    border: 2px dashed #999;
+  `;
+
+  aggRoasIndicator.innerHTML = `
+    <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">AVG ROAS</div>
+    <div style="font-size: 18px; font-weight: 700;">${avgROASAll.toFixed(1)}x</div>
+  `;
+
+  roasColumn.appendChild(aggRoasIndicator);
+
+  const aggMetricsIndicator = document.createElement('div');
+  aggMetricsIndicator.style.cssText = `
+    height: ${aggregatedRowHeight}px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    margin-bottom: ${separatorGap}px;
+    padding: 4px;
+    border: 2px dashed #999;
+  `;
+
+  // For aggregated row, show 100% bars
+  const aggBarHeight = 20;
+  const aggBarWidth = 132;
+
+  // Products bar (100%)
+  const aggProductsBarContainer = document.createElement('div');
+  aggProductsBarContainer.style.cssText = `
+    width: ${aggBarWidth}px;
+    height: ${aggBarHeight}px;
+    position: relative;
+    margin-bottom: 1px;
+    background: #2196F3;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  const aggProductsLabel = document.createElement('div');
+  aggProductsLabel.style.cssText = `
+    position: absolute;
+    left: 2px;
+    top: 1px;
+    font-size: 7px;
+    font-weight: 500;
+    color: white;
+  `;
+  aggProductsLabel.textContent = '# Products';
+
+  const aggProductsValue = document.createElement('div');
+  aggProductsValue.style.cssText = `
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+  `;
+  aggProductsValue.textContent = '100%';
+
+  aggProductsBarContainer.appendChild(aggProductsLabel);
+  aggProductsBarContainer.appendChild(aggProductsValue);
+
+  // Cost bar (100%)
+  const aggCostBarContainer = document.createElement('div');
+  aggCostBarContainer.style.cssText = `
+    width: ${aggBarWidth}px;
+    height: ${aggBarHeight}px;
+    position: relative;
+    margin-bottom: 1px;
+    background: #FF9800;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  const aggCostLabel = document.createElement('div');
+  aggCostLabel.style.cssText = `
+    position: absolute;
+    left: 2px;
+    top: 1px;
+    font-size: 7px;
+    font-weight: 500;
+    color: white;
+  `;
+  aggCostLabel.textContent = 'Cost';
+
+  const aggCostValue = document.createElement('div');
+  aggCostValue.style.cssText = `
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+  `;
+  aggCostValue.textContent = '100%';
+
+  aggCostBarContainer.appendChild(aggCostLabel);
+  aggCostBarContainer.appendChild(aggCostValue);
+
+  // Revenue bar (100%)
+  const aggRevenueBarContainer = document.createElement('div');
+  aggRevenueBarContainer.style.cssText = `
+    width: ${aggBarWidth}px;
+    height: ${aggBarHeight}px;
+    position: relative;
+    background: #4CAF50;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  const aggRevenueLabel = document.createElement('div');
+  aggRevenueLabel.style.cssText = `
+    position: absolute;
+    left: 2px;
+    top: 1px;
+    font-size: 7px;
+    font-weight: 500;
+    color: white;
+  `;
+  aggRevenueLabel.textContent = 'Revenue';
+
+  const aggRevenueValue = document.createElement('div');
+  aggRevenueValue.style.cssText = `
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+  `;
+  aggRevenueValue.textContent = '100%';
+
+  aggRevenueBarContainer.appendChild(aggRevenueLabel);
+  aggRevenueBarContainer.appendChild(aggRevenueValue);
+
+  aggMetricsIndicator.appendChild(aggProductsBarContainer);
+  aggMetricsIndicator.appendChild(aggCostBarContainer);
+  aggMetricsIndicator.appendChild(aggRevenueBarContainer);
+
+  metricsColumn.appendChild(aggMetricsIndicator);
+
+  // Now create bucket sections with adjusted Y position
+  const bucketStartY = aggregatedY + aggregatedRowHeight + separatorGap;
+
+  orderedBuckets.forEach((bucket, index) => {
+    const y = bucketStartY + index * (sectionHeight + gap);
+    
+    // Fixed dimensions for all trapezoids
+    const trapezoidTopWidth = 280;
+    const trapezoidBottomWidth = 250;
+    const leftEdge = 0; // Start from left edge
+
+    // Calculate trapezoid points - same for all
+    const topLeft = 0;
+    const topRight = trapezoidTopWidth;
+    const bottomLeft = 0;
+    const bottomRight = trapezoidBottomWidth;
+
+    // Create inverted trapezoid
+    const trapezoid = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const points = `${topLeft},${y} ${topRight},${y} ${bottomRight},${y + sectionHeight} ${bottomLeft},${y + sectionHeight}`;
+    
+    trapezoid.setAttribute('points', points);
+    const colorConfig = colors.find(c => c.bucketName === bucket.name);
+    if (!colorConfig && bucketType === 'SUGGESTIONS_BUCKET') {
+      // For suggestions without predefined colors, use a default
+      trapezoid.setAttribute('fill', '#999999');
+    } else {
+      trapezoid.setAttribute('fill', `url(#${colorConfig ? colorConfig.id : colors[0]?.id || 'gradient-all'})`);
+    }
     trapezoid.setAttribute('filter', 'url(#dropshadow)');
     trapezoid.style.cursor = 'pointer';
     trapezoid.style.transition = 'all 0.3s ease';
     
-// Add click handler
-trapezoid.addEventListener('click', function() {
-  // Remove previous selection
-  svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
-  
-  // Highlight selected
-  this.style.stroke = '#333';
-  this.style.strokeWidth = '3';
-  
-  // Update right container
-  updateBucketMetrics(bucket.name);
-  
-  // Update channels and campaigns tables with bucket filter
-  updateChannelsAndCampaignsForBucket(bucket.name);
-});
+    // Add click handler
+    trapezoid.addEventListener('click', function() {
+      // Remove previous selection
+      svg.querySelectorAll('polygon').forEach(p => p.style.stroke = 'none');
+      
+      // Highlight selected
+      this.style.stroke = '#333';
+      this.style.strokeWidth = '3';
+      
+      // Update right container
+      updateBucketMetrics(bucket.name);
+      
+      // Update channels and campaigns tables with bucket filter
+      updateChannelsAndCampaignsForBucket(bucket.name);
+    });
     
     // Add hover effect
     trapezoid.addEventListener('mouseenter', function() {
@@ -1265,370 +1268,370 @@ trapezoid.addEventListener('click', function() {
     
     roasColumn.appendChild(roasIndicator);
     
-// Create Cost/Revenue indicator with horizontal bars
-const metricsIndicator = document.createElement('div');
-metricsIndicator.style.cssText = `
-  height: ${sectionHeight}px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  margin-bottom: ${gap}px;
-  padding: 4px;
-  border: 1px solid #ddd;
-  position: relative;
-`;
+    // Create Cost/Revenue indicator with horizontal bars
+    const metricsIndicator = document.createElement('div');
+    metricsIndicator.style.cssText = `
+      height: ${sectionHeight}px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      margin-bottom: ${gap}px;
+      padding: 4px;
+      border: 1px solid #ddd;
+      position: relative;
+    `;
 
-// Create three horizontal bar sections
-const barHeight = 26;
-const barWidth = 132;
+    // Create three horizontal bar sections
+    const barHeight = 26;
+    const barWidth = 132;
 
-// Products bar
-const productsBarContainer = document.createElement('div');
-productsBarContainer.style.cssText = `
-  width: ${barWidth}px;
-  height: ${barHeight}px;
-  position: relative;
-  margin-bottom: 2px;
-  background: #f0f0f0;
-  border-radius: 3px;
-  overflow: hidden;
-  cursor: pointer;
-`;
+    // Products bar
+    const productsBarContainer = document.createElement('div');
+    productsBarContainer.style.cssText = `
+      width: ${barWidth}px;
+      height: ${barHeight}px;
+      position: relative;
+      margin-bottom: 2px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+    `;
 
-const productsBar = document.createElement('div');
-productsBar.style.cssText = `
-  height: 100%;
-  width: ${Math.min(100, bucket.productPercentage)}%;
-  background: #2196F3;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-`;
+    const productsBar = document.createElement('div');
+    productsBar.style.cssText = `
+      height: 100%;
+      width: ${Math.min(100, bucket.productPercentage)}%;
+      background: #2196F3;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+    `;
 
-const productsValue = document.createElement('div');
-productsValue.style.cssText = `
-  font-size: 11px;
-  font-weight: 700;
-  color: ${bucket.productPercentage > 50 ? 'white' : '#333'};
-`;
-productsValue.textContent = `${bucket.productPercentage.toFixed(1)}%`;
+    const productsValue = document.createElement('div');
+    productsValue.style.cssText = `
+      font-size: 11px;
+      font-weight: 700;
+      color: ${bucket.productPercentage > 50 ? 'white' : '#333'};
+    `;
+    productsValue.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
-productsBar.appendChild(productsValue);
-productsBarContainer.appendChild(productsBar);
+    productsBar.appendChild(productsValue);
+    productsBarContainer.appendChild(productsBar);
 
-// Cost bar
-const costBarContainer = document.createElement('div');
-costBarContainer.style.cssText = `
-  width: ${barWidth}px;
-  height: ${barHeight}px;
-  position: relative;
-  margin-bottom: 2px;
-  background: #f0f0f0;
-  border-radius: 3px;
-  overflow: hidden;
-  cursor: pointer;
-`;
+    // Cost bar
+    const costBarContainer = document.createElement('div');
+    costBarContainer.style.cssText = `
+      width: ${barWidth}px;
+      height: ${barHeight}px;
+      position: relative;
+      margin-bottom: 2px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+    `;
 
-const costBar = document.createElement('div');
-costBar.style.cssText = `
-  height: 100%;
-  width: ${Math.min(100, bucket.costPercentage)}%;
-  background: #FF9800;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-`;
+    const costBar = document.createElement('div');
+    costBar.style.cssText = `
+      height: 100%;
+      width: ${Math.min(100, bucket.costPercentage)}%;
+      background: #FF9800;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+    `;
 
-const costValue = document.createElement('div');
-costValue.style.cssText = `
-  font-size: 11px;
-  font-weight: 700;
-  color: ${bucket.costPercentage > 50 ? 'white' : '#333'};
-`;
-costValue.textContent = `${bucket.costPercentage.toFixed(1)}%`;
+    const costValue = document.createElement('div');
+    costValue.style.cssText = `
+      font-size: 11px;
+      font-weight: 700;
+      color: ${bucket.costPercentage > 50 ? 'white' : '#333'};
+    `;
+    costValue.textContent = `${bucket.costPercentage.toFixed(1)}%`;
 
-costBar.appendChild(costValue);
-costBarContainer.appendChild(costBar);
+    costBar.appendChild(costValue);
+    costBarContainer.appendChild(costBar);
 
-// Revenue bar
-const revenueBarContainer = document.createElement('div');
-revenueBarContainer.style.cssText = `
-  width: ${barWidth}px;
-  height: ${barHeight}px;
-  position: relative;
-  background: #f0f0f0;
-  border-radius: 3px;
-  overflow: hidden;
-  cursor: pointer;
-`;
+    // Revenue bar
+    const revenueBarContainer = document.createElement('div');
+    revenueBarContainer.style.cssText = `
+      width: ${barWidth}px;
+      height: ${barHeight}px;
+      position: relative;
+      background: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+    `;
 
-const revenueBar = document.createElement('div');
-revenueBar.style.cssText = `
-  height: 100%;
-  width: ${Math.min(100, bucket.revenuePercentage)}%;
-  background: #4CAF50;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-`;
+    const revenueBar = document.createElement('div');
+    revenueBar.style.cssText = `
+      height: 100%;
+      width: ${Math.min(100, bucket.revenuePercentage)}%;
+      background: #4CAF50;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+    `;
 
-const revenueValue = document.createElement('div');
-revenueValue.style.cssText = `
-  font-size: 11px;
-  font-weight: 700;
-  color: ${bucket.revenuePercentage > 50 ? 'white' : '#333'};
-`;
-revenueValue.textContent = `${bucket.revenuePercentage.toFixed(1)}%`;
+    const revenueValue = document.createElement('div');
+    revenueValue.style.cssText = `
+      font-size: 11px;
+      font-weight: 700;
+      color: ${bucket.revenuePercentage > 50 ? 'white' : '#333'};
+    `;
+    revenueValue.textContent = `${bucket.revenuePercentage.toFixed(1)}%`;
 
-revenueBar.appendChild(revenueValue);
-revenueBarContainer.appendChild(revenueBar);
+    revenueBar.appendChild(revenueValue);
+    revenueBarContainer.appendChild(revenueBar);
 
-// Create hover tooltip
-const metricsHoverTooltip = document.createElement('div');
-metricsHoverTooltip.style.cssText = `
-  position: absolute;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1000;
-  white-space: nowrap;
-`;
+    // Create hover tooltip
+    const metricsHoverTooltip = document.createElement('div');
+    metricsHoverTooltip.style.cssText = `
+      position: absolute;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+      white-space: nowrap;
+    `;
 
-metricsIndicator.appendChild(metricsHoverTooltip);
+    metricsIndicator.appendChild(metricsHoverTooltip);
 
-// Create combined hover event for the entire metrics indicator
-metricsIndicator.addEventListener('mouseenter', function(e) {
-  metricsHoverTooltip.innerHTML = `
-    <div style="margin-bottom: 6px;"><strong># Products:</strong> ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)</div>
-    <div style="margin-bottom: 6px;"><strong>Cost:</strong> $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)</div>
-    <div><strong>Revenue:</strong> $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)</div>
-  `;
-  metricsHoverTooltip.style.opacity = '1';
-});
+    // Create combined hover event for the entire metrics indicator
+    metricsIndicator.addEventListener('mouseenter', function(e) {
+      metricsHoverTooltip.innerHTML = `
+        <div style="margin-bottom: 6px;"><strong># Products:</strong> ${bucket.count} (${bucket.productPercentage.toFixed(1)}%)</div>
+        <div style="margin-bottom: 6px;"><strong>Cost:</strong> $${bucket.totalCost.toLocaleString()} (${bucket.costPercentage.toFixed(1)}%)</div>
+        <div><strong>Revenue:</strong> $${bucket.totalRevenue.toLocaleString()} (${bucket.revenuePercentage.toFixed(1)}%)</div>
+      `;
+      metricsHoverTooltip.style.opacity = '1';
+    });
 
-metricsIndicator.addEventListener('mousemove', function(e) {
-  const rect = metricsIndicator.getBoundingClientRect();
-  metricsHoverTooltip.style.top = (e.clientY - rect.top - 80) + 'px';
-  metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
-});
+    metricsIndicator.addEventListener('mousemove', function(e) {
+      const rect = metricsIndicator.getBoundingClientRect();
+      metricsHoverTooltip.style.top = (e.clientY - rect.top - 80) + 'px';
+      metricsHoverTooltip.style.left = (e.clientX - rect.left - metricsHoverTooltip.offsetWidth/2) + 'px';
+    });
 
-metricsIndicator.addEventListener('mouseleave', function() {
-  metricsHoverTooltip.style.opacity = '0';
-});
+    metricsIndicator.addEventListener('mouseleave', function() {
+      metricsHoverTooltip.style.opacity = '0';
+    });
 
-metricsIndicator.appendChild(productsBarContainer);
-metricsIndicator.appendChild(costBarContainer);
-metricsIndicator.appendChild(revenueBarContainer);
+    metricsIndicator.appendChild(productsBarContainer);
+    metricsIndicator.appendChild(costBarContainer);
+    metricsIndicator.appendChild(revenueBarContainer);
     
     metricsColumn.appendChild(metricsIndicator);
     
     // Determine if description should be inside trapezoid or overflow
     const canFitDescription = trapezoidTopWidth > 280;
     
-  // Calculate metrics for the bucket
-const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
-const totalImpressions = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
-const totalClicks = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
-const totalConversions = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
+    // Calculate metrics for the bucket
+    const bucketProducts = window.roasBucketsData.filter(row => row['ROAS_Bucket'] === bucket.name);
+    const totalImpressions = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
+    const totalClicks = bucketProducts.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
+    const totalConversions = bucketProducts.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
 
-// Calculate totals across all buckets for percentage calculations
-const grandTotalImpressions = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
-const grandTotalClicks = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
-const grandTotalConversions = window.roasBucketsData.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
+    // Calculate totals across all buckets for percentage calculations
+    const grandTotalImpressions = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Impressions) || 0), 0);
+    const grandTotalClicks = window.roasBucketsData.reduce((sum, product) => sum + (parseInt(product.Clicks) || 0), 0);
+    const grandTotalConversions = window.roasBucketsData.reduce((sum, product) => sum + (parseFloat(product.Conversions) || 0), 0);
 
-// Calculate percentages
-const impressionsPercentage = grandTotalImpressions > 0 ? (totalImpressions / grandTotalImpressions * 100) : 0;
-const clicksPercentage = grandTotalClicks > 0 ? (totalClicks / grandTotalClicks * 100) : 0;
-const conversionsPercentage = grandTotalConversions > 0 ? (totalConversions / grandTotalConversions * 100) : 0;
+    // Calculate percentages
+    const impressionsPercentage = grandTotalImpressions > 0 ? (totalImpressions / grandTotalImpressions * 100) : 0;
+    const clicksPercentage = grandTotalClicks > 0 ? (totalClicks / grandTotalClicks * 100) : 0;
+    const conversionsPercentage = grandTotalConversions > 0 ? (totalConversions / grandTotalConversions * 100) : 0;
 
-// Add content inside trapezoid
-const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-textGroup.style.pointerEvents = 'none';
+    // Add content inside trapezoid
+    const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    textGroup.style.pointerEvents = 'none';
 
-// Left side: Product count (large) and percentage with visualization
-const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-productCount.setAttribute('x', 45);
-productCount.setAttribute('y', y + 45);
-productCount.setAttribute('text-anchor', 'middle');
-productCount.setAttribute('fill', 'white');
-productCount.setAttribute('font-weight', '700');
-productCount.setAttribute('font-size', '36px');
-productCount.textContent = bucket.count;
+    // Left side: Product count (large) and percentage with visualization
+    const productCount = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    productCount.setAttribute('x', 45);
+    productCount.setAttribute('y', y + 45);
+    productCount.setAttribute('text-anchor', 'middle');
+    productCount.setAttribute('fill', 'white');
+    productCount.setAttribute('font-weight', '700');
+    productCount.setAttribute('font-size', '36px');
+    productCount.textContent = bucket.count;
 
-// Percentage bar visualization
-const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBarBg.setAttribute('x', 25);
-percentageBarBg.setAttribute('y', y + 60);
-percentageBarBg.setAttribute('width', '40');
-percentageBarBg.setAttribute('height', '6');
-percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-percentageBarBg.setAttribute('rx', '3');
+    // Percentage bar visualization
+    const percentageBarBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    percentageBarBg.setAttribute('x', 25);
+    percentageBarBg.setAttribute('y', y + 60);
+    percentageBarBg.setAttribute('width', '40');
+    percentageBarBg.setAttribute('height', '6');
+    percentageBarBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+    percentageBarBg.setAttribute('rx', '3');
 
-const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-percentageBar.setAttribute('x', 25);
-percentageBar.setAttribute('y', y + 60);
-percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 40));
-percentageBar.setAttribute('height', '6');
-percentageBar.setAttribute('fill', 'white');
-percentageBar.setAttribute('rx', '3');
+    const percentageBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    percentageBar.setAttribute('x', 25);
+    percentageBar.setAttribute('y', y + 60);
+    percentageBar.setAttribute('width', Math.max(1, (bucket.productPercentage / 100) * 40));
+    percentageBar.setAttribute('height', '6');
+    percentageBar.setAttribute('fill', 'white');
+    percentageBar.setAttribute('rx', '3');
 
-const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-percentageText.setAttribute('x', 45);
-percentageText.setAttribute('y', y + 80);
-percentageText.setAttribute('text-anchor', 'middle');
-percentageText.setAttribute('fill', 'white');
-percentageText.setAttribute('font-size', '14px');
-percentageText.setAttribute('font-weight', '600');
-percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
+    const percentageText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    percentageText.setAttribute('x', 45);
+    percentageText.setAttribute('y', y + 80);
+    percentageText.setAttribute('text-anchor', 'middle');
+    percentageText.setAttribute('fill', 'white');
+    percentageText.setAttribute('font-size', '14px');
+    percentageText.setAttribute('font-weight', '600');
+    percentageText.textContent = `${bucket.productPercentage.toFixed(1)}%`;
 
-// Right side: Bucket name
-const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-bucketName.setAttribute('x', 80);
-bucketName.setAttribute('y', y + 25);
-bucketName.setAttribute('fill', 'white');
-bucketName.setAttribute('font-weight', '700');
-bucketName.setAttribute('font-size', '18px');
-bucketName.textContent = bucket.name;
+    // Right side: Bucket name
+    const bucketName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    bucketName.setAttribute('x', 80);
+    bucketName.setAttribute('y', y + 25);
+    bucketName.setAttribute('fill', 'white');
+    bucketName.setAttribute('font-weight', '700');
+    bucketName.setAttribute('font-size', '18px');
+    bucketName.textContent = bucket.name;
 
-// Metrics in three vertical columns - positioned in bottom right
-const metricsData = [
-  { label: 'Impr:', percentage: impressionsPercentage },
-  { label: 'Clicks:', percentage: clicksPercentage },
-  { label: 'Conv:', percentage: conversionsPercentage }
-];
+    // Metrics in three vertical columns - positioned in bottom right
+    const metricsData = [
+      { label: 'Impr:', percentage: impressionsPercentage },
+      { label: 'Clicks:', percentage: clicksPercentage },
+      { label: 'Conv:', percentage: conversionsPercentage }
+    ];
 
-const metricsStartX = 120;
-const metricsSpacing = 50;
+    const metricsStartX = 120;
+    const metricsSpacing = 50;
 
-metricsData.forEach((metric, metricIndex) => {
-  const metricX = metricsStartX + (metricIndex * metricsSpacing);
-  
-  // Metric label at top
-  const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricLabel.setAttribute('x', metricX);
-  metricLabel.setAttribute('y', y + 60);
-  metricLabel.setAttribute('text-anchor', 'middle');
-  metricLabel.setAttribute('fill', 'white');
-  metricLabel.setAttribute('font-size', '11px');
-  metricLabel.setAttribute('font-weight', '500');
-  metricLabel.setAttribute('opacity', '0.9');
-  metricLabel.textContent = metric.label;
-  
-  // Small bar directly under label
-  const barWidth = 30;
-  const barHeight = 4;
-  const barY = y + 65;
-  
-  const barBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  barBg.setAttribute('x', metricX - barWidth/2);
-  barBg.setAttribute('y', barY);
-  barBg.setAttribute('width', barWidth);
-  barBg.setAttribute('height', barHeight);
-  barBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
-  barBg.setAttribute('rx', '2');
-  
-  const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bar.setAttribute('x', metricX - barWidth/2);
-  bar.setAttribute('y', barY);
-  bar.setAttribute('width', Math.max(1, (metric.percentage / 100) * barWidth));
-  bar.setAttribute('height', barHeight);
-  bar.setAttribute('fill', 'white');
-  bar.setAttribute('rx', '2');
-  
-  // Percentage value at bottom
-  const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  metricValue.setAttribute('x', metricX);
-  metricValue.setAttribute('y', y + 82);
-  metricValue.setAttribute('text-anchor', 'middle');
-  metricValue.setAttribute('fill', 'white');
-  metricValue.setAttribute('font-size', '12px');
-  metricValue.setAttribute('font-weight', '700');
-  metricValue.textContent = `${metric.percentage.toFixed(1)}%`;
-  
-  textGroup.appendChild(metricLabel);
-  textGroup.appendChild(barBg);
-  textGroup.appendChild(bar);
-  textGroup.appendChild(metricValue);
-});
+    metricsData.forEach((metric, metricIndex) => {
+      const metricX = metricsStartX + (metricIndex * metricsSpacing);
+      
+      // Metric label at top
+      const metricLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      metricLabel.setAttribute('x', metricX);
+      metricLabel.setAttribute('y', y + 60);
+      metricLabel.setAttribute('text-anchor', 'middle');
+      metricLabel.setAttribute('fill', 'white');
+      metricLabel.setAttribute('font-size', '11px');
+      metricLabel.setAttribute('font-weight', '500');
+      metricLabel.setAttribute('opacity', '0.9');
+      metricLabel.textContent = metric.label;
+      
+      // Small bar directly under label
+      const barWidth = 30;
+      const barHeight = 4;
+      const barY = y + 65;
+      
+      const barBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      barBg.setAttribute('x', metricX - barWidth/2);
+      barBg.setAttribute('y', barY);
+      barBg.setAttribute('width', barWidth);
+      barBg.setAttribute('height', barHeight);
+      barBg.setAttribute('fill', 'rgba(255,255,255,0.3)');
+      barBg.setAttribute('rx', '2');
+      
+      const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bar.setAttribute('x', metricX - barWidth/2);
+      bar.setAttribute('y', barY);
+      bar.setAttribute('width', Math.max(1, (metric.percentage / 100) * barWidth));
+      bar.setAttribute('height', barHeight);
+      bar.setAttribute('fill', 'white');
+      bar.setAttribute('rx', '2');
+      
+      // Percentage value at bottom
+      const metricValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      metricValue.setAttribute('x', metricX);
+      metricValue.setAttribute('y', y + 82);
+      metricValue.setAttribute('text-anchor', 'middle');
+      metricValue.setAttribute('fill', 'white');
+      metricValue.setAttribute('font-size', '12px');
+      metricValue.setAttribute('font-weight', '700');
+      metricValue.textContent = `${metric.percentage.toFixed(1)}%`;
+      
+      textGroup.appendChild(metricLabel);
+      textGroup.appendChild(barBg);
+      textGroup.appendChild(bar);
+      textGroup.appendChild(metricValue);
+    });
     
-textGroup.appendChild(productCount);
-textGroup.appendChild(percentageBarBg);
-textGroup.appendChild(percentageBar);
-textGroup.appendChild(percentageText);
-textGroup.appendChild(bucketName);
+    textGroup.appendChild(productCount);
+    textGroup.appendChild(percentageBarBg);
+    textGroup.appendChild(percentageBar);
+    textGroup.appendChild(percentageText);
+    textGroup.appendChild(bucketName);
 
-// Add hover tooltip for description
-const hoverTooltip = document.createElement('div');
-hoverTooltip.style.cssText = `
-  position: absolute;
-  background: ${colors[index].start};
-  color: white;
-  padding: 12px 15px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  font-size: 12px;
-  line-height: 1.4;
-  width: 280px;
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border: 2px solid white;
-`;
+    // Add hover tooltip for description
+    const hoverTooltip = document.createElement('div');
+    hoverTooltip.style.cssText = `
+      position: absolute;
+      background: ${colors[index]?.start || '#999'};
+      color: white;
+      padding: 12px 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 12px;
+      line-height: 1.4;
+      width: 280px;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      border: 2px solid white;
+    `;
 
-hoverTooltip.innerHTML = `
-  <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
-  <div>${bucket.description}</div>
-`;
+    hoverTooltip.innerHTML = `
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${bucket.name}</div>
+      <div>${bucket.description}</div>
+    `;
 
-container.appendChild(hoverTooltip);
+    container.appendChild(hoverTooltip);
 
-// Add hover events to trapezoid
-trapezoid.addEventListener('mouseenter', function(e) {
-  if (!this.style.stroke) {
-    this.style.transform = 'scale(1.02)';
-    this.style.filter = 'url(#dropshadow) brightness(1.1)';
-  }
-  
-  // Show tooltip
-  const rect = container.getBoundingClientRect();
-  hoverTooltip.style.opacity = '1';
-  hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
-  hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
-});
+    // Add hover events to trapezoid
+    trapezoid.addEventListener('mouseenter', function(e) {
+      if (!this.style.stroke) {
+        this.style.transform = 'scale(1.02)';
+        this.style.filter = 'url(#dropshadow) brightness(1.1)';
+      }
+      
+      // Show tooltip
+      const rect = container.getBoundingClientRect();
+      hoverTooltip.style.opacity = '1';
+      hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
+      hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
+    });
 
-trapezoid.addEventListener('mouseleave', function() {
-  if (!this.style.stroke) {
-    this.style.transform = 'scale(1)';
-    this.style.filter = 'url(#dropshadow) brightness(1)';
-  }
-  
-  // Hide tooltip
-  hoverTooltip.style.opacity = '0';
-});
+    trapezoid.addEventListener('mouseleave', function() {
+      if (!this.style.stroke) {
+        this.style.transform = 'scale(1)';
+        this.style.filter = 'url(#dropshadow) brightness(1)';
+      }
+      
+      // Hide tooltip
+      hoverTooltip.style.opacity = '0';
+    });
 
-trapezoid.addEventListener('mousemove', function(e) {
-  if (hoverTooltip.style.opacity === '1') {
-    const rect = container.getBoundingClientRect();
-    hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
-    hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
-  }
-});
+    trapezoid.addEventListener('mousemove', function(e) {
+      if (hoverTooltip.style.opacity === '1') {
+        const rect = container.getBoundingClientRect();
+        hoverTooltip.style.left = (e.clientX - rect.left + 20) + 'px';
+        hoverTooltip.style.top = (e.clientY - rect.top) + 'px';
+      }
+    });
 
-svg.appendChild(textGroup);
+    svg.appendChild(textGroup);
   });
   
   svgContainer.appendChild(svg);
