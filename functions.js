@@ -1,4 +1,22 @@
 /**
+ * Simple function to mark projects without data
+ */
+async function markProjectsWithoutData() {
+  const projectInfos = document.querySelectorAll('.project-info');
+  
+  for (const projectInfo of projectInfos) {
+    const projectNumber = projectInfo.parentElement.getAttribute('project-number');
+    if (projectNumber) {
+      const hasData = await checkProjectDatasetsInIDB(projectNumber);
+      if (!hasData) {
+        projectInfo.classList.add('no-data');
+      } else {
+        projectInfo.classList.remove('no-data');
+      }
+    }
+  }
+}
+/**
  * Check if all required datasets exist in IDB for a given project
  * @param {number} projectNumber - The project number to check
  * @returns {Promise<boolean>} - True if all datasets exist, false otherwise
