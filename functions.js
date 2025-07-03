@@ -361,7 +361,7 @@ menuItem.addEventListener("click", async (e) => {
     showCustomDatasetPopup(e);
     return; // Exit immediately
   }
-
+console.log(`[🆕 NEW CODE] Data check passed - continuing with normal flow`);
   // Now continue with the rest of the logic...
   // If we previously set window._ignoreProjectMenuClick due to sub-click:
   if (window._ignoreProjectMenuClick) {
