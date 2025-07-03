@@ -5940,18 +5940,6 @@ if (roasBadgeHTML) {
   }
 }
 
-// Move vis-badge into thumbnail container for proper alignment
-const visBadge = adCard.querySelector('.vis-badge');
-if (visBadge) {
-  const thumbnailContainer = adCard.querySelector('.ad-thumbnail-container');
-  if (thumbnailContainer) {
-    // Remove from current position
-    visBadge.remove();
-    // Add to thumbnail container
-    thumbnailContainer.appendChild(visBadge);
-  }
-}
-
 // Check if we have actual metrics data
 const hasMetricsData = productBucketData && (
   (productBucketData['Clicks'] && productBucketData['Clicks'] > 0) ||
