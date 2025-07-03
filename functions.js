@@ -413,22 +413,47 @@ console.log(`[🆕 NEW CODE] Data check passed - continuing with normal flow`);
   document.getElementById("mainButton").classList.remove("selected");
   document.getElementById("projectButton").classList.add("selected");
 
-  // 5) Possibly switch dataPrefix if needed, then call populateProjectPage
+// 5) Possibly switch dataPrefix if needed, then call populateProjectPage
   const newPrefix = `acc1_pr${project.project_number}_`;
-  if (window.dataPrefix !== newPrefix) {
-    console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} => ${newPrefix}`);
+  
+  // Update window.dataPrefix BEFORE switchAccountAndReload
+  const oldPrefix = window.dataPrefix;
+  window.dataPrefix = newPrefix;
+  
+  if (oldPrefix !== newPrefix) {
+    console.log(`[renderProjects] [🔁 Project switch] from ${oldPrefix} => ${newPrefix}`);
+    
+    // Update company IMMEDIATELY after setting dataPrefix
+    if (typeof updateCompanySelector === 'function') {
+      updateCompanySelector();
+    }
+    
     switchAccountAndReload(newPrefix, project.project_number)
       .then(() => {
         // Reset flags to allow re-population with new project data
         window._projectPageInitialized = false;
         window._projectPageInitializing = false;
+        
+        // Update company selector again after data loads (in case it was overwritten)
+        if (typeof updateCompanySelector === 'function') {
+          updateCompanySelector();
+        }
+        
         populateProjectPage();
       })
       .catch(err => {
         console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
+        // Restore old prefix on error
+        window.dataPrefix = oldPrefix;
       });
   } else {
     console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
+    
+    // Update company selector even when reusing cached data
+    if (typeof updateCompanySelector === 'function') {
+      updateCompanySelector();
+    }
+    
     // Reset flags to allow re-population when switching between projects
     window._projectPageInitialized = false;
     window._projectPageInitializing = false;
