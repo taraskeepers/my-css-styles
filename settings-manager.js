@@ -1148,14 +1148,19 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Auto-click the Company tab after a short delay
+  // Force the company panel to override the CSS
   setTimeout(() => {
-    const companyTab = document.querySelector('.settings-tab[data-tab="company"]');
-    if (companyTab) {
-      console.log("[Settings] Auto-clicking Company tab");
-      companyTab.click();
+    const companyPanel = document.querySelector('[data-panel="company"]');
+    if (companyPanel) {
+      // Use inline style to override the !important CSS
+      companyPanel.style.cssText = 'display: block !important; opacity: 1 !important;';
+      companyPanel.classList.add('active');
     }
-  }, 100); // 100ms delay to ensure DOM is ready
+    
+    // Initialize content
+    initializeTabContent('company');
+    updateCurrentCompanyDisplay();
+  }, 10);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
