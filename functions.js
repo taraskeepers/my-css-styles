@@ -263,15 +263,17 @@ openSettingsBtn.addEventListener("click", () => {
     return;
   }
 
-  console.log("[renderProjects] Opening settings overlay.");
-  
-  // Call the proper openSettingsOverlay function
-  if (typeof window.openSettingsOverlay === 'function') {
-    window.openSettingsOverlay('company');
-  } else {
-    // Fallback
-    overlay.style.display = "flex";
+console.log("[renderProjects] Opening settings overlay 222.");
+overlay.style.display = "flex";
+
+// Force click the Company tab after showing the overlay
+setTimeout(() => {
+  const companyTab = document.querySelector('.settings-tab[data-tab="company"]');
+  if (companyTab) {
+    console.log("[renderProjects] Auto-clicking Company tab");
+    companyTab.click();
   }
+}, 100);
 });
   
     closeBtn.addEventListener("click", () => {
