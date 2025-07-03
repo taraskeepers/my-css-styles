@@ -38,72 +38,68 @@ async function checkProjectDatasetsInIDB(projectNumber) {
 }
 
 /**
- * Show popup message when datasets are not available
+ * Show custom popup near the clicked element
  */
-function showDatasetNotAvailablePopup() {
-  // Check if popup already exists
-  let popup = document.getElementById("datasetNotAvailablePopup");
-  
-  if (!popup) {
-    // Create popup HTML
-    popup = document.createElement("div");
-    popup.id = "datasetNotAvailablePopup";
-    popup.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      z-index: 10000;
-      text-align: center;
-      max-width: 400px;
-      display: none;
-    `;
-    
-    popup.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Data Collection in Progress</h3>
-      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.5;">
-        We collect the requested Data. The Data will be available during the next 24 hours.
-      </p>
-      <button id="datasetPopupOkBtn" style="
-        background: #007AFF;
-        color: white;
-        border: none;
-        padding: 10px 30px;
-        border-radius: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: background 0.2s;
-      ">OK</button>
-    `;
-    
-    document.body.appendChild(popup);
-    
-    // Add event listener to OK button
-    document.getElementById("datasetPopupOkBtn").addEventListener("click", () => {
-      popup.style.display = "none";
-    });
-    
-    // Add hover effect
-    const okBtn = document.getElementById("datasetPopupOkBtn");
-    okBtn.addEventListener("mouseenter", () => {
-      okBtn.style.background = "#0051D5";
-    });
-    okBtn.addEventListener("mouseleave", () => {
-      okBtn.style.background = "#007AFF";
-    });
+function showCustomDatasetPopup(event) {
+  // Remove any existing popup
+  const existingPopup = document.querySelector('.dataset-popup');
+  if (existingPopup) {
+    existingPopup.remove();
   }
   
-  // Show popup
-  popup.style.display = "block";
+  // Create new popup
+  const popup = document.createElement('div');
+  popup.className = 'dataset-popup';
+  popup.innerHTML = `
+    <h4>Data Collection in Progress</h4>
+    <p>We are collecting the requested data. The data will be available within the next 24 hours.</p>
+  `;
   
-  // Auto-hide after 5 seconds
+  // Position the popup
+  document.body.appendChild(popup);
+  
+  const rect = event.currentTarget.getBoundingClientRect();
+  const popupRect = popup.getBoundingClientRect();
+  
+  // Position below the clicked element
+  popup.style.left = rect.left + (rect.width / 2) - (popupRect.width / 2) + 'px';
+  popup.style.top = rect.bottom + 10 + 'px';
+  
+  // Remove popup after 3 seconds or on click anywhere
+  setTimeout(() => popup.remove(), 3000);
+  
+  const removeOnClick = (e) => {
+    if (!popup.contains(e.target)) {
+      popup.remove();
+      document.removeEventListener('click', removeOnClick);
+    }
+  };
+  
   setTimeout(() => {
-    popup.style.display = "none";
-  }, 5000);
+    document.addEventListener('click', removeOnClick);
+  }, 100);
+}
+
+/**
+ * Update project-info elements styling based on data availability
+ */
+async function updateProjectInfoStyling() {
+  console.log("[updateProjectInfoStyling] Checking all projects for data availability");
+  
+  const projectMenuItems = document.querySelectorAll('.project-menu-item');
+  
+  for (const menuItem of projectMenuItems) {
+    const projectNumber = parseInt(menuItem.getAttribute('project-number'));
+    if (!projectNumber) continue;
+    
+    const hasData = await checkProjectDatasetsInIDB(projectNumber);
+    
+    if (!hasData) {
+      menuItem.classList.add('no-data');
+    } else {
+      menuItem.classList.remove('no-data');
+    }
+  }
 }
 
 /*******************************************************
@@ -354,6 +350,16 @@ function renderProjects() {
 
 // -- click event on the project "menuItem"
 menuItem.addEventListener("click", async (e) => {
+  // FIRST: Check if datasets exist in IDB before ANY other logic
+  const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
+  if (!datasetsAvailable) {
+    console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
+    e.preventDefault();
+    e.stopPropagation();
+    showCustomDatasetPopup(e);
+    return; // Exit immediately, don't run any other logic
+  }
+
   // If we previously set window._ignoreProjectMenuClick due to sub-click:
   if (window._ignoreProjectMenuClick) {
     console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
@@ -368,14 +374,6 @@ menuItem.addEventListener("click", async (e) => {
   }
 
   console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
-  
-  // *** NEW: Check if datasets exist in IDB before proceeding ***
-  const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
-  if (!datasetsAvailable) {
-    console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
-    showDatasetNotAvailablePopup();
-    return; // Exit early, don't select this project
-  }
   
   // Clear other selections
   document.querySelectorAll(".search-card.selected").forEach(card => {
@@ -416,23 +414,23 @@ menuItem.addEventListener("click", async (e) => {
   const newPrefix = `acc1_pr${project.project_number}_`;
   if (window.dataPrefix !== newPrefix) {
     console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} => ${newPrefix}`);
-switchAccountAndReload(newPrefix, project.project_number)
-  .then(() => {
-    // Reset flags to allow re-population with new project data
-    window._projectPageInitialized = false;
-    window._projectPageInitializing = false;
-    populateProjectPage();
-  })
+    switchAccountAndReload(newPrefix, project.project_number)
+      .then(() => {
+        // Reset flags to allow re-population with new project data
+        window._projectPageInitialized = false;
+        window._projectPageInitializing = false;
+        populateProjectPage();
+      })
       .catch(err => {
         console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
       });
-} else {
-  console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
-  // Reset flags to allow re-population when switching between projects
-  window._projectPageInitialized = false;
-  window._projectPageInitializing = false;
-  populateProjectPage();
-}
+  } else {
+    console.log("[renderProjects] [✅ No prefix change] Reusing cached data for:", window.dataPrefix);
+    // Reset flags to allow re-population when switching between projects
+    window._projectPageInitialized = false;
+    window._projectPageInitializing = false;
+    populateProjectPage();
+  }
 }); // end menuItem.addEventListener
 
   // 8) Add a toggle button to collapse the entire left column
@@ -531,11 +529,11 @@ function createSearchCard(search, parentProject) {
 locItem.addEventListener("click", async (e) => {
   e.stopPropagation();   // prevent card's click event from firing
   
-  // *** NEW: Check if datasets exist in IDB before proceeding ***
+  // FIRST: Check if datasets exist in IDB before ANY other logic
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup();
+    showCustomDatasetPopup(e);
     return; // Exit early, don't select this location
   }
   
@@ -609,7 +607,7 @@ card.addEventListener("click", async (e) => {
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[createSearchCard] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup();
+    showCustomDatasetPopup(e); 
     return; // Exit early, don't select this card
   }
 
