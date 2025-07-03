@@ -130,76 +130,97 @@
   max-height: calc(80vh - 120px);
 ">
 <!-- Company Tab -->
-      <div class="settings-panel active" data-panel="company">
-        <div style="
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 40px 20px;
-        ">
-          <h3 style="
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 24px;
-            text-align: center;
-          ">Select Your Company</h3>
-          
-          <div style="
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-          ">
-            <div style="
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 8px;
-            ">Current Company</div>
-            <div style="
-              font-size: 18px;
-              font-weight: 600;
-              color: #1a1a1a;
-            " id="currentCompanyValue">Not Selected</div>
-          </div>
-          
-          <div style="
-            margin-bottom: 20px;
-          ">
-            <label style="
-              display: block;
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 8px;
-            ">Choose your company:</label>
-            <select id="companySelectDropdown" style="
-              width: 100%;
-              padding: 10px 12px;
-              font-size: 15px;
-              border: 1px solid #e5e7eb;
-              border-radius: 8px;
-              background: white;
-              cursor: pointer;
-            ">
-              <option value="">-- Select Company --</option>
-            </select>
-          </div>
-          
-          <button id="saveCompanyButton" style="
-            width: 100%;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
-          ">Save Company Selection</button>
-        </div>
-      </div>
+<div class="settings-panel active" data-panel="company">
+  <div style="
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  ">
+    <h3 style="
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+      text-align: center;
+    ">Select Your Company</h3>
+    
+    <p style="
+      font-size: 14px;
+      color: #ef4444;
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 12px;
+      background: #fef2f2;
+      border-radius: 8px;
+      display: none;
+    " id="companyRequiredMessage">
+      Please choose your company from the list. This is required for most of the charts to be rendered properly.
+    </p>
+    
+    <div style="
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    ">
+      <div style="
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 8px;
+      ">Current Company</div>
+      <div style="
+        font-size: 18px;
+        font-weight: 600;
+        color: #1a1a1a;
+      " id="currentCompanyValue">Not Selected</div>
+    </div>
+    
+    <div id="companyProjectsList" style="
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    ">
+      <!-- Project company selections will be dynamically added here -->
+    </div>
+    
+    <label style="
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    ">Choose your company:</label>
+    
+    <select id="companySelectDropdown" style="
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 24px;
+    ">
+      <option value="">-- Select Company --</option>
+    </select>
+    
+    <button id="saveCompanySelection" style="
+      width: 100%;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    ">Save Company Selection</button>
+  </div>
+</div>
 <!-- Map Settings Tab -->
 <div class="settings-panel" data-panel="map" style="display: none;">
         <div style="max-width: 600px; margin: 0 auto;">
@@ -660,53 +681,146 @@ function switchTab(tabName) {
 // Initialize content when tab is activated
 function initializeTabContent(tabName) {
   switch(tabName) {
-    case 'company':
-      console.log("[Settings] Initializing company tab content");
+case 'company':
+  console.log("[Settings] Initializing company tab content");
+  
+  // Show required message if no company is set
+  const requiredMsg = document.getElementById("companyRequiredMessage");
+  if (requiredMsg && !window.myCompany) {
+    requiredMsg.style.display = "block";
+  }
+  
+  // Get project list
+  const projectsList = document.getElementById("companyProjectsList");
+  if (projectsList) {
+    projectsList.innerHTML = ""; // Clear existing
+    
+    // Get all projects for current account
+    let projects = [];
+    if (window.projectData && Array.isArray(window.projectData)) {
+      projects = window.projectData;
+    } else if (window.realProjectData && Array.isArray(window.realProjectData)) {
+      projects = window.realProjectData;
+    }
+    
+    // Get unique companies list
+    let companies = [];
+    if (window.companyStatsData && window.companyStatsData.length > 0) {
+      companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
+    } else if (window.allRows && window.allRows.length > 0) {
+      companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
+    }
+    
+    // Create a row for each project
+    projects.forEach((project, index) => {
+      const projectNum = project.project_number || (index + 1);
+      const projectKey = `acc1_pr${projectNum}`;
       
-      // FORCE call updateCurrentCompanyDisplay first
-      updateCurrentCompanyDisplay();
-      
-      // Populate company dropdown when company tab is shown
-      const dropdown = document.getElementById("companySelectDropdown");
-      
-      if (dropdown) {
-        // Try multiple data sources
-        let companies = [];
-        
-        if (window.companyStatsData && window.companyStatsData.length > 0) {
-          companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
-        } else if (window.allRows && window.allRows.length > 0) {
-          companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
-        }
-        
-        console.log("[Settings] Found companies:", companies);
-        
-        dropdown.innerHTML = '<option value="">-- Select Company --</option>';
-        companies.forEach(c => {
-          const opt = document.createElement("option");
-          opt.value = c;
-          opt.textContent = c;
-          
-          // Check against multiple sources for current selection
-          const currentCompany = window.filterState?.company || window.myCompany;
-          
-          if (c === currentCompany) {
-            opt.selected = true;
-          }
-          dropdown.appendChild(opt);
-        });
-        
-        // If no companies found, show a message
-        if (companies.length === 0) {
-          dropdown.innerHTML = '<option value="">No companies found - data may still be loading</option>';
+      // Find current company for this project
+      let currentCompany = "";
+      if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+        const match = window.myCompanyArray.find(item => 
+          item && item.startsWith(projectKey)
+        );
+        if (match) {
+          currentCompany = match.split(' - ')[1] || "";
         }
       }
       
-      // Call updateCurrentCompanyDisplay again after dropdown is populated
-      setTimeout(() => {
-        updateCurrentCompanyDisplay();
-      }, 50);
-      break;
+      const rowHTML = `
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+        ">
+          <div style="flex: 1;">
+            <div style="
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 4px;
+            ">Project ${projectNum}</div>
+            <div style="
+              font-size: 16px;
+              font-weight: 600;
+              color: #1a1a1a;
+            " id="currentCompany_${projectKey}">${currentCompany || "Not Selected"}</div>
+          </div>
+          
+          <select id="companySelect_${projectKey}" data-project="${projectKey}" style="
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          ">
+            <option value="">-- Select Company --</option>
+            ${companies.map(c => `
+              <option value="${c}" ${c === currentCompany ? 'selected' : ''}>${c}</option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+      
+      projectsList.innerHTML += rowHTML;
+    });
+    
+    // Add save button handler
+    const saveBtn = document.getElementById("saveCompanySelection");
+    if (saveBtn) {
+      saveBtn.onclick = function() {
+        const companyArray = [];
+        const selects = projectsList.querySelectorAll('select[data-project]');
+        
+        selects.forEach(select => {
+          const projectKey = select.dataset.project;
+          const company = select.value;
+          if (company) {
+            companyArray.push(`${projectKey} - ${company}`);
+          }
+        });
+        
+        // Send to parent to save
+        if (window.parent) {
+          window.parent.postMessage({
+            command: "saveMyCompanyArray",
+            companyArray: companyArray
+          }, "*");
+        }
+        
+        // Update current project's company immediately
+        const currentProjectKey = window.dataPrefix ? 
+          window.dataPrefix.replace('_', '').replace('_', '') : 'acc1pr1';
+        const currentMatch = companyArray.find(item => 
+          item.startsWith(currentProjectKey)
+        );
+        if (currentMatch) {
+          window.myCompany = currentMatch.split(' - ')[1] || "";
+          localStorage.setItem("my_company", window.myCompany);
+          
+          // Update company selector in main UI
+          if (document.getElementById("companyText")) {
+            document.getElementById("companyText").textContent = window.myCompany;
+          }
+        }
+        
+        // Close overlay
+        window.closeSettingsOverlay();
+        
+        // Refresh data if needed
+        if (typeof renderData === 'function') {
+          renderData();
+        }
+      };
+    }
+  }
+  break;
       
     case 'map':
       initializeMapToggles();
