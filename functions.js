@@ -300,13 +300,13 @@ menuItem.addEventListener("click", async (e) => {
 
   console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
   
-  // *** NEW: Check if datasets exist in IDB before proceeding ***
-  const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
-  if (!datasetsAvailable) {
-    console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
-    showCustomDatasetPopup(e);
-    return; // Exit early, don't select this project
-  }
+// *** NEW: Check if datasets exist in IDB before proceeding ***
+const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
+if (!datasetsAvailable) {
+  console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
+  // Don't show popup here - it's handled by updateProjectInfoStyling
+  return; // Exit early, don't select this project
+}
   
   // Clear other selections
   document.querySelectorAll(".search-card.selected").forEach(card => {
@@ -462,13 +462,13 @@ function createSearchCard(search, parentProject) {
 locItem.addEventListener("click", async (e) => {
   e.stopPropagation();   // prevent card's click event from firing
   
-  // *** NEW: Check if datasets exist in IDB before proceeding ***
-  const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
-  if (!datasetsAvailable) {
-    console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showCustomDatasetPopup(e);
-    return; // Exit early, don't select this location
-  }
+// *** NEW: Check if datasets exist in IDB before proceeding ***
+const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
+if (!datasetsAvailable) {
+  console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
+  // Don't show popup here - it's handled by updateProjectInfoStyling
+  return; // Exit early, don't select this location
+}
   
   // 1) Hide all other location submenus
   document.querySelectorAll(".locations-submenu").forEach(sub => {
@@ -863,6 +863,10 @@ window.addEventListener("message", (event) => {
 
     console.log("✅ Received loadData. Using projectData:", window.projectData);
     renderProjects();
+    // Update project-info styling based on data availability
+if (typeof updateProjectInfoStyling === "function") {
+  setTimeout(() => updateProjectInfoStyling(), 100); // Small delay to ensure DOM is ready
+}
   }
 });
 
@@ -896,6 +900,10 @@ window.addEventListener("message", (e) => {
   console.warn("[deliverTables] projectData missing. Running convertRowsToProjects() as fallback.");
   window.projectData = convertRowsToProjects(processed);
   renderProjects();
+      // Update project-info styling based on data availability
+if (typeof updateProjectInfoStyling === "function") {
+  setTimeout(() => updateProjectInfoStyling(), 100); // Small delay to ensure DOM is ready
+}
 } else {
   console.log("[deliverTables] Skipping projectData overwrite — existing UI structure preserved.");
 }
