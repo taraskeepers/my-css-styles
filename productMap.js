@@ -2609,6 +2609,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 .product-cell .vis-badge {
   position: absolute;
   bottom: 5px;
+  right: 5px;
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
