@@ -633,8 +633,14 @@ function switchTab(tabName) {
   window.settingsOverlayElements.tabs.forEach(tab => {
     if (tab.dataset.tab === tabName) {
       tab.classList.add('active');
+      // Update the visual style for active tab
+      tab.style.color = '#1a1a1a';
+      tab.style.borderBottom = '2px solid #764ba2';
     } else {
       tab.classList.remove('active');
+      // Reset the visual style for inactive tabs
+      tab.style.color = '#6b7280';
+      tab.style.borderBottom = 'none';
     }
   });
   
@@ -648,8 +654,12 @@ function switchTab(tabName) {
   // Then show only the selected panel
   const activePanel = document.querySelector(`[data-panel="${tabName}"]`);
   if (activePanel) {
+    // Force display to be block
     activePanel.style.display = 'block';
     activePanel.classList.add('active');
+    
+    // Force a reflow to ensure the display change takes effect
+    activePanel.offsetHeight;
   }
   
   // Store active tab
@@ -693,13 +703,22 @@ function initializeTabContent(tabName) {
       if (projectsList) {
         projectsList.innerHTML = ""; // Clear existing
         
-        // Get all projects for current account
+/ Get all projects for current account
         let projects = [];
         if (window.projectData && Array.isArray(window.projectData)) {
           projects = window.projectData;
         } else if (window.realProjectData && Array.isArray(window.realProjectData)) {
           projects = window.realProjectData;
         }
+        
+        // Sort projects by project_number in ascending order
+        projects = projects.slice().sort((a, b) => {
+          const numA = a.project_number || 0;
+          const numB = b.project_number || 0;
+          return numA - numB;
+        });
+        
+        console.log("[Settings] Sorted projects:", projects.map(p => p.project_number));
         
         // Function to load companies for a specific project
         const loadCompaniesForProject = async (projectNum) => {
@@ -1116,24 +1135,28 @@ if (uploadBtn) {
   }
   
 window.openSettingsOverlay = function(initialTab = 'company') {
-  console.log("[Settings] Opening overlay");
+  console.log("[Settings] Opening overlay with initial tab:", initialTab);
   
   // Show overlay
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Ensure all panels are hidden
+  // Ensure all panels are hidden first
   const allPanels = document.querySelectorAll('.settings-panel');
   allPanels.forEach(panel => {
     panel.style.display = 'none';
+    panel.classList.remove('active');
   });
   
-  // Switch to initial tab
-  switchTab(initialTab);
-  
-  // FORCE call updateCurrentCompanyDisplay immediately
-  console.log("[Settings] Calling updateCurrentCompanyDisplay on overlay open");
-  updateCurrentCompanyDisplay();
+  // Force a small delay to ensure DOM is ready
+  setTimeout(() => {
+    // Switch to initial tab (this will show the correct panel)
+    switchTab(initialTab);
+    
+    // FORCE call updateCurrentCompanyDisplay
+    console.log("[Settings] Calling updateCurrentCompanyDisplay on overlay open");
+    updateCurrentCompanyDisplay();
+  }, 10);
   
   // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
