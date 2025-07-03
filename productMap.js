@@ -2467,15 +2467,15 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
         }
         
         /* Styling for ad cards to match main page */
-        .product-cell .ad-details {
-          flex: 0 0 auto;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-          background-color: white;
-          transition: transform 0.2s, box-shadow 0.2s;
-          overflow: hidden;
-        }
-        
+.product-cell .ad-details {
+  position: relative; /* Add this line */
+  flex: 0 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background-color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}       
         .product-cell .ad-details:hover {
           transform: translateY(-3px);
           box-shadow: 0 4px 8px rgba(0,0,0,0.15);
@@ -2486,7 +2486,6 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           width: 100%;
           text-align: center;
           margin-bottom: 8px;
-          overflow: visible !important;
         }
         
         .product-cell .ad-thumbnail {
@@ -2609,7 +2608,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
         
 .product-cell .vis-badge {
   position: absolute;
-  bottom: -60px;
+  bottom: 5px;
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
@@ -2627,6 +2626,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   line-height: 1;
+  background: white;
   overflow: hidden;
   flex-shrink: 0;
 }
