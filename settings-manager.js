@@ -1145,25 +1145,19 @@ window.openSettingsOverlay = function(initialTab = 'company') {
   console.log("[Settings] Opening overlay");
   
   // Show overlay
-  document.getElementById("settingsOverlay").style.display = "flex";
+  window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Force company panel to be visible
+  // Auto-click the Company tab after a short delay
   setTimeout(() => {
-    const companyPanel = document.querySelector('[data-panel="company"]');
-    if (companyPanel) {
-      companyPanel.style.cssText = 'display: block !important;';
-      companyPanel.classList.add('active');
+    const companyTab = document.querySelector('.settings-tab[data-tab="company"]');
+    if (companyTab) {
+      console.log("[Settings] Auto-clicking Company tab");
+      companyTab.click();
     }
-    
-    // Hide other panels
-    document.querySelectorAll('.settings-panel:not([data-panel="company"])').forEach(p => {
-      p.style.display = 'none';
-    });
-    
-    initializeTabContent('company');
-  }, 0);
+  }, 100); // 100ms delay to ensure DOM is ready
   
+  // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
 };
   
@@ -1658,17 +1652,3 @@ if (typeof renderSerpMarketShareBigChart === 'undefined') {
 // Export functions for external use
 window.updateToggle = updateToggle;
 window.applyLocalToggleStates = applyLocalToggleStates;
-
-// Debug function to check panel states
-window.checkSettingsPanels = function() {
-  const panels = document.querySelectorAll('.settings-panel');
-  console.log("Total panels found:", panels.length);
-  
-  panels.forEach((panel, index) => {
-    console.log(`Panel ${index}:`, {
-      dataPanel: panel.dataset.panel,
-      display: panel.style.display,
-      visible: window.getComputedStyle(panel).display !== 'none'
-    });
-  });
-};
