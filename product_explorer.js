@@ -2731,7 +2731,7 @@ clonedMapBtn.addEventListener('click', function() {
           const termMatch = p.q === term;
           const locMatch = locationMatches(location, p.location_requested);
           const deviceMatch = p.device === device;
-          const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
+          const companyMatch = p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase();
           
           return termMatch && locMatch && deviceMatch && companyMatch;
         });
@@ -3106,6 +3106,26 @@ viewMapExplorerBtn.addEventListener("click", function() {
 });
   
   console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
+
+  // Get the correct company for the current project
+let companyToFilter = window.myCompany; // Default fallback
+
+// Extract current project number from dataPrefix
+const currentProjectNum = window.dataPrefix ? 
+  parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+const projectKey = `acc1_pr${currentProjectNum}`;
+
+// Find the company for this specific project from myCompanyArray
+if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+  const match = window.myCompanyArray.find(item => 
+    item && item.startsWith(projectKey)
+  );
+  if (match) {
+    companyToFilter = match.split(' - ')[1] || window.myCompany;
+  }
+}
+
+console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
   
   window.pendingExplorerCharts = [];
   if (window.explorerApexCharts) {
@@ -4456,7 +4476,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
 
   if (window.allRows && Array.isArray(window.allRows)) {
     window.allRows.forEach(product => {
-      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+      if (product.source && product.source.toLowerCase() === (companyToFilter || "").toLowerCase()) {
         const productKey = product.title || '';
         
         if (!productMap.has(productKey)) {
@@ -4467,7 +4487,7 @@ viewMapExplorerBtn.addEventListener("click", function() {
     });
   }
 
-  console.log(`[renderProductExplorerTable] Found ${allCompanyProducts.length} unique products for ${window.myCompany}`);
+  console.log(`[renderProductExplorerTable] Found ${allCompanyProducts.length} unique products for ${companyToFilter}`);
 
   allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
