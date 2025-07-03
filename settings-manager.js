@@ -1142,7 +1142,7 @@ if (uploadBtn) {
   }
   
 window.openSettingsOverlay = function(initialTab = 'company') {
-  console.log("[Settings] Opening overlay");
+  console.log("[Settings] Opening overlay 222");
   
   // Show overlay
   window.settingsOverlayElements.overlay.style.display = "flex";
