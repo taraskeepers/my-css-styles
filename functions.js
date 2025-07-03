@@ -304,7 +304,7 @@ menuItem.addEventListener("click", async (e) => {
   const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
   if (!datasetsAvailable) {
     console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
-    showDatasetNotAvailablePopup();
+    showCustomDatasetPopup(e);
     return; // Exit early, don't select this project
   }
   
@@ -466,7 +466,7 @@ locItem.addEventListener("click", async (e) => {
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[location-item] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup();
+    showCustomDatasetPopup(e);
     return; // Exit early, don't select this location
   }
   
@@ -540,7 +540,7 @@ card.addEventListener("click", async (e) => {
   const datasetsAvailable = await checkProjectDatasetsInIDB(parentProject.project_number);
   if (!datasetsAvailable) {
     console.log(`[createSearchCard] ⚠️ Datasets not available for project #${parentProject.project_number}`);
-    showDatasetNotAvailablePopup();
+    showCustomDatasetPopup(e);
     return; // Exit early, don't select this card
   }
 
