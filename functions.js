@@ -582,6 +582,11 @@ locItem.addEventListener("click", async (e) => {
   const newPrefix = accountNormalized + "_pr" + parentProject.project_number + "_";
   window.dataPrefix = newPrefix;
 
+    // Update company selector for new project
+  if (typeof updateCompanySelector === 'function') {
+    updateCompanySelector();
+  }
+
   // 7) Update global filter state
   window.filterState.location = loc;
 
