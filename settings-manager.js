@@ -587,6 +587,13 @@
     border-radius: 4px;
     transition: width 0.3s ease;
   }
+    .settings-panel {
+    display: none;
+  }
+  
+  .settings-panel.active {
+    display: block !important;
+  }
 </style>
 `;
 
