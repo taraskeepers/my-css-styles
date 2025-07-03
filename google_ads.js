@@ -6114,6 +6114,26 @@ document.getElementById('previousPeriodToggle').addEventListener('change', funct
 });
   
   console.log("[renderGoogleAdsTable] Using myCompany:", window.myCompany);
+
+  // Get the correct company for the current project
+let companyToFilter = window.myCompany; // Default fallback
+
+// Extract current project number from dataPrefix
+const currentProjectNum = window.dataPrefix ? 
+  parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+const projectKey = `acc1_pr${currentProjectNum}`;
+
+// Find the company for this specific project from myCompanyArray
+if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+  const match = window.myCompanyArray.find(item => 
+    item && item.startsWith(projectKey)
+  );
+  if (match) {
+    companyToFilter = match.split(' - ')[1] || window.myCompany;
+  }
+}
+
+console.log(`[renderGoogleAdsTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
   
   window.pendingGoogleAdsCharts = [];
 if (window.googleAdsApexCharts) {
@@ -8068,7 +8088,7 @@ if (window.googleAdsApexCharts) {
 
   if (window.allRows && Array.isArray(window.allRows)) {
     window.allRows.forEach(product => {
-      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+      if (product.source && product.source.toLowerCase() === (companyToFilter || "").toLowerCase()) {
         const productKey = product.title || '';
         
         if (!productMap.has(productKey)) {
@@ -8079,7 +8099,7 @@ if (window.googleAdsApexCharts) {
     });
   }
 
-  console.log(`[renderGoogleAdsTable] Found ${allCompanyProducts.length} unique products for ${window.myCompany}`);
+  console.log(`[renderGoogleAdsTable] Found ${allCompanyProducts.length} unique products for ${companyToFilter}`);
 
   allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
