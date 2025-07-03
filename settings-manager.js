@@ -662,177 +662,226 @@ function switchTab(tabName) {
 // Initialize content when tab is activated
 function initializeTabContent(tabName) {
   switch(tabName) {
-case 'company':
-  console.log("[Settings] Initializing company tab content");
-  
-  // Show required message if no company is set
-  const requiredMsg = document.getElementById("companyRequiredMessage");
-  if (requiredMsg && !window.myCompany) {
-    requiredMsg.style.display = "block";
-  }
-  
-  // Display current company selections
-  const myCompaniesDisplay = document.getElementById("myCompaniesDisplay");
-  if (myCompaniesDisplay) {
-    if (window.myCompanyArray && window.myCompanyArray.length > 0) {
-      const companiesHtml = window.myCompanyArray.map(item => {
-        const [projectKey, company] = item.split(' - ');
-        const projectNum = projectKey.replace('acc1_pr', '').replace('acc1pr', '');
-        return `Project ${projectNum}: <span style="color: #764ba2;">${company}</span>`;
-      }).join('<br>');
-      myCompaniesDisplay.innerHTML = companiesHtml;
-    } else if (window.myCompany) {
-      myCompaniesDisplay.innerHTML = `All Projects: <span style="color: #764ba2;">${window.myCompany}</span>`;
-    } else {
-      myCompaniesDisplay.innerHTML = '<span style="color: #9ca3af;">No companies selected yet</span>';
-    }
-  }
-  
-  // Get project list
-  const projectsList = document.getElementById("companyProjectsList");
-  if (projectsList) {
-    projectsList.innerHTML = ""; // Clear existing
-    
-    // Get all projects for current account
-    let projects = [];
-    if (window.projectData && Array.isArray(window.projectData)) {
-      projects = window.projectData;
-    } else if (window.realProjectData && Array.isArray(window.realProjectData)) {
-      projects = window.realProjectData;
-    }
-    
-    // Get unique companies list
-    let companies = [];
-    if (window.companyStatsData && window.companyStatsData.length > 0) {
-      companies = [...new Set(window.companyStatsData.map(r => r.source).filter(Boolean))];
-    } else if (window.allRows && window.allRows.length > 0) {
-      companies = [...new Set(window.allRows.map(r => r.source).filter(Boolean))];
-    }
-    
-    // Create a row for each project
-    projects.forEach((project, index) => {
-      const projectNum = project.project_number || (index + 1);
-      const projectKey = `acc1_pr${projectNum}`;
+    case 'company':
+      console.log("[Settings] Initializing company tab content");
       
-      // Find current company for this project
-      let currentCompany = "";
-      if (window.myCompanyArray && window.myCompanyArray.length > 0) {
-        const match = window.myCompanyArray.find(item => 
-          item && item.startsWith(projectKey)
-        );
-        if (match) {
-          currentCompany = match.split(' - ')[1] || "";
-        }
-      } else if (projectNum === 1 && window.myCompany) {
-        // Fallback for project 1 if using old format
-        currentCompany = window.myCompany;
+      // Show required message if no company is set
+      const requiredMsg = document.getElementById("companyRequiredMessage");
+      if (requiredMsg && !window.myCompany) {
+        requiredMsg.style.display = "block";
       }
       
-      const rowHTML = `
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 16px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-        ">
-          <div style="flex: 1;">
-            <div style="
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 4px;
-            ">Project ${projectNum}</div>
-            <div style="
-              font-size: 16px;
-              font-weight: 600;
-              color: #1a1a1a;
-            " id="currentCompany_${projectKey}">${currentCompany || "Not Selected"}</div>
-          </div>
-          
-          <select id="companySelect_${projectKey}" data-project="${projectKey}" style="
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s ease;
-          ">
-            <option value="">-- Select Company --</option>
-            ${companies.map(c => `
-              <option value="${c}" ${c === currentCompany ? 'selected' : ''}>${c}</option>
-            `).join('')}
-          </select>
-        </div>
-      `;
+      // Display current company selections
+      const myCompaniesDisplay = document.getElementById("myCompaniesDisplay");
+      if (myCompaniesDisplay) {
+        if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+          const companiesHtml = window.myCompanyArray.map(item => {
+            const [projectKey, company] = item.split(' - ');
+            const projectNum = projectKey.replace('acc1_pr', '').replace('acc1pr', '');
+            return `Project ${projectNum}: <span style="color: #764ba2;">${company}</span>`;
+          }).join('<br>');
+          myCompaniesDisplay.innerHTML = companiesHtml;
+        } else if (window.myCompany) {
+          myCompaniesDisplay.innerHTML = `All Projects: <span style="color: #764ba2;">${window.myCompany}</span>`;
+        } else {
+          myCompaniesDisplay.innerHTML = '<span style="color: #9ca3af;">No companies selected yet</span>';
+        }
+      }
       
-      projectsList.innerHTML += rowHTML;
-    });
-    
-    // Add change event listeners to update display in real-time
-    projectsList.querySelectorAll('select[data-project]').forEach(select => {
-      select.addEventListener('change', function() {
-        const projectKey = this.dataset.project;
-        const displayEl = document.getElementById(`currentCompany_${projectKey}`);
-        if (displayEl) {
-          displayEl.textContent = this.value || "Not Selected";
-        }
-      });
-    });
-    
-    // Add save button handler
-    const saveBtn = document.getElementById("saveCompanySelection");
-    if (saveBtn) {
-      saveBtn.onclick = function() {
-        const companyArray = [];
-        const selects = projectsList.querySelectorAll('select[data-project]');
+      // Get project list
+      const projectsList = document.getElementById("companyProjectsList");
+      if (projectsList) {
+        projectsList.innerHTML = ""; // Clear existing
         
-        selects.forEach(select => {
-          const projectKey = select.dataset.project;
-          const company = select.value;
-          if (company) {
-            companyArray.push(`${projectKey} - ${company}`);
-          }
-        });
-        
-        // Send to parent to save
-        if (window.parent) {
-          window.parent.postMessage({
-            command: "saveMyCompanyArray",
-            companyArray: companyArray
-          }, "*");
+        // Get all projects for current account
+        let projects = [];
+        if (window.projectData && Array.isArray(window.projectData)) {
+          projects = window.projectData;
+        } else if (window.realProjectData && Array.isArray(window.realProjectData)) {
+          projects = window.realProjectData;
         }
         
-        // Update current project's company immediately
-        const currentProjectKey = window.dataPrefix ? 
-          window.dataPrefix.replace('_', '').replace('_', '') : 'acc1pr1';
-        const currentMatch = companyArray.find(item => 
-          item.startsWith(currentProjectKey)
-        );
-        if (currentMatch) {
-          window.myCompany = currentMatch.split(' - ')[1] || "";
-          localStorage.setItem("my_company", window.myCompany);
+        // Function to load companies for a specific project
+        const loadCompaniesForProject = async (projectNum) => {
+          const projectPrefix = `acc1_pr${projectNum}_`;
+          let companies = new Set();
           
-          // Update company selector in main UI
-          if (document.getElementById("companyText")) {
-            document.getElementById("companyText").textContent = window.myCompany;
+          // Try to load from IDB first
+          try {
+            const serpStatsData = await window.embedIDB.getData(projectPrefix + "company_serp_stats");
+            if (serpStatsData && serpStatsData.data && serpStatsData.data.length > 0) {
+              serpStatsData.data.forEach(row => {
+                if (row.source) companies.add(row.source);
+              });
+            }
+            
+            // Also try processed data
+            const processedData = await window.embedIDB.getData(projectPrefix + "processed");
+            if (processedData && processedData.data && processedData.data.length > 0) {
+              processedData.data.forEach(row => {
+                if (row.source) companies.add(row.source);
+              });
+            }
+          } catch (error) {
+            console.log(`[Settings] Error loading project ${projectNum} data:`, error);
           }
-        }
+          
+          // If no companies found in IDB and this is the current project, use loaded data
+          if (companies.size === 0) {
+            const currentProjectNum = window.dataPrefix ? 
+              parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+            
+            if (projectNum === currentProjectNum) {
+              if (window.companyStatsData && window.companyStatsData.length > 0) {
+                window.companyStatsData.forEach(row => {
+                  if (row.source) companies.add(row.source);
+                });
+              } else if (window.allRows && window.allRows.length > 0) {
+                window.allRows.forEach(row => {
+                  if (row.source) companies.add(row.source);
+                });
+              }
+            }
+          }
+          
+          return Array.from(companies);
+        };
+
+        // Create rows for each project with async loading
+        const createProjectRows = async () => {
+          for (let i = 0; i < projects.length; i++) {
+            const project = projects[i];
+            const projectNum = project.project_number || (i + 1);
+            const projectKey = `acc1_pr${projectNum}`;
+            
+            // Find current company for this project
+            let currentCompany = "";
+            if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+              const match = window.myCompanyArray.find(item => 
+                item && item.startsWith(projectKey)
+              );
+              if (match) {
+                currentCompany = match.split(' - ')[1] || "";
+              }
+            } else if (projectNum === 1 && window.myCompany) {
+              // Fallback for project 1 if using old format
+              currentCompany = window.myCompany;
+            }
+            
+            // Load companies for this specific project
+            const companies = await loadCompaniesForProject(projectNum);
+            console.log(`[Settings] Project ${projectNum} has ${companies.length} companies`);
+            
+            const rowHTML = `
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 16px;
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                margin-bottom: 8px;
+              ">
+                <div style="flex: 1;">
+                  <div style="
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 4px;
+                  ">Project ${projectNum}</div>
+                  <div style="
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #1a1a1a;
+                  " id="currentCompany_${projectKey}">${currentCompany || "Not Selected"}</div>
+                </div>
+                
+                <select id="companySelect_${projectKey}" data-project="${projectKey}" style="
+                  flex: 1;
+                  padding: 10px 12px;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  background: white;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                ">
+                  <option value="">-- Select Company --</option>
+                  ${companies.map(c => `
+                    <option value="${c}" ${c === currentCompany ? 'selected' : ''}>${c}</option>
+                  `).join('')}
+                </select>
+              </div>
+            `;
+            
+            projectsList.innerHTML += rowHTML;
+          }
+          
+          // Add change event listeners after all rows are created
+          projectsList.querySelectorAll('select[data-project]').forEach(select => {
+            select.addEventListener('change', function() {
+              const projectKey = this.dataset.project;
+              const displayEl = document.getElementById(`currentCompany_${projectKey}`);
+              if (displayEl) {
+                displayEl.textContent = this.value || "Not Selected";
+              }
+            });
+          });
+        };
+
+        // Call the async function to create rows
+        createProjectRows();
         
-        // Close overlay
-        window.closeSettingsOverlay();
-        
-        // Refresh data if needed
-        if (typeof renderData === 'function') {
-          renderData();
+        // Add save button handler
+        const saveBtn = document.getElementById("saveCompanySelection");
+        if (saveBtn) {
+          saveBtn.onclick = function() {
+            const companyArray = [];
+            const selects = projectsList.querySelectorAll('select[data-project]');
+            
+            selects.forEach(select => {
+              const projectKey = select.dataset.project;
+              const company = select.value;
+              if (company) {
+                companyArray.push(`${projectKey} - ${company}`);
+              }
+            });
+            
+            // Send to parent to save
+            if (window.parent) {
+              window.parent.postMessage({
+                command: "saveMyCompanyArray",
+                companyArray: companyArray
+              }, "*");
+            }
+            
+            // Update current project's company immediately
+            const currentProjectKey = window.dataPrefix ? 
+              window.dataPrefix.replace('_', '').replace('_', '') : 'acc1pr1';
+            const currentMatch = companyArray.find(item => 
+              item.startsWith(currentProjectKey)
+            );
+            if (currentMatch) {
+              window.myCompany = currentMatch.split(' - ')[1] || "";
+              localStorage.setItem("my_company", window.myCompany);
+              
+              // Update company selector in main UI
+              if (document.getElementById("companyText")) {
+                document.getElementById("companyText").textContent = window.myCompany;
+              }
+            }
+            
+            // Close overlay
+            window.closeSettingsOverlay();
+            
+            // Refresh data if needed
+            if (typeof renderData === 'function') {
+              renderData();
+            }
+          };
         }
-      };
-    }
-  }
-  break;
+      }
+      break;
       
     case 'map':
       initializeMapToggles();
@@ -840,10 +889,10 @@ case 'company':
     case 'database':
       updateDatabaseUsageBars();
       break;
-case 'googleads':
-  console.log("[DEBUG] Google Ads tab initialized");
-  updateGoogleAdsStatus();
-  break;
+    case 'googleads':
+      console.log("[DEBUG] Google Ads tab initialized");
+      updateGoogleAdsStatus();
+      break;
   }
 }
   
