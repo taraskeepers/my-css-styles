@@ -255,17 +255,24 @@ function renderProjects() {
   const closeBtn = document.getElementById("closeSettingsPopup");
   
   if (openSettingsBtn && overlay && closeBtn) {
-    openSettingsBtn.addEventListener("click", () => {
-      // ✅ Prevent opening the popup in DEMO mode
-      const currentVal = (document.getElementById("selectedAccountText")?.textContent || "").trim();
-      if (currentVal === "DEMO") {
-        console.warn("[SettingsPopup] ❌ Skipping overlay open — DEMO mode.");
-        return;
-      }
+openSettingsBtn.addEventListener("click", () => {
+  // ✅ Prevent opening the popup in DEMO mode
+  const currentVal = (document.getElementById("selectedAccountText")?.textContent || "").trim();
+  if (currentVal === "DEMO") {
+    console.warn("[SettingsPopup] ❌ Skipping overlay open — DEMO mode.");
+    return;
+  }
+
+  console.log("[renderProjects] Opening settings overlay.");
   
-      console.log("[renderProjects] Opening settings overlay.");
-      overlay.style.display = "flex";
-    });
+  // Call the proper openSettingsOverlay function
+  if (typeof window.openSettingsOverlay === 'function') {
+    window.openSettingsOverlay('company');
+  } else {
+    // Fallback
+    overlay.style.display = "flex";
+  }
+});
   
     closeBtn.addEventListener("click", () => {
       console.log("[renderProjects] Closing settings overlay.");
