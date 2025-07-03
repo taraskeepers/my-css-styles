@@ -1142,30 +1142,28 @@ if (uploadBtn) {
   }
   
 window.openSettingsOverlay = function(initialTab = 'company') {
-  console.log("[Settings] Opening overlay with initial tab:", initialTab);
+  console.log("[Settings] Opening overlay");
   
   // Show overlay
-  window.settingsOverlayElements.overlay.style.display = "flex";
+  document.getElementById("settingsOverlay").style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Ensure all panels are hidden first
-  const allPanels = document.querySelectorAll('.settings-panel');
-  allPanels.forEach(panel => {
-    panel.style.display = 'none';
-    panel.classList.remove('active');
-  });
-  
-  // Force a small delay to ensure DOM is ready
+  // Force company panel to be visible
   setTimeout(() => {
-    // Switch to initial tab (this will show the correct panel)
-    switchTab(initialTab);
+    const companyPanel = document.querySelector('[data-panel="company"]');
+    if (companyPanel) {
+      companyPanel.style.cssText = 'display: block !important;';
+      companyPanel.classList.add('active');
+    }
     
-    // FORCE call updateCurrentCompanyDisplay
-    console.log("[Settings] Calling updateCurrentCompanyDisplay on overlay open");
-    updateCurrentCompanyDisplay();
-  }, 10);
+    // Hide other panels
+    document.querySelectorAll('.settings-panel:not([data-panel="company"])').forEach(p => {
+      p.style.display = 'none';
+    });
+    
+    initializeTabContent('company');
+  }, 0);
   
-  // Add escape key listener
   document.addEventListener('keydown', handleEscapeKey);
 };
   
