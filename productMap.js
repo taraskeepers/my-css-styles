@@ -1797,7 +1797,7 @@ setTimeout(() => {
       const termMatch = p.q === term; // EXACT match only
       const locMatch = locationMatches(location, p.location_requested);
       const deviceMatch = p.device === device;
-      const companyMatch = p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase();
+      const companyMatch = p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase();
       
       return termMatch && locMatch && deviceMatch && companyMatch;
     });
@@ -2196,6 +2196,25 @@ metricsPanels.forEach(panel => {
 }
   
     console.log("[renderProductMapTable] Using myCompany:", window.myCompany);
+  // Get the correct company for the current project
+let companyToFilter = window.myCompany; // Default fallback
+
+// Extract current project number from dataPrefix
+const currentProjectNum = window.dataPrefix ? 
+  parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+const projectKey = `acc1_pr${currentProjectNum}`;
+
+// Find the company for this specific project from myCompanyArray
+if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+  const match = window.myCompanyArray.find(item => 
+    item && item.startsWith(projectKey)
+  );
+  if (match) {
+    companyToFilter = match.split(' - ')[1] || window.myCompany;
+  }
+}
+
+console.log(`[renderProductMapTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
     if (!window.globalRows || typeof window.globalRows !== 'object') {
       window.globalRows = {};
@@ -5214,7 +5233,7 @@ if (useLatestRecordAsEndDate) {
     p.q === term &&
     p.location_requested === loc &&
     p.device === rowData.device &&
-    p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+    p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
   );
 
   allProductsForDevice.forEach(product => {
@@ -5328,7 +5347,7 @@ tdProducts.appendChild(productsChartContainer);
               p.q === term &&
               p.location_requested === loc &&
               p.device === rowData.device &&
-              p.source && p.source.toLowerCase() === (window.myCompany || "").toLowerCase()
+              p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
             );
   
             console.log(`[renderProductMapTable] Found ${matchingProducts.length} matching products for ${window.myCompany}`);
@@ -5352,7 +5371,7 @@ const chartInfo = {
   term: term,
   location: loc,
   device: rowData.device,
-  company: window.myCompany,
+  company: companyToFilter,
   activeCount: activeProducts.length,
   inactiveCount: inactiveProducts.length,
   pieChartId: pieChartId,
