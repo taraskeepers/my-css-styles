@@ -190,8 +190,12 @@ function renderProjects() {
         return;
       }
   
-      console.log("[renderProjects] Opening settings overlay.");
-      overlay.style.display = "flex";
+console.log("[renderProjects] Opening settings overlay 333.");
+if (typeof window.openSettingsOverlay === 'function') {
+  window.openSettingsOverlay('company');
+} else {
+  overlay.style.display = "flex";
+}
       
       // Update database usage bars when opening settings
       if (typeof updateDatabaseUsageBars === "function") {
