@@ -2486,6 +2486,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           width: 100%;
           text-align: center;
           margin-bottom: 8px;
+          overflow: visible !important;
         }
         
         .product-cell .ad-thumbnail {
@@ -2608,24 +2609,26 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
         
 .product-cell .vis-badge {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
-  width: 40px;
-  height: 40px;
+  bottom: -60px;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 900;
-  color: white !important;
+  color: #007aff !important;
   z-index: 12;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   line-height: 1;
-  background: #007aff;
   overflow: hidden;
-  position: relative;
+  flex-shrink: 0;
 }
 
 .product-cell .vis-badge::before {
@@ -4560,6 +4563,7 @@ input:checked + .all-products-slider:before {
   transition: height 0.5s ease;
   z-index: 0;
   animation: wave 3s ease-in-out infinite;
+  border-radius: 50%;
 }
 
 @keyframes wave {
@@ -6306,6 +6310,10 @@ if (hasMetricsData && metricsPanelHTML) {
                 }
               })
 
+// In Charts mode, always filter by myCompany
+const chartsActiveProducts = activeProducts.filter(p => p._isMyCompany);
+const chartsInactiveProducts = inactiveProducts.filter(p => p._isMyCompany);
+
 // Sort products by position value (best to worst)
 const sortByPosition = (a, b) => {
   const posA = parseFloat(a.finalPosition) || 999;
@@ -6314,8 +6322,8 @@ const sortByPosition = (a, b) => {
 };
 
 // Sort active and inactive products separately
-const sortedActiveProducts = [...activeProducts].sort(sortByPosition);
-const sortedInactiveProducts = [...inactiveProducts].sort(sortByPosition);
+const sortedActiveProducts = [...chartsActiveProducts].sort(sortByPosition);
+const sortedInactiveProducts = [...chartsInactiveProducts].sort(sortByPosition);
 
 // Clear the container first
 chartProductsDiv.innerHTML = '';
