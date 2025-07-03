@@ -1632,9 +1632,12 @@ clonedChartsBtn.addEventListener('click', function() {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
     const chartProductsDiv = container.querySelector('.chart-products');
     
-    // Get all products for this chart
-    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+// Get all products for this chart - always filter by myCompany in Charts mode
+const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+
+// In Charts mode, always show only myCompany products
+products = products.filter(p => p._isMyCompany);
     
     if (products.length > 0 && chartAvgPosDiv) {
       renderAvgPositionChart(chartAvgPosDiv, products);
@@ -2067,9 +2070,12 @@ viewChartsBtn.addEventListener("click", function() {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
     const chartProductsDiv = container.querySelector('.chart-products');
     
-    // Get all products for this chart
-    const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-    const products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+// Get all products for this chart - always filter by myCompany in Charts mode
+const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+
+// In Charts mode, always show only myCompany products
+products = products.filter(p => p._isMyCompany);
     
     if (products.length > 0 && chartAvgPosDiv) {
       renderAvgPositionChart(chartAvgPosDiv, products);
@@ -2171,8 +2177,14 @@ if (productBucketData) {
 // Add metrics toggle functionality
 const metricsToggle = document.getElementById("metricsToggle");
 if (metricsToggle) {
+  // Restore toggle state
+  metricsToggle.checked = window.metricsToggleState || false;
+  
   metricsToggle.addEventListener("change", function() {
     const isChecked = this.checked;
+    
+    // Store the toggle state
+    window.metricsToggleState = isChecked;
     console.log(`[ProductMap] Metrics toggle: ${isChecked ? 'ON' : 'OFF'}`);
     
     // Find all card wrappers and metrics panels
@@ -2202,9 +2214,12 @@ metricsPanels.forEach(panel => {
   });
 }
 
-  // Add all products toggle functionality
+// Add all products toggle functionality
 const allProductsToggle = document.getElementById("allProductsToggle");
 if (allProductsToggle) {
+  // Restore toggle state
+  allProductsToggle.checked = window.showAllProductsInMap || false;
+  
   allProductsToggle.addEventListener("change", function() {
     const isChecked = this.checked;
     console.log(`[ProductMap] All Products toggle: ${isChecked ? 'ON' : 'OFF'}`);
@@ -2591,13 +2606,46 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           font-weight: bold;
         }
         
-        .product-cell .vis-badge {
-          position: absolute;
-          bottom: 5px;
-          right: 5px;
-          width: 60px;
-          height: 60px;
-        }
+.product-cell .vis-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  color: white !important;
+  z-index: 12;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  line-height: 1;
+  background: #007aff;
+  overflow: hidden;
+  position: relative;
+}
+
+.product-cell .vis-badge::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 122, 255, 0.3);
+  transition: height 0.3s ease;
+  z-index: -1;
+}
+
+.product-cell .vis-badge-value {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
         
         .no-products {
           display: flex;
@@ -3473,7 +3521,7 @@ input:checked + .metrics-slider:before {
 /* Bucket Type Selector Styling */
 .bucket-type-selector {
   position: absolute;
-  top: 10px;
+  top: 7px; /* Adjusted for better alignment */
   right: 320px;
   z-index: 100;
   padding: 8px 16px;
@@ -3488,6 +3536,9 @@ input:checked + .metrics-slider:before {
   transition: all 0.2s ease;
   outline: none;
   min-width: 140px;
+  height: 40px; /* Fixed height for alignment */
+  display: flex;
+  align-items: center;
 }
 
 .bucket-type-selector:hover {
@@ -4436,7 +4487,7 @@ popupStyle.textContent = `
 .all-products-toggle-container {
   position: absolute;
   top: 10px;
-  right: 640px; /* Positioned before metrics toggle */
+  right: 700px; /* Positioned before metrics toggle */
   z-index: 100;
   display: flex;
   align-items: center;
@@ -4499,6 +4550,25 @@ input:checked + .all-products-slider:before {
 .product-cell .ad-details.my-company-highlight {
   border: 3px solid #28a745 !important;
   box-shadow: 0 0 8px rgba(40, 167, 69, 0.3);
+}
+.vis-badge-water {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #0056b3 0%, #007aff 50%, #5ac8fa 100%);
+  transition: height 0.5s ease;
+  z-index: 0;
+  animation: wave 3s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 `;
 document.head.appendChild(popupStyle);
@@ -5870,6 +5940,18 @@ if (roasBadgeHTML) {
   }
 }
 
+// Move vis-badge into thumbnail container for proper alignment
+const visBadge = adCard.querySelector('.vis-badge');
+if (visBadge) {
+  const thumbnailContainer = adCard.querySelector('.ad-thumbnail-container');
+  if (thumbnailContainer) {
+    // Remove from current position
+    visBadge.remove();
+    // Add to thumbnail container
+    thumbnailContainer.appendChild(visBadge);
+  }
+}
+
 // Check if we have actual metrics data
 const hasMetricsData = productBucketData && (
   (productBucketData['Clicks'] && productBucketData['Clicks'] > 0) ||
@@ -6782,7 +6864,7 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
   }))
 );
               
-              // After adding all products, add visibility badges
+// After adding all products, add visibility badges
               setTimeout(() => {
                 productCellDiv.querySelectorAll('.vis-badge').forEach(function(el) {
                   const parts = el.id.split('-');
@@ -6791,60 +6873,12 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
                   if (!row) return;
                   
                   let visValue = parseFloat(row.visibilityBarValue) || 0;
-                  if (visValue === 0) {
-                    visValue = 0.1;
-                  }
-              
-                  var options = {
-                    series: [visValue],
-                    chart: {
-                      height: 80,
-                      width: 80,
-                      type: 'radialBar',
-                      sparkline: { enabled: false },
-                      offsetY: 0
-                    },
-                    plotOptions: {
-                      radialBar: {
-                        startAngle: -90,
-                        endAngle: 90,
-                        hollow: { size: '50%' },
-                        track: { strokeDashArray: 8, margin:2 },
-                        dataLabels: {
-                          name: { show: false },
-                          value: {
-                            show: true,
-                            offsetY: 0,
-                            fontSize: '14px',
-                            formatter: function(val){
-                              return Math.round(val) + "%";
-                            }
-                          }
-                        }
-                      }
-                    },
-                    fill: {
-                      type: 'gradient',
-                      gradient: {
-                        shade: 'dark',
-                        shadeIntensity: 0.15,
-                        inverseColors: false,
-                        opacityFrom: 1,
-                        opacityTo: 1,
-                        stops: [0,50,100]
-                      }
-                    },
-                    stroke: { lineCap:'butt', dashArray:4 },
-                    labels: []
-                  };
                   
-                  // Check if ApexCharts is available
-                  if (typeof ApexCharts !== 'undefined') {
-                    var chart = new ApexCharts(el, options);
-                    chart.render();
-                  } else {
-                    console.warn("[renderProductMapTable] ApexCharts not available for visibility badges");
-                  }
+                  // Create water-filling effect
+                  el.innerHTML = `
+                    <div class="vis-badge-value">${Math.round(visValue)}%</div>
+                    <div class="vis-badge-water" style="height: ${visValue}%;"></div>
+                  `;
                 });
               }, 100);
             }
