@@ -350,16 +350,17 @@ function renderProjects() {
 
 // -- click event on the project "menuItem"
 menuItem.addEventListener("click", async (e) => {
-  // FIRST: Check if datasets exist in IDB before ANY other logic
+  // VERY FIRST: Check if datasets exist before ANY other logic
   const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
   if (!datasetsAvailable) {
     console.log(`[renderProjects] ⚠️ Datasets not available for project #${project.project_number}`);
     e.preventDefault();
     e.stopPropagation();
     showCustomDatasetPopup(e);
-    return; // Exit immediately, don't run any other logic
+    return; // Exit immediately
   }
 
+  // Now continue with the rest of the logic...
   // If we previously set window._ignoreProjectMenuClick due to sub-click:
   if (window._ignoreProjectMenuClick) {
     console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
