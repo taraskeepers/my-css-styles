@@ -130,7 +130,7 @@
   max-height: calc(80vh - 120px);
 ">
 <!-- Company Tab -->
-<div class="settings-panel active" data-panel="company">
+<div class="settings-panel active" data-panel="company" style="display: block;">
   <div style="
     max-width: 800px;
     margin: 0 auto;
