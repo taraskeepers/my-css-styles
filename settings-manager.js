@@ -1658,3 +1658,17 @@ if (typeof renderSerpMarketShareBigChart === 'undefined') {
 // Export functions for external use
 window.updateToggle = updateToggle;
 window.applyLocalToggleStates = applyLocalToggleStates;
+
+// Debug function to check panel states
+window.checkSettingsPanels = function() {
+  const panels = document.querySelectorAll('.settings-panel');
+  console.log("Total panels found:", panels.length);
+  
+  panels.forEach((panel, index) => {
+    console.log(`Panel ${index}:`, {
+      dataPanel: panel.dataset.panel,
+      display: panel.style.display,
+      visible: window.getComputedStyle(panel).display !== 'none'
+    });
+  });
+};
