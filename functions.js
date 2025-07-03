@@ -350,6 +350,8 @@ function renderProjects() {
 
 // -- click event on the project "menuItem"
 menuItem.addEventListener("click", async (e) => {
+  console.log(`[🆕 NEW CODE] Click handler started for project #${project.project_number} - checking data FIRST`);
+  
   // VERY FIRST: Check if datasets exist before ANY other logic
   const datasetsAvailable = await checkProjectDatasetsInIDB(project.project_number);
   if (!datasetsAvailable) {
