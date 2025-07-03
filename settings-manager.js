@@ -130,7 +130,7 @@
   max-height: calc(80vh - 120px);
 ">
 <!-- Company Tab -->
-<div class="settings-panel active" data-panel="company" style="display: block;">
+<div class="settings-panel active" data-panel="company">
   <div style="
     max-width: 800px;
     margin: 0 auto;
@@ -476,14 +476,14 @@
   
 /* Panel transitions */
 .settings-panel {
-  display: none;
+  display: none !important;
   opacity: 0;
+  animation: panelFadeIn 0.3s ease-out forwards;
 }
 
 .settings-panel.active {
   display: block !important;
   opacity: 1;
-  animation: panelFadeIn 0.3s ease-out forwards;
 }
   
   @keyframes panelFadeIn {
@@ -1142,23 +1142,26 @@ if (uploadBtn) {
   }
   
 window.openSettingsOverlay = function(initialTab = 'company') {
-  console.log("[Settings] Opening overlay 222");
+  console.log("[Settings] Opening overlay with initial tab:", initialTab);
   
   // Show overlay
   window.settingsOverlayElements.overlay.style.display = "flex";
   window.settingsOverlay.isOpen = true;
   
-  // Force the company panel to override the CSS
+  // Ensure all panels are hidden first
+  const allPanels = document.querySelectorAll('.settings-panel');
+  allPanels.forEach(panel => {
+    panel.style.display = 'none';
+    panel.classList.remove('active');
+  });
+  
+  // Force a small delay to ensure DOM is ready
   setTimeout(() => {
-    const companyPanel = document.querySelector('[data-panel="company"]');
-    if (companyPanel) {
-      // Use inline style to override the !important CSS
-      companyPanel.style.cssText = 'display: block !important; opacity: 1 !important;';
-      companyPanel.classList.add('active');
-    }
+    // Switch to initial tab (this will show the correct panel)
+    switchTab(initialTab);
     
-    // Initialize content
-    initializeTabContent('company');
+    // FORCE call updateCurrentCompanyDisplay
+    console.log("[Settings] Calling updateCurrentCompanyDisplay on overlay open");
     updateCurrentCompanyDisplay();
   }, 10);
   
@@ -1273,9 +1276,6 @@ settingsButton.onclick = function(e) {
   // Call the proper function that includes updateCurrentCompanyDisplay
   if (typeof window.openSettingsOverlay === "function") {
     window.openSettingsOverlay('company');
-        setTimeout(() => {
-      document.querySelector('[data-tab="company"]')?.click();
-    }, 150);
   }
 };
   }
