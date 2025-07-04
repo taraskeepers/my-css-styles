@@ -422,14 +422,19 @@ function selectGoogleAdsProduct(product, navItemElement) {
   return new Promise((resolve) => {
     console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
-    // Hide product explorer elements that might be visible
-    const productExplorerTable = document.querySelector('.product-explorer-table');
-    if (productExplorerTable) {
-      productExplorerTable.style.display = 'none';
-    }
-    const explorerContainer = document.getElementById('productExplorerContainer');
-    if (explorerContainer) {
-      explorerContainer.style.display = 'none';
+    // Only hide product explorer elements if we're actually in Google Ads view
+    const isGoogleAdsActive = document.getElementById('googleAdsPage')?.style.display !== 'none';
+    
+    if (isGoogleAdsActive) {
+      // Hide product explorer elements only when in Google Ads view
+      const productExplorerTable = document.querySelector('.product-explorer-table');
+      if (productExplorerTable) {
+        productExplorerTable.style.display = 'none';
+      }
+      const explorerContainer = document.getElementById('productExplorerContainer');
+      if (explorerContainer) {
+        explorerContainer.style.display = 'none';
+      }
     }
 
     // Clean up previous product info charts
@@ -5592,17 +5597,22 @@ function getGoogleAdsRatingBadgeColor(rating) {
 
 // Main function definition
 function renderGoogleAdsTable() {
-// Hide any product explorer elements that might be visible
-const productExplorerTable = document.querySelector('.product-explorer-table');
-if (productExplorerTable) {
-  productExplorerTable.style.display = 'none';
-}
+  // Only hide product explorer elements if we're in Google Ads view
+  const isGoogleAdsActive = document.getElementById('googleAdsPage')?.style.display !== 'none';
+  
+  if (isGoogleAdsActive) {
+    // Hide any product explorer elements that might be visible
+    const productExplorerTable = document.querySelector('.product-explorer-table');
+    if (productExplorerTable) {
+      productExplorerTable.style.display = 'none';
+    }
 
-// Also hide the explorer container if it exists
-const explorerContainer = document.getElementById('productExplorerContainer');
-if (explorerContainer) {
-  explorerContainer.style.display = 'none';
-}
+    // Also hide the explorer container if it exists
+    const explorerContainer = document.getElementById('productExplorerContainer');
+    if (explorerContainer) {
+      explorerContainer.style.display = 'none';
+    }
+  }
   
   const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
   if (existingTable) {
