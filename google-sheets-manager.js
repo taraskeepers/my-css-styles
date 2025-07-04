@@ -610,37 +610,26 @@ getStoredConfig: async function(prefix = 'acc1_') {
   }
 },
 
-  // Add a fetchAndStoreAll method that was referenced in the embed code
-fetchAndStoreAll: async function(prefix = 'acc1_') {
-  // Ensure prefix includes project number if not already
+fetchAndStoreAll: async function(url, prefix = null) {
+  // Use current project prefix if not provided
+  if (!prefix) {
+    prefix = window.dataPrefix || 'acc1_pr1_';
+  }
+  
+  // Ensure prefix includes project number
   if (!prefix.includes('_pr')) {
-    const currentProjectNum = window.dataPrefix ? 
-      parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+    const currentProjectNum = window.filterState?.activeProjectNumber || 1;
     prefix = `${prefix}pr${currentProjectNum}_`;
   }
   
-  try {
-    // Check if we have stored config to get the URL
-    const config = await this.getStoredConfig(prefix);
-    if (config && config.url) {
-      console.log('[Google Sheets] Refreshing existing data from stored config');
-      return await this.fetchAndStoreFromUrl(config.url, prefix);
-    } else {
-      console.log('[Google Sheets] No stored configuration found - user has not uploaded sheets yet');
-      // Return empty data structure instead of throwing error
-      return { 
-        productData: [], 
-        locationData: [] 
-      };
-    }
-  } catch (error) {
-    console.log('[Google Sheets] No Google Sheets data available:', error.message);
-    // Return empty data structure on any error
-    return { 
-      productData: [], 
-      locationData: [] 
-    };
+  console.log('[Google Sheets] fetchAndStoreAll called with URL for prefix:', prefix);
+  
+  // This should ONLY be called when user explicitly provides a URL
+  if (!url) {
+    throw new Error('No Google Sheets URL provided to fetchAndStoreAll');
   }
+  
+  return await this.fetchAndStoreFromUrl(url, prefix);
 },
 
 // NEW: Process product buckets in chunks to prevent browser freeze
