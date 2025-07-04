@@ -1201,6 +1201,10 @@ if (productData && productData.data && productData.data.length > 0) {
           `Successfully uploaded data for ${successCount} project${successCount > 1 ? 's' : ''}!`,
           'success'
         );
+                // Refresh Google Ads availability check
+        if (typeof checkGoogleAdsDataAvailability === 'function') {
+          await checkGoogleAdsDataAvailability();
+        }
       } else if (successCount > 0 && errorCount > 0) {
         window.showNotification(
           `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed. Check the status messages.`,
