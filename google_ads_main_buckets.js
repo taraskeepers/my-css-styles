@@ -45,14 +45,16 @@ const getGoogleAdsRatingBadgeColor = window.getGoogleAdsRatingBadgeColor || func
 
 // Initialize main buckets switcher
 function initializeMainBucketsSwitcher() {
+  console.log('[initializeMainBucketsSwitcher] Initializing...');
+  
   // Set default view
   window.currentMainBucketView = 'overview';
   
   // Create bucketed products container if it doesn't exist
   createBucketedProductsContainer();
   
-  // Set up event listeners
-  setupMainBucketsSwitcherEvents();
+  // Use the direct event setup instead
+  setupMainBucketsSwitcherEventsDirectly();
 }
 
 // Create the bucketed products container
@@ -486,21 +488,11 @@ function hideFunnelTooltip() {
   }
 }
 
-// Set up event listeners for the main buckets switcher
+// Replace the existing setupMainBucketsSwitcherEvents in google_ads_main_buckets.js:
 function setupMainBucketsSwitcherEvents() {
-  document.addEventListener('click', function(e) {
-    // Check if the clicked element or any of its parents is one of our buttons
-    let targetElement = e.target;
-    
-    // Traverse up the DOM tree to find the button
-    while (targetElement && targetElement !== document.body) {
-      if (targetElement.id === 'mainBucketsOverview' || targetElement.id === 'mainBucketedProducts') {
-        handleMainBucketSwitch(targetElement.id);
-        return;
-      }
-      targetElement = targetElement.parentElement;
-    }
-  });
+  // This function is now replaced by setupMainBucketsSwitcherEventsDirectly
+  // but keep it for compatibility
+  setupMainBucketsSwitcherEventsDirectly();
 }
 
 // Handle switching between main bucket views
