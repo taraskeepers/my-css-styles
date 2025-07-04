@@ -954,52 +954,6 @@ function createLocationListItem(loc) {
       window.companyStatsData = serpStatsRec.data || [];   
       window.marketTrendsData = marketTrendsRec.data || [];
 
-      // Also load Google Sheets data from IDB if available
-      const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-      Promise.all([
-        window.embedIDB.getData(currentPrefix + "googleSheets_productPerformance"),
-        window.embedIDB.getData(currentPrefix + "googleSheets_locationRevenue")
-      ]).then(([productRec, locationRec]) => {
-        if (productRec?.data && locationRec?.data) {
-          console.log("[Google Sheets] Loaded from IDB cache");
-          window.googleSheetsData = {
-            productPerformance: productRec.data,
-            locationRevenue: locationRec.data
-          };
-        } else {
-          // Check if googleSheetsManager exists before using it
-          if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreAll === 'function') {
-            console.log("[Google Sheets] No cache found, trying to fetch if available...");
-            window.googleSheetsManager.fetchAndStoreAll(currentPrefix)
-              .then(({ productData, locationData }) => {
-                window.googleSheetsData = {
-                  productPerformance: productData,
-                  locationRevenue: locationData
-                };
-              })
-              .catch(err => {
-                console.log("[Google Sheets] No data available (user hasn't uploaded sheets yet)");
-                window.googleSheetsData = {
-                  productPerformance: [],
-                  locationRevenue: []
-                };
-              });
-          } else {
-            console.log("[Google Sheets] googleSheetsManager not available, skipping");
-            window.googleSheetsData = {
-              productPerformance: [],
-              locationRevenue: []
-            };
-          }
-        }
-      }).catch(err => {
-        console.log("[Google Sheets] Using empty data due to error:", err.message);
-        window.googleSheetsData = {
-          productPerformance: [],
-          locationRevenue: []
-        };
-      });
-
       const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
       console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
       if (loadedProjectNumbers.size !== 1) {
