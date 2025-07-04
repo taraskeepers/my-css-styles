@@ -8565,8 +8565,18 @@ function setupMainBucketsSwitcherEventsDirectly() {
   const overviewBtn = document.getElementById('mainBucketsOverview');
   const productsBtn = document.getElementById('mainBucketedProducts');
 
+  console.log('[setupMainBucketsSwitcherEventsDirectly] Buttons found:', {
+    overviewBtn: !!overviewBtn,
+    productsBtn: !!productsBtn
+  });
+
+  // Check if function exists before setting up listeners
+  console.log('[setupMainBucketsSwitcherEventsDirectly] Function availability:', {
+    'window.handleMainBucketSwitch': typeof window.handleMainBucketSwitch,
+    'handleMainBucketSwitch': typeof handleMainBucketSwitch
+  });
+
   if (overviewBtn) {
-    // Remove existing listeners by cloning
     const newOverviewBtn = overviewBtn.cloneNode(true);
     overviewBtn.parentNode.replaceChild(newOverviewBtn, overviewBtn);
     
@@ -8574,15 +8584,28 @@ function setupMainBucketsSwitcherEventsDirectly() {
       e.preventDefault();
       e.stopPropagation();
       console.log('[mainBucketsSwitcher] Overview button clicked');
+      console.log('[mainBucketsSwitcher] About to call handleMainBucketSwitch with: mainBucketsOverview');
+      console.log('[mainBucketsSwitcher] window.handleMainBucketSwitch type:', typeof window.handleMainBucketSwitch);
+      
       if (window.handleMainBucketSwitch) {
-        window.handleMainBucketSwitch('mainBucketsOverview');
+        try {
+          window.handleMainBucketSwitch('mainBucketsOverview');
+        } catch (error) {
+          console.error('[mainBucketsSwitcher] Error calling handleMainBucketSwitch:', error);
+        }
+      } else {
+        console.error('[mainBucketsSwitcher] window.handleMainBucketSwitch is not available!');
+        // Fallback: try to call it directly
+        if (typeof handleMainBucketSwitch === 'function') {
+          console.log('[mainBucketsSwitcher] Trying direct call...');
+          handleMainBucketSwitch('mainBucketsOverview');
+        }
       }
     });
     console.log('[setupMainBucketsSwitcherEventsDirectly] Overview button listener added');
   }
 
   if (productsBtn) {
-    // Remove existing listeners by cloning
     const newProductsBtn = productsBtn.cloneNode(true);
     productsBtn.parentNode.replaceChild(newProductsBtn, productsBtn);
     
@@ -8590,8 +8613,22 @@ function setupMainBucketsSwitcherEventsDirectly() {
       e.preventDefault();
       e.stopPropagation();
       console.log('[mainBucketsSwitcher] Products button clicked');
+      console.log('[mainBucketsSwitcher] About to call handleMainBucketSwitch with: mainBucketedProducts');
+      console.log('[mainBucketsSwitcher] window.handleMainBucketSwitch type:', typeof window.handleMainBucketSwitch);
+      
       if (window.handleMainBucketSwitch) {
-        window.handleMainBucketSwitch('mainBucketedProducts');
+        try {
+          window.handleMainBucketSwitch('mainBucketedProducts');
+        } catch (error) {
+          console.error('[mainBucketsSwitcher] Error calling handleMainBucketSwitch:', error);
+        }
+      } else {
+        console.error('[mainBucketsSwitcher] window.handleMainBucketSwitch is not available!');
+        // Fallback: try to call it directly
+        if (typeof handleMainBucketSwitch === 'function') {
+          console.log('[mainBucketsSwitcher] Trying direct call...');
+          handleMainBucketSwitch('mainBucketedProducts');
+        }
       }
     });
     console.log('[setupMainBucketsSwitcherEventsDirectly] Products button listener added');
