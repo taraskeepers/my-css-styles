@@ -1201,9 +1201,13 @@ if (productData && productData.data && productData.data.length > 0) {
           `Successfully uploaded data for ${successCount} project${successCount > 1 ? 's' : ''}!`,
           'success'
         );
-                // Refresh Google Ads availability check
+        // Refresh Google Ads availability check
         if (typeof checkGoogleAdsDataAvailability === 'function') {
           await checkGoogleAdsDataAvailability();
+          // Force immediate UI update for current project
+          if (typeof updateGoogleAdsButtonState === 'function') {
+            updateGoogleAdsButtonState();
+          }
         }
       } else if (successCount > 0 && errorCount > 0) {
         window.showNotification(
