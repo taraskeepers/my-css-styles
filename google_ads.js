@@ -421,15 +421,15 @@ function createSegmentationChartGoogleAds(containerId, chartData, termParam, loc
 function selectGoogleAdsProduct(product, navItemElement) {
   return new Promise((resolve) => {
     console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
-
+    
     // Only hide product explorer elements if we're actually in Google Ads view
     const googleAdsPage = document.getElementById('googleAdsPage');
     const isGoogleAdsActive = googleAdsPage && googleAdsPage.style.display !== 'none';
     
     if (isGoogleAdsActive) {
-      // Hide product explorer table specifically, not the entire container
-      const productExplorerTables = document.querySelectorAll('.product-explorer-table');
-      productExplorerTables.forEach(table => {
+      // Only hide product explorer tables that are INSIDE the Google Ads page
+      const googleAdsExplorerTables = googleAdsPage.querySelectorAll('.product-explorer-table');
+      googleAdsExplorerTables.forEach(table => {
         table.style.display = 'none';
       });
       
