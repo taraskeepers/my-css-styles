@@ -1851,10 +1851,26 @@ function updateMetricsDisplay(metricsBox, bucketData) {
   `;
 }
 
-// Export functions to window
-window.initializeMainBucketsSwitcher = initializeMainBucketsSwitcher;
-window.refreshBucketedProductsView = loadBucketedProducts;
-window.handleMainBucketSwitch = handleMainBucketSwitch;
+console.log('[google_ads_main_buckets.js] About to export functions...');
+
+try {
+  // Export ALL functions that google_ads.js needs
+  window.initializeMainBucketsSwitcher = initializeMainBucketsSwitcher;
+  window.refreshBucketedProductsView = loadBucketedProducts;
+  window.handleMainBucketSwitch = handleMainBucketSwitch;
+  
+  // Export the missing functions
+  window.renderBucketFunnels = renderBucketFunnels;
+  window.loadBucketedProducts = loadBucketedProducts;
+  window.showBucketedProducts = showBucketedProducts;
+  window.showBucketsOverview = showBucketsOverview;
+  window.createProductsBucketsFilterContainer = createProductsBucketsFilterContainer;
+  window.createBucketedProductsContainer = createBucketedProductsContainer;
+  
+  console.log('[google_ads_main_buckets.js] All functions exported successfully');
+} catch (error) {
+  console.error('[google_ads_main_buckets.js] Error during export:', error);
+}
 
 // Initialize when bucket type changes
 if (typeof window !== 'undefined') {
@@ -1870,10 +1886,14 @@ if (typeof window !== 'undefined') {
   };
 }
 
-console.log('[google_ads_main_buckets.js] Functions exported to window:', {
-  initializeMainBucketsSwitcher: typeof window.initializeMainBucketsSwitcher,
-  handleMainBucketSwitch: typeof window.handleMainBucketSwitch,
-  showBucketsOverview: typeof showBucketsOverview,
-  showBucketedProducts: typeof showBucketedProducts,
-  loadBucketedProducts: typeof loadBucketedProducts
-});
+// Test that functions are available
+setTimeout(() => {
+  console.log('[google_ads_main_buckets.js] Functions available on window:', {
+    initializeMainBucketsSwitcher: typeof window.initializeMainBucketsSwitcher,
+    handleMainBucketSwitch: typeof window.handleMainBucketSwitch,
+    renderBucketFunnels: typeof window.renderBucketFunnels,
+    loadBucketedProducts: typeof window.loadBucketedProducts,
+    showBucketedProducts: typeof window.showBucketedProducts,
+    showBucketsOverview: typeof window.showBucketsOverview
+  });
+}, 100);
