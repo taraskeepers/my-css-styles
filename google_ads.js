@@ -30,6 +30,16 @@ window.bucketedProductsMetricsSettings = {
   }
 };
 
+// Helper function to get the current project-specific table prefix
+function getProjectTablePrefix() {
+  const accountPrefix = window.currentAccount || 'acc1';
+  const currentProjectNum = window.dataPrefix ? 
+    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+  const prefix = `${accountPrefix}_pr${currentProjectNum}_`;
+  console.log('[Google Ads] Using table prefix:', prefix);
+  return prefix;
+}
+
 // Helper functions defined at the top level
 function getProductRecords(product) {
   if (!window.allRows || !product) return [];
@@ -828,8 +838,8 @@ function updateProductMetricsChart() {
 
 async function checkProductHasData(productTitle) {
   try {
-    const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productPerformance`;
     
     // Try to open the database
     const db = await new Promise((resolve, reject) => {
@@ -874,9 +884,9 @@ async function loadProductMetricsData(productTitle) {
   try {
     console.log('[loadProductMetricsData] Starting...');
     
-    // Get current account prefix
-    const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    // Get current project-specific table prefix
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productPerformance`;
     
     console.log(`[loadProductMetricsData] Looking for table: ${tableName}`);
     
@@ -8778,10 +8788,10 @@ async function renderBucketFunnels() {
   filterContainer.innerHTML = '';
   
   // Get bucket data
-  const accountPrefix = window.currentAccount || 'acc1';
+  const tablePrefix = getProjectTablePrefix();
   const days = window.selectedBucketDateRangeDays || 30;
   const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-  const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+  const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
   
   try {
     const db = await new Promise((resolve, reject) => {
@@ -9261,11 +9271,11 @@ async function loadBucketedProducts() {
     if (window.selectedBucketFilter) {
       console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
       
-      // Load bucket data to filter products
-      const accountPrefix = window.currentAccount || 'acc1';
+// Load bucket data to filter products
+      const tablePrefix = getProjectTablePrefix();
       const days = window.selectedBucketDateRangeDays || 30;
       const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-      const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+      const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
       
       const db = await new Promise((resolve, reject) => {
         const request = indexedDB.open('myAppDB');
@@ -9597,12 +9607,12 @@ async function getBucketedProductsData(bucketType) {
   
   console.log('[getBucketedProductsData] Found company products:', allCompanyProducts.length);
   
-  // Now load bucket assignments from IndexedDB
+// Now load bucket assignments from IndexedDB
   try {
-    const accountPrefix = window.currentAccount || 'acc1';
+    const tablePrefix = getProjectTablePrefix();
     const days = window.selectedBucketDateRangeDays || 30;
     const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+    const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
     
     console.log('[getBucketedProductsData] Loading bucket data from:', tableName);
     
@@ -9692,10 +9702,10 @@ async function getBucketedProductsData(bucketType) {
 // Replace the getProductBucketData function
 async function getProductBucketData(productTitle) {
   try {
-    const accountPrefix = window.currentAccount || 'acc1';
+    const tablePrefix = getProjectTablePrefix();
     const days = window.selectedBucketDateRangeDays || 30;
     const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-    const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+    const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
