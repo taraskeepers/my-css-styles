@@ -488,15 +488,37 @@ function hideFunnelTooltip() {
   }
 }
 
-// Replace the existing setupMainBucketsSwitcherEvents in google_ads_main_buckets.js:
 function setupMainBucketsSwitcherEvents() {
-  // This function is now replaced by setupMainBucketsSwitcherEventsDirectly
-  // but keep it for compatibility
-  setupMainBucketsSwitcherEventsDirectly();
+  console.log('[setupMainBucketsSwitcherEvents] Setting up event listeners...');
+  
+  const overviewBtn = document.getElementById('mainBucketsOverview');
+  const productsBtn = document.getElementById('mainBucketedProducts');
+
+  if (overviewBtn && !overviewBtn.hasAttribute('data-listener-attached')) {
+    overviewBtn.setAttribute('data-listener-attached', 'true');
+    overviewBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[mainBucketsSwitcher] Overview clicked via direct listener');
+      handleMainBucketSwitch('mainBucketsOverview');
+    });
+  }
+
+  if (productsBtn && !productsBtn.hasAttribute('data-listener-attached')) {
+    productsBtn.setAttribute('data-listener-attached', 'true');
+    productsBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[mainBucketsSwitcher] Products clicked via direct listener');
+      handleMainBucketSwitch('mainBucketedProducts');
+    });
+  }
 }
 
 // Handle switching between main bucket views
 function handleMainBucketSwitch(buttonId) {
+  console.log('[handleMainBucketSwitch] Called with buttonId:', buttonId); // ADD THIS LINE
+  
   // Update active states
   const overviewBtn = document.getElementById('mainBucketsOverview');
   const productsBtn = document.getElementById('mainBucketedProducts');
