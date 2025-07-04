@@ -363,73 +363,61 @@
 
 <!-- Google Ads Tab -->
 <div class="settings-panel" data-panel="googleads" style="display: none;">
-        <div style="max-width: 500px; margin: 0 auto; text-align: center; padding: 40px 0;">
-          <div style="
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-            border-radius: 20px;
-            margin: 0 auto 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <svg width="40" height="40" fill="white" viewBox="0 0 24 24">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-            </svg>
-          </div>
-          
-          <h3 style="
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 16px;
-          ">Google Ads Integration</h3>
-          
-          <div id="googleAdsStatus" style="
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #6b7280;
-          ">No data uploaded yet</div>
-          
-          <div style="margin-top: 24px;">
-            <label style="
-              display: block;
-              font-size: 14px;
-              color: #6b7280;
-              margin-bottom: 8px;
-              text-align: left;
-            ">Google Sheets URL:</label>
-            <input type="text" id="googleSheetsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="
-              width: 100%;
-              padding: 10px 12px;
-              font-size: 14px;
-              border: 1px solid #e5e7eb;
-              border-radius: 8px;
-              margin-bottom: 20px;
-              box-sizing: border-box;
-            " />
-            
-            <button id="googleSheetsUrlUpload" style="
-              width: 100%;
-              padding: 12px 24px;
-              background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-              color: white;
-              border: none;
-              border-radius: 10px;
-              font-size: 14px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              box-shadow: 0 4px 15px rgba(66, 133, 244, 0.25);
-            ">Upload Google Sheets Data</button>
-          </div>
-        </div>
+  <div style="max-width: 800px; margin: 0 auto; padding: 40px 20px;">
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+        border-radius: 20px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg width="40" height="40" fill="white" viewBox="0 0 24 24">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+        </svg>
       </div>
+      
+      <h3 style="
+        font-size: 20px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 12px;
+      ">Google Ads Integration</h3>
+      
+      <p style="
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 24px;
+      ">Upload Google Sheets data for each project separately</p>
+    </div>
+    
+    <div id="googleAdsProjectsList" style="
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    ">
+      <!-- Project Google Ads configurations will be dynamically added here -->
+    </div>
+    
+    <button id="saveGoogleAdsUrls" style="
+      width: 100%;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(66, 133, 244, 0.25);
+    ">Upload All Google Sheets Data</button>
+  </div>
+</div>
     </div>
   </div>
 </div>
@@ -918,10 +906,176 @@ function initializeTabContent(tabName) {
     case 'database':
       updateDatabaseUsageBars();
       break;
-    case 'googleads':
-      console.log("[DEBUG] Google Ads tab initialized");
-      updateGoogleAdsStatus();
+case 'googleads':
+      console.log("[Settings] Initializing Google Ads tab content");
+      initializeGoogleAdsTab();
       break;
+  }
+}
+
+// Initialize Google Ads tab with per-project URL inputs
+async function initializeGoogleAdsTab() {
+  const projectsList = document.getElementById("googleAdsProjectsList");
+  if (!projectsList) return;
+  
+  projectsList.innerHTML = ""; // Clear existing
+  
+  // Get all projects
+  let projects = [];
+  if (window.projectData && Array.isArray(window.projectData)) {
+    projects = window.projectData;
+  } else if (window.realProjectData && Array.isArray(window.realProjectData)) {
+    projects = window.realProjectData;
+  }
+  
+  // Sort projects by project_number
+  projects = projects.slice().sort((a, b) => {
+    const numA = a.project_number || 0;
+    const numB = b.project_number || 0;
+    return numA - numB;
+  });
+  
+  // Create rows for each project
+  for (let i = 0; i < projects.length; i++) {
+    const project = projects[i];
+    const projectNum = project.project_number || (i + 1);
+    const projectKey = `acc1_pr${projectNum}_`;
+    
+    // Check if this project has existing Google Sheets data
+    let existingUrl = '';
+    let statusText = 'No data uploaded';
+    let statusColor = '#6b7280';
+    
+    try {
+      const config = await window.embedIDB.getData(projectKey + "googleSheets_config");
+      if (config && config.data && config.data.url) {
+        existingUrl = config.data.url;
+        
+        // Check for actual data
+        const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
+        if (productData && productData.data && productData.data.length > 0) {
+          statusText = `✓ ${productData.data.length} products loaded`;
+          statusColor = '#059669';
+        }
+      }
+    } catch (error) {
+      console.log(`[Settings] No Google Sheets data for project ${projectNum}`);
+    }
+    
+    const rowHTML = `
+      <div style="
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+      ">
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        ">
+          <div style="
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+          ">Project ${projectNum}</div>
+          <div style="
+            font-size: 14px;
+            color: ${statusColor};
+          " id="googleAdsStatus_${projectKey}">${statusText}</div>
+        </div>
+        
+        <input type="text" 
+          id="googleSheetsUrl_${projectKey}" 
+          data-project="${projectKey}"
+          placeholder="https://docs.google.com/spreadsheets/d/..." 
+          value="${existingUrl}"
+          style="
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-sizing: border-box;
+          " />
+      </div>
+    `;
+    
+    projectsList.innerHTML += rowHTML;
+  }
+  
+  // Add save button handler
+  const saveBtn = document.getElementById("saveGoogleAdsUrls");
+  if (saveBtn) {
+    saveBtn.onclick = async function() {
+      const inputs = projectsList.querySelectorAll('input[data-project]');
+      const urlsToProcess = [];
+      
+      // Collect all non-empty URLs
+      inputs.forEach(input => {
+        const projectKey = input.dataset.project;
+        const url = input.value.trim();
+        if (url) {
+          urlsToProcess.push({ projectKey, url });
+        }
+      });
+      
+      if (urlsToProcess.length === 0) {
+        alert("Please enter at least one Google Sheets URL");
+        return;
+      }
+      
+      // Process each URL
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const { projectKey, url } of urlsToProcess) {
+        try {
+          console.log(`[Settings] Processing Google Sheets for ${projectKey}`);
+          
+          // Show processing status
+          const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
+          if (statusEl) {
+            statusEl.textContent = "Processing...";
+            statusEl.style.color = "#3b82f6";
+          }
+          
+          // Call the fetcher with the correct prefix including project number
+          await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
+          
+          // Update status on success
+          if (statusEl) {
+            const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
+            const count = productData?.data?.length || 0;
+            statusEl.textContent = `✓ ${count} products loaded`;
+            statusEl.style.color = "#059669";
+          }
+          
+          successCount++;
+        } catch (error) {
+          console.error(`[Settings] Failed to process ${projectKey}:`, error);
+          
+          // Update status on error
+          const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
+          if (statusEl) {
+            statusEl.textContent = `✗ Error: ${error.message}`;
+            statusEl.style.color = "#dc2626";
+          }
+          
+          errorCount++;
+        }
+      }
+      
+      // Show summary
+      if (successCount > 0 && errorCount === 0) {
+        alert(`Successfully uploaded data for ${successCount} project(s)!`);
+      } else if (successCount > 0 && errorCount > 0) {
+        alert(`Uploaded data for ${successCount} project(s), but ${errorCount} failed. Check the status messages.`);
+      } else {
+        alert(`Failed to upload data. Please check your URLs and try again.`);
+      }
+    };
   }
 }
   
@@ -1033,25 +1187,6 @@ function updateCurrentCompanyDisplay() {
     });
   }
   
-  // Update Google Ads status
-  function updateGoogleAdsStatus() {
-    const statusEl = document.getElementById("googleAdsStatus");
-    if (statusEl && window.googleSheetsData) {
-      const hasData = window.googleSheetsData.productPerformance?.length > 0 || 
-                     window.googleSheetsData.locationRevenue?.length > 0;
-      
-      if (hasData) {
-        statusEl.innerHTML = `
-          <div style="color: #059669; font-weight: 500;">✓ Google Sheets data loaded</div>
-          <div style="font-size: 12px; margin-top: 4px;">
-            ${window.googleSheetsData.productPerformance?.length || 0} products, 
-            ${window.googleSheetsData.locationRevenue?.length || 0} locations
-          </div>
-        `;
-      }
-    }
-  }
-  
 // Company save button handler
   const saveCompanyBtn = document.getElementById("saveCompanyButton");
   if (saveCompanyBtn) {
@@ -1088,40 +1223,6 @@ function updateCurrentCompanyDisplay() {
       alert("Company saved successfully!");
     };
   }
-  
-// Google Ads upload button handler (integrated)
-const uploadBtn = document.getElementById("googleSheetsUrlUpload");
-if (uploadBtn) {
-  uploadBtn.addEventListener("click", async function() {
-    const urlInput = document.getElementById("googleSheetsUrlInput");
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-      alert("Please enter a Google Sheets URL");
-      return;
-    }
-    
-    if (!url.includes("docs.google.com/spreadsheets")) {
-      alert("Please enter a valid Google Sheets URL");
-      return;
-    }
-    
-    try {
-      // Determine current account prefix
-      const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-      if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreFromUrl === "function") {
-        await window.googleSheetsManager.fetchAndStoreFromUrl(url, currentPrefix);
-        
-        // Clear the input and update status
-        urlInput.value = "";
-        updateGoogleAdsStatus();
-        alert("Google Sheets data uploaded successfully!");
-      }
-    } catch (error) {
-      alert(`Failed to process Google Sheets: ${error.message}`);
-    }
-  });
-}
   
   // Refresh IDB button handler
   const refreshIDBBtn = document.getElementById("refreshIDBButton");
