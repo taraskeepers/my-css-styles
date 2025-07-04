@@ -9,6 +9,27 @@ window.productMetricsSettings = {
   // Future settings can be added here
 };
 
+// Add device filter variable
+window.selectedDeviceFilter = 'all'; // 'all', 'DESKTOP', 'MOBILE', 'TABLET'
+// Add these global variables for bucket filtering
+window.selectedBucketFilter = null; // {bucketType: 'PROFITABILITY_BUCKET', bucketValue: 'Strong Performers'}
+// Global settings for product metrics calculation (this one already exists, so skip if duplicate)
+window.productMetricsSettings = {
+  useLatestDataDate: false, // true = use latest data date, false = use today's date
+  // Future settings can be added here
+};
+window.bucketedProductsMetricsSettings = {
+  selectedMetrics: ['ConvValue', 'Cost', 'Impressions', 'Clicks', 'CTR'], // Default 5 metrics
+  availableMetrics: {
+    'Impressions': { label: 'Impr', key: 'Impressions' },
+    'Clicks': { label: 'Clicks', key: 'Clicks' },
+    'CTR': { label: 'CTR', key: 'CTR', suffix: '%' },
+    'Conversions': { label: 'Conv', key: 'Conversions' },
+    'ConvValue': { label: 'Value', key: 'ConvValue', prefix: '$' },
+    'Cost': { label: 'Cost', key: 'Cost', prefix: '$' }
+  }
+};
+
 // Helper functions defined at the top level
 function getProductRecords(product) {
   if (!window.allRows || !product) return [];
