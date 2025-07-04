@@ -456,12 +456,14 @@ if (currentViewMode === 'viewOverviewGoogleAds') {
   if (productMetricsContainer) productMetricsContainer.style.display = 'none';
 }
     
-    // Now populate them
-    populateProductInfo(product);
-    // Ensure date selector is properly set up
-setTimeout(() => {
-  setupProductInfoDateSelector();
-}, 100);
+// Only populate product info if in Overview mode
+if (currentViewMode === 'viewOverviewGoogleAds') {
+  populateProductInfo(product);
+  // Ensure date selector is properly set up
+  setTimeout(() => {
+    setupProductInfoDateSelector();
+  }, 100);
+}
     
 // Apply current filters to ranking map
 const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
@@ -1053,8 +1055,6 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
   wrapper.appendChild(rightContainer);
   
   productInfoContainer.appendChild(wrapper);
-  // Show the container
-  productInfoContainer.style.display = 'block';
   
     // Show date range selector in top controls
   const topDateSelector = document.getElementById('productInfoDateRange');
@@ -1883,9 +1883,6 @@ function renderProductInfoCharts(productData, mode = 'channel') {
 function populateProductTables(productData, mode = 'channel') {
   const tablesContainer = document.getElementById('product_tables');
   if (!tablesContainer) return;
-  
-  // Show the container
-  tablesContainer.style.display = 'block';
   
   // Check if previous period is enabled
   const showPreviousPeriod = document.getElementById('previousPeriodToggle')?.checked || false;
