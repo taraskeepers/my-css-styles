@@ -8645,17 +8645,19 @@ function initializeMainBucketsSwitcher() {
   setupMainBucketsSwitcherEventsDirectly();
 }
 
-// Create the bucketed products container
 function createBucketedProductsContainer() {
   console.log('[createBucketedProductsContainer] Starting...');
   
   // Try multiple selectors to find the content wrapper
-  let contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  let contentWrapper = document.getElementById('googleAdsContentWrapper');
   if (!contentWrapper) {
-    // Try to find the main Google Ads container
-    const googleAdsContainer = document.getElementById('googleAdsContainer');
-    if (googleAdsContainer) {
-      contentWrapper = googleAdsContainer.querySelector('.content-wrapper');
+    contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  }
+  if (!contentWrapper) {
+    // Try to find the main container
+    const tableContainer = document.getElementById('googleAdsTableContainer');
+    if (tableContainer) {
+      contentWrapper = tableContainer.querySelector('#googleAdsContentWrapper');
     }
   }
   
@@ -8663,8 +8665,8 @@ function createBucketedProductsContainer() {
   
   if (!contentWrapper) {
     console.error('[createBucketedProductsContainer] Content wrapper not found! Trying alternative approach...');
-    // As a fallback, try to append to the main container
-    const mainContainer = document.getElementById('googleAdsContainer');
+    // As a fallback, try to append to the table container
+    const mainContainer = document.getElementById('googleAdsTableContainer');
     if (mainContainer) {
       contentWrapper = mainContainer;
     } else {
@@ -8821,6 +8823,45 @@ if (!result || !result.data) return;
   } catch (error) {
     console.error('[renderBucketFunnels] Error:', error);
     filterContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 50px;">Unable to load bucket data</div>';
+  }
+}
+
+// Tooltip functions
+let funnelTooltip = null;
+
+function showFunnelTooltip(event, bucketName, count, percentage, total) {
+  if (!funnelTooltip) {
+    funnelTooltip = document.createElement('div');
+    funnelTooltip.style.cssText = `
+      position: fixed;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    document.body.appendChild(funnelTooltip);
+  }
+  
+  funnelTooltip.innerHTML = `
+    <div style="font-weight: 700; margin-bottom: 5px;">${bucketName}</div>
+    <div>Products: ${count} / ${total}</div>
+    <div>Percentage: ${percentage.toFixed(1)}%</div>
+  `;
+  
+  const x = event.clientX + 10;
+  const y = event.clientY - 10;
+  funnelTooltip.style.left = x + 'px';
+  funnelTooltip.style.top = y + 'px';
+  funnelTooltip.style.opacity = '1';
+}
+
+function hideFunnelTooltip() {
+  if (funnelTooltip) {
+    funnelTooltip.style.opacity = '0';
   }
 }
 
@@ -9035,45 +9076,6 @@ function handleBucketFilterClick(bucketType, bucketValue) {
   
   // Reload products with filter
   loadBucketedProducts();
-}
-
-// Tooltip functions
-let funnelTooltip = null;
-
-function showFunnelTooltip(event, bucketName, count, percentage, total) {
-  if (!funnelTooltip) {
-    funnelTooltip = document.createElement('div');
-    funnelTooltip.style.cssText = `
-      position: fixed;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 12px 15px;
-      border-radius: 6px;
-      font-size: 12px;
-      pointer-events: none;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    `;
-    document.body.appendChild(funnelTooltip);
-  }
-  
-  funnelTooltip.innerHTML = `
-    <div style="font-weight: 700; margin-bottom: 5px;">${bucketName}</div>
-    <div>Products: ${count} / ${total}</div>
-    <div>Percentage: ${percentage.toFixed(1)}%</div>
-  `;
-  
-  const x = event.clientX + 10;
-  const y = event.clientY - 10;
-  funnelTooltip.style.left = x + 'px';
-  funnelTooltip.style.top = y + 'px';
-  funnelTooltip.style.opacity = '1';
-}
-
-function hideFunnelTooltip() {
-  if (funnelTooltip) {
-    funnelTooltip.style.opacity = '0';
-  }
 }
 
 function setupMainBucketsSwitcherEvents() {
@@ -9845,7 +9847,7 @@ function createBucketedProductItem(product, metrics) {
     <!-- Position Badge with Trend -->
     <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <div class="small-ad-pos-value" style="font-size: 22px; line-height: 1; color: white; font-weight: 700;">${metrics.avgRating}</div>
-${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.change) ? `
+      ${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.change) ? `
         <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
           <span style="background-color: ${metrics.rankTrend.color}; font-size: 9px; padding: 2px 6px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600; white-space: nowrap;">
             ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
@@ -9854,7 +9856,7 @@ ${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.chang
       ` : ''}
     </div>
     
-<!-- Visibility Status with Trend -->
+    <!-- Visibility Status with Trend -->
     <div class="small-ad-vis-status" style="width: 60px;">
       <div class="vis-status-left">
         <div class="vis-water-container" style="--fill-height: ${metrics.avgVisibility}%; position: relative;">
@@ -9901,8 +9903,11 @@ ${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.chang
     </div>
   `;
   
-  // Load bucket data asynchronously
-  loadProductBucketDataAsync(productDiv, title);
+  // Store product reference on the element
+  productDiv.productData = product;
+  
+  // Load bucket data asynchronously - pass the product parameter
+  loadProductBucketDataAsync(productDiv, title, product);
   
   // Add hover effect
   productDiv.addEventListener('mouseenter', function() {
@@ -9913,16 +9918,6 @@ ${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.chang
   productDiv.addEventListener('mouseleave', function() {
     this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
     this.style.transform = 'translateY(0)';
-  });
-
-// Store product reference on the element
-  productDiv.productData = product;
-  
-  // Add click handler (will use stored data later)
-  productDiv.addEventListener('click', function(e) {
-    e.stopPropagation();
-    // Use stored data from the element
-    toggleDetailedProductView(this, this.productData, this.bucketData);
   });
   
   return productDiv;
@@ -10241,7 +10236,7 @@ function createBucketExplanation(bucketData, bucketConfig) {
   return bucketDiv;
 }
 
-async function loadProductBucketDataAsync(productDiv, productTitle) {
+async function loadProductBucketDataAsync(productDiv, productTitle, product) {
   const bucketData = await getProductBucketData(productTitle);
   
   // Store bucket data on the element for later use
@@ -10249,7 +10244,8 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
   
   productDiv.addEventListener('click', function(e) {
     e.stopPropagation();
-    toggleDetailedProductView(productDiv, product, productDiv.bucketData);
+    // Use the stored productData from the element
+    toggleDetailedProductView(productDiv, productDiv.productData, productDiv.bucketData);
   });
   
   if (!bucketData) {
