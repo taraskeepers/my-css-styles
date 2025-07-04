@@ -696,6 +696,50 @@ function updateProductMetricsChart() {
     }
   }
 
+async function checkProductHasData(productTitle) {
+  try {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    
+    // Try to open the database
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    // Check if the table exists
+    if (!db.objectStoreNames.contains('projectData')) {
+      db.close();
+      return false;
+    }
+    
+    // Try to get data from projectData store
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const data = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!data || !data.data) return false;
+    
+    // Check if this specific product has any data
+    const actualData = Array.isArray(data.data) ? data.data : [];
+    const productData = actualData.filter(row => row['Product Title'] === productTitle);
+    
+    return productData.length > 0;
+    
+  } catch (error) {
+    console.warn('[checkProductHasData] Error checking product data:', error);
+    return false;
+  }
+}
+
 async function loadProductMetricsData(productTitle) {
   try {
     console.log('[loadProductMetricsData] Starting...');
@@ -5294,16 +5338,25 @@ record.historical_data.forEach(item => {
   };
 }
 
-function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
+async function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
   // Clear container
   productsNavContainer.innerHTML = '';
   
+  // Show loading state
+  productsNavContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Loading products...</div>';
+  
   // Function to create product item
-  function createProductItem({ product, index, metrics }, isInactive = false) {
+  async function createProductItem({ product, index, metrics }, isInactive = false) {
+    // Check if product has data
+    const hasData = await checkProductHasData(product.title);
+    
     const navItem = document.createElement('div');
     navItem.classList.add('nav-google-ads-item');
     if (isInactive) {
       navItem.classList.add('inactive-product');
+    }
+    if (!hasData) {
+      navItem.classList.add('no-data-product');
     }
     navItem.setAttribute('data-google-ads-index', index);
     
@@ -5314,55 +5367,63 @@ function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, i
     const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
     const title = product.title || 'No title';
     
-smallCard.innerHTML = `
-  <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-    <div class="small-ad-pos-value">${metrics.avgRating}</div>
-    ${metrics.rankTrend.arrow ? `
-      <div class="small-ad-pos-trend-container">
-        <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
-          ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
-        </span>
-      </div>
-    ` : ''}
-  </div>
-  <div class="small-ad-vis-status">
-    <div class="vis-status-left">
-      <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
-        <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
-        ${metrics.visibilityTrend.arrow ? `
-          <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
-            ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
-          </span>
+    smallCard.innerHTML = `
+      <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
+        <div class="small-ad-pos-value">${metrics.avgRating}</div>
+        ${metrics.rankTrend.arrow ? `
+          <div class="small-ad-pos-trend-container">
+            <span class="small-ad-pos-trend" style="background-color: ${metrics.rankTrend.color};">
+              ${metrics.rankTrend.arrow} ${metrics.rankTrend.change}
+            </span>
+          </div>
         ` : ''}
       </div>
-    </div>
-    <div class="vis-status-right">
-      <div class="active-locations-count">${metrics.activeLocations}</div>
-      <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
-    </div>
-  </div>
-  <img class="small-ad-image" 
-       src="${imageUrl}" 
-       alt="${title}"
-       onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-  <div class="small-ad-title">${title}</div>
-`;
+      <div class="small-ad-vis-status">
+        <div class="vis-status-left">
+          <div class="vis-water-container" data-fill="${metrics.avgVisibility}">
+            <span class="vis-percentage">${metrics.avgVisibility.toFixed(1)}%</span>
+            ${metrics.visibilityTrend.arrow ? `
+              <span class="vis-trend" style="background-color: ${metrics.visibilityTrend.color};">
+                ${metrics.visibilityTrend.arrow} ${metrics.visibilityTrend.change}
+              </span>
+            ` : ''}
+          </div>
+        </div>
+        <div class="vis-status-right">
+          <div class="active-locations-count">${metrics.activeLocations}</div>
+          <div class="inactive-locations-count">${metrics.inactiveLocations}</div>
+        </div>
+      </div>
+      <img class="small-ad-image" 
+           src="${imageUrl}" 
+           alt="${title}"
+           onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
+      <div class="small-ad-title">${title}</div>
+      ${!hasData ? '<div class="no-data-overlay">No performance data</div>' : ''}
+    `;
     
     navItem.appendChild(smallCard);
     
-    navItem.addEventListener('click', function() {
-      selectGoogleAdsProduct(product, navItem);
-    });
+    // Only add click handler if product has data
+    if (hasData) {
+      navItem.addEventListener('click', function() {
+        selectGoogleAdsProduct(product, navItem);
+      });
+    }
     
     return navItem;
   }
   
+  // Clear loading state
+  productsNavContainer.innerHTML = '';
+  
   // Render based on filter
   if (filter === 'all') {
     // Render active products
-    activeProducts.forEach(item => {
-      productsNavContainer.appendChild(createProductItem(item, false));
-    });
+    for (const item of activeProducts) {
+      const navItem = await createProductItem(item, false);
+      productsNavContainer.appendChild(navItem);
+    }
     
     // Add separator if there are inactive products
     if (inactiveProducts.length > 0) {
@@ -5377,17 +5438,20 @@ smallCard.innerHTML = `
     }
     
     // Render inactive products
-    inactiveProducts.forEach(item => {
-      productsNavContainer.appendChild(createProductItem(item, true));
-    });
+    for (const item of inactiveProducts) {
+      const navItem = await createProductItem(item, true);
+      productsNavContainer.appendChild(navItem);
+    }
   } else if (filter === 'active') {
-    activeProducts.forEach(item => {
-      productsNavContainer.appendChild(createProductItem(item, false));
-    });
+    for (const item of activeProducts) {
+      const navItem = await createProductItem(item, false);
+      productsNavContainer.appendChild(navItem);
+    }
   } else if (filter === 'inactive') {
-    inactiveProducts.forEach(item => {
-      productsNavContainer.appendChild(createProductItem(item, true));
-    });
+    for (const item of inactiveProducts) {
+      const navItem = await createProductItem(item, true);
+      productsNavContainer.appendChild(navItem);
+    }
   }
   
   // Update water fill heights
@@ -8057,6 +8121,36 @@ if (window.googleAdsApexCharts) {
 .google-ads-content-wrapper.nav-collapsed {
   margin-left: -388px; /* Negative margin to shift content left */
 }
+.nav-google-ads-item.no-data-product {
+  position: relative;
+}
+
+.nav-google-ads-item.no-data-product .small-ad-details {
+  filter: grayscale(100%) opacity(0.6);
+  cursor: not-allowed;
+  position: relative;
+}
+
+.nav-google-ads-item.no-data-product .small-ad-details:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.no-data-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  white-space: nowrap;
+  z-index: 10;
+}
     `;
     document.head.appendChild(style);
   }
@@ -8135,7 +8229,9 @@ activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 
 // Initial render with all products
-renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, 'all');
+renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, 'all').then(() => {
+  console.log('[renderGoogleAdsTable] Products rendered with data availability check');
+});
 
 // Update the counter display
 const allCountBadge = document.querySelector('.all-badge');
@@ -8162,8 +8258,8 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
         }
       });
       
-      // Re-render products with filter
-      renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter);
+// Re-render products with filter (async now)
+renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter);
     });
   });
 }
