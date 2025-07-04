@@ -6173,11 +6173,13 @@ if (bucketsSwitcher) {
 }
 
 // Initialize main buckets switcher with a small delay to ensure DOM is ready
+if (window.initializeMainBucketsSwitcher) {
+  window.initializeMainBucketsSwitcher();
+}
+// Set up event listeners directly for the dynamically created buttons
 setTimeout(() => {
-  if (window.initializeMainBucketsSwitcher) {
-    window.initializeMainBucketsSwitcher();
-  }
-}, 100);
+  setupMainBucketsSwitcherEventsDirectly();
+}, 50);
 
   // Hide date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
@@ -8555,6 +8557,45 @@ function getAllFromStore(store) {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+function setupMainBucketsSwitcherEventsDirectly() {
+  console.log('[setupMainBucketsSwitcherEventsDirectly] Setting up event listeners...');
+  
+  const overviewBtn = document.getElementById('mainBucketsOverview');
+  const productsBtn = document.getElementById('mainBucketedProducts');
+
+  if (overviewBtn) {
+    // Remove existing listeners by cloning
+    const newOverviewBtn = overviewBtn.cloneNode(true);
+    overviewBtn.parentNode.replaceChild(newOverviewBtn, overviewBtn);
+    
+    newOverviewBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[mainBucketsSwitcher] Overview button clicked');
+      if (window.handleMainBucketSwitch) {
+        window.handleMainBucketSwitch('mainBucketsOverview');
+      }
+    });
+    console.log('[setupMainBucketsSwitcherEventsDirectly] Overview button listener added');
+  }
+
+  if (productsBtn) {
+    // Remove existing listeners by cloning
+    const newProductsBtn = productsBtn.cloneNode(true);
+    productsBtn.parentNode.replaceChild(newProductsBtn, productsBtn);
+    
+    newProductsBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[mainBucketsSwitcher] Products button clicked');
+      if (window.handleMainBucketSwitch) {
+        window.handleMainBucketSwitch('mainBucketedProducts');
+      }
+    });
+    console.log('[setupMainBucketsSwitcherEventsDirectly] Products button listener added');
+  }
 }
 
 // Export the function
