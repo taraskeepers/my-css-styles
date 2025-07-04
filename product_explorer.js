@@ -435,6 +435,7 @@ function renderTableForSelectedProduct(combinations, initialViewMode = 'viewRank
   
   const table = document.createElement("table");
   table.classList.add("product-explorer-table");
+  table.style.display = ''; 
   
   const thead = document.createElement("thead");
 thead.innerHTML = `
