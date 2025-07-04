@@ -407,7 +407,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
     window.productInfoCharts = [];
   }
   
-  document.querySelectorAll('.nav-google-ads-item').forEach(item => {
+  document.querySelectorAll('.nav-google-ads-product-item').forEach(item => {
     item.classList.remove('selected');
   });
   
@@ -5396,7 +5396,7 @@ async function renderFilteredGoogleAdsProducts(productsNavContainer, activeProdu
     const hasData = await checkProductHasData(product.title);
     
     const navItem = document.createElement('div');
-    navItem.classList.add('nav-google-ads-item');
+    navItem.classList.add('nav-google-ads-product-item');
     if (isInactive) {
       navItem.classList.add('inactive-product');
     }
@@ -5406,7 +5406,7 @@ async function renderFilteredGoogleAdsProducts(productsNavContainer, activeProdu
     navItem.setAttribute('data-google-ads-index', index);
     
     const smallCard = document.createElement('div');
-    smallCard.classList.add('small-ad-details');
+    smallCard.classList.add('google-ads-small-ad-details');
     
     const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
     const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
@@ -5749,8 +5749,8 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
   
 // Force re-selection of current product or select first one
-const selectedNavItem = document.querySelector('.nav-google-ads-item.selected');
-const firstNavItem = document.querySelector('.nav-google-ads-item');
+const selectedNavItem = document.querySelector('.nav-google-ads-product-item.selected');
+const firstNavItem = document.querySelector('.nav-google-ads-product-item');
 
 if (selectedNavItem) {
   // Re-trigger selection of current product to reload data
@@ -6620,11 +6620,11 @@ if (window.googleAdsApexCharts) {
         background: #666;
       }
 
-      .nav-google-ads-item {
+      .nav-google-ads-product-item {
         margin-bottom: 5px;
       }
 
-.nav-google-ads-item .small-ad-details {
+.nav-google-ads-product-item .google-ads-small-ad-details {
   width: 370px;
   height: 60px;
   margin-bottom: 0;
@@ -6715,30 +6715,30 @@ if (window.googleAdsApexCharts) {
   color: white;
   border-top: 1px solid #ddd;
 }
-      .nav-google-ads-item .small-ad-details:hover {
+      .nav-google-ads-product-item .google-ads-small-ad-details:hover {
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         transform: translateY(-1px);
       }
 
-      .nav-google-ads-item.selected .small-ad-details {
+      .nav-google-ads-product-item.selected .google-ads-small-ad-details {
         border: 2px solid #007aff;
         box-shadow: 0 2px 6px rgba(0,122,255,0.3);
       }
 
-      .nav-google-ads-item .small-ad-image {
+      .nav-google-ads-product-item .small-ad-image {
         width: 50px;
         height: 50px;
         margin-right: 10px;
         margin-left: 10px;
       }
 
-      .nav-google-ads-item .small-ad-title {
+      .nav-google-ads-product-item .small-ad-title {
         flex: 1;
         font-size: 13px;
         line-height: 1.4;
       }
 
-      .nav-google-ads-item .small-ad-pos-badge {
+      .nav-google-ads-product-item .small-ad-pos-badge {
         margin-left: auto;
       }
       
@@ -7035,17 +7035,17 @@ if (window.googleAdsApexCharts) {
   text-transform: uppercase;
 }
 
-.nav-google-ads-item.inactive-product {
+.nav-google-ads-product-item.inactive-product {
   filter: grayscale(100%) brightness(0.8);
   opacity: 0.7;
 }
 
-.nav-google-ads-item.inactive-product:hover {
+.nav-google-ads-product-item.inactive-product:hover {
   filter: grayscale(70%) brightness(0.9);
   opacity: 0.9;
 }
 
-.nav-google-ads-item.inactive-product .small-ad-details {
+.nav-google-ads-product-item.inactive-product .google-ads-small-ad-details {
   background-color: #f5f5f5;
   border: 1px solid #ddd;
 }
@@ -8183,17 +8183,17 @@ if (window.googleAdsApexCharts) {
 .google-ads-content-wrapper.nav-collapsed {
   margin-left: -388px; /* Negative margin to shift content left */
 }
-.nav-google-ads-item.no-data-product {
+.nav-google-ads-product-item.no-data-product {
   position: relative;
 }
 
-.nav-google-ads-item.no-data-product .small-ad-details {
+.nav-google-ads-product-item.no-data-product .google-ads-small-ad-details {
   filter: grayscale(100%) opacity(0.6);
   cursor: not-allowed;
   position: relative;
 }
 
-.nav-google-ads-item.no-data-product .small-ad-details:hover {
+.nav-google-ads-product-item.no-data-product .google-ads-small-ad-details:hover {
   transform: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -8307,7 +8307,7 @@ googleAdsNavPanel.innerHTML = `
 `;
   
   const productsNavContainer = document.createElement('div');
-  productsNavContainer.classList.add('products-nav-container');
+  productsNavContainer.classList.add('google-ads-products-nav-container');
   productsNavContainer.style.padding = '10px';
 
 // Calculate metrics for all products and separate active/inactive
@@ -8374,7 +8374,7 @@ setTimeout(async () => {
   let firstProductWithData = null;
   let firstNavItemWithData = null;
   
-  const allNavItems = document.querySelectorAll('.nav-google-ads-item:not(.no-data-product)');
+  const allNavItems = document.querySelectorAll('.nav-google-ads-product-item:not(.no-data-product)');
   
   for (const navItem of allNavItems) {
     const index = parseInt(navItem.getAttribute('data-google-ads-index'));
