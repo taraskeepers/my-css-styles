@@ -2468,8 +2468,11 @@ function renderProductExplorerTable() {
   const container = document.getElementById("productExplorerPage");
   if (!container) return;
   
-  // IMPORTANT: Ensure the page container is visible
-  container.style.display = "block";
+// Check if Product Explorer page is actually visible before proceeding
+if (container.style.display === "none") {
+  console.log("[renderProductExplorerTable] Product Explorer page is hidden, skipping render");
+  return;
+}
 
   window.pendingExplorerCharts = [];
 
