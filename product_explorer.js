@@ -2454,6 +2454,18 @@ function getRatingBadgeColor(rating) {
 
 // Main function definition
 function renderProductExplorerTable() {
+  // First, ensure the container is visible
+  const productExplorerContainer = document.getElementById('productExplorerContainer');
+  if (productExplorerContainer) {
+    productExplorerContainer.style.display = '';
+  }
+  
+  // Ensure any hidden product explorer tables are shown
+  const hiddenTables = document.querySelectorAll('.product-explorer-table');
+  hiddenTables.forEach(table => {
+    table.style.display = '';
+  });
+  
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
   if (existingTable) {
     existingTable.remove();
