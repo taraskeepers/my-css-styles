@@ -954,6 +954,33 @@ function createLocationListItem(loc) {
       window.companyStatsData = serpStatsRec.data || [];   
       window.marketTrendsData = marketTrendsRec.data || [];
 
+// Load Google Sheets data if available for THIS PROJECT
+Promise.all([
+  window.embedIDB.getData(prefix + "googleSheets_productPerformance"),
+  window.embedIDB.getData(prefix + "googleSheets_locationRevenue")
+]).then(([productRec, locationRec]) => {
+  if (productRec?.data && locationRec?.data) {
+    console.log("[Google Sheets] Loaded from IDB cache for project:", projectNumber);
+    window.googleSheetsData = {
+      productPerformance: productRec.data,
+      locationRevenue: locationRec.data
+    };
+  } else {
+    // NO AUTO-FETCH! Just set empty data
+    console.log("[Google Sheets] No data for project", projectNumber, "- user hasn't uploaded sheets for this project");
+    window.googleSheetsData = {
+      productPerformance: [],
+      locationRevenue: []
+    };
+  }
+}).catch(err => {
+  console.log("[Google Sheets] Using empty data due to error:", err.message);
+  window.googleSheetsData = {
+    productPerformance: [],
+    locationRevenue: []
+  };
+});
+
       const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
       console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
       if (loadedProjectNumbers.size !== 1) {
