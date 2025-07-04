@@ -609,8 +609,16 @@ getStoredConfig: async function(prefix = 'acc1_') {
     return null;
   }
 },
+
   // Add a fetchAndStoreAll method that was referenced in the embed code
 fetchAndStoreAll: async function(prefix = 'acc1_') {
+  // Ensure prefix includes project number if not already
+  if (!prefix.includes('_pr')) {
+    const currentProjectNum = window.dataPrefix ? 
+      parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+    prefix = `${prefix}pr${currentProjectNum}_`;
+  }
+  
   try {
     // Check if we have stored config to get the URL
     const config = await this.getStoredConfig(prefix);
