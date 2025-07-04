@@ -8559,24 +8559,14 @@ function getAllFromStore(store) {
   });
 }
 
-// ========================================
-// QUICK FIX: In google_ads.js
-// ========================================
-
-// REPLACE the setupMainBucketsSwitcherEventsDirectly function with this version that calls functions directly:
-
 function setupMainBucketsSwitcherEventsDirectly() {
   console.log('[setupMainBucketsSwitcherEventsDirectly] Setting up event listeners...');
   
   const overviewBtn = document.getElementById('mainBucketsOverview');
   const productsBtn = document.getElementById('mainBucketedProducts');
 
-  console.log('[setupMainBucketsSwitcherEventsDirectly] Buttons found:', {
-    overviewBtn: !!overviewBtn,
-    productsBtn: !!productsBtn
-  });
-
   if (overviewBtn) {
+    // Remove existing listeners by cloning
     const newOverviewBtn = overviewBtn.cloneNode(true);
     overviewBtn.parentNode.replaceChild(newOverviewBtn, overviewBtn);
     
@@ -8584,47 +8574,15 @@ function setupMainBucketsSwitcherEventsDirectly() {
       e.preventDefault();
       e.stopPropagation();
       console.log('[mainBucketsSwitcher] Overview button clicked');
-      
-      // Direct implementation of overview functionality
-      try {
-        // Update button states
-        const overviewBtn = document.getElementById('mainBucketsOverview');
-        const productsBtn = document.getElementById('mainBucketedProducts');
-        if (overviewBtn) overviewBtn.classList.add('active');
-        if (productsBtn) productsBtn.classList.remove('active');
-        window.currentMainBucketView = 'overview';
-        
-        // Show/hide containers directly
-        const roasCharts = document.getElementById('roas_charts');
-        const roasMetricsTable = document.getElementById('roas_metrics_table');
-        const roasChannels = document.getElementById('roas_channels');
-        const buckets_products = document.getElementById('buckets_products');
-        const filterContainer = document.getElementById('products-buckets-filter-container');
-        const bucketedProducts = document.getElementById('bucketed_products_container');
-        
-        if (roasCharts) roasCharts.style.display = 'none';
-        if (roasMetricsTable) {
-          roasMetricsTable.style.display = 'block';
-          roasMetricsTable.style.marginTop = '100px';
-        }
-        if (roasChannels) roasChannels.style.display = 'none';
-        if (buckets_products) buckets_products.style.display = 'block';
-        if (filterContainer) filterContainer.style.display = 'none';
-        if (bucketedProducts) bucketedProducts.style.display = 'none';
-        
-        // Show bucket date range
-        const bucketDateRange = document.getElementById('bucketDateRange');
-        if (bucketDateRange) bucketDateRange.style.display = 'block';
-        
-        console.log('[mainBucketsSwitcher] Overview mode activated successfully');
-      } catch (error) {
-        console.error('[mainBucketsSwitcher] Error in overview mode:', error);
+      if (window.handleMainBucketSwitch) {
+        window.handleMainBucketSwitch('mainBucketsOverview');
       }
     });
     console.log('[setupMainBucketsSwitcherEventsDirectly] Overview button listener added');
   }
 
   if (productsBtn) {
+    // Remove existing listeners by cloning
     const newProductsBtn = productsBtn.cloneNode(true);
     productsBtn.parentNode.replaceChild(newProductsBtn, productsBtn);
     
@@ -8632,169 +8590,11 @@ function setupMainBucketsSwitcherEventsDirectly() {
       e.preventDefault();
       e.stopPropagation();
       console.log('[mainBucketsSwitcher] Products button clicked');
-      
-      // Direct implementation of products functionality
-      try {
-        // Update button states
-        const overviewBtn = document.getElementById('mainBucketsOverview');
-        const productsBtn = document.getElementById('mainBucketedProducts');
-        if (overviewBtn) overviewBtn.classList.remove('active');
-        if (productsBtn) productsBtn.classList.add('active');
-        window.currentMainBucketView = 'products';
-        
-        console.log('[mainBucketsSwitcher] Calling createProductsBucketsFilterContainer...');
-        // Create containers if they don't exist
-        createProductsBucketsFilterContainer();
-        createBucketedProductsContainer();
-        
-        // Show/hide containers
-        const roasCharts = document.getElementById('roas_charts');
-        const roasMetricsTable = document.getElementById('roas_metrics_table');
-        const roasChannels = document.getElementById('roas_channels');
-        const buckets_products = document.getElementById('buckets_products');
-        const filterContainer = document.getElementById('products-buckets-filter-container');
-        const bucketedProducts = document.getElementById('bucketed_products_container');
-        
-        console.log('[mainBucketsSwitcher] Container statuses:', {
-          roasCharts: !!roasCharts,
-          roasMetricsTable: !!roasMetricsTable,
-          roasChannels: !!roasChannels,
-          buckets_products: !!buckets_products,
-          filterContainer: !!filterContainer,
-          bucketedProducts: !!bucketedProducts
-        });
-        
-        if (roasCharts) roasCharts.style.display = 'none';
-        if (roasMetricsTable) roasMetricsTable.style.display = 'none';
-        if (roasChannels) roasChannels.style.display = 'none';
-        if (buckets_products) buckets_products.style.display = 'none';
-        
-        if (filterContainer) {
-          filterContainer.style.display = 'block';
-          if (!filterContainer.style.margin) {
-            filterContainer.style.margin = '110px 0 20px 20px';
-          }
-          console.log('[mainBucketsSwitcher] Calling renderBucketFunnels...');
-          renderBucketFunnels(); // This function should exist in main_buckets file
-        }
-        
-        if (bucketedProducts) {
-          bucketedProducts.style.display = 'block';
-          console.log('[mainBucketsSwitcher] Set bucketed products container to display: block');
-        }
-        
-        // Clear bucket selection
-        window.currentBucketFilter = null;
-        
-        // Hide bucket date range
-        const bucketDateRange = document.getElementById('bucketDateRange');
-        if (bucketDateRange) bucketDateRange.style.display = 'none';
-        
-        // Load products
-        console.log('[mainBucketsSwitcher] Calling loadBucketedProducts...');
-        loadBucketedProducts(); // This function should exist in main_buckets file
-        
-        console.log('[mainBucketsSwitcher] Products mode activated successfully');
-      } catch (error) {
-        console.error('[mainBucketsSwitcher] Error in products mode:', error);
+      if (window.handleMainBucketSwitch) {
+        window.handleMainBucketSwitch('mainBucketedProducts');
       }
     });
     console.log('[setupMainBucketsSwitcherEventsDirectly] Products button listener added');
-  }
-}
-
-// ========================================
-// Also add these helper functions to google_ads.js if they don't exist:
-// ========================================
-
-// Add these functions at the end of google_ads.js (before the exports section):
-
-function createProductsBucketsFilterContainer() {
-  let contentWrapper = document.querySelector('.google-ads-content-wrapper');
-  if (!contentWrapper) {
-    const googleAdsContainer = document.getElementById('googleAdsContainer');
-    if (googleAdsContainer) {
-      contentWrapper = googleAdsContainer.querySelector('.content-wrapper');
-    }
-  }
-  
-  if (!contentWrapper) {
-    contentWrapper = document.getElementById('googleAdsContainer');
-    if (!contentWrapper) return;
-  }
-  
-  let filterContainer = document.getElementById('products-buckets-filter-container');
-  if (!filterContainer) {
-    filterContainer = document.createElement('div');
-    filterContainer.id = 'products-buckets-filter-container';
-    filterContainer.style.cssText = `
-      width: 1195px;
-      height: 250px;
-      margin: 110px 0 20px 20px;
-      background-color: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border-radius: 12px;
-      padding: 20px;
-      display: none;
-      position: relative;
-      z-index: 100;
-    `;
-    
-    const bucketedProducts = document.getElementById('bucketed_products_container');
-    if (bucketedProducts && bucketedProducts.parentNode) {
-      bucketedProducts.parentNode.insertBefore(filterContainer, bucketedProducts);
-    } else {
-      contentWrapper.appendChild(filterContainer);
-    }
-  }
-  
-  return filterContainer;
-}
-
-function createBucketedProductsContainer() {
-  let contentWrapper = document.querySelector('.google-ads-content-wrapper');
-  if (!contentWrapper) {
-    const googleAdsContainer = document.getElementById('googleAdsContainer');
-    if (googleAdsContainer) {
-      contentWrapper = googleAdsContainer.querySelector('.content-wrapper');
-    }
-  }
-  
-  if (!contentWrapper) {
-    const mainContainer = document.getElementById('googleAdsContainer');
-    if (mainContainer) {
-      contentWrapper = mainContainer;
-    } else {
-      return;
-    }
-  }
-  
-  let bucketedProductsContainer = document.getElementById('bucketed_products_container');
-  if (!bucketedProductsContainer) {
-    bucketedProductsContainer = document.createElement('div');
-    bucketedProductsContainer.id = 'bucketed_products_container';
-    bucketedProductsContainer.className = 'google-ads-bucketed-products-container';
-    bucketedProductsContainer.style.cssText = `
-      width: 1195px;
-      min-height: 600px;
-      margin: 20px 0 20px 20px;
-      background-color: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border-radius: 12px;
-      padding: 20px;
-      display: none;
-      overflow-y: auto;
-      max-height: 80vh;
-      position: relative;
-      z-index: 100;
-    `;
-    
-    const buckets_products = document.getElementById('buckets_products');
-    if (buckets_products && buckets_products.parentNode) {
-      buckets_products.parentNode.insertBefore(bucketedProductsContainer, buckets_products.nextSibling);
-    } else {
-      contentWrapper.appendChild(bucketedProductsContainer);
-    }
   }
 }
 
