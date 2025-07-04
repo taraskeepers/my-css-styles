@@ -82,6 +82,16 @@ window.bucketConfig = {
   }
 };
 
+// Helper function to get the current project-specific table prefix
+function getProjectTablePrefix() {
+  const accountPrefix = window.currentAccount || 'acc1';
+  const currentProjectNum = window.dataPrefix ? 
+    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+  const prefix = `${accountPrefix}_pr${currentProjectNum}_`;
+  console.log('[Buckets] Using table prefix:', prefix);
+  return prefix;
+}
+
 // Helper function to extract bucket value from JSON
 function getBucketValue(bucketData) {
   if (typeof bucketData === 'string') {
@@ -447,10 +457,10 @@ async function loadAndRenderROASBuckets() {
   
   try {
     // Get the bucket data using the same pattern as other data access
-const accountPrefix = window.currentAccount || 'acc1';
+const tablePrefix = getProjectTablePrefix();
 const days = window.selectedBucketDateRangeDays || 30;
 const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
 console.log(`[loadAndRenderROASBuckets] Loading data for ${days} days from ${tableName}`);
     
     const db = await new Promise((resolve, reject) => {
@@ -1659,10 +1669,10 @@ async function updateBucketMetrics(selectedBucket) {
   rightContainer.innerHTML = '<div style="text-align: center; margin-top: 40px;"><div class="spinner"></div><p>Loading metrics...</p></div>';
   
   try {
-    const accountPrefix = window.currentAccount || 'acc1';
-    const days = window.selectedBucketDateRangeDays || 30;
+const tablePrefix = getProjectTablePrefix();
+const days = window.selectedBucketDateRangeDays || 30;
 const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -1710,10 +1720,10 @@ async function updateChannelsAndCampaignsForBucket(selectedBucket) {
   
   try {
     // Get the same data as used in loadAndRenderROASBuckets
-    const accountPrefix = window.currentAccount || 'acc1';
-    const days = window.selectedBucketDateRangeDays || 30;
+const tablePrefix = getProjectTablePrefix();
+const days = window.selectedBucketDateRangeDays || 30;
 const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -3281,9 +3291,9 @@ async function renderROASHistoricCharts(container, data) {
   const mainWrapper = document.createElement('div');
   mainWrapper.style.cssText = 'display: flex; flex-direction: column; height: 100%; gap: 15px;';
   
-  // Load product performance data instead of bucket data
-  const accountPrefix = window.currentAccount || 'acc1';
-  const performanceTableName = `${accountPrefix}_googleSheets_productPerformance`;
+// Load product performance data instead of bucket data
+const tablePrefix = getProjectTablePrefix();
+const performanceTableName = `${tablePrefix}googleSheets_productPerformance`;
   
   let performanceData;
   try {
@@ -4694,3 +4704,11 @@ if (!document.getElementById('bucket-date-selector-styles')) {
   `;
   document.head.appendChild(style);
 }
+
+// Listen for project changes to refresh buckets
+document.addEventListener('projectChanged', async function(event) {
+  console.log('[Buckets] Project changed, refreshing buckets view...');
+  if (window.refreshROASBucketsView) {
+    await window.refreshROASBucketsView();
+  }
+});
