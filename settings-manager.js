@@ -1436,25 +1436,13 @@ window.refreshIDBData = async function() {
       requestBoth: true  // Signal to parent to send both demo and real data
     }, "*");
 
-    // Also fetch fresh Google Sheets data if available
-    const currentPrefix = window.dataPrefix ? window.dataPrefix.split('_pr')[0] + '_' : 'acc1_';
-    if (window.googleSheetsManager && typeof window.googleSheetsManager.fetchAndStoreAll === "function") {
-      window.googleSheetsManager.fetchAndStoreAll(currentPrefix)
-        .then(({ productData, locationData }) => {
-          window.googleSheetsData = {
-            productPerformance: productData,
-            locationRevenue: locationData
-          };
-          console.log("[IDB Refresh] Google Sheets data refreshed");
-        })
-        .catch(err => {
-          console.log("[IDB Refresh] Google Sheets not available (user hasn't uploaded)");
-          window.googleSheetsData = {
-            productPerformance: [],
-            locationRevenue: []
-          };
-        });
-    }
+// DON'T automatically fetch Google Sheets data
+// Each project manages its own Google Sheets data independently
+console.log("[IDB Refresh] Google Sheets data is project-specific, not refreshing automatically");
+window.googleSheetsData = {
+  productPerformance: [],
+  locationRevenue: []
+};
 
   } catch (error) {
     console.error("[🔄 IDB Refresh] Error during refresh:", error);
