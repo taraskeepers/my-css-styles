@@ -8336,9 +8336,9 @@ if (window.googleAdsApexCharts) {
   display: none !important;
 }
 /* Ensure product explorer is always hidden when google ads is active */
-.product-explorer-table {
-  display: none !important;
-}
+/*.product-explorer-table {
+  /*display: none !important;
+/*}
 
 /* Ensure table is hidden in Rank Map view */
 #viewChartsGoogleAds.active ~ * .google-ads-table {
