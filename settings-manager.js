@@ -872,23 +872,23 @@ function initializeTabContent(tabName) {
             const companies = await loadCompaniesForProject(projectNum);
             console.log(`[Settings] Project ${projectNum} has ${companies.length} companies`);
             
-            const rowHTML = `
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                padding: 16px;
-                background: #f9fafb;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                margin-bottom: 8px;
-              ">
-                <div style="flex: 1;">
-                  <div style="
-                    font-size: 14px;
-                    color: #6b7280;
-                    margin-bottom: 4px;
-                  ">Project ${projectNum}</div>
+const rowHTML = `
+  <div style="
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  ">
+    <div style="flex: 1;">
+      <div style="
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 4px;
+      ">Project ${projectNum}${project.project ? ' - ' + project.project : ''}</div>
                   <div style="
                     font-size: 16px;
                     font-weight: 600;
@@ -1048,24 +1048,24 @@ async function initializeGoogleAdsTab() {
       console.log(`[Settings] No Google Sheets data for project ${projectNum}`);
     }
     
-    const rowHTML = `
+const rowHTML = `
+  <div style="
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+  ">
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    ">
       <div style="
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 20px;
-      ">
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        ">
-          <div style="
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a1a;
-          ">Project ${projectNum}</div>
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+      ">Project ${projectNum}${project.project ? ' - ' + project.project : ''}</div>
           <div style="
             font-size: 14px;
             color: ${statusColor};
