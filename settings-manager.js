@@ -1157,7 +1157,27 @@ if (productData && productData.data && productData.data.length > 0) {
               statusEl.style.color = "#059669";
             }
             
-            successCount++;
+successCount++;
+            
+            // ADD THIS: Update the Google Ads availability status for this specific project
+            const projectMatch = projectKey.match(/acc1_pr(\d+)_/);
+            if (projectMatch) {
+              const projectNumber = parseInt(projectMatch[1], 10);
+              
+              // Update the availability variable
+              if (window.googleAdsDataAvailability) {
+                window.googleAdsDataAvailability[`acc1_pr${projectNumber}_googleads`] = true;
+              }
+              
+              // Update button state if this is the current project
+              if (window.filterState && window.filterState.activeProjectNumber === projectNumber) {
+                if (typeof updateGoogleAdsButtonState === 'function') {
+                  updateGoogleAdsButtonState(projectNumber);
+                }
+              }
+              
+              console.log(`[Settings] Updated Google Ads availability for project ${projectNumber}`);
+            }
           } else {
             throw new Error("No data was loaded from the spreadsheet");
           }
@@ -1207,10 +1227,20 @@ if (productData && productData.data && productData.data.length > 0) {
           'warning',
           5000
         );
-      } else {
+} else {
         // Show detailed error
         const errorDetail = errors.length > 0 ? errors[0] : "Unknown error occurred";
         window.showNotification(errorDetail, 'error', 5000);
+      }
+      
+      // ADD THIS: Refresh all Google Ads availability statuses after processing
+      if (successCount > 0) {
+        if (typeof checkAllProjectsGoogleAdsData === 'function') {
+          setTimeout(() => {
+            console.log("[Settings] Refreshing Google Ads availability status for all projects");
+            checkAllProjectsGoogleAdsData();
+          }, 500);
+        }
       }
     };
   }
