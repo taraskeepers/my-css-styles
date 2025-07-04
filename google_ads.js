@@ -389,7 +389,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
   return new Promise((resolve) => {
     console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
-    // Hide product explorer elements that might be visible
+  // Hide product explorer elements that might be visible
   const productExplorerTable = document.querySelector('.product-explorer-table');
   if (productExplorerTable) {
     productExplorerTable.style.display = 'none';
@@ -397,6 +397,13 @@ function selectGoogleAdsProduct(product, navItemElement) {
   const explorerContainer = document.getElementById('productExplorerContainer');
   if (explorerContainer) {
     explorerContainer.style.display = 'none';
+  }
+  
+  // Clean up any ghost tables in the Google Ads container
+  const googleAdsContainer = document.getElementById('googleAdsContainer');
+  if (googleAdsContainer) {
+    const ghostTables = googleAdsContainer.querySelectorAll('.product-explorer-table');
+    ghostTables.forEach(table => table.remove());
   }
 
   // Clean up previous product info charts
@@ -3366,9 +3373,25 @@ function getRankingDataByDevice(dates) {
 function renderTableForSelectedGoogleAdsProduct(combinations, initialViewMode = 'viewOverviewGoogleAds') {
   console.log('[renderTableForSelectedGoogleAdsProduct] Starting with', combinations.length, 'combinations');
   
-  const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
-  if (existingTable) {
-    existingTable.remove();
+  // Get the container
+  const container = document.querySelector("#googleAdsContainer");
+  if (!container) {
+    console.error('[renderTableForSelectedGoogleAdsProduct] No googleAdsContainer found');
+    return;
+  }
+  
+  // Remove ALL existing tables (both google-ads-table and any product-explorer-table)
+  const existingTables = container.querySelectorAll("table");
+  existingTables.forEach(table => table.remove());
+  
+  // Also specifically remove any product explorer tables that might exist
+  const explorerTables = document.querySelectorAll('.product-explorer-table');
+  explorerTables.forEach(table => table.remove());
+  
+  // Clear the content wrapper if it exists
+  const existingContentWrapper = container.querySelector('.google-ads-content-wrapper');
+  if (existingContentWrapper) {
+    existingContentWrapper.remove();
   }
 
   // Remove the "No products found" message if it exists
@@ -5528,6 +5551,18 @@ const explorerContainer = document.getElementById('productExplorerContainer');
 if (explorerContainer) {
   explorerContainer.style.display = 'none';
 }
+
+// Clear any existing tables in the Google Ads container before rendering
+const googleAdsContainer = document.getElementById("googleAdsContainer");
+if (googleAdsContainer) {
+  // Remove all tables
+  const allTables = googleAdsContainer.querySelectorAll("table");
+  allTables.forEach(table => table.remove());
+  
+  // Remove any stray product explorer elements
+  const strayExplorerElements = googleAdsContainer.querySelectorAll('.product-explorer-table, .explorer-chart-container, .explorer-view-switcher');
+  strayExplorerElements.forEach(el => el.remove());
+}
   
   const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
   if (existingTable) {
@@ -6278,6 +6313,22 @@ if (window.googleAdsApexCharts) {
     const style = document.createElement("style");
     style.id = "google-ads-table-style";
     style.textContent = `
+/* Ensure product explorer tables are never visible in Google Ads */
+      #googleAdsPage .product-explorer-table,
+      #googleAdsContainer .product-explorer-table,
+      .google-ads-table .product-explorer-table,
+      .google-ads-active .product-explorer-table {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      
+      /* Hide any explorer elements that might leak in */
+      #googleAdsPage .explorer-chart-container,
+      #googleAdsPage .explorer-view-switcher,
+      #googleAdsPage [class*="explorer-"] {
+        display: none !important;
+      }
+      
       .google-ads-table {
         width: calc(100% - 40px);
         margin-left: 20px;
@@ -8512,4 +8563,39 @@ window.renderGoogleAdsTable = renderGoogleAdsTable;
 window.renderAvgPositionChartGoogleAds = renderAvgPositionChartGoogleAds;
 window.updateChartLineVisibilityGoogleAds = updateChartLineVisibilityGoogleAds;
 window.renderGoogleAdsPositionChart = renderGoogleAdsPositionChart;
+
+// Add cleanup function for when leaving Google Ads
+window.cleanupGoogleAds = function() {
+  document.body.classList.remove('google-ads-active');
+  // Hide Google Ads specific containers
+  const googleAdsRankingMap = document.getElementById('google_ads_ranking_map');
+  if (googleAdsRankingMap) {
+    googleAdsRankingMap.style.display = 'none';
+    googleAdsRankingMap.innerHTML = '';
+  }
+};
+
+// Add cleanup function for product explorer remnants
+window.cleanupProductExplorerFromGoogleAds = function() {
+  // Remove all product explorer tables from Google Ads containers
+  const googleAdsPage = document.getElementById('googleAdsPage');
+  if (googleAdsPage) {
+    const explorerElements = googleAdsPage.querySelectorAll('.product-explorer-table, .explorer-chart-container, [class*="explorer-"]');
+    explorerElements.forEach(el => el.remove());
+  }
+  
+  // Also check the main container
+  const googleAdsContainer = document.getElementById('googleAdsContainer');
+  if (googleAdsContainer) {
+    const explorerElements = googleAdsContainer.querySelectorAll('.product-explorer-table, .explorer-chart-container, [class*="explorer-"]');
+    explorerElements.forEach(el => el.remove());
+  }
+  
+  // Check all google-ads-table elements
+  const googleAdsTables = document.querySelectorAll('.google-ads-table');
+  googleAdsTables.forEach(table => {
+    const explorerElements = table.querySelectorAll('.product-explorer-table, tr[class*="explorer"], td[class*="explorer"]');
+    explorerElements.forEach(el => el.remove());
+  });
+};
 }
