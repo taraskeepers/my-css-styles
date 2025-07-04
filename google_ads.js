@@ -423,12 +423,38 @@ function selectGoogleAdsProduct(product, navItemElement) {
     const productTablesContainer = document.getElementById('product_tables');
     const productMetricsContainer = document.getElementById('product_metrics');
     
-    if (currentViewMode === 'viewOverviewGoogleAds') {
-      if (productInfoContainer) productInfoContainer.style.display = 'block';
-      if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
-      if (productTablesContainer) productTablesContainer.style.display = 'block';
-      if (productMetricsContainer) productMetricsContainer.style.display = 'block';
-    }
+// Handle container visibility based on current view mode
+if (currentViewMode === 'viewOverviewGoogleAds') {
+  // Product Overview mode
+  if (productInfoContainer) productInfoContainer.style.display = 'block';
+  if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
+  if (productTablesContainer) productTablesContainer.style.display = 'block';
+  if (productMetricsContainer) productMetricsContainer.style.display = 'block';
+} else if (currentViewMode === 'viewChartsGoogleAds') {
+  // Rank Map mode
+  if (productInfoContainer) productInfoContainer.style.display = 'none';
+  if (productRankingMapContainer) productRankingMapContainer.style.display = 'block';
+  if (productTablesContainer) productTablesContainer.style.display = 'none';
+  if (productMetricsContainer) productMetricsContainer.style.display = 'none';
+} else if (currentViewMode === 'viewMapGoogleAds') {
+  // Map mode
+  if (productInfoContainer) productInfoContainer.style.display = 'none';
+  if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
+  if (productTablesContainer) productTablesContainer.style.display = 'none';
+  if (productMetricsContainer) productMetricsContainer.style.display = 'none';
+} else if (currentViewMode === 'viewPerformanceOverviewGoogleAds') {
+  // Performance Overview mode
+  if (productInfoContainer) productInfoContainer.style.display = 'none';
+  if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
+  if (productTablesContainer) productTablesContainer.style.display = 'none';
+  if (productMetricsContainer) productMetricsContainer.style.display = 'none';
+} else if (currentViewMode === 'viewBucketsGoogleAds') {
+  // Buckets mode
+  if (productInfoContainer) productInfoContainer.style.display = 'none';
+  if (productRankingMapContainer) productRankingMapContainer.style.display = 'none';
+  if (productTablesContainer) productTablesContainer.style.display = 'none';
+  if (productMetricsContainer) productMetricsContainer.style.display = 'none';
+}
     
     // Now populate them
     populateProductInfo(product);
@@ -437,10 +463,15 @@ setTimeout(() => {
   setupProductInfoDateSelector();
 }, 100);
     
-    // Apply current filters to ranking map
-    const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-    const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-    populateProductRankingMap(product, campaignFilter, channelFilter);
+// Apply current filters to ranking map
+const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+const deviceFilter = document.getElementById('deviceTypeFilter')?.value || 'all';
+
+// Only populate ranking map if we're in Rank Map view
+if (currentViewMode === 'viewChartsGoogleAds') {
+  populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
+}
     
     // Load and display product metrics if in overview mode
     if (currentViewMode === 'viewOverviewGoogleAds') {
@@ -8157,6 +8188,18 @@ if (window.googleAdsApexCharts) {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   white-space: nowrap;
   z-index: 10;
+}
+#googleAdsTableContainer {
+  background: transparent !important;
+}
+
+#googleAdsContentWrapper {
+  background: transparent !important;
+}
+
+/* Ensure ranking map container has proper background */
+#product_ranking_map {
+  background-color: #fff !important;
 }
     `;
     document.head.appendChild(style);
