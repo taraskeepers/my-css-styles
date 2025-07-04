@@ -429,7 +429,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
   setTimeout(() => {
     // Ensure containers are visible
     const productInfoContainer = document.getElementById('product_info');
-    const productRankingMapContainer = document.getElementById('product_ranking_map');
+    const productRankingMapContainer = document.getElementById('google_ads_ranking_map');
     const productTablesContainer = document.getElementById('product_tables');
     const productMetricsContainer = document.getElementById('product_metrics');
     
@@ -1097,7 +1097,7 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
 }
 
 function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all', deviceFilter = 'all') {
-  const container = document.getElementById('product_ranking_map');
+  const container = document.getElementById('google_ads_ranking_map');
   if (!container) return;
 
     // Check if we're in Overview mode and hide if so
@@ -3682,7 +3682,7 @@ contentWrapper.appendChild(productMetricsContainer);
 
 // Create product-ranking-map container
 const productRankingMapContainer = document.createElement('div');
-productRankingMapContainer.id = 'product_ranking_map';
+productRankingMapContainer.id = 'google_ads_ranking_map';
 productRankingMapContainer.className = 'google-ads-ranking-map-container';
 productRankingMapContainer.style.cssText = `
   width: 1195px;
@@ -5688,7 +5688,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Show overview containers, hide ranking map
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   
   if (productInfo) productInfo.style.display = 'block';
@@ -5731,7 +5731,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
 
     // Add delayed hide to ensure it stays hidden
   setTimeout(() => {
-    const rankingMap = document.getElementById('product_ranking_map');
+    const rankingMap = document.getElementById('google_ads_ranking_map');
     if (rankingMap) {
       rankingMap.style.display = 'none';
       rankingMap.style.visibility = 'hidden'; // Extra measure
@@ -5804,7 +5804,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   // Hide overview containers, show ranking map
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   
   if (productInfo) productInfo.style.display = 'none';
@@ -5912,7 +5912,7 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   // Hide other containers
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   const buckets_products = document.getElementById('buckets_products');
   
@@ -6044,7 +6044,7 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Hide other containers
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   const mapContainer = document.getElementById('googleAdsMapContainer');
   const bucketedProductsContainer = document.getElementById('bucketed_products_container');
@@ -6150,7 +6150,7 @@ setTimeout(() => {
   
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   const mapContainer = document.getElementById('googleAdsMapContainer');
   
@@ -8222,7 +8222,7 @@ if (window.googleAdsApexCharts) {
 }
 
 /* Ensure ranking map container has proper background */
-#product_ranking_map {
+#google_ads_ranking_map {
   background-color: #fff !important;
 }
 /* Ensure Google Ads content is above product explorer */
@@ -8232,7 +8232,7 @@ if (window.googleAdsApexCharts) {
   background-color: #fff !important;
 }
 
-#product_ranking_map {
+#google_ads_ranking_map {
   position: relative;
   z-index: 101;
   background-color: #fff !important;
@@ -8442,7 +8442,7 @@ setTimeout(async () => {
   
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
-  const productRankingMap = document.getElementById('product_ranking_map');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
   const productTables = document.getElementById('product_tables');
   const mapContainer = document.getElementById('googleAdsMapContainer');
   
