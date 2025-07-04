@@ -1636,11 +1636,17 @@ function renderROASFunnel(container, bucketData) {
   
   svgContainer.appendChild(svg);
   
-  // Auto-select Top Performers by default
+// Auto-select Top Performers by default
   setTimeout(() => {
     const topPerformersPolygon = svg.querySelectorAll('polygon')[3]; // Last polygon is Top Performers
     if (topPerformersPolygon) {
-      topPerformersPolygon.click();
+      // Simulate click on SVG element
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      });
+      topPerformersPolygon.dispatchEvent(clickEvent);
     }
   }, 100);
 }
