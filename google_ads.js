@@ -5507,6 +5507,18 @@ function getGoogleAdsRatingBadgeColor(rating) {
 
 // Main function definition
 function renderGoogleAdsTable() {
+// Hide any product explorer elements that might be visible
+const productExplorerTable = document.querySelector('.product-explorer-table');
+if (productExplorerTable) {
+  productExplorerTable.style.display = 'none';
+}
+
+// Also hide the explorer container if it exists
+const explorerContainer = document.getElementById('productExplorerContainer');
+if (explorerContainer) {
+  explorerContainer.style.display = 'none';
+}
+  
   const existingTable = document.querySelector("#googleAdsContainer .google-ads-table");
   if (existingTable) {
     existingTable.remove();
