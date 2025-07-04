@@ -583,6 +583,92 @@
     display: block !important;
   }
 </style>
+<!-- Notification Toast System -->
+<div id="notificationContainer" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000000;
+  pointer-events: none;
+"></div>
+
+<style>
+  .notification-toast {
+    min-width: 300px;
+    max-width: 400px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    pointer-events: all;
+    transform: translateX(420px);
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    backdrop-filter: blur(10px);
+  }
+  
+  .notification-toast.show {
+    transform: translateX(0);
+  }
+  
+  .notification-toast.success {
+    background: rgba(16, 185, 129, 0.95);
+    color: white;
+  }
+  
+  .notification-toast.error {
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+  }
+  
+  .notification-toast.warning {
+    background: rgba(245, 158, 11, 0.95);
+    color: white;
+  }
+  
+  .notification-toast.info {
+    background: rgba(59, 130, 246, 0.95);
+    color: white;
+  }
+  
+  .notification-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  
+  .notification-message {
+    flex: 1;
+    line-height: 1.4;
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(420px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(420px);
+      opacity: 0;
+    }
+  }
+</style>
 `;
 
   // Inject the HTML into the body
@@ -1005,7 +1091,7 @@ async function initializeGoogleAdsTab() {
     projectsList.innerHTML += rowHTML;
   }
   
-  // Add save button handler
+// Add save button handler
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
     saveBtn.onclick = async function() {
@@ -1017,18 +1103,32 @@ async function initializeGoogleAdsTab() {
         const projectKey = input.dataset.project;
         const url = input.value.trim();
         if (url) {
+          // Basic URL validation
+          if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
+            window.showNotification(
+              `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
+              'error'
+            );
+            return;
+          }
           urlsToProcess.push({ projectKey, url });
         }
       });
       
       if (urlsToProcess.length === 0) {
-        alert("Please enter at least one Google Sheets URL");
+        window.showNotification("Please enter at least one Google Sheets URL", 'warning');
         return;
       }
+      
+      // Disable the button during processing
+      this.disabled = true;
+      this.textContent = "Processing...";
+      this.style.opacity = "0.7";
       
       // Process each URL
       let successCount = 0;
       let errorCount = 0;
+      const errors = [];
       
       for (const { projectKey, url } of urlsToProcess) {
         try {
@@ -1041,39 +1141,79 @@ async function initializeGoogleAdsTab() {
             statusEl.style.color = "#3b82f6";
           }
           
-          // Call the fetcher with the correct prefix including project number
-          await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
+          // Call the fetcher with validation wrapper
+          const result = await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
           
-          // Update status on success
-          if (statusEl) {
-            const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
-            const count = productData?.data?.length || 0;
-            statusEl.textContent = `✓ ${count} products loaded`;
-            statusEl.style.color = "#059669";
+          // Validate the fetched data
+          const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
+          if (productData && productData.data) {
+            const validation = window.validateGoogleSheetsData(productData.data);
+            
+            if (!validation.valid) {
+              throw new Error(validation.error);
+            }
+            
+            // Update status on success
+            if (statusEl) {
+              const count = productData.data.length;
+              statusEl.textContent = `✓ ${count} products loaded`;
+              statusEl.style.color = "#059669";
+            }
+            
+            successCount++;
+          } else {
+            throw new Error("No data was loaded from the spreadsheet");
           }
           
-          successCount++;
         } catch (error) {
           console.error(`[Settings] Failed to process ${projectKey}:`, error);
           
           // Update status on error
           const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
+          const projectName = projectKey.replace('acc1_pr', 'Project ').replace('_', '');
+          
+          let errorMessage = error.message;
+          
+          // Provide more user-friendly error messages
+          if (errorMessage.includes('Failed to fetch')) {
+            errorMessage = "Unable to access the spreadsheet. Please check sharing permissions.";
+          } else if (errorMessage.includes('CORS')) {
+            errorMessage = "Access denied. Make sure the spreadsheet is publicly accessible.";
+          } else if (errorMessage.includes('404')) {
+            errorMessage = "Spreadsheet not found. Please check the URL.";
+          }
+          
           if (statusEl) {
-            statusEl.textContent = `✗ Error: ${error.message}`;
+            statusEl.textContent = `✗ Error: ${errorMessage}`;
             statusEl.style.color = "#dc2626";
           }
           
+          errors.push(`${projectName}: ${errorMessage}`);
           errorCount++;
         }
       }
       
-      // Show summary
+      // Re-enable the button
+      this.disabled = false;
+      this.textContent = "Upload All Google Sheets Data";
+      this.style.opacity = "1";
+      
+      // Show summary notification
       if (successCount > 0 && errorCount === 0) {
-        alert(`Successfully uploaded data for ${successCount} project(s)!`);
+        window.showNotification(
+          `Successfully uploaded data for ${successCount} project${successCount > 1 ? 's' : ''}!`,
+          'success'
+        );
       } else if (successCount > 0 && errorCount > 0) {
-        alert(`Uploaded data for ${successCount} project(s), but ${errorCount} failed. Check the status messages.`);
+        window.showNotification(
+          `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed. Check the status messages.`,
+          'warning',
+          5000
+        );
       } else {
-        alert(`Failed to upload data. Please check your URLs and try again.`);
+        // Show detailed error
+        const errorDetail = errors.length > 0 ? errors[0] : "Unknown error occurred";
+        window.showNotification(errorDetail, 'error', 5000);
       }
     };
   }
@@ -1220,25 +1360,81 @@ function updateCurrentCompanyDisplay() {
         companyText.textContent = selectedVal;
       }
       
-      alert("Company saved successfully!");
+      window.showNotification("Company saved successfully!", 'success');
     };
   }
   
-  // Refresh IDB button handler
+// Refresh IDB button handler
   const refreshIDBBtn = document.getElementById("refreshIDBButton");
   if (refreshIDBBtn) {
     refreshIDBBtn.addEventListener("click", function() {
-      const confirmRefresh = confirm(
-        "This will delete all cached data and reload fresh data from the server. " +
-        "The process may take a few moments. Continue?"
-      );
+      // Create a custom confirmation dialog
+      const confirmDialog = document.createElement('div');
+      confirmDialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 10000001;
+        max-width: 400px;
+      `;
       
-      if (confirmRefresh) {
+      confirmDialog.innerHTML = `
+        <h3 style="margin: 0 0 12px 0; font-size: 18px; color: #1a1a1a;">Refresh Database?</h3>
+        <p style="margin: 0 0 20px 0; color: #6b7280; line-height: 1.5;">
+          This will delete all cached data and reload fresh data from the server. The process may take a few moments.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="cancelRefresh" style="
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+          ">Cancel</button>
+          <button id="confirmRefresh" style="
+            padding: 8px 16px;
+            border: none;
+            background: #dc2626;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+          ">Refresh</button>
+        </div>
+      `;
+      
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(2px);
+        z-index: 10000000;
+      `;
+      
+      document.body.appendChild(overlay);
+      document.body.appendChild(confirmDialog);
+      
+      document.getElementById('cancelRefresh').onclick = () => {
+        overlay.remove();
+        confirmDialog.remove();
+      };
+      
+      document.getElementById('confirmRefresh').onclick = () => {
+        overlay.remove();
+        confirmDialog.remove();
         window.closeSettingsOverlay();
         if (typeof window.refreshIDBData === "function") {
           window.refreshIDBData();
         }
-      }
+      };
     });
   }
   
@@ -1279,6 +1475,92 @@ window.openSettingsOverlay = function(initialTab = 'company') {
     document.removeEventListener('keydown', handleEscapeKey);
   };
 }
+
+// ========================================
+// NOTIFICATION SYSTEM
+// ========================================
+
+window.showNotification = function(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('notificationContainer');
+  if (!container) return;
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification-toast ${type}`;
+  
+  // Icons for different types
+  const icons = {
+    success: '<svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>',
+    error: '<svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>',
+    warning: '<svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>',
+    info: '<svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
+  };
+  
+  notification.innerHTML = `
+    ${icons[type] || icons.info}
+    <div class="notification-message">${message}</div>
+  `;
+  
+  container.appendChild(notification);
+  
+  // Trigger animation
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+  
+  // Auto-remove after duration
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, duration);
+};
+
+// Helper function to validate Google Sheets data structure
+window.validateGoogleSheetsData = function(data) {
+  // Check if data exists and is an array
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return {
+      valid: false,
+      error: "The spreadsheet appears to be empty or in an invalid format."
+    };
+  }
+  
+  // Check for required columns
+  const requiredColumns = ['Product', 'Cost', 'Revenue'];
+  const firstRow = data[0];
+  
+  if (!firstRow || typeof firstRow !== 'object') {
+    return {
+      valid: false,
+      error: "Unable to read data structure from the spreadsheet."
+    };
+  }
+  
+  const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+  if (missingColumns.length > 0) {
+    return {
+      valid: false,
+      error: `Missing required columns: ${missingColumns.join(', ')}. Please ensure your spreadsheet has Product, Cost, and Revenue columns.`
+    };
+  }
+  
+  // Check if there's actual data (not just headers)
+  const hasValidData = data.some(row => 
+    row.Product && 
+    (row.Cost !== undefined || row.Revenue !== undefined)
+  );
+  
+  if (!hasValidData) {
+    return {
+      valid: false,
+      error: "The spreadsheet contains headers but no actual data rows."
+    };
+  }
+  
+  return { valid: true };
+};
 
 // Wait for DOM to be ready before initializing
 if (document.readyState === 'loading') {
