@@ -386,7 +386,8 @@ function createSegmentationChartGoogleAds(containerId, chartData, termParam, loc
 }
 
 function selectGoogleAdsProduct(product, navItemElement) {
-  console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
+  return new Promise((resolve) => {
+    console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
   // Clean up previous product info charts
   if (window.productInfoCharts) {
@@ -643,7 +644,13 @@ if (deviceFilterElement && !deviceFilterElement.hasAttribute('data-listener-atta
         }
       });
     }
-  }, 100); // Small delay to ensure DOM is ready
+}, 100); // Small delay to ensure DOM is ready
+  
+  // Resolve the promise after a bit more delay to ensure everything is loaded
+  setTimeout(() => {
+    resolve();
+  }, 200);
+  });
 }
   
 function updateProductMetricsChart() {
@@ -8267,13 +8274,55 @@ renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactivePr
   googleAdsNavPanel.appendChild(productsNavContainer);
   
 // Auto-select first product and properly populate all containers
-setTimeout(() => {
+setTimeout(async () => {
   console.log('[renderGoogleAdsTable] Auto-selecting first product and populating containers...');
   
   // Set initialization flag to prevent nav panel expansion
   window._googleAdsInitializing = true;
   
-  // FIRST: Collapse the nav panel before any selections
+  // Find the first product WITH data
+  let firstProductWithData = null;
+  let firstNavItemWithData = null;
+  
+  const allNavItems = document.querySelectorAll('.nav-google-ads-item:not(.no-data-product)');
+  
+  for (const navItem of allNavItems) {
+    const index = parseInt(navItem.getAttribute('data-google-ads-index'));
+    if (!isNaN(index) && allCompanyProducts[index]) {
+      const product = allCompanyProducts[index];
+      const hasData = await checkProductHasData(product.title);
+      if (hasData) {
+        firstProductWithData = product;
+        firstNavItemWithData = navItem;
+        break;
+      }
+    }
+  }
+  
+  if (!firstProductWithData || !firstNavItemWithData) {
+    console.warn('[renderGoogleAdsTable] No products with data found');
+    window._googleAdsInitializing = false;
+    
+    const tableContainer = document.querySelector("#googleAdsTableContainer");
+    const emptyMessage = document.createElement('div');
+    emptyMessage.id = 'googleAdsEmptyMessage';
+    emptyMessage.style.padding = '40px';
+    emptyMessage.style.textAlign = 'center';
+    emptyMessage.style.color = '#666';
+    emptyMessage.innerHTML = '<h3>No products with performance data found</h3><p>Please check if data is available in the Google Sheets integration.</p>';
+    tableContainer.appendChild(emptyMessage);
+    return;
+  }
+  
+  console.log('[renderGoogleAdsTable] Auto-selecting product with data:', firstProductWithData.title);
+  
+  // FIRST: Select the product and wait for it to complete
+  await selectGoogleAdsProduct(firstProductWithData, firstNavItemWithData);
+  
+  // Wait a bit more to ensure all data is loaded
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // NOW collapse the nav panel and set up Performance Overview
   const navPanel = document.getElementById('googleAdsNavPanel');
   const contentWrapper = document.querySelector('.google-ads-content-wrapper');
   if (navPanel) {
@@ -8283,103 +8332,80 @@ setTimeout(() => {
     contentWrapper.classList.add('nav-collapsed');
   }
   
-  const firstNavItem = document.querySelector('.nav-google-ads-item');
+  // Set Performance Overview as active
+  const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
+  const overviewBtn = document.getElementById('viewOverviewGoogleAds');
+  const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
+  const chartsBtn = document.getElementById('viewChartsGoogleAds');
+  const mapBtn = document.getElementById('viewMapGoogleAds');
+
+  // Set button states
+  if (performanceOverviewBtn) performanceOverviewBtn.classList.add('active');
+  if (overviewBtn) overviewBtn.classList.remove('active');
+  if (bucketsBtn) bucketsBtn.classList.remove('active');
+  if (chartsBtn) chartsBtn.classList.remove('active');
+  if (mapBtn) mapBtn.classList.remove('active');
   
-  if (firstNavItem && allCompanyProducts.length > 0) {
-    const firstProduct = allCompanyProducts[0];
-    console.log('[renderGoogleAdsTable] Auto-selecting:', firstProduct.title);
-    
-    // Set Performance Overview as active BEFORE clicking the product
-    const performanceOverviewBtn = document.getElementById('viewPerformanceOverviewGoogleAds');
-    const overviewBtn = document.getElementById('viewOverviewGoogleAds');
-    const bucketsBtn = document.getElementById('viewBucketsGoogleAds');
-    const chartsBtn = document.getElementById('viewChartsGoogleAds');
-    const mapBtn = document.getElementById('viewMapGoogleAds');
+  // Set up Performance Overview state
+  const table = document.querySelector('.google-ads-table');
+  if (table) table.style.display = 'none';
+  
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('product_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  const mapContainer = document.getElementById('googleAdsMapContainer');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'none';
+  if (productTables) productTables.style.display = 'none';
+  if (mapContainer) mapContainer.style.display = 'none';
 
-    // Set button states WITHOUT clicking
-    if (performanceOverviewBtn) performanceOverviewBtn.classList.add('active');
-    if (overviewBtn) overviewBtn.classList.remove('active');
-    if (bucketsBtn) bucketsBtn.classList.remove('active');
-    if (chartsBtn) chartsBtn.classList.remove('active');
-    if (mapBtn) mapBtn.classList.remove('active');
-    
-    // Now click the first product
-    firstNavItem.click();
-    
-    // Then trigger Performance Overview view with proper container setup
-    setTimeout(() => {
-      if (performanceOverviewBtn) {
-        // Manually set up the Performance Overview state without triggering clicks
-        const table = document.querySelector('.google-ads-table');
-        if (table) table.style.display = 'none';
-        
-        const productInfo = document.getElementById('product_info');
-        const productMetrics = document.getElementById('product_metrics');
-        const productRankingMap = document.getElementById('product_ranking_map');
-        const productTables = document.getElementById('product_tables');
-        const mapContainer = document.getElementById('googleAdsMapContainer');
-        
-        if (productInfo) productInfo.style.display = 'none';
-        if (productMetrics) productMetrics.style.display = 'none';
-        if (productRankingMap) productRankingMap.style.display = 'none';
-        if (productTables) productTables.style.display = 'none';
-        if (mapContainer) mapContainer.style.display = 'none';
-
-        // Hide productInfoDateRange for Performance Overview
-        const productInfoDateRange = document.getElementById('productInfoDateRange');
-        if (productInfoDateRange) productInfoDateRange.style.display = 'none';
-        // Hide bucket date range
+  // Hide productInfoDateRange for Performance Overview
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+  
+  // Hide bucket date range
   const bucketDateRange = document.getElementById('bucketDateRange');
   if (bucketDateRange) bucketDateRange.style.display = 'none';
-        
-        // Hide buckets switcher for Performance Overview
-        const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-        if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
-        const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
-        if (switcherWrapper) switcherWrapper.style.display = 'none';
-        
-const roasCharts = document.getElementById('roas_charts');
-        const roasMetricsTable = document.getElementById('roas_metrics_table');
-        const roasChannels = document.getElementById('roas_channels');
-        const buckets_products = document.getElementById('buckets_products');
-        
-// Only show roas_charts for Performance Overview
-        if (roasCharts) roasCharts.style.display = 'block';
-        if (roasMetricsTable) roasMetricsTable.style.display = 'none';
-        if (roasChannels) roasChannels.style.display = 'block';  // CHANGED FROM 'none' TO 'block'
-        if (buckets_products) buckets_products.style.display = 'none';
-        
-        // Set device filter to 'all' for initial load
-        window.selectedDeviceFilter = 'all';
-        
-        // Hide toggle controls for Performance Overview
-        const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
-        const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
-        if (chartModeToggle) chartModeToggle.style.display = 'none';
-        if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
-        
-        // Load the ROAS data
-        if (window.loadAndRenderROASBuckets) {
-          window.loadAndRenderROASBuckets();
-        }
-        
-        // Clear initialization flag
-        window._googleAdsInitializing = false;
-      }
-    }, 100);
-  } else {
-    console.warn('[renderGoogleAdsTable] No products found for auto-selection');
-    
-    const tableContainer = document.querySelector("#googleAdsTableContainer");
-    const emptyMessage = document.createElement('div');
-    emptyMessage.id = 'googleAdsEmptyMessage';
-    emptyMessage.style.padding = '40px';
-    emptyMessage.style.textAlign = 'center';
-    emptyMessage.style.color = '#666';
-    emptyMessage.innerHTML = '<h3>No products found</h3><p>Please check if data is available for the selected company.</p>';
-    tableContainer.appendChild(emptyMessage);
+  
+  // Hide buckets switcher for Performance Overview
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
+  
+  const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  const buckets_products = document.getElementById('buckets_products');
+  
+  // Only show roas_charts for Performance Overview
+  if (roasCharts) roasCharts.style.display = 'block';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'block';
+  if (buckets_products) buckets_products.style.display = 'none';
+  
+  // Set device filter to 'all' for initial load
+  window.selectedDeviceFilter = 'all';
+  
+  // Hide toggle controls for Performance Overview
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
+  
+  // NOW load the ROAS data after product is fully selected
+  if (window.loadAndRenderROASBuckets) {
+    console.log('[renderGoogleAdsTable] Loading ROAS data for Performance Overview');
+    window.loadAndRenderROASBuckets();
   }
-}, 500); // Increased timeout
+  
+  // Clear initialization flag
+  window._googleAdsInitializing = false;
+  
+}, 500); // Initial timeout
 }
 
 function getAllFromStore(store) {
