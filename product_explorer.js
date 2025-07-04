@@ -4648,6 +4648,52 @@ window.trackProductExplorerTable = function() {
 // Auto-start tracking
 window.trackProductExplorerTable();
 
+// DEBUG CODE - ADD AT THE VERY END OF product_explorer.js
+window.debugProductExplorer = function() {
+  console.log('=== PRODUCT EXPLORER DEBUG ===');
+  
+  const page = document.getElementById('productExplorerPage');
+  console.log('1. productExplorerPage:', {
+    exists: !!page,
+    display: page?.style.display,
+    computedDisplay: page ? getComputedStyle(page).display : 'N/A'
+  });
+  
+  const container = document.getElementById('productExplorerTableContainer');
+  console.log('2. productExplorerTableContainer:', {
+    exists: !!container,
+    display: container?.style.display,
+    computedDisplay: container ? getComputedStyle(container).display : 'N/A',
+    innerHTML: container?.innerHTML.substring(0, 100) + '...'
+  });
+  
+  const tables = document.querySelectorAll('.product-explorer-table');
+  console.log('3. product-explorer-tables found:', tables.length);
+  
+  tables.forEach((table, i) => {
+    const computed = getComputedStyle(table);
+    console.log(`   Table ${i}:`, {
+      parent: table.parentElement?.id,
+      display: computed.display,
+      visibility: computed.visibility,
+      opacity: computed.opacity,
+      height: computed.height,
+      position: computed.position,
+      classList: table.classList.toString()
+    });
+  });
+  
+  console.log('4. renderProductExplorerTable exists:', typeof window.renderProductExplorerTable);
+  console.log('5. selectedExplorerProduct:', window.selectedExplorerProduct);
+}
+
+// AUTO-RUN AFTER 2 SECONDS WHEN ON PRODUCT EXPLORER
+setTimeout(() => {
+  if (document.getElementById('productExplorerPage')?.style.display === 'block') {
+    window.debugProductExplorer();
+  }
+}, 2000);
+
 // Export the function
 if (typeof window !== 'undefined') {
   window.renderProductExplorerTable = renderProductExplorerTable;
