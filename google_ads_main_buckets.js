@@ -43,6 +43,87 @@ const getGoogleAdsRatingBadgeColor = window.getGoogleAdsRatingBadgeColor || func
   return '#F44336';
 };
 
+function injectRequiredStyles() {
+  const styleId = 'google-ads-main-buckets-styles';
+  if (document.getElementById(styleId)) return;
+  
+  const styles = `
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .google-ads-separator {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+      gap: 10px;
+    }
+    
+    .separator-line {
+      flex: 1;
+      height: 1px;
+      background-color: #e0e0e0;
+    }
+    
+    .separator-text {
+      color: #666;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 0 10px;
+    }
+    
+    .vis-water-container {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(to top, 
+        #2196F3 0%, 
+        #2196F3 var(--fill-height), 
+        #e3f2fd var(--fill-height), 
+        #e3f2fd 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 2px solid #2196F3;
+    }
+    
+    .vis-percentage {
+      font-size: 12px;
+      font-weight: 700;
+      color: #333;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    
+    .inactive-product {
+      opacity: 0.6;
+    }
+  `;
+  
+  const styleElement = document.createElement('style');
+  styleElement.id = styleId;
+  styleElement.textContent = styles;
+  document.head.appendChild(styleElement);
+}
+
+// Call this when initializing
+injectRequiredStyles();
+
 // Initialize main buckets switcher
 function initializeMainBucketsSwitcher() {
   console.log('[initializeMainBucketsSwitcher] Initializing...');
@@ -54,7 +135,7 @@ function initializeMainBucketsSwitcher() {
   createBucketedProductsContainer();
   
   // Use the direct event setup instead
-  setupMainBucketsSwitcherEventsDirectly();
+  setupMainBucketsSwitcherEvents();
 }
 
 // Create the bucketed products container
@@ -821,24 +902,7 @@ container.appendChild(header);
 createMetricsSettingsPopup(container);
 
 // Add event listeners
-setTimeout(() => {
-  const settingsBtn = document.getElementById('productsMetricsSettingsBtn');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMetricsSettingsPopup();
-    });
-  }
-  
-const deviceSelect = document.getElementById('productDeviceSelect');
-  if (deviceSelect) {
-    deviceSelect.addEventListener('change', (e) => {
-      window.selectedDeviceFilter = e.target.value;
-      renderBucketFunnels(); // Update the funnel charts
-      loadBucketedProducts(); // Reload products with new device filter
-    });
-  }
-}, 100);
+attachEventListenersWithChecks();
   
   // Products container
   const productsContainer = document.createElement('div');
@@ -870,6 +934,39 @@ const deviceSelect = document.getElementById('productDeviceSelect');
   });
   
   container.appendChild(productsContainer);
+}
+
+function attachEventListenersWithChecks() {
+  // Instead of setTimeout, use a more reliable approach
+  const checkAndAttach = () => {
+    const settingsBtn = document.getElementById('productsMetricsSettingsBtn');
+    const deviceSelect = document.getElementById('productDeviceSelect');
+    
+    if (settingsBtn && !settingsBtn.hasAttribute('data-listener-attached')) {
+      settingsBtn.setAttribute('data-listener-attached', 'true');
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMetricsSettingsPopup();
+      });
+    }
+    
+    if (deviceSelect && !deviceSelect.hasAttribute('data-listener-attached')) {
+      deviceSelect.setAttribute('data-listener-attached', 'true');
+      deviceSelect.addEventListener('change', (e) => {
+        window.selectedDeviceFilter = e.target.value;
+        renderBucketFunnels();
+        loadBucketedProducts();
+      });
+    }
+  };
+  
+  // Try immediately
+  checkAndAttach();
+  
+  // If elements don't exist yet, try again after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndAttach);
+  }
 }
 
 // Create metrics settings popup
@@ -1235,7 +1332,7 @@ function renderBucketedProducts(container, bucketedProducts, bucketType) {
 // Create a bucketed product item (full width)
 function createBucketedProductItem(product, metrics) {
   const productDiv = document.createElement('div');
-  productDiv.classList.add('small-ad-details', 'bucketed-product-item');
+  productDiv.classList.add('google-ads-small-ad-details', 'bucketed-product-item');
   productDiv.style.cssText = `
     width: 100%;
     min-height: 80px;
@@ -1335,11 +1432,10 @@ ${metrics.rankTrend && metrics.rankTrend.arrow && !isNaN(metrics.rankTrend.chang
   productDiv.productData = product;
   
   // Add click handler (will use stored data later)
-  productDiv.addEventListener('click', function(e) {
+productDiv.addEventListener('click', function(e) {
     e.stopPropagation();
-    // Use stored data from the element
-    toggleDetailedProductView(this, this.productData, this.bucketData);
-  });
+    toggleDetailedProductView(productDiv, product, productDiv.bucketData);  // 'product' is undefined
+});
   
   return productDiv;
 }
@@ -1662,11 +1758,6 @@ async function loadProductBucketDataAsync(productDiv, productTitle) {
   
   // Store bucket data on the element for later use
   productDiv.bucketData = bucketData;
-  
-  productDiv.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleDetailedProductView(productDiv, product, productDiv.bucketData);
-  });
   
   if (!bucketData) {
     // Update containers with "No data" message
