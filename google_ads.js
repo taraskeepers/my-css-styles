@@ -5602,10 +5602,10 @@ function renderGoogleAdsTable() {
   
   if (isGoogleAdsActive) {
     // Hide any product explorer elements that might be visible
-    const productExplorerTable = document.querySelector('.product-explorer-table');
-    if (productExplorerTable) {
-      productExplorerTable.style.display = 'none';
-    }
+const productExplorerTable = document.querySelector('.product-explorer-table');
+if (productExplorerTable && !productExplorerTable.closest('#productExplorerPage')) {
+  productExplorerTable.style.display = 'none';
+}
 
     // Also hide the explorer container if it exists
     const explorerContainer = document.getElementById('productExplorerContainer');
@@ -5868,10 +5868,10 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
     contentWrapper.classList.remove('nav-collapsed');
   }
     // Explicitly hide any product explorer elements
-  const productExplorerTable = document.querySelector('.product-explorer-table');
-  if (productExplorerTable) {
-    productExplorerTable.style.display = 'none';
-  }
+const productExplorerTable = document.querySelector('.product-explorer-table');
+if (productExplorerTable && !productExplorerTable.closest('#productExplorerPage')) {
+  productExplorerTable.style.display = 'none';
+}
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
