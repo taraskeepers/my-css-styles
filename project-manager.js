@@ -312,6 +312,14 @@ if (typeof window.openSettingsOverlay === 'function') {
       window.filterState.activeProjectNumber = project.project_number;
       console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
 
+      // Reset modeSelector to COMPANIES when switching projects
+const modeSelector = document.getElementById('modeSelector');
+if (modeSelector && modeSelector.value !== 'COMPANIES') {
+  console.log("[renderProjects] Resetting modeSelector from", modeSelector.value, "to COMPANIES");
+  modeSelector.value = 'COMPANIES';
+  localStorage.setItem('selectedMode', 'COMPANIES');
+}
+
       // 2) Highlight the current item
       document.querySelectorAll(".project-menu-item.selected").forEach(item => {
         item.classList.remove("selected");
