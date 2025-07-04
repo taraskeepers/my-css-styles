@@ -361,6 +361,9 @@ if (window.dataPrefix !== newPrefix || isActuallyDifferentProject) {
     .then(() => {
       console.log("[POPULATEPROJECTPAGE] Calling populateProjectPage after data reload at:", new Date().toISOString());
       populateProjectPage();
+            if (typeof checkGoogleAdsDataAvailability === 'function') {
+        checkGoogleAdsDataAvailability(project.project_number);
+      }
     })
     .catch(err => {
       console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
@@ -965,6 +968,9 @@ Promise.all([
       productPerformance: productRec.data,
       locationRevenue: locationRec.data
     };
+    if (typeof updateGoogleAdsButtonState === 'function') {
+      updateGoogleAdsButtonState(projectNumber);
+    }
   } else {
     // NO AUTO-FETCH! Just set empty data
     console.log("[Google Sheets] No data for project", projectNumber, "- user hasn't uploaded sheets for this project");
@@ -972,6 +978,10 @@ Promise.all([
       productPerformance: [],
       locationRevenue: []
     };
+        if (typeof updateGoogleAdsButtonState === 'function') {
+      updateGoogleAdsButtonState(projectNumber);
+    }
+  }
   }
 }).catch(err => {
   console.log("[Google Sheets] Using empty data due to error:", err.message);
@@ -979,6 +989,9 @@ Promise.all([
     productPerformance: [],
     locationRevenue: []
   };
+    if (typeof updateGoogleAdsButtonState === 'function') {
+    updateGoogleAdsButtonState(projectNumber);
+  }
 });
 
       const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
