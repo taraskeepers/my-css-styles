@@ -6131,7 +6131,6 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
 const viewBucketsGoogleAdsBtn = document.getElementById("viewBucketsGoogleAds");
 
 viewBucketsGoogleAdsBtn.addEventListener("click", function() {
-viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   // Clear all active states
   viewBucketsGoogleAdsBtn.classList.add("active");
   viewOverviewGoogleAdsBtn.classList.remove("active");
@@ -6139,42 +6138,39 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
 
-  // Show buckets switcher with main switcher wrapper
-  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
-  let switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+// Show buckets switcher with main switcher wrapper
+const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+let switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
 
-  if (bucketsSwitcher) {
-    // Create wrapper if it doesn't exist
-    if (!switcherWrapper) {
-      switcherWrapper = document.createElement('div');
-      switcherWrapper.id = 'bucketsSwitcherWrapper';
-      switcherWrapper.className = 'buckets-switcher-wrapper';
-      switcherWrapper.style.cssText = 'display: flex; gap: 15px; align-items: center; margin-bottom: 20px;';
-      
-      // Create main buckets switcher
-      const mainBucketsSwitcher = document.createElement('div');
-      mainBucketsSwitcher.id = 'mainBucketsSwitcher';
-      mainBucketsSwitcher.className = 'google-ads-buckets-switcher main-buckets-switcher';
-      mainBucketsSwitcher.innerHTML = `
-        <button id="mainBucketsOverview" class="active">Buckets Overview</button>
-        <button id="mainBucketedProducts">Products by Bucket</button>
-      `;
-      
-      // Insert the wrapper where bucketsSwitcher currently is
-      bucketsSwitcher.parentNode.insertBefore(switcherWrapper, bucketsSwitcher);
-      
-      // Move both switchers into the wrapper
-      switcherWrapper.appendChild(mainBucketsSwitcher);
-      switcherWrapper.appendChild(bucketsSwitcher);
-
-      // IMMEDIATELY set up event listeners for the new buttons
-      setupMainBucketsSwitcherEventsDirectly();
-    }
+if (bucketsSwitcher) {
+  // Create wrapper if it doesn't exist
+  if (!switcherWrapper) {
+    switcherWrapper = document.createElement('div');
+    switcherWrapper.id = 'bucketsSwitcherWrapper';
+    switcherWrapper.className = 'buckets-switcher-wrapper';
+    switcherWrapper.style.cssText = 'display: flex; gap: 15px; align-items: center; margin-bottom: 20px;';
     
-    // Show both wrapper and child elements
-    switcherWrapper.style.display = 'flex';
-    bucketsSwitcher.style.display = 'block';
+    // Create main buckets switcher
+    const mainBucketsSwitcher = document.createElement('div');
+    mainBucketsSwitcher.id = 'mainBucketsSwitcher';
+    mainBucketsSwitcher.className = 'google-ads-buckets-switcher main-buckets-switcher';
+    mainBucketsSwitcher.innerHTML = `
+      <button id="mainBucketsOverview" class="active">Buckets Overview</button>
+      <button id="mainBucketedProducts">Products by Bucket</button>
+    `;
+    
+    // Insert the wrapper where bucketsSwitcher currently is
+    bucketsSwitcher.parentNode.insertBefore(switcherWrapper, bucketsSwitcher);
+    
+    // Move both switchers into the wrapper
+    switcherWrapper.appendChild(mainBucketsSwitcher);
+    switcherWrapper.appendChild(bucketsSwitcher);
   }
+  
+  // Show both wrapper and child elements
+  switcherWrapper.style.display = 'flex';
+  bucketsSwitcher.style.display = 'block';
+}
 
 // Initialize main buckets switcher with a small delay to ensure DOM is ready
 setTimeout(() => {
@@ -6241,46 +6237,6 @@ setTimeout(() => {
   // Load and render both containers
   loadAndRenderROASBuckets();
 });
-
-// Add this new function to set up event listeners directly
-function setupMainBucketsSwitcherEventsDirectly() {
-  // Remove any existing listeners first
-  const existingButtons = document.querySelectorAll('#mainBucketsOverview, #mainBucketedProducts');
-  existingButtons.forEach(button => {
-    // Clone node to remove all event listeners
-    const newButton = button.cloneNode(true);
-    button.parentNode.replaceChild(newButton, button);
-  });
-
-  // Add fresh event listeners
-  const overviewBtn = document.getElementById('mainBucketsOverview');
-  const productsBtn = document.getElementById('mainBucketedProducts');
-
-  if (overviewBtn) {
-    overviewBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      console.log('[mainBucketsSwitcher] Overview button clicked');
-      handleMainBucketSwitch('mainBucketsOverview');
-    });
-  }
-
-  if (productsBtn) {
-    productsBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      console.log('[mainBucketsSwitcher] Products button clicked');
-      handleMainBucketSwitch('mainBucketedProducts');
-    });
-  }
-
-  // Also add a fallback document listener
-  document.addEventListener('click', function(e) {
-    if (e.target.id === 'mainBucketsOverview' || e.target.id === 'mainBucketedProducts') {
-      e.stopPropagation();
-      console.log('[mainBucketsSwitcher] Document fallback triggered for:', e.target.id);
-      handleMainBucketSwitch(e.target.id);
-    }
-  }, { capture: true });
-}
 
 // Add click handler for collapsed nav panel
 document.addEventListener('click', function(e) {
