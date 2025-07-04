@@ -489,8 +489,16 @@ function hideFunnelTooltip() {
 // Set up event listeners for the main buckets switcher
 function setupMainBucketsSwitcherEvents() {
   document.addEventListener('click', function(e) {
-    if (e.target.id === 'mainBucketsOverview' || e.target.id === 'mainBucketedProducts') {
-      handleMainBucketSwitch(e.target.id);
+    // Check if the clicked element or any of its parents is one of our buttons
+    let targetElement = e.target;
+    
+    // Traverse up the DOM tree to find the button
+    while (targetElement && targetElement !== document.body) {
+      if (targetElement.id === 'mainBucketsOverview' || targetElement.id === 'mainBucketedProducts') {
+        handleMainBucketSwitch(targetElement.id);
+        return;
+      }
+      targetElement = targetElement.parentElement;
     }
   });
 }
