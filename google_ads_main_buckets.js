@@ -522,6 +522,8 @@ function handleMainBucketSwitch(buttonId) {
   // Update active states
   const overviewBtn = document.getElementById('mainBucketsOverview');
   const productsBtn = document.getElementById('mainBucketedProducts');
+
+  console.log('[handleMainBucketSwitch] Found buttons:', { overviewBtn: !!overviewBtn, productsBtn: !!productsBtn });
   
   if (overviewBtn) overviewBtn.classList.remove('active');
   if (productsBtn) productsBtn.classList.remove('active');
@@ -529,10 +531,12 @@ function handleMainBucketSwitch(buttonId) {
   if (buttonId === 'mainBucketsOverview') {
     if (overviewBtn) overviewBtn.classList.add('active');
     window.currentMainBucketView = 'overview';
+    console.log('[handleMainBucketSwitch] Calling showBucketsOverview()');
     showBucketsOverview();
   } else if (buttonId === 'mainBucketedProducts') {
     if (productsBtn) productsBtn.classList.add('active');
     window.currentMainBucketView = 'products';
+    console.log('[handleMainBucketSwitch] Calling showBucketedProducts()');
     showBucketedProducts();
   }
 }
@@ -1850,6 +1854,7 @@ function updateMetricsDisplay(metricsBox, bucketData) {
 // Export functions to window
 window.initializeMainBucketsSwitcher = initializeMainBucketsSwitcher;
 window.refreshBucketedProductsView = loadBucketedProducts;
+window.handleMainBucketSwitch = handleMainBucketSwitch;
 
 // Initialize when bucket type changes
 if (typeof window !== 'undefined') {
@@ -1864,3 +1869,11 @@ if (typeof window !== 'undefined') {
     }
   };
 }
+
+console.log('[google_ads_main_buckets.js] Functions exported to window:', {
+  initializeMainBucketsSwitcher: typeof window.initializeMainBucketsSwitcher,
+  handleMainBucketSwitch: typeof window.handleMainBucketSwitch,
+  showBucketsOverview: typeof showBucketsOverview,
+  showBucketedProducts: typeof showBucketedProducts,
+  loadBucketedProducts: typeof loadBucketedProducts
+});
