@@ -389,6 +389,16 @@ function selectGoogleAdsProduct(product, navItemElement) {
   return new Promise((resolve) => {
     console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
+    // Hide product explorer elements that might be visible
+  const productExplorerTable = document.querySelector('.product-explorer-table');
+  if (productExplorerTable) {
+    productExplorerTable.style.display = 'none';
+  }
+  const explorerContainer = document.getElementById('productExplorerContainer');
+  if (explorerContainer) {
+    explorerContainer.style.display = 'none';
+  }
+
   // Clean up previous product info charts
   if (window.productInfoCharts) {
     window.productInfoCharts.forEach(chart => {
