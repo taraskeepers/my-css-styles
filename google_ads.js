@@ -423,18 +423,18 @@ function selectGoogleAdsProduct(product, navItemElement) {
     console.log('[selectGoogleAdsProduct] Selecting product:', product.title);
 
     // Only hide product explorer elements if we're actually in Google Ads view
-    const isGoogleAdsActive = document.getElementById('googleAdsPage')?.style.display !== 'none';
+    const googleAdsPage = document.getElementById('googleAdsPage');
+    const isGoogleAdsActive = googleAdsPage && googleAdsPage.style.display !== 'none';
     
     if (isGoogleAdsActive) {
-      // Hide product explorer elements only when in Google Ads view
-      const productExplorerTable = document.querySelector('.product-explorer-table');
-      if (productExplorerTable) {
-        productExplorerTable.style.display = 'none';
-      }
-      const explorerContainer = document.getElementById('productExplorerContainer');
-      if (explorerContainer) {
-        explorerContainer.style.display = 'none';
-      }
+      // Hide product explorer table specifically, not the entire container
+      const productExplorerTables = document.querySelectorAll('.product-explorer-table');
+      productExplorerTables.forEach(table => {
+        table.style.display = 'none';
+      });
+      
+      // Don't hide the entire productExplorerContainer or productExplorerPage
+      // as this causes issues when switching back
     }
 
     // Clean up previous product info charts
