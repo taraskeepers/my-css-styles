@@ -4604,6 +4604,50 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
   }, 100);
 }
 
+// Debug tracker - add at the END of product_explorer.js
+window.trackProductExplorerTable = function() {
+  console.log('[TRACKER] Starting to track product-explorer-table changes...');
+  
+  // Watch for style changes on any product-explorer-table
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+        const element = mutation.target;
+        if (element.classList && element.classList.contains('product-explorer-table')) {
+          const display = element.style.display;
+          if (display === 'none') {
+            console.error('[TRACKER] product-explorer-table was hidden!', {
+              element: element,
+              parent: element.parentElement?.id,
+              inProductExplorer: !!element.closest('#productExplorerPage'),
+              timestamp: new Date().toISOString()
+            });
+            
+            // Try to find what function called this
+            try {
+              throw new Error('Tracking stack');
+            } catch (e) {
+              console.error('[TRACKER] Stack trace:', e.stack);
+            }
+          }
+        }
+      }
+    });
+  });
+  
+  // Start observing the entire document for attribute changes
+  observer.observe(document.body, {
+    attributes: true,
+    subtree: true,
+    attributeFilter: ['style']
+  });
+  
+  console.log('[TRACKER] Tracking active. Will log when product-explorer-table is hidden.');
+};
+
+// Auto-start tracking
+window.trackProductExplorerTable();
+
 // Export the function
 if (typeof window !== 'undefined') {
   window.renderProductExplorerTable = renderProductExplorerTable;
