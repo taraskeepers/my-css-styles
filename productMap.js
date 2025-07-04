@@ -442,6 +442,16 @@ window.loadRankingTabContent = async function(popup, bucketData) {
   }
 };
 
+// Helper function to get the current project-specific table prefix
+function getProjectTablePrefix() {
+  const accountPrefix = window.currentAccount || 'acc1';
+  const currentProjectNum = window.dataPrefix ? 
+    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+  const prefix = `${accountPrefix}_pr${currentProjectNum}_`;
+  console.log('[ProductMap] Using table prefix:', prefix);
+  return prefix;
+}
+
 // Simple function to check if a table exists
 async function checkTableExists(tableName) {
   return new Promise((resolve) => {
@@ -1066,9 +1076,9 @@ const createComparisonHTML = (currentValue, metricName, device) => {
 // Helper function to load product metrics data from IndexedDB
 async function loadProductMetricsData(productTitle) {
   try {
-    // Get current account prefix
-    const accountPrefix = window.currentAccount || 'acc1';
-    const tableName = `${accountPrefix}_googleSheets_productPerformance`;
+    // Get project-specific table prefix
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productPerformance`;
     
     // Try to access through the parent database first
     const myAppDb = await new Promise((resolve, reject) => {
@@ -1414,40 +1424,52 @@ async function renderProductMapTable() {
     const container = document.getElementById("productMapPage");
     if (!container) return;
     
-    // Simple check for Google Ads integration
-    let googleAdsEnabled = false;
-    let accountNumber = null;
-    
-    // Check for acc1, acc2, etc. (you can adjust the range as needed)
-    for (let i = 1; i <= 10; i++) {
-      const configExists = await checkTableExists(`acc${i}_googleSheets_config`);
-      if (configExists) {
-        googleAdsEnabled = true;
-        accountNumber = i;
-        break;
-      }
+// Simple check for Google Ads integration
+let googleAdsEnabled = false;
+let accountNumber = null;
+
+// Get the project-specific table prefix
+const tablePrefix = getProjectTablePrefix();
+
+// Check for config table with the new naming convention
+const configExists = await checkTableExists(`${tablePrefix}googleSheets_config`);
+if (configExists) {
+  googleAdsEnabled = true;
+  // Extract account number from prefix
+  accountNumber = parseInt(tablePrefix.match(/acc(\d+)_/)?.[1]) || 1;
+} else {
+  // Fallback: check old naming convention
+  for (let i = 1; i <= 10; i++) {
+    const oldConfigExists = await checkTableExists(`acc${i}_googleSheets_config`);
+    if (oldConfigExists) {
+      googleAdsEnabled = true;
+      accountNumber = i;
+      break;
     }
-    
-console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber);
+  }
+}
+
+console.log('[ProductMap] Google Ads enabled:', googleAdsEnabled, 'Account:', accountNumber, 'Prefix:', tablePrefix);
 
 // Load search terms statistics if enabled
 let searchTermsStatsMap = new Map();
-if (googleAdsEnabled && accountNumber) {
-  searchTermsStatsMap = await loadSearchTermsStats(accountNumber);
+if (googleAdsEnabled) {
+  searchTermsStatsMap = await loadSearchTermsStats(tablePrefix);
   console.log(`[ProductMap] Search terms stats loaded: ${searchTermsStatsMap.size} entries`);
 }
 
 // Load bucket averages if enabled
 let bucketAveragesMap = new Map();
-if (googleAdsEnabled && accountNumber) {
-  bucketAveragesMap = await loadBucketAverages(accountNumber);
+if (googleAdsEnabled) {
+  bucketAveragesMap = await loadBucketAverages(tablePrefix);
   console.log(`[ProductMap] Bucket averages loaded: ${bucketAveragesMap.size} entries`);
 }
     
 // Load bucket data if enabled
 let bucketDataMap = new Map();
 if (googleAdsEnabled) {
-  const bucketTableExists = await checkTableExists(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+  const bucketTableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+  const bucketTableExists = await checkTableExists(bucketTableName);
   
   if (bucketTableExists) {
     // Get the bucket data from projectData store
@@ -1460,7 +1482,7 @@ if (googleAdsEnabled) {
     // Get data from projectData store
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(`acc${accountNumber}_googleSheets_productBuckets_30d`);
+    const getRequest = objectStore.get(bucketTableName);
     
     await new Promise((resolve) => {
       getRequest.onsuccess = () => {
@@ -4670,9 +4692,9 @@ async function fetchProductBucketData(accountNumber, productTitle) {
 }
 
 // Function to load search terms statistics
-async function loadSearchTermsStats(accountNumber) {
+async function loadSearchTermsStats(tablePrefix) {
   try {
-    const tableName = `acc${accountNumber}_googleSheets_searchTerms_365d`;
+    const tableName = `${tablePrefix}googleSheets_searchTerms_365d`;
     
     // Check if table exists
     const tableExists = await checkTableExists(tableName);
@@ -4733,9 +4755,9 @@ async function loadSearchTermsStats(accountNumber) {
 }
 
 // Function to load bucket averages data
-async function loadBucketAverages(accountNumber) {
+async function loadBucketAverages(tablePrefix) {
   try {
-    const tableName = `acc${accountNumber}_googleSheets_productBuckets_averages`;
+    const tableName = `${tablePrefix}googleSheets_productBuckets_averages`;
     
     // Check if table exists
     const tableExists = await checkTableExists(tableName);
