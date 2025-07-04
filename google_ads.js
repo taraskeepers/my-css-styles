@@ -5772,6 +5772,11 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
   }
+    // Explicitly hide any product explorer elements
+  const productExplorerTable = document.querySelector('.product-explorer-table');
+  if (productExplorerTable) {
+    productExplorerTable.style.display = 'none';
+  }
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
