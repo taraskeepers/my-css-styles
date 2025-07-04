@@ -981,6 +981,11 @@ Promise.all([
   };
 });
 
+// Update Google Ads button state for the new project
+if (typeof updateGoogleAdsButtonState === 'function') {
+  updateGoogleAdsButtonState();
+}
+
       const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
       console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
       if (loadedProjectNumbers.size !== 1) {
