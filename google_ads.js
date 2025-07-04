@@ -8210,6 +8210,29 @@ if (window.googleAdsApexCharts) {
 #product_ranking_map {
   background-color: #fff !important;
 }
+/* Ensure Google Ads content is above product explorer */
+#googleAdsTableContainer {
+  position: relative;
+  z-index: 100;
+  background-color: #fff !important;
+}
+
+#product_ranking_map {
+  position: relative;
+  z-index: 101;
+  background-color: #fff !important;
+}
+
+.google-ads-content-wrapper {
+  position: relative;
+  z-index: 100;
+  background-color: #fff !important;
+}
+
+/* Hide product explorer when Google Ads is active */
+.google-ads-active .product-explorer-table {
+  display: none !important;
+}
     `;
     document.head.appendChild(style);
   }
