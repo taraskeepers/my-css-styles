@@ -5963,7 +5963,7 @@ container.innerHTML = `
               border-radius: 8px;
               box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               display: none;
-              z-index: 1000;
+              z-index: 100000;
               min-width: 200px;
             ">
               <div class="date-range-option" data-days="3" style="padding: 10px 16px; cursor: pointer; font-size: 14px; color: #3c4043;">Last 3 days</div>
@@ -6019,6 +6019,12 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) {
     productInfoDateRange.style.display = 'block';
+    
+    // Set default to 30 days for Rank Map if not already set
+    if (!window.selectedDateRangeDays || window.selectedDateRangeDays === 7) {
+      window.selectedDateRangeDays = 30;
+    }
+    
     // Initialize date selector event listeners
     setTimeout(() => {
       setupProductInfoDateSelector();
@@ -6143,6 +6149,12 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) {
     productInfoDateRange.style.display = 'block';
+    
+    // Set default to 30 days for Rank Map if not already set
+    if (!window.selectedDateRangeDays || window.selectedDateRangeDays === 7) {
+      window.selectedDateRangeDays = 30;
+    }
+    
     // Initialize date selector event listeners
     setTimeout(() => {
       setupProductInfoDateSelector();
@@ -6255,6 +6267,12 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   const productInfoDateRange = document.getElementById('productInfoDateRange');
   if (productInfoDateRange) {
     productInfoDateRange.style.display = 'block';
+    
+    // Set default to 30 days for Rank Map if not already set
+    if (!window.selectedDateRangeDays || window.selectedDateRangeDays === 7) {
+      window.selectedDateRangeDays = 30;
+    }
+    
     // Initialize date selector event listeners
     setTimeout(() => {
       setupProductInfoDateSelector();
