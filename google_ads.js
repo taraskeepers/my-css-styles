@@ -8,6 +8,7 @@ window.productMetricsSettings = {
   useLatestDataDate: false, // true = use latest data date, false = use today's date
   // Future settings can be added here
 };
+window.currentRankingMapMode = null; // Track if showing all products or specific product
 
 // Add device filter variable
 window.selectedDeviceFilter = 'all'; // 'all', 'DESKTOP', 'MOBILE', 'TABLET'
@@ -1241,6 +1242,8 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
 function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all', deviceFilter = 'all') {
   const container = document.getElementById('google_ads_ranking_map');
   if (!container) return;
+    // Track the current mode
+  window.currentRankingMapMode = product;
 
   // Check if we're in Overview mode and hide if so
   const overviewBtn = document.getElementById('viewOverviewGoogleAds');
@@ -1963,12 +1966,16 @@ function setupProductInfoDateSelector() {
         populateProductTables(window.currentProductInfoData, isChannelMode ? 'channel' : 'campaign');
       }
       
-      // Update ranking map with new date range
-      if (window.selectedGoogleAdsProduct) {
-        const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
-        const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-        populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
-      }
+// Update ranking map with new date range if visible
+const rankingMapContainer = document.getElementById('google_ads_ranking_map');
+if (rankingMapContainer && rankingMapContainer.style.display !== 'none') {
+  const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
+  const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
+  const deviceFilter = document.querySelector('.device-switch-btn.active')?.getAttribute('data-device') || 'all';
+  
+  // Use the tracked mode - null for all products, or specific product
+  populateProductRankingMap(window.currentRankingMapMode, campaignFilter, channelFilter, deviceFilter);
+}
       
       if (window.currentProductMetricsData) {
         const chartData = processMetricsData(
