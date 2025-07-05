@@ -1093,6 +1093,58 @@ async function loadProductMetricsData(productTitle) {
   }
 }
 
+async function loadAllProductsMetricsData() {
+  try {
+    console.log('[loadAllProductsMetricsData] Starting...');
+    
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productPerformance`;
+    
+    console.log(`[loadAllProductsMetricsData] Looking for table: ${tableName}`);
+    
+    const myAppDb = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    if (myAppDb.objectStoreNames.contains('projectData')) {
+      const transaction = myAppDb.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      const data = await new Promise((resolve, reject) => {
+        getRequest.onsuccess = () => resolve(getRequest.result);
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+      
+      if (data && data.data && Array.isArray(data.data)) {
+        const actualData = data.data;
+        console.log(`[loadAllProductsMetricsData] Found ${actualData.length} total records`);
+        
+        // Get unique campaigns and channels from all products
+        const campaignNames = [...new Set(actualData.map(row => row['Campaign Name']))].filter(Boolean);
+        const channelTypes = [...new Set(actualData.map(row => row['Channel Type']))].filter(Boolean);
+        
+        myAppDb.close();
+        
+        return {
+          productData: actualData,
+          campaignNames,
+          channelTypes
+        };
+      }
+    }
+    
+    myAppDb.close();
+    return null;
+    
+  } catch (error) {
+    console.error('[loadAllProductsMetricsData] Error:', error);
+    return null;
+  }
+}
+
 function populateProductInfo(product) {
   const productInfoContainer = document.getElementById('product_info');
   if (!productInfoContainer) return;
@@ -1190,7 +1242,7 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
   const container = document.getElementById('google_ads_ranking_map');
   if (!container) return;
 
-    // Check if we're in Overview mode and hide if so
+  // Check if we're in Overview mode and hide if so
   const overviewBtn = document.getElementById('viewOverviewGoogleAds');
   if (overviewBtn && overviewBtn.classList.contains('active')) {
     container.style.display = 'none';
@@ -1207,8 +1259,15 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
   const endDate = moment().startOf('day');
   const startDate = endDate.clone().subtract(daysToShow - 1, 'days');
   
-  // Load data from googleSheets_productPerformance
-  loadProductMetricsData(product.title).then(result => {
+  // Determine if we're showing all products or a specific product
+  const isAllProductsMode = !product;
+  
+  // Load data based on mode
+  const loadDataPromise = isAllProductsMode 
+    ? loadAllProductsMetricsData() 
+    : loadProductMetricsData(product.title);
+  
+  loadDataPromise.then(result => {
     if (!result || !result.productData || result.productData.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No performance data available for ranking map</div>';
       return;
@@ -1227,55 +1286,101 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
     if (channelFilter !== 'all') {
       filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
     }
-    // Add device filter
-if (deviceFilter !== 'all') {
-  const deviceMap = {
-    'desk': 'DESKTOP',
-    'mob': 'MOBILE'
-  };
-  const deviceValue = deviceMap[deviceFilter];
-  if (deviceValue) {
-    filteredData = filteredData.filter(row => row.Device === deviceValue);
-  }
-}
-    
-    // Get ranking data from product records
-    const productRecords = getProductRecords(product);
-let filteredProductRecords = productRecords;
-
-// Filter product records by device if needed
-if (deviceFilter !== 'all') {
-  const deviceMap = {
-    'desk': 'desktop',
-    'mob': 'mobile'
-  };
-  const filterDevice = deviceMap[deviceFilter];
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && record.device.toLowerCase() === filterDevice;
-  });
-}
-    
-const rankingsByDate = new Map();
-
-// Collect rankings by date within the date range
-filteredProductRecords.forEach(record => {
-  if (record.historical_data && Array.isArray(record.historical_data)) {
-    record.historical_data.forEach(item => {
-      if (item.date?.value && item.avg_position != null) {
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
-          const date = item.date.value;
-          const ranking = parseFloat(item.avg_position);
-          
-          if (!rankingsByDate.has(date)) {
-            rankingsByDate.set(date, []);
-          }
-          rankingsByDate.get(date).push(ranking);
-        }
+    if (deviceFilter !== 'all') {
+      const deviceMap = {
+        'desk': 'DESKTOP',
+        'mob': 'MOBILE'
+      };
+      const deviceValue = deviceMap[deviceFilter];
+      if (deviceValue) {
+        filteredData = filteredData.filter(row => row.Device === deviceValue);
       }
-    });
-  }
-});
+    }
+    
+    // Get ranking data
+    let rankingsByDate = new Map();
+    
+    if (isAllProductsMode) {
+      // For all products mode, we need to get ranking data for ALL products
+      const allCompanyProducts = [];
+      if (window.allRows && Array.isArray(window.allRows)) {
+        window.allRows.forEach(prod => {
+          if (prod.source && prod.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+            allCompanyProducts.push(prod);
+          }
+        });
+      }
+      
+      // Collect rankings from all products
+      allCompanyProducts.forEach(prod => {
+        const productRecords = getProductRecords(prod);
+        let filteredProductRecords = productRecords;
+        
+        if (deviceFilter !== 'all') {
+          const deviceMap = {
+            'desk': 'desktop',
+            'mob': 'mobile'
+          };
+          const filterDevice = deviceMap[deviceFilter];
+          filteredProductRecords = productRecords.filter(record => {
+            return record.device && record.device.toLowerCase() === filterDevice;
+          });
+        }
+        
+        filteredProductRecords.forEach(record => {
+          if (record.historical_data && Array.isArray(record.historical_data)) {
+            record.historical_data.forEach(item => {
+              if (item.date?.value && item.avg_position != null) {
+                const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+                  const date = item.date.value;
+                  const ranking = parseFloat(item.avg_position);
+                  
+                  if (!rankingsByDate.has(date)) {
+                    rankingsByDate.set(date, []);
+                  }
+                  rankingsByDate.get(date).push(ranking);
+                }
+              }
+            });
+          }
+        });
+      });
+    } else {
+      // Single product mode - existing logic
+      const productRecords = getProductRecords(product);
+      let filteredProductRecords = productRecords;
+      
+      if (deviceFilter !== 'all') {
+        const deviceMap = {
+          'desk': 'desktop',
+          'mob': 'mobile'
+        };
+        const filterDevice = deviceMap[deviceFilter];
+        filteredProductRecords = productRecords.filter(record => {
+          return record.device && record.device.toLowerCase() === filterDevice;
+        });
+      }
+      
+      filteredProductRecords.forEach(record => {
+        if (record.historical_data && Array.isArray(record.historical_data)) {
+          record.historical_data.forEach(item => {
+            if (item.date?.value && item.avg_position != null) {
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+                const date = item.date.value;
+                const ranking = parseFloat(item.avg_position);
+                
+                if (!rankingsByDate.has(date)) {
+                  rankingsByDate.set(date, []);
+                }
+                rankingsByDate.get(date).push(ranking);
+              }
+            }
+          });
+        }
+      });
+    }
     
     // Calculate average ranking per date
     const avgRankingByDate = new Map();
@@ -1298,6 +1403,7 @@ filteredProductRecords.forEach(record => {
         roasSum: 0,
         aovSum: 0,
         cpaSum: 0,
+        cpcSum: 0,
         count: 0
       };
     }
@@ -1348,39 +1454,46 @@ filteredProductRecords.forEach(record => {
       const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
       const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
       const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
+      const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
       
       posData.ctrSum += ctr;
       posData.cvrSum += cvr;
       posData.roasSum += roas;
       posData.aovSum += aov;
       posData.cpaSum += cpa;
+      posData.cpcSum += cpc;
       posData.count++;
     });
     
     // Check if segmented mode is on
     const isSegmented = document.getElementById('rankingMapSegmentedToggle')?.checked || false;
     
-// Create toggle HTML
-let containerHTML = `
-  <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <label style="font-weight: 600; font-size: 13px;">Device:</label>
-      <select id="rankingMapDeviceFilter" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-        <option value="all" ${deviceFilter === 'all' ? 'selected' : ''}>All dev</option>
-        <option value="desk" ${deviceFilter === 'desk' ? 'selected' : ''}>Desk</option>
-        <option value="mob" ${deviceFilter === 'mob' ? 'selected' : ''}>Mob</option>
-      </select>
-    </div>
-    <div class="ranking-map-segmented-toggle">
-      <label>Detailed Mode</label>
-      <label class="chart-mode-switch">
-        <input type="checkbox" id="rankingMapSegmentedToggle" ${isSegmented ? 'checked' : ''}>
-        <span class="chart-mode-slider"></span>
-      </label>
-      <label>Segmented Mode</label>
-    </div>
-  </div>
-`;
+    // Create toggle HTML with title
+    let containerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">
+          ${isAllProductsMode ? 'All Products Ranking Map' : product.title + ' - Ranking Map'}
+        </h3>
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-weight: 600; font-size: 13px;">Device:</label>
+            <select id="rankingMapDeviceFilter" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+              <option value="all" ${deviceFilter === 'all' ? 'selected' : ''}>All dev</option>
+              <option value="desk" ${deviceFilter === 'desk' ? 'selected' : ''}>Desk</option>
+              <option value="mob" ${deviceFilter === 'mob' ? 'selected' : ''}>Mob</option>
+            </select>
+          </div>
+          <div class="ranking-map-segmented-toggle">
+            <label>Detailed Mode</label>
+            <label class="chart-mode-switch">
+              <input type="checkbox" id="rankingMapSegmentedToggle" ${isSegmented ? 'checked' : ''}>
+              <span class="chart-mode-slider"></span>
+            </label>
+            <label>Segmented Mode</label>
+          </div>
+        </div>
+      </div>
+    `;
     
     if (isSegmented) {
       // Segmented mode - aggregate into 4 segments
@@ -1405,6 +1518,7 @@ let containerHTML = `
           roasSum: 0,
           aovSum: 0,
           cpaSum: 0,
+          cpcSum: 0,
           count: 0
         };
         
@@ -1420,6 +1534,7 @@ let containerHTML = `
           segmentData.roasSum += data.roasSum;
           segmentData.aovSum += data.aovSum;
           segmentData.cpaSum += data.cpaSum;
+          segmentData.cpcSum += data.cpcSum;
           segmentData.count += data.count;
         }
         
@@ -1459,7 +1574,7 @@ let containerHTML = `
         if (data.count > 0) {
           allValues.impressions.push(data.impressions);
           allValues.clicks.push(data.clicks);
-          allValues.avgCpc.push(data.clicks > 0 ? data.cost / data.clicks : 0);
+          allValues.avgCpc.push(data.cpcSum / data.count);
           allValues.cost.push(data.cost);
           allValues.conversions.push(data.conversions);
           allValues.conversionValue.push(data.conversionValue);
@@ -1480,7 +1595,7 @@ let containerHTML = `
         const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
         const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
         const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
-        const avgCpc = hasData && data.clicks > 0 ? (data.cost / data.clicks).toFixed(2) : '0.00';
+        const avgCpc = hasData ? (data.cpcSum / data.count).toFixed(2) : '0.00';
         
         const rowClass = index === 0 ? 'ranking-position-1' :
                         index === 1 ? 'ranking-position-4' :
@@ -1539,7 +1654,7 @@ let containerHTML = `
         if (data.count > 0) {
           allValues.impressions.push(data.impressions);
           allValues.clicks.push(data.clicks);
-          allValues.avgCpc.push(data.clicks > 0 ? data.cost / data.clicks : 0);
+          allValues.avgCpc.push(data.cpcSum / data.count);
           allValues.cost.push(data.cost);
           allValues.conversions.push(data.conversions);
           allValues.conversionValue.push(data.conversionValue);
@@ -1561,7 +1676,7 @@ let containerHTML = `
         const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
         const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
         const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
-        const avgCpc = hasData && data.clicks > 0 ? (data.cost / data.clicks).toFixed(2) : '0.00';
+        const avgCpc = hasData ? (data.cpcSum / data.count).toFixed(2) : '0.00';
         
         const rowClass = position <= 3 ? 'ranking-position-' + position : 
                         position <= 8 ? 'ranking-position-4' :
@@ -1593,16 +1708,16 @@ let containerHTML = `
     
     container.innerHTML = containerHTML;
     
-// Add event listener for toggle
-document.getElementById('rankingMapSegmentedToggle').addEventListener('change', function() {
-  populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
-});
-
-// Add event listener for device filter
-document.getElementById('rankingMapDeviceFilter').addEventListener('change', function() {
-  const newDeviceFilter = this.value;
-  populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
-});
+    // Add event listener for toggle
+    document.getElementById('rankingMapSegmentedToggle').addEventListener('change', function() {
+      populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
+    });
+    
+    // Add event listener for device filter
+    document.getElementById('rankingMapDeviceFilter').addEventListener('change', function() {
+      const newDeviceFilter = this.value;
+      populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
+    });
     
   }).catch(error => {
     console.error('[populateProductRankingMap] Error:', error);
@@ -5877,13 +5992,14 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
   }
-    // Explicitly hide any product explorer elements
-const productExplorerTable = document.querySelector('.product-explorer-table');
-if (productExplorerTable && !productExplorerTable.closest('#productExplorerPage')) {
-  productExplorerTable.style.display = 'none';
-}
+  
+  // Explicitly hide any product explorer elements
+  const productExplorerTable = document.querySelector('.product-explorer-table');
+  if (productExplorerTable && !productExplorerTable.closest('#productExplorerPage')) {
+    productExplorerTable.style.display = 'none';
+  }
 
-// Hide buckets switcher AND wrapper
+  // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
   if (switcherWrapper) switcherWrapper.style.display = 'none';
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
@@ -5904,20 +6020,20 @@ if (productExplorerTable && !productExplorerTable.closest('#productExplorerPage'
   
   if (productInfo) productInfo.style.display = 'none';
   if (productMetrics) productMetrics.style.display = 'none';
-  if (productRankingMap) productRankingMap.style.display = 'block'; // Show in performance
+  if (productRankingMap) productRankingMap.style.display = 'block';
   if (productTables) productTables.style.display = 'none';
 
-// Keep the table hidden
-const table = document.querySelector('.google-ads-table');
-if (table) {
-  table.style.display = 'none';
-}
+  // Keep the table hidden
+  const table = document.querySelector('.google-ads-table');
+  if (table) {
+    table.style.display = 'none';
+  }
 
-// Hide map container
-const mapContainer = document.getElementById('googleAdsMapContainer');
-if (mapContainer) {
-  mapContainer.style.display = 'none';
-}
+  // Hide map container
+  const mapContainer = document.getElementById('googleAdsMapContainer');
+  if (mapContainer) {
+    mapContainer.style.display = 'none';
+  }
   
   // Hide ROAS Buckets
   const buckets_products = document.getElementById('buckets_products');
@@ -5961,12 +6077,14 @@ if (mapContainer) {
       renderGoogleAdsPositionChart(container, container.combinationRecord);
     }
   });
-  // Populate ranking map for selected product
-if (window.selectedGoogleAdsProduct) {
+  
+  // CHANGED: Always populate ranking map with ALL products when Rank Map is clicked
   const campaignFilter = document.getElementById('campaignNameFilter')?.value || 'all';
   const channelFilter = document.getElementById('channelTypeFilter')?.value || 'all';
-  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignFilter, channelFilter);
-}
+  const deviceFilter = document.getElementById('deviceTypeFilter')?.value || 'all';
+  
+  // Pass null as the product parameter to show all products
+  populateProductRankingMap(null, campaignFilter, channelFilter, deviceFilter);
 });
 
 viewMapGoogleAdsBtn.addEventListener("click", function() {
