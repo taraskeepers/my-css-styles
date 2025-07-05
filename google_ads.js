@@ -6015,9 +6015,16 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
-  // Show date range selector
+// Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
-  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  if (productInfoDateRange) {
+    productInfoDateRange.style.display = 'block';
+    // Initialize date selector event listeners
+    setTimeout(() => {
+      setupProductInfoDateSelector();
+    }, 100);
+  }
+  
   // Hide bucket date range
   const bucketDateRange = document.getElementById('bucketDateRange');
   if (bucketDateRange) bucketDateRange.style.display = 'none';
@@ -6132,9 +6139,16 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
-  // Show date range selector
+// Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
-  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  if (productInfoDateRange) {
+    productInfoDateRange.style.display = 'block';
+    // Initialize date selector event listeners
+    setTimeout(() => {
+      setupProductInfoDateSelector();
+    }, 100);
+  }
+  
   // Hide bucket date range
   const bucketDateRange = document.getElementById('bucketDateRange');
   if (bucketDateRange) bucketDateRange.style.display = 'none';
@@ -6237,9 +6251,16 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
   if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
 
-  // Show date range selector
+// Show date range selector
   const productInfoDateRange = document.getElementById('productInfoDateRange');
-  if (productInfoDateRange) productInfoDateRange.style.display = 'block';
+  if (productInfoDateRange) {
+    productInfoDateRange.style.display = 'block';
+    // Initialize date selector event listeners
+    setTimeout(() => {
+      setupProductInfoDateSelector();
+    }, 100);
+  }
+  
   // Hide bucket date range
   const bucketDateRange = document.getElementById('bucketDateRange');
   if (bucketDateRange) bucketDateRange.style.display = 'none';
