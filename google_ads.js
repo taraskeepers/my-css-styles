@@ -1432,38 +1432,165 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
       dayData.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
     });
     
-    // Process aggregated data by ranking position
-    dataByDate.forEach((dayData, date) => {
-      const avgRanking = avgRankingByDate.get(date);
-      if (!avgRanking) return;
+// Process aggregated data by ranking position
+    if (isAllProductsMode) {
+      // For all products mode, we need to process each product's data separately
+      // to maintain their individual ranking positions
       
-      // Round ranking to nearest integer
-      const roundedRanking = Math.round(avgRanking);
-      const position = Math.max(1, Math.min(40, roundedRanking));
+      // Get all company products
+      const allCompanyProducts = [];
+      if (window.allRows && Array.isArray(window.allRows)) {
+        window.allRows.forEach(prod => {
+          if (prod.source && prod.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+            allCompanyProducts.push(prod);
+          }
+        });
+      }
       
-      const posData = positionData[position];
-      posData.impressions += dayData.impressions;
-      posData.clicks += dayData.clicks;
-      posData.cost += dayData.cost;
-      posData.conversions += dayData.conversions;
-      posData.conversionValue += dayData.conversionValue;
+      // Process each product's data
+      allCompanyProducts.forEach(product => {
+        // Get the product's filtered data
+        const productFilteredData = filteredData.filter(row => 
+          row['Product Title'] === product.title
+        );
+        
+        if (productFilteredData.length === 0) return;
+        
+        // Get ranking data for this specific product
+        const productRecords = getProductRecords(product);
+        let filteredProductRecords = productRecords;
+        
+        if (deviceFilter !== 'all') {
+          const deviceMap = {
+            'desk': 'desktop',
+            'mob': 'mobile'
+          };
+          const filterDevice = deviceMap[deviceFilter];
+          filteredProductRecords = productRecords.filter(record => {
+            return record.device && record.device.toLowerCase() === filterDevice;
+          });
+        }
+        
+        // Get this product's rankings by date
+        const productRankingsByDate = new Map();
+        filteredProductRecords.forEach(record => {
+          if (record.historical_data && Array.isArray(record.historical_data)) {
+            record.historical_data.forEach(item => {
+              if (item.date?.value && item.avg_position != null) {
+                const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+                if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+                  const date = item.date.value;
+                  const ranking = parseFloat(item.avg_position);
+                  
+                  if (!productRankingsByDate.has(date)) {
+                    productRankingsByDate.set(date, []);
+                  }
+                  productRankingsByDate.get(date).push(ranking);
+                }
+              }
+            });
+          }
+        });
+        
+        // Calculate average ranking per date for this product
+        const productAvgRankingByDate = new Map();
+        productRankingsByDate.forEach((rankings, date) => {
+          const avgRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
+          productAvgRankingByDate.set(date, avgRanking);
+        });
+        
+        // Group this product's data by date
+        const productDataByDate = new Map();
+        productFilteredData.forEach(row => {
+          const date = row.Date;
+          if (!date) return;
+          
+          if (!productDataByDate.has(date)) {
+            productDataByDate.set(date, {
+              impressions: 0,
+              clicks: 0,
+              cost: 0,
+              conversions: 0,
+              conversionValue: 0
+            });
+          }
+          
+          const dayData = productDataByDate.get(date);
+          dayData.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+          dayData.clicks += parseInt(row.Clicks) || 0;
+          dayData.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+          dayData.conversions += parseFloat(row.Conversions) || 0;
+          dayData.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+        });
+        
+        // Add this product's data to the appropriate ranking positions
+        productDataByDate.forEach((dayData, date) => {
+          const avgRanking = productAvgRankingByDate.get(date);
+          if (!avgRanking) return;
+          
+          // Round ranking to nearest integer
+          const roundedRanking = Math.round(avgRanking);
+          const position = Math.max(1, Math.min(40, roundedRanking));
+          
+          const posData = positionData[position];
+          posData.impressions += dayData.impressions;
+          posData.clicks += dayData.clicks;
+          posData.cost += dayData.cost;
+          posData.conversions += dayData.conversions;
+          posData.conversionValue += dayData.conversionValue;
+          
+          // Calculate metrics for averaging
+          const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
+          const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
+          const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
+          const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
+          const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
+          const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
+          
+          posData.ctrSum += ctr;
+          posData.cvrSum += cvr;
+          posData.roasSum += roas;
+          posData.aovSum += aov;
+          posData.cpaSum += cpa;
+          posData.cpcSum += cpc;
+          posData.count++;
+        });
+      });
       
-      // Calculate metrics for averaging
-      const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
-      const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
-      const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
-      const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
-      const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
-      const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
-      
-      posData.ctrSum += ctr;
-      posData.cvrSum += cvr;
-      posData.roasSum += roas;
-      posData.aovSum += aov;
-      posData.cpaSum += cpa;
-      posData.cpcSum += cpc;
-      posData.count++;
-    });
+    } else {
+      // Single product mode - existing logic
+      dataByDate.forEach((dayData, date) => {
+        const avgRanking = avgRankingByDate.get(date);
+        if (!avgRanking) return;
+        
+        // Round ranking to nearest integer
+        const roundedRanking = Math.round(avgRanking);
+        const position = Math.max(1, Math.min(40, roundedRanking));
+        
+        const posData = positionData[position];
+        posData.impressions += dayData.impressions;
+        posData.clicks += dayData.clicks;
+        posData.cost += dayData.cost;
+        posData.conversions += dayData.conversions;
+        posData.conversionValue += dayData.conversionValue;
+        
+        // Calculate metrics for averaging
+        const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
+        const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
+        const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
+        const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
+        const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
+        const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
+        
+        posData.ctrSum += ctr;
+        posData.cvrSum += cvr;
+        posData.roasSum += roas;
+        posData.aovSum += aov;
+        posData.cpaSum += cpa;
+        posData.cpcSum += cpc;
+        posData.count++;
+      });
+    }
     
     // Check if segmented mode is on
     const isSegmented = document.getElementById('rankingMapSegmentedToggle')?.checked || false;
