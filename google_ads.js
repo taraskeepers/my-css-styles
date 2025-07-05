@@ -1602,14 +1602,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
           ${isAllProductsMode ? 'All Products Ranking Map' : product.title + ' - Ranking Map'}
         </h3>
         <div style="display: flex; align-items: center; gap: 20px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <label style="font-weight: 600; font-size: 13px;">Device:</label>
-            <select id="rankingMapDeviceFilter" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-              <option value="all" ${deviceFilter === 'all' ? 'selected' : ''}>All dev</option>
-              <option value="desk" ${deviceFilter === 'desk' ? 'selected' : ''}>Desk</option>
-              <option value="mob" ${deviceFilter === 'mob' ? 'selected' : ''}>Mob</option>
-            </select>
-          </div>
+<div style="display: flex; align-items: center; gap: 10px;">
+  <label style="font-weight: 600; font-size: 13px;">Device:</label>
+  <div class="device-switch-container">
+    <button class="device-switch-btn ${deviceFilter === 'all' ? 'active' : ''}" data-device="all">
+      <span>All</span>
+    </button>
+    <button class="device-switch-btn ${deviceFilter === 'desk' ? 'active' : ''}" data-device="desk">
+      <span class="device-icon-small">💻</span>
+      <span>Desktop</span>
+    </button>
+    <button class="device-switch-btn ${deviceFilter === 'mob' ? 'active' : ''}" data-device="mob">
+      <span class="device-icon-small">📱</span>
+      <span>Mobile</span>
+    </button>
+  </div>
+</div>
           <div class="ranking-map-segmented-toggle">
             <label>Detailed Mode</label>
             <label class="chart-mode-switch">
@@ -1840,11 +1848,18 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
       populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
     });
     
-    // Add event listener for device filter
-    document.getElementById('rankingMapDeviceFilter').addEventListener('change', function() {
-      const newDeviceFilter = this.value;
-      populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
-    });
+// Add event listeners for device switch buttons
+document.querySelectorAll('.device-switch-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    // Remove active class from all buttons
+    document.querySelectorAll('.device-switch-btn').forEach(b => b.classList.remove('active'));
+    // Add active class to clicked button
+    this.classList.add('active');
+    // Get the device value and trigger update
+    const newDeviceFilter = this.getAttribute('data-device');
+    populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
+  });
+});
     
   }).catch(error => {
     console.error('[populateProductRankingMap] Error:', error);
@@ -8636,6 +8651,44 @@ if (window.googleAdsApexCharts) {
 /* Ensure table is hidden in Rank Map view */
 #viewChartsGoogleAds.active ~ * .google-ads-table {
   display: none !important;
+}
+/* Device switch styles */
+.device-switch-container {
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.device-switch-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 17px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.device-switch-btn.active {
+  background-color: #007aff;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+}
+
+.device-switch-btn:hover:not(.active) {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.device-icon-small {
+  font-size: 14px;
 }
     `;
     document.head.appendChild(style);
