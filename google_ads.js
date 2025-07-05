@@ -8614,7 +8614,6 @@ if (window.googleAdsApexCharts) {
 }
 
 #google_ads_ranking_map {
-  position: relative;
   z-index: 101;
   background-color: #fff !important;
 }
