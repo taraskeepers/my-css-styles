@@ -670,7 +670,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
                 if (window.selectedGoogleAdsProduct) {
                   const campaignValue = this.value;
                   const channelValue = document.getElementById('channelTypeFilter').value;
-                  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
+                  populateProductRankingMap(window.selectedGoogleAdsProduct, 'all', 'all', deviceFilter);
                 }
               });
             }
@@ -682,7 +682,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
                 if (window.selectedGoogleAdsProduct) {
                   const campaignValue = document.getElementById('campaignNameFilter').value;
                   const channelValue = this.value;
-                  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
+                  populateProductRankingMap(window.selectedGoogleAdsProduct, 'all', 'all', deviceFilter);
                 }
               });
             }
@@ -698,7 +698,7 @@ function selectGoogleAdsProduct(product, navItemElement) {
                   const campaignValue = document.getElementById('campaignNameFilter').value;
                   const channelValue = document.getElementById('channelTypeFilter').value;
                   // Note: ranking map doesn't use device filter as it shows all devices
-                  populateProductRankingMap(window.selectedGoogleAdsProduct, campaignValue, channelValue, 'all');
+                  populateProductRankingMap(window.selectedGoogleAdsProduct, 'all', 'all', deviceFilter);
                 }
                 
                 // Update chart ranking data based on device filter
@@ -1283,22 +1283,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
       return rowDate.isBetween(startDate, endDate, 'day', '[]');
     });
     
-    if (campaignFilter !== 'all') {
-      filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
-    }
-    if (channelFilter !== 'all') {
-      filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
-    }
-    if (deviceFilter !== 'all') {
-      const deviceMap = {
-        'desk': 'DESKTOP',
-        'mob': 'MOBILE'
-      };
-      const deviceValue = deviceMap[deviceFilter];
-      if (deviceValue) {
-        filteredData = filteredData.filter(row => row.Device === deviceValue);
-      }
-    }
+// Device filter logic - only filter that applies to ranking map
+if (deviceFilter === 'all') {
+  // When "All" is selected, only include Desktop and Mobile data
+  filteredData = filteredData.filter(row => 
+    row.Device === 'DESKTOP' || row.Device === 'MOBILE'
+  );
+} else {
+  const deviceMap = {
+    'desk': 'DESKTOP',
+    'mob': 'MOBILE'
+  };
+  const deviceValue = deviceMap[deviceFilter];
+  if (deviceValue) {
+    filteredData = filteredData.filter(row => row.Device === deviceValue);
+  }
+}
     
     // Get ranking data
     let rankingsByDate = new Map();
@@ -1319,16 +1319,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
         const productRecords = getProductRecords(prod);
         let filteredProductRecords = productRecords;
         
-        if (deviceFilter !== 'all') {
-          const deviceMap = {
-            'desk': 'desktop',
-            'mob': 'mobile'
-          };
-          const filterDevice = deviceMap[deviceFilter];
-          filteredProductRecords = productRecords.filter(record => {
-            return record.device && record.device.toLowerCase() === filterDevice;
-          });
-        }
+if (deviceFilter === 'all') {
+  // Include both desktop and mobile records when "All" is selected
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && 
+      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
+  });
+} else {
+  const deviceMap = {
+    'desk': 'desktop',
+    'mob': 'mobile'
+  };
+  const filterDevice = deviceMap[deviceFilter];
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && record.device.toLowerCase() === filterDevice;
+  });
+}
         
         filteredProductRecords.forEach(record => {
           if (record.historical_data && Array.isArray(record.historical_data)) {
@@ -1354,16 +1360,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
       const productRecords = getProductRecords(product);
       let filteredProductRecords = productRecords;
       
-      if (deviceFilter !== 'all') {
-        const deviceMap = {
-          'desk': 'desktop',
-          'mob': 'mobile'
-        };
-        const filterDevice = deviceMap[deviceFilter];
-        filteredProductRecords = productRecords.filter(record => {
-          return record.device && record.device.toLowerCase() === filterDevice;
-        });
-      }
+if (deviceFilter === 'all') {
+  // Include both desktop and mobile records when "All" is selected
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && 
+      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
+  });
+} else {
+  const deviceMap = {
+    'desk': 'desktop',
+    'mob': 'mobile'
+  };
+  const filterDevice = deviceMap[deviceFilter];
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && record.device.toLowerCase() === filterDevice;
+  });
+}
       
       filteredProductRecords.forEach(record => {
         if (record.historical_data && Array.isArray(record.historical_data)) {
@@ -1463,16 +1475,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
         const productRecords = getProductRecords(product);
         let filteredProductRecords = productRecords;
         
-        if (deviceFilter !== 'all') {
-          const deviceMap = {
-            'desk': 'desktop',
-            'mob': 'mobile'
-          };
-          const filterDevice = deviceMap[deviceFilter];
-          filteredProductRecords = productRecords.filter(record => {
-            return record.device && record.device.toLowerCase() === filterDevice;
-          });
-        }
+if (deviceFilter === 'all') {
+  // Include both desktop and mobile records when "All" is selected
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && 
+      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
+  });
+} else {
+  const deviceMap = {
+    'desk': 'desktop',
+    'mob': 'mobile'
+  };
+  const filterDevice = deviceMap[deviceFilter];
+  filteredProductRecords = productRecords.filter(record => {
+    return record.device && record.device.toLowerCase() === filterDevice;
+  });
+}
         
         // Get this product's rankings by date
         const productRankingsByDate = new Map();
@@ -2748,16 +2766,6 @@ function processMetricsData(productData, campaignFilter = 'all', channelFilter =
     const rowDate = moment(row.Date, 'YYYY-MM-DD');
     return rowDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
   });
-  
-  // Apply filters
-  if (campaignFilter !== 'all') {
-    filteredData = filteredData.filter(row => row['Campaign Name'] === campaignFilter);
-    prevFilteredData = prevFilteredData.filter(row => row['Campaign Name'] === campaignFilter);
-  }
-  if (channelFilter !== 'all') {
-    filteredData = filteredData.filter(row => row['Channel Type'] === channelFilter);
-    prevFilteredData = prevFilteredData.filter(row => row['Channel Type'] === channelFilter);
-  }
   
   // Apply device filter
   if (deviceFilter !== 'all') {
