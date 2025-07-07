@@ -1423,36 +1423,9 @@ if (deviceFilter === 'all') {
       };
     }
     
-    // Group data by date and aggregate
-    const dataByDate = new Map();
-    filteredData.forEach(row => {
-      const date = row.Date;
-      if (!date) return;
-      
-      if (!dataByDate.has(date)) {
-        dataByDate.set(date, {
-          impressions: 0,
-          clicks: 0,
-          cost: 0,
-          conversions: 0,
-          conversionValue: 0
-        });
-      }
-      
-      const dayData = dataByDate.get(date);
-      dayData.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
-      dayData.clicks += parseInt(row.Clicks) || 0;
-      dayData.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
-      dayData.conversions += parseFloat(row.Conversions) || 0;
-      dayData.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
-    });
-    
-// Process aggregated data by ranking position
+// Process aggregated data by ranking position - DAY BY DAY
     if (isAllProductsMode) {
-      // For all products mode, we need to process each product's data separately
-      // to maintain their individual ranking positions
-      
-      // Get all company products
+      // For all products mode, process each product's daily data
       const allCompanyProducts = [];
       if (window.allRows && Array.isArray(window.allRows)) {
         window.allRows.forEach(prod => {
@@ -1462,72 +1435,181 @@ if (deviceFilter === 'all') {
         });
       }
       
-      // Process each product's data
+      // Process each product
       allCompanyProducts.forEach(product => {
-        // Get the product's filtered data
         const productFilteredData = filteredData.filter(row => 
           row['Product Title'] === product.title
         );
         
         if (productFilteredData.length === 0) return;
         
-        // Get ranking data for this specific product
+        // Get ranking data for this product
         const productRecords = getProductRecords(product);
-        let filteredProductRecords = productRecords;
         
-if (deviceFilter === 'all') {
-  // Include both desktop and mobile records when "All" is selected
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && 
-      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
-  });
-} else {
-  const deviceMap = {
-    'desk': 'desktop',
-    'mob': 'mobile'
-  };
-  const filterDevice = deviceMap[deviceFilter];
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && record.device.toLowerCase() === filterDevice;
-  });
-}
+        // Create a map of date -> device -> ranking
+        const rankingsByDateDevice = new Map();
         
-        // Get this product's rankings by date
-        const productRankingsByDate = new Map();
-        filteredProductRecords.forEach(record => {
+        productRecords.forEach(record => {
+          const device = record.device?.toLowerCase();
+          if (!device) return;
+          
+          // Apply device filter
+          if (deviceFilter !== 'all') {
+            const deviceMap = { 'desk': 'desktop', 'mob': 'mobile' };
+            const filterDevice = deviceMap[deviceFilter];
+            if (!device.includes(filterDevice)) return;
+          }
+          
           if (record.historical_data && Array.isArray(record.historical_data)) {
             record.historical_data.forEach(item => {
               if (item.date?.value && item.avg_position != null) {
                 const itemDate = moment(item.date.value, 'YYYY-MM-DD');
                 if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
-                  const date = item.date.value;
+                  const dateKey = item.date.value;
                   const ranking = parseFloat(item.avg_position);
                   
-                  if (!productRankingsByDate.has(date)) {
-                    productRankingsByDate.set(date, []);
+                  if (!rankingsByDateDevice.has(dateKey)) {
+                    rankingsByDateDevice.set(dateKey, new Map());
                   }
-                  productRankingsByDate.get(date).push(ranking);
+                  rankingsByDateDevice.get(dateKey).set(device, ranking);
                 }
               }
             });
           }
         });
         
-        // Calculate average ranking per date for this product
-        const productAvgRankingByDate = new Map();
-        productRankingsByDate.forEach((rankings, date) => {
-          const avgRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
-          productAvgRankingByDate.set(date, avgRanking);
-        });
-        
-        // Group this product's data by date
-        const productDataByDate = new Map();
-        productFilteredData.forEach(row => {
-          const date = row.Date;
-          if (!date) return;
+        // Process each date independently
+        rankingsByDateDevice.forEach((deviceRankings, date) => {
+          // Get performance data for this date
+          const datePerformanceData = productFilteredData.filter(row => row.Date === date);
+          if (datePerformanceData.length === 0) return;
           
-          if (!productDataByDate.has(date)) {
-            productDataByDate.set(date, {
+          // Group performance data by device for this date
+          const performanceByDevice = new Map();
+          datePerformanceData.forEach(row => {
+            const device = row.Device?.toLowerCase();
+            if (!device) return;
+            
+            if (!performanceByDevice.has(device)) {
+              performanceByDevice.set(device, {
+                impressions: 0,
+                clicks: 0,
+                cost: 0,
+                conversions: 0,
+                conversionValue: 0
+              });
+            }
+            
+            const perf = performanceByDevice.get(device);
+            perf.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+            perf.clicks += parseInt(row.Clicks) || 0;
+            perf.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+            perf.conversions += parseFloat(row.Conversions) || 0;
+            perf.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+          });
+          
+          if (deviceFilter === 'all') {
+            // Group by ranking position for this date
+            const positionGroups = new Map();
+            
+            deviceRankings.forEach((ranking, device) => {
+              const position = Math.round(ranking);
+              const clampedPosition = Math.max(1, Math.min(40, position));
+              
+              if (!positionGroups.has(clampedPosition)) {
+                positionGroups.set(clampedPosition, []);
+              }
+              positionGroups.get(clampedPosition).push(device);
+            });
+            
+            // For each position, aggregate data from all devices at that position
+            positionGroups.forEach((devices, position) => {
+              const posData = positionData[position];
+              
+              devices.forEach(device => {
+                const perf = performanceByDevice.get(device);
+                if (perf) {
+                  posData.impressions += perf.impressions;
+                  posData.clicks += perf.clicks;
+                  posData.cost += perf.cost;
+                  posData.conversions += perf.conversions;
+                  posData.conversionValue += perf.conversionValue;
+                }
+              });
+              
+              posData.count++;
+            });
+          } else {
+            // Single device mode - simpler logic
+            deviceRankings.forEach((ranking, device) => {
+              const perf = performanceByDevice.get(device);
+              if (perf) {
+                const position = Math.round(ranking);
+                const clampedPosition = Math.max(1, Math.min(40, position));
+                const posData = positionData[clampedPosition];
+                
+                posData.impressions += perf.impressions;
+                posData.clicks += perf.clicks;
+                posData.cost += perf.cost;
+                posData.conversions += perf.conversions;
+                posData.conversionValue += perf.conversionValue;
+                posData.count++;
+              }
+            });
+          }
+        });
+      });
+      
+    } else {
+      // Single product mode
+      const productRecords = getProductRecords(product);
+      
+      // Create a map of date -> device -> ranking
+      const rankingsByDateDevice = new Map();
+      
+      productRecords.forEach(record => {
+        const device = record.device?.toLowerCase();
+        if (!device) return;
+        
+        // Apply device filter
+        if (deviceFilter !== 'all') {
+          const deviceMap = { 'desk': 'desktop', 'mob': 'mobile' };
+          const filterDevice = deviceMap[deviceFilter];
+          if (!device.includes(filterDevice)) return;
+        }
+        
+        if (record.historical_data && Array.isArray(record.historical_data)) {
+          record.historical_data.forEach(item => {
+            if (item.date?.value && item.avg_position != null) {
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+                const dateKey = item.date.value;
+                const ranking = parseFloat(item.avg_position);
+                
+                if (!rankingsByDateDevice.has(dateKey)) {
+                  rankingsByDateDevice.set(dateKey, new Map());
+                }
+                rankingsByDateDevice.get(dateKey).set(device, ranking);
+              }
+            }
+          });
+        }
+      });
+      
+      // Process each date independently
+      rankingsByDateDevice.forEach((deviceRankings, date) => {
+        // Get performance data for this date
+        const datePerformanceData = filteredData.filter(row => row.Date === date);
+        if (datePerformanceData.length === 0) return;
+        
+        // Group performance data by device for this date
+        const performanceByDevice = new Map();
+        datePerformanceData.forEach(row => {
+          const device = row.Device?.toLowerCase();
+          if (!device) return;
+          
+          if (!performanceByDevice.has(device)) {
+            performanceByDevice.set(device, {
               impressions: 0,
               clicks: 0,
               cost: 0,
@@ -1536,81 +1618,78 @@ if (deviceFilter === 'all') {
             });
           }
           
-          const dayData = productDataByDate.get(date);
-          dayData.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
-          dayData.clicks += parseInt(row.Clicks) || 0;
-          dayData.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
-          dayData.conversions += parseFloat(row.Conversions) || 0;
-          dayData.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
+          const perf = performanceByDevice.get(device);
+          perf.impressions += parseInt(String(row.Impressions || '0').replace(/,/g, '')) || 0;
+          perf.clicks += parseInt(row.Clicks) || 0;
+          perf.cost += parseFloat(String(row.Cost || '0').replace(/[$,]/g, '')) || 0;
+          perf.conversions += parseFloat(row.Conversions) || 0;
+          perf.conversionValue += parseFloat(String(row['Conversion Value'] || '0').replace(/[$,]/g, '')) || 0;
         });
         
-        // Add this product's data to the appropriate ranking positions
-        productDataByDate.forEach((dayData, date) => {
-          const avgRanking = productAvgRankingByDate.get(date);
-          if (!avgRanking) return;
+        if (deviceFilter === 'all') {
+          // Group by ranking position for this date
+          const positionGroups = new Map();
           
-          // Round ranking to nearest integer
-          const roundedRanking = Math.round(avgRanking);
-          const position = Math.max(1, Math.min(40, roundedRanking));
+          deviceRankings.forEach((ranking, device) => {
+            const position = Math.round(ranking);
+            const clampedPosition = Math.max(1, Math.min(40, position));
+            
+            if (!positionGroups.has(clampedPosition)) {
+              positionGroups.set(clampedPosition, []);
+            }
+            positionGroups.get(clampedPosition).push(device);
+          });
           
-          const posData = positionData[position];
-          posData.impressions += dayData.impressions;
-          posData.clicks += dayData.clicks;
-          posData.cost += dayData.cost;
-          posData.conversions += dayData.conversions;
-          posData.conversionValue += dayData.conversionValue;
-          
-          // Calculate metrics for averaging
-          const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
-          const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
-          const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
-          const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
-          const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
-          const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
-          
-          posData.ctrSum += ctr;
-          posData.cvrSum += cvr;
-          posData.roasSum += roas;
-          posData.aovSum += aov;
-          posData.cpaSum += cpa;
-          posData.cpcSum += cpc;
-          posData.count++;
-        });
+          // For each position, aggregate data from all devices at that position
+          positionGroups.forEach((devices, position) => {
+            const posData = positionData[position];
+            
+            devices.forEach(device => {
+              const perf = performanceByDevice.get(device);
+              if (perf) {
+                posData.impressions += perf.impressions;
+                posData.clicks += perf.clicks;
+                posData.cost += perf.cost;
+                posData.conversions += perf.conversions;
+                posData.conversionValue += perf.conversionValue;
+              }
+            });
+            
+            posData.count++;
+          });
+        } else {
+          // Single device mode
+          deviceRankings.forEach((ranking, device) => {
+            const perf = performanceByDevice.get(device);
+            if (perf) {
+              const position = Math.round(ranking);
+              const clampedPosition = Math.max(1, Math.min(40, position));
+              const posData = positionData[clampedPosition];
+              
+              posData.impressions += perf.impressions;
+              posData.clicks += perf.clicks;
+              posData.cost += perf.cost;
+              posData.conversions += perf.conversions;
+              posData.conversionValue += perf.conversionValue;
+              posData.count++;
+            }
+          });
+        }
       });
-      
-    } else {
-      // Single product mode - existing logic
-      dataByDate.forEach((dayData, date) => {
-        const avgRanking = avgRankingByDate.get(date);
-        if (!avgRanking) return;
-        
-        // Round ranking to nearest integer
-        const roundedRanking = Math.round(avgRanking);
-        const position = Math.max(1, Math.min(40, roundedRanking));
-        
-        const posData = positionData[position];
-        posData.impressions += dayData.impressions;
-        posData.clicks += dayData.clicks;
-        posData.cost += dayData.cost;
-        posData.conversions += dayData.conversions;
-        posData.conversionValue += dayData.conversionValue;
-        
-        // Calculate metrics for averaging
-        const ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions) * 100 : 0;
-        const cvr = dayData.clicks > 0 ? (dayData.conversions / dayData.clicks) * 100 : 0;
-        const roas = dayData.cost > 0 ? dayData.conversionValue / dayData.cost : 0;
-        const aov = dayData.conversions > 0 ? dayData.conversionValue / dayData.conversions : 0;
-        const cpa = dayData.conversions > 0 ? dayData.cost / dayData.conversions : 0;
-        const cpc = dayData.clicks > 0 ? dayData.cost / dayData.clicks : 0;
-        
-        posData.ctrSum += ctr;
-        posData.cvrSum += cvr;
-        posData.roasSum += roas;
-        posData.aovSum += aov;
-        posData.cpaSum += cpa;
-        posData.cpcSum += cpc;
-        posData.count++;
-      });
+    }
+    
+    // After aggregating all data, calculate the derived metrics (CTR, CVR, ROAS, etc.)
+    for (let position = 1; position <= 40; position++) {
+      const posData = positionData[position];
+      if (posData.impressions > 0 || posData.clicks > 0 || posData.cost > 0) {
+        // Calculate derived metrics based on aggregated totals
+        posData.ctr = posData.impressions > 0 ? (posData.clicks / posData.impressions) * 100 : 0;
+        posData.cvr = posData.clicks > 0 ? (posData.conversions / posData.clicks) * 100 : 0;
+        posData.roas = posData.cost > 0 ? posData.conversionValue / posData.cost : 0;
+        posData.aov = posData.conversions > 0 ? posData.conversionValue / posData.conversions : 0;
+        posData.cpa = posData.conversions > 0 ? posData.cost / posData.conversions : 0;
+        posData.avgCpc = posData.clicks > 0 ? posData.cost / posData.clicks : 0;
+      }
     }
     
     // Check if segmented mode is on
