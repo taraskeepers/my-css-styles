@@ -1242,7 +1242,8 @@ leftContainer.style.cssText = 'width: 520px; height: 100%; position: relative;';
 function populateProductRankingMap(product, campaignFilter = 'all', channelFilter = 'all', deviceFilter = 'all') {
   const container = document.getElementById('google_ads_ranking_map');
   if (!container) return;
-    // Track the current mode
+  
+  // Track the current mode
   window.currentRankingMapMode = product;
 
   // Check if we're in Overview mode and hide if so
@@ -1283,22 +1284,22 @@ function populateProductRankingMap(product, campaignFilter = 'all', channelFilte
       return rowDate.isBetween(startDate, endDate, 'day', '[]');
     });
     
-// Device filter logic - only filter that applies to ranking map
-if (deviceFilter === 'all') {
-  // When "All" is selected, only include Desktop and Mobile data
-  filteredData = filteredData.filter(row => 
-    row.Device === 'DESKTOP' || row.Device === 'MOBILE'
-  );
-} else {
-  const deviceMap = {
-    'desk': 'DESKTOP',
-    'mob': 'MOBILE'
-  };
-  const deviceValue = deviceMap[deviceFilter];
-  if (deviceValue) {
-    filteredData = filteredData.filter(row => row.Device === deviceValue);
-  }
-}
+    // Device filter logic - only filter that applies to ranking map
+    if (deviceFilter === 'all') {
+      // When "All" is selected, only include Desktop and Mobile data
+      filteredData = filteredData.filter(row => 
+        row.Device === 'DESKTOP' || row.Device === 'MOBILE'
+      );
+    } else {
+      const deviceMap = {
+        'desk': 'DESKTOP',
+        'mob': 'MOBILE'
+      };
+      const deviceValue = deviceMap[deviceFilter];
+      if (deviceValue) {
+        filteredData = filteredData.filter(row => row.Device === deviceValue);
+      }
+    }
     
     // Get ranking data
     let rankingsByDate = new Map();
@@ -1319,22 +1320,22 @@ if (deviceFilter === 'all') {
         const productRecords = getProductRecords(prod);
         let filteredProductRecords = productRecords;
         
-if (deviceFilter === 'all') {
-  // Include both desktop and mobile records when "All" is selected
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && 
-      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
-  });
-} else {
-  const deviceMap = {
-    'desk': 'desktop',
-    'mob': 'mobile'
-  };
-  const filterDevice = deviceMap[deviceFilter];
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && record.device.toLowerCase() === filterDevice;
-  });
-}
+        if (deviceFilter === 'all') {
+          // Include both desktop and mobile records when "All" is selected
+          filteredProductRecords = productRecords.filter(record => {
+            return record.device && 
+              (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
+          });
+        } else {
+          const deviceMap = {
+            'desk': 'desktop',
+            'mob': 'mobile'
+          };
+          const filterDevice = deviceMap[deviceFilter];
+          filteredProductRecords = productRecords.filter(record => {
+            return record.device && record.device.toLowerCase() === filterDevice;
+          });
+        }
         
         filteredProductRecords.forEach(record => {
           if (record.historical_data && Array.isArray(record.historical_data)) {
@@ -1360,22 +1361,22 @@ if (deviceFilter === 'all') {
       const productRecords = getProductRecords(product);
       let filteredProductRecords = productRecords;
       
-if (deviceFilter === 'all') {
-  // Include both desktop and mobile records when "All" is selected
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && 
-      (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
-  });
-} else {
-  const deviceMap = {
-    'desk': 'desktop',
-    'mob': 'mobile'
-  };
-  const filterDevice = deviceMap[deviceFilter];
-  filteredProductRecords = productRecords.filter(record => {
-    return record.device && record.device.toLowerCase() === filterDevice;
-  });
-}
+      if (deviceFilter === 'all') {
+        // Include both desktop and mobile records when "All" is selected
+        filteredProductRecords = productRecords.filter(record => {
+          return record.device && 
+            (record.device.toLowerCase() === 'desktop' || record.device.toLowerCase() === 'mobile');
+        });
+      } else {
+        const deviceMap = {
+          'desk': 'desktop',
+          'mob': 'mobile'
+        };
+        const filterDevice = deviceMap[deviceFilter];
+        filteredProductRecords = productRecords.filter(record => {
+          return record.device && record.device.toLowerCase() === filterDevice;
+        });
+      }
       
       filteredProductRecords.forEach(record => {
         if (record.historical_data && Array.isArray(record.historical_data)) {
@@ -1413,17 +1414,11 @@ if (deviceFilter === 'all') {
         cost: 0,
         conversions: 0,
         conversionValue: 0,
-        ctrSum: 0,
-        cvrSum: 0,
-        roasSum: 0,
-        aovSum: 0,
-        cpaSum: 0,
-        cpcSum: 0,
         count: 0
       };
     }
     
-// Process aggregated data by ranking position - DAY BY DAY
+    // Process aggregated data by ranking position - DAY BY DAY
     if (isAllProductsMode) {
       // For all products mode, process each product's daily data
       const allCompanyProducts = [];
@@ -1702,22 +1697,22 @@ if (deviceFilter === 'all') {
           ${isAllProductsMode ? 'All Products Ranking Map' : product.title + ' - Ranking Map'}
         </h3>
         <div style="display: flex; align-items: center; gap: 20px;">
-<div style="display: flex; align-items: center; gap: 10px;">
-  <label style="font-weight: 600; font-size: 13px;">Device:</label>
-  <div class="device-switch-container">
-    <button class="device-switch-btn ${deviceFilter === 'all' ? 'active' : ''}" data-device="all">
-      <span>All</span>
-    </button>
-    <button class="device-switch-btn ${deviceFilter === 'desk' ? 'active' : ''}" data-device="desk">
-      <span class="device-icon-small">💻</span>
-      <span>Desktop</span>
-    </button>
-    <button class="device-switch-btn ${deviceFilter === 'mob' ? 'active' : ''}" data-device="mob">
-      <span class="device-icon-small">📱</span>
-      <span>Mobile</span>
-    </button>
-  </div>
-</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-weight: 600; font-size: 13px;">Device:</label>
+            <div class="device-switch-container">
+              <button class="device-switch-btn ${deviceFilter === 'all' ? 'active' : ''}" data-device="all">
+                <span>All</span>
+              </button>
+              <button class="device-switch-btn ${deviceFilter === 'desk' ? 'active' : ''}" data-device="desk">
+                <span class="device-icon-small">💻</span>
+                <span>Desktop</span>
+              </button>
+              <button class="device-switch-btn ${deviceFilter === 'mob' ? 'active' : ''}" data-device="mob">
+                <span class="device-icon-small">📱</span>
+                <span>Mobile</span>
+              </button>
+            </div>
+          </div>
           <div class="ranking-map-segmented-toggle">
             <label>Detailed Mode</label>
             <label class="chart-mode-switch">
@@ -1748,12 +1743,12 @@ if (deviceFilter === 'all') {
           cost: 0,
           conversions: 0,
           conversionValue: 0,
-          ctrSum: 0,
-          cvrSum: 0,
-          roasSum: 0,
-          aovSum: 0,
-          cpaSum: 0,
-          cpcSum: 0,
+          ctr: 0,
+          cvr: 0,
+          roas: 0,
+          aov: 0,
+          cpa: 0,
+          avgCpc: 0,
           count: 0
         };
         
@@ -1764,13 +1759,17 @@ if (deviceFilter === 'all') {
           segmentData.cost += data.cost;
           segmentData.conversions += data.conversions;
           segmentData.conversionValue += data.conversionValue;
-          segmentData.ctrSum += data.ctrSum;
-          segmentData.cvrSum += data.cvrSum;
-          segmentData.roasSum += data.roasSum;
-          segmentData.aovSum += data.aovSum;
-          segmentData.cpaSum += data.cpaSum;
-          segmentData.cpcSum += data.cpcSum;
           segmentData.count += data.count;
+        }
+        
+        // Calculate derived metrics for segment
+        if (segmentData.impressions > 0 || segmentData.clicks > 0 || segmentData.cost > 0) {
+          segmentData.ctr = segmentData.impressions > 0 ? (segmentData.clicks / segmentData.impressions) * 100 : 0;
+          segmentData.cvr = segmentData.clicks > 0 ? (segmentData.conversions / segmentData.clicks) * 100 : 0;
+          segmentData.roas = segmentData.cost > 0 ? segmentData.conversionValue / segmentData.cost : 0;
+          segmentData.aov = segmentData.conversions > 0 ? segmentData.conversionValue / segmentData.conversions : 0;
+          segmentData.cpa = segmentData.conversions > 0 ? segmentData.cost / segmentData.conversions : 0;
+          segmentData.avgCpc = segmentData.clicks > 0 ? segmentData.cost / segmentData.clicks : 0;
         }
         
         segment.data = segmentData;
@@ -1809,28 +1808,21 @@ if (deviceFilter === 'all') {
         if (data.count > 0) {
           allValues.impressions.push(data.impressions);
           allValues.clicks.push(data.clicks);
-          allValues.avgCpc.push(data.cpcSum / data.count);
+          allValues.avgCpc.push(data.avgCpc);
           allValues.cost.push(data.cost);
           allValues.conversions.push(data.conversions);
           allValues.conversionValue.push(data.conversionValue);
-          allValues.ctr.push(data.ctrSum / data.count);
-          allValues.cvr.push(data.cvrSum / data.count);
-          allValues.roas.push(data.roasSum / data.count);
-          allValues.aov.push(data.aovSum / data.count);
-          allValues.cpa.push(data.cpaSum / data.count);
+          allValues.ctr.push(data.ctr);
+          allValues.cvr.push(data.cvr);
+          allValues.roas.push(data.roas);
+          allValues.aov.push(data.aov);
+          allValues.cpa.push(data.cpa);
         }
       });
       
       Object.keys(segments).forEach((segmentName, index) => {
         const data = segments[segmentName].data;
         const hasData = data.count > 0;
-        
-        const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
-        const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
-        const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
-        const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
-        const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
-        const avgCpc = hasData ? (data.cpcSum / data.count).toFixed(2) : '0.00';
         
         const rowClass = index === 0 ? 'ranking-position-1' :
                         index === 1 ? 'ranking-position-4' :
@@ -1841,15 +1833,15 @@ if (deviceFilter === 'all') {
             <td>${segmentName}</td>
             <td class="${getHeatMapClass(data.impressions, allValues.impressions, false)}">${hasData ? data.impressions.toLocaleString() : '-'}</td>
             <td class="${getHeatMapClass(data.clicks, allValues.clicks, false)}">${hasData ? data.clicks.toLocaleString() : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCpc), allValues.avgCpc, true)}">${hasData ? '$' + avgCpc : '-'}</td>
+            <td class="${getHeatMapClass(data.avgCpc, allValues.avgCpc, true)}">${hasData ? '$' + data.avgCpc.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.cost, allValues.cost, true)}">${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.conversions, allValues.conversions, false)}">${hasData ? data.conversions.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.conversionValue, allValues.conversionValue, false)}">${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCtr), allValues.ctr, false)}">${hasData ? avgCtr + '%' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCvr), allValues.cvr, false)}">${hasData ? avgCvr + '%' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgRoas), allValues.roas, false)}">${hasData ? avgRoas + 'x' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgAov), allValues.aov, false)}">${hasData ? '$' + avgAov : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCpa), allValues.cpa, true)}">${hasData ? '$' + avgCpa : '-'}</td>
+            <td class="${getHeatMapClass(data.ctr, allValues.ctr, false)}">${hasData ? data.ctr.toFixed(2) + '%' : '-'}</td>
+            <td class="${getHeatMapClass(data.cvr, allValues.cvr, false)}">${hasData ? data.cvr.toFixed(2) + '%' : '-'}</td>
+            <td class="${getHeatMapClass(data.roas, allValues.roas, false)}">${hasData ? data.roas.toFixed(2) + 'x' : '-'}</td>
+            <td class="${getHeatMapClass(data.aov, allValues.aov, false)}">${hasData ? '$' + data.aov.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.cpa, allValues.cpa, true)}">${hasData ? '$' + data.cpa.toFixed(2) : '-'}</td>
           </tr>
         `;
       });
@@ -1889,15 +1881,15 @@ if (deviceFilter === 'all') {
         if (data.count > 0) {
           allValues.impressions.push(data.impressions);
           allValues.clicks.push(data.clicks);
-          allValues.avgCpc.push(data.cpcSum / data.count);
+          allValues.avgCpc.push(data.avgCpc);
           allValues.cost.push(data.cost);
           allValues.conversions.push(data.conversions);
           allValues.conversionValue.push(data.conversionValue);
-          allValues.ctr.push(data.ctrSum / data.count);
-          allValues.cvr.push(data.cvrSum / data.count);
-          allValues.roas.push(data.roasSum / data.count);
-          allValues.aov.push(data.aovSum / data.count);
-          allValues.cpa.push(data.cpaSum / data.count);
+          allValues.ctr.push(data.ctr);
+          allValues.cvr.push(data.cvr);
+          allValues.roas.push(data.roas);
+          allValues.aov.push(data.aov);
+          allValues.cpa.push(data.cpa);
         }
       }
       
@@ -1905,13 +1897,6 @@ if (deviceFilter === 'all') {
       for (let position = 1; position <= 40; position++) {
         const data = positionData[position];
         const hasData = data.count > 0;
-        
-        const avgCtr = hasData ? (data.ctrSum / data.count).toFixed(2) : '0.00';
-        const avgCvr = hasData ? (data.cvrSum / data.count).toFixed(2) : '0.00';
-        const avgRoas = hasData ? (data.roasSum / data.count).toFixed(2) : '0.00';
-        const avgAov = hasData ? (data.aovSum / data.count).toFixed(2) : '0.00';
-        const avgCpa = hasData ? (data.cpaSum / data.count).toFixed(2) : '0.00';
-        const avgCpc = hasData ? (data.cpcSum / data.count).toFixed(2) : '0.00';
         
         const rowClass = position <= 3 ? 'ranking-position-' + position : 
                         position <= 8 ? 'ranking-position-4' :
@@ -1922,15 +1907,15 @@ if (deviceFilter === 'all') {
             <td>${position}</td>
             <td class="${getHeatMapClass(data.impressions, allValues.impressions, false)}">${hasData ? data.impressions.toLocaleString() : '-'}</td>
             <td class="${getHeatMapClass(data.clicks, allValues.clicks, false)}">${hasData ? data.clicks.toLocaleString() : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCpc), allValues.avgCpc, true)}">${hasData ? '$' + avgCpc : '-'}</td>
+            <td class="${getHeatMapClass(data.avgCpc, allValues.avgCpc, true)}">${hasData ? '$' + data.avgCpc.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.cost, allValues.cost, true)}">${hasData ? '$' + data.cost.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.conversions, allValues.conversions, false)}">${hasData ? data.conversions.toFixed(2) : '-'}</td>
             <td class="${getHeatMapClass(data.conversionValue, allValues.conversionValue, false)}">${hasData ? '$' + data.conversionValue.toFixed(2) : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCtr), allValues.ctr, false)}">${hasData ? avgCtr + '%' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCvr), allValues.cvr, false)}">${hasData ? avgCvr + '%' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgRoas), allValues.roas, false)}">${hasData ? avgRoas + 'x' : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgAov), allValues.aov, false)}">${hasData ? '$' + avgAov : '-'}</td>
-            <td class="${getHeatMapClass(parseFloat(avgCpa), allValues.cpa, true)}">${hasData ? '$' + avgCpa : '-'}</td>
+            <td class="${getHeatMapClass(data.ctr, allValues.ctr, false)}">${hasData ? data.ctr.toFixed(2) + '%' : '-'}</td>
+            <td class="${getHeatMapClass(data.cvr, allValues.cvr, false)}">${hasData ? data.cvr.toFixed(2) + '%' : '-'}</td>
+            <td class="${getHeatMapClass(data.roas, allValues.roas, false)}">${hasData ? data.roas.toFixed(2) + 'x' : '-'}</td>
+            <td class="${getHeatMapClass(data.aov, allValues.aov, false)}">${hasData ? '$' + data.aov.toFixed(2) : '-'}</td>
+            <td class="${getHeatMapClass(data.cpa, allValues.cpa, true)}">${hasData ? '$' + data.cpa.toFixed(2) : '-'}</td>
           </tr>
         `;
       }
@@ -1948,18 +1933,18 @@ if (deviceFilter === 'all') {
       populateProductRankingMap(product, campaignFilter, channelFilter, deviceFilter);
     });
     
-// Add event listeners for device switch buttons
-document.querySelectorAll('.device-switch-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    // Remove active class from all buttons
-    document.querySelectorAll('.device-switch-btn').forEach(b => b.classList.remove('active'));
-    // Add active class to clicked button
-    this.classList.add('active');
-    // Get the device value and trigger update
-    const newDeviceFilter = this.getAttribute('data-device');
-    populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
-  });
-});
+    // Add event listeners for device switch buttons
+    document.querySelectorAll('.device-switch-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Remove active class from all buttons
+        document.querySelectorAll('.device-switch-btn').forEach(b => b.classList.remove('active'));
+        // Add active class to clicked button
+        this.classList.add('active');
+        // Get the device value and trigger update
+        const newDeviceFilter = this.getAttribute('data-device');
+        populateProductRankingMap(product, campaignFilter, channelFilter, newDeviceFilter);
+      });
+    });
     
   }).catch(error => {
     console.error('[populateProductRankingMap] Error:', error);
