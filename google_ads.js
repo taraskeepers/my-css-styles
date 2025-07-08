@@ -9162,7 +9162,6 @@ setTimeout(async () => {
   window._googleAdsInitializing = false;
   
 }, 500); // Initial timeout
-}
 
 function getAllFromStore(store) {
   return new Promise((resolve, reject) => {
