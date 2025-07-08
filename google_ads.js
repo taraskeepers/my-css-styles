@@ -6494,6 +6494,13 @@ if (productInfo) productInfo.style.display = 'none';
   }
 });
 
+// Initialize Search Terms button from the external module
+if (window.initializeSearchTermsButton) {
+  window.initializeSearchTermsButton();
+} else {
+  console.warn('[Google Ads] Search Terms initialization function not found. Make sure google_ads_search_terms.js is loaded.');
+}
+
 // Add Performance Overview button functionality
 const viewPerformanceOverviewGoogleAdsBtn = document.getElementById("viewPerformanceOverviewGoogleAds");
 
