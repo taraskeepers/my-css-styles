@@ -473,13 +473,5 @@ window.changeSearchTermsPage = changeSearchTermsPage;
 window.loadAndRenderSearchTerms = loadAndRenderSearchTerms;
 window.initializeSearchTermsButton = initializeSearchTermsButton;
 
-// Initialize when document is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    addSearchTermsStyles();
-    initializeSearchTermsButton();
-  });
-} else {
-  addSearchTermsStyles();
-  initializeSearchTermsButton();
-}
+// Add styles immediately
+addSearchTermsStyles();
