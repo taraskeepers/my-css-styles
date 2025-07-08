@@ -11138,6 +11138,45 @@ function handleSearchTermsSort(column) {
   renderSearchTermsTable(document.getElementById('search_terms_container'));
 }
 
+// Get sort indicator
+function getSortIndicator(column) {
+  if (window.searchTermsSortColumn === column) {
+    return window.searchTermsSortAscending ? ' ▲' : ' ▼';
+  }
+  return '';
+}
+
+// Get top bucket style for row number
+function getTopBucketStyle(topBucket) {
+  if (!topBucket || topBucket === '""' || topBucket === '') {
+    return 'color: #666;';
+  }
+  
+  const styles = {
+    'Top1': 'color: #FFD700; background: #FFF9E6; padding: 4px 8px; border-radius: 6px;',
+    'Top2': 'color: #C0C0C0; background: #F5F5F5; padding: 4px 8px; border-radius: 6px;',
+    'Top3': 'color: #CD7F32; background: #FFF5F0; padding: 4px 8px; border-radius: 6px;',
+    'Top4': 'color: #4CAF50; background: #E8F5E9; padding: 4px 8px; border-radius: 6px;',
+    'Top5': 'color: #2196F3; background: #E3F2FD; padding: 4px 8px; border-radius: 6px;',
+    'Top10': 'color: #9C27B0; background: #F3E5F5; padding: 4px 8px; border-radius: 6px;'
+  };
+  
+  return styles[topBucket] || 'color: #666;';
+}
+
+// Change page function
+function changeSearchTermsPage(direction) {
+  const currentPage = window.searchTermsCurrentPage;
+  const totalPages = Math.ceil(window.searchTermsData.length / window.searchTermsPerPage);
+  
+  const newPage = currentPage + direction;
+  if (newPage >= 1 && newPage <= totalPages) {
+    window.searchTermsCurrentPage = newPage;
+    const container = document.getElementById('search_terms_container');
+    renderSearchTermsTable(container);
+  }
+}
+
 // Render search terms table with pagination
 function renderSearchTermsTable(container) {
   const data = window.searchTermsData;
@@ -11277,45 +11316,6 @@ function renderSearchTermsTable(container) {
       });
     });
   }, 100);
-}
-
-// Get sort indicator
-function getSortIndicator(column) {
-  if (window.searchTermsSortColumn === column) {
-    return window.searchTermsSortAscending ? ' ▲' : ' ▼';
-  }
-  return '';
-}
-
-// Get top bucket style for row number
-function getTopBucketStyle(topBucket) {
-  if (!topBucket || topBucket === '""' || topBucket === '') {
-    return 'color: #666;';
-  }
-  
-  const styles = {
-    'Top1': 'color: #FFD700; background: #FFF9E6; padding: 4px 8px; border-radius: 6px;',
-    'Top2': 'color: #C0C0C0; background: #F5F5F5; padding: 4px 8px; border-radius: 6px;',
-    'Top3': 'color: #CD7F32; background: #FFF5F0; padding: 4px 8px; border-radius: 6px;',
-    'Top4': 'color: #4CAF50; background: #E8F5E9; padding: 4px 8px; border-radius: 6px;',
-    'Top5': 'color: #2196F3; background: #E3F2FD; padding: 4px 8px; border-radius: 6px;',
-    'Top10': 'color: #9C27B0; background: #F3E5F5; padding: 4px 8px; border-radius: 6px;'
-  };
-  
-  return styles[topBucket] || 'color: #666;';
-}
-
-// Change page function
-function changeSearchTermsPage(direction) {
-  const currentPage = window.searchTermsCurrentPage;
-  const totalPages = Math.ceil(window.searchTermsData.length / window.searchTermsPerPage);
-  
-  const newPage = currentPage + direction;
-  if (newPage >= 1 && newPage <= totalPages) {
-    window.searchTermsCurrentPage = newPage;
-    const container = document.getElementById('search_terms_container');
-    renderSearchTermsTable(container);
-  }
 }
 
 // Change page function
