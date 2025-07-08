@@ -339,20 +339,28 @@ ProgressManager.startStep('fetch', 'Downloading sheet data from Google...');
 let productCSV, locationCSV, searchInsightsCSV, searchTermsCSV;
 
 try {
-  // Try to fetch all sheets
-  const fetchPromises = [
-    this.fetchSheetByName(sheetId, 'Enhanced Product Performance'),
-    this.fetchSheetByName(sheetId, 'Location Revenue').catch(() => null), // Don't fail if missing
-    this.fetchSheetByName(sheetId, 'Search Insights').catch(() => null), // Don't fail if missing
-    this.fetchSheetByName(sheetId, 'Search Terms').catch(() => null) // Don't fail if missing
-  ];
+// Try to fetch all sheets
+const fetchPromises = [
+  this.fetchSheetByName(sheetId, 'Enhanced Product Performance'),
+  this.fetchSheetByName(sheetId, 'Location Revenue').catch(() => null),
+  this.fetchSheetByName(sheetId, 'Search Insights').catch(() => null),
+  this.fetchSheetByName(sheetId, 'Search Terms').catch(() => null),
+  // New 30-day sheets
+  this.fetchSheetByName(sheetId, 'Search Insights 30').catch(() => null),
+  this.fetchSheetByName(sheetId, 'Search Terms 30').catch(() => null),
+  // New 90-day sheets
+  this.fetchSheetByName(sheetId, 'Search Insights 90').catch(() => null),
+  this.fetchSheetByName(sheetId, 'Search Terms 90').catch(() => null)
+];
   
   // Update progress during fetch
   setTimeout(() => ProgressManager.updateProgress('fetch', 30), 1000);
   setTimeout(() => ProgressManager.updateProgress('fetch', 60), 3000);
   setTimeout(() => ProgressManager.updateProgress('fetch', 90), 6000);
   
-  [productCSV, locationCSV, searchInsightsCSV, searchTermsCSV] = await Promise.all(fetchPromises);
+  [productCSV, locationCSV, searchInsightsCSV, searchTermsCSV, 
+ searchInsights30CSV, searchTerms30CSV, 
+ searchInsights90CSV, searchTerms90CSV] = await Promise.all(fetchPromises);
 } catch (fetchError) {
   // Try alternative sheet names for product sheet
   ProgressManager.updateUI('Trying alternative sheet names...');
@@ -434,22 +442,80 @@ if (searchTermsCSV) {
     searchTermsData = [];
   }
 }
+
+// Parse 30-day search data if available
+let searchInsights30Data = [];
+if (searchInsights30CSV) {
+  try {
+    searchInsights30Data = await this.parseSheetData(searchInsights30CSV, 'Search Insights 30', this.SEARCH_INSIGHTS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Insights 30 data:', error);
+    searchInsights30Data = [];
+  }
+}
+
+let searchTerms30Data = [];
+if (searchTerms30CSV) {
+  try {
+    searchTerms30Data = await this.parseSheetData(searchTerms30CSV, 'Search Terms 30', this.SEARCH_TERMS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Terms 30 data:', error);
+    searchTerms30Data = [];
+  }
+}
+
+// Parse 90-day search data if available
+let searchInsights90Data = [];
+if (searchInsights90CSV) {
+  try {
+    searchInsights90Data = await this.parseSheetData(searchInsights90CSV, 'Search Insights 90', this.SEARCH_INSIGHTS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Insights 90 data:', error);
+    searchInsights90Data = [];
+  }
+}
+
+let searchTerms90Data = [];
+if (searchTerms90CSV) {
+  try {
+    searchTerms90Data = await this.parseSheetData(searchTerms90CSV, 'Search Terms 90', this.SEARCH_TERMS_COLUMNS);
+  } catch (error) {
+    console.warn('[Google Sheets] Failed to parse Search Terms 90 data:', error);
+    searchTerms90Data = [];
+  }
+}
     
 ProgressManager.completeStep('parse');
 
 // STEP 5: Store basic data only (product buckets will be created and stored in STEP 6)
 ProgressManager.startStep('store', 'Saving basic data to local storage...');
 
-// Process search terms if we have data from either sheet
+// Process search terms for all time periods
 let processedSearchTerms = [];
+let processedSearchTerms30d = [];
+let processedSearchTerms90d = [];
+
+// Process 365d (default) search terms
 if (searchInsightsData.length > 0 || searchTermsData.length > 0) {
   processedSearchTerms = await this.processSearchTermsData(searchInsightsData, searchTermsData);
+}
+
+// Process 30d search terms
+if (searchInsights30Data.length > 0 || searchTerms30Data.length > 0) {
+  processedSearchTerms30d = await this.processSearchTermsData(searchInsights30Data, searchTerms30Data);
+}
+
+// Process 90d search terms
+if (searchInsights90Data.length > 0 || searchTerms90Data.length > 0) {
+  processedSearchTerms90d = await this.processSearchTermsData(searchInsights90Data, searchTerms90Data);
 }
 
 const basicSavePromises = [
   window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
   window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
   window.embedIDB.setData(prefix + "googleSheets_searchTerms_365d", processedSearchTerms),
+  window.embedIDB.setData(prefix + "googleSheets_searchTerms_30d", processedSearchTerms30d),
+  window.embedIDB.setData(prefix + "googleSheets_searchTerms_90d", processedSearchTerms90d),
   window.embedIDB.setData(prefix + "googleSheets_config", {
     url: url,
     sheetId: sheetId,
@@ -477,6 +543,8 @@ window.googleSheetsData = {
   productPerformance: productData,
   locationRevenue: locationData,
   searchTerms: processedSearchTerms,
+  searchTerms30d: processedSearchTerms30d,
+  searchTerms90d: processedSearchTerms90d,
   productBuckets: [] // Will be populated in STEP 6
 };
     
@@ -513,7 +581,9 @@ statusEl.innerHTML = `
   <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
 Product Performance: ${productData.length} rows<br>
 ${locationData.length > 0 ? `Location Revenue: ${locationData.length} rows<br>` : 'Location Revenue: Not available<br>'}
-${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms.length} queries<br>` : 'Search Terms: Not available<br>'}
+${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms.length} queries<br>` : 'Search Terms (365d): Not available<br>'}
+${processedSearchTerms30d.length > 0 ? `Search Terms (30d): ${processedSearchTerms30d.length} queries<br>` : 'Search Terms (30d): Not available<br>'}
+${processedSearchTerms90d.length > 0 ? `Search Terms (90d): ${processedSearchTerms90d.length} queries<br>` : 'Search Terms (90d): Not available<br>'}
     ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
     <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
   </div>
