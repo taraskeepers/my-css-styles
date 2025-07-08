@@ -4191,6 +4191,24 @@ roasChannelsContainer.style.cssText = `
 
 contentWrapper.appendChild(roasChannelsContainer);
 
+// Create Search Terms container
+const searchTermsContainer = document.createElement('div');
+searchTermsContainer.id = 'search_terms_container';
+searchTermsContainer.className = 'google-ads-search-terms-container';
+searchTermsContainer.style.cssText = `
+  width: 1195px;
+  margin: 100px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+  max-height: 80vh;
+  overflow-y: auto;
+`;
+
+contentWrapper.appendChild(searchTermsContainer);
+
 // Replace the original append - table should be INSIDE contentWrapper
 contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
 container.appendChild(contentWrapper);
@@ -5997,6 +6015,7 @@ container.innerHTML = `
   <button id="viewOverviewGoogleAds">Product Overview</button>
   <button id="viewBucketsGoogleAds">Buckets & Funnels</button>
   <button id="viewChartsGoogleAds">Rank Map</button>
+  <button id="viewSearchTermsGoogleAds">Search Terms</button>
   <button id="viewMapGoogleAds">Map</button>
 </div>
               <div class="chart-mode-toggle-top">
@@ -6557,6 +6576,82 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
 
   // Load and render ROAS data
   loadAndRenderROASBuckets();
+});
+
+// Add Search Terms button functionality
+const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
+
+viewSearchTermsGoogleAdsBtn.addEventListener("click", function() {
+  console.log('[Search Terms] Button clicked');
+  
+  // Clear all active states
+  viewSearchTermsGoogleAdsBtn.classList.add("active");
+  viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+  viewOverviewGoogleAdsBtn.classList.remove("active");
+  viewChartsGoogleAdsBtn.classList.remove("active");
+  viewMapGoogleAdsBtn.classList.remove("active");
+  if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+
+  // Expand the navigation panel
+  const navPanel = document.getElementById('googleAdsNavPanel');
+  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+  if (navPanel) {
+    navPanel.classList.remove('collapsed');
+  }
+  if (contentWrapper) {
+    contentWrapper.classList.remove('nav-collapsed');
+  }
+
+  // Hide all other containers
+  const table = document.querySelector('.google-ads-table');
+  if (table) table.style.display = 'none';
+  
+  const productInfo = document.getElementById('product_info');
+  const productMetrics = document.getElementById('product_metrics');
+  const productRankingMap = document.getElementById('google_ads_ranking_map');
+  const productTables = document.getElementById('product_tables');
+  const mapContainer = document.getElementById('googleAdsMapContainer');
+  const roasCharts = document.getElementById('roas_charts');
+  const roasMetricsTable = document.getElementById('roas_metrics_table');
+  const roasChannels = document.getElementById('roas_channels');
+  const buckets_products = document.getElementById('buckets_products');
+  const bucketedProductsContainer = document.getElementById('bucketed_products_container');
+  
+  if (productInfo) productInfo.style.display = 'none';
+  if (productMetrics) productMetrics.style.display = 'none';
+  if (productRankingMap) productRankingMap.style.display = 'none';
+  if (productTables) productTables.style.display = 'none';
+  if (mapContainer) mapContainer.style.display = 'none';
+  if (roasCharts) roasCharts.style.display = 'none';
+  if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+  if (roasChannels) roasChannels.style.display = 'none';
+  if (buckets_products) buckets_products.style.display = 'none';
+  if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
+
+  // Hide buckets switcher
+  const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+  if (switcherWrapper) switcherWrapper.style.display = 'none';
+  const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+  if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+
+  // Show search terms container
+  const searchTermsContainer = document.getElementById('search_terms_container');
+  if (searchTermsContainer) searchTermsContainer.style.display = 'block';
+
+  // Hide toggle controls
+  const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
+  const previousPeriodToggle = document.querySelector('.previous-period-toggle-top');
+  if (chartModeToggle) chartModeToggle.style.display = 'none';
+  if (previousPeriodToggle) previousPeriodToggle.style.display = 'none';
+
+  // Show date range selector
+  const productInfoDateRange = document.getElementById('productInfoDateRange');
+  if (productInfoDateRange) {
+    productInfoDateRange.style.display = 'block';
+  }
+
+  // Load and render search terms data
+  loadAndRenderSearchTerms();
 });
 
 const viewBucketsGoogleAdsBtn = document.getElementById("viewBucketsGoogleAds");
@@ -8769,6 +8864,18 @@ if (window.googleAdsApexCharts) {
 .device-icon-small {
   font-size: 14px;
 }
+.search-terms-table tr:hover {
+  background-color: #e8f0fe !important;
+}
+
+.pagination-controls button:not(:disabled):hover {
+  background-color: #f0f0f0 !important;
+  border-color: #999 !important;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+}
     `;
     document.head.appendChild(style);
   }
@@ -10865,6 +10972,188 @@ function updateMetricsDisplay(metricsBox, bucketData) {
     align-items: center;
   `;
 }
+
+// Load and render search terms data
+async function loadAndRenderSearchTerms() {
+  const container = document.getElementById('search_terms_container');
+  if (!container) return;
+  
+  // Show loading state
+  container.innerHTML = '<div style="text-align: center; padding: 50px;"><div class="spinner"></div></div>';
+  
+  try {
+    // Get table name with current project prefix
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    console.log('[loadAndRenderSearchTerms] Loading from table:', tableName);
+    
+    // Load data from IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data || result.data.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
+      return;
+    }
+    
+    // Initialize pagination
+    window.searchTermsCurrentPage = 1;
+    window.searchTermsPerPage = 100;
+    window.searchTermsData = result.data;
+    
+    // Render the search terms table
+    renderSearchTermsTable(container);
+    
+  } catch (error) {
+    console.error('[loadAndRenderSearchTerms] Error:', error);
+    container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading search terms data</div>';
+  }
+}
+
+// Render search terms table with pagination
+function renderSearchTermsTable(container) {
+  const data = window.searchTermsData;
+  const currentPage = window.searchTermsCurrentPage;
+  const perPage = window.searchTermsPerPage;
+  
+  const totalPages = Math.ceil(data.length / perPage);
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, data.length);
+  const pageData = data.slice(startIndex, endIndex);
+  
+  let html = `
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #666; font-size: 14px;">
+          Showing ${startIndex + 1}-${endIndex} of ${data.length} search terms
+        </div>
+        <div class="pagination-controls" style="display: flex; gap: 10px; align-items: center;">
+          <button onclick="changeSearchTermsPage(-1)" ${currentPage === 1 ? 'disabled' : ''} 
+                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
+            Previous
+          </button>
+          <span style="font-size: 14px; color: #333;">Page ${currentPage} of ${totalPages}</span>
+          <button onclick="changeSearchTermsPage(1)" ${currentPage === totalPages ? 'disabled' : ''} 
+                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <table class="search-terms-table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+          <th style="padding: 12px; text-align: left; font-weight: 600; width: 60px;">#</th>
+          <th style="padding: 12px; text-align: left; font-weight: 600;">Search Term</th>
+          <th style="padding: 12px; text-align: center; font-weight: 600; width: 100px;">Top Bucket</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">Impressions</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">Clicks</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">CTR</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">Conversions</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">CVR</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">Value</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600;">% of Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  pageData.forEach((row, index) => {
+    const globalIndex = startIndex + index + 1;
+    const ctr = row.Impressions > 0 ? ((row.Clicks / row.Impressions) * 100).toFixed(2) : 0;
+    const cvr = row.Clicks > 0 ? ((row.Conversions / row.Clicks) * 100).toFixed(2) : 0;
+    
+    html += `
+      <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
+        <td style="padding: 10px; color: #666; font-size: 12px;">${globalIndex}</td>
+        <td style="padding: 10px; font-weight: 500;">${row.Query || 'N/A'}</td>
+        <td style="padding: 10px; text-align: center;">${getTopBucketBadge(row.Top_Bucket)}</td>
+        <td style="padding: 10px; text-align: right;">${row.Impressions.toLocaleString()}</td>
+        <td style="padding: 10px; text-align: right;">${row.Clicks.toLocaleString()}</td>
+        <td style="padding: 10px; text-align: right;">${ctr}%</td>
+        <td style="padding: 10px; text-align: right;">${parseFloat(row.Conversions).toFixed(2)}</td>
+        <td style="padding: 10px; text-align: right; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'};">${cvr}%</td>
+        <td style="padding: 10px; text-align: right; font-weight: 600;">$${parseFloat(row.Value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td style="padding: 10px; text-align: right; font-weight: 600; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'};">
+          ${(row['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
+  });
+  
+  html += `
+      </tbody>
+    </table>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Get top bucket badge HTML
+function getTopBucketBadge(topBucket) {
+  if (!topBucket || topBucket === '""' || topBucket === '') {
+    return '<span style="color: #999; font-size: 12px;">—</span>';
+  }
+  
+  const bucketConfig = {
+    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: '🏆 Top 1' },
+    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: '🥈 Top 2' },
+    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: '🥉 Top 3' },
+    'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
+    'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
+    'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
+  };
+  
+  const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
+  
+  return `
+    <div style="
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 16px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}30;
+    ">
+      ${config.label}
+    </div>
+  `;
+}
+
+// Change page function
+window.changeSearchTermsPage = function(direction) {
+  const currentPage = window.searchTermsCurrentPage;
+  const totalPages = Math.ceil(window.searchTermsData.length / window.searchTermsPerPage);
+  
+  const newPage = currentPage + direction;
+  if (newPage >= 1 && newPage <= totalPages) {
+    window.searchTermsCurrentPage = newPage;
+    const container = document.getElementById('search_terms_container');
+    renderSearchTermsTable(container);
+  }
+};
 
 // Export functions to window
 window.initializeMainBucketsSwitcher = initializeMainBucketsSwitcher;
