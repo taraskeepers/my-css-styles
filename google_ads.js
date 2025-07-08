@@ -6519,6 +6519,8 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
+  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
   // Collapse the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6601,6 +6603,8 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
+  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
 // Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
