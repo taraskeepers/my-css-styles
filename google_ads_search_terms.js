@@ -102,6 +102,8 @@ async function loadAndRenderSearchTerms() {
     window.searchTermsData = filteredData;
     window.searchTermsSortColumn = 'Clicks';
     window.searchTermsSortAscending = false;
+    // Initialize filter state
+window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
     
     // Apply initial sort
     sortSearchTermsData();
@@ -169,6 +171,33 @@ function sortSearchTermsData() {
   });
 }
 
+// Filter search terms data based on selected filter
+function getFilteredSearchTermsData() {
+  let filteredData = [...window.searchTermsData];
+  
+  switch(window.searchTermsFilter) {
+    case 'topbucket':
+      filteredData = filteredData.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
+      break;
+    case 'negatives':
+      filteredData = filteredData.filter(item => item.Clicks >= 50 && item.Conversions === 0);
+      break;
+    case 'all':
+    default:
+      // No filter needed
+      break;
+  }
+  
+  return filteredData;
+}
+
+// Handle filter change
+function handleSearchTermsFilter(filter) {
+  window.searchTermsFilter = filter;
+  window.searchTermsCurrentPage = 1; // Reset to first page
+  renderSearchTermsTable(document.getElementById('search_terms_container'));
+}
+
 // Handle column sort
 function handleSearchTermsSort(column) {
   if (window.searchTermsSortColumn === column) {
@@ -184,7 +213,8 @@ function handleSearchTermsSort(column) {
 }
 
 function renderSearchTermsTable(container) {
-  const data = window.searchTermsData;
+  const allData = window.searchTermsData;
+  const data = getFilteredSearchTermsData();
   const currentPage = window.searchTermsCurrentPage;
   const perPage = window.searchTermsPerPage;
   
@@ -197,22 +227,37 @@ function renderSearchTermsTable(container) {
   const maxImpressions = Math.max(...data.map(d => d.Impressions || 0));
   const maxClicks = Math.max(...data.map(d => d.Clicks || 0));
   
+  // Calculate average CVR for items with conversions > 0
+  const itemsWithConversions = allData.filter(d => d.Conversions > 0);
+  const avgCVR = itemsWithConversions.length > 0
+    ? itemsWithConversions.reduce((sum, d) => sum + (d.Clicks > 0 ? (d.Conversions / d.Clicks * 100) : 0), 0) / itemsWithConversions.length
+    : 0;
+  
+  // Find top 10 by value
+  const top10ByValue = [...allData]
+    .sort((a, b) => (b.Value || 0) - (a.Value || 0))
+    .slice(0, 10)
+    .map(item => item.Query);
+  
   let html = `
     <div style="margin-bottom: 20px;">
       <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="color: #666; font-size: 14px;">
-          Showing ${startIndex + 1}-${endIndex} of ${data.length} search terms
+          Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
         </div>
-        <div class="pagination-controls" style="display: flex; gap: 10px; align-items: center;">
-          <button id="searchTermsPrevBtn" ${currentPage === 1 ? 'disabled' : ''} 
-                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
-            Previous
+        <div class="search-terms-filter-switcher" style="display: flex; gap: 0; background: #f0f0f0; border-radius: 8px; padding: 2px;">
+          <button class="filter-btn ${window.searchTermsFilter === 'all' ? 'active' : ''}" data-filter="all" 
+                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'all' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+            All Search Terms
           </button>
-          <span style="font-size: 14px; color: #333;">Page ${currentPage} of ${totalPages}</span>
-          <button id="searchTermsNextBtn" ${currentPage === totalPages ? 'disabled' : ''} 
-                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
-            Next
+          <button class="filter-btn ${window.searchTermsFilter === 'topbucket' ? 'active' : ''}" data-filter="topbucket" 
+                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'topbucket' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+            Top Bucket
+          </button>
+          <button class="filter-btn ${window.searchTermsFilter === 'negatives' ? 'active' : ''}" data-filter="negatives" 
+                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'negatives' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+            Potential Negatives
           </button>
         </div>
       </div>
@@ -221,29 +266,29 @@ function renderSearchTermsTable(container) {
     <table class="search-terms-table" style="width: 100%; border-collapse: collapse; background: white;">
       <thead>
         <tr style="background: linear-gradient(to bottom, #ffffff, #f9f9f9); border-bottom: 2px solid #ddd;">
-          <th style="padding: 12px 8px; text-align: center; font-weight: 600; width: 60px; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">#</th>
-          <th class="sortable" data-column="Query" style="padding: 12px 8px; text-align: left; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th style="padding: 12px 8px; text-align: center; font-weight: 600; width: 60px; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">#</th>
+          <th class="sortable" data-column="Query" style="padding: 12px 8px; text-align: left; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             Search Term ${getSortIndicator('Query')}
           </th>
-          <th class="sortable" data-column="Impressions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="Impressions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             Impressions ${getSortIndicator('Impressions')}
           </th>
-          <th class="sortable" data-column="Clicks" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="Clicks" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             Clicks ${getSortIndicator('Clicks')}
           </th>
-          <th class="sortable" data-column="CTR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="CTR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             CTR ${getSortIndicator('CTR')}
           </th>
-          <th class="sortable" data-column="Conversions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="Conversions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             Conversions ${getSortIndicator('Conversions')}
           </th>
-          <th class="sortable" data-column="CVR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="CVR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             CVR ${getSortIndicator('CVR')}
           </th>
-          <th class="sortable" data-column="Value" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="Value" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             Value ${getSortIndicator('Value')}
           </th>
-          <th class="sortable" data-column="% of Revenue" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 13px;">
+          <th class="sortable" data-column="% of Revenue" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
             % of Revenue ${getSortIndicator('% of Revenue')}
           </th>
         </tr>
@@ -266,13 +311,34 @@ function renderSearchTermsTable(container) {
     // Get trend data
     const trendData = row['Trend Data'];
     
+    // Determine row background
+    let rowBg = index % 2 === 1 ? '#f9f9f9' : 'white';
+    if (row.Clicks >= 50 && row.Conversions === 0) {
+      rowBg = '#ffebee'; // Light red
+    } else if (top10ByValue.includes(row.Query)) {
+      rowBg = '#e8f5e9'; // Light green
+    }
+    
+    // Determine CVR color
+    let cvrColor = '#666';
+    if (parseFloat(cvr) === 0) {
+      cvrColor = '#F44336'; // Red for 0%
+    } else if (parseFloat(cvr) >= avgCVR) {
+      cvrColor = '#4CAF50'; // Green for >= average
+    } else {
+      cvrColor = '#FF9800'; // Orange for < average
+    }
+    
     html += `
-      <tr style="border-bottom: 1px solid #f0f0f0;">
+      <tr style="background-color: ${rowBg};">
         <td style="padding: 8px; text-align: center;">
           ${getIndexWithTopBucket(globalIndex, topBucket)}
         </td>
         <td style="padding: 8px;">
-          <div style="font-weight: 500; color: #333; font-size: 13px;">${row.Query}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
+            ${topBucket ? getTopBucketBadge(topBucket) : ''}
+          </div>
         </td>
         <td style="padding: 8px; text-align: center;">
           ${getMetricWithTrend(row.Impressions, trendData?.Impressions, 'impressions', impressionBarWidth)}
@@ -280,15 +346,15 @@ function renderSearchTermsTable(container) {
         <td style="padding: 8px; text-align: center;">
           ${getMetricWithTrend(row.Clicks, trendData?.Clicks, 'clicks', clickBarWidth)}
         </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-size: 12px;">${ctr}%</td>
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-size: 14px;">${ctr}%</td>
         <td style="padding: 8px; text-align: center;">
           ${getMetricWithTrend(row.Conversions, trendData?.Conversions, 'conversions')}
         </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'}; font-size: 12px;">${cvr}%</td>
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${cvrColor}; font-size: 14px;">${cvr}%</td>
         <td style="padding: 8px; text-align: center;">
           ${getMetricWithTrend(row.Value, trendData?.Value, 'value')}
         </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'}; font-size: 12px;">
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'}; font-size: 14px;">
           ${(row['% of all revenue'] * 100).toFixed(2)}%
         </td>
       </tr>
@@ -298,14 +364,35 @@ function renderSearchTermsTable(container) {
   html += `
       </tbody>
     </table>
+    
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+      <div class="pagination-controls" style="display: flex; gap: 10px; align-items: center;">
+        <button id="searchTermsPrevBtn" ${currentPage === 1 ? 'disabled' : ''} 
+                style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
+          Previous
+        </button>
+        <select id="searchTermsPageSelect" style="padding: 6px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px;">
+          ${Array.from({length: totalPages}, (_, i) => i + 1).map(page => 
+            `<option value="${page}" ${page === currentPage ? 'selected' : ''}>Page ${page}</option>`
+          ).join('')}
+        </select>
+        <span style="font-size: 14px; color: #333;">of ${totalPages}</span>
+        <button id="searchTermsNextBtn" ${currentPage === totalPages ? 'disabled' : ''} 
+                style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
+          Next
+        </button>
+      </div>
+    </div>
   `;
   
   container.innerHTML = html;
   
-  // Add event listeners for pagination
+  // Add event listeners
   setTimeout(() => {
+    // Pagination
     const prevBtn = document.getElementById('searchTermsPrevBtn');
     const nextBtn = document.getElementById('searchTermsNextBtn');
+    const pageSelect = document.getElementById('searchTermsPageSelect');
     
     if (prevBtn) {
       prevBtn.addEventListener('click', () => changeSearchTermsPage(-1));
@@ -315,12 +402,28 @@ function renderSearchTermsTable(container) {
       nextBtn.addEventListener('click', () => changeSearchTermsPage(1));
     }
     
-    // Add event listeners for sorting
+    if (pageSelect) {
+      pageSelect.addEventListener('change', (e) => {
+        window.searchTermsCurrentPage = parseInt(e.target.value);
+        renderSearchTermsTable(container);
+      });
+    }
+    
+    // Sorting
     const sortableHeaders = container.querySelectorAll('.sortable');
     sortableHeaders.forEach(header => {
       header.addEventListener('click', function() {
         const column = this.getAttribute('data-column');
         handleSearchTermsSort(column);
+      });
+    });
+    
+    // Filter buttons
+    const filterBtns = container.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const filter = this.getAttribute('data-filter');
+        handleSearchTermsFilter(filter);
       });
     });
   }, 100);
@@ -355,13 +458,13 @@ function getTopBucketStyle(topBucket) {
 // Get top bucket badge HTML
 function getTopBucketBadge(topBucket) {
   if (!topBucket || topBucket === '""' || topBucket === '') {
-    return '<span style="color: #999; font-size: 12px;">—</span>';
+    return '';
   }
   
   const bucketConfig = {
-    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: '🏆 Top 1' },
-    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: '🥈 Top 2' },
-    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: '🥉 Top 3' },
+    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: 'Top 1' },
+    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: 'Top 2' },
+    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: 'Top 3' },
     'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
     'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
     'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
@@ -370,31 +473,32 @@ function getTopBucketBadge(topBucket) {
   const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
   
   return `
-    <div style="
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 16px;
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
       background: ${config.bg};
       color: ${config.color};
       font-size: 11px;
       font-weight: 600;
       white-space: nowrap;
-      border: 1px solid ${config.color}30;
+      border: 1px solid ${config.color}40;
     ">
       ${config.label}
-    </div>
+    </span>
   `;
 }
 
 // Get index cell with top bucket styling
 function getIndexWithTopBucket(index, topBucket) {
   const bucketStyles = {
-    'Top1': { bg: '#FFD700', color: '#000', icon: '👑' },
-    'Top2': { bg: '#C0C0C0', color: '#000', icon: '🥈' },
-    'Top3': { bg: '#CD7F32', color: '#fff', icon: '🥉' },
-    'Top4': { bg: '#4CAF50', color: '#fff', icon: '⭐' },
-    'Top5': { bg: '#2196F3', color: '#fff', icon: '🌟' },
-    'Top10': { bg: '#9C27B0', color: '#fff', icon: '✨' }
+    'Top1': { bg: '#FFD700', color: '#000' },
+    'Top2': { bg: '#C0C0C0', color: '#000' },
+    'Top3': { bg: '#CD7F32', color: '#fff' },
+    'Top4': { bg: '#4CAF50', color: '#fff' },
+    'Top5': { bg: '#2196F3', color: '#fff' },
+    'Top10': { bg: '#9C27B0', color: '#fff' }
   };
   
   const style = bucketStyles[topBucket];
@@ -404,24 +508,22 @@ function getIndexWithTopBucket(index, topBucket) {
       <div style="
         background: ${style.bg};
         color: ${style.color};
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 12px;
+        font-size: 13px;
         margin: 0 auto;
-        position: relative;
       ">
         ${index}
-        <span style="position: absolute; top: -8px; right: -8px; font-size: 14px;">${style.icon}</span>
       </div>
     `;
   }
   
-  return `<div style="font-weight: 600; color: #666; font-size: 12px;">${index}</div>`;
+  return `<div style="font-weight: 600; color: #666; font-size: 13px;">${index}</div>`;
 }
 
 // Get metric with trend and bar
@@ -453,7 +555,7 @@ function getMetricWithTrend(currentValue, previousValue, type, barWidth = null) 
     const color = isPositive ? '#4CAF50' : '#F44336';
     
     trendHtml = `
-      <div style="font-size: 10px; color: ${color}; margin-top: 2px;">
+      <div style="font-size: 11px; color: ${color}; margin-top: 2px;">
         ${arrow} ${Math.abs(changePercent)}%
       </div>
     `;
@@ -472,7 +574,7 @@ function getMetricWithTrend(currentValue, previousValue, type, barWidth = null) 
   
   return `
     <div>
-      <div style="font-weight: 600; font-size: 12px;">${formattedCurrent}</div>
+      <div style="font-weight: 600; font-size: 14px;">${formattedCurrent}</div>
       ${trendHtml}
       ${barHtml}
     </div>
@@ -573,14 +675,13 @@ function initializeSearchTermsButton() {
   }
 }
 
-// Add CSS styles for search terms
 function addSearchTermsStyles() {
   if (!document.getElementById("search-terms-styles")) {
     const style = document.createElement("style");
     style.id = "search-terms-styles";
     style.textContent = `
       .search-terms-table tr:hover {
-        background-color: #f8f9fa !important;
+        opacity: 0.95;
       }
 
       .pagination-controls button:not(:disabled):hover {
@@ -600,16 +701,24 @@ function addSearchTermsStyles() {
         transition: all 0.2s ease;
       }
 
-      .search-terms-table tbody tr:hover {
-        background-color: #f8f9fa !important;
-      }
-
       .pagination-controls button:not(:disabled):hover {
         transform: scale(1.05);
       }
       
       .search-terms-table td {
         vertical-align: middle;
+      }
+      
+      .filter-btn:not(.active):hover {
+        background: rgba(0, 0, 0, 0.05) !important;
+      }
+      
+      .filter-btn {
+        transition: all 0.2s ease;
+      }
+      
+      .filter-btn.active {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
     `;
     document.head.appendChild(style);
