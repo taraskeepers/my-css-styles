@@ -687,42 +687,9 @@ if (toggleSlider) {
         const promise = renderProductRankingSubRows(searchTerm).then(html => {
           if (html) {
             subRows.innerHTML = html;
-            // Render pie charts
+// Render pie charts for this search term
 setTimeout(() => {
-  metrics.forEach((metric, idx) => {
-    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
-    const canvas = document.getElementById(canvasId);
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      const percentage = metric.percentOfAllProducts;
-      
-      // Clear canvas
-      ctx.clearRect(0, 0, 30, 30);
-      
-      // Draw filled portion
-      ctx.beginPath();
-      ctx.moveTo(15, 15);
-      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
-      ctx.closePath();
-      ctx.fillStyle = '#1976d2';
-      ctx.fill();
-      
-      // Draw remaining portion
-      ctx.beginPath();
-      ctx.moveTo(15, 15);
-      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
-      ctx.closePath();
-      ctx.fillStyle = '#e0e0e0';
-      ctx.fill();
-      
-      // Draw border
-      ctx.beginPath();
-      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#ccc';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  });
+  renderSearchTermPieCharts(searchTerm);
 }, 50);
             subRows.style.display = 'table-row-group';
           }
@@ -759,42 +726,9 @@ if (toggleSlider) {
           const promise = renderProductRankingSubRows(searchTerm).then(html => {
             if (html) {
               subRows.innerHTML = html;
-              // Render pie charts
+// Render pie charts for this search term
 setTimeout(() => {
-  metrics.forEach((metric, idx) => {
-    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
-    const canvas = document.getElementById(canvasId);
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      const percentage = metric.percentOfAllProducts;
-      
-      // Clear canvas
-      ctx.clearRect(0, 0, 30, 30);
-      
-      // Draw filled portion
-      ctx.beginPath();
-      ctx.moveTo(15, 15);
-      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
-      ctx.closePath();
-      ctx.fillStyle = '#1976d2';
-      ctx.fill();
-      
-      // Draw remaining portion
-      ctx.beginPath();
-      ctx.moveTo(15, 15);
-      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
-      ctx.closePath();
-      ctx.fillStyle = '#e0e0e0';
-      ctx.fill();
-      
-      // Draw border
-      ctx.beginPath();
-      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#ccc';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  });
+  renderSearchTermPieCharts(searchTerm);
 }, 50);
               subRows.style.display = 'table-row-group';
               
@@ -1003,29 +937,29 @@ function renderProductRankingSubRows(searchTerm) {
         <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
           <td colspan="9" style="padding: 0;">
             <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
-<!-- Active Products (Main metric) -->
-<div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
-  <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
-    ${metric.activeProducts}
-  </div>
-  <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
-    PRODUCTS
-  </div>
-</div>
-
-<!-- % of All Products with pie chart -->
-<div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
-  <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
-  <div>
-    <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
-    <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
-      ${metric.percentOfAllProducts.toFixed(1)}%
-    </span>
-    <div style="font-size: 11px; color: #999;">
-      (${metric.totalProducts} total)
-    </div>
-  </div>
-</div>
+              <!-- Active Products (Main metric) -->
+              <div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+                <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+                  ${metric.activeProducts}
+                </div>
+                <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+                  PRODUCTS
+                </div>
+              </div>
+              
+              <!-- % of All Products with pie chart -->
+              <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
+                <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
+                <div>
+                  <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+                  <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+                    ${metric.percentOfAllProducts.toFixed(1)}%
+                  </span>
+                  <div style="font-size: 11px; color: #999;">
+                    (${metric.totalProducts} total)
+                  </div>
+                </div>
+              </div>
               
               <!-- Location -->
               <div style="flex: 0 0 140px;">
@@ -1037,26 +971,33 @@ function renderProductRankingSubRows(searchTerm) {
                 ${deviceIcon}
               </div>
               
-              <!-- Avg Rank -->
-              <div style="flex: 0 0 140px;">
-                <span style="font-size: 12px; color: #666; font-weight: 500;">Avg Rank:</span>
-                <span style="font-size: 15px; font-weight: 700; color: #333; margin-left: 8px;">
-                  ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
-                </span>
-                ${rankArrow ? `<span style="font-size: 13px; color: ${rankColor}; margin-left: 6px;">
-                  ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
-                </span>` : ''}
+              <!-- Avg Rank (styled box) -->
+              <div style="flex: 0 0 120px; text-align: center;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
+                <div style="display: inline-flex; align-items: center; background: #f5f5f5; border-radius: 6px; padding: 6px 12px; border: 1px solid #e0e0e0;">
+                  <span style="font-size: 18px; font-weight: 700; color: #333;">
+                    ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+                  </span>
+                  ${rankArrow ? `<span style="font-size: 13px; color: ${rankColor}; margin-left: 8px;">
+                    ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+                  </span>` : ''}
+                </div>
               </div>
               
-              <!-- Market Share -->
+              <!-- Market Share (progress bar) -->
               <div style="flex: 1;">
-                <span style="font-size: 12px; color: #666; font-weight: 500;">Market Share:</span>
-                <span style="font-size: 15px; font-weight: 700; color: #333; margin-left: 8px;">
-                  ${metric.marketShare.toFixed(1)}%
-                </span>
-                ${shareArrow ? `<span style="font-size: 13px; color: ${shareColor}; margin-left: 6px;">
-                  ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
-                </span>` : ''}
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Market Share</div>
+                <div style="position: relative; background: #e0e0e0; height: 24px; border-radius: 12px; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; height: 100%; background: #1976d2; width: ${Math.min(metric.marketShare, 100)}%; transition: width 0.3s ease;"></div>
+                  <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; padding: 0 12px; justify-content: space-between;">
+                    <span style="font-size: 14px; font-weight: 700; color: ${metric.marketShare > 50 ? 'white' : '#333'}; z-index: 1;">
+                      ${metric.marketShare.toFixed(1)}%
+                    </span>
+                    ${shareArrow ? `<span style="font-size: 12px; color: ${metric.marketShare > 50 ? 'white' : shareColor}; z-index: 1;">
+                      ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
+                    </span>` : ''}
+                  </div>
+                </div>
               </div>
               
               <!-- Inactive count -->
@@ -1074,7 +1015,52 @@ function renderProductRankingSubRows(searchTerm) {
       `;
     });
     
+    // After building HTML, render pie charts when the HTML is inserted
+    window.searchTermsPieChartData = window.searchTermsPieChartData || {};
+    window.searchTermsPieChartData[searchTerm] = metrics;
+    
     return html;
+  });
+}
+
+// Function to render pie charts for a specific search term
+function renderSearchTermPieCharts(searchTerm) {
+  const metrics = window.searchTermsPieChartData[searchTerm];
+  if (!metrics) return;
+  
+  metrics.forEach((metric, idx) => {
+    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const percentage = metric.percentOfAllProducts;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 30, 30);
+      
+      // Draw filled portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
+      ctx.closePath();
+      ctx.fillStyle = '#1976d2';
+      ctx.fill();
+      
+      // Draw remaining portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   });
 }
 
