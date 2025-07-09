@@ -415,26 +415,36 @@ function renderSearchTermsTable(container) {
   let html = `
     <div style="margin-bottom: 20px;">
       <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="color: #666; font-size: 14px;">
-          Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
-        </div>
-        <div class="search-terms-filter-switcher" style="display: flex; gap: 0; background: #f0f0f0; border-radius: 8px; padding: 2px;">
-          <button class="filter-btn ${window.searchTermsFilter === 'all' ? 'active' : ''}" data-filter="all" 
-                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'all' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
-            All Search Terms
-          </button>
-          <button class="filter-btn ${window.searchTermsFilter === 'topbucket' ? 'active' : ''}" data-filter="topbucket" 
-                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'topbucket' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
-            Top Bucket
-          </button>
-          <button class="filter-btn ${window.searchTermsFilter === 'negatives' ? 'active' : ''}" data-filter="negatives" 
-                  style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'negatives' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
-            Potential Negatives
-          </button>
-        </div>
-      </div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+  <div style="color: #666; font-size: 14px;">
+    Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
+      <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
     </div>
+    <div class="search-terms-filter-switcher" style="display: flex; gap: 0; background: #f0f0f0; border-radius: 8px; padding: 2px;">
+      <button class="filter-btn ${window.searchTermsFilter === 'all' ? 'active' : ''}" data-filter="all" 
+              style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'all' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+        All Search Terms
+      </button>
+      <button class="filter-btn ${window.searchTermsFilter === 'topbucket' ? 'active' : ''}" data-filter="topbucket" 
+              style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'topbucket' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+        Top Bucket
+      </button>
+      <button class="filter-btn ${window.searchTermsFilter === 'negatives' ? 'active' : ''}" data-filter="negatives" 
+              style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'negatives' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+        Potential Negatives
+      </button>
+    </div>
+  </div>
+</div>
     
     <table class="search-terms-table" style="width: 100%; border-collapse: collapse; background: white;">
       <thead>
@@ -509,7 +519,7 @@ function renderSearchTermsTable(container) {
     }
     
     html += `
-      <tr style="background-color: ${rowBg};">
+      <tr style="background-color: ${rowBg};" class="search-term-row" data-search-term="${row.Query}">
         <td style="padding: 8px; text-align: center;">
           ${getIndexWithTopBucket(globalIndex, topBucket)}
         </td>
@@ -538,7 +548,9 @@ function renderSearchTermsTable(container) {
         </td>
       </tr>
     `;
-  });
+  // Add sub-rows container (initially hidden)
+  html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+});
   
   html += `
       </tbody>
@@ -607,7 +619,316 @@ function renderSearchTermsTable(container) {
         handleSearchTermsFilter(filter);
       });
     });
+
+// Add Product Ranking toggle functionality
+const productRankingToggle = document.getElementById('productRankingToggle');
+if (productRankingToggle) {
+  // Restore saved state
+  productRankingToggle.checked = window.productRankingToggleState || false;
+  
+  // Apply initial state
+  if (productRankingToggle.checked) {
+    document.querySelectorAll('.product-ranking-rows').forEach(subRows => {
+      const searchTerm = subRows.getAttribute('data-search-term');
+      if (searchTerm) {
+        subRows.innerHTML = renderProductRankingSubRows(searchTerm);
+        subRows.style.display = 'table-row-group';
+      }
+    });
+  }
+  
+  productRankingToggle.addEventListener('change', function() {
+    const isChecked = this.checked;
+    window.productRankingToggleState = isChecked;
+    
+    document.querySelectorAll('.product-ranking-rows').forEach(subRows => {
+      if (isChecked) {
+        const searchTerm = subRows.getAttribute('data-search-term');
+        if (searchTerm && !subRows.innerHTML) {
+          subRows.innerHTML = renderProductRankingSubRows(searchTerm);
+        }
+        // Animate the appearance
+        subRows.style.display = 'table-row-group';
+        subRows.querySelectorAll('.product-ranking-subrow').forEach((row, i) => {
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+          }, i * 50);
+        });
+      } else {
+        // Animate the disappearance
+        const rows = subRows.querySelectorAll('.product-ranking-subrow');
+        rows.forEach((row, i) => {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+        });
+        setTimeout(() => {
+          subRows.style.display = 'none';
+        }, 300);
+      }
+    });
+  });
+}
+    
   }, 100);
+}
+
+// Function to calculate product ranking metrics for a search term
+function calculateProductRankingMetrics(searchTerm) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    return [];
+  }
+  
+  const normalizedTerm = searchTerm.toLowerCase().trim();
+  const endDate = moment();
+  const startDate = endDate.clone().subtract(6, 'days'); // 7 days including today
+  const prevEndDate = startDate.clone().subtract(1, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+  
+  // Get company to filter
+  const companyToFilter = window.myCompany || '';
+  
+  // Group products by location and device
+  const groupedData = {};
+  
+  window.allRows.forEach(product => {
+    if (product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase()) {
+      
+      const key = `${product.location_requested}|${product.device}`;
+      if (!groupedData[key]) {
+        groupedData[key] = {
+          location: product.location_requested,
+          device: product.device,
+          products: []
+        };
+      }
+      groupedData[key].products.push(product);
+    }
+  });
+  
+  // Calculate metrics for each location/device combination
+  const results = [];
+  
+  Object.values(groupedData).forEach(group => {
+    let currentAvgRank = 0;
+    let prevAvgRank = 0;
+    let currentMarketShare = 0;
+    let prevMarketShare = 0;
+    let activeCount = 0;
+    let inactiveCount = 0;
+    let prevActiveCount = 0;
+    let validCurrentCount = 0;
+    let validPrevCount = 0;
+    
+    group.products.forEach(product => {
+      // Check if product is active or inactive
+      if (product.product_status === 'inactive') {
+        inactiveCount++;
+      } else {
+        activeCount++;
+        
+        // Count as active in previous period too (simplified)
+        prevActiveCount++;
+      }
+      
+      if (product.historical_data && Array.isArray(product.historical_data)) {
+        // Current period data
+        const currentData = product.historical_data.filter(item => {
+          if (!item.date || !item.date.value) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+        
+        // Previous period data
+        const prevData = product.historical_data.filter(item => {
+          if (!item.date || !item.date.value) return false;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+        });
+        
+        // Calculate current period averages
+        if (currentData.length > 0) {
+          let rankSum = 0;
+          let rankCount = 0;
+          let shareSum = 0;
+          let shareCount = 0;
+          
+          currentData.forEach(item => {
+            if (item.avg_position) {
+              rankSum += parseFloat(item.avg_position);
+              rankCount++;
+            }
+            if (item.market_share || item.visibility) {
+              shareSum += parseFloat(item.market_share || item.visibility) * 100;
+              shareCount++;
+            }
+          });
+          
+          if (rankCount > 0) {
+            currentAvgRank += rankSum / rankCount;
+            validCurrentCount++;
+          }
+          if (shareCount > 0) {
+            currentMarketShare += shareSum / shareCount;
+          }
+        }
+        
+        // Calculate previous period averages
+        if (prevData.length > 0) {
+          let rankSum = 0;
+          let rankCount = 0;
+          let shareSum = 0;
+          let shareCount = 0;
+          
+          prevData.forEach(item => {
+            if (item.avg_position) {
+              rankSum += parseFloat(item.avg_position);
+              rankCount++;
+            }
+            if (item.market_share || item.visibility) {
+              shareSum += parseFloat(item.market_share || item.visibility) * 100;
+              shareCount++;
+            }
+          });
+          
+          if (rankCount > 0) {
+            prevAvgRank += rankSum / rankCount;
+            validPrevCount++;
+          }
+          if (shareCount > 0) {
+            prevMarketShare += shareSum / shareCount;
+          }
+        }
+      }
+    });
+    
+    // Calculate final averages
+    const finalAvgRank = validCurrentCount > 0 ? currentAvgRank / validCurrentCount : 0;
+    const finalPrevRank = validPrevCount > 0 ? prevAvgRank / validPrevCount : 0;
+    const finalMarketShare = currentMarketShare / Math.max(1, group.products.length);
+    const finalPrevShare = prevMarketShare / Math.max(1, group.products.length);
+    
+    // Calculate trends
+    const rankTrend = finalAvgRank > 0 && finalPrevRank > 0 ? finalAvgRank - finalPrevRank : 0;
+    const shareTrend = finalMarketShare - finalPrevShare;
+    const productsTrend = activeCount - prevActiveCount;
+    
+    results.push({
+      location: group.location,
+      device: group.device,
+      avgRank: finalAvgRank,
+      rankTrend: rankTrend,
+      marketShare: finalMarketShare,
+      shareTrend: shareTrend,
+      activeProducts: activeCount,
+      inactiveProducts: inactiveCount,
+      productsTrend: productsTrend
+    });
+  });
+  
+  return results;
+}
+
+// Function to render product ranking sub-rows
+function renderProductRankingSubRows(searchTerm) {
+  const metrics = calculateProductRankingMetrics(searchTerm);
+  
+  if (metrics.length === 0) {
+    return '<tr class="product-ranking-subrow"><td colspan="9" style="padding: 8px 16px; text-align: center; color: #999; font-style: italic; background: #f9f9f9;">No product ranking data available</td></tr>';
+  }
+  
+  let html = '';
+  
+  metrics.forEach((metric, index) => {
+    // Format location
+    const locationParts = metric.location.split(',');
+    const city = locationParts[0] || metric.location;
+    const country = locationParts[locationParts.length - 1]?.trim() || '';
+    
+    // Determine device icon
+    const deviceIcon = metric.device.toLowerCase().includes('mobile') ? 
+      'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 
+      'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+    
+    // Format rank trend
+    const rankArrow = metric.rankTrend < 0 ? '↑' : metric.rankTrend > 0 ? '↓' : '→';
+    const rankColor = metric.rankTrend < 0 ? '#4CAF50' : metric.rankTrend > 0 ? '#F44336' : '#999';
+    
+    // Format share trend
+    const shareArrow = metric.shareTrend > 0 ? '↑' : metric.shareTrend < 0 ? '↓' : '→';
+    const shareColor = metric.shareTrend > 0 ? '#4CAF50' : metric.shareTrend < 0 ? '#F44336' : '#999';
+    
+    // Format products trend
+    const productsArrow = metric.productsTrend > 0 ? '↑' : metric.productsTrend < 0 ? '↓' : '→';
+    const productsColor = metric.productsTrend > 0 ? '#4CAF50' : metric.productsTrend < 0 ? '#F44336' : '#999';
+    
+    html += `
+      <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
+        <td colspan="9" style="padding: 0;">
+          <div style="display: flex; align-items: center; padding: 8px 16px; gap: 24px;">
+            <!-- Location -->
+            <div style="flex: 0 0 180px; font-size: 12px;">
+              <div style="font-weight: 600; color: #333;">${city}</div>
+              ${country ? `<div style="color: #666; font-size: 11px;">${country}</div>` : ''}
+            </div>
+            
+            <!-- Device -->
+            <div style="flex: 0 0 40px;">
+              <img src="${deviceIcon}" alt="${metric.device}" style="width: 24px; height: 24px;">
+            </div>
+            
+            <!-- Avg Rank -->
+            <div style="flex: 0 0 120px; text-align: center;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Avg Rank</div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span style="font-size: 16px; font-weight: 700; color: #333;">
+                  ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+                </span>
+                <span style="font-size: 12px; color: ${rankColor};">
+                  ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Market Share -->
+            <div style="flex: 0 0 120px; text-align: center;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Market Share</div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span style="font-size: 16px; font-weight: 700; color: #333;">
+                  ${metric.marketShare.toFixed(1)}%
+                </span>
+                <span style="font-size: 12px; color: ${shareColor};">
+                  ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            
+            <!-- Products Count -->
+            <div style="flex: 1; text-align: center;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Products</div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span style="font-size: 14px;">
+                  <span style="color: #4CAF50; font-weight: 700;">${metric.activeProducts}</span>
+                  <span style="color: #999; margin: 0 4px;">/</span>
+                  <span style="color: #9E9E9E; font-weight: 700;">${metric.inactiveProducts}</span>
+                </span>
+                <span style="font-size: 12px; color: ${productsColor};">
+                  ${productsArrow} ${Math.abs(metric.productsTrend)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  
+  return html;
 }
 
 // Get sort indicator
@@ -905,6 +1226,22 @@ function addSearchTermsStyles() {
       .filter-btn.active {
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
+      /* Product Ranking Toggle Styles */
+.product-ranking-toggle input:checked + .product-ranking-slider {
+  background-color: #007aff;
+}
+
+.product-ranking-toggle input:checked + .product-ranking-slider span {
+  transform: translateX(20px);
+}
+
+.product-ranking-subrow {
+  transition: all 0.3s ease;
+}
+
+.product-ranking-subrow:hover {
+  background-color: #e8f0fe !important;
+}
     `;
     document.head.appendChild(style);
   }
