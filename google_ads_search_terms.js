@@ -119,6 +119,47 @@ window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
   }
 }
 
+// Function to get total unique products count
+async function getTotalProductsCount() {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const uniqueProducts = new Set();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data) {
+          result.data.forEach(item => {
+            if (item['Product Title']) {
+              uniqueProducts.add(item['Product Title']);
+            }
+          });
+        }
+        resolve();
+      };
+      getRequest.onerror = () => resolve();
+    });
+    
+    db.close();
+    return uniqueProducts.size;
+  } catch (error) {
+    console.error('[Search Terms] Error getting total products:', error);
+    return 0;
+  }
+}
+
 // Sort search terms data
 function sortSearchTermsData() {
   const column = window.searchTermsSortColumn;
@@ -518,38 +559,39 @@ function renderSearchTermsTable(container) {
       cvrColor = '#FF9800'; // Orange for < average
     }
     
-    html += `
-      <tr style="background-color: ${rowBg};" class="search-term-row" data-search-term="${row.Query}">
-        <td style="padding: 8px; text-align: center;">
-          ${getIndexWithTopBucket(globalIndex, topBucket)}
-        </td>
-        <td style="padding: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
-            ${topBucket ? getTopBucketBadge(topBucket) : ''}
-          </div>
-        </td>
-        <td style="padding: 8px; text-align: center;">
-          ${getMetricWithTrend(row.Impressions, trendData?.Impressions, 'impressions', impressionBarWidth)}
-        </td>
-        <td style="padding: 8px; text-align: center;">
-          ${getMetricWithTrend(row.Clicks, trendData?.Clicks, 'clicks', clickBarWidth)}
-        </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-size: 14px;">${ctr}%</td>
-        <td style="padding: 8px; text-align: center;">
-          ${getMetricWithTrend(row.Conversions, trendData?.Conversions, 'conversions')}
-        </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${cvrColor}; font-size: 14px;">${cvr}%</td>
-        <td style="padding: 8px; text-align: center;">
-          ${getMetricWithTrend(row.Value, trendData?.Value, 'value')}
-        </td>
-        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'}; font-size: 14px;">
-          ${(row['% of all revenue'] * 100).toFixed(2)}%
-        </td>
-      </tr>
-    `;
-  // Add sub-rows container (initially hidden)
-  html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+html += `
+  <tr style="background-color: ${rowBg};" class="search-term-row" data-search-term="${row.Query}">
+    <td style="padding: 8px; text-align: center;">
+      ${getIndexWithTopBucket(globalIndex, topBucket)}
+    </td>
+    <td style="padding: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
+        ${topBucket ? getTopBucketBadge(topBucket) : ''}
+      </div>
+    </td>
+    <td style="padding: 8px; text-align: center;">
+      ${getMetricWithTrend(row.Impressions, trendData?.Impressions, 'impressions', impressionBarWidth)}
+    </td>
+    <td style="padding: 8px; text-align: center;">
+      ${getMetricWithTrend(row.Clicks, trendData?.Clicks, 'clicks', clickBarWidth)}
+    </td>
+    <td style="padding: 8px; text-align: center; font-weight: 500; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-size: 14px;">${ctr}%</td>
+    <td style="padding: 8px; text-align: center;">
+      ${getMetricWithTrend(row.Conversions, trendData?.Conversions, 'conversions')}
+    </td>
+    <td style="padding: 8px; text-align: center; font-weight: 500; color: ${cvrColor}; font-size: 14px;">${cvr}%</td>
+    <td style="padding: 8px; text-align: center;">
+      ${getMetricWithTrend(row.Value, trendData?.Value, 'value')}
+    </td>
+    <td style="padding: 8px; text-align: center; font-weight: 500; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'}; font-size: 14px;">
+      ${(row['% of all revenue'] * 100).toFixed(2)}%
+    </td>
+  </tr>
+`;
+
+// Add sub-rows container (will remain empty if no data)
+html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
 });
   
   html += `
@@ -626,51 +668,98 @@ if (productRankingToggle) {
   // Restore saved state
   productRankingToggle.checked = window.productRankingToggleState || false;
   
+  // Style the toggle based on state
+  const toggleContainer = productRankingToggle.closest('.product-ranking-toggle');
+  if (toggleContainer) {
+    if (productRankingToggle.checked) {
+      toggleContainer.style.boxShadow = '0 0 0 2px #007aff';
+    }
+  }
+  
   // Apply initial state
   if (productRankingToggle.checked) {
-    document.querySelectorAll('.product-ranking-rows').forEach(subRows => {
+    const allSubRows = document.querySelectorAll('.product-ranking-rows');
+    const promises = [];
+    
+    allSubRows.forEach(subRows => {
       const searchTerm = subRows.getAttribute('data-search-term');
       if (searchTerm) {
-        subRows.innerHTML = renderProductRankingSubRows(searchTerm);
-        subRows.style.display = 'table-row-group';
+        const promise = renderProductRankingSubRows(searchTerm).then(html => {
+          if (html) {
+            subRows.innerHTML = html;
+            subRows.style.display = 'table-row-group';
+          }
+        });
+        promises.push(promise);
       }
     });
+    
+    Promise.all(promises);
   }
   
   productRankingToggle.addEventListener('change', function() {
     const isChecked = this.checked;
     window.productRankingToggleState = isChecked;
     
-    document.querySelectorAll('.product-ranking-rows').forEach(subRows => {
+    // Update toggle styling
+    const toggleContainer = this.closest('.product-ranking-toggle');
+    if (toggleContainer) {
       if (isChecked) {
+        toggleContainer.style.boxShadow = '0 0 0 2px #007aff';
+        toggleContainer.style.borderRadius = '24px';
+      } else {
+        toggleContainer.style.boxShadow = 'none';
+      }
+    }
+    
+    const allSubRows = document.querySelectorAll('.product-ranking-rows');
+    
+    if (isChecked) {
+      const promises = [];
+      
+      allSubRows.forEach(subRows => {
         const searchTerm = subRows.getAttribute('data-search-term');
         if (searchTerm && !subRows.innerHTML) {
-          subRows.innerHTML = renderProductRankingSubRows(searchTerm);
+          const promise = renderProductRankingSubRows(searchTerm).then(html => {
+            if (html) {
+              subRows.innerHTML = html;
+              subRows.style.display = 'table-row-group';
+              
+              // Animate the appearance
+              subRows.querySelectorAll('.product-ranking-subrow').forEach((row, i) => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                  row.style.transition = 'all 0.3s ease';
+                  row.style.opacity = '1';
+                  row.style.transform = 'translateY(0)';
+                }, i * 50);
+              });
+            }
+          });
+          promises.push(promise);
+        } else if (subRows.innerHTML) {
+          subRows.style.display = 'table-row-group';
         }
-        // Animate the appearance
-        subRows.style.display = 'table-row-group';
-        subRows.querySelectorAll('.product-ranking-subrow').forEach((row, i) => {
-          row.style.opacity = '0';
-          row.style.transform = 'translateY(-10px)';
-          setTimeout(() => {
+      });
+      
+      Promise.all(promises);
+    } else {
+      // Hide all sub-rows
+      allSubRows.forEach(subRows => {
+        if (subRows.innerHTML) {
+          const rows = subRows.querySelectorAll('.product-ranking-subrow');
+          rows.forEach((row, i) => {
             row.style.transition = 'all 0.3s ease';
-            row.style.opacity = '1';
-            row.style.transform = 'translateY(0)';
-          }, i * 50);
-        });
-      } else {
-        // Animate the disappearance
-        const rows = subRows.querySelectorAll('.product-ranking-subrow');
-        rows.forEach((row, i) => {
-          row.style.transition = 'all 0.3s ease';
-          row.style.opacity = '0';
-          row.style.transform = 'translateY(-10px)';
-        });
-        setTimeout(() => {
-          subRows.style.display = 'none';
-        }, 300);
-      }
-    });
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(-10px)';
+          });
+          setTimeout(() => {
+            subRows.style.display = 'none';
+          }, 300);
+        }
+      });
+    }
   });
 }
     
@@ -678,16 +767,24 @@ if (productRankingToggle) {
 }
 
 // Function to calculate product ranking metrics for a search term
-function calculateProductRankingMetrics(searchTerm) {
+async function calculateProductRankingMetrics(searchTerm) {
   if (!window.allRows || !Array.isArray(window.allRows)) {
     return [];
   }
   
   const normalizedTerm = searchTerm.toLowerCase().trim();
-  const endDate = moment();
-  const startDate = endDate.clone().subtract(6, 'days'); // 7 days including today
+  
+  // Get total products count
+  const totalProducts = await getTotalProductsCount();
+  
+  // Use the same date range as product map (30 days)
+  const days = window.selectedDateRangeDays || 30;
+  const endDate = moment().subtract(1, 'days'); // Yesterday as end date
+  const startDate = endDate.clone().subtract(days - 1, 'days');
+  
+  // For trend comparison, use previous period
   const prevEndDate = startDate.clone().subtract(1, 'days');
-  const prevStartDate = prevEndDate.clone().subtract(6, 'days');
+  const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
   
   // Get company to filter
   const companyToFilter = window.myCompany || '';
@@ -714,16 +811,17 @@ function calculateProductRankingMetrics(searchTerm) {
   // Calculate metrics for each location/device combination
   const results = [];
   
-  Object.values(groupedData).forEach(group => {
-    let currentAvgRank = 0;
-    let prevAvgRank = 0;
-    let currentMarketShare = 0;
-    let prevMarketShare = 0;
+  for (const group of Object.values(groupedData)) {
+    let totalRankSum = 0;
+    let totalRankCount = 0;
+    let totalShareSum = 0;
+    let totalShareCount = 0;
+    let prevRankSum = 0;
+    let prevRankCount = 0;
+    let prevShareSum = 0;
+    let prevShareCount = 0;
     let activeCount = 0;
     let inactiveCount = 0;
-    let prevActiveCount = 0;
-    let validCurrentCount = 0;
-    let validPrevCount = 0;
     
     group.products.forEach(product => {
       // Check if product is active or inactive
@@ -731,204 +829,174 @@ function calculateProductRankingMetrics(searchTerm) {
         inactiveCount++;
       } else {
         activeCount++;
-        
-        // Count as active in previous period too (simplified)
-        prevActiveCount++;
       }
       
       if (product.historical_data && Array.isArray(product.historical_data)) {
         // Current period data
-        const currentData = product.historical_data.filter(item => {
-          if (!item.date || !item.date.value) return false;
+        product.historical_data.forEach(item => {
+          if (!item.date || !item.date.value) return;
           const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-        
-        // Previous period data
-        const prevData = product.historical_data.filter(item => {
-          if (!item.date || !item.date.value) return false;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-          return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
-        });
-        
-        // Calculate current period averages
-        if (currentData.length > 0) {
-          let rankSum = 0;
-          let rankCount = 0;
-          let shareSum = 0;
-          let shareCount = 0;
           
-          currentData.forEach(item => {
+          if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
             if (item.avg_position) {
-              rankSum += parseFloat(item.avg_position);
-              rankCount++;
+              totalRankSum += parseFloat(item.avg_position);
+              totalRankCount++;
             }
-            if (item.market_share || item.visibility) {
-              shareSum += parseFloat(item.market_share || item.visibility) * 100;
-              shareCount++;
+            if (item.market_share !== undefined) {
+              totalShareSum += parseFloat(item.market_share) * 100;
+              totalShareCount++;
+            } else if (item.visibility !== undefined) {
+              totalShareSum += parseFloat(item.visibility) * 100;
+              totalShareCount++;
             }
-          });
-          
-          if (rankCount > 0) {
-            currentAvgRank += rankSum / rankCount;
-            validCurrentCount++;
-          }
-          if (shareCount > 0) {
-            currentMarketShare += shareSum / shareCount;
-          }
-        }
-        
-        // Calculate previous period averages
-        if (prevData.length > 0) {
-          let rankSum = 0;
-          let rankCount = 0;
-          let shareSum = 0;
-          let shareCount = 0;
-          
-          prevData.forEach(item => {
+          } else if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
             if (item.avg_position) {
-              rankSum += parseFloat(item.avg_position);
-              rankCount++;
+              prevRankSum += parseFloat(item.avg_position);
+              prevRankCount++;
             }
-            if (item.market_share || item.visibility) {
-              shareSum += parseFloat(item.market_share || item.visibility) * 100;
-              shareCount++;
+            if (item.market_share !== undefined) {
+              prevShareSum += parseFloat(item.market_share) * 100;
+              prevShareCount++;
+            } else if (item.visibility !== undefined) {
+              prevShareSum += parseFloat(item.visibility) * 100;
+              prevShareCount++;
             }
-          });
-          
-          if (rankCount > 0) {
-            prevAvgRank += rankSum / rankCount;
-            validPrevCount++;
           }
-          if (shareCount > 0) {
-            prevMarketShare += shareSum / shareCount;
-          }
-        }
+        });
       }
     });
     
-    // Calculate final averages
-    const finalAvgRank = validCurrentCount > 0 ? currentAvgRank / validCurrentCount : 0;
-    const finalPrevRank = validPrevCount > 0 ? prevAvgRank / validPrevCount : 0;
-    const finalMarketShare = currentMarketShare / Math.max(1, group.products.length);
-    const finalPrevShare = prevMarketShare / Math.max(1, group.products.length);
+    // Calculate averages
+    const avgRank = totalRankCount > 0 ? totalRankSum / totalRankCount : 0;
+    const prevAvgRank = prevRankCount > 0 ? prevRankSum / prevRankCount : 0;
+    const marketShare = totalShareCount > 0 ? totalShareSum / totalShareCount : 0;
+    const prevMarketShare = prevShareCount > 0 ? prevShareSum / prevShareCount : 0;
     
     // Calculate trends
-    const rankTrend = finalAvgRank > 0 && finalPrevRank > 0 ? finalAvgRank - finalPrevRank : 0;
-    const shareTrend = finalMarketShare - finalPrevShare;
-    const productsTrend = activeCount - prevActiveCount;
+    const rankTrend = avgRank > 0 && prevAvgRank > 0 ? avgRank - prevAvgRank : 0;
+    const shareTrend = marketShare - prevMarketShare;
+    
+    // Calculate percentage of all products
+    const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
     
     results.push({
       location: group.location,
       device: group.device,
-      avgRank: finalAvgRank,
+      avgRank: avgRank,
       rankTrend: rankTrend,
-      marketShare: finalMarketShare,
+      marketShare: marketShare,
       shareTrend: shareTrend,
       activeProducts: activeCount,
       inactiveProducts: inactiveCount,
-      productsTrend: productsTrend
+      percentOfAllProducts: percentOfAllProducts,
+      totalProducts: totalProducts
     });
-  });
+  }
   
   return results;
 }
 
 // Function to render product ranking sub-rows
 function renderProductRankingSubRows(searchTerm) {
-  const metrics = calculateProductRankingMetrics(searchTerm);
+  const metricsPromise = calculateProductRankingMetrics(searchTerm);
   
-  if (metrics.length === 0) {
-    return '<tr class="product-ranking-subrow"><td colspan="9" style="padding: 8px 16px; text-align: center; color: #999; font-style: italic; background: #f9f9f9;">No product ranking data available</td></tr>';
-  }
-  
-  let html = '';
-  
-  metrics.forEach((metric, index) => {
-    // Format location
-    const locationParts = metric.location.split(',');
-    const city = locationParts[0] || metric.location;
-    const country = locationParts[locationParts.length - 1]?.trim() || '';
+  // Return a promise that resolves to the HTML
+  return metricsPromise.then(metrics => {
+    if (!metrics || metrics.length === 0) {
+      return ''; // Don't add sub-row if no data
+    }
     
-    // Determine device icon
-    const deviceIcon = metric.device.toLowerCase().includes('mobile') ? 
-      'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' : 
-      'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+    let html = '';
     
-    // Format rank trend
-    const rankArrow = metric.rankTrend < 0 ? '↑' : metric.rankTrend > 0 ? '↓' : '→';
-    const rankColor = metric.rankTrend < 0 ? '#4CAF50' : metric.rankTrend > 0 ? '#F44336' : '#999';
-    
-    // Format share trend
-    const shareArrow = metric.shareTrend > 0 ? '↑' : metric.shareTrend < 0 ? '↓' : '→';
-    const shareColor = metric.shareTrend > 0 ? '#4CAF50' : metric.shareTrend < 0 ? '#F44336' : '#999';
-    
-    // Format products trend
-    const productsArrow = metric.productsTrend > 0 ? '↑' : metric.productsTrend < 0 ? '↓' : '→';
-    const productsColor = metric.productsTrend > 0 ? '#4CAF50' : metric.productsTrend < 0 ? '#F44336' : '#999';
-    
-    html += `
-      <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
-        <td colspan="9" style="padding: 0;">
-          <div style="display: flex; align-items: center; padding: 8px 16px; gap: 24px;">
-            <!-- Location -->
-            <div style="flex: 0 0 180px; font-size: 12px;">
-              <div style="font-weight: 600; color: #333;">${city}</div>
-              ${country ? `<div style="color: #666; font-size: 11px;">${country}</div>` : ''}
-            </div>
-            
-            <!-- Device -->
-            <div style="flex: 0 0 40px;">
-              <img src="${deviceIcon}" alt="${metric.device}" style="width: 24px; height: 24px;">
-            </div>
-            
-            <!-- Avg Rank -->
-            <div style="flex: 0 0 120px; text-align: center;">
-              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Avg Rank</div>
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span style="font-size: 16px; font-weight: 700; color: #333;">
+    metrics.forEach((metric, index) => {
+      // Format location (shorter)
+      const locationParts = metric.location.split(',');
+      const city = locationParts[0] || metric.location;
+      
+      // Device icon - using Unicode symbols instead of images
+      const deviceIcon = metric.device.toLowerCase().includes('mobile') ? '📱' : '💻';
+      
+      // Format trends
+      const rankArrow = metric.rankTrend < 0 ? '↑' : metric.rankTrend > 0 ? '↓' : '';
+      const rankColor = metric.rankTrend < 0 ? '#4CAF50' : metric.rankTrend > 0 ? '#F44336' : '#999';
+      
+      const shareArrow = metric.shareTrend > 0 ? '↑' : metric.shareTrend < 0 ? '↓' : '';
+      const shareColor = metric.shareTrend > 0 ? '#4CAF50' : metric.shareTrend < 0 ? '#F44336' : '#999';
+      
+      html += `
+        <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
+          <td colspan="9" style="padding: 0;">
+            <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
+              <!-- Active Products (Main metric) -->
+              <div style="flex: 0 0 auto; text-align: center; background: #e8f5e9; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+                <div style="font-size: 20px; font-weight: 700; color: #2e7d32; line-height: 1;">
+                  ${metric.activeProducts}
+                </div>
+                <div style="font-size: 10px; color: #388e3c; margin-top: 2px; font-weight: 600;">
+                  PRODUCTS
+                </div>
+              </div>
+              
+              <!-- % of All Products -->
+              <div style="flex: 0 0 120px;">
+                <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+                <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+                  ${metric.percentOfAllProducts.toFixed(1)}%
+                </span>
+                <span style="font-size: 11px; color: #999; margin-left: 4px;">
+                  (${metric.totalProducts} total)
+                </span>
+              </div>
+              
+              <!-- Location -->
+              <div style="flex: 0 0 140px;">
+                <span style="font-size: 13px; font-weight: 600; color: #333;">${city}</span>
+              </div>
+              
+              <!-- Device -->
+              <div style="flex: 0 0 30px; font-size: 20px; text-align: center;">
+                ${deviceIcon}
+              </div>
+              
+              <!-- Avg Rank -->
+              <div style="flex: 0 0 140px;">
+                <span style="font-size: 12px; color: #666; font-weight: 500;">Avg Rank:</span>
+                <span style="font-size: 15px; font-weight: 700; color: #333; margin-left: 8px;">
                   ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
                 </span>
-                <span style="font-size: 12px; color: ${rankColor};">
+                ${rankArrow ? `<span style="font-size: 13px; color: ${rankColor}; margin-left: 6px;">
                   ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
-                </span>
+                </span>` : ''}
               </div>
-            </div>
-            
-            <!-- Market Share -->
-            <div style="flex: 0 0 120px; text-align: center;">
-              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Market Share</div>
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span style="font-size: 16px; font-weight: 700; color: #333;">
+              
+              <!-- Market Share -->
+              <div style="flex: 1;">
+                <span style="font-size: 12px; color: #666; font-weight: 500;">Market Share:</span>
+                <span style="font-size: 15px; font-weight: 700; color: #333; margin-left: 8px;">
                   ${metric.marketShare.toFixed(1)}%
                 </span>
-                <span style="font-size: 12px; color: ${shareColor};">
+                ${shareArrow ? `<span style="font-size: 13px; color: ${shareColor}; margin-left: 6px;">
                   ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
-                </span>
+                </span>` : ''}
               </div>
+              
+              <!-- Inactive count -->
+              ${metric.inactiveProducts > 0 ? `
+                <div style="flex: 0 0 auto; text-align: center; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 8px;">
+                  <span style="font-size: 11px; color: #999;">Inactive:</span>
+                  <span style="font-size: 13px; font-weight: 600; color: #757575; margin-left: 4px;">
+                    ${metric.inactiveProducts}
+                  </span>
+                </div>
+              ` : ''}
             </div>
-            
-            <!-- Products Count -->
-            <div style="flex: 1; text-align: center;">
-              <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Products</div>
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span style="font-size: 14px;">
-                  <span style="color: #4CAF50; font-weight: 700;">${metric.activeProducts}</span>
-                  <span style="color: #999; margin: 0 4px;">/</span>
-                  <span style="color: #9E9E9E; font-weight: 700;">${metric.inactiveProducts}</span>
-                </span>
-                <span style="font-size: 12px; color: ${productsColor};">
-                  ${productsArrow} ${Math.abs(metric.productsTrend)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    `;
+          </td>
+        </tr>
+      `;
+    });
+    
+    return html;
   });
-  
-  return html;
 }
 
 // Get sort indicator
@@ -1226,13 +1294,17 @@ function addSearchTermsStyles() {
       .filter-btn.active {
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
-      /* Product Ranking Toggle Styles */
+/* Add to existing styles */
 .product-ranking-toggle input:checked + .product-ranking-slider {
   background-color: #007aff;
 }
 
 .product-ranking-toggle input:checked + .product-ranking-slider span {
   transform: translateX(20px);
+}
+
+.product-ranking-toggle {
+  transition: box-shadow 0.3s ease;
 }
 
 .product-ranking-subrow {
