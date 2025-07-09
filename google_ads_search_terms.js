@@ -668,13 +668,13 @@ if (productRankingToggle) {
   // Restore saved state
   productRankingToggle.checked = window.productRankingToggleState || false;
   
-  // Style the toggle based on state
-  const toggleContainer = productRankingToggle.closest('.product-ranking-toggle');
-  if (toggleContainer) {
-    if (productRankingToggle.checked) {
-      toggleContainer.style.boxShadow = '0 0 0 2px #007aff';
-    }
+// Style the toggle based on state
+const toggleSlider = productRankingToggle.nextElementSibling;
+if (toggleSlider) {
+  if (productRankingToggle.checked) {
+    toggleSlider.style.backgroundColor = '#007aff';
   }
+}
   
   // Apply initial state
   if (productRankingToggle.checked) {
@@ -687,6 +687,43 @@ if (productRankingToggle) {
         const promise = renderProductRankingSubRows(searchTerm).then(html => {
           if (html) {
             subRows.innerHTML = html;
+            // Render pie charts
+setTimeout(() => {
+  metrics.forEach((metric, idx) => {
+    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const percentage = metric.percentOfAllProducts;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 30, 30);
+      
+      // Draw filled portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
+      ctx.closePath();
+      ctx.fillStyle = '#1976d2';
+      ctx.fill();
+      
+      // Draw remaining portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+}, 50);
             subRows.style.display = 'table-row-group';
           }
         });
@@ -702,15 +739,14 @@ if (productRankingToggle) {
     window.productRankingToggleState = isChecked;
     
     // Update toggle styling
-    const toggleContainer = this.closest('.product-ranking-toggle');
-    if (toggleContainer) {
-      if (isChecked) {
-        toggleContainer.style.boxShadow = '0 0 0 2px #007aff';
-        toggleContainer.style.borderRadius = '24px';
-      } else {
-        toggleContainer.style.boxShadow = 'none';
-      }
-    }
+const toggleSlider = this.nextElementSibling;
+if (toggleSlider) {
+  if (isChecked) {
+    toggleSlider.style.backgroundColor = '#007aff';
+  } else {
+    toggleSlider.style.backgroundColor = '#ccc';
+  }
+}
     
     const allSubRows = document.querySelectorAll('.product-ranking-rows');
     
@@ -723,6 +759,43 @@ if (productRankingToggle) {
           const promise = renderProductRankingSubRows(searchTerm).then(html => {
             if (html) {
               subRows.innerHTML = html;
+              // Render pie charts
+setTimeout(() => {
+  metrics.forEach((metric, idx) => {
+    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const percentage = metric.percentOfAllProducts;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 30, 30);
+      
+      // Draw filled portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
+      ctx.closePath();
+      ctx.fillStyle = '#1976d2';
+      ctx.fill();
+      
+      // Draw remaining portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+}, 50);
               subRows.style.display = 'table-row-group';
               
               // Animate the appearance
@@ -744,22 +817,24 @@ if (productRankingToggle) {
       });
       
       Promise.all(promises);
-    } else {
-      // Hide all sub-rows
-      allSubRows.forEach(subRows => {
-        if (subRows.innerHTML) {
-          const rows = subRows.querySelectorAll('.product-ranking-subrow');
-          rows.forEach((row, i) => {
-            row.style.transition = 'all 0.3s ease';
-            row.style.opacity = '0';
-            row.style.transform = 'translateY(-10px)';
-          });
-          setTimeout(() => {
-            subRows.style.display = 'none';
-          }, 300);
-        }
+} else {
+  // Hide all sub-rows
+  allSubRows.forEach(subRows => {
+    if (subRows.innerHTML) {
+      const rows = subRows.querySelectorAll('.product-ranking-subrow');
+      rows.forEach((row, i) => {
+        row.style.transition = 'all 0.3s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(-10px)';
       });
+      setTimeout(() => {
+        subRows.style.display = 'none';
+        // Clear the HTML to force re-render next time
+        subRows.innerHTML = '';
+      }, 300);
     }
+  });
+}
   });
 }
     
@@ -778,7 +853,8 @@ async function calculateProductRankingMetrics(searchTerm) {
   const totalProducts = await getTotalProductsCount();
   
   // Use the same date range as product map (30 days)
-  const days = window.selectedDateRangeDays || 30;
+  //const days = window.selectedDateRangeDays || 30;
+  const days = 7;
   const endDate = moment().subtract(1, 'days'); // Yesterday as end date
   const startDate = endDate.clone().subtract(days - 1, 'days');
   
@@ -927,26 +1003,29 @@ function renderProductRankingSubRows(searchTerm) {
         <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
           <td colspan="9" style="padding: 0;">
             <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
-              <!-- Active Products (Main metric) -->
-              <div style="flex: 0 0 auto; text-align: center; background: #e8f5e9; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
-                <div style="font-size: 20px; font-weight: 700; color: #2e7d32; line-height: 1;">
-                  ${metric.activeProducts}
-                </div>
-                <div style="font-size: 10px; color: #388e3c; margin-top: 2px; font-weight: 600;">
-                  PRODUCTS
-                </div>
-              </div>
-              
-              <!-- % of All Products -->
-              <div style="flex: 0 0 120px;">
-                <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
-                <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
-                  ${metric.percentOfAllProducts.toFixed(1)}%
-                </span>
-                <span style="font-size: 11px; color: #999; margin-left: 4px;">
-                  (${metric.totalProducts} total)
-                </span>
-              </div>
+<!-- Active Products (Main metric) -->
+<div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+  <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+    ${metric.activeProducts}
+  </div>
+  <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+    PRODUCTS
+  </div>
+</div>
+
+<!-- % of All Products with pie chart -->
+<div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
+  <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
+  <div>
+    <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+    <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+      ${metric.percentOfAllProducts.toFixed(1)}%
+    </span>
+    <div style="font-size: 11px; color: #999;">
+      (${metric.totalProducts} total)
+    </div>
+  </div>
+</div>
               
               <!-- Location -->
               <div style="flex: 0 0 140px;">
