@@ -102,6 +102,8 @@ async function loadAndRenderSearchTerms() {
     window.searchTermsData = filteredData;
     window.searchTermsSortColumn = 'Clicks';
     window.searchTermsSortAscending = false;
+    // Store 365d data for missing terms analysis
+window.searchTerms365dData = result365d && result365d.data ? result365d.data : [];
     // Initialize filter state
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
     
@@ -189,6 +191,177 @@ function getFilteredSearchTermsData() {
   }
   
   return filteredData;
+}
+
+// Calculate summary data for filtered results
+function calculateSummaryData(filteredData) {
+  if (filteredData.length === 0) return null;
+  
+  const summary = {
+    count: filteredData.length,
+    impressions: filteredData.reduce((sum, d) => sum + (d.Impressions || 0), 0),
+    clicks: filteredData.reduce((sum, d) => sum + (d.Clicks || 0), 0),
+    conversions: filteredData.reduce((sum, d) => sum + (d.Conversions || 0), 0),
+    value: filteredData.reduce((sum, d) => sum + (d.Value || 0), 0),
+    revenue_pct: filteredData.reduce((sum, d) => sum + (d['% of all revenue'] || 0), 0)
+  };
+  
+  // Calculate averages
+  summary.ctr = summary.impressions > 0 ? (summary.clicks / summary.impressions * 100) : 0;
+  summary.cvr = summary.clicks > 0 ? (summary.conversions / summary.clicks * 100) : 0;
+  
+  // Calculate trend data (sum of all trend data)
+  const trendData = {
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    value: 0
+  };
+  
+  filteredData.forEach(item => {
+    if (item['Trend Data']) {
+      trendData.impressions += item['Trend Data'].Impressions || 0;
+      trendData.clicks += item['Trend Data'].Clicks || 0;
+      trendData.conversions += item['Trend Data'].Conversions || 0;
+      trendData.value += item['Trend Data'].Value || 0;
+    }
+  });
+  
+  summary.trendData = trendData;
+  
+  return summary;
+}
+
+// Find missing top bucket terms from 365d data
+function findMissingTopBucketTerms() {
+  if (!window.searchTerms365dData || window.searchTerms365dData.length === 0) return [];
+  
+  // Get current search term queries
+  const currentQueries = new Set(window.searchTermsData.map(d => d.Query.toLowerCase()));
+  
+  // Find terms with Top_Bucket in 365d that are not in current data
+  const missingTerms = window.searchTerms365dData
+    .filter(item => {
+      return item.Top_Bucket && 
+             item.Top_Bucket !== '' && 
+             !currentQueries.has(item.Query.toLowerCase());
+    })
+    .map(item => ({
+      Query: item.Query,
+      'Top Bucket': item.Top_Bucket,
+      Impressions: Math.round(item.Impressions / 12), // Average monthly
+      Clicks: Math.round(item.Clicks / 12),
+      Conversions: (item.Conversions / 12).toFixed(2),
+      Value: item.Value / 12,
+      '% of all revenue': item['% of all revenue']
+    }));
+  
+  return missingTerms;
+}
+
+// Render summary row
+function renderSummaryRow(summary) {
+  if (!summary) return '';
+  
+  return `
+    <tr style="background: linear-gradient(to bottom, #e3f2fd, #bbdefb); border-top: 2px solid #1976d2; border-bottom: 2px solid #1976d2; height: 60px;">
+      <td style="padding: 12px; text-align: center; font-weight: 700;">
+        <div style="font-size: 16px; color: #1976d2;">Σ</div>
+      </td>
+      <td style="padding: 12px;">
+        <div style="font-weight: 700; color: #1976d2; font-size: 15px;">
+          Summary (${summary.count} terms)
+        </div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.impressions, summary.trendData.impressions, 'impressions', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.clicks, summary.trendData.clicks, 'clicks', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${summary.ctr.toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Average</div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.conversions, summary.trendData.conversions, 'conversions', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${summary.cvr.toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Average</div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.value, summary.trendData.value, 'value', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${(summary.revenue_pct * 100).toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Total</div>
+      </td>
+    </tr>
+  `;
+}
+
+// Render missing top bucket terms section
+function renderMissingTopBucketTerms() {
+  const missingTerms = findMissingTopBucketTerms();
+  
+  if (missingTerms.length === 0) return '';
+  
+  let html = `
+    <div style="margin-top: 30px; padding: 20px; background: #fff3e0; border-radius: 8px; border: 1px solid #ffb74d;">
+      <h4 style="margin: 0 0 15px 0; color: #e65100; font-size: 16px;">
+        📊 Historical Top Performers (Not Active in Current Period)
+      </h4>
+      <p style="margin: 0 0 15px 0; color: #666; font-size: 13px;">
+        These search terms were top performers historically but show no activity in the current period. Values shown are monthly averages from the past year.
+      </p>
+      <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 4px; overflow: hidden;">
+        <thead>
+          <tr style="background: #ffecb3;">
+            <th style="padding: 10px; text-align: left; font-size: 13px; color: #e65100;">Search Term</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Bucket</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Impressions</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Clicks</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Conversions</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Value</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  missingTerms.forEach((term, index) => {
+    const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100).toFixed(2) : 0;
+    const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100).toFixed(2) : 0;
+    
+    html += `
+      <tr style="background: ${index % 2 === 0 ? 'white' : '#fff8e1'}; border-bottom: 1px solid #ffe0b2;">
+        <td style="padding: 10px; font-weight: 500; font-size: 13px;">${term.Query}</td>
+        <td style="padding: 10px; text-align: center;">
+          ${getTopBucketBadge(term['Top Bucket'])}
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">
+          ${term.Impressions.toLocaleString()}
+          <div style="font-size: 11px; color: #666;">CTR: ${ctr}%</div>
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">${term.Clicks.toLocaleString()}</td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">
+          ${term.Conversions}
+          <div style="font-size: 11px; color: #666;">CVR: ${cvr}%</div>
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px; font-weight: 600;">
+          $${term.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        </td>
+      </tr>
+    `;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  return html;
 }
 
 // Handle filter change
@@ -295,6 +468,12 @@ function renderSearchTermsTable(container) {
       </thead>
       <tbody>
   `;
+
+    // Add summary row if filter is active
+  if (window.searchTermsFilter !== 'all') {
+    const summaryData = calculateSummaryData(data);
+    html += renderSummaryRow(summaryData);
+  }
   
   pageData.forEach((row, index) => {
     const globalIndex = startIndex + index + 1;
@@ -364,6 +543,8 @@ function renderSearchTermsTable(container) {
   html += `
       </tbody>
     </table>
+
+    ${window.searchTermsFilter === 'topbucket' ? renderMissingTopBucketTerms() : ''}
     
     <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
       <div class="pagination-controls" style="display: flex; gap: 10px; align-items: center;">
@@ -527,7 +708,7 @@ function getIndexWithTopBucket(index, topBucket) {
 }
 
 // Get metric with trend and bar
-function getMetricWithTrend(currentValue, previousValue, type, barWidth = null) {
+function getMetricWithTrend(currentValue, previousValue, type, barWidth = null, isSummary = false) {
   const current = parseFloat(currentValue) || 0;
   const previous = parseFloat(previousValue) || 0;
   
@@ -555,7 +736,7 @@ function getMetricWithTrend(currentValue, previousValue, type, barWidth = null) 
     const color = isPositive ? '#4CAF50' : '#F44336';
     
     trendHtml = `
-      <div style="font-size: 11px; color: ${color}; margin-top: 2px;">
+      <div style="font-size: ${isSummary ? '12px' : '11px'}; color: ${color}; margin-top: 2px;">
         ${arrow} ${Math.abs(changePercent)}%
       </div>
     `;
@@ -572,9 +753,13 @@ function getMetricWithTrend(currentValue, previousValue, type, barWidth = null) 
     `;
   }
   
+  const fontSize = isSummary ? '15px' : '14px';
+  const fontWeight = isSummary ? '700' : '600';
+  const color = isSummary ? '#1976d2' : 'inherit';
+  
   return `
     <div>
-      <div style="font-weight: 600; font-size: 14px;">${formattedCurrent}</div>
+      <div style="font-weight: ${fontWeight}; font-size: ${fontSize}; color: ${color};">${formattedCurrent}</div>
       ${trendHtml}
       ${barHtml}
     </div>
