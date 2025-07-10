@@ -9298,13 +9298,11 @@ if (!result || !result.data) return;
   }
 }
 
-// Tooltip functions
-let funnelTooltip = null;
-
 function showFunnelTooltip(event, bucketName, count, percentage, total) {
-  if (!funnelTooltip) {
-    funnelTooltip = document.createElement('div');
-    funnelTooltip.style.cssText = `
+  // Create tooltip if it doesn't exist
+  if (!window.mainBucketsFunnelTooltip) {
+    window.mainBucketsFunnelTooltip = document.createElement('div');
+    window.mainBucketsFunnelTooltip.style.cssText = `
       position: fixed;
       background: rgba(0, 0, 0, 0.9);
       color: white;
@@ -9314,11 +9312,13 @@ function showFunnelTooltip(event, bucketName, count, percentage, total) {
       pointer-events: none;
       z-index: 10000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     `;
-    document.body.appendChild(funnelTooltip);
+    document.body.appendChild(window.mainBucketsFunnelTooltip);
   }
   
-  funnelTooltip.innerHTML = `
+  window.mainBucketsFunnelTooltip.innerHTML = `
     <div style="font-weight: 700; margin-bottom: 5px;">${bucketName}</div>
     <div>Products: ${count} / ${total}</div>
     <div>Percentage: ${percentage.toFixed(1)}%</div>
@@ -9326,14 +9326,14 @@ function showFunnelTooltip(event, bucketName, count, percentage, total) {
   
   const x = event.clientX + 10;
   const y = event.clientY - 10;
-  funnelTooltip.style.left = x + 'px';
-  funnelTooltip.style.top = y + 'px';
-  funnelTooltip.style.opacity = '1';
+  window.mainBucketsFunnelTooltip.style.left = x + 'px';
+  window.mainBucketsFunnelTooltip.style.top = y + 'px';
+  window.mainBucketsFunnelTooltip.style.opacity = '1';
 }
 
 function hideFunnelTooltip() {
-  if (funnelTooltip) {
-    funnelTooltip.style.opacity = '0';
+  if (window.mainBucketsFunnelTooltip) {
+    window.mainBucketsFunnelTooltip.style.opacity = '0';
   }
 }
 
@@ -9716,18 +9716,28 @@ async function loadBucketedProducts() {
       });
     }
     
-    console.log(`[loadBucketedProducts] Found ${allCompanyProducts.length} products`);
+    console.log(`[loadBucketedProducts] Found ${allCompanyProducts.length} tracked products`);
     
-    // Apply bucket filter if selected
-    let filteredProducts = allCompanyProducts;
+    // Create a map of tracked products by title for quick lookup
+    const trackedProductsMap = new Map();
+    allCompanyProducts.forEach(product => {
+      trackedProductsMap.set(product.title, product);
+    });
+    
+    // Lists to store final results
+    let trackedFilteredProducts = [];
+    const untrackedProductsData = [];
+    
     if (window.selectedBucketFilter) {
       console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
       
-// Load bucket data to filter products
-      const tablePrefix = getProjectTablePrefix();
+      // Load bucket data
+      const accountPrefix = window.currentAccount || 'acc1';
       const days = window.selectedBucketDateRangeDays || 30;
       const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-      const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
+      const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+      
+      console.log('[loadBucketedProducts] Loading from table:', tableName);
       
       const db = await new Promise((resolve, reject) => {
         const request = indexedDB.open('myAppDB');
@@ -9747,11 +9757,14 @@ async function loadBucketedProducts() {
       db.close();
       
       if (result && result.data) {
-        // Create a set of product titles that match the filter
-        const matchingProductTitles = new Set();
+        console.log('[loadBucketedProducts] Found bucket data records:', result.data.length);
         
-result.data.forEach(row => {
-          const deviceFilter = window.selectedDeviceFilter || 'all';
+        // Process ALL products in the bucket (same logic as renderBucketFunnels)
+        const deviceFilter = window.selectedDeviceFilter || 'all';
+        const bucketProductTitles = new Set();
+        
+        result.data.forEach(row => {
+          // Match the exact filter logic from renderBucketFunnels
           const deviceMatch = deviceFilter === 'all' 
             ? row['Device'] === 'All' 
             : row['Device'] === deviceFilter;
@@ -9778,22 +9791,44 @@ result.data.forEach(row => {
             }
             
             if (matches) {
-              matchingProductTitles.add(row['Product Title']);
+              const productTitle = row['Product Title'];
+              bucketProductTitles.add(productTitle);
+              
+              // Check if this product is tracked or untracked
+              if (trackedProductsMap.has(productTitle)) {
+                // It's a tracked product
+                const product = trackedProductsMap.get(productTitle);
+                if (!trackedFilteredProducts.find(p => p.title === productTitle)) {
+                  trackedFilteredProducts.push(product);
+                }
+              } else {
+                // It's an untracked product
+                console.log('[loadBucketedProducts] Found untracked product:', productTitle);
+                untrackedProductsData.push({
+                  title: productTitle,
+                  bucketData: row
+                });
+              }
             }
           }
         });
         
-        // Filter products based on matching titles
-        filteredProducts = allCompanyProducts.filter(product => 
-          matchingProductTitles.has(product.title)
-        );
-        
-        console.log(`[loadBucketedProducts] Filtered to ${filteredProducts.length} products`);
+        console.log(`[loadBucketedProducts] Total products in bucket: ${bucketProductTitles.size}`);
+        console.log(`[loadBucketedProducts] Tracked products: ${trackedFilteredProducts.length}`);
+        console.log(`[loadBucketedProducts] Untracked products: ${untrackedProductsData.length}`);
+        if (untrackedProductsData.length > 0) {
+          console.log('[loadBucketedProducts] Untracked product titles:', untrackedProductsData.map(p => p.title));
+        }
+      } else {
+        console.log('[loadBucketedProducts] No bucket data found');
       }
+    } else {
+      // No filter - show all tracked products
+      trackedFilteredProducts = allCompanyProducts;
     }
     
-    // Calculate metrics and sort
-    const productsWithMetrics = filteredProducts.map(product => ({
+    // Calculate metrics and sort tracked products
+    const productsWithMetrics = trackedFilteredProducts.map(product => ({
       product: product,
       metrics: calculateGoogleAdsProductMetrics(product)
     }));
@@ -9806,8 +9841,8 @@ result.data.forEach(row => {
     activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
     inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
     
-    // Render products
-    renderProductsList(container, activeProducts, inactiveProducts);
+    // Render products with untracked section
+    renderProductsListWithUntracked(container, activeProducts, inactiveProducts, untrackedProductsData);
     
   } catch (error) {
     console.error('[loadBucketedProducts] Error:', error);
@@ -9928,6 +9963,313 @@ const deviceSelect = document.getElementById('productDeviceSelect');
   });
   
   container.appendChild(productsContainer);
+}
+
+// Render products list with untracked products section
+function renderProductsListWithUntracked(container, activeProducts, inactiveProducts, untrackedProductsData) {
+  container.innerHTML = '';
+  
+  // Header with device filter and settings button
+  const header = document.createElement('div');
+  header.style.cssText = 'padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;';
+
+  // Create title row
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
+
+  const filterText = window.currentBucketFilter ? ` - Filtered by ${window.currentBucketFilter.replace(/_/g, ' ')}` : '';
+  const bucketFilterText = window.selectedBucketFilter ? ` - ${window.selectedBucketFilter.bucketValue}` : '';
+  titleRow.innerHTML = `
+    <h3 style="margin: 0; font-size: 18px; font-weight: 600;">All Products${filterText}${bucketFilterText}</h3>
+    <div style="display: flex; gap: 15px; align-items: center;">
+      <div id="products-device-filter" style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: 600; font-size: 12px; color: #333;">Device:</span>
+        <select id="productDeviceSelect" style="
+          padding: 6px 10px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 12px;
+          cursor: pointer;
+          background: white;
+          min-width: 120px;
+        ">
+          <option value="all" ${window.selectedDeviceFilter === 'all' ? 'selected' : ''}>All Devices</option>
+          <option value="DESKTOP" ${window.selectedDeviceFilter === 'DESKTOP' ? 'selected' : ''}>💻 Desktop</option>
+          <option value="MOBILE" ${window.selectedDeviceFilter === 'MOBILE' ? 'selected' : ''}>📱 Mobile</option>
+          <option value="TABLET" ${window.selectedDeviceFilter === 'TABLET' ? 'selected' : ''}>📋 Tablet</option>
+        </select>
+      </div>
+      <button id="productsMetricsSettingsBtn" style="
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #666;
+        transition: all 0.2s;
+      " onmouseover="this.style.background='#e9e9e9'" onmouseout="this.style.background='#f5f5f5'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m4.22-10.22l4.24 4.24M6.34 6.34l4.24 4.24m4.88 0l4.24 4.24M6.34 17.66l4.24-4.24"></path>
+        </svg>
+        Metrics Settings
+      </button>
+    </div>
+  `;
+
+  header.appendChild(titleRow);
+  container.appendChild(header);
+
+  // Add settings popup
+  createMetricsSettingsPopup(container);
+
+  // Add event listeners
+  setTimeout(() => {
+    const settingsBtn = document.getElementById('productsMetricsSettingsBtn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMetricsSettingsPopup();
+      });
+    }
+    
+    const deviceSelect = document.getElementById('productDeviceSelect');
+    if (deviceSelect) {
+      deviceSelect.addEventListener('change', (e) => {
+        window.selectedDeviceFilter = e.target.value;
+        renderBucketFunnels(); // Update the funnel charts
+        loadBucketedProducts(); // Reload products with new device filter
+      });
+    }
+  }, 100);
+  
+  // Products container
+  const productsContainer = document.createElement('div');
+  productsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
+  
+  // Add active products
+  activeProducts.forEach(({ product, metrics }) => {
+    const productItem = createBucketedProductItem(product, metrics);
+    productsContainer.appendChild(productItem);
+  });
+  
+  // Add separator if both exist
+  if (activeProducts.length > 0 && inactiveProducts.length > 0) {
+    const separator = document.createElement('div');
+    separator.className = 'google-ads-separator';
+    separator.innerHTML = `
+      <div class="separator-line"></div>
+      <div class="separator-text">Inactive Products</div>
+      <div class="separator-line"></div>
+    `;
+    productsContainer.appendChild(separator);
+  }
+  
+  // Add inactive products
+  inactiveProducts.forEach(({ product, metrics }) => {
+    const productItem = createBucketedProductItem(product, metrics);
+    productItem.classList.add('inactive-product');
+    productsContainer.appendChild(productItem);
+  });
+  
+  // Add untracked products section if any exist
+  if (untrackedProductsData.length > 0) {
+    // Add separator
+    const untrackedSeparator = document.createElement('div');
+    untrackedSeparator.className = 'google-ads-separator';
+    untrackedSeparator.style.cssText = 'margin: 20px 0;';
+    untrackedSeparator.innerHTML = `
+      <div class="separator-line"></div>
+      <div class="separator-text" style="background: #fff3cd; color: #856404; padding: 5px 15px; border-radius: 12px;">
+        Not Tracked Products (${untrackedProductsData.length})
+      </div>
+      <div class="separator-line"></div>
+    `;
+    productsContainer.appendChild(untrackedSeparator);
+    
+    // Add untracked products
+    untrackedProductsData.forEach(({ title, bucketData }) => {
+      const productItem = createUntrackedProductItem(title, bucketData);
+      productsContainer.appendChild(productItem);
+    });
+  }
+  
+  container.appendChild(productsContainer);
+}
+
+// Create an untracked product item
+function createUntrackedProductItem(title, bucketData) {
+  const productDiv = document.createElement('div');
+  productDiv.classList.add('small-ad-details', 'bucketed-product-item', 'untracked-product');
+  productDiv.style.cssText = `
+    width: 100%;
+    min-height: 80px;
+    background-color: #fffbf0;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    gap: 10px;
+    position: relative;
+  `;
+  
+  // Create the main structure
+  productDiv.innerHTML = `
+    <!-- Position Badge placeholder -->
+    <div class="small-ad-pos-badge" style="background-color: #e0e0e0; width: 60px; height: 60px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+      <div style="font-size: 14px; color: #999; font-weight: 600;">N/A</div>
+      <div style="font-size: 9px; color: #999;">No Rank</div>
+    </div>
+    
+    <!-- Visibility Status placeholder -->
+    <div class="small-ad-vis-status" style="width: 60px; flex-shrink: 0;">
+      <div style="width: 60px; height: 60px; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+        <span style="color: #999; font-size: 12px;">—</span>
+      </div>
+    </div>
+    
+    <!-- ROAS Badge -->
+    <div class="roas-badge" style="width: 60px; height: 60px; background-color: #fff; border: 2px solid #ddd; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; position: relative;">
+      <div class="roas-value" style="font-size: 11px; color: #999;">-</div>
+    </div>
+    
+    <!-- Product Image placeholder -->
+    <img class="small-ad-image" 
+         src="https://via.placeholder.com/60x60/f0f0f0/999999?text=No+Image" 
+         alt="${title}"
+         style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px; flex-shrink: 0;">
+    
+    <!-- Product Title -->
+    <div class="small-ad-title" style="font-size: 14px; line-height: 1.4; width: 200px; min-width: 180px; word-wrap: break-word;">${title}</div>
+    
+    <!-- Metrics Box -->
+    <div class="product-metrics-box" style="width: 350px; display: flex; gap: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; align-items: center;">
+      <div class="metric-values">Loading...</div>
+    </div>
+    
+    <!-- Suggestions -->
+    <div class="suggestions-container" style="width: 150px; display: flex; flex-direction: column; gap: 4px; max-height: 60px; overflow-y: auto;">
+      <div class="suggestions-content">Loading...</div>
+    </div>
+    
+    <!-- Health Score & Confidence -->
+    <div class="health-confidence-container" style="width: 140px; display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+      <div class="health-content">Loading...</div>
+    </div>
+    
+    <!-- Untracked indicator -->
+    <div style="position: absolute; top: 5px; right: 5px; background: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+      Not Tracked
+    </div>
+  `;
+  
+  // Update with bucket data immediately
+  updateUntrackedProductDisplay(productDiv, bucketData);
+  
+  // Store bucket data for detail view
+  productDiv.bucketData = bucketData;
+  productDiv.productData = { title: title, source: window.myCompany || '' };
+  
+  // Add hover effect
+  productDiv.addEventListener('mouseenter', function() {
+    this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    this.style.transform = 'translateY(-2px)';
+  });
+  
+  productDiv.addEventListener('mouseleave', function() {
+    this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+    this.style.transform = 'translateY(0)';
+  });
+  
+  // Add click handler
+  productDiv.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleDetailedProductView(this, this.productData, this.bucketData);
+  });
+  
+  return productDiv;
+}
+
+// Update untracked product display with available data
+function updateUntrackedProductDisplay(productDiv, bucketData) {
+  // Update ROAS
+  const roasBadge = productDiv.querySelector('.roas-badge');
+  const roasValue = parseFloat(bucketData.ROAS) || 0;
+  if (roasValue > 0) {
+    const roasColor = roasValue >= 3 ? '#4CAF50' : roasValue >= 1.5 ? '#FF9800' : '#F44336';
+    roasBadge.style.backgroundColor = roasColor;
+    roasBadge.style.borderColor = roasColor;
+    roasBadge.innerHTML = `
+      <div style="font-size: 10px; color: white; opacity: 0.9; text-transform: uppercase;">ROAS</div>
+      <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">${roasValue.toFixed(1)}x</div>
+    `;
+  }
+  
+  // Update metrics
+  const metricsBox = productDiv.querySelector('.product-metrics-box');
+  updateMetricsDisplay(metricsBox, bucketData);
+  
+  // Update suggestions
+  const suggestionsContainer = productDiv.querySelector('.suggestions-container');
+  suggestionsContainer.innerHTML = '';
+  
+  if (bucketData.SUGGESTIONS_BUCKET) {
+    try {
+      const suggestions = JSON.parse(bucketData.SUGGESTIONS_BUCKET);
+      suggestions.forEach(suggestionObj => {
+        const priorityColor = suggestionObj.priority === 'Critical' ? '#F44336' : 
+                            suggestionObj.priority === 'High' ? '#FF9800' : 
+                            suggestionObj.priority === 'Medium' ? '#FFC107' : '#9E9E9E';
+        const suggDiv = document.createElement('div');
+        suggDiv.style.cssText = `
+          background: ${priorityColor}15; 
+          color: ${priorityColor}; 
+          padding: 3px 10px; 
+          border-radius: 12px; 
+          font-size: 10px; 
+          font-weight: 600; 
+          white-space: nowrap; 
+          overflow: hidden; 
+          text-overflow: ellipsis;
+          border: 1px solid ${priorityColor}30;
+        `;
+        suggDiv.title = suggestionObj.suggestion;
+        suggDiv.textContent = suggestionObj.suggestion;
+        suggestionsContainer.appendChild(suggDiv);
+      });
+    } catch (e) {
+      suggestionsContainer.innerHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+    }
+  } else {
+    suggestionsContainer.innerHTML = '<span style="color: #999; font-size: 10px;">No suggestions</span>';
+  }
+  
+  // Update health score and confidence
+  const healthContainer = productDiv.querySelector('.health-confidence-container');
+  const healthScore = bucketData.HEALTH_SCORE || 0;
+  const confidence = bucketData.Confidence_Level || 'N/A';
+  const healthColor = healthScore >= 7 ? '#4CAF50' : healthScore >= 4 ? '#FF9800' : '#F44336';
+  const confidenceColor = confidence === 'High' ? '#4CAF50' : confidence === 'Medium' ? '#FF9800' : '#F44336';
+  
+  healthContainer.innerHTML = `
+    <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 6px; text-align: center; flex: 1;">
+      <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Health</div>
+      <div style="font-size: 16px; font-weight: 700; color: ${healthColor};">${healthScore || '—'}/10</div>
+    </div>
+    <div style="background: ${confidenceColor}15; padding: 6px 10px; border-radius: 6px; border: 1px solid ${confidenceColor}30; text-align: center; flex: 1;">
+      <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Confidence</div>
+      <div style="font-size: 11px; font-weight: 600; color: ${confidenceColor};">${confidence}</div>
+    </div>
+  `;
 }
 
 // Create metrics settings popup
@@ -10344,10 +10686,10 @@ function createBucketedProductItem(product, metrics) {
       </div>
     </div>
     
-    <!-- ROAS Badge -->
-    <div class="roas-badge" style="width: 60px; height: 60px; background-color: #fff; border: 2px solid #ddd; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-      <div class="roas-loading" style="font-size: 11px; color: #999;">-</div>
-    </div>
+<!-- ROAS Badge -->
+<div class="roas-badge" style="width: 60px; height: 60px; background-color: #fff; border: 2px solid #ddd; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; position: relative;">
+  <div class="roas-loading" style="font-size: 11px; color: #999;">-</div>
+</div>
     
     <!-- Product Image -->
     <img class="small-ad-image" 
@@ -10369,10 +10711,10 @@ function createBucketedProductItem(product, metrics) {
       <div class="suggestions-loading" style="text-align: center; color: #999; font-size: 11px;">Loading...</div>
     </div>
     
-    <!-- Health Score & Confidence (in same row) -->
-    <div class="health-confidence-container" style="width: 140px; display: flex; gap: 8px; align-items: center;">
-      <div class="health-loading" style="color: #999; font-size: 11px; width: 100%; text-align: center;">Loading...</div>
-    </div>
+<!-- Health Score & Confidence (in same row) -->
+<div class="health-confidence-container" style="width: 140px; display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+  <div class="health-loading" style="color: #999; font-size: 11px; width: 100%; text-align: center;">Loading...</div>
+</div>
   `;
   
   // Store product reference on the element
