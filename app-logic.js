@@ -568,10 +568,6 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
   document.getElementById("homePage").style.display = "none";
   document.getElementById("main").style.display = "none";
 
-  document.getElementById("projectButton").classList.add("selected");
-  document.getElementById("homeButton").classList.remove("selected");
-  document.getElementById("mainButton").classList.remove("selected");
-
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
   waitForProjectDataThenPopulate();
 }
@@ -653,10 +649,6 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
   document.getElementById("projectPage").style.display = "block";
   document.getElementById("homePage").style.display = "none";
   document.getElementById("main").style.display = "none";
-
-  document.getElementById("projectButton").classList.add("selected");
-  document.getElementById("homeButton").classList.remove("selected");
-  document.getElementById("mainButton").classList.remove("selected");
 
   console.log("[✔] Data ready. Populating project page with company:", window.myCompany);
   waitForProjectDataThenPopulate();
