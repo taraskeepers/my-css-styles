@@ -656,18 +656,20 @@ async function loadBucketedProducts() {
     
     console.log(`[loadBucketedProducts] Found ${allCompanyProducts.length} tracked products`);
     
-    // Create sets to track products
-    const trackedProductTitles = new Set(allCompanyProducts.map(p => p.title));
-    const untrackedProductsData = [];
+    // Create a map of tracked products by title for quick lookup
+    const trackedProductsMap = new Map();
+    allCompanyProducts.forEach(product => {
+      trackedProductsMap.set(product.title, product);
+    });
     
-    // Apply bucket filter if selected
-    let filteredProducts = allCompanyProducts;
-    let allBucketProductTitles = new Set(); // Track ALL products in the bucket
+    // Lists to store final results
+    let trackedFilteredProducts = [];
+    const untrackedProductsData = [];
     
     if (window.selectedBucketFilter) {
       console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
       
-      // Load bucket data to filter products
+      // Load bucket data
       const accountPrefix = window.currentAccount || 'acc1';
       const days = window.selectedBucketDateRangeDays || 30;
       const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
@@ -695,9 +697,12 @@ async function loadBucketedProducts() {
       if (result && result.data) {
         console.log('[loadBucketedProducts] Found bucket data records:', result.data.length);
         
-        // Process ALL products in the bucket (tracked and untracked)
+        // Process ALL products in the bucket (same logic as renderBucketFunnels)
+        const deviceFilter = window.selectedDeviceFilter || 'all';
+        const bucketProductTitles = new Set();
+        
         result.data.forEach(row => {
-          const deviceFilter = window.selectedDeviceFilter || 'all';
+          // Match the exact filter logic from renderBucketFunnels
           const deviceMatch = deviceFilter === 'all' 
             ? row['Device'] === 'All' 
             : row['Device'] === deviceFilter;
@@ -725,10 +730,17 @@ async function loadBucketedProducts() {
             
             if (matches) {
               const productTitle = row['Product Title'];
-              allBucketProductTitles.add(productTitle);
+              bucketProductTitles.add(productTitle);
               
-              // If this product is not tracked, save its bucket data
-              if (!trackedProductTitles.has(productTitle)) {
+              // Check if this product is tracked or untracked
+              if (trackedProductsMap.has(productTitle)) {
+                // It's a tracked product
+                const product = trackedProductsMap.get(productTitle);
+                if (!trackedFilteredProducts.find(p => p.title === productTitle)) {
+                  trackedFilteredProducts.push(product);
+                }
+              } else {
+                // It's an untracked product
                 console.log('[loadBucketedProducts] Found untracked product:', productTitle);
                 untrackedProductsData.push({
                   title: productTitle,
@@ -739,22 +751,22 @@ async function loadBucketedProducts() {
           }
         });
         
-        // Filter tracked products based on bucket
-        filteredProducts = allCompanyProducts.filter(product => 
-          allBucketProductTitles.has(product.title)
-        );
-        
-        console.log(`[loadBucketedProducts] Total products in bucket: ${allBucketProductTitles.size}`);
-        console.log(`[loadBucketedProducts] Tracked products: ${filteredProducts.length}`);
+        console.log(`[loadBucketedProducts] Total products in bucket: ${bucketProductTitles.size}`);
+        console.log(`[loadBucketedProducts] Tracked products: ${trackedFilteredProducts.length}`);
         console.log(`[loadBucketedProducts] Untracked products: ${untrackedProductsData.length}`);
-        console.log('[loadBucketedProducts] Untracked product titles:', untrackedProductsData.map(p => p.title));
+        if (untrackedProductsData.length > 0) {
+          console.log('[loadBucketedProducts] Untracked product titles:', untrackedProductsData.map(p => p.title));
+        }
       } else {
         console.log('[loadBucketedProducts] No bucket data found');
       }
+    } else {
+      // No filter - show all tracked products
+      trackedFilteredProducts = allCompanyProducts;
     }
     
     // Calculate metrics and sort tracked products
-    const productsWithMetrics = filteredProducts.map(product => ({
+    const productsWithMetrics = trackedFilteredProducts.map(product => ({
       product: product,
       metrics: calculateGoogleAdsProductMetrics(product)
     }));
