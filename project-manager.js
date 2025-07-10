@@ -284,113 +284,125 @@ if (typeof window.openSettingsOverlay === 'function') {
     projectListContainer.appendChild(subMenu);
     console.log("[renderProjects]   ➕ Inserted project-menu-item & sub-menu into #project-list_container.");
 
-    // -- click event on the project "menuItem"
-    menuItem.addEventListener("click", (e) => {
-      // CHANGE: Reset _ignoreProjectMenuClick at the beginning of handling
-      const wasIgnoring = window._ignoreProjectMenuClick;
-      window._ignoreProjectMenuClick = false;
-      
-      // If the previous call flagged to ignore, exit without doing anything else
-      if (wasIgnoring) {
-        console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
-        return;
-      }
-
-      // If the user literally clicked on .search-card inside here, do nothing
-      if (e.target.closest(".search-card")) {
-        console.log("[renderProjects] 🛑 project-menu-item click ignored (inner .search-card was clicked)");
-        return; 
-      }
-
-      console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
-      document.querySelectorAll(".search-card.selected").forEach(card => {
-        card.classList.remove("selected");
-      });
-
-      // 1) Mark which project_number is active
-      if (!window.filterState) window.filterState = {};
-      window.filterState.activeProjectNumber = project.project_number;
-      console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
-
-      // Reset modeSelector to COMPANIES when switching projects
-const modeSelector = document.getElementById('modeSelector');
-if (modeSelector && modeSelector.value !== 'COMPANIES') {
-  console.log("[renderProjects] Resetting modeSelector from", modeSelector.value, "to COMPANIES");
-  modeSelector.value = 'COMPANIES';
-  localStorage.setItem('selectedMode', 'COMPANIES');
-}
-
-      // 2) Highlight the current item
-      document.querySelectorAll(".project-menu-item.selected").forEach(item => {
-        item.classList.remove("selected");
-      });
-      menuItem.classList.add("selected");
-
-      // 3) Expand sub-menu for this project; collapse for all others
-      document.querySelectorAll(".sub-menu").forEach(other => {
-        if (other !== subMenu) {
-          other.classList.remove("expanded");
-        }
-      });
-      subMenu.classList.add("expanded");
-
-      // 4) Switch UI to the Project Page
-      const homePageEl = document.getElementById("homePage");
-      const mainPageEl = document.getElementById("main");
-      const projectPageEl = document.getElementById("projectPage");
-
-      setTimeout(() => {
-        homePageEl.style.display = "none";
-        mainPageEl.style.display = "none";
-        projectPageEl.style.display = "block";
-
-      document.getElementById("homeButton").classList.remove("selected");
-      document.getElementById("mainButton").classList.remove("selected");
-      document.getElementById("projectButton").classList.add("selected");
-
-// 5) Always reload data when switching projects to ensure correct data
-const newPrefix = `acc1_pr${project.project_number}_`;
-
-// Check if we're actually switching to a different project
-const currentProjectNumber = window.filterState.activeProjectNumber;
-const isActuallyDifferentProject = currentProjectNumber !== project.project_number;
-
-if (window.dataPrefix !== newPrefix || isActuallyDifferentProject) {
-  console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} (project ${currentProjectNumber}) => ${newPrefix} (project ${project.project_number})`);
-  switchAccountAndReload(newPrefix, project.project_number)
-    .then(() => {
-      console.log("[POPULATEPROJECTPAGE] Calling populateProjectPage after data reload at:", new Date().toISOString());
-      populateProjectPage();
-    })
-    .catch(err => {
-      console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
-    });
-} else {
-  // Only reuse cached data if we're truly on the same project
-  console.log("[renderProjects] [✅ Same project] Verifying cached data for project:", project.project_number);
+// -- click event on the project "menuItem"
+menuItem.addEventListener("click", (e) => {
+  // CHANGE: Reset _ignoreProjectMenuClick at the beginning of handling
+  const wasIgnoring = window._ignoreProjectMenuClick;
+  window._ignoreProjectMenuClick = false;
   
-  // Double-check that our cached data is actually for this project
-  const cachedProjectNumbers = new Set(window.companyStatsData?.map(r => r.project_number) || []);
-  const hasCorrectData = cachedProjectNumbers.size === 1 && cachedProjectNumbers.has(project.project_number);
-  
-  if (hasCorrectData) {
-    console.log("[renderProjects] [✅ Cache valid] Reusing cached data for project:", project.project_number);
-    populateProjectPage();
-  } else {
-    console.warn("[renderProjects] [⚠️ Cache invalid] Cached data doesn't match project:", project.project_number);
-    console.log("[renderProjects] [🔄 Forcing reload] Loading correct data...");
-    switchAccountAndReload(newPrefix, project.project_number)
-      .then(() => {
-        console.log("[POPULATEPROJECTPAGE] Calling populateProjectPage after forced reload at:", new Date().toISOString());
-        populateProjectPage();
-      })
-      .catch(err => {
-        console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
-      });
+  // If the previous call flagged to ignore, exit without doing anything else
+  if (wasIgnoring) {
+    console.log("[renderProjects] ⚠️ Ignoring project-menu-item click (search-card in progress)");
+    return;
   }
-}
-    }, 10);
-    }); // end menuItem.addEventListener
+
+  // If the user literally clicked on .search-card inside here, do nothing
+  if (e.target.closest(".search-card")) {
+    console.log("[renderProjects] 🛑 project-menu-item click ignored (inner .search-card was clicked)");
+    return; 
+  }
+
+  console.log(`[renderProjects] 🖱️ Project clicked => #${project.project_number}`);
+  document.querySelectorAll(".search-card.selected").forEach(card => {
+    card.classList.remove("selected");
+  });
+
+  // 1) Mark which project_number is active
+  if (!window.filterState) window.filterState = {};
+  window.filterState.activeProjectNumber = project.project_number;
+  console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
+
+  // Reset modeSelector to COMPANIES when switching projects
+  const companiesMode = document.querySelector('#modeSelector .mode-option[data-mode="companies"]');
+  const productsMode = document.querySelector('#modeSelector .mode-option[data-mode="products"]');
+  if (companiesMode && productsMode) {
+    productsMode.classList.remove('active');
+    companiesMode.classList.add('active');
+    window.currentViewMode = 'companies';
+    console.log("[renderProjects] Reset mode to COMPANIES");
+  }
+
+  // 2) Highlight the current item
+  document.querySelectorAll(".project-menu-item.selected").forEach(item => {
+    item.classList.remove("selected");
+  });
+  menuItem.classList.add("selected");
+
+  // 3) Expand sub-menu for this project; collapse for all others
+  document.querySelectorAll(".sub-menu").forEach(other => {
+    if (other !== subMenu) {
+      other.classList.remove("expanded");
+    }
+  });
+  subMenu.classList.add("expanded");
+
+  // 4) Switch UI to the Project Page
+  setTimeout(() => {
+    // Hide all pages
+    document.getElementById("homePage").style.display = "none";
+    document.getElementById("main").style.display = "none";
+    document.getElementById("productMapPage").style.display = "none";
+    document.getElementById("productExplorerPage").style.display = "none";
+    document.getElementById("googleAdsPage").style.display = "none";
+    
+    // Show project page
+    document.getElementById("projectPage").style.display = "block";
+
+    // Update navigation states - no longer using old buttons
+    // Reset the initialization flags to force reload
+    window._projectPageInitialized = false;
+    window._projectPageInitializing = false;
+
+    // Hide filters
+    hideFiltersOnProjectAndHome();
+    
+    // Disable company selector
+    document.getElementById("companySelector").classList.add("disabled");
+    document.getElementById("searchTerm").style.display = "none";
+
+    // 5) Always reload data when switching projects to ensure correct data
+    const newPrefix = `acc1_pr${project.project_number}_`;
+
+    // Check if we're actually switching to a different project
+    const currentProjectNumber = window.filterState.activeProjectNumber;
+    const isActuallyDifferentProject = currentProjectNumber !== project.project_number;
+
+    if (window.dataPrefix !== newPrefix || isActuallyDifferentProject) {
+      console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} (project ${currentProjectNumber}) => ${newPrefix} (project ${project.project_number})`);
+      switchAccountAndReload(newPrefix, project.project_number)
+        .then(() => {
+          console.log("[POPULATEPROJECTPAGE] Calling populateProjectPage after data reload at:", new Date().toISOString());
+          populateProjectPage();
+        })
+        .catch(err => {
+          console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
+        });
+    } else {
+      // Only reuse cached data if we're truly on the same project
+      console.log("[renderProjects] [✅ Same project] Verifying cached data for project:", project.project_number);
+      
+      // Double-check that our cached data is actually for this project
+      const cachedProjectNumbers = new Set(window.companyStatsData?.map(r => r.project_number) || []);
+      const hasCorrectData = cachedProjectNumbers.size === 1 && cachedProjectNumbers.has(project.project_number);
+      
+      if (hasCorrectData) {
+        console.log("[renderProjects] [✅ Cache valid] Reusing cached data for project:", project.project_number);
+        populateProjectPage();
+      } else {
+        console.warn("[renderProjects] [⚠️ Cache invalid] Cached data doesn't match project:", project.project_number);
+        console.log("[renderProjects] [🔄 Forcing reload] Loading correct data...");
+        switchAccountAndReload(newPrefix, project.project_number)
+          .then(() => {
+            console.log("[POPULATEPROJECTPAGE] Calling populateProjectPage after forced reload at:", new Date().toISOString());
+            populateProjectPage();
+          })
+          .catch(err => {
+            console.error("[renderProjects] ❌ switchAccountAndReload error:", err);
+          });
+      }
+    }
+  }, 10);
+}); // end menuItem.addEventListener
   });
 
   // 8) Add a toggle button to collapse the entire left column
