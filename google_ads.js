@@ -9731,11 +9731,11 @@ async function loadBucketedProducts() {
     if (window.selectedBucketFilter) {
       console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
       
-      // Load bucket data
-      const accountPrefix = window.currentAccount || 'acc1';
-      const days = window.selectedBucketDateRangeDays || 30;
-      const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
-      const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
+// Load bucket data
+const tablePrefix = getProjectTablePrefix();
+const days = window.selectedBucketDateRangeDays || 30;
+const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
       
       console.log('[loadBucketedProducts] Loading from table:', tableName);
       
