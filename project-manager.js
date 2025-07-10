@@ -527,11 +527,29 @@ function createSearchCard(search, parentProject) {
       document.getElementById("locationText").textContent = formatLocation(loc);
       console.log("[DEBUG] locationText updated to:", document.getElementById("locationText").textContent);
       
-      // 7) Trigger main page logic
-      setTimeout(() => {
-        console.log("[DEBUG] About to click mainButton, filterState.location is:", window.filterState.location);
-        document.getElementById("mainButton").click();
-      }, 0);
+// 7) Navigate to main page and trigger data refresh
+setTimeout(() => {
+  console.log("[DEBUG] Navigating to main page, filterState.location is:", window.filterState.location);
+  
+  // Show main page
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("main").style.display = "block";
+  document.getElementById("projectPage").style.display = "none";
+  document.getElementById("productMapPage").style.display = "none";
+  document.getElementById("productExplorerPage").style.display = "none";
+  document.getElementById("googleAdsPage").style.display = "none";
+  
+  // Show filters
+  showFiltersOnMainPage();
+  document.getElementById("tabsContainer").classList.add("open");
+  document.getElementById("tabsWrapper").style.display = "block";
+  
+  // Trigger data refresh
+  if (typeof renderData === "function") {
+    renderData();
+  }
+  updateCompanyDropdown(window.filteredData);
+}, 0);
   
       // ✅ Do NOT call renderData() or populateHomePage() again — mainButton does it
     });
@@ -602,24 +620,23 @@ function createSearchCard(search, parentProject) {
         console.warn("renderData() not yet defined — skipping this trace");
       }      
 
-        setTimeout(() => {
-        populateHomePage(true);
-        
-        // Show Home Page explicitly
-        document.getElementById("homePage").style.display = "block";
-        document.getElementById("main").style.display = "none";
-        document.getElementById("projectPage").style.display = "none";
-        document.getElementById("productMapPage").style.display = "none";
-        hideFiltersOnProjectAndHome();
-        
-        // Highlight correct nav button
-        document.getElementById("homeButton").classList.add("selected");
-        document.getElementById("mainButton").classList.remove("selected");
-        document.getElementById("projectButton").classList.remove("selected");
-        
-        // Set active project number globally
-        const projNum = parseInt(card.getAttribute("project-number"), 10);
-        window.filterState.activeProjectNumber = projNum;
+setTimeout(() => {
+  populateHomePage(true);
+  
+  // Show Home Page explicitly
+  document.getElementById("homePage").style.display = "block";
+  document.getElementById("main").style.display = "none";
+  document.getElementById("projectPage").style.display = "none";
+  document.getElementById("productMapPage").style.display = "none";
+  document.getElementById("productExplorerPage").style.display = "none";
+  document.getElementById("googleAdsPage").style.display = "none";
+  hideFiltersOnProjectAndHome();
+  
+  // No need to update old button states anymore
+  
+  // Set active project number globally
+  const projNum = parseInt(card.getAttribute("project-number"), 10);
+  window.filterState.activeProjectNumber = projNum;
         
         // Only set the flag right before we need it (immediately before selection)
         window._ignoreProjectMenuClick = true;
