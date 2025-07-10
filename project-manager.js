@@ -681,7 +681,6 @@ setTimeout(() => {
           hideFiltersOnProjectAndHome();
           document.getElementById("homeButton").classList.add("selected");
           document.getElementById("mainButton").classList.remove("selected");
-          document.getElementById("projectButton").classList.remove("selected");
           
           // Set active project number globally
           const projNum = parseInt(card.getAttribute("project-number"), 10);
