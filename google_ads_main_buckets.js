@@ -658,11 +658,12 @@ async function loadBucketedProducts() {
     
     // Create sets to track products
     const trackedProductTitles = new Set(allCompanyProducts.map(p => p.title));
-    const bucketProductTitles = new Set();
     const untrackedProductsData = [];
     
     // Apply bucket filter if selected
     let filteredProducts = allCompanyProducts;
+    let allBucketProductTitles = new Set(); // Track ALL products in the bucket
+    
     if (window.selectedBucketFilter) {
       console.log('[loadBucketedProducts] Applying bucket filter:', window.selectedBucketFilter);
       
@@ -690,9 +691,7 @@ async function loadBucketedProducts() {
       db.close();
       
       if (result && result.data) {
-        // Create a set of product titles that match the filter
-        const matchingProductTitles = new Set();
-        
+        // Process ALL products in the bucket (tracked and untracked)
         result.data.forEach(row => {
           const deviceFilter = window.selectedDeviceFilter || 'all';
           const deviceMatch = deviceFilter === 'all' 
@@ -722,8 +721,7 @@ async function loadBucketedProducts() {
             
             if (matches) {
               const productTitle = row['Product Title'];
-              matchingProductTitles.add(productTitle);
-              bucketProductTitles.add(productTitle);
+              allBucketProductTitles.add(productTitle);
               
               // If this product is not tracked, save its bucket data
               if (!trackedProductTitles.has(productTitle)) {
@@ -736,13 +734,14 @@ async function loadBucketedProducts() {
           }
         });
         
-        // Filter tracked products based on matching titles
+        // Filter tracked products based on bucket
         filteredProducts = allCompanyProducts.filter(product => 
-          matchingProductTitles.has(product.title)
+          allBucketProductTitles.has(product.title)
         );
         
-        console.log(`[loadBucketedProducts] Filtered to ${filteredProducts.length} tracked products`);
-        console.log(`[loadBucketedProducts] Found ${untrackedProductsData.length} untracked products`);
+        console.log(`[loadBucketedProducts] Total products in bucket: ${allBucketProductTitles.size}`);
+        console.log(`[loadBucketedProducts] Tracked products: ${filteredProducts.length}`);
+        console.log(`[loadBucketedProducts] Untracked products: ${untrackedProductsData.length}`);
       }
     }
     
