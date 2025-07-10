@@ -1069,86 +1069,85 @@ function renderProductRankingSubRows(searchTerm) {
       html += `
         <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
           <td colspan="9" style="padding: 0;">
-            <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
-            
-<!-- Active Products (Main metric) -->
-<div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
-  <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
-    ${metric.activeProducts}
+<div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
+  <!-- Device (moved to first position) -->
+  <div style="flex: 0 0 40px; font-size: 24px; text-align: center;">
+    ${deviceIcon}
   </div>
-  <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
-    PRODUCTS
+  
+  <!-- Active Products (Main metric) -->
+  <div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+    <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+      ${metric.activeProducts}
+    </div>
+    <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+      PRODUCTS
+    </div>
+    ${metric.productsTrend !== 0 ? `
+      <div style="font-size: 11px; color: ${metric.productsTrend > 0 ? '#4CAF50' : '#F44336'}; margin-top: 2px;">
+        ${metric.productsTrend > 0 ? '↑' : '↓'} ${Math.abs(metric.productsTrend)}
+      </div>
+    ` : ''}
   </div>
-  ${metric.productsTrend !== 0 ? `
-    <div style="font-size: 11px; color: ${metric.productsTrend > 0 ? '#4CAF50' : '#F44336'}; margin-top: 2px;">
-      ${metric.productsTrend > 0 ? '↑' : '↓'} ${Math.abs(metric.productsTrend)}
+  
+  <!-- % of All Products with pie chart -->
+  <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
+    <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
+    <div>
+      <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+      <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+        ${metric.percentOfAllProducts.toFixed(1)}%
+      </span>
+      <div style="font-size: 11px; color: #999;">
+        (${metric.totalProducts} total)
+      </div>
+    </div>
+  </div>
+  
+  <!-- Location -->
+  <div style="flex: 0 0 140px;">
+    <span style="font-size: 13px; font-weight: 600; color: #333;">${city}</span>
+  </div>
+  
+  <!-- Avg Rank (square box) -->
+  <div style="flex: 0 0 auto; text-align: center;">
+    <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
+    <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 50px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0; position: relative;">
+      <span style="font-size: 18px; font-weight: 700; color: #333; line-height: 1;">
+        ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+      </span>
+      ${rankArrow ? `<span style="font-size: 11px; color: ${rankColor}; line-height: 1; margin-top: 2px;">
+        ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+      </span>` : ''}
+    </div>
+  </div>
+  
+  <!-- Market Share (progress bar) -->
+  <div style="flex: 1;">
+    <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Market Share</div>
+    <div style="position: relative; background: #e0e0e0; height: 24px; border-radius: 12px; overflow: hidden;">
+      <div style="position: absolute; left: 0; top: 0; height: 100%; background: #1976d2; width: ${Math.min(metric.marketShare, 100)}%; transition: width 0.3s ease;"></div>
+      <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; padding: 0 12px; justify-content: space-between;">
+        <span style="font-size: 14px; font-weight: 700; color: ${metric.marketShare > 50 ? 'white' : '#333'}; z-index: 1;">
+          ${metric.marketShare.toFixed(1)}%
+        </span>
+        ${shareArrow ? `<span style="font-size: 12px; color: ${metric.marketShare > 50 ? 'white' : shareColor}; z-index: 1;">
+          ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
+        </span>` : ''}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Inactive count -->
+  ${metric.inactiveProducts > 0 ? `
+    <div style="flex: 0 0 auto; text-align: center; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 8px;">
+      <span style="font-size: 11px; color: #999;">Inactive:</span>
+      <span style="font-size: 13px; font-weight: 600; color: #757575; margin-left: 4px;">
+        ${metric.inactiveProducts}
+      </span>
     </div>
   ` : ''}
 </div>
-              
-              <!-- % of All Products with pie chart -->
-              <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
-                <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
-                <div>
-                  <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
-                  <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
-                    ${metric.percentOfAllProducts.toFixed(1)}%
-                  </span>
-                  <div style="font-size: 11px; color: #999;">
-                    (${metric.totalProducts} total)
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Location -->
-              <div style="flex: 0 0 140px;">
-                <span style="font-size: 13px; font-weight: 600; color: #333;">${city}</span>
-              </div>
-              
-              <!-- Device -->
-              <div style="flex: 0 0 30px; font-size: 20px; text-align: center;">
-                ${deviceIcon}
-              </div>
-              
-<!-- Avg Rank (square box) -->
-<div style="flex: 0 0 auto; text-align: center;">
-  <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
-  <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 50px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0; position: relative;">
-    <span style="font-size: 18px; font-weight: 700; color: #333; line-height: 1;">
-      ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
-    </span>
-    ${rankArrow ? `<span style="font-size: 11px; color: ${rankColor}; line-height: 1; margin-top: 2px;">
-      ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
-    </span>` : ''}
-  </div>
-</div>
-              
-              <!-- Market Share (progress bar) -->
-              <div style="flex: 1;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Market Share</div>
-                <div style="position: relative; background: #e0e0e0; height: 24px; border-radius: 12px; overflow: hidden;">
-                  <div style="position: absolute; left: 0; top: 0; height: 100%; background: #1976d2; width: ${Math.min(metric.marketShare, 100)}%; transition: width 0.3s ease;"></div>
-                  <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; padding: 0 12px; justify-content: space-between;">
-                    <span style="font-size: 14px; font-weight: 700; color: ${metric.marketShare > 50 ? 'white' : '#333'}; z-index: 1;">
-                      ${metric.marketShare.toFixed(1)}%
-                    </span>
-                    ${shareArrow ? `<span style="font-size: 12px; color: ${metric.marketShare > 50 ? 'white' : shareColor}; z-index: 1;">
-                      ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
-                    </span>` : ''}
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Inactive count -->
-              ${metric.inactiveProducts > 0 ? `
-                <div style="flex: 0 0 auto; text-align: center; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 8px;">
-                  <span style="font-size: 11px; color: #999;">Inactive:</span>
-                  <span style="font-size: 13px; font-weight: 600; color: #757575; margin-left: 4px;">
-                    ${metric.inactiveProducts}
-                  </span>
-                </div>
-              ` : ''}
-            </div>
           </td>
         </tr>
       `;
