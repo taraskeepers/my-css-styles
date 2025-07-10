@@ -1415,7 +1415,131 @@ function renderCampaignPieCharts(campaignData, popupElement) {
   });
 }
 
+function createCompDetails(companyData, index) {
+  const container = document.createElement('div');
+  container.className = 'comp-details';
+  
+  // Helper function for rank coloring
+  const colorRank = (rank) => {
+    const r = parseFloat(rank);
+    if (isNaN(r) || r <= 0) return "";
+    if (r === 1) return "range-green";
+    if (r <= 3) return "range-yellow";
+    if (r <= 5) return "range-orange";
+    return "range-red";
+  };
+
+  // Rank badge (top-left)
+  const rankBadge = document.createElement('div');
+  rankBadge.className = `company-rank ${colorRank(companyData.rank)}`;
+  rankBadge.textContent = `#${companyData.rank || '-'}`;
+  container.appendChild(rankBadge);
+
+  // Market share badge (top-right)
+  const marketShareBadge = document.createElement('div');
+  marketShareBadge.className = 'market-share-badge';
+  const marketShare = (companyData.top40 || 0).toFixed(1);
+  const trend = companyData.top40Trend || 0;
+  const trendArrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '±';
+  const trendColor = trend > 0 ? '#4CAF50' : trend < 0 ? '#F44336' : '#999';
+  marketShareBadge.innerHTML = `
+    <span style="color: ${trendColor}">${marketShare}%</span>
+    <span style="color: ${trendColor}; font-size: 10px;">${trendArrow}${Math.abs(trend).toFixed(1)}%</span>
+  `;
+  container.appendChild(marketShareBadge);
+
+  // Company logo
+  const logoDiv = document.createElement('div');
+  logoDiv.className = 'company-logo';
+  const logoImg = document.createElement('img');
+  // Use placeholder for now - replace with actual logo URLs later
+  logoImg.src = 'https://via.placeholder.com/80x80?text=Logo';
+  logoImg.onerror = function() {
+    this.src = 'https://via.placeholder.com/80x80?text=No+Logo';
+  };
+  logoDiv.appendChild(logoImg);
+  container.appendChild(logoDiv);
+
+  // Company name
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'company-name';
+  nameDiv.textContent = companyData.company || 'Unknown';
+  container.appendChild(nameDiv);
+
+  // Products stats
+  const productsStats = document.createElement('div');
+  productsStats.className = 'products-stats';
+  const totalProducts = companyData.numProducts || 0;
+  const onSalePercent = companyData.numOnSale || 0;
+  productsStats.innerHTML = `
+    <div><strong>${totalProducts}</strong> products</div>
+    <div><strong>${onSalePercent}%</strong> on sale</div>
+  `;
+  container.appendChild(productsStats);
+
+  // Trend stats (Improved/NEW/Declined)
+  const trendStats = document.createElement('div');
+  trendStats.className = 'trend-stats';
+  trendStats.innerHTML = `
+    <div class="trend-stat">
+      <div class="count" style="color: #4CAF50">${companyData.improvedCount || 0}</div>
+      <div>Improved</div>
+    </div>
+    <div class="trend-stat">
+      <div class="count" style="color: #2196F3">${companyData.newCount || 0}</div>
+      <div>NEW</div>
+    </div>
+    <div class="trend-stat">
+      <div class="count" style="color: #F44336">${companyData.declinedCount || 0}</div>
+      <div>Declined</div>
+    </div>
+  `;
+  container.appendChild(trendStats);
+
+  // Rank history (mini version)
+  if (companyData.historical_data && companyData.historical_data.length > 0) {
+    const rankHistory = document.createElement('div');
+    rankHistory.className = 'rank-history-mini';
+    
+    // Get last 7 days of data
+    const last7Days = companyData.historical_data.slice(-7);
+    
+    last7Days.forEach((day, i) => {
+      // Show only 4 boxes per row
+      if (i < 8) {
+        const rankBox = document.createElement('div');
+        rankBox.className = `rank-box-mini ${colorRank(day.rank)}`;
+        rankBox.textContent = day.rank || '-';
+        rankHistory.appendChild(rankBox);
+      }
+    });
+    
+    container.appendChild(rankHistory);
+  }
+
+  // Store data for potential future use
+  container.companyData = companyData;
+
+  return container;
+}
+
 async function renderProductMapTable() {
+// Check current mode
+const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+document.body.classList.remove('mode-products', 'mode-companies');
+document.body.classList.add(`mode-${currentMode}`);
+
+// Update header visibility
+const productsHeader = table.querySelector('.products-header');
+const companiesHeader = table.querySelector('.companies-header');
+if (currentMode === 'companies') {
+  if (productsHeader) productsHeader.style.display = 'none';
+  if (companiesHeader) companiesHeader.style.display = '';
+} else {
+  if (productsHeader) productsHeader.style.display = '';
+  if (companiesHeader) companiesHeader.style.display = 'none';
+}
+  
    const useLatestRecordAsEndDate = false;
       let hoverTimeout = null;
     let currentPopup = null;
@@ -2134,6 +2258,29 @@ products = products.filter(p => p._isMyCompany);
         card._chartClickHandler = clickHandler;
         card.addEventListener('click', clickHandler);
       });
+    }
+  });
+});
+
+// Listen for mode changes
+document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
+  option.addEventListener('click', function() {
+    const selectedMode = this.getAttribute('data-mode');
+    
+    // Update body class
+    document.body.classList.remove('mode-products', 'mode-companies');
+    document.body.classList.add(`mode-${selectedMode}`);
+    
+    // Update table headers
+    const productsHeaders = document.querySelectorAll('.products-header');
+    const companiesHeaders = document.querySelectorAll('.companies-header');
+    
+    if (selectedMode === 'companies') {
+      productsHeaders.forEach(h => h.style.display = 'none');
+      companiesHeaders.forEach(h => h.style.display = '');
+    } else {
+      productsHeaders.forEach(h => h.style.display = '');
+      companiesHeaders.forEach(h => h.style.display = 'none');
     }
   });
 });
@@ -3859,6 +4006,150 @@ input:checked + .metrics-slider:before {
 .funnel-comparison.comparison-neutral {
   color: #6c757d;
 }
+/* Company details styling for product map */
+.comp-details {
+  width: 150px;
+  height: 360px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 5px;
+  display: inline-block;
+  vertical-align: top;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.comp-details .company-rank {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 10;
+  background: rgba(255,255,255,0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.comp-details .market-share-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 10;
+  background: rgba(255,255,255,0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.comp-details .company-logo {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-top: 20px;
+}
+
+.comp-details .company-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.comp-details .company-name {
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 5px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comp-details .products-stats {
+  padding: 0 10px;
+  font-size: 11px;
+  text-align: center;
+  background: #f8f9fa;
+  margin: 5px 0;
+  padding: 5px;
+}
+
+.comp-details .trend-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 5px;
+  font-size: 10px;
+  background: #f0f0f0;
+}
+
+.comp-details .trend-stat {
+  text-align: center;
+}
+
+.comp-details .trend-stat .count {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.comp-details .rank-history-mini {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 5px;
+  gap: 2px;
+}
+
+.comp-details .rank-box-mini {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 3px;
+  color: white;
+}
+
+/* Color classes for rank boxes */
+.range-green { background-color: #4CAF50; }
+.range-yellow { background-color: #FFC107; }
+.range-orange { background-color: #FF9800; }
+.range-red { background-color: #F44336; }
+
+/* Company cell styling */
+.company-cell-container {
+  width: 100%;
+  height: 100%;
+  display: none; /* Hidden by default */
+}
+
+.company-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 8px;
+  overflow-x: auto;
+  height: 100%;
+  align-items: center;
+}
+
+/* Toggle visibility based on mode */
+body.mode-companies .product-cell-container { display: none !important; }
+body.mode-companies .company-cell-container { display: block !important; }
+body.mode-products .product-cell-container { display: block !important; }
+body.mode-products .company-cell-container { display: none !important; }
       `;
       document.head.appendChild(style);
     }
@@ -5179,17 +5470,18 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
     const table = document.createElement("table");
     table.classList.add("product-map-table");
   
-    const thead = document.createElement("thead");
-    thead.innerHTML = `
-      <tr>
-        <th>Search Term</th>
-        <th>Location</th>
-        <th>Device</th>
-        <th>Top 40 Segmentation</th>
-        <th>Products</th>
-      </tr>
-    `;
-    table.appendChild(thead);
+const thead = document.createElement("thead");
+thead.innerHTML = `
+  <tr>
+    <th>Search Term</th>
+    <th>Location</th>
+    <th>Device</th>
+    <th>Top 40 Segmentation</th>
+    <th class="products-header">Products</th>
+    <th class="companies-header" style="display:none;">Companies</th>
+  </tr>
+`;
+table.appendChild(thead);
   
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -6907,6 +7199,50 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
           }
           
           tr.appendChild(tdProducts);
+          // Create Companies cell (similar structure to Products)
+const tdCompanies = document.createElement("td");
+
+// Create company container
+const companyCellContainer = document.createElement("div");
+companyCellContainer.classList.add("company-cell-container");
+
+const companyCellDiv = document.createElement("div");
+companyCellDiv.classList.add("company-cell");
+companyCellContainer.appendChild(companyCellDiv);
+tdCompanies.appendChild(companyCellContainer);
+
+// Add companies column to the row (it will be hidden/shown based on mode)
+tr.appendChild(tdCompanies);
+
+// Populate companies for this search term/location/device combination
+if (!window.company_serp_stats) {
+  // ===== PASTE STEP 7 CODE HERE =====
+  companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Loading company data...</div>';
+  
+  // Load company data asynchronously
+  loadCompanyData().then(() => {
+    // Re-render the table or just update this cell
+    renderProductMapTable();
+  });
+} else {
+  // Filter company data for this specific combination
+  const companyData = window.company_serp_stats.filter(c => 
+    c.searchTerm === term &&
+    c.location === loc &&
+    c.device === rowData.device
+  );
+
+  // Sort by rank
+  companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+
+  // Take top companies (e.g., top 10)
+  const topCompanies = companyData.slice(0, 10);
+
+  topCompanies.forEach((company, index) => {
+    const compDetails = createCompDetails(company, index);
+    companyCellDiv.appendChild(compDetails);
+  });
+}
           tbody.appendChild(tr);
         });
       });
