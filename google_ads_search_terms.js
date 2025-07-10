@@ -786,173 +786,254 @@ async function calculateProductRankingMetrics(searchTerm) {
   // Get total products count
   const totalProducts = await getTotalProductsCount();
   
-  // Use the same date range as product map (7 days)
-  const days = 7; // Match product map calculation
-  const endDate = moment().subtract(1, 'days'); // Yesterday as end date
-  const startDate = endDate.clone().subtract(days - 1, 'days');
-  
-  // For trend comparison, use previous period
-  const prevEndDate = startDate.clone().subtract(1, 'days');
-  const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
-  
   // Get company to filter
   const companyToFilter = window.myCompany || '';
   
-  // Group products by location and device
-  const groupedData = {};
-  
-  window.allRows.forEach(product => {
-    if (product.q && product.q.toLowerCase().trim() === normalizedTerm &&
-        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase()) {
-      
-      const key = `${product.location_requested}|${product.device}`;
-      if (!groupedData[key]) {
-        groupedData[key] = {
-          location: product.location_requested,
-          device: product.device,
-          products: []
-        };
-      }
-      groupedData[key].products.push(product);
-    }
-  });
-  
-  // Calculate metrics for each location/device combination
+  // First, try to get pre-calculated data from projectTableData
   const results = [];
   
-  for (const group of Object.values(groupedData)) {
-    let activeCount = 0;
-    let inactiveCount = 0;
-    let prevActiveCount = 0;
+  // Check if projectTableData exists and has data
+  if (window.projectTableData && Array.isArray(window.projectTableData)) {
+    // Group by location/device from projectTableData
+    const projectDataMap = {};
     
-    // Calculate metrics for the company's performance
-    let companyTotalRank = 0;
-    let companyRankCount = 0;
-    let companyTotalShare = 0;
-    let companyShareCount = 0;
-    let prevCompanyTotalRank = 0;
-    let prevCompanyRankCount = 0;
-    let prevCompanyTotalShare = 0;
-    let prevCompanyShareCount = 0;
-
-    // Process each product
-    group.products.forEach(product => {
-      // Check if product is active or inactive
-      if (product.product_status === 'inactive') {
-        inactiveCount++;
-      } else {
-        activeCount++;
+    window.projectTableData.forEach(item => {
+      if (item.searchTerm && item.searchTerm.toLowerCase().trim() === normalizedTerm) {
+        const key = `${item.location}|${item.device}`;
+        projectDataMap[key] = item;
       }
+    });
+    
+    // For each location/device combination found in projectTableData
+    for (const [key, projectData] of Object.entries(projectDataMap)) {
+      const [location, device] = key.split('|');
       
-      // Track previous period active products
-      if (product.product_status !== 'inactive') {
-        // For previous period, check if product had data
+      // Count active/inactive products from allRows
+      let activeCount = 0;
+      let inactiveCount = 0;
+      let prevActiveCount = 0;
+      
+      // Get products for this location/device
+      const products = window.allRows.filter(product => 
+        product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase() &&
+        product.location_requested === location &&
+        product.device === device
+      );
+      
+      // Count active/inactive
+      products.forEach(product => {
+        if (product.product_status === 'inactive') {
+          inactiveCount++;
+        } else {
+          activeCount++;
+        }
+        
+        // Track previous period active products
+        if (product.product_status !== 'inactive') {
+          // For previous period, check if product had data
+          if (product.historical_data && Array.isArray(product.historical_data)) {
+            const days = 7;
+            const endDate = moment().subtract(1, 'days');
+            const startDate = endDate.clone().subtract(days - 1, 'days');
+            const prevEndDate = startDate.clone().subtract(1, 'days');
+            const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
+            
+            const hasPrevData = product.historical_data.some(item => {
+              if (!item.date || !item.date.value) return false;
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            });
+            if (hasPrevData) {
+              prevActiveCount++;
+            }
+          }
+        }
+      });
+      
+      // Calculate percentage of all products
+      const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
+      
+      // Use pre-calculated values from projectTableData
+      results.push({
+        location: location,
+        device: device,
+        avgRank: projectData.avgRank || 0,
+        rankTrend: projectData.rankChange || 0, // Note: rankChange is the trend
+        marketShare: projectData.avgShare || 0,
+        shareTrend: projectData.trendVal || 0,
+        activeProducts: activeCount,
+        inactiveProducts: inactiveCount,
+        prevActiveProducts: prevActiveCount,
+        productsTrend: activeCount - prevActiveCount,
+        percentOfAllProducts: percentOfAllProducts,
+        totalProducts: totalProducts
+      });
+    }
+  } else {
+    // Fallback: If projectTableData is not available, calculate manually
+    // This is the original calculation logic as a fallback
+    
+    // Use the same date range as product map (7 days)
+    const days = 7;
+    const endDate = moment().subtract(1, 'days');
+    const startDate = endDate.clone().subtract(days - 1, 'days');
+    const prevEndDate = startDate.clone().subtract(1, 'days');
+    const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
+    
+    // Group products by location and device
+    const groupedData = {};
+    
+    window.allRows.forEach(product => {
+      if (product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+          product.source && product.source.toLowerCase() === companyToFilter.toLowerCase()) {
+        
+        const key = `${product.location_requested}|${product.device}`;
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            location: product.location_requested,
+            device: product.device,
+            products: []
+          };
+        }
+        groupedData[key].products.push(product);
+      }
+    });
+    
+    // Calculate metrics for each location/device combination
+    for (const group of Object.values(groupedData)) {
+      let activeCount = 0;
+      let inactiveCount = 0;
+      let prevActiveCount = 0;
+      
+      // Calculate metrics for the company's performance
+      let companyTotalRank = 0;
+      let companyRankCount = 0;
+      let companyTotalShare = 0;
+      let companyShareCount = 0;
+      let prevCompanyTotalRank = 0;
+      let prevCompanyRankCount = 0;
+      let prevCompanyTotalShare = 0;
+      let prevCompanyShareCount = 0;
+
+      // Process each product
+      group.products.forEach(product => {
+        // Check if product is active or inactive
+        if (product.product_status === 'inactive') {
+          inactiveCount++;
+        } else {
+          activeCount++;
+        }
+        
+        // Track previous period active products
+        if (product.product_status !== 'inactive') {
+          if (product.historical_data && Array.isArray(product.historical_data)) {
+            const hasPrevData = product.historical_data.some(item => {
+              if (!item.date || !item.date.value) return false;
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            });
+            if (hasPrevData) {
+              prevActiveCount++;
+            }
+          }
+        }
+        
         if (product.historical_data && Array.isArray(product.historical_data)) {
-          const hasPrevData = product.historical_data.some(item => {
-            if (!item.date || !item.date.value) return false;
+          // Current period - calculate average for THIS product
+          let productRankSum = 0;
+          let productRankCount = 0;
+          let productShareSum = 0;
+          let productShareCount = 0;
+          
+          product.historical_data.forEach(item => {
+            if (!item.date || !item.date.value) return;
             const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-            return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            
+            if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
+              if (item.avg_position) {
+                productRankSum += parseFloat(item.avg_position);
+                productRankCount++;
+              }
+              if (item.market_share !== undefined || item.visibility !== undefined) {
+                productShareSum += parseFloat(item.market_share || item.visibility) * 100;
+                productShareCount++;
+              }
+            }
           });
-          if (hasPrevData) {
-            prevActiveCount++;
-          }
-        }
-      }
-      
-      if (product.historical_data && Array.isArray(product.historical_data)) {
-        // Current period - calculate average for THIS product
-        let productRankSum = 0;
-        let productRankCount = 0;
-        let productShareSum = 0;
-        let productShareCount = 0;
-        
-        product.historical_data.forEach(item => {
-          if (!item.date || !item.date.value) return;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
           
-          if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
-            if (item.avg_position) {
-              productRankSum += parseFloat(item.avg_position);
-              productRankCount++;
-            }
-            if (item.market_share !== undefined || item.visibility !== undefined) {
-              productShareSum += parseFloat(item.market_share || item.visibility) * 100;
-              productShareCount++;
-            }
+          // If this product has data, add its average to company total
+          if (productRankCount > 0) {
+            companyTotalRank += (productRankSum / productRankCount);
+            companyRankCount++;
           }
-        });
-        
-        // If this product has data, add its average to company total
-        if (productRankCount > 0) {
-          companyTotalRank += (productRankSum / productRankCount);
-          companyRankCount++;
-        }
-        if (productShareCount > 0) {
-          companyTotalShare += (productShareSum / productShareCount);
-          companyShareCount++;
-        }
-        
-        // Previous period - same logic
-        let prevProductRankSum = 0;
-        let prevProductRankCount = 0;
-        let prevProductShareSum = 0;
-        let prevProductShareCount = 0;
-        
-        product.historical_data.forEach(item => {
-          if (!item.date || !item.date.value) return;
-          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          if (productShareCount > 0) {
+            companyTotalShare += (productShareSum / productShareCount);
+            companyShareCount++;
+          }
           
-          if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
-            if (item.avg_position) {
-              prevProductRankSum += parseFloat(item.avg_position);
-              prevProductRankCount++;
+          // Previous period - same logic
+          let prevProductRankSum = 0;
+          let prevProductRankCount = 0;
+          let prevProductShareSum = 0;
+          let prevProductShareCount = 0;
+          
+          product.historical_data.forEach(item => {
+            if (!item.date || !item.date.value) return;
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            
+            if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+              if (item.avg_position) {
+                prevProductRankSum += parseFloat(item.avg_position);
+                prevProductRankCount++;
+              }
+              if (item.market_share !== undefined || item.visibility !== undefined) {
+                prevProductShareSum += parseFloat(item.market_share || item.visibility) * 100;
+                prevProductShareCount++;
+              }
             }
-            if (item.market_share !== undefined || item.visibility !== undefined) {
-              prevProductShareSum += parseFloat(item.market_share || item.visibility) * 100;
-              prevProductShareCount++;
-            }
+          });
+          
+          // If this product has previous data, add its average to company total
+          if (prevProductRankCount > 0) {
+            prevCompanyTotalRank += (prevProductRankSum / prevProductRankCount);
+            prevCompanyRankCount++;
           }
-        });
-        
-        // If this product has previous data, add its average to company total
-        if (prevProductRankCount > 0) {
-          prevCompanyTotalRank += (prevProductRankSum / prevProductRankCount);
-          prevCompanyRankCount++;
+          if (prevProductShareCount > 0) {
+            prevCompanyTotalShare += (prevProductShareSum / prevProductShareCount);
+            prevCompanyShareCount++;
+          }
         }
-        if (prevProductShareCount > 0) {
-          prevCompanyTotalShare += (prevProductShareSum / prevProductShareCount);
-          prevCompanyShareCount++;
-        }
-      }
-    });
+      });
 
-    // Calculate final company averages
-    const avgRank = companyRankCount > 0 ? companyTotalRank / companyRankCount : 0;
-    const marketShare = companyShareCount > 0 ? companyTotalShare / companyShareCount : 0;
-    const prevAvgRank = prevCompanyRankCount > 0 ? prevCompanyTotalRank / prevCompanyRankCount : 0;
-    const prevMarketShare = prevCompanyShareCount > 0 ? prevCompanyTotalShare / prevCompanyShareCount : 0;
-    
-    // Calculate trends
-    const rankTrend = avgRank > 0 && prevAvgRank > 0 ? avgRank - prevAvgRank : 0;
-    const shareTrend = marketShare - prevMarketShare;
-    
-    // Calculate percentage of all products
-    const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
-    
-    results.push({
-      location: group.location,
-      device: group.device,
-      avgRank: avgRank,
-      rankTrend: rankTrend,
-      marketShare: marketShare,
-      shareTrend: shareTrend,
-      activeProducts: activeCount,
-      inactiveProducts: inactiveCount,
-      prevActiveProducts: prevActiveCount,
-      productsTrend: activeCount - prevActiveCount,
-      percentOfAllProducts: percentOfAllProducts,
-      totalProducts: totalProducts
-    });
+      // Calculate final company averages
+      const avgRank = companyRankCount > 0 ? companyTotalRank / companyRankCount : 0;
+      const marketShare = companyShareCount > 0 ? companyTotalShare / companyShareCount : 0;
+      const prevAvgRank = prevCompanyRankCount > 0 ? prevCompanyTotalRank / prevCompanyRankCount : 0;
+      const prevMarketShare = prevCompanyShareCount > 0 ? prevCompanyTotalShare / prevCompanyShareCount : 0;
+      
+      // Calculate trends
+      const rankTrend = avgRank > 0 && prevAvgRank > 0 ? avgRank - prevAvgRank : 0;
+      const shareTrend = marketShare - prevMarketShare;
+      
+      // Calculate percentage of all products
+      const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
+      
+      results.push({
+        location: group.location,
+        device: group.device,
+        avgRank: avgRank,
+        rankTrend: rankTrend,
+        marketShare: marketShare,
+        shareTrend: shareTrend,
+        activeProducts: activeCount,
+        inactiveProducts: inactiveCount,
+        prevActiveProducts: prevActiveCount,
+        productsTrend: activeCount - prevActiveCount,
+        percentOfAllProducts: percentOfAllProducts,
+        totalProducts: totalProducts
+      });
+    }
   }
   
   return results;
