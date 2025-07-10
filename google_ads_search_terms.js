@@ -786,9 +786,8 @@ async function calculateProductRankingMetrics(searchTerm) {
   // Get total products count
   const totalProducts = await getTotalProductsCount();
   
-  // Use the same date range as product map (30 days)
-  //const days = window.selectedDateRangeDays || 30;
-  const days = 7;
+  // Use the same date range as product map (7 days)
+  const days = 7; // Match product map calculation
   const endDate = moment().subtract(1, 'days'); // Yesterday as end date
   const startDate = endDate.clone().subtract(days - 1, 'days');
   
@@ -822,18 +821,21 @@ async function calculateProductRankingMetrics(searchTerm) {
   const results = [];
   
   for (const group of Object.values(groupedData)) {
-    let totalRankSum = 0;
-    let totalRankCount = 0;
-    let totalShareSum = 0;
-    let totalShareCount = 0;
-    let prevRankSum = 0;
-    let prevRankCount = 0;
-    let prevShareSum = 0;
-    let prevShareCount = 0;
     let activeCount = 0;
     let inactiveCount = 0;
     let prevActiveCount = 0;
     
+    // Calculate metrics for the company's performance
+    let companyTotalRank = 0;
+    let companyRankCount = 0;
+    let companyTotalShare = 0;
+    let companyShareCount = 0;
+    let prevCompanyTotalRank = 0;
+    let prevCompanyRankCount = 0;
+    let prevCompanyTotalShare = 0;
+    let prevCompanyShareCount = 0;
+
+    // Process each product
     group.products.forEach(product => {
       // Check if product is active or inactive
       if (product.product_status === 'inactive') {
@@ -841,62 +843,94 @@ async function calculateProductRankingMetrics(searchTerm) {
       } else {
         activeCount++;
       }
-
-        // Track previous period active products
-  if (product.product_status !== 'inactive') {
-    // For previous period, check if product had data
-    if (product.historical_data && Array.isArray(product.historical_data)) {
-      const hasPrevData = product.historical_data.some(item => {
-        if (!item.date || !item.date.value) return false;
-        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
-        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
-      });
-      if (hasPrevData) {
-        prevActiveCount++;
+      
+      // Track previous period active products
+      if (product.product_status !== 'inactive') {
+        // For previous period, check if product had data
+        if (product.historical_data && Array.isArray(product.historical_data)) {
+          const hasPrevData = product.historical_data.some(item => {
+            if (!item.date || !item.date.value) return false;
+            const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+            return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+          });
+          if (hasPrevData) {
+            prevActiveCount++;
+          }
+        }
       }
-    }
-  }
       
       if (product.historical_data && Array.isArray(product.historical_data)) {
-        // Current period data
+        // Current period - calculate average for THIS product
+        let productRankSum = 0;
+        let productRankCount = 0;
+        let productShareSum = 0;
+        let productShareCount = 0;
+        
         product.historical_data.forEach(item => {
           if (!item.date || !item.date.value) return;
           const itemDate = moment(item.date.value, 'YYYY-MM-DD');
           
           if (itemDate.isBetween(startDate, endDate, 'day', '[]')) {
             if (item.avg_position) {
-              totalRankSum += parseFloat(item.avg_position);
-              totalRankCount++;
+              productRankSum += parseFloat(item.avg_position);
+              productRankCount++;
             }
-            if (item.market_share !== undefined) {
-              totalShareSum += parseFloat(item.market_share) * 100;
-              totalShareCount++;
-            } else if (item.visibility !== undefined) {
-              totalShareSum += parseFloat(item.visibility) * 100;
-              totalShareCount++;
-            }
-          } else if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
-            if (item.avg_position) {
-              prevRankSum += parseFloat(item.avg_position);
-              prevRankCount++;
-            }
-            if (item.market_share !== undefined) {
-              prevShareSum += parseFloat(item.market_share) * 100;
-              prevShareCount++;
-            } else if (item.visibility !== undefined) {
-              prevShareSum += parseFloat(item.visibility) * 100;
-              prevShareCount++;
+            if (item.market_share !== undefined || item.visibility !== undefined) {
+              productShareSum += parseFloat(item.market_share || item.visibility) * 100;
+              productShareCount++;
             }
           }
         });
+        
+        // If this product has data, add its average to company total
+        if (productRankCount > 0) {
+          companyTotalRank += (productRankSum / productRankCount);
+          companyRankCount++;
+        }
+        if (productShareCount > 0) {
+          companyTotalShare += (productShareSum / productShareCount);
+          companyShareCount++;
+        }
+        
+        // Previous period - same logic
+        let prevProductRankSum = 0;
+        let prevProductRankCount = 0;
+        let prevProductShareSum = 0;
+        let prevProductShareCount = 0;
+        
+        product.historical_data.forEach(item => {
+          if (!item.date || !item.date.value) return;
+          const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+          
+          if (itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+            if (item.avg_position) {
+              prevProductRankSum += parseFloat(item.avg_position);
+              prevProductRankCount++;
+            }
+            if (item.market_share !== undefined || item.visibility !== undefined) {
+              prevProductShareSum += parseFloat(item.market_share || item.visibility) * 100;
+              prevProductShareCount++;
+            }
+          }
+        });
+        
+        // If this product has previous data, add its average to company total
+        if (prevProductRankCount > 0) {
+          prevCompanyTotalRank += (prevProductRankSum / prevProductRankCount);
+          prevCompanyRankCount++;
+        }
+        if (prevProductShareCount > 0) {
+          prevCompanyTotalShare += (prevProductShareSum / prevProductShareCount);
+          prevCompanyShareCount++;
+        }
       }
     });
-    
-    // Calculate averages
-    const avgRank = totalRankCount > 0 ? totalRankSum / totalRankCount : 0;
-    const prevAvgRank = prevRankCount > 0 ? prevRankSum / prevRankCount : 0;
-    const marketShare = totalShareCount > 0 ? totalShareSum / totalShareCount : 0;
-    const prevMarketShare = prevShareCount > 0 ? prevShareSum / prevShareCount : 0;
+
+    // Calculate final company averages
+    const avgRank = companyRankCount > 0 ? companyTotalRank / companyRankCount : 0;
+    const marketShare = companyShareCount > 0 ? companyTotalShare / companyShareCount : 0;
+    const prevAvgRank = prevCompanyRankCount > 0 ? prevCompanyTotalRank / prevCompanyRankCount : 0;
+    const prevMarketShare = prevCompanyShareCount > 0 ? prevCompanyTotalShare / prevCompanyShareCount : 0;
     
     // Calculate trends
     const rankTrend = avgRank > 0 && prevAvgRank > 0 ? avgRank - prevAvgRank : 0;
@@ -915,7 +949,7 @@ async function calculateProductRankingMetrics(searchTerm) {
       activeProducts: activeCount,
       inactiveProducts: inactiveCount,
       prevActiveProducts: prevActiveCount,
-productsTrend: activeCount - prevActiveCount,
+      productsTrend: activeCount - prevActiveCount,
       percentOfAllProducts: percentOfAllProducts,
       totalProducts: totalProducts
     });
