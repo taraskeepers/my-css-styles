@@ -449,13 +449,11 @@ function handleBucketFilterClick(bucketType, bucketValue) {
   loadBucketedProducts();
 }
 
-// Tooltip functions
-let funnelTooltip = null;
-
 function showFunnelTooltip(event, bucketName, count, percentage, total) {
-  if (!funnelTooltip) {
-    funnelTooltip = document.createElement('div');
-    funnelTooltip.style.cssText = `
+  // Create tooltip if it doesn't exist
+  if (!window.funnelTooltip) {
+    window.funnelTooltip = document.createElement('div');
+    window.funnelTooltip.style.cssText = `
       position: fixed;
       background: rgba(0, 0, 0, 0.9);
       color: white;
@@ -465,11 +463,13 @@ function showFunnelTooltip(event, bucketName, count, percentage, total) {
       pointer-events: none;
       z-index: 10000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     `;
-    document.body.appendChild(funnelTooltip);
+    document.body.appendChild(window.funnelTooltip);
   }
   
-  funnelTooltip.innerHTML = `
+  window.funnelTooltip.innerHTML = `
     <div style="font-weight: 700; margin-bottom: 5px;">${bucketName}</div>
     <div>Products: ${count} / ${total}</div>
     <div>Percentage: ${percentage.toFixed(1)}%</div>
@@ -477,14 +477,14 @@ function showFunnelTooltip(event, bucketName, count, percentage, total) {
   
   const x = event.clientX + 10;
   const y = event.clientY - 10;
-  funnelTooltip.style.left = x + 'px';
-  funnelTooltip.style.top = y + 'px';
-  funnelTooltip.style.opacity = '1';
+  window.funnelTooltip.style.left = x + 'px';
+  window.funnelTooltip.style.top = y + 'px';
+  window.funnelTooltip.style.opacity = '1';
 }
 
 function hideFunnelTooltip() {
-  if (funnelTooltip) {
-    funnelTooltip.style.opacity = '0';
+  if (window.funnelTooltip) {
+    window.funnelTooltip.style.opacity = '0';
   }
 }
 
@@ -673,6 +673,8 @@ async function loadBucketedProducts() {
       const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
       const tableName = `${accountPrefix}_googleSheets_productBuckets_${suffix}`;
       
+      console.log('[loadBucketedProducts] Loading from table:', tableName);
+      
       const db = await new Promise((resolve, reject) => {
         const request = indexedDB.open('myAppDB');
         request.onsuccess = (event) => resolve(event.target.result);
@@ -691,6 +693,8 @@ async function loadBucketedProducts() {
       db.close();
       
       if (result && result.data) {
+        console.log('[loadBucketedProducts] Found bucket data records:', result.data.length);
+        
         // Process ALL products in the bucket (tracked and untracked)
         result.data.forEach(row => {
           const deviceFilter = window.selectedDeviceFilter || 'all';
@@ -725,6 +729,7 @@ async function loadBucketedProducts() {
               
               // If this product is not tracked, save its bucket data
               if (!trackedProductTitles.has(productTitle)) {
+                console.log('[loadBucketedProducts] Found untracked product:', productTitle);
                 untrackedProductsData.push({
                   title: productTitle,
                   bucketData: row
@@ -742,6 +747,9 @@ async function loadBucketedProducts() {
         console.log(`[loadBucketedProducts] Total products in bucket: ${allBucketProductTitles.size}`);
         console.log(`[loadBucketedProducts] Tracked products: ${filteredProducts.length}`);
         console.log(`[loadBucketedProducts] Untracked products: ${untrackedProductsData.length}`);
+        console.log('[loadBucketedProducts] Untracked product titles:', untrackedProductsData.map(p => p.title));
+      } else {
+        console.log('[loadBucketedProducts] No bucket data found');
       }
     }
     
