@@ -832,6 +832,7 @@ async function calculateProductRankingMetrics(searchTerm) {
     let prevShareCount = 0;
     let activeCount = 0;
     let inactiveCount = 0;
+    let prevActiveCount = 0;
     
     group.products.forEach(product => {
       // Check if product is active or inactive
@@ -840,6 +841,21 @@ async function calculateProductRankingMetrics(searchTerm) {
       } else {
         activeCount++;
       }
+
+        // Track previous period active products
+  if (product.product_status !== 'inactive') {
+    // For previous period, check if product had data
+    if (product.historical_data && Array.isArray(product.historical_data)) {
+      const hasPrevData = product.historical_data.some(item => {
+        if (!item.date || !item.date.value) return false;
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+      });
+      if (hasPrevData) {
+        prevActiveCount++;
+      }
+    }
+  }
       
       if (product.historical_data && Array.isArray(product.historical_data)) {
         // Current period data
@@ -898,6 +914,8 @@ async function calculateProductRankingMetrics(searchTerm) {
       shareTrend: shareTrend,
       activeProducts: activeCount,
       inactiveProducts: inactiveCount,
+      prevActiveProducts: prevActiveCount,
+productsTrend: activeCount - prevActiveCount,
       percentOfAllProducts: percentOfAllProducts,
       totalProducts: totalProducts
     });
@@ -937,15 +955,21 @@ function renderProductRankingSubRows(searchTerm) {
         <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
           <td colspan="9" style="padding: 0;">
             <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
-              <!-- Active Products (Main metric) -->
-              <div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
-                <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
-                  ${metric.activeProducts}
-                </div>
-                <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
-                  PRODUCTS
-                </div>
-              </div>
+            
+<!-- Active Products (Main metric) -->
+<div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+  <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+    ${metric.activeProducts}
+  </div>
+  <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+    PRODUCTS
+  </div>
+  ${metric.productsTrend !== 0 ? `
+    <div style="font-size: 11px; color: ${metric.productsTrend > 0 ? '#4CAF50' : '#F44336'}; margin-top: 2px;">
+      ${metric.productsTrend > 0 ? '↑' : '↓'} ${Math.abs(metric.productsTrend)}
+    </div>
+  ` : ''}
+</div>
               
               <!-- % of All Products with pie chart -->
               <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
@@ -971,18 +995,18 @@ function renderProductRankingSubRows(searchTerm) {
                 ${deviceIcon}
               </div>
               
-              <!-- Avg Rank (styled box) -->
-              <div style="flex: 0 0 120px; text-align: center;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
-                <div style="display: inline-flex; align-items: center; background: #f5f5f5; border-radius: 6px; padding: 6px 12px; border: 1px solid #e0e0e0;">
-                  <span style="font-size: 18px; font-weight: 700; color: #333;">
-                    ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
-                  </span>
-                  ${rankArrow ? `<span style="font-size: 13px; color: ${rankColor}; margin-left: 8px;">
-                    ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
-                  </span>` : ''}
-                </div>
-              </div>
+<!-- Avg Rank (square box) -->
+<div style="flex: 0 0 auto; text-align: center;">
+  <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
+  <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 50px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0; position: relative;">
+    <span style="font-size: 18px; font-weight: 700; color: #333; line-height: 1;">
+      ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+    </span>
+    ${rankArrow ? `<span style="font-size: 11px; color: ${rankColor}; line-height: 1; margin-top: 2px;">
+      ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+    </span>` : ''}
+  </div>
+</div>
               
               <!-- Market Share (progress bar) -->
               <div style="flex: 1;">
