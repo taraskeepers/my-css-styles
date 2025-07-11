@@ -1528,17 +1528,6 @@ async function renderProductMapTable() {
 const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
 document.body.classList.remove('mode-products', 'mode-companies');
 document.body.classList.add(`mode-${currentMode}`);
-
-// Update header visibility
-const productsHeader = table.querySelector('.products-header');
-const companiesHeader = table.querySelector('.companies-header');
-if (currentMode === 'companies') {
-  if (productsHeader) productsHeader.style.display = 'none';
-  if (companiesHeader) companiesHeader.style.display = '';
-} else {
-  if (productsHeader) productsHeader.style.display = '';
-  if (companiesHeader) companiesHeader.style.display = 'none';
-}
   
    const useLatestRecordAsEndDate = false;
       let hoverTimeout = null;
@@ -5467,18 +5456,16 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
       nestedMap[term][loc].push(item);
     });
   
-    const table = document.createElement("table");
-    table.classList.add("product-map-table");
-  
 const thead = document.createElement("thead");
+const isCompaniesMode = currentMode === 'companies';
 thead.innerHTML = `
   <tr>
     <th>Search Term</th>
     <th>Location</th>
     <th>Device</th>
     <th>Top 40 Segmentation</th>
-    <th class="products-header">Products</th>
-    <th class="companies-header" style="display:none;">Companies</th>
+    <th class="products-header" style="${isCompaniesMode ? 'display:none;' : ''}">Products</th>
+    <th class="companies-header" style="${isCompaniesMode ? '' : 'display:none;'}">Companies</th>
   </tr>
 `;
 table.appendChild(thead);
@@ -7198,51 +7185,45 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
             console.warn("[renderProductMapTable] allRows data not available");
           }
           
+          const tdCompanies = document.createElement("td");
+          
+          // Create company container
+          const companyCellContainer = document.createElement("div");
+          companyCellContainer.classList.add("company-cell-container");
+          
+          const companyCellDiv = document.createElement("div");
+          companyCellDiv.classList.add("company-cell");
+          companyCellContainer.appendChild(companyCellDiv);
+          tdCompanies.appendChild(companyCellContainer);
+          
+          // Populate companies for this search term/location/device combination
+          if (!window.company_serp_stats) {
+            companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Loading company data...</div>';
+            
+            // You can add async loading here if needed
+          } else {
+            // Filter company data for this specific combination
+            const companyData = window.company_serp_stats.filter(c => 
+              c.searchTerm === term &&
+              c.location === loc &&
+              c.device === rowData.device
+            );
+          
+            // Sort by rank
+            companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+          
+            // Take top companies (e.g., top 10)
+            const topCompanies = companyData.slice(0, 10);
+          
+            topCompanies.forEach((company, index) => {
+              const compDetails = createCompDetails(company, index);
+              companyCellDiv.appendChild(compDetails);
+            });
+          }
+          
+          // Now append BOTH columns to the row
           tr.appendChild(tdProducts);
-          // Create Companies cell (similar structure to Products)
-const tdCompanies = document.createElement("td");
-
-// Create company container
-const companyCellContainer = document.createElement("div");
-companyCellContainer.classList.add("company-cell-container");
-
-const companyCellDiv = document.createElement("div");
-companyCellDiv.classList.add("company-cell");
-companyCellContainer.appendChild(companyCellDiv);
-tdCompanies.appendChild(companyCellContainer);
-
-// Add companies column to the row (it will be hidden/shown based on mode)
-tr.appendChild(tdCompanies);
-
-// Populate companies for this search term/location/device combination
-if (!window.company_serp_stats) {
-  // ===== PASTE STEP 7 CODE HERE =====
-  companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Loading company data...</div>';
-  
-  // Load company data asynchronously
-  loadCompanyData().then(() => {
-    // Re-render the table or just update this cell
-    renderProductMapTable();
-  });
-} else {
-  // Filter company data for this specific combination
-  const companyData = window.company_serp_stats.filter(c => 
-    c.searchTerm === term &&
-    c.location === loc &&
-    c.device === rowData.device
-  );
-
-  // Sort by rank
-  companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
-
-  // Take top companies (e.g., top 10)
-  const topCompanies = companyData.slice(0, 10);
-
-  topCompanies.forEach((company, index) => {
-    const compDetails = createCompDetails(company, index);
-    companyCellDiv.appendChild(compDetails);
-  });
-}
+          tr.appendChild(tdCompanies);
           tbody.appendChild(tr);
         });
       });
