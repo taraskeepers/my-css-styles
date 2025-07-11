@@ -4250,11 +4250,6 @@ td:nth-child(6) {
   white-space: nowrap !important; /* ADD THIS */
 }
 
-/* Toggle visibility based on mode */
-body.mode-companies .product-cell-container { display: none !important; }
-body.mode-companies .company-cell-container { display: block !important; }
-body.mode-products .product-cell-container { display: block !important; }
-body.mode-products .company-cell-container { display: none !important; }
 /* Products column - 5th child */
 body.mode-products .product-map-table td:nth-child(5),
 body.mode-products .product-map-table th:nth-child(5) {
