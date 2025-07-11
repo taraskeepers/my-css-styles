@@ -1519,7 +1519,77 @@ function createCompDetails(companyData, index) {
   return container; // IMPORTANT: Return the container!
 }
 
+function prepareCompanySerpsStatsData() {
+  console.log('[ProductMap] Preparing company SERP stats data...');
+  
+  if (window.allRows && window.allRows.length > 0) {
+    const companyStatsMap = new Map();
+    
+    // Aggregate all data by company + search term + location + device
+    window.allRows.forEach(item => {
+      if (!item.source || !item.q || !item.location_requested || !item.device) return;
+      
+      const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
+      
+      if (!companyStatsMap.has(key)) {
+        companyStatsMap.set(key, {
+          searchTerm: item.q,
+          location: item.location_requested,
+          device: item.device,
+          rank: item.rank || 999,
+          company: item.source || 'Unknown',
+          top40: parseFloat(item.avgShare) || 0,
+          top40Trend: parseFloat(item.trendVal) || 0,
+          numProducts: 0,
+          numOnSale: 0,
+          improvedCount: 0,
+          newCount: 0,
+          declinedCount: 0,
+          historical_data: []
+        });
+      }
+      
+      const stats = companyStatsMap.get(key);
+      stats.numProducts += 1;
+      
+      // Count products on sale
+      if (item.product_status === 'sale' || item.on_sale === 'Y') {
+        stats.numOnSale += 1;
+      }
+      
+      // Count trend statuses (you may need to adjust these field names based on your data)
+      if (item.trend_status === 'improved') stats.improvedCount += 1;
+      else if (item.trend_status === 'new') stats.newCount += 1;
+      else if (item.trend_status === 'declined') stats.declinedCount += 1;
+      
+      // Update rank if this product has a better rank
+      if (item.rank && (!stats.rank || parseInt(item.rank) < parseInt(stats.rank))) {
+        stats.rank = item.rank;
+      }
+    });
+    
+    // Convert counts to percentages
+    companyStatsMap.forEach((stats, key) => {
+      if (stats.numProducts > 0) {
+        stats.numOnSale = Math.round((stats.numOnSale / stats.numProducts) * 100);
+      }
+    });
+    
+    window.company_serp_stats = Array.from(companyStatsMap.values());
+    console.log(`[ProductMap] Prepared ${window.company_serp_stats.length} company stats`);
+    return window.company_serp_stats;
+  }
+  
+  console.warn('[ProductMap] No data available for company statistics');
+  return [];
+}
+
 async function renderProductMapTable() {
+  console.log("[renderProductMapTable] Starting render");
+    // Prepare company data if not already done
+  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
+    prepareCompanySerpsStatsData();
+  }
 // Check current mode
 const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
 document.body.classList.remove('mode-products', 'mode-companies');
@@ -3998,6 +4068,7 @@ input:checked + .metrics-slider:before {
 /* Company details styling for product map */
 .comp-details {
   width: 150px;
+  min-width: 150px;
   height: 360px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -4131,7 +4202,8 @@ input:checked + .metrics-slider:before {
   padding: 8px;
   overflow-x: auto;
   height: 100%;
-  align-items: center;
+  align-items: flex-start; /* Changed from center */
+  min-height: 360px;
 }
 
 /* Toggle visibility based on mode */
@@ -7255,6 +7327,14 @@ if (window.company_serp_stats && window.company_serp_stats.length > 0) {
     c.location === loc &&
     c.device === rowData.device
   );
+
+    console.log(`[ProductMap] Filtering companies for:`, {
+    term: term,
+    location: loc,
+    device: rowData.device,
+    totalCompanyStats: window.company_serp_stats.length,
+    matchingCompanies: companyData.length
+  });
 
   if (companyData.length > 0) {
     // Sort by rank
