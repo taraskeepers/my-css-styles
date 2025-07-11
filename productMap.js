@@ -1527,6 +1527,12 @@ function prepareCompanySerpsStatsData() {
     
     // Aggregate all data by company + search term + location + device
     window.allRows.forEach(item => {
+        // ADD THIS DEBUG LINE
+  if (!window._debugLogged) {
+    console.log('[DEBUG] Sample item structure:', item);
+    console.log('[DEBUG] Available fields:', Object.keys(item));
+    window._debugLogged = true;
+  }
       if (!item.source || !item.q || !item.location_requested || !item.device) return;
       
       const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
@@ -7356,9 +7362,13 @@ if (window.company_serp_stats && window.company_serp_stats.length > 0) {
   companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Company data not available</div>';
 }
           
-          // Now append BOTH columns to the row
-          tr.appendChild(tdProducts);
-          tr.appendChild(tdCompanies);
+// Only append the appropriate column based on mode
+const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+if (currentMode === 'companies') {
+  tr.appendChild(tdCompanies);
+} else {
+  tr.appendChild(tdProducts);
+}         
           tbody.appendChild(tr);
         });
       });
