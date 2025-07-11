@@ -1634,6 +1634,10 @@ if (googleAdsEnabled) {
     db.close();
   }
 }
+
+// Load company statistics data
+const companyStats = await loadCompanyStatsData();
+console.log(`[ProductMap] Company stats loaded: ${companyStats.length} entries`);
   
     // Setup container with fixed height and scrolling
 container.innerHTML = `
@@ -5100,6 +5104,48 @@ function formatRevenue(value) {
   } else {
     return '$' + value.toFixed(0);
   }
+}
+
+  // Function to load company statistics data
+async function loadCompanyStatsData() {
+  // Check if company stats are already loaded
+  if (window.company_serp_stats && window.company_serp_stats.length > 0) {
+    return window.company_serp_stats;
+  }
+  
+  // If projectTableData exists, we can derive company stats from it
+  if (window.projectTableData && window.projectTableData.length > 0) {
+    const companyStatsMap = new Map();
+    
+    window.projectTableData.forEach(item => {
+      const key = `${item.searchTerm}|${item.location}|${item.device}`;
+      
+      if (!companyStatsMap.has(key)) {
+        companyStatsMap.set(key, {
+          searchTerm: item.searchTerm,
+          location: item.location,
+          device: item.device,
+          rank: item.companyRank || 999,
+          company: item.company || 'Unknown',
+          avgShare: item.avgShare || 0,
+          trendVal: item.top40Trend || 0,
+          numProducts: item.numProducts || 0,
+          numOnSale: item.numOnSale || 0,
+          improvedCount: item.improvedCount || 0,
+          newCount: item.newCount || 0,
+          declinedCount: item.declinedCount || 0,
+          historical_data: item.historical_data || []
+        });
+      }
+    });
+    
+    window.company_serp_stats = Array.from(companyStatsMap.values());
+    return window.company_serp_stats;
+  }
+  
+  // If no data available, return empty array
+  console.warn('[ProductMap] No company statistics data available');
+  return [];
 }
   
     // Modified function to format location cell into three rows (city, state, country)
