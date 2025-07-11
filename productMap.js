@@ -1453,10 +1453,7 @@ function createCompDetails(companyData, index) {
   logoDiv.className = 'company-logo';
   const logoImg = document.createElement('img');
   // Use placeholder for now - replace with actual logo URLs later
-  logoImg.src = 'https://via.placeholder.com/80x80?text=Logo';
-  logoImg.onerror = function() {
-    this.src = 'https://via.placeholder.com/80x80?text=No+Logo';
-  };
+logoImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTBlMGUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nbzwvdGV4dD48L3N2Zz4=';
   logoDiv.appendChild(logoImg);
   container.appendChild(logoDiv);
 
@@ -5118,7 +5115,8 @@ async function loadCompanyStatsData() {
     const companyStatsMap = new Map();
     
     window.projectTableData.forEach(item => {
-      const key = `${item.searchTerm}|${item.location}|${item.device}`;
+      // Create a unique key for each company/term/location/device combination
+      const key = `${item.company || 'Unknown'}|${item.searchTerm}|${item.location}|${item.device}`;
       
       if (!companyStatsMap.has(key)) {
         companyStatsMap.set(key, {
@@ -5127,15 +5125,19 @@ async function loadCompanyStatsData() {
           device: item.device,
           rank: item.companyRank || 999,
           company: item.company || 'Unknown',
-          avgShare: item.avgShare || 0,
-          trendVal: item.top40Trend || 0,
-          numProducts: item.numProducts || 0,
-          numOnSale: item.numOnSale || 0,
-          improvedCount: item.improvedCount || 0,
-          newCount: item.newCount || 0,
-          declinedCount: item.declinedCount || 0,
-          historical_data: item.historical_data || []
+          top40: item.avgShare || 0,
+          top40Trend: item.trendVal || 0,
+          numProducts: 1, // Start with 1
+          numOnSale: 0,
+          improvedCount: 0,
+          newCount: 0,
+          declinedCount: 0,
+          historical_data: []
         });
+      } else {
+        // Increment product count for this company
+        const existingData = companyStatsMap.get(key);
+        existingData.numProducts += 1;
       }
     });
     
@@ -7246,30 +7248,34 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
           companyCellContainer.appendChild(companyCellDiv);
           tdCompanies.appendChild(companyCellContainer);
           
-          // Populate companies for this search term/location/device combination
-          if (!window.company_serp_stats) {
-            companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Loading company data...</div>';
-            
-            // You can add async loading here if needed
-          } else {
-            // Filter company data for this specific combination
-            const companyData = window.company_serp_stats.filter(c => 
-              c.searchTerm === term &&
-              c.location === loc &&
-              c.device === rowData.device
-            );
-          
-            // Sort by rank
-            companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
-          
-            // Take top companies (e.g., top 10)
-            const topCompanies = companyData.slice(0, 10);
-          
-            topCompanies.forEach((company, index) => {
-              const compDetails = createCompDetails(company, index);
-              companyCellDiv.appendChild(compDetails);
-            });
-          }
+// Populate companies for this search term/location/device combination
+if (window.company_serp_stats && window.company_serp_stats.length > 0) {
+  // Filter company data for this specific combination
+  const companyData = window.company_serp_stats.filter(c => 
+    c.searchTerm === term &&
+    c.location === loc &&
+    c.device === rowData.device
+  );
+
+  if (companyData.length > 0) {
+    // Sort by rank
+    companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+
+    // Take top companies (e.g., top 10)
+    const topCompanies = companyData.slice(0, 10);
+
+    topCompanies.forEach((company, index) => {
+      const compDetails = createCompDetails(company, index);
+      companyCellDiv.appendChild(compDetails);
+    });
+  } else {
+    // No matching companies for this combination
+    companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-style: italic;">No company data</div>';
+  }
+} else {
+  // No company stats loaded at all
+  companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Company data not available</div>';
+}
           
           // Now append BOTH columns to the row
           tr.appendChild(tdProducts);
