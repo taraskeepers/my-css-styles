@@ -1534,81 +1534,120 @@ function createCompDetails(companyData, index) {
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
   
-  if (window.allRows && window.allRows.length > 0) {
-    console.log('[ProductMap] Sample allRows item:', window.allRows[0]);
-    const companyStatsMap = new Map();
-    
-    // Aggregate all data by company + search term + location + device
-    window.allRows.forEach(item => {
-        // ADD THIS DEBUG LINE
-  if (!window._debugLogged) {
-    console.log('[DEBUG] Sample item structure:', item);
-    console.log('[DEBUG] Available fields:', Object.keys(item));
-    window._debugLogged = true;
-  }
-      if (!item.source || !item.q || !item.location_requested || !item.device) return;
-      
-      const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
-      
-      if (!companyStatsMap.has(key)) {
-        companyStatsMap.set(key, {
-          searchTerm: item.q,
-          location: item.location_requested,
-          device: item.device,
-          rank: item.rank || 999,
-          company: item.source || 'Unknown',
-          top40: parseFloat(item.avgShare) || 0,
-          top40Trend: parseFloat(item.trendVal) || 0,
-          numProducts: 0,
-          numOnSale: 0,
-          improvedCount: 0,
-          newCount: 0,
-          declinedCount: 0,
-          historical_data: []
-        });
-      }
-      
-      const stats = companyStatsMap.get(key);
-      stats.numProducts += 1;
-      
-      // Count products on sale
-      if (item.product_status === 'sale' || item.on_sale === 'Y') {
-        stats.numOnSale += 1;
-      }
-      
-      // Count trend statuses (you may need to adjust these field names based on your data)
-      if (item.trend_status === 'improved') stats.improvedCount += 1;
-      else if (item.trend_status === 'new') stats.newCount += 1;
-      else if (item.trend_status === 'declined') stats.declinedCount += 1;
-      
-      // Update rank if this product has a better rank
-      if (item.rank && (!stats.rank || parseInt(item.rank) < parseInt(stats.rank))) {
-        stats.rank = item.rank;
-      }
-    });
-    
-    // Convert counts to percentages
-    companyStatsMap.forEach((stats, key) => {
-      if (stats.numProducts > 0) {
-        stats.numOnSale = Math.round((stats.numOnSale / stats.numProducts) * 100);
-      }
-    });
-    
-    window.company_serp_stats = Array.from(companyStatsMap.values());
-    console.log(`[ProductMap] Prepared ${window.company_serp_stats.length} company stats`);
-    return window.company_serp_stats;
+  // Use companyStatsData as the source (same as company-details)
+  if (!window.companyStatsData || window.companyStatsData.length === 0) {
+    console.warn('[ProductMap] No companyStatsData available');
+    return [];
   }
   
-  console.warn('[ProductMap] No data available for company statistics');
-  return [];
+  const companyStatsMap = new Map();
+  
+  // Process each company's data
+  window.companyStatsData.forEach(item => {
+    if (!item.source || !item.q || !item.location_requested || !item.device) return;
+    
+    const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
+    
+    if (!companyStatsMap.has(key)) {
+      // Calculate metrics from historical_data
+      let avgRank = 999;
+      let avgMarketShare = 0;
+      let marketShareTrend = 0;
+      let avgProducts = 0;
+      let avgOnSale = 0;
+      
+      if (item.historical_data && item.historical_data.length > 0) {
+        // Get last 7 days for current metrics
+        const last7Days = item.historical_data.slice(-7);
+        
+        // Calculate average rank from avg_position
+        const positions = last7Days
+          .filter(day => day.avg_position != null)
+          .map(day => parseFloat(day.avg_position));
+        
+        if (positions.length > 0) {
+          avgRank = Math.round(positions.reduce((a, b) => a + b) / positions.length);
+        }
+        
+        // Calculate average market share (multiply by 100 for percentage)
+        const marketShares = last7Days
+          .filter(day => day.market_share != null)
+          .map(day => parseFloat(day.market_share) * 100);
+        
+        if (marketShares.length > 0) {
+          avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
+        }
+        
+        // Calculate trend (last 7 days vs previous 7 days)
+        if (item.historical_data.length >= 14) {
+          const prev7Days = item.historical_data.slice(-14, -7);
+          const prevShares = prev7Days
+            .filter(day => day.market_share != null)
+            .map(day => parseFloat(day.market_share) * 100);
+          
+          if (prevShares.length > 0) {
+            const prevAvg = prevShares.reduce((a, b) => a + b) / prevShares.length;
+            marketShareTrend = avgMarketShare - prevAvg;
+          }
+        }
+        
+        // Calculate product metrics
+        const productCounts = last7Days
+          .filter(day => day.unique_products != null)
+          .map(day => parseFloat(day.unique_products));
+        
+        const onSaleCounts = last7Days
+          .filter(day => day.un_products_on_sale != null)
+          .map(day => parseFloat(day.un_products_on_sale));
+        
+        if (productCounts.length > 0) {
+          avgProducts = productCounts.reduce((a, b) => a + b) / productCounts.length;
+        }
+        
+        if (onSaleCounts.length > 0) {
+          avgOnSale = onSaleCounts.reduce((a, b) => a + b) / onSaleCounts.length;
+        }
+      }
+      
+      companyStatsMap.set(key, {
+        searchTerm: item.q,
+        location: item.location_requested,
+        device: item.device,
+        rank: avgRank,
+        company: item.source || 'Unknown',
+        top40: parseFloat(avgMarketShare.toFixed(1)),
+        top40Trend: parseFloat(marketShareTrend.toFixed(1)),
+        numProducts: Math.round(avgProducts),
+        numOnSale: avgProducts > 0 ? Math.round((avgOnSale / avgProducts) * 100) : 0,
+        improvedCount: 0,
+        newCount: 0,
+        declinedCount: 0,
+        historical_data: item.historical_data || []
+      });
+    }
+  });
+  
+  window.company_serp_stats = Array.from(companyStatsMap.values());
+  console.log(`[ProductMap] Prepared ${window.company_serp_stats.length} company stats`);
+  
+  // Debug log to verify data
+  if (window.company_serp_stats.length > 0) {
+    console.log('[ProductMap] Sample company stat:', {
+      company: window.company_serp_stats[0].company,
+      rank: window.company_serp_stats[0].rank,
+      top40: window.company_serp_stats[0].top40,
+      top40Trend: window.company_serp_stats[0].top40Trend
+    });
+  }
+  
+  return window.company_serp_stats;
 }
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
-    // Prepare company data if not already done
-  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
-    prepareCompanySerpsStatsData();
-  }
+  
+  // Always refresh company data when rendering the table
+  prepareCompanySerpsStatsData();
 // Check current mode
 const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
 document.body.classList.remove('mode-products', 'mode-companies');
@@ -2473,7 +2512,9 @@ if (allProductsToggle) {
     
     // Store the toggle state
     window.showAllProductsInMap = isChecked;
-    
+    if (mode === 'companies') {
+  prepareCompanySerpsStatsData();
+}
     // Re-render the entire table
     renderProductMapTable();
   });
@@ -7949,3 +7990,25 @@ function updateChartLineVisibility(chartContainer, selectedIndex) {
 if (typeof window !== 'undefined') {
   window.renderProductMapTable = renderProductMapTable;
 }
+
+// Debug function to verify company data
+function debugCompanyData() {
+  console.group('[ProductMap Debug] Company Data Check');
+  console.log('companyStatsData available:', !!window.companyStatsData, 'count:', window.companyStatsData?.length || 0);
+  console.log('company_serp_stats available:', !!window.company_serp_stats, 'count:', window.company_serp_stats?.length || 0);
+  
+  if (window.companyStatsData && window.companyStatsData[0]) {
+    console.log('Sample companyStatsData:', {
+      source: window.companyStatsData[0].source,
+      historical_data_length: window.companyStatsData[0].historical_data?.length || 0,
+      first_historical: window.companyStatsData[0].historical_data?.[0]
+    });
+  }
+  
+  if (window.company_serp_stats && window.company_serp_stats[0]) {
+    console.log('Sample company_serp_stats:', window.company_serp_stats[0]);
+  }
+  console.groupEnd();
+}
+
+// Call this function in browser console to debug: debugCompanyData()
