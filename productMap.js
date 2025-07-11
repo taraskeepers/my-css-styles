@@ -4272,14 +4272,26 @@ body.mode-products .product-map-table th:nth-child(6) {
   display: none !important;
 }
 /* Column visibility rules */
-    body.mode-products .product-map-table td:nth-child(5),
-    body.mode-products .product-map-table th:nth-child(5) { display: table-cell !important; }
-    body.mode-companies .product-map-table td:nth-child(5),
-    body.mode-companies .product-map-table th:nth-child(5) { display: none !important; }
-    body.mode-companies .product-map-table td:nth-child(6),
-    body.mode-companies .product-map-table th:nth-child(6) { display: table-cell !important; }
-    body.mode-products .product-map-table td:nth-child(6),
-    body.mode-products .product-map-table th:nth-child(6) { display: none !important; }
+body.mode-products .product-map-table td:nth-child(5),
+body.mode-products .product-map-table th:nth-child(5) { display: table-cell !important; }
+body.mode-companies .product-map-table td:nth-child(5),
+body.mode-companies .product-map-table th:nth-child(5) { display: none !important; }
+body.mode-companies .product-map-table td:nth-child(6),
+body.mode-companies .product-map-table th:nth-child(6) { display: table-cell !important; }
+body.mode-products .product-map-table td:nth-child(6),
+body.mode-products .product-map-table th:nth-child(6) { display: none !important; }
+/* Containers should always be visible within their cells */
+.product-cell-container {
+  width: 100%;
+  height: 100%;
+  display: block !important; /* Always block */
+}
+
+.company-cell-container {
+  width: 100%;
+  height: 100%;
+  display: block !important; /* Always block */
+}
       `;
       document.head.appendChild(style);
     }
