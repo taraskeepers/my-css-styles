@@ -5455,6 +5455,8 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
       if (!nestedMap[term][loc]) nestedMap[term][loc] = [];
       nestedMap[term][loc].push(item);
     });
+
+
   
 const thead = document.createElement("thead");
 const isCompaniesMode = currentMode === 'companies';
@@ -5478,6 +5480,9 @@ table.appendChild(thead);
     const compiledTemplate = Handlebars.compile(adTemplate);
   
     console.log("[renderProductMapTable] Processing search terms");
+  // Create the table element (ADD THESE LINES)
+const table = document.createElement("table");
+table.className = "product-map-table";
     
     // Create a map of locations to color classes
     const locationColorMap = {};
