@@ -4238,8 +4238,6 @@ td:nth-child(6) {
   display: flex !important;
   flex-direction: row !important; /* ADD THIS */
   flex-wrap: nowrap !important;
-  gap: 8px;
-  padding: 8px;
   overflow-x: auto;
   overflow-y: hidden; /* ADD THIS */
   height: 100%;
