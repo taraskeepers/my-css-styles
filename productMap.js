@@ -4250,36 +4250,28 @@ td:nth-child(6) {
   white-space: nowrap !important; /* ADD THIS */
 }
 
-/* Products column - 5th child */
-body.mode-products .product-map-table td:nth-child(5),
-body.mode-products .product-map-table th:nth-child(5) {
+/* Products column visibility */
+body.mode-products .products-column,
+body.mode-products .products-header {
   display: table-cell !important;
 }
 
-body.mode-companies .product-map-table td:nth-child(5),
-body.mode-companies .product-map-table th:nth-child(5) {
+body.mode-companies .products-column,
+body.mode-companies .products-header {
   display: none !important;
 }
 
-/* Companies column - 6th child */
-body.mode-companies .product-map-table td:nth-child(6),
-body.mode-companies .product-map-table th:nth-child(6) {
+/* Companies column visibility */
+body.mode-companies .companies-column,
+body.mode-companies .companies-header {
   display: table-cell !important;
 }
 
-body.mode-products .product-map-table td:nth-child(6),
-body.mode-products .product-map-table th:nth-child(6) {
+body.mode-products .companies-column,
+body.mode-products .companies-header {
   display: none !important;
 }
-/* Column visibility rules */
-body.mode-products .product-map-table td:nth-child(5),
-body.mode-products .product-map-table th:nth-child(5) { display: table-cell !important; }
-body.mode-companies .product-map-table td:nth-child(5),
-body.mode-companies .product-map-table th:nth-child(5) { display: none !important; }
-body.mode-companies .product-map-table td:nth-child(6),
-body.mode-companies .product-map-table th:nth-child(6) { display: table-cell !important; }
-body.mode-products .product-map-table td:nth-child(6),
-body.mode-products .product-map-table th:nth-child(6) { display: none !important; }
+
 /* Containers should always be visible within their cells */
 .product-cell-container {
   width: 100%;
@@ -5668,8 +5660,8 @@ thead.innerHTML = `
     <th>Location</th>
     <th>Device</th>
     <th>Top 40 Segmentation</th>
-    <th>Products</th>
-    <th>Companies</th>
+    <th class="products-header">Products</th>
+    <th class="companies-header">Companies</th>
   </tr>
 `;
 table.appendChild(thead);
@@ -5977,6 +5969,7 @@ deviceHTML += `</div>`; // Close last-tracked-container
   
 // Add products cell
 const tdProducts = document.createElement("td");
+tdProducts.className = "products-column";
 tdProducts.style.width = "100%";
 tdProducts.style.minWidth = "400px";
 
@@ -7390,7 +7383,7 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
           }
           
           const tdCompanies = document.createElement("td");
-          
+          tdCompanies.className = "companies-column";
           // Create company container
           const companyCellContainer = document.createElement("div");
           companyCellContainer.classList.add("company-cell-container");
