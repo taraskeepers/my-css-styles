@@ -1416,6 +1416,18 @@ function renderCampaignPieCharts(campaignData, popupElement) {
 }
 
 function createCompDetails(companyData, index) {
+    console.log(`[createCompDetails] Company ${index}:`, {
+    company: companyData.company,
+    rank: companyData.rank,
+    top40: companyData.top40,
+    top40Trend: companyData.top40Trend,
+    numProducts: companyData.numProducts,
+    numOnSale: companyData.numOnSale,
+    improvedCount: companyData.improvedCount,
+    newCount: companyData.newCount,
+    declinedCount: companyData.declinedCount,
+    hasHistoricalData: !!companyData.historical_data
+  });
   const container = document.createElement('div');
   container.className = 'comp-details';
   
@@ -1523,6 +1535,7 @@ function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
   
   if (window.allRows && window.allRows.length > 0) {
+    console.log('[ProductMap] Sample allRows item:', window.allRows[0]);
     const companyStatsMap = new Map();
     
     // Aggregate all data by company + search term + location + device
@@ -4217,6 +4230,36 @@ body.mode-companies .product-cell-container { display: none !important; }
 body.mode-companies .company-cell-container { display: block !important; }
 body.mode-products .product-cell-container { display: block !important; }
 body.mode-products .company-cell-container { display: none !important; }
+/* Products column - 5th child */
+body.mode-products .product-map-table td:nth-child(5),
+body.mode-products .product-map-table th:nth-child(5) {
+  display: table-cell !important;
+}
+
+body.mode-companies .product-map-table td:nth-child(5),
+body.mode-companies .product-map-table th:nth-child(5) {
+  display: none !important;
+}
+
+/* Companies column - 6th child */
+body.mode-companies .product-map-table td:nth-child(6),
+body.mode-companies .product-map-table th:nth-child(6) {
+  display: table-cell !important;
+}
+
+body.mode-products .product-map-table td:nth-child(6),
+body.mode-products .product-map-table th:nth-child(6) {
+  display: none !important;
+}
+/* Column visibility rules */
+    body.mode-products .product-map-table td:nth-child(5),
+    body.mode-products .product-map-table th:nth-child(5) { display: table-cell !important; }
+    body.mode-companies .product-map-table td:nth-child(5),
+    body.mode-companies .product-map-table th:nth-child(5) { display: none !important; }
+    body.mode-companies .product-map-table td:nth-child(6),
+    body.mode-companies .product-map-table th:nth-child(6) { display: table-cell !important; }
+    body.mode-products .product-map-table td:nth-child(6),
+    body.mode-products .product-map-table th:nth-child(6) { display: none !important; }
       `;
       document.head.appendChild(style);
     }
@@ -5593,8 +5636,8 @@ thead.innerHTML = `
     <th>Location</th>
     <th>Device</th>
     <th>Top 40 Segmentation</th>
-    <th class="products-header" style="${isCompaniesMode ? 'display:none;' : ''}">Products</th>
-    <th class="companies-header" style="${isCompaniesMode ? '' : 'display:none;'}">Companies</th>
+    <th>Products</th>
+    <th>Companies</th>
   </tr>
 `;
 table.appendChild(thead);
@@ -7362,13 +7405,9 @@ if (window.company_serp_stats && window.company_serp_stats.length > 0) {
   companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Company data not available</div>';
 }
           
-// Only append the appropriate column based on mode
-const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
-if (currentMode === 'companies') {
-  tr.appendChild(tdCompanies);
-} else {
-  tr.appendChild(tdProducts);
-}         
+// Keep this as is - append BOTH columns
+tr.appendChild(tdProducts);
+tr.appendChild(tdCompanies);      
           tbody.appendChild(tr);
         });
       });
