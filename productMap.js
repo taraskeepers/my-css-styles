@@ -1452,8 +1452,9 @@ function createCompDetails(companyData, index) {
   const logoDiv = document.createElement('div');
   logoDiv.className = 'company-logo';
   const logoImg = document.createElement('img');
-  // Use placeholder for now - replace with actual logo URLs later
-logoImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTBlMGUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nbzwvdGV4dD48L3N2Zz4=';
+  // Placeholder logo - replace with actual URLs later
+  logoImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTBlMGUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nbzwvdGV4dD48L3N2Zz4=';
+  logoImg.alt = companyData.company || 'Company Logo';
   logoDiv.appendChild(logoImg);
   container.appendChild(logoDiv);
 
@@ -1498,26 +1499,24 @@ logoImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHh
     const rankHistory = document.createElement('div');
     rankHistory.className = 'rank-history-mini';
     
-    // Get last 7 days of data
-    const last7Days = companyData.historical_data.slice(-7);
+    // Get last 7 days of data, show max 8 boxes (2 rows of 4)
+    const recentDays = companyData.historical_data.slice(-8);
     
-    last7Days.forEach((day, i) => {
-      // Show only 4 boxes per row
-      if (i < 8) {
-        const rankBox = document.createElement('div');
-        rankBox.className = `rank-box-mini ${colorRank(day.rank)}`;
-        rankBox.textContent = day.rank || '-';
-        rankHistory.appendChild(rankBox);
-      }
+    recentDays.forEach(day => {
+      const rankBox = document.createElement('div');
+      rankBox.className = `rank-box-mini ${colorRank(day.rank)}`;
+      rankBox.textContent = day.rank || '-';
+      rankHistory.appendChild(rankBox);
     });
     
     container.appendChild(rankHistory);
   }
 
-  // Store data for potential future use
-  container.companyData = companyData;
+  // Store hidden data for future use
+  container.dataset.serpData = JSON.stringify(companyData.serpData || {});
+  container.dataset.pricingData = JSON.stringify(companyData.pricingData || {});
 
-  return container;
+  return container; // IMPORTANT: Return the container!
 }
 
 async function renderProductMapTable() {
