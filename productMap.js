@@ -2511,7 +2511,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
       style.textContent = `
         .product-map-table {
           width: calc(100% - 40px);
-          min-width: 1200px;
+          min-width: 1400px;
           margin-left: 20px;
           border-collapse: collapse;
           background-color: #fff;
@@ -2553,9 +2553,10 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           width: auto; 
           min-width: 400px; /* Ensure Products column has a reasonable minimum width */
         }
-        .product-map-table th:nth-child(6), .product-map-table td:nth-child(6) { 
+.product-map-table th:nth-child(6), .product-map-table td:nth-child(6) { 
   width: auto; 
-  min-width: 600px; /* Ensure Companies column has enough width for comp-details */
+  min-width: 800px !important; /* Ensure Companies column has enough width */
+  white-space: nowrap !important; /* Prevent wrapping */
 }
         
 /* Search term tag styling - NEW */
@@ -4105,6 +4106,7 @@ input:checked + .metrics-slider:before {
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+  float: left;
 }
 
 .comp-details .company-rank {
@@ -4215,22 +4217,37 @@ input:checked + .metrics-slider:before {
 
 /* Company cell styling */
 .company-cell-container {
-  width: 100%;
-  height: 100%;
-  display: block; /* Hidden by default */
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important; /* Ensure it's block when visible */
+  min-width: 800px; /* Add minimum width */
+}
+// Force horizontal scrolling for company cells:
+td:nth-child(6) {
+  white-space: nowrap !important; /* Prevent wrapping */
+}
+
+// Clear any floats after company cells:
+.company-cell::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 
 .company-cell {
-  display: flex;
-  flex-wrap: nowrap;
+  display: flex !important;
+  flex-direction: row !important; /* ADD THIS */
+  flex-wrap: nowrap !important;
   gap: 8px;
   padding: 8px;
   overflow-x: auto;
+  overflow-y: hidden; /* ADD THIS */
   height: 100%;
+  width: 100% !important; /* ADD THIS */
+  min-width: 800px !important; /* ADD THIS */
   align-items: flex-start;
   min-height: 360px;
-  width: 100%; /* Ensure it takes full width of the cell */
-  min-width: 600px; /* Match the column minimum width */
+  white-space: nowrap !important; /* ADD THIS */
 }
 
 /* Toggle visibility based on mode */
