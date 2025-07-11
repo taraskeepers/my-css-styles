@@ -2511,6 +2511,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
       style.textContent = `
         .product-map-table {
           width: calc(100% - 40px);
+          min-width: 1200px;
           margin-left: 20px;
           border-collapse: collapse;
           background-color: #fff;
@@ -2552,6 +2553,10 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           width: auto; 
           min-width: 400px; /* Ensure Products column has a reasonable minimum width */
         }
+        .product-map-table th:nth-child(6), .product-map-table td:nth-child(6) { 
+  width: auto; 
+  min-width: 600px; /* Ensure Companies column has enough width for comp-details */
+}
         
 /* Search term tag styling - NEW */
 .search-term-tag {
@@ -4088,6 +4093,7 @@ input:checked + .metrics-slider:before {
 .comp-details {
   width: 150px;
   min-width: 150px;
+  max-width: 150px; /* Prevent growing */
   height: 360px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -4211,7 +4217,7 @@ input:checked + .metrics-slider:before {
 .company-cell-container {
   width: 100%;
   height: 100%;
-  display: none; /* Hidden by default */
+  display: block; /* Hidden by default */
 }
 
 .company-cell {
@@ -4221,8 +4227,10 @@ input:checked + .metrics-slider:before {
   padding: 8px;
   overflow-x: auto;
   height: 100%;
-  align-items: flex-start; /* Changed from center */
+  align-items: flex-start;
   min-height: 360px;
+  width: 100%; /* Ensure it takes full width of the cell */
+  min-width: 600px; /* Match the column minimum width */
 }
 
 /* Toggle visibility based on mode */
