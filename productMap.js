@@ -1572,14 +1572,9 @@ if (companyData.historical_data && companyData.historical_data.length > 0) {
 // Mini SERP Table
 const miniSerpContainer = document.createElement('div');
 miniSerpContainer.style.padding = '0 5px';
+miniSerpContainer.style.marginTop = '5px';
 
-// Title
-const miniSerpTitle = document.createElement('div');
-miniSerpTitle.className = 'mini-serp-table-title';
-miniSerpTitle.textContent = 'Market Share';
-miniSerpContainer.appendChild(miniSerpTitle);
-
-// Create table
+// Create table (no title as requested)
 const miniSerpTable = document.createElement('table');
 miniSerpTable.className = 'mini-serp-table';
 
@@ -1597,59 +1592,57 @@ miniSerpTable.appendChild(thead);
 // Create table body
 const tbody = document.createElement('tbody');
 
+// Helper function to get trend arrow and color from trend value
+const getTrendInfo = (trendValue) => {
+  const val = parseFloat(trendValue) || 0;
+  if (val > 0) {
+    return { arrow: '▲', color: 'green', class: 'trend-up' };
+  } else if (val < 0) {
+    return { arrow: '▼', color: 'red', class: 'trend-down' };
+  } else {
+    return { arrow: '±', color: 'neutral', class: 'trend-neutral' };
+  }
+};
+
 // Define segments data
 const segments = [
   { 
     name: 'Top 40', 
     share: companyData.top40 || '0', 
-    trendArrow: companyData.top40TrendArrow || '±',
-    trendValue: companyData.top40TrendValue || '0',
-    trendColor: companyData.top40TrendColor || 'neutral'
+    trend: companyData.top40Trend || 0
   },
   { 
     name: 'Top 3', 
     share: companyData.top3 || '0', 
-    trendArrow: companyData.top3TrendArrow || '±',
-    trendValue: companyData.top3TrendValue || '0',
-    trendColor: companyData.top3TrendColor || 'neutral'
+    trend: companyData.top3Trend || 0
   },
   { 
     name: 'Top 4-8', 
     share: companyData.top4_8 || '0', 
-    trendArrow: companyData.top4_8TrendArrow || '±',
-    trendValue: companyData.top4_8TrendValue || '0',
-    trendColor: companyData.top4_8TrendColor || 'neutral'
+    trend: companyData.top4_8Trend || 0
   },
   { 
     name: 'Top 9-14', 
     share: companyData.top9_14 || '0', 
-    trendArrow: companyData.top9_14TrendArrow || '±',
-    trendValue: companyData.top9_14TrendValue || '0',
-    trendColor: companyData.top9_14TrendColor || 'neutral'
+    trend: companyData.top9_14Trend || 0
   },
   { 
     name: 'Below 14', 
     share: companyData.below14 || '0', 
-    trendArrow: companyData.below14TrendArrow || '±',
-    trendValue: companyData.below14TrendValue || '0',
-    trendColor: companyData.below14TrendColor || 'neutral'
+    trend: companyData.below14Trend || 0
   }
 ];
 
 // Create rows
 segments.forEach(segment => {
   const row = document.createElement('tr');
-  
-  // Determine trend class
-  let trendClass = 'trend-neutral';
-  if (segment.trendColor === 'green') trendClass = 'trend-up';
-  else if (segment.trendColor === 'red') trendClass = 'trend-down';
+  const trendInfo = getTrendInfo(segment.trend);
   
   row.innerHTML = `
     <td class="segment-col">${segment.name}</td>
     <td class="share-col">${parseFloat(segment.share).toFixed(1)}%</td>
-    <td class="trend-col ${trendClass}">
-      ${segment.trendArrow}${segment.trendValue}%
+    <td class="trend-col ${trendInfo.class}">
+      ${trendInfo.arrow}${Math.abs(parseFloat(segment.trend)).toFixed(1)}%
     </td>
   `;
   tbody.appendChild(row);
