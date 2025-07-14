@@ -1610,15 +1610,6 @@ if (item.historical_data && item.historical_data.length > 0) {
     avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
   }
         
-        // Calculate average market share (multiply by 100 for percentage)
-        const marketShares = last7Days
-          .filter(day => day.market_share != null)
-          .map(day => parseFloat(day.market_share) * 100);
-        
-        if (marketShares.length > 0) {
-          avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
-        }
-        
         // Calculate trend (last 7 days vs previous 7 days)
         if (item.historical_data.length >= 14) {
           const prev7Days = item.historical_data.slice(-14, -7);
