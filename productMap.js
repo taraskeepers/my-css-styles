@@ -1467,18 +1467,16 @@ rankBadge.className = `company-rank ${rankColorClass}`;
 rankBadge.innerHTML = `<span class="rank-label">Rank:</span><span class="rank-value">${displayRank}</span>`;
 container.appendChild(rankBadge);
 
-// Market share gauge (top-right)
-const marketShareGauge = document.createElement('div');
-marketShareGauge.className = 'company-vis-badge';
-marketShareGauge.id = `company-vis-badge-${index}`;
-container.appendChild(marketShareGauge);
-
-// Store data for later rendering
-container.marketShareData = {
-  value: companyData.top40 || 0,
-  trend: companyData.top40Trend || 0,
-  avgRank: companyData.originalRank || companyData.rank || 'N/A'
-};
+// Market share badge (top-right) - water fill style
+const marketShareBadge = document.createElement('div');
+marketShareBadge.className = 'company-market-badge';
+const marketShareValue = companyData.top40 || 0;
+marketShareBadge.innerHTML = `
+  <div class="market-badge-value">${marketShareValue.toFixed(0)}%</div>
+  <div class="market-badge-water" style="height: ${marketShareValue}%;"></div>
+`;
+marketShareBadge.title = `Market Share: ${marketShareValue.toFixed(1)}% | Avg Rank: ${companyData.originalRank || companyData.rank || 'N/A'}`;
+container.appendChild(marketShareBadge);
 
   // Company logo
   const logoDiv = document.createElement('div');
@@ -4392,24 +4390,31 @@ body.mode-products .companies-header {
   position: absolute;
   top: 5px;
   left: 5px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
   z-index: 10;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  min-width: 40px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .company-rank .rank-label {
   font-weight: 500;
   opacity: 0.8;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .company-rank .rank-value {
   font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  margin-top: 2px;
 }
 
 .company-rank.rank-green {
@@ -4432,40 +4437,90 @@ body.mode-products .companies-header {
   color: #C62828;
 }
 
-/* Company vis badge (market share gauge) */
-.company-vis-badge {
+/* Company market badge - water fill style */
+.company-market-badge {
   position: absolute;
   top: 5px;
   right: 5px;
-  width: 90px;
-  height: 90px;
-  z-index: 10;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: #007aff;
+  z-index: 12;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  line-height: 1;
+  background: white;
+  overflow: hidden;
+  position: relative;
+}
+
+.company-market-badge .market-badge-value {
+  position: relative;
+  z-index: 1;
+  font-size: 15px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.company-market-badge .market-badge-water {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #0056b3 0%, #007aff 50%, #5ac8fa 100%);
+  transition: height 0.5s ease;
+  z-index: 0;
+  animation: wave 3s ease-in-out infinite;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 /* Products stats updated styling */
 .products-stats {
   display: flex;
   justify-content: space-between;
-  padding: 8px 10px;
+  align-items: center;
+  padding: 10px 15px;
   background: #f8f9fa;
-  margin: 5px 0;
+  margin: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
 }
 
 .products-stat-left, .products-stat-right {
   text-align: center;
+  flex: 1;
 }
 
 .stat-value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: #212529;
   line-height: 1;
+  margin-bottom: 3px;
 }
 
 .stat-label {
   font-size: 11px;
-  color: #666;
-  margin-top: 2px;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* My company special styling */
@@ -7653,60 +7708,6 @@ if (companyData.length > 0) {
     const compDetails = createCompDetails(myCompanyWithRank, 10);
     companyCellDiv.appendChild(compDetails);
   }
-
-  // Render market share gauges after DOM is ready
-  setTimeout(() => {
-    companyCellDiv.querySelectorAll('.company-vis-badge').forEach((el) => {
-      const container = el.parentElement;
-      const data = container.marketShareData;
-      if (!data) return;
-      
-      const options = {
-        series: [data.value],
-        chart: {
-          height: 90,
-          width: 90,
-          type: 'radialBar',
-          sparkline: { enabled: false }
-        },
-        plotOptions: {
-          radialBar: {
-            startAngle: -135,
-            endAngle: 135,
-            hollow: { size: '65%' },
-            track: { strokeDashArray: 6, margin: 2 },
-            dataLabels: {
-              name: { show: false },
-              value: {
-                show: true,
-                offsetY: 5,
-                fontSize: '18px',
-                fontWeight: 700,
-                formatter: function(val) {
-                  return parseFloat(val).toFixed(1) + "%";
-                }
-              }
-            }
-          }
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'dark',
-            shadeIntensity: 0.15,
-            inverseColors: false,
-            opacityFrom: 1,
-            opacityTo: 1,
-            stops: [0, 50, 65, 91]
-          }
-        },
-        stroke: { lineCap: 'butt', dashArray: 4 }
-      };
-      
-      const chart = new ApexCharts(el, options);
-      chart.render();
-    });
-  }, 100);
 } else {
     // No matching companies for this combination
     companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-style: italic;">No company data</div>';
