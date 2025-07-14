@@ -4384,14 +4384,7 @@ input:checked + .metrics-slider:before {
   margin: 5px 5px 0 5px;
   font-size: 10px;
   border-collapse: collapse;
-}
-
-.mini-serp-table-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 4px;
-  color: #333;
+  table-layout: fixed; /* Add this */
 }
 
 .mini-serp-table th {
@@ -4437,6 +4430,19 @@ input:checked + .metrics-slider:before {
 
 .mini-serp-table .trend-neutral {
   color: #666;
+}
+
+.mini-serp-table tr {
+  height: 18px !important; /* Add this - fixed row height */
+  max-height: 18px !important; /* Add this */
+}
+
+.mini-serp-table td,
+.mini-serp-table th {
+  height: 18px !important; /* Add this - fixed cell height */
+  max-height: 18px !important; /* Add this */
+  padding: 2px 4px !important; /* Ensure consistent padding */
+  vertical-align: middle; /* Add this */
 }
 
 .comp-details .rank-history-mini {
