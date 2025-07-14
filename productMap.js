@@ -1589,8 +1589,9 @@ function prepareCompanySerpsStatsData() {
   
   // Process each company's data
 window.companyStatsData.forEach(item => {
-  // Skip records with null or empty source (would become "Unknown")
-  if (!item.source || item.source.trim() === '' || !item.q || !item.location_requested || !item.device) return;
+  // Skip records with null, undefined, or empty source
+  if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
+      !item.q || !item.location_requested || !item.device) return;
     
     const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
     
@@ -7664,11 +7665,14 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
 // Populate companies for this search term/location/device combination
 if (window.company_serp_stats && window.company_serp_stats.length > 0) {
   // Filter company data for this specific combination
-  const companyData = window.company_serp_stats.filter(c => 
-    c.searchTerm === term &&
-    c.location === loc &&
-    c.device === rowData.device
-  );
+// Filter company data for this specific combination
+const companyData = window.company_serp_stats.filter(c => 
+  c.searchTerm === term &&
+  c.location === loc &&
+  c.device === rowData.device &&
+  c.company !== 'Unknown' && // Exclude Unknown companies
+  c.company && c.company.trim() !== '' // Exclude empty company names
+);
 
     console.log(`[ProductMap] Filtering companies for:`, {
     term: term,
