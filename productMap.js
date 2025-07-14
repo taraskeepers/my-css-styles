@@ -1430,6 +1430,15 @@ function createCompDetails(companyData, index) {
   });
   const container = document.createElement('div');
   container.className = 'comp-details';
+
+    // Check if this is myCompany
+  const isMyCompany = companyData.company && 
+    window.myCompany && 
+    companyData.company.toLowerCase() === window.myCompany.toLowerCase();
+  
+  if (isMyCompany) {
+    container.classList.add('my-company-comp');
+  }
   
   // Helper function for rank coloring
   const colorRank = (rank) => {
@@ -1441,25 +1450,35 @@ function createCompDetails(companyData, index) {
     return "range-red";
   };
 
-  // Rank badge (top-left)
-  const rankBadge = document.createElement('div');
-  rankBadge.className = `company-rank ${colorRank(companyData.rank)}`;
-  rankBadge.textContent = `#${companyData.displayRank || companyData.rank || '-'}`;
-  container.appendChild(rankBadge);
+// Rank badge (top-left)
+const rankBadge = document.createElement('div');
+const displayRank = companyData.displayRank || companyData.rank || '-';
+let rankColorClass = '';
+if (displayRank === 1) {
+  rankColorClass = 'rank-green';
+} else if (displayRank >= 2 && displayRank <= 3) {
+  rankColorClass = 'rank-yellow';
+} else if (displayRank >= 4 && displayRank <= 5) {
+  rankColorClass = 'rank-orange';
+} else {
+  rankColorClass = 'rank-red';
+}
+rankBadge.className = `company-rank ${rankColorClass}`;
+rankBadge.innerHTML = `<span class="rank-label">Rank:</span><span class="rank-value">${displayRank}</span>`;
+container.appendChild(rankBadge);
 
-  // Market share badge (top-right)
-  const marketShareBadge = document.createElement('div');
-  marketShareBadge.className = 'market-share-badge';
-  const marketShare = (companyData.top40 || 0).toFixed(1);
-  const trend = companyData.top40Trend || 0;
-  const trendArrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '±';
-  const trendColor = trend > 0 ? '#4CAF50' : trend < 0 ? '#F44336' : '#999';
-marketShareBadge.innerHTML = `
-  <span style="color: ${trendColor}">${marketShare}%</span>
-  <span style="color: ${trendColor}; font-size: 10px;">${trendArrow}${Math.abs(trend).toFixed(1)}%</span>
-`;
-marketShareBadge.title = `Average rank over 7 days: ${companyData.originalRank || companyData.rank || 'N/A'}`;
-  container.appendChild(marketShareBadge);
+// Market share gauge (top-right)
+const marketShareGauge = document.createElement('div');
+marketShareGauge.className = 'company-vis-badge';
+marketShareGauge.id = `company-vis-badge-${index}`;
+container.appendChild(marketShareGauge);
+
+// Store data for later rendering
+container.marketShareData = {
+  value: companyData.top40 || 0,
+  trend: companyData.top40Trend || 0,
+  avgRank: companyData.originalRank || companyData.rank || 'N/A'
+};
 
   // Company logo
   const logoDiv = document.createElement('div');
@@ -1477,16 +1496,22 @@ marketShareBadge.title = `Average rank over 7 days: ${companyData.originalRank |
   nameDiv.textContent = companyData.company || 'Unknown';
   container.appendChild(nameDiv);
 
-  // Products stats
-  const productsStats = document.createElement('div');
-  productsStats.className = 'products-stats';
-  const totalProducts = companyData.numProducts || 0;
-  const onSalePercent = companyData.numOnSale || 0;
-  productsStats.innerHTML = `
-    <div><strong>${totalProducts}</strong> products</div>
-    <div><strong>${onSalePercent}%</strong> on sale</div>
-  `;
-  container.appendChild(productsStats);
+// Products stats
+const productsStats = document.createElement('div');
+productsStats.className = 'products-stats';
+const totalProducts = companyData.numProducts || 0;
+const onSalePercent = companyData.numOnSale || 0;
+productsStats.innerHTML = `
+  <div class="products-stat-left">
+    <div class="stat-value">${totalProducts}</div>
+    <div class="stat-label">products</div>
+  </div>
+  <div class="products-stat-right">
+    <div class="stat-value">${onSalePercent}%</div>
+    <div class="stat-label">on sale</div>
+  </div>
+`;
+container.appendChild(productsStats);
 
   // Trend stats (Improved/NEW/Declined)
   const trendStats = document.createElement('div');
@@ -4167,9 +4192,9 @@ input:checked + .metrics-slider:before {
 }
 /* Company details styling for product map */
 .comp-details {
-  width: 190px;
-  min-width: 190px;
-  max-width: 190px; /* Prevent growing */
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px; /* Prevent growing */
   height: 360px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -4361,6 +4386,106 @@ body.mode-products .companies-header {
   background-color: #e0e0e0 !important;
   border: 1px dashed #ccc;
   cursor: default;
+}
+/* Company rank styling */
+.company-rank {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.company-rank .rank-label {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.company-rank .rank-value {
+  font-weight: 700;
+}
+
+.company-rank.rank-green {
+  background-color: #C8E6C9;
+  color: #2E7D32;
+}
+
+.company-rank.rank-yellow {
+  background-color: #FFF9C4;
+  color: #F57C00;
+}
+
+.company-rank.rank-orange {
+  background-color: #FFE0B2;
+  color: #E65100;
+}
+
+.company-rank.rank-red {
+  background-color: #FFCDD2;
+  color: #C62828;
+}
+
+/* Company vis badge (market share gauge) */
+.company-vis-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 90px;
+  height: 90px;
+  z-index: 10;
+}
+
+/* Products stats updated styling */
+.products-stats {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  margin: 5px 0;
+}
+
+.products-stat-left, .products-stat-right {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* My company special styling */
+.comp-details.my-company-comp {
+  border: 3px solid #28a745;
+  box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+  position: relative;
+}
+
+.comp-details.my-company-comp::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(45deg, #28a745, #4CAF50, #28a745);
+  border-radius: 11px;
+  z-index: -1;
+  opacity: 0.3;
 }
       `;
       document.head.appendChild(style);
@@ -7492,20 +7617,96 @@ if (companyData.length > 0) {
   // Sort by average rank (ascending - best rank first)
   companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
+  // Check if myCompany is in the data
+  let myCompanyData = null;
+  let myCompanyIndex = -1;
+  if (window.myCompany) {
+    myCompanyIndex = companyData.findIndex(c => 
+      c.company && c.company.toLowerCase() === window.myCompany.toLowerCase()
+    );
+    if (myCompanyIndex >= 0) {
+      myCompanyData = companyData[myCompanyIndex];
+    }
+  }
+
   // Take top 10 companies
   const topCompanies = companyData.slice(0, 10);
 
   // Recalculate relative ranks (1-10) for display
   topCompanies.forEach((company, index) => {
-    // Create a copy of company data with display rank
     const companyWithDisplayRank = {
       ...company,
-      displayRank: index + 1, // This will be 1-10
-      originalRank: company.rank // Keep original average rank for reference
+      displayRank: index + 1,
+      originalRank: company.rank
     };
     const compDetails = createCompDetails(companyWithDisplayRank, index);
     companyCellDiv.appendChild(compDetails);
   });
+
+  // If myCompany is not in top 10 but exists in data, add it as 11th
+  if (myCompanyData && myCompanyIndex >= 10) {
+    const myCompanyWithRank = {
+      ...myCompanyData,
+      displayRank: myCompanyIndex + 1, // Actual rank position
+      originalRank: myCompanyData.rank
+    };
+    const compDetails = createCompDetails(myCompanyWithRank, 10);
+    companyCellDiv.appendChild(compDetails);
+  }
+
+  // Render market share gauges after DOM is ready
+  setTimeout(() => {
+    companyCellDiv.querySelectorAll('.company-vis-badge').forEach((el) => {
+      const container = el.parentElement;
+      const data = container.marketShareData;
+      if (!data) return;
+      
+      const options = {
+        series: [data.value],
+        chart: {
+          height: 90,
+          width: 90,
+          type: 'radialBar',
+          sparkline: { enabled: false }
+        },
+        plotOptions: {
+          radialBar: {
+            startAngle: -135,
+            endAngle: 135,
+            hollow: { size: '65%' },
+            track: { strokeDashArray: 6, margin: 2 },
+            dataLabels: {
+              name: { show: false },
+              value: {
+                show: true,
+                offsetY: 5,
+                fontSize: '18px',
+                fontWeight: 700,
+                formatter: function(val) {
+                  return parseFloat(val).toFixed(1) + "%";
+                }
+              }
+            }
+          }
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            shadeIntensity: 0.15,
+            inverseColors: false,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 65, 91]
+          }
+        },
+        stroke: { lineCap: 'butt', dashArray: 4 }
+      };
+      
+      const chart = new ApexCharts(el, options);
+      chart.render();
+    });
+  }, 100);
 } else {
     // No matching companies for this combination
     companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-style: italic;">No company data</div>';
