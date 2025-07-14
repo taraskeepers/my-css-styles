@@ -4403,19 +4403,19 @@ input:checked + .metrics-slider:before {
 }
 
 .mini-serp-table .segment-col {
-  width: 60%; /* Changed from 50% */
+  width: 30% !important; /* Changed from 50% */
   font-weight: 500;
   text-align: left; /* Add this */
 }
 
 .mini-serp-table .share-col {
-  width: 20%; /* Changed from 25% */
+  width: 50% !important; /* Changed from 25% */
   text-align: right;
   font-weight: 600;
 }
 
 .mini-serp-table .trend-col {
-  width: 20%; /* Changed from 25% */
+  width: 20% !important; /* Changed from 25% */
   text-align: center;
   font-weight: 600;
   white-space: nowrap;
