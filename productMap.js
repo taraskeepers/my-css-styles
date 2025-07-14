@@ -4190,6 +4190,7 @@ input:checked + .metrics-slider:before {
 }
 /* Company details styling for product map */
 .comp-details {
+position: relative;
   width: 180px;
   min-width: 180px;
   max-width: 180px; /* Prevent growing */
@@ -4394,7 +4395,7 @@ body.mode-products .companies-header {
   border-radius: 6px;
   font-size: 10px;
   font-weight: 600;
-  z-index: 10;
+  z-index: 15; /* Changed from 10 to 15 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4441,7 +4442,7 @@ body.mode-products .companies-header {
 .company-market-badge {
   position: absolute;
   top: 5px;
-  right: 5px;
+  right: 5px !important;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -4451,13 +4452,12 @@ body.mode-products .companies-header {
   font-size: 16px;
   font-weight: 900;
   color: #007aff;
-  z-index: 12;
+  z-index: 15; /* Increased to ensure it's above logo */
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   line-height: 1;
   background: white;
   overflow: hidden;
-  position: relative;
 }
 
 .company-market-badge .market-badge-value {
@@ -4541,6 +4541,17 @@ body.mode-products .companies-header {
   border-radius: 11px;
   z-index: -1;
   opacity: 0.3;
+}
+.comp-details .company-logo {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-top: 0; /* Changed from 20px to 0 */
+  position: relative;
+  z-index: 1;
 }
       `;
       document.head.appendChild(style);
