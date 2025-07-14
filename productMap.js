@@ -1444,7 +1444,7 @@ function createCompDetails(companyData, index) {
   // Rank badge (top-left)
   const rankBadge = document.createElement('div');
   rankBadge.className = `company-rank ${colorRank(companyData.rank)}`;
-  rankBadge.textContent = `#${companyData.rank || '-'}`;
+  rankBadge.textContent = `#${companyData.displayRank || companyData.rank || '-'}`;
   container.appendChild(rankBadge);
 
   // Market share badge (top-right)
@@ -1454,10 +1454,11 @@ function createCompDetails(companyData, index) {
   const trend = companyData.top40Trend || 0;
   const trendArrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '±';
   const trendColor = trend > 0 ? '#4CAF50' : trend < 0 ? '#F44336' : '#999';
-  marketShareBadge.innerHTML = `
-    <span style="color: ${trendColor}">${marketShare}%</span>
-    <span style="color: ${trendColor}; font-size: 10px;">${trendArrow}${Math.abs(trend).toFixed(1)}%</span>
-  `;
+marketShareBadge.innerHTML = `
+  <span style="color: ${trendColor}">${marketShare}%</span>
+  <span style="color: ${trendColor}; font-size: 10px;">${trendArrow}${Math.abs(trend).toFixed(1)}%</span>
+`;
+marketShareBadge.title = `Average rank over 7 days: ${companyData.originalRank || companyData.rank || 'N/A'}`;
   container.appendChild(marketShareBadge);
 
   // Company logo
@@ -1564,8 +1565,9 @@ function prepareCompanySerpsStatsData() {
   const companyStatsMap = new Map();
   
   // Process each company's data
-  window.companyStatsData.forEach(item => {
-    if (!item.source || !item.q || !item.location_requested || !item.device) return;
+window.companyStatsData.forEach(item => {
+  // Skip records with null or empty source (would become "Unknown")
+  if (!item.source || item.source.trim() === '' || !item.q || !item.location_requested || !item.device) return;
     
     const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
     
@@ -1646,7 +1648,7 @@ if (item.historical_data && item.historical_data.length > 0) {
         location: item.location_requested,
         device: item.device,
         rank: avgRank,
-        company: item.source || 'Unknown',
+        company: item.source,
         top40: parseFloat(avgMarketShare.toFixed(1)),
         top40Trend: parseFloat(marketShareTrend.toFixed(1)),
         numProducts: Math.round(avgProducts),
@@ -7486,18 +7488,25 @@ if (window.company_serp_stats && window.company_serp_stats.length > 0) {
     matchingCompanies: companyData.length
   });
 
-  if (companyData.length > 0) {
-    // Sort by rank
-    companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+if (companyData.length > 0) {
+  // Sort by average rank (ascending - best rank first)
+  companyData.sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
-    // Take top companies (e.g., top 10)
-    const topCompanies = companyData.slice(0, 10);
+  // Take top 10 companies
+  const topCompanies = companyData.slice(0, 10);
 
-    topCompanies.forEach((company, index) => {
-      const compDetails = createCompDetails(company, index);
-      companyCellDiv.appendChild(compDetails);
-    });
-  } else {
+  // Recalculate relative ranks (1-10) for display
+  topCompanies.forEach((company, index) => {
+    // Create a copy of company data with display rank
+    const companyWithDisplayRank = {
+      ...company,
+      displayRank: index + 1, // This will be 1-10
+      originalRank: company.rank // Keep original average rank for reference
+    };
+    const compDetails = createCompDetails(companyWithDisplayRank, index);
+    companyCellDiv.appendChild(compDetails);
+  });
+} else {
     // No matching companies for this combination
     companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-style: italic;">No company data</div>';
   }
