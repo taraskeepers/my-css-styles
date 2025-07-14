@@ -4190,7 +4190,6 @@ input:checked + .metrics-slider:before {
 }
 /* Company details styling for product map */
 .comp-details {
-position: relative;
   width: 180px;
   min-width: 180px;
   max-width: 180px; /* Prevent growing */
