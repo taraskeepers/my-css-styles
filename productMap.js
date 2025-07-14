@@ -1506,23 +1506,44 @@ function createCompDetails(companyData, index) {
   `;
   container.appendChild(trendStats);
 
-  // Rank history (mini version)
-  if (companyData.historical_data && companyData.historical_data.length > 0) {
-    const rankHistory = document.createElement('div');
-    rankHistory.className = 'rank-history-mini';
-    
-    // Get last 7 days of data, show max 8 boxes (2 rows of 4)
-    const recentDays = companyData.historical_data.slice(-8);
-    
-    recentDays.forEach(day => {
-      const rankBox = document.createElement('div');
-      rankBox.className = `rank-box-mini ${colorRank(day.rank)}`;
-      rankBox.textContent = day.rank || '-';
-      rankHistory.appendChild(rankBox);
-    });
-    
-    container.appendChild(rankHistory);
+// Rank history (mini version)
+if (companyData.historical_data && companyData.historical_data.length > 0) {
+  const rankHistory = document.createElement('div');
+  rankHistory.className = 'rank-history-mini';
+  
+  // Get last 7 days (excluding today), newest first
+  const today = moment().startOf('day');
+  const dates = [];
+  for (let i = 1; i <= 7; i++) {
+    dates.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
   }
+  
+  // For each date, find if we have rank data
+  dates.forEach(dateStr => {
+    const dayData = companyData.historical_data.find(h => 
+      h.date && h.date.value === dateStr
+    );
+    
+    const rankBox = document.createElement('div');
+    
+    if (dayData && dayData.rank) {
+      const rank = parseInt(dayData.rank, 10);
+      rankBox.className = `rank-box-mini ${colorRank(rank)}`;
+      rankBox.textContent = rank;
+      rankBox.title = `${dateStr}: Rank #${rank}`;
+    } else {
+      // No data for this day - show light grey empty box
+      rankBox.className = 'rank-box-mini no-data';
+      rankBox.style.backgroundColor = '#e0e0e0';
+      rankBox.textContent = '';
+      rankBox.title = `${dateStr}: No ranking data`;
+    }
+    
+    rankHistory.appendChild(rankBox);
+  });
+  
+  container.appendChild(rankHistory);
+}
 
   // Store hidden data for future use
   container.dataset.serpData = JSON.stringify(companyData.serpData || {});
@@ -1549,25 +1570,45 @@ function prepareCompanySerpsStatsData() {
     const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
     
     if (!companyStatsMap.has(key)) {
-      // Calculate metrics from historical_data
-      let avgRank = 999;
-      let avgMarketShare = 0;
-      let marketShareTrend = 0;
-      let avgProducts = 0;
-      let avgOnSale = 0;
-      
-      if (item.historical_data && item.historical_data.length > 0) {
-        // Get last 7 days for current metrics
-        const last7Days = item.historical_data.slice(-7);
-        
-        // Calculate average rank from avg_position
-        const positions = last7Days
-          .filter(day => day.avg_position != null)
-          .map(day => parseFloat(day.avg_position));
-        
-        if (positions.length > 0) {
-          avgRank = Math.round(positions.reduce((a, b) => a + b) / positions.length);
-        }
+// Calculate metrics from historical_data
+let avgRank = 999;
+let avgMarketShare = 0;
+let marketShareTrend = 0;
+let avgProducts = 0;
+let avgOnSale = 0;
+
+if (item.historical_data && item.historical_data.length > 0) {
+  // Calculate 7-day average rank (excluding today)
+  const today = moment().startOf('day');
+  const sevenDaysAgo = today.clone().subtract(7, 'days');
+  
+  // Filter historical data for last 7 days (excluding today)
+  const last7DaysData = item.historical_data.filter(day => {
+    if (!day.date || !day.date.value) return false;
+    const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
+    return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[)'); // Include start, exclude end
+  });
+  
+  // Calculate average rank from historical rank data
+  const ranks = last7DaysData
+    .filter(day => day.rank != null)
+    .map(day => parseInt(day.rank, 10));
+  
+  if (ranks.length > 0) {
+    avgRank = Math.round(ranks.reduce((a, b) => a + b) / ranks.length);
+  }
+  
+  // Get last 7 days for market share metrics (keep existing logic)
+  const last7Days = item.historical_data.slice(-7);
+  
+  // Calculate average market share (keep existing logic)
+  const marketShares = last7Days
+    .filter(day => day.market_share != null)
+    .map(day => parseFloat(day.market_share) * 100);
+  
+  if (marketShares.length > 0) {
+    avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
+  }
         
         // Calculate average market share (multiply by 100 for percentage)
         const marketShares = last7Days
@@ -4133,9 +4174,9 @@ input:checked + .metrics-slider:before {
 }
 /* Company details styling for product map */
 .comp-details {
-  width: 150px;
-  min-width: 150px;
-  max-width: 150px; /* Prevent growing */
+  width: 190px;
+  min-width: 190px;
+  max-width: 190px; /* Prevent growing */
   height: 360px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -4322,6 +4363,11 @@ body.mode-products .companies-header {
   width: 100%;
   height: 100%;
   display: block !important; /* Always block */
+}
+.rank-box-mini.no-data {
+  background-color: #e0e0e0 !important;
+  border: 1px dashed #ccc;
+  cursor: default;
 }
       `;
       document.head.appendChild(style);
