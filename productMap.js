@@ -1569,6 +1569,98 @@ if (companyData.historical_data && companyData.historical_data.length > 0) {
   container.appendChild(rankHistory);
 }
 
+// Mini SERP Table
+const miniSerpContainer = document.createElement('div');
+miniSerpContainer.style.padding = '0 5px';
+
+// Title
+const miniSerpTitle = document.createElement('div');
+miniSerpTitle.className = 'mini-serp-table-title';
+miniSerpTitle.textContent = 'Market Share';
+miniSerpContainer.appendChild(miniSerpTitle);
+
+// Create table
+const miniSerpTable = document.createElement('table');
+miniSerpTable.className = 'mini-serp-table';
+
+// Create table header
+const thead = document.createElement('thead');
+thead.innerHTML = `
+  <tr>
+    <th class="segment-col">Segment</th>
+    <th class="share-col">Share</th>
+    <th class="trend-col">Trend</th>
+  </tr>
+`;
+miniSerpTable.appendChild(thead);
+
+// Create table body
+const tbody = document.createElement('tbody');
+
+// Define segments data
+const segments = [
+  { 
+    name: 'Top 40', 
+    share: companyData.top40 || '0', 
+    trendArrow: companyData.top40TrendArrow || '±',
+    trendValue: companyData.top40TrendValue || '0',
+    trendColor: companyData.top40TrendColor || 'neutral'
+  },
+  { 
+    name: 'Top 3', 
+    share: companyData.top3 || '0', 
+    trendArrow: companyData.top3TrendArrow || '±',
+    trendValue: companyData.top3TrendValue || '0',
+    trendColor: companyData.top3TrendColor || 'neutral'
+  },
+  { 
+    name: 'Top 4-8', 
+    share: companyData.top4_8 || '0', 
+    trendArrow: companyData.top4_8TrendArrow || '±',
+    trendValue: companyData.top4_8TrendValue || '0',
+    trendColor: companyData.top4_8TrendColor || 'neutral'
+  },
+  { 
+    name: 'Top 9-14', 
+    share: companyData.top9_14 || '0', 
+    trendArrow: companyData.top9_14TrendArrow || '±',
+    trendValue: companyData.top9_14TrendValue || '0',
+    trendColor: companyData.top9_14TrendColor || 'neutral'
+  },
+  { 
+    name: 'Below 14', 
+    share: companyData.below14 || '0', 
+    trendArrow: companyData.below14TrendArrow || '±',
+    trendValue: companyData.below14TrendValue || '0',
+    trendColor: companyData.below14TrendColor || 'neutral'
+  }
+];
+
+// Create rows
+segments.forEach(segment => {
+  const row = document.createElement('tr');
+  
+  // Determine trend class
+  let trendClass = 'trend-neutral';
+  if (segment.trendColor === 'green') trendClass = 'trend-up';
+  else if (segment.trendColor === 'red') trendClass = 'trend-down';
+  
+  row.innerHTML = `
+    <td class="segment-col">${segment.name}</td>
+    <td class="share-col">${parseFloat(segment.share).toFixed(1)}%</td>
+    <td class="trend-col ${trendClass}">
+      ${segment.trendArrow}${segment.trendValue}%
+    </td>
+  `;
+  tbody.appendChild(row);
+});
+
+miniSerpTable.appendChild(tbody);
+miniSerpContainer.appendChild(miniSerpTable);
+
+// Add to container
+container.appendChild(miniSerpContainer);
+
   // Store hidden data for future use
   container.dataset.serpData = JSON.stringify(companyData.serpData || {});
   container.dataset.pricingData = JSON.stringify(companyData.pricingData || {});
@@ -4286,6 +4378,72 @@ input:checked + .metrics-slider:before {
 .comp-details .trend-stat .count {
   font-weight: bold;
   font-size: 12px;
+}
+
+/* Hide trend stats */
+.comp-details .trend-stats {
+  display: none !important;
+}
+
+/* Mini SERP table styles */
+.mini-serp-table {
+  width: 100%;
+  margin: 5px 5px 0 5px;
+  font-size: 10px;
+  border-collapse: collapse;
+}
+
+.mini-serp-table-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.mini-serp-table th {
+  background: #f0f0f0;
+  padding: 3px 4px;
+  font-weight: 600;
+  font-size: 9px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.mini-serp-table td {
+  padding: 2px 4px;
+  border: 1px solid #eee;
+  font-size: 10px;
+}
+
+.mini-serp-table .segment-col {
+  width: 50%;
+  font-weight: 500;
+}
+
+.mini-serp-table .share-col {
+  width: 25%;
+  text-align: right;
+  font-weight: 600;
+}
+
+.mini-serp-table .trend-col {
+  width: 25%;
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mini-serp-table .trend-up {
+  color: #4CAF50;
+}
+
+.mini-serp-table .trend-down {
+  color: #F44336;
+}
+
+.mini-serp-table .trend-neutral {
+  color: #666;
 }
 
 .comp-details .rank-history-mini {
