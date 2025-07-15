@@ -1,4 +1,6 @@
 function buildProjectData(projectNumber) {
+    console.log("[TRACE buildProjectData] buildProjectData called from:");
+  console.trace();
   const projectNum = projectNumber || window.filterState.activeProjectNumber;
   
   // CRITICAL FIX: Skip cache during refresh scenarios
