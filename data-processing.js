@@ -1,22 +1,31 @@
 function buildProjectData(projectNumber) {
-    const projectNum = projectNumber || window.filterState.activeProjectNumber;
-
-// Check cache first
-const cacheKey = `project_${projectNum}_${window.filterState.engine}_${window.filterState.company}`;
-if (window.dataCache && window.dataCache.projectData[cacheKey]) {
-  // Verify cached data is not empty
-  const cachedData = window.dataCache.projectData[cacheKey];
-  if (Array.isArray(cachedData) && cachedData.length > 0) {
-    console.log("[buildProjectData] Using cached data for key:", cacheKey);
-    return cachedData;
-  } else {
-    console.log("[buildProjectData] Cached data is empty for key:", cacheKey, "- rebuilding");
-    // Clear the empty cache entry
-    delete window.dataCache.projectData[cacheKey];
+  const projectNum = projectNumber || window.filterState.activeProjectNumber;
+  
+  // CRITICAL FIX: Skip cache during refresh scenarios
+  const isRefreshScenario = window._wasRefreshing || window._isRefreshingIDB || window._skipDataCache;
+  
+  // Generate cache key
+  const cacheKey = `project_${projectNum}_${window.filterState.engine}_${window.filterState.company}`;
+  
+  // Check cache ONLY if not in refresh scenario
+  if (!isRefreshScenario && window.dataCache && window.dataCache.projectData[cacheKey]) {
+    // Verify cached data is not empty
+    const cachedData = window.dataCache.projectData[cacheKey];
+    if (Array.isArray(cachedData) && cachedData.length > 0) {
+      console.log("[buildProjectData] Using cached data for key:", cacheKey);
+      return cachedData;
+    } else {
+      console.log("[buildProjectData] Cached data is empty for key:", cacheKey, "- rebuilding");
+      delete window.dataCache.projectData[cacheKey];
+    }
   }
-}
-
-console.log("[buildProjectData] Building fresh data for project:", projectNum);
+  
+  if (isRefreshScenario) {
+    console.log("[buildProjectData] Skipping cache due to refresh scenario");
+  }
+  
+  console.log("[buildProjectData] Building fresh data for project:", projectNum);
+    
     // 1) Defensive check
     if (!Array.isArray(window.companyStatsData)) {
       console.warn("[buildProjectData] No companyStatsData or it’s not an array.");
@@ -230,19 +239,20 @@ if (projectFilteredRows.length === 0) {
       });
     });
 
-// Only cache non-empty results
-if (window.dataCache) {
+// Only cache non-empty results if not in active refresh
+if (window.dataCache && !window._isRefreshingIDB && !isRefreshScenario) {
   if (results.length > 0) {
     window.dataCache.projectData[cacheKey] = results;
     console.log("[buildProjectData] Cached results for key:", cacheKey, "with", results.length, "entries");
   } else {
-    // Clear any existing cache for this key if results are empty
     if (window.dataCache.projectData[cacheKey]) {
       delete window.dataCache.projectData[cacheKey];
       console.log("[buildProjectData] Cleared empty cache for key:", cacheKey);
     }
     console.warn("[buildProjectData] Not caching empty results for key:", cacheKey);
   }
+} else if (isRefreshScenario) {
+  console.log("[buildProjectData] Skipping cache save during refresh scenario");
 }
 
 // Also assign to window.projectTableData when called without parameters
@@ -282,16 +292,21 @@ return results;
     }
   }
 
-     // ====== ADD CACHE CHECK HERE ======
-  // Check cache
+// CRITICAL FIX: Skip cache during refresh scenarios
+  const isRefreshScenario = window._wasRefreshing || window._isRefreshingIDB || window._skipDataCache;
+
+  // Check cache ONLY if not in refresh scenario
   const cacheKey = `home_${companyName || 'all'}_${st.searchTerm}_${st.engine}_${st.period}`;
-  if (window.dataCache && window.dataCache.homeData[cacheKey]) {
+  if (!isRefreshScenario && window.dataCache && window.dataCache.homeData[cacheKey]) {
     console.log("[buildHomeData] Using cached data for key:", cacheKey);
     return window.dataCache.homeData[cacheKey];
   }
   
+  if (isRefreshScenario) {
+    console.log("[buildHomeData] Skipping cache due to refresh scenario");
+  }
+  
   console.log("[buildHomeData] Building fresh data for company:", companyName || 'all');
-  // ====== END OF CACHE CHECK ======
 
   // 2) Build a subset filter that merges old & new checks
   //    (Remove or comment out any lines you do *not* want.)
@@ -447,26 +462,33 @@ return results;
     });
   });
 
-     // ====== ADD CACHE SAVE HERE ======
-  // Cache the results before returning
-  if (window.dataCache) {
+  // Only cache if not in active refresh
+  if (window.dataCache && !window._isRefreshingIDB && !isRefreshScenario) {
     window.dataCache.homeData[cacheKey] = results;
     console.log("[buildHomeData] Cached results for key:", cacheKey);
+  } else if (isRefreshScenario) {
+    console.log("[buildHomeData] Skipping cache save during refresh scenario");
   }
-  // ====== END OF CACHE SAVE ======
 
   return results;
 } 
 
-  function computeMarketShareData(fullData, groupSmallCompanies = true) {
-      // Generate cache key
-  const cacheKey = window.dataCache ? 
+function computeMarketShareData(fullData, groupSmallCompanies = true) {
+  // CRITICAL FIX: Skip cache during refresh scenarios
+  const isRefreshScenario = window._wasRefreshing || window._isRefreshingIDB || window._skipDataCache;
+  
+  // Generate cache key
+  const cacheKey = window.dataCache && !isRefreshScenario ?
     window.dataCache.getCacheKey('marketShare', { group: groupSmallCompanies }) : null;
   
-  // Check cache
-  if (cacheKey && window.dataCache.marketShare[cacheKey]) {
+  // Check cache ONLY if not in refresh scenario
+  if (!isRefreshScenario && cacheKey && window.dataCache.marketShare[cacheKey]) {
     console.log("[computeMarketShareData] Using cached data");
     return window.dataCache.marketShare[cacheKey];
+  }
+  
+  if (isRefreshScenario) {
+    console.log("[computeMarketShareData] Skipping cache due to refresh scenario");
   }
     // 1) Filter the top-level records by Q, engine, device, location from filterState
     const fs = window.filterState;
