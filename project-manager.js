@@ -978,9 +978,20 @@ function createLocationListItem(loc) {
     if (allFresh) {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
       
-      // CRITICAL: Set the global data BEFORE calling onReceivedRows
-      window.companyStatsData = serpStatsRec.data || [];   
-      window.marketTrendsData = marketTrendsRec.data || [];
+// CRITICAL: Set the global data BEFORE calling onReceivedRows
+if (serpStatsRec && serpStatsRec.data) {
+  window.companyStatsData = serpStatsRec.data;
+  console.log("[switchAccountAndReload] Set companyStatsData to:", window.companyStatsData.length, "rows");
+} else {
+  window.companyStatsData = [];
+  console.log("[switchAccountAndReload] No serp stats data found!");
+}
+
+if (marketTrendsRec && marketTrendsRec.data) {
+  window.marketTrendsData = marketTrendsRec.data;
+} else {
+  window.marketTrendsData = [];
+}
 
 // Load Google Sheets data if available for THIS PROJECT
 Promise.all([
@@ -1057,6 +1068,9 @@ console.group("[📊 Data Injected Into Page]");
       
       // MODIFIED: Pass all data to avoid double-loading
       onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
+      // CRITICAL: Set dataLoaded flag
+window.dataLoaded = true;
+console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true");
       
     } else {
       // If missing/stale => request fresh tables from the server
