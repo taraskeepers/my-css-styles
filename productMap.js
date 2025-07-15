@@ -1888,7 +1888,7 @@ const currentMode = document.querySelector('#modeSelector .mode-option.active')?
 document.body.classList.remove('mode-products', 'mode-companies');
 document.body.classList.add(`mode-${currentMode}`);
   
-   const useLatestRecordAsEndDate = true;
+   const useLatestRecordAsEndDate = false;
       let hoverTimeout = null;
     let currentPopup = null;
     console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
