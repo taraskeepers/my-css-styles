@@ -1891,6 +1891,11 @@ async function renderProductMapTable() {
 // ALWAYS rebuild projectTableData to ensure fresh calculations
   console.log("[renderProductMapTable] Force rebuilding projectTableData for consistency");
   window.projectTableData = null; // Clear any existing data
+
+  if (window.dataCache && window.dataCache.projectData) {
+  window.dataCache.projectData = {};
+  console.log("[renderProductMapTable] Cleared ALL project data cache");
+}
   
   // Try to build projectTableData if we have the source data
   if (window.companyStatsData && window.companyStatsData.length > 0) {
