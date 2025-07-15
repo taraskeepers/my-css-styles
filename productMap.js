@@ -1880,6 +1880,35 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
+
+  // Ensure projectTableData exists before proceeding
+if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
+  console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
+  
+  // Try to build projectTableData if we have the source data
+  if (window.companyStatsData && window.companyStatsData.length > 0) {
+    if (typeof buildProjectData === 'function') {
+      buildProjectData();
+      console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
+    } else if (typeof populateProjectPage === 'function') {
+      // Fallback: extract the data building logic from populateProjectPage
+      console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
+      populateProjectPage();
+    }
+  }
+  
+  // Check again after attempting to build
+  if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
+    console.error("[renderProductMapTable] Failed to create projectTableData");
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <h3>Unable to load data</h3>
+        <p>Required data is not available. Please refresh the page and try again.</p>
+      </div>
+    `;
+    return;
+  }
+}
   
   // Always refresh company data when rendering the table
   prepareCompanySerpsStatsData();
