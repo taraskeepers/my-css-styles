@@ -1784,6 +1784,54 @@ if (item.historical_data && item.historical_data.length > 0) {
   }
 }
 
+// Calculate trends for all segments (last 7 days vs previous 7 days)
+let top3Trend = 0;
+let top4_8Trend = 0;
+let top9_14Trend = 0;
+let below14Trend = 0;
+
+if (item.historical_data.length >= 14) {
+  const prev7Days = item.historical_data.slice(-14, -7);
+  
+  // Calculate previous averages for all segments
+  const prevTop3Shares = prev7Days
+    .filter(day => day.top3_market_share != null)
+    .map(day => parseFloat(day.top3_market_share) * 100);
+  
+  const prevTop4_8Shares = prev7Days
+    .filter(day => day.top4_8_market_share != null)
+    .map(day => parseFloat(day.top4_8_market_share) * 100);
+    
+  const prevTop9_14Shares = prev7Days
+    .filter(day => day.top9_14_market_share != null)
+    .map(day => parseFloat(day.top9_14_market_share) * 100);
+    
+  const prevBelow14Shares = prev7Days
+    .filter(day => day.below14_market_share != null)
+    .map(day => parseFloat(day.below14_market_share) * 100);
+  
+  // Calculate trends
+  if (prevTop3Shares.length > 0) {
+    const prevAvg = prevTop3Shares.reduce((a, b) => a + b) / prevTop3Shares.length;
+    top3Trend = avgTop3 - prevAvg;
+  }
+  
+  if (prevTop4_8Shares.length > 0) {
+    const prevAvg = prevTop4_8Shares.reduce((a, b) => a + b) / prevTop4_8Shares.length;
+    top4_8Trend = avgTop4_8 - prevAvg;
+  }
+  
+  if (prevTop9_14Shares.length > 0) {
+    const prevAvg = prevTop9_14Shares.reduce((a, b) => a + b) / prevTop9_14Shares.length;
+    top9_14Trend = avgTop9_14 - prevAvg;
+  }
+  
+  if (prevBelow14Shares.length > 0) {
+    const prevAvg = prevBelow14Shares.reduce((a, b) => a + b) / prevBelow14Shares.length;
+    below14Trend = avgBelow14 - prevAvg;
+  }
+}
+
 companyStatsMap.set(key, {
   searchTerm: item.q,
   location: item.location_requested,
@@ -1792,10 +1840,14 @@ companyStatsMap.set(key, {
   company: item.source,
   top40: parseFloat(avgMarketShare.toFixed(1)),
   top40Trend: parseFloat(marketShareTrend.toFixed(1)),
-  top3: parseFloat(avgTop3.toFixed(1)),
-  top4_8: parseFloat(avgTop4_8.toFixed(1)),
-  top9_14: parseFloat(avgTop9_14.toFixed(1)),
-  below14: parseFloat(avgBelow14.toFixed(1)),
+top3: parseFloat(avgTop3.toFixed(1)),
+top3Trend: parseFloat(top3Trend.toFixed(1)),
+top4_8: parseFloat(avgTop4_8.toFixed(1)),
+top4_8Trend: parseFloat(top4_8Trend.toFixed(1)),
+top9_14: parseFloat(avgTop9_14.toFixed(1)),
+top9_14Trend: parseFloat(top9_14Trend.toFixed(1)),
+below14: parseFloat(avgBelow14.toFixed(1)),
+below14Trend: parseFloat(below14Trend.toFixed(1)),
   numProducts: Math.round(avgProducts),
   numOnSale: avgProducts > 0 ? Math.round((avgOnSale / avgProducts) * 100) : 0,
   improvedCount: 0,
