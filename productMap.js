@@ -4542,7 +4542,6 @@ input:checked + .metrics-slider:before {
   color: #0d0f58;
   font-weight: 700;
   font-size: 11px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .serp-row.top40 .serp-share-value {
