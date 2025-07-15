@@ -1717,37 +1717,29 @@ if (item.historical_data && item.historical_data.length > 0) {
     avgRank = Math.round(ranks.reduce((a, b) => a + b) / ranks.length);
   }
   
-// Use the same date range logic as for rank calculation
-const today = moment().startOf('day');
-const sevenDaysAgo = today.clone().subtract(7, 'days');
-
-// Filter historical data for last 7 days (excluding today)
-const last7DaysFiltered = item.historical_data.filter(day => {
-  if (!day.date || !day.date.value) return false;
-  const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
-  return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[)'); // Include start, exclude end
-});
-
-// Calculate all market share segments
-const marketShares = last7DaysFiltered
-  .filter(day => day.market_share != null)
-  .map(day => parseFloat(day.market_share) * 100);
-
-const top3Shares = last7DaysFiltered
-  .filter(day => day.top3_market_share != null)
-  .map(day => parseFloat(day.top3_market_share) * 100);
+  // Get last 7 days for market share metrics (keep existing logic)
+  const last7Days = item.historical_data.slice(-7);
   
-const top4_8Shares = last7DaysFiltered
-  .filter(day => day.top4_8_market_share != null)
-  .map(day => parseFloat(day.top4_8_market_share) * 100);
+  // Calculate all market share segments
+  const marketShares = last7Days
+    .filter(day => day.market_share != null)
+    .map(day => parseFloat(day.market_share) * 100);
   
-const top9_14Shares = last7DaysFiltered
-  .filter(day => day.top9_14_market_share != null)
-  .map(day => parseFloat(day.top9_14_market_share) * 100);
-  
-const below14Shares = last7DaysFiltered
-  .filter(day => day.below14_market_share != null)
-  .map(day => parseFloat(day.below14_market_share) * 100);
+  const top3Shares = last7Days
+    .filter(day => day.top3_market_share != null)
+    .map(day => parseFloat(day.top3_market_share) * 100);
+    
+  const top4_8Shares = last7Days
+    .filter(day => day.top4_8_market_share != null)
+    .map(day => parseFloat(day.top4_8_market_share) * 100);
+    
+  const top9_14Shares = last7Days
+    .filter(day => day.top9_14_market_share != null)
+    .map(day => parseFloat(day.top9_14_market_share) * 100);
+    
+  const below14Shares = last7Days
+    .filter(day => day.below14_market_share != null)
+    .map(day => parseFloat(day.below14_market_share) * 100);
   
   if (marketShares.length > 0) {
     avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
@@ -1765,31 +1757,27 @@ const below14Shares = last7DaysFiltered
     avgBelow14 = below14Shares.reduce((a, b) => a + b) / below14Shares.length;
   }
   
-// Calculate trend (last 7 days vs previous 7 days)
-const prevSevenDaysAgo = sevenDaysAgo.clone().subtract(7, 'days');
-const prev7Days = item.historical_data.filter(day => {
-  if (!day.date || !day.date.value) return false;
-  const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
-  return dayMoment.isBetween(prevSevenDaysAgo, sevenDaysAgo, 'day', '[)');
-});
-
-const prevShares = prev7Days
-  .filter(day => day.market_share != null)
-  .map(day => parseFloat(day.market_share) * 100);
-
-if (prevShares.length > 0) {
-  const prevAvg = prevShares.reduce((a, b) => a + b) / prevShares.length;
-  marketShareTrend = avgMarketShare - prevAvg;
-}
+  // Calculate trend (last 7 days vs previous 7 days)
+  if (item.historical_data.length >= 14) {
+    const prev7Days = item.historical_data.slice(-14, -7);
+    const prevShares = prev7Days
+      .filter(day => day.market_share != null)
+      .map(day => parseFloat(day.market_share) * 100);
+    
+    if (prevShares.length > 0) {
+      const prevAvg = prevShares.reduce((a, b) => a + b) / prevShares.length;
+      marketShareTrend = avgMarketShare - prevAvg;
+    }
+  }
   
-// Calculate product metrics
-const productCounts = last7DaysFiltered
-  .filter(day => day.unique_products != null)
-  .map(day => parseFloat(day.unique_products));
-
-const onSaleCounts = last7DaysFiltered
-  .filter(day => day.un_products_on_sale != null)
-  .map(day => parseFloat(day.un_products_on_sale));
+  // Calculate product metrics
+  const productCounts = last7Days
+    .filter(day => day.unique_products != null)
+    .map(day => parseFloat(day.unique_products));
+  
+  const onSaleCounts = last7Days
+    .filter(day => day.un_products_on_sale != null)
+    .map(day => parseFloat(day.un_products_on_sale));
   
   if (productCounts.length > 0) {
     avgProducts = productCounts.reduce((a, b) => a + b) / productCounts.length;
@@ -1805,6 +1793,9 @@ let top3Trend = 0;
 let top4_8Trend = 0;
 let top9_14Trend = 0;
 let below14Trend = 0;
+
+if (item.historical_data.length >= 14) {
+  const prev7Days = item.historical_data.slice(-14, -7);
   
   // Calculate previous averages for all segments
   const prevTop3Shares = prev7Days
