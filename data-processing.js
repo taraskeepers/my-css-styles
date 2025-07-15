@@ -1,14 +1,22 @@
-  function buildProjectData(projectNumber) {
-      const projectNum = projectNumber || window.filterState.activeProjectNumber;
-  
-  // Check cache first
-  const cacheKey = `project_${projectNum}_${window.filterState.engine}_${window.filterState.company}`;
-  if (window.dataCache && window.dataCache.projectData[cacheKey]) {
+function buildProjectData(projectNumber) {
+    const projectNum = projectNumber || window.filterState.activeProjectNumber;
+
+// Check cache first
+const cacheKey = `project_${projectNum}_${window.filterState.engine}_${window.filterState.company}`;
+if (window.dataCache && window.dataCache.projectData[cacheKey]) {
+  // Verify cached data is not empty
+  const cachedData = window.dataCache.projectData[cacheKey];
+  if (Array.isArray(cachedData) && cachedData.length > 0) {
     console.log("[buildProjectData] Using cached data for key:", cacheKey);
-    return window.dataCache.projectData[cacheKey];
+    return cachedData;
+  } else {
+    console.log("[buildProjectData] Cached data is empty for key:", cacheKey, "- rebuilding");
+    // Clear the empty cache entry
+    delete window.dataCache.projectData[cacheKey];
   }
-  
-  console.log("[buildProjectData] Building fresh data for project:", projectNum);
+}
+
+console.log("[buildProjectData] Building fresh data for project:", projectNum);
     // 1) Defensive check
     if (!Array.isArray(window.companyStatsData)) {
       console.warn("[buildProjectData] No companyStatsData or it’s not an array.");
