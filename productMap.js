@@ -4484,7 +4484,7 @@ input:checked + .metrics-slider:before {
 .serp-row {
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   height: 24px;
   position: relative;
 }
@@ -4539,7 +4539,7 @@ input:checked + .metrics-slider:before {
 }
 
 .serp-share-value {
-  color: white;
+  color: #0d0f58;
   font-weight: 700;
   font-size: 11px;
   text-shadow: 0 1px 2px rgba(0,0,0,0.2);
