@@ -1880,6 +1880,34 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
+
+    // CRITICAL: Check if data is loaded
+  if (!window.dataLoaded || !window.companyStatsData || window.companyStatsData.length === 0) {
+    console.warn("[renderProductMapTable] Data not yet loaded, showing loader");
+    
+    // Show a loading message in the product map container
+    const container = document.getElementById("productMapPage");
+    if (container) {
+      container.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
+          <div style="text-align: center;">
+            <div class="spinner"></div>
+            <p style="margin-top: 20px;">Loading product data...</p>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Wait for data to be loaded
+    const checkDataInterval = setInterval(() => {
+      if (window.dataLoaded && window.companyStatsData && window.companyStatsData.length > 0) {
+        clearInterval(checkDataInterval);
+        renderProductMapTable(); // Retry rendering
+      }
+    }, 500);
+    
+    return;
+  }
   
   // Always refresh company data when rendering the table
   prepareCompanySerpsStatsData();
