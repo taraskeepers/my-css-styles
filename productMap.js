@@ -6599,7 +6599,49 @@ const myCompanyProducts = window.allRows.filter(p =>
   p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
 );
 
-const chartData = calculateAggregateSegmentData(myCompanyProducts);
+// For chart data, use company stats data (same as mini-serp-table)
+let chartData = null;
+
+if (window.company_serp_stats && window.company_serp_stats.length > 0) {
+  // Find matching company stats for this term/location/device
+  const companyStats = window.company_serp_stats.find(c => 
+    c.searchTerm === term &&
+    c.location === loc &&
+    c.device === rowData.device &&
+    c.company && c.company.toLowerCase() === (companyToFilter || "").toLowerCase()
+  );
+  
+  if (companyStats) {
+    // Format the company stats data to match chart format
+    chartData = [
+      { 
+        label: "Top3", 
+        current: parseFloat(companyStats.top3 || 0), 
+        previous: parseFloat(companyStats.top3 || 0) - parseFloat(companyStats.top3Trend || 0)
+      },
+      { 
+        label: "Top4-8", 
+        current: parseFloat(companyStats.top4_8 || 0), 
+        previous: parseFloat(companyStats.top4_8 || 0) - parseFloat(companyStats.top4_8Trend || 0)
+      },
+      { 
+        label: "Top9-14", 
+        current: parseFloat(companyStats.top9_14 || 0), 
+        previous: parseFloat(companyStats.top9_14 || 0) - parseFloat(companyStats.top9_14Trend || 0)
+      },
+      { 
+        label: "Below14", 
+        current: parseFloat(companyStats.below14 || 0), 
+        previous: parseFloat(companyStats.below14 || 0) - parseFloat(companyStats.below14Trend || 0)
+      }
+    ];
+  }
+}
+
+// Fallback to product-based calculation if no company stats found
+if (!chartData) {
+  chartData = calculateAggregateSegmentData(myCompanyProducts);
+}
 
 // Filter active and inactive products FROM myCompany products for stats
 const activeProducts = myCompanyProducts.filter(product => 
