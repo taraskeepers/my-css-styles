@@ -1,3 +1,63 @@
+// Add this new function at the beginning of project-manager.js
+function validateCompanyStatsData(data, projectNumber) {
+  console.group("[validateCompanyStatsData] Validating data integrity");
+  
+  if (!Array.isArray(data) || data.length === 0) {
+    console.error("Data is not an array or is empty");
+    console.groupEnd();
+    return false;
+  }
+  
+  // Check if all rows have the correct project_number
+  const projectNumbers = new Set(data.map(row => row.project_number));
+  if (projectNumbers.size > 1) {
+    console.error("Data contains multiple project numbers:", [...projectNumbers]);
+    console.groupEnd();
+    return false;
+  }
+  
+  if (!projectNumbers.has(projectNumber)) {
+    console.error(`Data doesn't contain expected project number ${projectNumber}`);
+    console.groupEnd();
+    return false;
+  }
+  
+  // Check for required fields in each row
+  const requiredFields = ['q', 'location_requested', 'device', 'historical_data'];
+  const missingFields = [];
+  
+  data.forEach((row, index) => {
+    requiredFields.forEach(field => {
+      if (!row.hasOwnProperty(field)) {
+        missingFields.push(`Row ${index} missing field: ${field}`);
+      }
+    });
+  });
+  
+  if (missingFields.length > 0) {
+    console.warn("Missing fields detected:", missingFields);
+  }
+  
+  // Check if historical_data is properly structured
+  const invalidHistoricalData = data.filter(row => 
+    !Array.isArray(row.historical_data) || row.historical_data.length === 0
+  );
+  
+  if (invalidHistoricalData.length > 0) {
+    console.warn(`${invalidHistoricalData.length} rows have invalid historical_data`);
+  }
+  
+  console.log("Validation summary:", {
+    totalRows: data.length,
+    projectNumber: [...projectNumbers][0],
+    hasAllRequiredFields: missingFields.length === 0,
+    validHistoricalData: invalidHistoricalData.length === 0
+  });
+  
+  console.groupEnd();
+  return true;
+}
+
 /*******************************************************
   3) The “renderProjects()” function
      (Builds the leftColumn content: project list, sub-menus, etc.)
@@ -877,7 +937,7 @@ function createLocationListItem(loc) {
  * and then rebuild the embed’s UI.
  */
 
- async function switchAccountAndReload(prefix, projectNumber) {
+async function switchAccountAndReload(prefix, projectNumber) {
   console.group("[switchAccountAndReload DEBUG]");
   console.log("Called with prefix:", prefix, "projectNumber:", projectNumber);
   console.log("Previous dataPrefix:", window.dataPrefix);
@@ -911,6 +971,18 @@ function createLocationListItem(loc) {
   window.dataPrefix = prefix;
   console.log("[DEBUG] dataPrefix now:", window.dataPrefix);
   synchronizeProjectData();  // Keep this important call
+
+  // Helper function to check if timestamp is from today
+  const isToday = (timestamp) => {
+    if (!timestamp) return false;
+    const today = new Date();
+    const thatDay = new Date(timestamp);
+    return (
+      thatDay.getDate() === today.getDate() &&
+      thatDay.getMonth() === today.getMonth() &&
+      thatDay.getFullYear() === today.getFullYear()
+    );
+  };
 
   // 3) Attempt to read IDB records for processed, serp, and market_trends
   try {
@@ -978,99 +1050,165 @@ function createLocationListItem(loc) {
     if (allFresh) {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
       
-// CRITICAL: Set the global data BEFORE calling onReceivedRows
-if (serpStatsRec && serpStatsRec.data) {
-  window.companyStatsData = serpStatsRec.data;
-  console.log("[switchAccountAndReload] Set companyStatsData to:", window.companyStatsData.length, "rows");
-} else {
-  window.companyStatsData = [];
-  console.log("[switchAccountAndReload] No serp stats data found!");
-}
-
-if (marketTrendsRec && marketTrendsRec.data) {
-  window.marketTrendsData = marketTrendsRec.data;
-} else {
-  window.marketTrendsData = [];
-}
-
-// Load Google Sheets data if available for THIS PROJECT
-Promise.all([
-  window.embedIDB.getData(prefix + "googleSheets_productPerformance"),
-  window.embedIDB.getData(prefix + "googleSheets_locationRevenue")
-]).then(([productRec, locationRec]) => {
-  if (productRec?.data && locationRec?.data) {
-    console.log("[Google Sheets] Loaded from IDB cache for project:", projectNumber);
-    window.googleSheetsData = {
-      productPerformance: productRec.data,
-      locationRevenue: locationRec.data
-    };
-  } else {
-    // NO AUTO-FETCH! Just set empty data
-    console.log("[Google Sheets] No data for project", projectNumber, "- user hasn't uploaded sheets for this project");
-    window.googleSheetsData = {
-      productPerformance: [],
-      locationRevenue: []
-    };
-  }
-}).catch(err => {
-  console.log("[Google Sheets] Using empty data due to error:", err.message);
-  window.googleSheetsData = {
-    productPerformance: [],
-    locationRevenue: []
-  };
-});
-
-// Update Google Ads button state for the new project
-if (typeof updateGoogleAdsButtonState === 'function') {
-  updateGoogleAdsButtonState();
-}
-
-      const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
-      console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
-      if (loadedProjectNumbers.size !== 1) {
-        console.warn("[⚠️] Loaded companyStatsData has multiple project_numbers!");
-      }      
-
-console.group("[📊 Data Injected Into Page]");
-      console.log("window.dataPrefix =", window.dataPrefix);
-      console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
-      console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
-      console.groupEnd();
+      // CRITICAL ADDITION: Add comprehensive data validation
+      let dataValid = false;
       
-      // Update company from myCompanyArray for current project
-      if (typeof updateCompanySelector === 'function') {
-        updateCompanySelector();
-        console.log("[switchAccountAndReload] Called updateCompanySelector after data load");
-      } else {
-        // Fallback if updateCompanySelector is not available
-        if (window.myCompanyArray && window.myCompanyArray.length > 0) {
-          const projectKeyForMatching = window.dataPrefix.replace(/_+$/, '');
-          const projectMatch = window.myCompanyArray.find(item => {
-            if (!item) return false;
-            const [key] = item.split(' - ');
-            return key === projectKeyForMatching;
-          });
+      try {
+        // Step 1: Validate the raw data
+        if (serpStatsRec && serpStatsRec.data) {
+          dataValid = validateCompanyStatsData(serpStatsRec.data, projectNumber);
           
-          if (projectMatch) {
-            const company = projectMatch.split(' - ')[1] || "";
-            window.myCompany = company;
-            window.filterState.company = company;
-            console.log("[switchAccountAndReload] Updated myCompany to:", company);
+          if (!dataValid) {
+            console.error("[switchAccountAndReload] Data validation failed!");
+            throw new Error("Invalid company stats data");
+          }
+          
+          // Step 2: Set the data with validation
+          window.companyStatsData = serpStatsRec.data;
+          console.log("[switchAccountAndReload] Set validated companyStatsData:", 
+            window.companyStatsData.length, "rows");
+          
+          // Step 3: Double-check the data was set correctly
+          if (window.companyStatsData !== serpStatsRec.data) {
+            console.error("[switchAccountAndReload] Data assignment verification failed!");
+            throw new Error("Data was not properly assigned");
+          }
+        } else {
+          throw new Error("No serp stats data found");
+        }
+        
+        // Step 4: Set market trends data
+        if (marketTrendsRec && marketTrendsRec.data) {
+          window.marketTrendsData = marketTrendsRec.data;
+        } else {
+          window.marketTrendsData = [];
+        }
+        
+        // Step 5: Create a promise to ensure onReceivedRowsWithData completes
+        const dataProcessingComplete = new Promise((resolve) => {
+          // Wrap the onReceivedRowsWithData call
+          const originalOnReceivedRowsWithData = window.onReceivedRowsWithData;
+          
+          window.onReceivedRowsWithData = function(...args) {
+            // Call the original function
+            const result = originalOnReceivedRowsWithData.apply(this, args);
             
-            // Update UI
-            const companyText = document.getElementById("companyText");
-            if (companyText) {
-              companyText.textContent = company;
+            // Restore the original function
+            window.onReceivedRowsWithData = originalOnReceivedRowsWithData;
+            
+            // Wait a bit to ensure all synchronous processing is done
+            setTimeout(() => {
+              console.log("[switchAccountAndReload] onReceivedRowsWithData completed");
+              resolve(result);
+            }, 100);
+            
+            return result;
+          };
+          
+          // Call onReceivedRowsWithData
+          onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
+        });
+        
+        // Step 6: Wait for data processing to complete
+        await dataProcessingComplete;
+        
+        // Step 7: Final validation after processing
+        if (!window.companyStatsData || window.companyStatsData.length === 0) {
+          throw new Error("companyStatsData is empty after processing");
+        }
+        
+        // Step 8: Load Google Sheets data (existing code)
+        Promise.all([
+          window.embedIDB.getData(prefix + "googleSheets_productPerformance"),
+          window.embedIDB.getData(prefix + "googleSheets_locationRevenue")
+        ]).then(([productRec, locationRec]) => {
+          if (productRec?.data && locationRec?.data) {
+            console.log("[Google Sheets] Loaded from IDB cache for project:", projectNumber);
+            window.googleSheetsData = {
+              productPerformance: productRec.data,
+              locationRevenue: locationRec.data
+            };
+          } else {
+            // NO AUTO-FETCH! Just set empty data
+            console.log("[Google Sheets] No data for project", projectNumber, "- user hasn't uploaded sheets for this project");
+            window.googleSheetsData = {
+              productPerformance: [],
+              locationRevenue: []
+            };
+          }
+        }).catch(err => {
+          console.log("[Google Sheets] Using empty data due to error:", err.message);
+          window.googleSheetsData = {
+            productPerformance: [],
+            locationRevenue: []
+          };
+        });
+
+        // Update Google Ads button state for the new project
+        if (typeof updateGoogleAdsButtonState === 'function') {
+          updateGoogleAdsButtonState();
+        }
+
+        const loadedProjectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
+        console.log("🧪 switchAccountAndReload: Loaded rows from project_numbers:", [...loadedProjectNumbers]);
+        if (loadedProjectNumbers.size !== 1) {
+          console.warn("[⚠️] Loaded companyStatsData has multiple project_numbers!");
+        }
+
+        console.group("[📊 Data Injected Into Page]");
+        console.log("window.dataPrefix =", window.dataPrefix);
+        console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
+        console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
+        console.groupEnd();
+        
+        // Update company from myCompanyArray for current project
+        if (typeof updateCompanySelector === 'function') {
+          updateCompanySelector();
+          console.log("[switchAccountAndReload] Called updateCompanySelector after data load");
+        } else {
+          // Fallback if updateCompanySelector is not available
+          if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+            const projectKeyForMatching = window.dataPrefix.replace(/_+$/, '');
+            const projectMatch = window.myCompanyArray.find(item => {
+              if (!item) return false;
+              const [key] = item.split(' - ');
+              return key === projectKeyForMatching;
+            });
+            
+            if (projectMatch) {
+              const company = projectMatch.split(' - ')[1] || "";
+              window.myCompany = company;
+              window.filterState.company = company;
+              console.log("[switchAccountAndReload] Updated myCompany to:", company);
+              
+              // Update UI
+              const companyText = document.getElementById("companyText");
+              if (companyText) {
+                companyText.textContent = company;
+              }
             }
           }
         }
+        
+        // Step 9: Set the data loaded flag
+        window.dataLoaded = true;
+        window.dataLoadTimestamp = Date.now(); // Add timestamp for debugging
+        console.log("[switchAccountAndReload] ✅ Data loading complete and validated");
+        
+      } catch (error) {
+        console.error("[switchAccountAndReload] Data loading/validation error:", error);
+        
+        // Clear any partially loaded data
+        window.companyStatsData = [];
+        window.marketTrendsData = [];
+        window.dataLoaded = false;
+        
+        // Request fresh data from server
+        window.parent.postMessage(
+          { command: "requestServerData", projectNumber: projectNumber },
+          "*"
+        );
       }
-      
-      // MODIFIED: Pass all data to avoid double-loading
-      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
-      // CRITICAL: Set dataLoaded flag
-window.dataLoaded = true;
-console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true");
       
     } else {
       // If missing/stale => request fresh tables from the server
@@ -1088,6 +1226,7 @@ console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true")
     );
   } finally {
     // 4) Hide the loader once loading is done or if we asked server
+    const loader = document.getElementById("overlayLoader");
     if (loader) {
       loader.style.opacity = "0";
       setTimeout(() => { loader.style.display = "none"; }, 500);
