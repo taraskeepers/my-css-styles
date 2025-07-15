@@ -1569,28 +1569,13 @@ if (companyData.historical_data && companyData.historical_data.length > 0) {
   container.appendChild(rankHistory);
 }
 
-// Mini SERP Table
+// Mini SERP Table - REDESIGNED
 const miniSerpContainer = document.createElement('div');
-miniSerpContainer.style.padding = '0 5px';
-miniSerpContainer.style.marginTop = '5px';
+miniSerpContainer.className = 'mini-serp-container';
 
-// Create table (no title as requested)
-const miniSerpTable = document.createElement('table');
+// Create the redesigned table structure
+const miniSerpTable = document.createElement('div');
 miniSerpTable.className = 'mini-serp-table';
-
-// Create table header
-const thead = document.createElement('thead');
-thead.innerHTML = `
-  <tr>
-    <th class="segment-col">Segment</th>
-    <th class="share-col">Share</th>
-    <th class="trend-col">Trend</th>
-  </tr>
-`;
-miniSerpTable.appendChild(thead);
-
-// Create table body
-const tbody = document.createElement('tbody');
 
 // Helper function to get trend arrow and color from trend value
 const getTrendInfo = (trendValue) => {
@@ -1609,7 +1594,8 @@ const segments = [
   { 
     name: 'Top 40', 
     share: companyData.top40 || '0', 
-    trend: companyData.top40Trend || 0
+    trend: companyData.top40Trend || 0,
+    isTop40: true
   },
   { 
     name: 'Top 3', 
@@ -1633,22 +1619,40 @@ const segments = [
   }
 ];
 
+// Find max share value for scaling
+const maxShare = Math.max(...segments.map(s => parseFloat(s.share) || 0));
+
 // Create rows
 segments.forEach(segment => {
-  const row = document.createElement('tr');
+  const row = document.createElement('div');
+  row.className = 'serp-row' + (segment.isTop40 ? ' top40' : '');
+  
   const trendInfo = getTrendInfo(segment.trend);
+  const shareValue = parseFloat(segment.share) || 0;
+  
+  // Calculate bar width (minimum 30% for visibility, maximum 90% to leave room for trend)
+  const barWidth = Math.max(30, Math.min(90, (shareValue / maxShare) * 85));
+  
+  // Determine bar color based on trend
+  let barClass = 'neutral';
+  if (trendInfo.class === 'trend-up') barClass = 'positive';
+  else if (trendInfo.class === 'trend-down') barClass = 'negative';
   
   row.innerHTML = `
-    <td class="segment-col">${segment.name}</td>
-    <td class="share-col">${parseFloat(segment.share).toFixed(1)}%</td>
-    <td class="trend-col ${trendInfo.class}">
+    <div class="serp-segment-label">${segment.name}</div>
+    <div class="serp-share-bar-container">
+      <div class="serp-share-bar ${barClass}" style="width: ${barWidth}%;">
+        <div class="serp-share-value">${shareValue.toFixed(1)}%</div>
+      </div>
+    </div>
+    <div class="serp-trend-value ${trendInfo.class}">
       ${trendInfo.arrow}${Math.abs(parseFloat(segment.trend)).toFixed(1)}%
-    </td>
+    </div>
   `;
-  tbody.appendChild(row);
+  
+  miniSerpTable.appendChild(row);
 });
 
-miniSerpTable.appendChild(tbody);
 miniSerpContainer.appendChild(miniSerpTable);
 
 // Add to container
@@ -4466,72 +4470,109 @@ input:checked + .metrics-slider:before {
   display: none !important;
 }
 
-/* Mini SERP table styles */
+/* Mini SERP table styles - REDESIGNED */
+.mini-serp-container {
+  padding: 8px 10px;
+  margin-top: 5px;
+}
+
 .mini-serp-table {
   width: 100%;
-  margin: 5px 5px 0 5px;
   font-size: 10px;
-  border-collapse: collapse;
-  table-layout: fixed; /* Add this */
 }
 
-.mini-serp-table th {
-  background: #f0f0f0;
-  padding: 3px 4px;
+.serp-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  height: 24px;
+  position: relative;
+}
+
+.serp-row.top40 {
+  height: 32px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.serp-segment-label {
+  width: 60px;
   font-weight: 600;
-  font-size: 9px;
-  text-align: left;
-  border: 1px solid #ddd;
+  font-size: 11px;
+  color: #333;
 }
 
-.mini-serp-table td {
-  padding: 2px 4px;
-  border: 1px solid #eee;
-  font-size: 10px;
+.serp-row.top40 .serp-segment-label {
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.mini-serp-table .segment-col {
-  width: 30% !important; /* Changed from 50% */
-  font-weight: 500;
-  text-align: left; /* Add this */
+.serp-share-bar-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  margin-right: 5px;
 }
 
-.mini-serp-table .share-col {
-  width: 50% !important; /* Changed from 25% */
+.serp-share-bar {
+  height: 100%;
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  transition: width 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.serp-share-bar.positive {
+  background: linear-gradient(to right, #4FC3F7, #2196F3);
+}
+
+.serp-share-bar.negative {
+  background: linear-gradient(to right, #EF5350, #F44336);
+}
+
+.serp-share-bar.neutral {
+  background: linear-gradient(to right, #90A4AE, #78909C);
+}
+
+.serp-share-value {
+  color: white;
+  font-weight: 700;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.serp-row.top40 .serp-share-value {
+  font-size: 13px;
+}
+
+.serp-trend-value {
+  width: 60px;
   text-align: right;
   font-weight: 600;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
-.mini-serp-table .trend-col {
-  width: 20% !important; /* Changed from 25% */
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
+.serp-row.top40 .serp-trend-value {
+  font-size: 11px;
 }
 
-.mini-serp-table .trend-up {
+.serp-trend-value.trend-up {
   color: #4CAF50;
 }
 
-.mini-serp-table .trend-down {
+.serp-trend-value.trend-down {
   color: #F44336;
 }
 
-.mini-serp-table .trend-neutral {
+.serp-trend-value.trend-neutral {
   color: #666;
-}
-
-.mini-serp-table tr {
-  height: 18px !important; /* Add this - fixed row height */
-  max-height: 18px !important; /* Add this */
-}
-
-.mini-serp-table td,
-.mini-serp-table th {
-  height: 18px !important; /* Add this - fixed cell height */
-  max-height: 18px !important; /* Add this */
-  padding: 2px 4px !important; /* Ensure consistent padding */
-  vertical-align: middle; /* Add this */
 }
 
 .comp-details .rank-history-mini {
