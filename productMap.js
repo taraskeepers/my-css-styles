@@ -1668,16 +1668,17 @@ container.appendChild(miniSerpContainer);
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
   
-  // Use companyStatsData as the source (same as company-details)
-  if (!window.companyStatsData || window.companyStatsData.length === 0) {
-    console.warn('[ProductMap] No companyStatsData available');
+  // CRITICAL FIX: Check for null specifically
+  if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
+    console.warn('[ProductMap] No companyStatsData available or not an array:', window.companyStatsData);
+    window.company_serp_stats = [];
     return [];
   }
   
   const companyStatsMap = new Map();
   
-  // Process each company's data
-window.companyStatsData.forEach(item => {
+  // Process each company's data - NOW SAFE because we checked it's an array
+  window.companyStatsData.forEach(item => {
   // Skip records with null, undefined, or empty source
   if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
       !item.q || !item.location_requested || !item.device) return;
