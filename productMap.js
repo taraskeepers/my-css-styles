@@ -1888,39 +1888,38 @@ async function renderProductMapTable() {
     return;
   }
   
-// Ensure projectTableData exists before proceeding
-if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
-  console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
-    
-    // Try to build projectTableData if we have the source data
-    if (window.companyStatsData && window.companyStatsData.length > 0) {
-      if (typeof buildProjectData === 'function') {
-        buildProjectData();
-        console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
-      } else if (typeof populateProjectPage === 'function') {
-        // Fallback: call populateProjectPage which includes buildProjectData
-        console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
-        populateProjectPage();
-      }
+// ALWAYS rebuild projectTableData to ensure fresh calculations
+  console.log("[renderProductMapTable] Force rebuilding projectTableData for consistency");
+  window.projectTableData = null; // Clear any existing data
+  
+  // Try to build projectTableData if we have the source data
+  if (window.companyStatsData && window.companyStatsData.length > 0) {
+    if (typeof buildProjectData === 'function') {
+      buildProjectData();
+      console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
+    } else if (typeof populateProjectPage === 'function') {
+      // Fallback: call populateProjectPage which includes buildProjectData
+      console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
+      populateProjectPage();
     }
-    
-    // Check again after attempting to build
-    if (!window.projectTableData || !Array.isArray(window.projectTableData) || window.projectTableData.length === 0) {
-      console.error("[renderProductMapTable] Failed to create projectTableData");
-      container.innerHTML = `
-        <div class="page-header">
-          <h2>Product Map</h2>
-          <div class="header-controls">
-            <button class="apple-button" disabled>Full Screen</button>
-          </div>
+  }
+  
+  // Check if build was successful
+  if (!window.projectTableData || !Array.isArray(window.projectTableData) || window.projectTableData.length === 0) {
+    console.error("[renderProductMapTable] Failed to create projectTableData");
+    container.innerHTML = `
+      <div class="page-header">
+        <h2>Product Map</h2>
+        <div class="header-controls">
+          <button class="apple-button" disabled>Full Screen</button>
         </div>
-        <div style="text-align: center; padding: 40px; color: #666;">
-          <h3>Unable to load data</h3>
-          <p>Required data is not available. Please refresh the page and try again.</p>
-        </div>
-      `;
-      return;
-    }
+      </div>
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <h3>Unable to load data</h3>
+        <p>Required data is not available.</p>
+      </div>
+    `;
+    return;
   }
   
   // Always refresh company data when rendering the table
@@ -8639,10 +8638,6 @@ function updateChartLineVisibility(chartContainer, selectedIndex) {
   chart.update('none'); // 'none' for no animation
 }
 
-if (typeof window !== 'undefined') {
-  window.renderProductMapTable = renderProductMapTable;
-}
-
 // Debug function to verify company data
 function debugCompanyData() {
   console.group('[ProductMap Debug] Company Data Check');
@@ -8664,3 +8659,7 @@ function debugCompanyData() {
 }
 
 // Call this function in browser console to debug: debugCompanyData()
+
+if (typeof window !== 'undefined') {
+  window.renderProductMapTable = renderProductMapTable;
+}
