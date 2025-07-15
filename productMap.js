@@ -6476,8 +6476,7 @@ let actualLastTrackedDate = null;
 const allProductsForDevice = window.allRows.filter(p => 
   p.q === term &&
   p.location_requested === loc &&
-  p.device === rowData.device &&
-  p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+  p.device === rowData.device
 );
 
 allProductsForDevice.forEach(product => {
