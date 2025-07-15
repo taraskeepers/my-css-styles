@@ -1697,147 +1697,168 @@ let avgTop9_14 = 0;
 let avgBelow14 = 0;
 
 if (item.historical_data && item.historical_data.length > 0) {
-  // Calculate 7-day average (excluding today)
+  // Calculate 7-day average rank (excluding today)
   const today = moment().startOf('day');
-  const yesterday = today.clone().subtract(1, 'day');
-  const sevenDaysAgo = yesterday.clone().subtract(6, 'days'); // 7 days total including yesterday
+  const sevenDaysAgo = today.clone().subtract(7, 'days');
   
-  // Find the earliest date in the data for this search_term-location-device combination
-  let earliestDate = null;
-  item.historical_data.forEach(day => {
-    if (day.date && day.date.value) {
-      const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
-      if (!earliestDate || dayMoment.isBefore(earliestDate)) {
-        earliestDate = dayMoment.clone();
-      }
-    }
+  // Filter historical data for last 7 days (excluding today)
+  const last7DaysData = item.historical_data.filter(day => {
+    if (!day.date || !day.date.value) return false;
+    const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
+    return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[)'); // Include start, exclude end
   });
   
-  // Determine the actual start date (either 7 days ago or earliest date, whichever is later)
-  let actualStartDate = sevenDaysAgo;
-  if (earliestDate && earliestDate.isAfter(sevenDaysAgo)) {
-    actualStartDate = earliestDate.clone();
+  // Calculate average rank from historical rank data
+  const ranks = last7DaysData
+    .filter(day => day.rank != null)
+    .map(day => parseInt(day.rank, 10));
+  
+  if (ranks.length > 0) {
+    avgRank = Math.round(ranks.reduce((a, b) => a + b) / ranks.length);
   }
   
-  // Calculate the actual number of days to divide by
-  const actualDaysInPeriod = yesterday.diff(actualStartDate, 'days') + 1;
+  // Get last 7 days for market share metrics - use same date filtering as rank calculat
+  const last7Days = last7DaysData;
   
-  console.log(`[ProductMap DEBUG] ${item.source} - ${item.q}:
-    - Earliest data: ${earliestDate ? earliestDate.format('YYYY-MM-DD') : 'N/A'}
-    - Period: ${actualStartDate.format('YYYY-MM-DD')} to ${yesterday.format('YYYY-MM-DD')}
-    - Days to divide by: ${actualDaysInPeriod}`);
+  // Calculate all market share segments
+  const marketShares = last7Days
+    .filter(day => day.market_share != null)
+    .map(day => parseFloat(day.market_share) * 100);
   
-  // Create a map of date -> data for easy lookup
-  const dataByDate = {};
-  item.historical_data.forEach(day => {
-    if (day.date && day.date.value) {
-      dataByDate[day.date.value] = day;
-    }
-  });
+  const top3Shares = last7Days
+    .filter(day => day.top3_market_share != null)
+    .map(day => parseFloat(day.top3_market_share) * 100);
+    
+  const top4_8Shares = last7Days
+    .filter(day => day.top4_8_market_share != null)
+    .map(day => parseFloat(day.top4_8_market_share) * 100);
+    
+  const top9_14Shares = last7Days
+    .filter(day => day.top9_14_market_share != null)
+    .map(day => parseFloat(day.top9_14_market_share) * 100);
+    
+  const below14Shares = last7Days
+    .filter(day => day.below14_market_share != null)
+    .map(day => parseFloat(day.below14_market_share) * 100);
   
-  // Check if ANY data exists in the window
-  let hasDataInWindow = false;
-  for (let d = actualStartDate.clone(); d.isSameOrBefore(yesterday); d.add(1, 'day')) {
-    if (dataByDate[d.format('YYYY-MM-DD')]) {
-      hasDataInWindow = true;
-      break;
+  if (marketShares.length > 0) {
+    avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
+  }
+  if (top3Shares.length > 0) {
+    avgTop3 = top3Shares.reduce((a, b) => a + b) / top3Shares.length;
+  }
+  if (top4_8Shares.length > 0) {
+    avgTop4_8 = top4_8Shares.reduce((a, b) => a + b) / top4_8Shares.length;
+  }
+  if (top9_14Shares.length > 0) {
+    avgTop9_14 = top9_14Shares.reduce((a, b) => a + b) / top9_14Shares.length;
+  }
+  if (below14Shares.length > 0) {
+    avgBelow14 = below14Shares.reduce((a, b) => a + b) / below14Shares.length;
+  }
+  
+  // Calculate trend (last 7 days vs previous 7 days)
+  if (item.historical_data.length >= 14) {
+    const prev7Days = item.historical_data.slice(-14, -7);
+    const prevShares = prev7Days
+      .filter(day => day.market_share != null)
+      .map(day => parseFloat(day.market_share) * 100);
+    
+    if (prevShares.length > 0) {
+      const prevAvg = prevShares.reduce((a, b) => a + b) / prevShares.length;
+      marketShareTrend = avgMarketShare - prevAvg;
     }
   }
   
-  // Skip if no data in the window
-  if (!hasDataInWindow) {
-    console.log(`[ProductMap DEBUG] Skipping ${item.source} - no data in window`);
-    return; // Don't add to companyStatsMap
+  // Calculate product metrics
+  const productCounts = last7Days
+    .filter(day => day.unique_products != null)
+    .map(day => parseFloat(day.unique_products));
+  
+  const onSaleCounts = last7Days
+    .filter(day => day.un_products_on_sale != null)
+    .map(day => parseFloat(day.un_products_on_sale));
+  
+  if (productCounts.length > 0) {
+    avgProducts = productCounts.reduce((a, b) => a + b) / productCounts.length;
   }
   
-  // Now calculate averages over the actual period
-  let rankSum = 0, rankCount = 0;
-  let marketShareSum = 0;
-  let top3Sum = 0, top4_8Sum = 0, top9_14Sum = 0, below14Sum = 0;
-  let productsSum = 0, onSaleSum = 0;
-  
-  // Iterate through each day in the actual period
-  for (let currentDay = actualStartDate.clone(); currentDay.isSameOrBefore(yesterday); currentDay.add(1, 'day')) {
-    const dateStr = currentDay.format('YYYY-MM-DD');
-    const dayData = dataByDate[dateStr];
-    
-    if (dayData) {
-      // Rank (only count days where rank exists)
-      if (dayData.rank != null) {
-        rankSum += parseFloat(dayData.rank);
-        rankCount++;
-      }
-      
-      // Market share (if no data for a day, it's 0%)
-      marketShareSum += (dayData.market_share != null) ? parseFloat(dayData.market_share) * 100 : 0;
-      
-      // Segment shares
-      top3Sum += (dayData.top3_market_share != null) ? parseFloat(dayData.top3_market_share) * 100 : 0;
-      top4_8Sum += (dayData.top4_8_market_share != null) ? parseFloat(dayData.top4_8_market_share) * 100 : 0;
-      top9_14Sum += (dayData.top9_14_market_share != null) ? parseFloat(dayData.top9_14_market_share) * 100 : 0;
-      below14Sum += (dayData.below14_market_share != null) ? parseFloat(dayData.below14_market_share) * 100 : 0;
-      
-      // Products
-      productsSum += (dayData.unique_products != null) ? parseFloat(dayData.unique_products) : 0;
-      onSaleSum += (dayData.un_products_on_sale != null) ? parseFloat(dayData.un_products_on_sale) : 0;
-    }
-    // If no data for this day, all values are 0 (company wasn't present)
-  }
-  
-  // Calculate averages - divide by actual days in period
-  avgRank = rankCount > 0 ? Math.round(rankSum / rankCount) : 999;
-  avgMarketShare = marketShareSum / actualDaysInPeriod;
-  avgTop3 = top3Sum / actualDaysInPeriod;
-  avgTop4_8 = top4_8Sum / actualDaysInPeriod;
-  avgTop9_14 = top9_14Sum / actualDaysInPeriod;
-  avgBelow14 = below14Sum / actualDaysInPeriod;
-  avgProducts = Math.round(productsSum / actualDaysInPeriod);
-  avgOnSale = avgProducts > 0 ? Math.round((onSaleSum / actualDaysInPeriod / avgProducts) * 100) : 0;
-  
-  // Calculate trend - only if we have enough historical data
-  marketShareTrend = 0;
-  top3Trend = 0;
-  top4_8Trend = 0;
-  top9_14Trend = 0;
-  below14Trend = 0;
-  
-  // Only calculate trends if we have at least 2x the period length of data
-  const requiredDaysForTrend = actualDaysInPeriod * 2;
-  const totalHistoricalDays = yesterday.diff(earliestDate, 'days') + 1;
-  
-  if (totalHistoricalDays >= requiredDaysForTrend) {
-    // Previous period is the same length as current period
-    const prevEndDate = actualStartDate.clone().subtract(1, 'day');
-    const prevStartDate = prevEndDate.clone().subtract(actualDaysInPeriod - 1, 'days');
-    
-    let prevMarketShareSum = 0;
-    let prevTop3Sum = 0, prevTop4_8Sum = 0, prevTop9_14Sum = 0, prevBelow14Sum = 0;
-    
-    for (let currentDay = prevStartDate.clone(); currentDay.isSameOrBefore(prevEndDate); currentDay.add(1, 'day')) {
-      const dateStr = currentDay.format('YYYY-MM-DD');
-      const dayData = dataByDate[dateStr];
-      if (dayData) {
-        prevMarketShareSum += (dayData.market_share != null) ? parseFloat(dayData.market_share) * 100 : 0;
-        prevTop3Sum += (dayData.top3_market_share != null) ? parseFloat(dayData.top3_market_share) * 100 : 0;
-        prevTop4_8Sum += (dayData.top4_8_market_share != null) ? parseFloat(dayData.top4_8_market_share) * 100 : 0;
-        prevTop9_14Sum += (dayData.top9_14_market_share != null) ? parseFloat(dayData.top9_14_market_share) * 100 : 0;
-        prevBelow14Sum += (dayData.below14_market_share != null) ? parseFloat(dayData.below14_market_share) * 100 : 0;
-      }
-    }
-    
-    const prevAvgShare = prevMarketShareSum / actualDaysInPeriod;
-    const prevTop3Avg = prevTop3Sum / actualDaysInPeriod;
-    const prevTop4_8Avg = prevTop4_8Sum / actualDaysInPeriod;
-    const prevTop9_14Avg = prevTop9_14Sum / actualDaysInPeriod;
-    const prevBelow14Avg = prevBelow14Sum / actualDaysInPeriod;
-    
-    marketShareTrend = avgMarketShare - prevAvgShare;
-    top3Trend = avgTop3 - prevTop3Avg;
-    top4_8Trend = avgTop4_8 - prevTop4_8Avg;
-    top9_14Trend = avgTop9_14 - prevTop9_14Avg;
-    below14Trend = avgBelow14 - prevBelow14Avg;
+  if (onSaleCounts.length > 0) {
+    avgOnSale = onSaleCounts.reduce((a, b) => a + b) / onSaleCounts.length;
   }
 }
+
+// Calculate trends for all segments (last 7 days vs previous 7 days)
+let top3Trend = 0;
+let top4_8Trend = 0;
+let top9_14Trend = 0;
+let below14Trend = 0;
+
+if (item.historical_data.length >= 14) {
+  const prev7Days = item.historical_data.slice(-14, -7);
+  
+  // Calculate previous averages for all segments
+  const prevTop3Shares = prev7Days
+    .filter(day => day.top3_market_share != null)
+    .map(day => parseFloat(day.top3_market_share) * 100);
+  
+  const prevTop4_8Shares = prev7Days
+    .filter(day => day.top4_8_market_share != null)
+    .map(day => parseFloat(day.top4_8_market_share) * 100);
+    
+  const prevTop9_14Shares = prev7Days
+    .filter(day => day.top9_14_market_share != null)
+    .map(day => parseFloat(day.top9_14_market_share) * 100);
+    
+  const prevBelow14Shares = prev7Days
+    .filter(day => day.below14_market_share != null)
+    .map(day => parseFloat(day.below14_market_share) * 100);
+  
+  // Calculate trends
+  if (prevTop3Shares.length > 0) {
+    const prevAvg = prevTop3Shares.reduce((a, b) => a + b) / prevTop3Shares.length;
+    top3Trend = avgTop3 - prevAvg;
+  }
+  
+  if (prevTop4_8Shares.length > 0) {
+    const prevAvg = prevTop4_8Shares.reduce((a, b) => a + b) / prevTop4_8Shares.length;
+    top4_8Trend = avgTop4_8 - prevAvg;
+  }
+  
+  if (prevTop9_14Shares.length > 0) {
+    const prevAvg = prevTop9_14Shares.reduce((a, b) => a + b) / prevTop9_14Shares.length;
+    top9_14Trend = avgTop9_14 - prevAvg;
+  }
+  
+  if (prevBelow14Shares.length > 0) {
+    const prevAvg = prevBelow14Shares.reduce((a, b) => a + b) / prevBelow14Shares.length;
+    below14Trend = avgBelow14 - prevAvg;
+  }
+}
+
+companyStatsMap.set(key, {
+  searchTerm: item.q,
+  location: item.location_requested,
+  device: item.device,
+  rank: avgRank,
+  company: item.source,
+  top40: parseFloat(avgMarketShare.toFixed(1)),
+  top40Trend: parseFloat(marketShareTrend.toFixed(1)),
+top3: parseFloat(avgTop3.toFixed(1)),
+top3Trend: parseFloat(top3Trend.toFixed(1)),
+top4_8: parseFloat(avgTop4_8.toFixed(1)),
+top4_8Trend: parseFloat(top4_8Trend.toFixed(1)),
+top9_14: parseFloat(avgTop9_14.toFixed(1)),
+top9_14Trend: parseFloat(top9_14Trend.toFixed(1)),
+below14: parseFloat(avgBelow14.toFixed(1)),
+below14Trend: parseFloat(below14Trend.toFixed(1)),
+  numProducts: Math.round(avgProducts),
+  numOnSale: avgProducts > 0 ? Math.round((avgOnSale / avgProducts) * 100) : 0,
+  improvedCount: 0,
+  newCount: 0,
+  declinedCount: 0,
+  historical_data: item.historical_data || []
+});
     }
   });
   
