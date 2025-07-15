@@ -1881,31 +1881,52 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
 
-    // CRITICAL: Check if data is loaded
-  if (!window.dataLoaded || !window.companyStatsData || window.companyStatsData.length === 0) {
-    console.warn("[renderProductMapTable] Data not yet loaded, showing loader");
+  // CRITICAL: Check if data is loaded
+  if (!window.companyStatsData || window.companyStatsData.length === 0) {
+    console.warn("[renderProductMapTable] Data not yet loaded");
     
-    // Show a loading message in the product map container
+    // Try to load data if switchAccountAndReload is available
+    if (typeof switchAccountAndReload === "function" && window.dataPrefix) {
+      console.log("[renderProductMapTable] Attempting to load data via switchAccountAndReload");
+      
+      const container = document.getElementById("productMapPage");
+      if (container) {
+        container.innerHTML = `
+          <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
+            <div style="text-align: center;">
+              <div class="spinner"></div>
+              <p style="margin-top: 20px;">Loading product data...</p>
+            </div>
+          </div>
+        `;
+      }
+      
+      try {
+        const projectNumber = parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1;
+        await switchAccountAndReload(window.dataPrefix, projectNumber);
+        
+        // Data should now be loaded, re-render
+        renderProductMapTable();
+        return;
+      } catch (error) {
+        console.error("[renderProductMapTable] Error loading data:", error);
+      }
+    }
+    
+    // If we still don't have data, show an error
     const container = document.getElementById("productMapPage");
     if (container) {
       container.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
           <div style="text-align: center;">
-            <div class="spinner"></div>
-            <p style="margin-top: 20px;">Loading product data...</p>
+            <p style="color: #666;">No data available. Please refresh the page.</p>
+            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+              Refresh Page
+            </button>
           </div>
         </div>
       `;
     }
-    
-    // Wait for data to be loaded
-    const checkDataInterval = setInterval(() => {
-      if (window.dataLoaded && window.companyStatsData && window.companyStatsData.length > 0) {
-        clearInterval(checkDataInterval);
-        renderProductMapTable(); // Retry rendering
-      }
-    }, 500);
-    
     return;
   }
   
