@@ -60,6 +60,19 @@ console.log("[buildProjectData] Building fresh data for project:", projectNum);
   
       return true;
     });
+
+    console.log("[buildProjectData] Filter debug:", {
+  totalRows: window.companyStatsData.length,
+  projectNum: projectNum,
+  engine: st.engine,
+  company: st.company,
+  projectFilteredRows: projectFilteredRows.length,
+  sampleRow: window.companyStatsData[0] // Log first row to see structure
+});
+
+if (projectFilteredRows.length === 0) {
+  console.warn("[buildProjectData] No rows matched filters. Sample data row:", window.companyStatsData[0]);
+}
   
     // 5) For each row in filteredRows, we have row.search. That’s the “Search Term” we want.
     //    We also have row.location_requested, row.device, plus row.historical_data
@@ -217,12 +230,28 @@ console.log("[buildProjectData] Building fresh data for project:", projectNum);
       });
     });
 
-      if (window.dataCache) {
+// Only cache non-empty results
+if (window.dataCache) {
+  if (results.length > 0) {
     window.dataCache.projectData[cacheKey] = results;
-    console.log("[buildProjectData] Cached results for key:", cacheKey);
+    console.log("[buildProjectData] Cached results for key:", cacheKey, "with", results.length, "entries");
+  } else {
+    // Clear any existing cache for this key if results are empty
+    if (window.dataCache.projectData[cacheKey]) {
+      delete window.dataCache.projectData[cacheKey];
+      console.log("[buildProjectData] Cleared empty cache for key:", cacheKey);
+    }
+    console.warn("[buildProjectData] Not caching empty results for key:", cacheKey);
   }
-  
-    return results;
+}
+
+// Also assign to window.projectTableData when called without parameters
+if (!projectNumber && results.length > 0) {
+  window.projectTableData = results;
+  console.log("[buildProjectData] Set window.projectTableData with", results.length, "entries");
+}
+
+return results;
   } 
 
 /**
