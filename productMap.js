@@ -1880,50 +1880,62 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
-
-  // Ensure projectTableData exists before proceeding
-if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
-  console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
   
-  // Try to build projectTableData if we have the source data
-  if (window.companyStatsData && window.companyStatsData.length > 0) {
-    if (typeof buildProjectData === 'function') {
-      buildProjectData();
-      console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
-    } else if (typeof populateProjectPage === 'function') {
-      // Fallback: extract the data building logic from populateProjectPage
-      console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
-      populateProjectPage();
+  // Get container early to use in error handling
+  const container = document.getElementById("productMapPage");
+  if (!container) {
+    console.error("[renderProductMapTable] productMapPage container not found");
+    return;
+  }
+  
+  // Ensure projectTableData exists before proceeding
+  if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
+    console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
+    
+    // Try to build projectTableData if we have the source data
+    if (window.companyStatsData && window.companyStatsData.length > 0) {
+      if (typeof buildProjectData === 'function') {
+        buildProjectData();
+        console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
+      } else if (typeof populateProjectPage === 'function') {
+        // Fallback: call populateProjectPage which includes buildProjectData
+        console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
+        populateProjectPage();
+      }
+    }
+    
+    // Check again after attempting to build
+    if (!window.projectTableData || !Array.isArray(window.projectTableData) || window.projectTableData.length === 0) {
+      console.error("[renderProductMapTable] Failed to create projectTableData");
+      container.innerHTML = `
+        <div class="page-header">
+          <h2>Product Map</h2>
+          <div class="header-controls">
+            <button class="apple-button" disabled>Full Screen</button>
+          </div>
+        </div>
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <h3>Unable to load data</h3>
+          <p>Required data is not available. Please refresh the page and try again.</p>
+        </div>
+      `;
+      return;
     }
   }
   
-  // Check again after attempting to build
-  if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
-    console.error("[renderProductMapTable] Failed to create projectTableData");
-    container.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #666;">
-        <h3>Unable to load data</h3>
-        <p>Required data is not available. Please refresh the page and try again.</p>
-      </div>
-    `;
-    return;
-  }
-}
-  
   // Always refresh company data when rendering the table
   prepareCompanySerpsStatsData();
-// Check current mode
-const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
-document.body.classList.remove('mode-products', 'mode-companies');
-document.body.classList.add(`mode-${currentMode}`);
   
-   const useLatestRecordAsEndDate = false;
-      let hoverTimeout = null;
-    let currentPopup = null;
-    console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
-    console.log("[renderProductMapTable] Starting to build product map table");
-    const container = document.getElementById("productMapPage");
-    if (!container) return;
+  // Check current mode
+  const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+  document.body.classList.remove('mode-products', 'mode-companies');
+  document.body.classList.add(`mode-${currentMode}`);
+  
+  const useLatestRecordAsEndDate = false;
+  let hoverTimeout = null;
+  let currentPopup = null;
+  console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
+  console.log("[renderProductMapTable] Starting to build product map table");
     
 // Simple check for Google Ads integration
 let googleAdsEnabled = false;
