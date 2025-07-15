@@ -6441,6 +6441,7 @@ if (!termCellUsed) {
           }
           
           deviceHTML += `</div>`; // Close device-share
+          
 // Find the latest tracking date from all active products
 let latestDate = null;
 
@@ -6470,14 +6471,35 @@ if (useLatestRecordAsEndDate) {
   latestDate = moment();
 }
 
+// Calculate actual last tracked date for display (regardless of useLatestRecordAsEndDate setting)
+let actualLastTrackedDate = null;
+const allProductsForDevice = window.allRows.filter(p => 
+  p.q === term &&
+  p.location_requested === loc &&
+  p.device === rowData.device &&
+  p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+);
+
+allProductsForDevice.forEach(product => {
+  if (product.historical_data && Array.isArray(product.historical_data)) {
+    product.historical_data.forEach(item => {
+      if (item.date && item.date.value) {
+        const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+        if (actualLastTrackedDate === null || itemDate.isAfter(actualLastTrackedDate)) {
+          actualLastTrackedDate = itemDate.clone();
+        }
+      }
+    });
+  }
+});
+
 // Add last tracked container
 deviceHTML += `<div class="last-tracked-container">
   <div class="last-tracked-label">Last time tracked:</div>`;
 
-if (latestDate) {
+if (actualLastTrackedDate) {
   const today = moment().startOf('day');
-  const yesterday = moment().subtract(1, 'days').startOf('day');
-  const daysDiff = today.diff(latestDate, 'days');
+  const daysDiff = today.diff(actualLastTrackedDate, 'days');
   
   let lastTrackedText = '';
   let trackingClass = '';
