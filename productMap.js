@@ -1668,17 +1668,16 @@ container.appendChild(miniSerpContainer);
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
   
-  // CRITICAL FIX: Check for null specifically
-  if (!window.companyStatsData || !Array.isArray(window.companyStatsData) || window.companyStatsData.length === 0) {
-    console.warn('[ProductMap] No companyStatsData available or not an array:', window.companyStatsData);
-    window.company_serp_stats = [];
+  // Use companyStatsData as the source (same as company-details)
+  if (!window.companyStatsData || window.companyStatsData.length === 0) {
+    console.warn('[ProductMap] No companyStatsData available');
     return [];
   }
   
   const companyStatsMap = new Map();
   
-  // Process each company's data - NOW SAFE because we checked it's an array
-  window.companyStatsData.forEach(item => {
+  // Process each company's data
+window.companyStatsData.forEach(item => {
   // Skip records with null, undefined, or empty source
   if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
       !item.q || !item.location_requested || !item.device) return;
@@ -1881,70 +1880,62 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
-
-  // CRITICAL: Check if data is loaded
-  if (!window.companyStatsData || window.companyStatsData.length === 0) {
-    console.warn("[renderProductMapTable] Data not yet loaded");
+  
+  // Get container early to use in error handling
+  const container = document.getElementById("productMapPage");
+  if (!container) {
+    console.error("[renderProductMapTable] productMapPage container not found");
+    return;
+  }
+  
+// Ensure projectTableData exists before proceeding
+if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
+  console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
     
-    // Try to load data if switchAccountAndReload is available
-    if (typeof switchAccountAndReload === "function" && window.dataPrefix) {
-      console.log("[renderProductMapTable] Attempting to load data via switchAccountAndReload");
-      
-      const container = document.getElementById("productMapPage");
-      if (container) {
-        container.innerHTML = `
-          <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
-            <div style="text-align: center;">
-              <div class="spinner"></div>
-              <p style="margin-top: 20px;">Loading product data...</p>
-            </div>
-          </div>
-        `;
-      }
-      
-      try {
-        const projectNumber = parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1;
-        await switchAccountAndReload(window.dataPrefix, projectNumber);
-        
-        // Data should now be loaded, re-render
-        renderProductMapTable();
-        return;
-      } catch (error) {
-        console.error("[renderProductMapTable] Error loading data:", error);
+    // Try to build projectTableData if we have the source data
+    if (window.companyStatsData && window.companyStatsData.length > 0) {
+      if (typeof buildProjectData === 'function') {
+        buildProjectData();
+        console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
+      } else if (typeof populateProjectPage === 'function') {
+        // Fallback: call populateProjectPage which includes buildProjectData
+        console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
+        populateProjectPage();
       }
     }
     
-    // If we still don't have data, show an error
-    const container = document.getElementById("productMapPage");
-    if (container) {
+    // Check again after attempting to build
+    if (!window.projectTableData || !Array.isArray(window.projectTableData) || window.projectTableData.length === 0) {
+      console.error("[renderProductMapTable] Failed to create projectTableData");
       container.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
-          <div style="text-align: center;">
-            <p style="color: #666;">No data available. Please refresh the page.</p>
-            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              Refresh Page
-            </button>
+        <div class="page-header">
+          <h2>Product Map</h2>
+          <div class="header-controls">
+            <button class="apple-button" disabled>Full Screen</button>
           </div>
         </div>
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <h3>Unable to load data</h3>
+          <p>Required data is not available. Please refresh the page and try again.</p>
+        </div>
       `;
+      return;
     }
-    return;
   }
   
   // Always refresh company data when rendering the table
   prepareCompanySerpsStatsData();
-// Check current mode
-const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
-document.body.classList.remove('mode-products', 'mode-companies');
-document.body.classList.add(`mode-${currentMode}`);
   
-   const useLatestRecordAsEndDate = false;
-      let hoverTimeout = null;
-    let currentPopup = null;
-    console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
-    console.log("[renderProductMapTable] Starting to build product map table");
-    const container = document.getElementById("productMapPage");
-    if (!container) return;
+  // Check current mode
+  const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+  document.body.classList.remove('mode-products', 'mode-companies');
+  document.body.classList.add(`mode-${currentMode}`);
+  
+  const useLatestRecordAsEndDate = false;
+  let hoverTimeout = null;
+  let currentPopup = null;
+  console.log("[DEBUG] Previous globalRows keys:", Object.keys(window.globalRows || {}).length);
+  console.log("[renderProductMapTable] Starting to build product map table");
     
 // Simple check for Google Ads integration
 let googleAdsEnabled = false;
