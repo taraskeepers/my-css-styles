@@ -1888,9 +1888,9 @@ async function renderProductMapTable() {
     return;
   }
   
-  // Ensure projectTableData exists before proceeding
-console.log("[renderProductMapTable] Force rebuilding projectTableData for consistency");
-window.projectTableData = null;
+// Ensure projectTableData exists before proceeding
+if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
+  console.log("[renderProductMapTable] projectTableData not available, attempting to build it");
     
     // Try to build projectTableData if we have the source data
     if (window.companyStatsData && window.companyStatsData.length > 0) {
