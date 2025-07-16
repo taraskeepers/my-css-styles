@@ -581,6 +581,10 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
 
     // Called once we receive rows from parent or IDB
 async function onReceivedRows(rows) {
+  console.log(`[onReceivedRows] Called with ${rows.length} rows`);
+  console.log(`[onReceivedRows] Current window.allRows has ${window.allRows?.length || 0} rows`);
+  console.log(`[onReceivedRows] Current dataPrefix: ${window.dataPrefix}`);
+  console.log(`[onReceivedRows] Active project: ${window.filterState?.activeProjectNumber}`);
   console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
   console.log("Received", rows.length, "rows");
 
