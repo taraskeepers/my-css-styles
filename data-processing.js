@@ -153,18 +153,6 @@ if (projectFilteredRows.length === 0) {
       // push the entire row
       groupingMap[key].push(row);
     });
-
-  // DEBUG: Log the grouping details
-console.log("[buildProjectData DEBUG] Grouping details:", {
-  totalGroups: Object.keys(groupingMap).length,
-  groups: Object.entries(groupingMap).map(([key, rows]) => ({
-    key,
-    rowCount: rows.length,
-    searchTerm: rows[0]?.q || rows[0]?.search,
-    location: rows[0]?.location_requested,
-    device: rows[0]?.device,
-    source: rows[0]?.source
-  }))
 });
   
     // 6) Now for each group, we unify all historical_data to do the same 7d/30d averaging, etc.
@@ -229,17 +217,6 @@ console.log("[buildProjectData DEBUG] Grouping details:", {
         }
       });
       const avgRank = cR>0 ? sumR/cR : 40;
-
-// DEBUG: Log rank calculation details
-console.log(`[buildProjectData DEBUG] Rank calculation for ${sTerm}:`, {
-  searchTerm: sTerm,
-  location: loc,
-  device: dev,
-  periodDays,
-  avgRank,
-  dayMapEntries: Object.entries(dayMap).length,
-  sampleDayData: Object.entries(dayMap).slice(0, 3).map(([date, data]) => ({date, ...data}))
-});
   
       let sumS=0, cS=0;
       currentArr.forEach(obj => {
@@ -249,15 +226,6 @@ console.log(`[buildProjectData DEBUG] Rank calculation for ${sTerm}:`, {
         }
       });
       const avgShare = cS>0 ? sumS/cS : 0;
-
-      // DEBUG: Log share calculation details
-console.log(`[buildProjectData DEBUG] Share calculation for ${sTerm}:`, {
-  searchTerm: sTerm,
-  sumShare,
-  countShare,
-  avgShare,
-  periodShareEntries: countShare
-});
   
       // previous average share => for trendVal
       let sumPrev=0, countPrev=0;
