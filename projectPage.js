@@ -238,98 +238,127 @@ window._projectPageInitializing = false;
   
     // -----------------------------------------------
     // 1) Build project data
-    function buildProjectData() {
-      console.group("[🧪 buildProjectData]");
-      console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
-      console.log("→ window.filterState.activeProjectNumber =", window.filterState?.activeProjectNumber);
-      console.log("→ window.myCompany =", window.myCompany);
-      console.log("→ window.frontendCompany =", window.frontendCompany);
+function buildProjectData() {
+  console.group("[🧪 buildProjectData]");
+  console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
+  console.log("→ window.filterState.activeProjectNumber =", window.filterState?.activeProjectNumber);
+  console.log("→ window.myCompany =", window.myCompany);
+  console.log("→ window.frontendCompany =", window.frontendCompany);
 
-    // Add this right after: console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
-if (window.companyStatsData && window.companyStatsData.length > 0) {
-  console.log("=== FULL DATA STRUCTURE ===");
-  console.log("Sample entry:", JSON.stringify(window.companyStatsData[0], null, 2));
-}
+  // Add this right after: console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
+  if (window.companyStatsData && window.companyStatsData.length > 0) {
+    console.log("=== FULL DATA STRUCTURE ===");
+    console.log("Sample entry:", JSON.stringify(window.companyStatsData[0], null, 2));
+  }
+  
+  let run;
+  if (!Array.isArray(window.companyStatsData)) {
+    console.warn("[buildProjectData] No companyStatsData array found.");
+    return [];
+  }
+
+  // CRITICAL FIX: Remove this global patching that contaminates all projects!
+  // DELETE OR COMMENT OUT THESE LINES:
+  /*
+  window.companyStatsData.forEach(row => {
+    if (row.source == null) {
+      row.source = window.myCompany || "Unknown";
+    }
+  });
+  */
+  
+  // Instead, only patch sources for the current project AFTER filtering
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+  let targetCompany;
+  
+  if (isDemo) {
+    targetCompany = "nike"; // lowercase for comparison
+    console.log("[buildProjectData] Using DEMO company: Nike");
+  } else {
+    // For Account 1, prioritize frontendCompany
+    targetCompany = (window.frontendCompany || window.myCompany || "").trim().toLowerCase();
+    console.log("[buildProjectData] Using real account company:", targetCompany);
+  }
+
+  const uniqueProjects = new Set(window.companyStatsData.map(r => r.project_number));
+  console.log("[🧪 buildProjectData] Unique project_numbers found in companyStatsData:", [...uniqueProjects]);
+  if (uniqueProjects.size > 1) {
+    console.warn("[🚨] More than 1 project_number detected in companyStatsData. This may cause cross-project contamination.");
+  }
+
+  // Log project_number and company source for debugging
+  window.companyStatsData.forEach(row => {
+    console.log("→ row.project_number:", row.project_number);
+  });
+
+  // Log all available companies for debugging
+  const availableCompanies = [...new Set(window.companyStatsData.map(r => r.source?.toLowerCase()))];
+  console.log("[buildProjectData] Available companies:", availableCompanies);
+
+  // Apply filter based on active project number FIRST
+  let projectFiltered = window.companyStatsData.filter(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber;
+  });
+  
+  console.log(`[buildProjectData] Filtered to ${projectFiltered.length} records for project ${activeProjectNumber}`);
+  
+  // NOW patch sources only for this project's records if needed
+  if (!isDemo && window.myCompanyArray && window.myCompanyArray.length > 0) {
+    const projectKey = `acc1_pr${activeProjectNumber}`;
+    const projectMatch = window.myCompanyArray.find(item => {
+      if (!item) return false;
+      const [key] = item.split(' - ');
+      return key === projectKey;
+    });
     
-      let run;
-      if (!Array.isArray(window.companyStatsData)) {
-        console.warn("[buildProjectData] No companyStatsData array found.");
-        return [];
-      }
-    
-      window.companyStatsData.forEach(row => {
-        if (row.source == null) {
-          row.source = window.myCompany || "Unknown";
-        }
-      });
-    
-      const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-      const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
-      let targetCompany;
+    if (projectMatch) {
+      const correctCompany = projectMatch.split(' - ')[1] || "Unknown";
+      console.log(`[buildProjectData] Patching null sources for project ${activeProjectNumber} with: ${correctCompany}`);
       
-      if (isDemo) {
-        targetCompany = "nike"; // lowercase for comparison
-        console.log("[buildProjectData] Using DEMO company: Nike");
-      } else {
-        // For Account 1, prioritize frontendCompany
-        targetCompany = (window.frontendCompany || window.myCompany || "").trim().toLowerCase();
-        console.log("[buildProjectData] Using real account company:", targetCompany);
-      }
-    
-      const uniqueProjects = new Set(window.companyStatsData.map(r => r.project_number));
-      console.log("[🧪 buildProjectData] Unique project_numbers found in companyStatsData:", [...uniqueProjects]);
-      if (uniqueProjects.size > 1) {
-        console.warn("[🚨] More than 1 project_number detected in companyStatsData. This may cause cross-project contamination.");
-      }
-    
-      // Log project_number and company source for debugging
-      window.companyStatsData.forEach(row => {
-        console.log("→ row.project_number:", row.project_number);
-      });
-    
-      // Log all available companies for debugging
-      const availableCompanies = [...new Set(window.companyStatsData.map(r => r.source?.toLowerCase()))];
-      console.log("[buildProjectData] Available companies:", availableCompanies);
-    
-      // Apply filter based on active project number and company with more flexible matching
-      let filtered = window.companyStatsData.filter(row => {
-        const rowProjNum = parseInt(row.project_number, 10);
-        const rowCompany = (row.source || "").trim().toLowerCase();
-        
-        // More flexible matching options:
-        return rowProjNum === activeProjectNumber && (
-          rowCompany === targetCompany || 
-          rowCompany.includes(targetCompany) || 
-          targetCompany.includes(rowCompany)
-        );
-      });
-    
-      // If no matches found, fall back to showing all companies for this project
-      if (!filtered.length) {
-        console.warn(`[buildProjectData] No matches for company "${targetCompany}". Showing all companies for project ${activeProjectNumber}.`);
-        filtered = window.companyStatsData.filter(row => 
-          parseInt(row.project_number, 10) === activeProjectNumber
-        );
-        
-        // Still no matches? Try a fallback company from your data
-        if (!filtered.length && availableCompanies.length > 0) {
-          const fallbackCompany = availableCompanies[0];
-          console.warn(`[buildProjectData] No data for project ${activeProjectNumber}. Using fallback company: ${fallbackCompany}`);
-          filtered = window.companyStatsData.filter(row => 
-            (row.source || "").trim().toLowerCase() === fallbackCompany
-          );
+      projectFiltered.forEach(row => {
+        if (!row.source || row.source === "Unknown") {
+          row.source = correctCompany;
         }
-      }
+      });
+    }
+  }
+  
+  // Now filter by company
+  let filtered = projectFiltered.filter(row => {
+    const rowCompany = (row.source || "").trim().toLowerCase();
     
-      console.log("→ Filtered rows:", filtered.length);
-      console.log("→ First filtered row (if any):", filtered[0]);
+    // More flexible matching options:
+    return rowCompany === targetCompany || 
+           rowCompany.includes(targetCompany) || 
+           targetCompany.includes(rowCompany);
+  });
 
-        // Add after: console.log("→ Filtered rows:", filtered.length);
-console.log("=== FILTERED DATA ===");
-console.log("Filter criteria:", { activeProjectNumber, targetCompany });
-if (filtered.length > 0) {
-  console.log("Filtered sample:", JSON.stringify(filtered[0], null, 2));
-}
+  // If no matches found, fall back to showing all companies for this project
+  if (!filtered.length) {
+    console.warn(`[buildProjectData] No matches for company "${targetCompany}". Showing all companies for project ${activeProjectNumber}.`);
+    filtered = projectFiltered; // Use project-filtered data, not all data
+    
+    // Still no matches? Try a fallback company from your data
+    if (!filtered.length && availableCompanies.length > 0) {
+      const fallbackCompany = availableCompanies[0];
+      console.warn(`[buildProjectData] No data for project ${activeProjectNumber}. Using fallback company: ${fallbackCompany}`);
+      filtered = projectFiltered.filter(row => 
+        (row.source || "").trim().toLowerCase() === fallbackCompany
+      );
+    }
+  }
+
+  console.log("→ Filtered rows:", filtered.length);
+  console.log("→ First filtered row (if any):", filtered[0]);
+
+  // Add after: console.log("→ Filtered rows:", filtered.length);
+  console.log("=== FILTERED DATA ===");
+  console.log("Filter criteria:", { activeProjectNumber, targetCompany });
+  if (filtered.length > 0) {
+    console.log("Filtered sample:", JSON.stringify(filtered[0], null, 2));
+  }
     
       if (!filtered.length) return [];
     
