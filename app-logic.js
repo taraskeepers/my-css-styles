@@ -1158,7 +1158,12 @@ function findOverallMaxDate(companyStats) {
       }
 
 function buildHomeData(targetCompany) {
-  const allRows = buildProjectData();
+    // Check if buildProjectData exists
+  if (typeof window.buildProjectData !== 'function') {
+    console.warn("[buildHomeData] buildProjectData not available yet");
+    return [];
+  }
+  const allRows = window.buildProjectData ? window.buildProjectData() : [];
   const filtered = allRows.filter(row => {
     return row.source && row.source.toLowerCase() === targetCompany.toLowerCase();
   });
