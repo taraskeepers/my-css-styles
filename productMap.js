@@ -6629,6 +6629,31 @@ tdProducts.appendChild(productsChartContainer);
 // Find and display matching products
 if (window.allRows && Array.isArray(window.allRows)) {
   console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
+
+  // Debug: Check what's actually in allRows
+console.log("[DEBUG] Sample allRows data:", {
+  totalRows: window.allRows.length,
+  firstRow: window.allRows[0],
+  uniqueSearchTerms: [...new Set(window.allRows.map(r => r.q))].slice(0, 5),
+  uniqueLocations: [...new Set(window.allRows.map(r => r.location_requested))].slice(0, 5),
+  uniqueDevices: [...new Set(window.allRows.map(r => r.device))],
+  uniqueSources: [...new Set(window.allRows.map(r => r.source))].slice(0, 5),
+  filterCriteria: {
+    term: term,
+    location: loc,
+    device: rowData.device,
+    company: companyToFilter
+  }
+});
+
+// Debug: Try to find any products for this company
+const companyProducts = window.allRows.filter(p => 
+  p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+);
+console.log(`[DEBUG] Total products for ${companyToFilter}:`, companyProducts.length);
+if (companyProducts.length > 0) {
+  console.log("[DEBUG] Sample company product:", companyProducts[0]);
+}
   
   // Add a check for empty allRows
   if (window.allRows.length === 0) {
