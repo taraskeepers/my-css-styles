@@ -2059,6 +2059,10 @@ function prepareCompanySerpsStatsData() {
 }
 
 async function renderProductMapTable() {
+    console.log("=== PRE-RENDER DEBUG ===");
+  if (typeof window.debugProjectState === 'function') {
+    window.debugProjectState();
+  }
   console.group("[📊 renderProductMapTable] DEBUG");
   console.log("Starting render...");
   
