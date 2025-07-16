@@ -2059,6 +2059,19 @@ function prepareCompanySerpsStatsData() {
 }
 
 async function renderProductMapTable() {
+  console.log("[renderProductMapTable] Starting render");
+  
+  // CLEAR GLOBALROWS BEFORE EACH RENDER
+  window.globalRows = {};
+  console.log("[renderProductMapTable] Cleared globalRows to prevent data contamination");
+
+    // Get container early to use in error handling
+  const container = document.getElementById("productMapPage");
+  if (!container) {
+    console.error("[renderProductMapTable] productMapPage container not found");
+    return;
+  }
+  
     console.log("=== PRE-RENDER DEBUG ===");
   if (typeof window.debugProjectState === 'function') {
     window.debugProjectState();
@@ -2117,13 +2130,6 @@ console.log("Using projectTableData:", window.projectTableData?.length || 0, "en
 if (window.projectTableData && window.projectTableData.length > 0) {
   console.log("projectTableData sample:", JSON.stringify(window.projectTableData[0], null, 2));
 }
-  
-  // Get container early to use in error handling
-  const container = document.getElementById("productMapPage");
-  if (!container) {
-    console.error("[renderProductMapTable] productMapPage container not found");
-    return;
-  }
   
 // Ensure projectTableData exists before proceeding
 if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
