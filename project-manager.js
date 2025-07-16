@@ -938,18 +938,35 @@ function createLocationListItem(loc) {
     console.groupEnd();
 
     // 🧠 Inject project_number into each serpStats row based on serpKey
-    if (Array.isArray(serpStatsRec?.data)) {
-      const match = serpKey.match(/pr(\d+)_/);
-      const prNumber = match ? parseInt(match[1], 10) : null;
+if (Array.isArray(serpStatsRec?.data)) {
+  const match = serpKey.match(/pr(\d+)_/);
+  const prNumber = match ? parseInt(match[1], 10) : null;
 
-      if (prNumber) {
+  if (prNumber) {
+    // CRITICAL: Get the correct company for THIS project BEFORE patching
+    let correctCompanyForProject = "Unknown";
+    if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+      const projectKey = `acc1_pr${prNumber}`;
+      const projectMatch = window.myCompanyArray.find(item => {
+        if (!item) return false;
+        const [key] = item.split(' - ');
+        return key === projectKey;
+      });
+      
+      if (projectMatch) {
+        correctCompanyForProject = projectMatch.split(' - ')[1] || "Unknown";
+      }
+    }
+    
+    console.log(`[Patching] Using company "${correctCompanyForProject}" for project ${prNumber}`);
+     
         serpStatsRec.data.forEach((row, idx) => {
           if (row.project_number == null) {
             row.project_number = prNumber;
           }
-if (row.source == null) {
-  row.source = window.myCompany || "Unknown";
-}
+         if (row.source == null) {
+         row.source = window.myCompany || "Unknown";
+          }
         });
 
         console.log("[🧪 TEST] Sample patched row:");
