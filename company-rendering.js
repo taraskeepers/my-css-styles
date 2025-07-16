@@ -60,14 +60,30 @@
         showSaleColumns = mapping[window.filterState.serpSegments].showSale;
         }
       
-        // 2) Use computeMarketShareData for the *current* window
-        //    (the same function used by the market share pie chart).
-        const currentUnified = computeMarketShareData(marketData, false);
-        if (!currentUnified) {
-          const container = document.getElementById("companiesTableContainer");
-          if (container) container.innerHTML = "<p>No data</p>";
-          return;
-        }
+// 2) Use computeMarketShareData for the *current* window
+//    (the same function used by the market share pie chart).
+
+// Check if computeMarketShareData is available
+if (typeof window.computeMarketShareData !== 'function') {
+  console.warn("[renderCompaniesTable] computeMarketShareData not available yet - deferring render");
+  const container = document.getElementById("companiesTableContainer");
+  if (container) container.innerHTML = "<p>Loading data...</p>";
+  
+  // Try again after a short delay
+  setTimeout(() => {
+    if (typeof window.computeMarketShareData === 'function') {
+      renderCompaniesTable();
+    }
+  }, 500);
+  return;
+}
+
+const currentUnified = window.computeMarketShareData(marketData, false);
+if (!currentUnified) {
+  const container = document.getElementById("companiesTableContainer");
+  if (container) container.innerHTML = "<p>No data</p>";
+  return;
+}
       
         // Build a map for the “current” market share: { companyName -> share }
         // Note: computeMarketShareData() returns { companies: [...], marketShares: [...], totalMarketShare }
