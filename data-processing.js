@@ -161,7 +161,6 @@ if (projectFilteredRows.length === 0) {
       }
       // push the entire row
       groupingMap[key].push(row);
-    });
 });
   
     // 6) Now for each group, we unify all historical_data to do the same 7d/30d averaging, etc.
