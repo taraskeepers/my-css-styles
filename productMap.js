@@ -2004,16 +2004,18 @@ function prepareCompanySerpsStatsData() {
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
-
-    const currentProjectNum = window.dataPrefix ? 
+  
+  // Safety check: Ensure company_serp_stats is regenerated for current project
+  // Use a temporary variable to avoid redeclaration
+  const tempProjectNum = window.dataPrefix ? 
     parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
-
-    // Check if company_serp_stats contains data from wrong project
+  
+  // Check if company_serp_stats contains data from wrong project
   if (window.company_serp_stats && window.company_serp_stats.length > 0) {
     const statsProjectNumbers = new Set(window.company_serp_stats.map(stat => stat.project_number).filter(pn => pn != null));
     
     // If we have stats from multiple projects or wrong project, clear it
-    if (statsProjectNumbers.size > 1 || (statsProjectNumbers.size === 1 && !statsProjectNumbers.has(currentProjectNum))) {
+    if (statsProjectNumbers.size > 1 || (statsProjectNumbers.size === 1 && !statsProjectNumbers.has(tempProjectNum))) {
       console.warn("[renderProductMapTable] Detected stale company_serp_stats from different project(s):", [...statsProjectNumbers]);
       window.company_serp_stats = [];
     }
@@ -9204,3 +9206,4 @@ function debugMarketShareIssue() {
 
 // Add to window for easy access
 window.debugMarketShareIssue = debugMarketShareIssue;
+window.renderProductMapTable = renderProductMapTable;
