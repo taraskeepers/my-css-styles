@@ -1671,6 +1671,16 @@ container.appendChild(miniSerpContainer);
 
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
+
+    if (window.myCompany && window.companyStatsData) {
+    const myCompanyRecords = window.companyStatsData.filter(item => 
+      item.source && item.source.toLowerCase() === window.myCompany.toLowerCase()
+    );
+    console.log(`[ProductMap DEBUG] Found ${myCompanyRecords.length} records for myCompany (${window.myCompany})`);
+    if (myCompanyRecords.length > 0) {
+      console.log('[ProductMap DEBUG] Sample myCompany record:', myCompanyRecords[0]);
+    }
+  }
   
   // Use companyStatsData as the source
   if (!window.companyStatsData || window.companyStatsData.length === 0) {
