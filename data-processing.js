@@ -1,6 +1,66 @@
+window.ensureCompanyStatsDataIntegrity = function() {
+  console.log("[ensureCompanyStatsDataIntegrity] Checking data integrity");
+  
+  if (!window.companyStatsData || !Array.isArray(window.companyStatsData)) {
+    console.error("companyStatsData is missing or not an array");
+    return false;
+  }
+  
+  // Remove any duplicate entries
+  const uniqueData = [];
+  const seen = new Set();
+  
+  window.companyStatsData.forEach(row => {
+    const key = `${row.q}|${row.location_requested}|${row.device}|${row.project_number}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueData.push(row);
+    }
+  });
+  
+  if (uniqueData.length !== window.companyStatsData.length) {
+    console.warn(`Removed ${window.companyStatsData.length - uniqueData.length} duplicate entries`);
+    window.companyStatsData = uniqueData;
+  }
+  
+  // Ensure all rows have required fields
+  window.companyStatsData.forEach((row, index) => {
+    // Set defaults for missing fields
+    if (!row.project_number && window.filterState?.activeProjectNumber) {
+      row.project_number = window.filterState.activeProjectNumber;
+    }
+    if (!row.source && window.myCompany) {
+      row.source = window.myCompany;
+    }
+    if (!row.historical_data) {
+      row.historical_data = [];
+    }
+  });
+  
+  console.log("[ensureCompanyStatsDataIntegrity] Data integrity check complete");
+  return true;
+};
+
 function buildProjectData(projectNumber) {
-    console.log("[TRACE buildProjectData] buildProjectData called from:");
-  console.trace();
+  console.log("[buildProjectData] Called with projectNumber:", projectNumber);
+  console.log("[buildProjectData] Current state:", {
+    dataLoaded: window.dataLoaded,
+    dataLoadTimestamp: window.dataLoadTimestamp ? 
+      `${Date.now() - window.dataLoadTimestamp}ms ago` : 'never',
+    companyStatsDataLength: window.companyStatsData?.length,
+    wasRefreshing: window._wasRefreshing,
+    isRefreshingIDB: window._isRefreshingIDB
+  });
+  
+  // Add validation before processing
+  if (window.dataLoaded && window.companyStatsData) {
+    const projectNum = projectNumber || window.filterState.activeProjectNumber;
+    if (!validateCompanyStatsData(window.companyStatsData, projectNum)) {
+      console.error("[buildProjectData] Data validation failed!");
+      return [];
+    }
+  }
+
   const projectNum = projectNumber || window.filterState.activeProjectNumber;
   
   // CRITICAL FIX: Skip cache during refresh scenarios
@@ -102,6 +162,19 @@ if (projectFilteredRows.length === 0) {
       // push the entire row
       groupingMap[key].push(row);
     });
+
+  // DEBUG: Log the grouping details
+console.log("[buildProjectData DEBUG] Grouping details:", {
+  totalGroups: Object.keys(groupingMap).length,
+  groups: Object.entries(groupingMap).map(([key, rows]) => ({
+    key,
+    rowCount: rows.length,
+    searchTerm: rows[0]?.q || rows[0]?.search,
+    location: rows[0]?.location_requested,
+    device: rows[0]?.device,
+    source: rows[0]?.source
+  }))
+});
   
     // 6) Now for each group, we unify all historical_data to do the same 7d/30d averaging, etc.
     const results = [];
@@ -165,6 +238,19 @@ if (projectFilteredRows.length === 0) {
         }
       });
       const avgRank = cR>0 ? sumR/cR : 40;
+
+      // DEBUG: Log rank calculation details
+console.log(`[buildProjectData DEBUG] Rank calculation for ${sTerm}:`, {
+  searchTerm: sTerm,
+  location: loc,
+  device: dev,
+  periodDays,
+  sumPR,
+  countPR,
+  avgRank,
+  dayMapEntries: Object.entries(dayMap).length,
+  sampleDayData: Object.entries(dayMap).slice(0, 3).map(([date, data]) => ({date, ...data}))
+});
   
       let sumS=0, cS=0;
       currentArr.forEach(obj => {
@@ -174,6 +260,15 @@ if (projectFilteredRows.length === 0) {
         }
       });
       const avgShare = cS>0 ? sumS/cS : 0;
+
+      // DEBUG: Log share calculation details
+console.log(`[buildProjectData DEBUG] Share calculation for ${sTerm}:`, {
+  searchTerm: sTerm,
+  sumShare,
+  countShare,
+  avgShare,
+  periodShareEntries: countShare
+});
   
       // previous average share => for trendVal
       let sumPrev=0, countPrev=0;
