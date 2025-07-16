@@ -51,15 +51,6 @@ function buildProjectData(projectNumber) {
     wasRefreshing: window._wasRefreshing,
     isRefreshingIDB: window._isRefreshingIDB
   });
-  
-  // Add validation before processing
-  if (window.dataLoaded && window.companyStatsData) {
-    const projectNum = projectNumber || window.filterState.activeProjectNumber;
-    if (!validateCompanyStatsData(window.companyStatsData, projectNum)) {
-      console.error("[buildProjectData] Data validation failed!");
-      return [];
-    }
-  }
 
   const projectNum = projectNumber || window.filterState.activeProjectNumber;
   
