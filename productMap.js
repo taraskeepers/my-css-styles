@@ -5974,90 +5974,155 @@ async function loadCompanyStatsData() {
       chart.render();
     }
   
-    // Function to calculate aggregate segment data for a set of products
-    function calculateAggregateSegmentData(products) {
-      if (!products || products.length === 0) return null;
+function calculateAggregateSegmentData(products) {
+  console.log(`[AGGREGATE CALC DEBUG] Starting with ${products.length} products`);
+  
+  if (!products || products.length === 0) {
+    console.log(`[AGGREGATE CALC DEBUG] No products to calculate`);
+    return [
+      { label: "Top3", current: 0, previous: 0 },
+      { label: "Top4-8", current: 0, previous: 0 },
+      { label: "Top9-14", current: 0, previous: 0 },
+      { label: "Below14", current: 0, previous: 0 }
+    ];
+  }
+  
+  // Get the last 7 days of data
+  const endDate = moment();
+  const startDate = moment().subtract(6, 'days');
+  const prevEndDate = moment().subtract(7, 'days');
+  const prevStartDate = moment().subtract(13, 'days');
+  
+  console.log(`[AGGREGATE CALC DEBUG] Date ranges:`, {
+    current: `${startDate.format('YYYY-MM-DD')} to ${endDate.format('YYYY-MM-DD')}`,
+    previous: `${prevStartDate.format('YYYY-MM-DD')} to ${prevEndDate.format('YYYY-MM-DD')}`
+  });
+  
+  // Initialize segment sums
+  let currTop3Sum = 0, currTop8Sum = 0, currTop14Sum = 0, currTop40Sum = 0;
+  let prevTop3Sum = 0, prevTop8Sum = 0, prevTop14Sum = 0, prevTop40Sum = 0;
+  let countCurrent = 0, countPrevious = 0;
+  
+  // Track products with data
+  let productsWithCurrentData = 0;
+  let productsWithPreviousData = 0;
+  
+  // Process each product
+  products.forEach((product, index) => {
+    if (!product.historical_data || !Array.isArray(product.historical_data)) {
+      console.log(`[AGGREGATE CALC DEBUG] Product ${index} "${product.title}" has no historical data`);
+      return;
+    }
+    
+    let productCurrentCount = 0;
+    let productPreviousCount = 0;
+    
+    // Current period
+    product.historical_data.forEach(dayData => {
+      if (!dayData.date || !dayData.date.value) return;
       
-      // Define date ranges
-      const globalLastDate = moment().subtract(1, "days"); // Use yesterday as the reference point
-      const endDate = globalLastDate.clone();
-      const startDate = endDate.clone().subtract(6, "days"); // Last 7 days
+      const date = moment(dayData.date.value);
       
-      // For previous period
-      const prevEnd = startDate.clone().subtract(1, "days");
-      const prevStart = prevEnd.clone().subtract(6, "days");
-      
-      let currTop3Sum = 0, currTop8Sum = 0, currTop14Sum = 0, currTop40Sum = 0;
-      let prevTop3Sum = 0, prevTop8Sum = 0, prevTop14Sum = 0, prevTop40Sum = 0;
-      let countCurrent = 0, countPrevious = 0;
-      
-      // Helper function to calculate average
-      function avg(arr, field, multiplier = 1) {
-        if (!arr.length) return 0;
-        let sum = 0, c = 0;
-        arr.forEach(x => {
-          if (x[field] != null) {
-            sum += parseFloat(x[field]) * multiplier;
-            c++;
-          }
-        });
-        return c > 0 ? sum / c : 0;
+      // Check if in current period
+      if (date.isBetween(startDate, endDate, 'day', '[]')) {
+        const top3Val = parseFloat(dayData.top3_market_share || 0);
+        const top8Val = parseFloat(dayData.top8_market_share || 0);
+        const top14Val = parseFloat(dayData.top14_market_share || 0);
+        const top40Val = parseFloat(dayData.market_share || 0);
+        
+        currTop3Sum += top3Val;
+        currTop8Sum += top8Val;
+        currTop14Sum += top14Val;
+        currTop40Sum += top40Val;
+        countCurrent++;
+        productCurrentCount++;
       }
       
-      // Process each product
-      products.forEach(product => {
-        const histData = product.historical_data || [];
+      // Check if in previous period
+      if (date.isBetween(prevStartDate, prevEndDate, 'day', '[]')) {
+        const top3Val = parseFloat(dayData.top3_market_share || 0);
+        const top8Val = parseFloat(dayData.top8_market_share || 0);
+        const top14Val = parseFloat(dayData.top14_market_share || 0);
+        const top40Val = parseFloat(dayData.market_share || 0);
         
-        // Filter for current and previous periods
-        const currentFiltered = histData.filter(item => {
-          if (!item.date || !item.date.value) return false;
-          const d = moment(item.date.value, "YYYY-MM-DD");
-          return d.isBetween(startDate, endDate, "day", "[]");
-        });
-        
-        const prevFiltered = histData.filter(item => {
-          if (!item.date || !item.date.value) return false;
-          const d = moment(item.date.value, "YYYY-MM-DD");
-          return d.isBetween(prevStart, prevEnd, "day", "[]");
-        });
-        
-        // Add to sums if data exists
-        if (currentFiltered.length > 0) {
-          currTop3Sum += avg(currentFiltered, "top3_visibility", 100);
-          currTop8Sum += avg(currentFiltered, "top8_visibility", 100);
-          currTop14Sum += avg(currentFiltered, "top14_visibility", 100);
-          currTop40Sum += avg(currentFiltered, "top40_visibility", 100) || avg(currentFiltered, "market_share", 100);
-          countCurrent++;
-        }
-        
-        if (prevFiltered.length > 0) {
-          prevTop3Sum += avg(prevFiltered, "top3_visibility", 100);
-          prevTop8Sum += avg(prevFiltered, "top8_visibility", 100);
-          prevTop14Sum += avg(prevFiltered, "top14_visibility", 100);
-          prevTop40Sum += avg(prevFiltered, "top40_visibility", 100) || avg(prevFiltered, "market_share", 100);
-          countPrevious++;
-        }
-      });
-      
-      // Calculate averages
-      const currTop3 = countCurrent > 0 ? currTop3Sum / countCurrent : 0;
-      const currTop8 = countCurrent > 0 ? currTop8Sum / countCurrent : 0;
-      const currTop14 = countCurrent > 0 ? currTop14Sum / countCurrent : 0;
-      const currTop40 = countCurrent > 0 ? currTop40Sum / countCurrent : 0;
-      
-      const prevTop3 = countPrevious > 0 ? prevTop3Sum / countPrevious : 0;
-      const prevTop8 = countPrevious > 0 ? prevTop8Sum / countPrevious : 0;
-      const prevTop14 = countPrevious > 0 ? prevTop14Sum / countPrevious : 0;
-      const prevTop40 = countPrevious > 0 ? prevTop40Sum / countPrevious : 0;
-      
-      // Format data for chart
-      return [
-        { label: "Top3", current: currTop3, previous: prevTop3 },
-        { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
-        { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
-        { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
-      ];
+        prevTop3Sum += top3Val;
+        prevTop8Sum += top8Val;
+        prevTop14Sum += top14Val;
+        prevTop40Sum += top40Val;
+        countPrevious++;
+        productPreviousCount++;
+      }
+    });
+    
+    if (productCurrentCount > 0) productsWithCurrentData++;
+    if (productPreviousCount > 0) productsWithPreviousData++;
+    
+    console.log(`[AGGREGATE CALC DEBUG] Product ${index} "${product.title}": current period entries: ${productCurrentCount}, previous period entries: ${productPreviousCount}`);
+  });
+  
+  console.log(`[AGGREGATE CALC DEBUG] Summary:`, {
+    totalProducts: products.length,
+    productsWithCurrentData,
+    productsWithPreviousData,
+    currentPeriodEntries: countCurrent,
+    previousPeriodEntries: countPrevious
+  });
+  
+  console.log(`[AGGREGATE CALC DEBUG] Raw sums:`, {
+    current: { 
+      top3: currTop3Sum.toFixed(4), 
+      top8: currTop8Sum.toFixed(4), 
+      top14: currTop14Sum.toFixed(4), 
+      top40: currTop40Sum.toFixed(4), 
+      count: countCurrent 
+    },
+    previous: { 
+      top3: prevTop3Sum.toFixed(4), 
+      top8: prevTop8Sum.toFixed(4), 
+      top14: prevTop14Sum.toFixed(4), 
+      top40: prevTop40Sum.toFixed(4), 
+      count: countPrevious 
     }
+  });
+  
+  // Calculate averages (already in percentage form from the data)
+  const currTop3 = countCurrent > 0 ? (currTop3Sum / countCurrent) * 100 : 0;
+  const currTop8 = countCurrent > 0 ? (currTop8Sum / countCurrent) * 100 : 0;
+  const currTop14 = countCurrent > 0 ? (currTop14Sum / countCurrent) * 100 : 0;
+  const currTop40 = countCurrent > 0 ? (currTop40Sum / countCurrent) * 100 : 0;
+  
+  const prevTop3 = countPrevious > 0 ? (prevTop3Sum / countPrevious) * 100 : 0;
+  const prevTop8 = countPrevious > 0 ? (prevTop8Sum / countPrevious) * 100 : 0;
+  const prevTop14 = countPrevious > 0 ? (prevTop14Sum / countPrevious) * 100 : 0;
+  const prevTop40 = countPrevious > 0 ? (prevTop40Sum / countPrevious) * 100 : 0;
+  
+  console.log(`[AGGREGATE CALC DEBUG] Calculated averages:`, {
+    current: { 
+      top3: currTop3.toFixed(2), 
+      top8: currTop8.toFixed(2), 
+      top14: currTop14.toFixed(2), 
+      top40: currTop40.toFixed(2) 
+    },
+    previous: { 
+      top3: prevTop3.toFixed(2), 
+      top8: prevTop8.toFixed(2), 
+      top14: prevTop14.toFixed(2), 
+      top40: prevTop40.toFixed(2) 
+    }
+  });
+  
+  // Format data for chart (using differences between segments)
+  const result = [
+    { label: "Top3", current: currTop3, previous: prevTop3 },
+    { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
+    { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
+    { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
+  ];
+  
+  console.log(`[AGGREGATE CALC DEBUG] Final formatted result:`, result);
+  
+  return result;
+}
     
 // Function to create segment chart
 function createSegmentationChart(containerId, chartData, termParam, locParam, deviceParam, myCompanyParam, activeCount, inactiveCount, segmentCounts) {
@@ -6661,49 +6726,113 @@ const myCompanyProducts = window.allRows.filter(p =>
   p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
 );
 
-// For chart data, use company stats data (same as mini-serp-table)
+// Process each company's aggregated stats if available
 let chartData = null;
+let dataSource = 'none';
 
-if (window.company_serp_stats && window.company_serp_stats.length > 0) {
-  // Find matching company stats for this term/location/device
-  const companyStats = window.company_serp_stats.find(c => 
-    c.searchTerm === term &&
-    c.location === loc &&
-    c.device === rowData.device &&
-    c.company && c.company.toLowerCase() === (companyToFilter || "").toLowerCase()
-  );
+console.log(`[SEGMENTATION DEBUG] Starting calculation for ${term}/${loc}/${rowData.device}`);
+console.log(`[SEGMENTATION DEBUG] Company to filter: ${companyToFilter}`);
+console.log(`[SEGMENTATION DEBUG] MyCompany products count: ${myCompanyProducts.length}`);
+
+if (window.companyStatsData && Array.isArray(window.companyStatsData)) {
+  console.log(`[SEGMENTATION DEBUG] CompanyStatsData available with ${window.companyStatsData.length} entries`);
   
+  // Find matching company stats for the current term/location/device/company
+  const companyStats = window.companyStatsData.find(stat => {
+    const matches = stat.q?.toLowerCase() === term.toLowerCase() &&
+                   stat.engine?.toLowerCase() === 'google' &&
+                   stat.device?.toLowerCase() === rowData.device.toLowerCase() &&
+                   stat.location_requested?.toLowerCase() === loc.toLowerCase() &&
+                   stat.source?.toLowerCase() === companyToFilter.toLowerCase();
+    
+    if (matches) {
+      console.log(`[SEGMENTATION DEBUG] Found matching company stat:`, {
+        q: stat.q,
+        engine: stat.engine,
+        device: stat.device,
+        location: stat.location_requested,
+        source: stat.source,
+        market_share: stat.market_share,
+        top3_market_share: stat.top3_market_share,
+        top4_8_market_share: stat.top4_8_market_share,
+        top9_14_market_share: stat.top9_14_market_share,
+        below14_market_share: stat.below14_market_share
+      });
+    }
+    
+    return matches;
+  });
+  
+  // If we found matching company stats, format the data for the chart
   if (companyStats) {
-    // Format the company stats data to match chart format
+    dataSource = 'companyStats';
+    console.log(`[SEGMENTATION DEBUG] Using company stats data`);
+    
+    // Parse all the values (they might be decimal format like 0.05 for 5%)
+    const top40Share = parseFloat(companyStats.market_share || 0) * 100;
+    const top3Share = parseFloat(companyStats.top3_market_share || 0) * 100;
+    const top4_8Share = parseFloat(companyStats.top4_8_market_share || 0) * 100;
+    const top9_14Share = parseFloat(companyStats.top9_14_market_share || 0) * 100;
+    const below14Share = parseFloat(companyStats.below14_market_share || 0) * 100;
+    
+    console.log(`[SEGMENTATION DEBUG] Parsed values:`, {
+      top40: top40Share.toFixed(2),
+      top3: top3Share.toFixed(2),
+      top4_8: top4_8Share.toFixed(2),
+      top9_14: top9_14Share.toFixed(2),
+      below14: below14Share.toFixed(2)
+    });
+    
+    // Get trend values if available
+    const top3Trend = parseFloat(companyStats.top3Trend || 0);
+    const top4_8Trend = parseFloat(companyStats.top4_8Trend || 0);
+    const top9_14Trend = parseFloat(companyStats.top9_14Trend || 0);
+    const below14Trend = parseFloat(companyStats.below14Trend || 0);
+    
+    // Format data to match chart format
     chartData = [
       { 
         label: "Top3", 
-        current: parseFloat(companyStats.top3 || 0), 
-        previous: parseFloat(companyStats.top3 || 0) - parseFloat(companyStats.top3Trend || 0)
+        current: top3Share,
+        previous: top3Share - top3Trend
       },
       { 
         label: "Top4-8", 
-        current: parseFloat(companyStats.top4_8 || 0), 
-        previous: parseFloat(companyStats.top4_8 || 0) - parseFloat(companyStats.top4_8Trend || 0)
+        current: top4_8Share,
+        previous: top4_8Share - top4_8Trend
       },
       { 
         label: "Top9-14", 
-        current: parseFloat(companyStats.top9_14 || 0), 
-        previous: parseFloat(companyStats.top9_14 || 0) - parseFloat(companyStats.top9_14Trend || 0)
+        current: top9_14Share,
+        previous: top9_14Share - top9_14Trend
       },
       { 
         label: "Below14", 
-        current: parseFloat(companyStats.below14 || 0), 
-        previous: parseFloat(companyStats.below14 || 0) - parseFloat(companyStats.below14Trend || 0)
+        current: below14Share,
+        previous: below14Share - below14Trend
       }
     ];
   }
+} else {
+  console.log(`[SEGMENTATION DEBUG] CompanyStatsData not available or not an array`);
 }
 
 // Fallback to product-based calculation if no company stats found
 if (!chartData) {
+  dataSource = 'productCalculation';
+  console.log(`[SEGMENTATION DEBUG] Falling back to product-based calculation`);
+  console.log(`[SEGMENTATION DEBUG] Products for calculation:`, myCompanyProducts.map(p => ({
+    title: p.title,
+    avg_position: p.avg_position,
+    historical_data_length: p.historical_data?.length || 0
+  })));
+  
   chartData = calculateAggregateSegmentData(myCompanyProducts);
+  console.log(`[SEGMENTATION DEBUG] Product-based calculation result:`, chartData);
 }
+
+// Log final data being used
+console.log(`[SEGMENTATION DEBUG] Final chart data (source: ${dataSource}):`, JSON.stringify(chartData, null, 2));
 
 // Filter active and inactive products FROM myCompany products for stats
 const activeProducts = myCompanyProducts.filter(product => 
@@ -6726,7 +6855,8 @@ const chartInfo = {
   inactiveCount: inactiveProducts.length,
   pieChartId: pieChartId,
   projectData: projectData,
-  productCellDiv: productCellDiv // Add reference to the product cell
+  productCellDiv: productCellDiv, // Add reference to the product cell
+  dataSource: dataSource // Add data source for debugging
 };
 
 // Add to pending charts array instead of creating immediately
@@ -8664,3 +8794,34 @@ function debugCompanyData() {
 }
 
 // Call this function in browser console to debug: debugCompanyData()
+
+// Debug utility for checking segmentation data state
+window.debugSegmentationData = function() {
+  console.log("=== SEGMENTATION DATA DEBUG ===");
+  console.log("CompanyStatsData available:", !!window.companyStatsData);
+  console.log("CompanyStatsData length:", window.companyStatsData?.length || 0);
+  
+  if (window.companyStatsData && window.companyStatsData.length > 0) {
+    // Sample first few entries
+    console.log("Sample company stats entries:");
+    window.companyStatsData.slice(0, 3).forEach((stat, i) => {
+      console.log(`Entry ${i}:`, {
+        q: stat.q,
+        engine: stat.engine,
+        device: stat.device,
+        location: stat.location_requested,
+        source: stat.source,
+        market_share: stat.market_share,
+        top3_market_share: stat.top3_market_share
+      });
+    });
+  }
+  
+  console.log("\nPending segmentation charts:", window.pendingSegmentationCharts?.length || 0);
+  
+  if (window.pendingSegmentationCharts && window.pendingSegmentationCharts.length > 0) {
+    console.log("First pending chart info:", window.pendingSegmentationCharts[0]);
+  }
+  
+  console.log("===============================");
+};
