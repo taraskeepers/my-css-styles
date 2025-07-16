@@ -1881,6 +1881,13 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
   
+  // Check if allRows is loaded
+  if (!window._allRowsLoaded) {
+    console.log("[renderProductMapTable] Waiting for allRows to be loaded...");
+    setTimeout(() => renderProductMapTable(), 500);
+    return;
+  }
+  
   // Get container early to use in error handling
   const container = document.getElementById("productMapPage");
   if (!container) {
