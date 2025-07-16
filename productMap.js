@@ -1897,18 +1897,6 @@ if (!window.projectTableData || !Array.isArray(window.projectTableData)) {
       if (typeof buildProjectData === 'function') {
         buildProjectData();
         console.log("[renderProductMapTable] Built projectTableData:", window.projectTableData?.length || 0, "entries");
-        // DEBUG: Log the actual data being used
-if (window.projectTableData && window.projectTableData.length > 0) {
-  console.log("[renderProductMapTable DEBUG] Full projectTableData:", 
-    window.projectTableData.map(item => ({
-      searchTerm: item.searchTerm,
-      location: item.location,
-      device: item.device,
-      avgRank: item.avgRank,
-      avgShare: item.avgShare,
-      hasData: item.hasData
-    }))
-  );
       } else if (typeof populateProjectPage === 'function') {
         // Fallback: call populateProjectPage which includes buildProjectData
         console.log("[renderProductMapTable] buildProjectData not found, calling populateProjectPage");
