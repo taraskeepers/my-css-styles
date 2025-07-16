@@ -2065,6 +2065,10 @@ async function renderProductMapTable() {
   window.globalRows = {};
   console.log("[renderProductMapTable] Cleared globalRows to prevent data contamination");
 
+  // Add this debug check:
+const currentProject = parseInt(window.dataPrefix?.match(/pr(\d+)_/)?.[1]) || 1;
+console.log(`[renderProductMapTable] Rendering for project ${currentProject}`);
+
     // Get container early to use in error handling
   const container = document.getElementById("productMapPage");
   if (!container) {
