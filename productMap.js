@@ -1670,7 +1670,14 @@ container.appendChild(miniSerpContainer);
 }
 
 function prepareCompanySerpsStatsData() {
-  console.log('[ProductMap] Preparing company SERP stats data...');
+  console.group('[🔍 prepareCompanySerpsStatsData] DEBUG');
+  console.log('Starting preparation...');
+  
+  // Log current state
+  console.log('Current state:');
+  console.log('  dataPrefix:', window.dataPrefix);
+  console.log('  myCompany:', window.myCompany);
+  console.log('  filterState.activeProjectNumber:', window.filterState?.activeProjectNumber);
 
   if (window.myCompany && window.companyStatsData) {
     const myCompanyRecords = window.companyStatsData.filter(item => 
@@ -1685,33 +1692,57 @@ function prepareCompanySerpsStatsData() {
   // Use companyStatsData as the source
   if (!window.companyStatsData || window.companyStatsData.length === 0) {
     console.warn('[ProductMap] No companyStatsData available');
+    window.company_serp_stats = [];
+    console.groupEnd();
     return [];
   }
+  
+  console.log('Input companyStatsData:');
+  console.log('  Total records:', window.companyStatsData.length);
+  
+  // Check project numbers in input data
+  const inputProjects = {};
+  window.companyStatsData.forEach(item => {
+    const pn = item.project_number || 'null';
+    if (!inputProjects[pn]) inputProjects[pn] = 0;
+    inputProjects[pn]++;
+  });
+  console.log('  Records by project:', inputProjects);
   
   // Get current project number from dataPrefix
   const currentProjectNum = window.dataPrefix ? 
     parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1], 10) : 
     (window.filterState?.activeProjectNumber || 1);
   
-  console.log('[ProductMap] Filtering data for project:', currentProjectNum);
+  console.log('Target project number:', currentProjectNum);
 
   // Filter companyStatsData to only include current project BEFORE processing
-const projectFilteredData = window.companyStatsData.filter(item => {
-  // Only include records from the current project
-  if (item.project_number && item.project_number !== currentProjectNum) {
-    return false;
+  const projectFilteredData = window.companyStatsData.filter(item => {
+    // Only include records from the current project
+    if (item.project_number && item.project_number !== currentProjectNum) {
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`Filtered from ${window.companyStatsData.length} to ${projectFilteredData.length} records for project ${currentProjectNum}`);
+  
+  // Log what sources remain after filtering
+  const filteredSources = new Set(projectFilteredData.map(item => item.source).filter(Boolean));
+  console.log('Sources after filtering:', [...filteredSources].slice(0, 10));
+  
+  // Check if Merrell is still there for project 2
+  if (currentProjectNum === 2 && [...filteredSources].some(s => s.includes('Merrell'))) {
+    console.error('❌ ERROR: Merrell found in filtered data for project 2!');
   }
-  return true;
-});
 
-console.log(`[ProductMap] Filtered from ${window.companyStatsData.length} to ${projectFilteredData.length} records for project ${currentProjectNum}`);
-
-// Check if we filtered out all data
-if (projectFilteredData.length === 0) {
-  console.warn(`[ProductMap] No data found for project ${currentProjectNum}`);
-  window.company_serp_stats = [];
-  return [];
-}
+  // Check if we filtered out all data
+  if (projectFilteredData.length === 0) {
+    console.warn(`[ProductMap] No data found for project ${currentProjectNum}`);
+    window.company_serp_stats = [];
+    console.groupEnd();
+    return [];
+  }
   
   const companyStatsMap = new Map();
   
@@ -1998,7 +2029,15 @@ if (projectFilteredData.length === 0) {
   });
   
   window.company_serp_stats = Array.from(companyStatsMap.values());
-  console.log(`[ProductMap] Prepared ${window.company_serp_stats.length} company stats`);
+  console.log(`Generated ${window.company_serp_stats.length} company stats for project ${currentProjectNum}`);
+  
+  // Final check
+  const outputCompanies = new Set(window.company_serp_stats.map(s => s.company));
+  console.log('Output companies:', [...outputCompanies].slice(0, 10));
+  
+  if (currentProjectNum === 2 && [...outputCompanies].some(c => c.includes('Merrell'))) {
+    console.error('❌ ERROR: Merrell in final output for project 2!');
+  }
   
   // Debug log to verify data
   if (window.company_serp_stats.length > 0) {
@@ -2014,10 +2053,39 @@ if (projectFilteredData.length === 0) {
     });
   }
   
+  console.groupEnd();
+  
   return window.company_serp_stats;
 }
 
 async function renderProductMapTable() {
+  console.group("[📊 renderProductMapTable] DEBUG");
+  console.log("Starting render...");
+  
+  // Log current state
+  console.log("Current state:");
+  console.log("  dataPrefix:", window.dataPrefix);
+  console.log("  myCompany:", window.myCompany);
+  console.log("  activeProjectNumber:", window.filterState?.activeProjectNumber);
+  
+  // Check what's in company_serp_stats before rendering
+  if (window.company_serp_stats) {
+    console.log("company_serp_stats before render:");
+    console.log("  Total records:", window.company_serp_stats.length);
+    
+    const companies = new Set(window.company_serp_stats.map(s => s.company).filter(Boolean));
+    console.log("  Companies:", [...companies].slice(0, 10));
+    
+    // Check for Merrell
+    const merrellCount = window.company_serp_stats.filter(s => 
+      s.company && s.company.includes('Merrell')
+    ).length;
+    
+    if (merrellCount > 0) {
+      console.warn(`  ⚠️ Found ${merrellCount} Merrell records in company_serp_stats`);
+    }
+  }
+  
   console.log("[renderProductMapTable] Starting render");
   
   // Safety check: Ensure company_serp_stats is regenerated for current project
@@ -8419,13 +8487,30 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
 if (window.company_serp_stats && window.company_serp_stats.length > 0) {
   
   // Filter company data for this specific combination
-const companyData = window.company_serp_stats.filter(c => 
-  c.searchTerm === term &&
-  c.location === loc &&
-  c.device === rowData.device &&
-  c.company !== 'Unknown' && // Exclude Unknown companies
-  c.company && c.company.trim() !== '' // Exclude empty company names
-);
+  const companyData = window.company_serp_stats.filter(c => 
+    c.searchTerm === term &&
+    c.location === loc &&
+    c.device === rowData.device &&
+    c.company !== 'Unknown' && // Exclude Unknown companies
+    c.company && c.company.trim() !== '' // Exclude empty company names
+  );
+  
+  console.log(`[Company Filter] For ${term}/${loc}/${rowData.device}:`);
+  console.log(`  Filtered to ${companyData.length} companies`);
+  
+  // Log which companies are being displayed
+  const displayCompanies = companyData.map(c => c.company);
+  console.log(`  Companies:`, displayCompanies.slice(0, 5));
+  
+  if (displayCompanies.includes('Merrell.com')) {
+    const currentProject = window.dataPrefix ? 
+      parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1], 10) : 1;
+    
+    if (currentProject === 2) {
+      console.error(`❌ ERROR: Displaying Merrell for project 2!`);
+      console.log("Full Merrell record:", companyData.find(c => c.company === 'Merrell.com'));
+    }
+  }
 
     console.log(`[ProductMap] Filtering companies for:`, {
     term: term,
