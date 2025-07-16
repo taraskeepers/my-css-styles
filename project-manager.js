@@ -946,11 +946,8 @@ function createLocationListItem(loc) {
           if (row.project_number == null) {
             row.project_number = prNumber;
           }
-if (row.source == null || row.source === "Unknown") {
-  const projectKey = prefix.slice(0, -1);
-  const storageKey = `${projectKey}_company`;
-  const savedCompany = localStorage.getItem(storageKey);
-  row.source = savedCompany || "Nike";
+if (row.source == null) {
+  row.source = window.myCompany || "Unknown";
 }
         });
 
