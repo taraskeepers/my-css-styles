@@ -527,6 +527,12 @@ async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
 
   // 1) Process data and update filters
   window.allRows = rows;
+  // Add verification
+if (!window.allRows || window.allRows.length === 0) {
+  console.error("[onReceivedRowsWithData] ERROR: allRows was not set properly!");
+} else {
+  console.log("[onReceivedRowsWithData] Successfully set allRows with", window.allRows.length, "rows");
+}
   updateSearchTermDropdown(rows);
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
@@ -588,6 +594,12 @@ async function onReceivedRows(rows) {
 
   // 1) Process data and update filters
   window.allRows = rows;
+  // Add verification
+if (!window.allRows || window.allRows.length === 0) {
+  console.error("[onReceivedRowsWithData] ERROR: allRows was not set properly!");
+} else {
+  console.log("[onReceivedRowsWithData] Successfully set allRows with", window.allRows.length, "rows");
+}
   updateSearchTermDropdown(rows);
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
