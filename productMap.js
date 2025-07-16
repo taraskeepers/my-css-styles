@@ -1880,6 +1880,13 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
+
+  // Add after: console.log("[renderProductMapTable] Starting render");
+console.log("=== PRODUCT MAP DATA SOURCE ===");
+console.log("Using projectTableData:", window.projectTableData?.length || 0, "entries");
+if (window.projectTableData && window.projectTableData.length > 0) {
+  console.log("projectTableData sample:", JSON.stringify(window.projectTableData[0], null, 2));
+}
   
   // Get container early to use in error handling
   const container = document.getElementById("productMapPage");
