@@ -6651,9 +6651,9 @@ if (window.allRows && Array.isArray(window.allRows)) {
     return; // Exit early to prevent rendering empty table
   }
   
-  // Check if we should show all products or just myCompany
-  let matchingProducts;
-  if (showAllProducts) {
+// Check if we should show all products or just myCompany
+let matchingProducts;
+if (window.showAllProductsInMap) {
     // Show all products that match term, location, and device
     matchingProducts = window.allRows.filter(p => 
       p.q === term &&
