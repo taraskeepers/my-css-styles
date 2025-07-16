@@ -977,14 +977,11 @@ if (Array.isArray(serpStatsRec?.data)) {
     
     console.log(`[Patching] Using company "${correctCompanyForProject}" for project ${prNumber}`);
      
-        serpStatsRec.data.forEach((row, idx) => {
-          if (row.project_number == null) {
-            row.project_number = prNumber;
-          }
-         if (row.source == null) {
-         row.source = window.myCompany || "Unknown";
-          }
-        });
+serpStatsRec.data.forEach((row, idx) => {
+  if (row.project_number == null) {
+    row.project_number = prNumber;
+  }
+});
 
         console.log("[🧪 TEST] Sample patched row:");
         console.log(serpStatsRec.data[0]);
