@@ -1786,15 +1786,25 @@ function prepareCompanySerpsStatsData() {
         
         if (isUnderArmour) {
           console.log('[UNDER ARMOUR DEBUG] Market share (top40) calculation:');
+          console.log('[UNDER ARMOUR DEBUG] last7DaysData length:', last7DaysData.length);
+          
+          // Force log ALL days with their market_share values
+          last7DaysData.forEach((day, idx) => {
+            console.log(`  - Day ${idx}: market_share = ${day.market_share}, top3_market_share = ${day.top3_market_share}`);
+          });
+          
           const rawMarketShareValues = last7DaysData
             .filter(day => day.market_share != null)
             .map(day => day.market_share);
           console.log('  - Raw market_share values:', rawMarketShareValues);
           console.log('  - Converted to percentages:', marketShares);
           if (marketShares.length > 0) {
+            console.log('  - Each value * 100:', marketShares);
             console.log('  - Sum:', marketShares.reduce((a, b) => a + b, 0));
             console.log('  - Count:', marketShares.length);
             console.log('  - Average will be:', marketShares.reduce((a, b) => a + b, 0) / marketShares.length);
+          } else {
+            console.log('  - WARNING: No market share values found after filtering!');
           }
         }
         
@@ -1810,9 +1820,12 @@ function prepareCompanySerpsStatsData() {
           console.log('  - Raw top3_market_share values:', rawTop3Values);
           console.log('  - Converted to percentages:', top3Shares);
           if (top3Shares.length > 0) {
+            console.log('  - Each value * 100:', top3Shares);
             console.log('  - Sum:', top3Shares.reduce((a, b) => a + b, 0));
             console.log('  - Count:', top3Shares.length);
             console.log('  - Average will be:', top3Shares.reduce((a, b) => a + b, 0) / top3Shares.length);
+          } else {
+            console.log('  - WARNING: No top3 share values found after filtering!');
           }
         }
           
