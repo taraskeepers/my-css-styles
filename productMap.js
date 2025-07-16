@@ -6307,8 +6307,9 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
 }
   
     // Process the data into a hierarchical structure
-    const nestedMap = {};
-    window.projectTableData.forEach(item => {
+const projectData = buildProjectData(); // This will use the same filtering
+const nestedMap = {};
+projectData.forEach(item => {
       const term = item.searchTerm || "(no term)";
       const loc  = item.location   || "(no loc)";
       if (!nestedMap[term]) nestedMap[term] = {};
