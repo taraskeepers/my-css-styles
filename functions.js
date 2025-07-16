@@ -3256,8 +3256,13 @@ document.addEventListener("click", function(e) {
         });
       }      
 
-      function getLatestTrendDate() {
-        const filtered = filterMarketTrends();
+function getLatestTrendDate() {
+  // Check if function exists first
+  if (typeof window.filterMarketTrends !== 'function') {
+    console.warn("[getLatestTrendDate] filterMarketTrends not available yet");
+    return null;
+  }
+  const filtered = window.filterMarketTrends();
         let latest = null;
         filtered.forEach(record => {
           const d = moment(record.date.value, "YYYY-MM-DD");
