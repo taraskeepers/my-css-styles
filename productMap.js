@@ -6619,30 +6619,49 @@ productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
 tdProducts.appendChild(productsChartContainer);
   
-          // Find and display matching products
-          if (window.allRows && Array.isArray(window.allRows)) {
-            console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
-            
-// Check if we should show all products or just myCompany
-            const showAllProducts = window.showAllProductsInMap || false;
-            
-            let matchingProducts;
-            if (showAllProducts) {
-              // Show all products that match term, location, and device
-              matchingProducts = window.allRows.filter(p => 
-                p.q === term &&
-                p.location_requested === loc &&
-                p.device === rowData.device
-              );
-            } else {
-              // Show only myCompany products (default behavior)
-              matchingProducts = window.allRows.filter(p => 
-                p.q === term &&
-                p.location_requested === loc &&
-                p.device === rowData.device &&
-                p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
-              );
-            }
+// Find and display matching products
+if (window.allRows && Array.isArray(window.allRows)) {
+  console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
+  
+  // Add a check for empty allRows
+  if (window.allRows.length === 0) {
+    console.error("[renderProductMapTable] window.allRows is empty!");
+    
+    // Try to reload the data
+    if (window.dataPrefix && typeof loadDataFromIDB === 'function') {
+      console.log("[renderProductMapTable] Attempting to reload data from IDB...");
+      loadDataFromIDB(window.dataPrefix + "processed").then(data => {
+        if (data && data.data) {
+          window.allRows = data.data;
+          console.log("[renderProductMapTable] Reloaded allRows with", window.allRows.length, "rows");
+          // Re-render the product map
+          if (typeof renderProductMapTable === 'function') {
+            renderProductMapTable();
+          }
+        }
+      });
+    }
+    return; // Exit early to prevent rendering empty table
+  }
+  
+  // Check if we should show all products or just myCompany
+  let matchingProducts;
+  if (showAllProducts) {
+    // Show all products that match term, location, and device
+    matchingProducts = window.allRows.filter(p => 
+      p.q === term &&
+      p.location_requested === loc &&
+      p.device === rowData.device
+    );
+  } else {
+    // Show only myCompany products (default behavior)
+    matchingProducts = window.allRows.filter(p => 
+      p.q === term &&
+      p.location_requested === loc &&
+      p.device === rowData.device &&
+      p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+    );
+  }
             
             // Mark which products are from myCompany for styling
             matchingProducts.forEach(product => {
