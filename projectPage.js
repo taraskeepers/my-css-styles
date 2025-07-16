@@ -244,6 +244,12 @@ window._projectPageInitializing = false;
       console.log("→ window.filterState.activeProjectNumber =", window.filterState?.activeProjectNumber);
       console.log("→ window.myCompany =", window.myCompany);
       console.log("→ window.frontendCompany =", window.frontendCompany);
+
+    // Add this right after: console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
+if (window.companyStatsData && window.companyStatsData.length > 0) {
+  console.log("=== FULL DATA STRUCTURE ===");
+  console.log("Sample entry:", JSON.stringify(window.companyStatsData[0], null, 2));
+}
     
       let run;
       if (!Array.isArray(window.companyStatsData)) {
@@ -317,6 +323,13 @@ window._projectPageInitializing = false;
     
       console.log("→ Filtered rows:", filtered.length);
       console.log("→ First filtered row (if any):", filtered[0]);
+
+        // Add after: console.log("→ Filtered rows:", filtered.length);
+console.log("=== FILTERED DATA ===");
+console.log("Filter criteria:", { activeProjectNumber, targetCompany });
+if (filtered.length > 0) {
+  console.log("Filtered sample:", JSON.stringify(filtered[0], null, 2));
+}
     
       if (!filtered.length) return [];
     
