@@ -1678,10 +1678,22 @@ function prepareCompanySerpsStatsData() {
     return [];
   }
   
+  // Get current project number from dataPrefix
+  const currentProjectNum = window.dataPrefix ? 
+    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1], 10) : 
+    (window.filterState?.activeProjectNumber || 1);
+  
+  console.log('[ProductMap] Filtering data for project:', currentProjectNum);
+  
   const companyStatsMap = new Map();
   
   // Process each company's data
   window.companyStatsData.forEach(item => {
+    // CRITICAL: Filter by current project number
+    if (item.project_number && item.project_number !== currentProjectNum) {
+      return; // Skip records from other projects
+    }
+    
     // Skip records with null, undefined, or empty source
     if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
         !item.q || !item.location_requested || !item.device) return;
