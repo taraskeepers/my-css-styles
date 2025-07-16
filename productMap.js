@@ -1881,13 +1881,6 @@ below14Trend: parseFloat(below14Trend.toFixed(1)),
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
   
-  // Check if allRows is loaded
-  if (!window._allRowsLoaded) {
-    console.log("[renderProductMapTable] Waiting for allRows to be loaded...");
-    setTimeout(() => renderProductMapTable(), 500);
-    return;
-  }
-  
   // Get container early to use in error handling
   const container = document.getElementById("productMapPage");
   if (!container) {
@@ -6626,74 +6619,30 @@ productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
 tdProducts.appendChild(productsChartContainer);
   
-// Find and display matching products
-if (window.allRows && Array.isArray(window.allRows)) {
-  console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
-
-  // Debug: Check what's actually in allRows
-console.log("[DEBUG] Sample allRows data:", {
-  totalRows: window.allRows.length,
-  firstRow: window.allRows[0],
-  uniqueSearchTerms: [...new Set(window.allRows.map(r => r.q))].slice(0, 5),
-  uniqueLocations: [...new Set(window.allRows.map(r => r.location_requested))].slice(0, 5),
-  uniqueDevices: [...new Set(window.allRows.map(r => r.device))],
-  uniqueSources: [...new Set(window.allRows.map(r => r.source))].slice(0, 5),
-  filterCriteria: {
-    term: term,
-    location: loc,
-    device: rowData.device,
-    company: companyToFilter
-  }
-});
-
-// Debug: Try to find any products for this company
-const companyProducts = window.allRows.filter(p => 
-  p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
-);
-console.log(`[DEBUG] Total products for ${companyToFilter}:`, companyProducts.length);
-if (companyProducts.length > 0) {
-  console.log("[DEBUG] Sample company product:", companyProducts[0]);
-}
-  
-  // Add a check for empty allRows
-  if (window.allRows.length === 0) {
-    console.error("[renderProductMapTable] window.allRows is empty!");
-    
-    // Try to reload the data
-    if (window.dataPrefix && typeof loadDataFromIDB === 'function') {
-      console.log("[renderProductMapTable] Attempting to reload data from IDB...");
-      loadDataFromIDB(window.dataPrefix + "processed").then(data => {
-        if (data && data.data) {
-          window.allRows = data.data;
-          console.log("[renderProductMapTable] Reloaded allRows with", window.allRows.length, "rows");
-          // Re-render the product map
-          if (typeof renderProductMapTable === 'function') {
-            renderProductMapTable();
-          }
-        }
-      });
-    }
-    return; // Exit early to prevent rendering empty table
-  }
-  
+          // Find and display matching products
+          if (window.allRows && Array.isArray(window.allRows)) {
+            console.log(`[renderProductMapTable] Finding products for ${term}, ${loc}, ${rowData.device}`);
+            
 // Check if we should show all products or just myCompany
-let matchingProducts;
-if (window.showAllProductsInMap) {
-    // Show all products that match term, location, and device
-    matchingProducts = window.allRows.filter(p => 
-      p.q === term &&
-      p.location_requested === loc &&
-      p.device === rowData.device
-    );
-  } else {
-    // Show only myCompany products (default behavior)
-    matchingProducts = window.allRows.filter(p => 
-      p.q === term &&
-      p.location_requested === loc &&
-      p.device === rowData.device &&
-      p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
-    );
-  }
+            const showAllProducts = window.showAllProductsInMap || false;
+            
+            let matchingProducts;
+            if (showAllProducts) {
+              // Show all products that match term, location, and device
+              matchingProducts = window.allRows.filter(p => 
+                p.q === term &&
+                p.location_requested === loc &&
+                p.device === rowData.device
+              );
+            } else {
+              // Show only myCompany products (default behavior)
+              matchingProducts = window.allRows.filter(p => 
+                p.q === term &&
+                p.location_requested === loc &&
+                p.device === rowData.device &&
+                p.source && p.source.toLowerCase() === (companyToFilter || "").toLowerCase()
+              );
+            }
             
             // Mark which products are from myCompany for styling
             matchingProducts.forEach(product => {
