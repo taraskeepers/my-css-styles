@@ -1672,7 +1672,7 @@ container.appendChild(miniSerpContainer);
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
 
-    if (window.myCompany && window.companyStatsData) {
+  if (window.myCompany && window.companyStatsData) {
     const myCompanyRecords = window.companyStatsData.filter(item => 
       item.source && item.source.toLowerCase() === window.myCompany.toLowerCase()
     );
@@ -1710,7 +1710,17 @@ function prepareCompanySerpsStatsData() {
     
     const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
     
+    // DEBUG: Add logging for Under Armour
+    const isUnderArmour = item.source === 'Under Armour' && 
+                          item.q === 'running shoes for men' && 
+                          item.location_requested === 'Austin,Texas,United States';
+    
     if (!companyStatsMap.has(key)) {
+      if (isUnderArmour) {
+        console.log(`\n[UNDER ARMOUR DEBUG] ========== PROCESSING KEY: ${key} ==========`);
+        console.log('[UNDER ARMOUR DEBUG] Device:', item.device);
+      }
+      
       // Calculate metrics from historical_data
       let avgRank = 999;
       let avgMarketShare = 0;
@@ -1734,6 +1744,14 @@ function prepareCompanySerpsStatsData() {
           return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[)'); // Include start, exclude end
         });
         
+        if (isUnderArmour) {
+          console.log(`[UNDER ARMOUR DEBUG] Historical data length: ${item.historical_data.length}`);
+          console.log(`[UNDER ARMOUR DEBUG] Last 7 days data count: ${last7DaysData.length}`);
+          if (last7DaysData.length > 0) {
+            console.log('[UNDER ARMOUR DEBUG] Sample day from last 7:', last7DaysData[0]);
+          }
+        }
+        
         // Calculate average rank from historical rank data
         const ranks = last7DaysData
           .filter(day => day.rank != null)
@@ -1748,9 +1766,29 @@ function prepareCompanySerpsStatsData() {
           .filter(day => day.market_share != null)
           .map(day => parseFloat(day.market_share) * 100); // Convert to percentage
         
+        if (isUnderArmour) {
+          console.log('[UNDER ARMOUR DEBUG] Market share (top40) calculation:');
+          console.log('  - Raw market_share values:', last7DaysData
+            .filter(day => day.market_share != null)
+            .map(day => day.market_share));
+          console.log('  - Converted to percentages:', marketShares);
+          console.log('  - Sum:', marketShares.reduce((a, b) => a + b, 0));
+          console.log('  - Count:', marketShares.length);
+        }
+        
         const top3Shares = last7DaysData
           .filter(day => day.top3_market_share != null)
           .map(day => parseFloat(day.top3_market_share) * 100);
+        
+        if (isUnderArmour) {
+          console.log('[UNDER ARMOUR DEBUG] Top3 calculation:');
+          console.log('  - Raw top3_market_share values:', last7DaysData
+            .filter(day => day.top3_market_share != null)
+            .map(day => day.top3_market_share));
+          console.log('  - Converted to percentages:', top3Shares);
+          console.log('  - Sum:', top3Shares.reduce((a, b) => a + b, 0));
+          console.log('  - Count:', top3Shares.length);
+        }
           
         const top4_8Shares = last7DaysData
           .filter(day => day.top4_8_market_share != null)
@@ -1767,9 +1805,15 @@ function prepareCompanySerpsStatsData() {
         // Calculate averages from the extracted data
         if (marketShares.length > 0) {
           avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
+          if (isUnderArmour) {
+            console.log(`[UNDER ARMOUR DEBUG] Final avgMarketShare (top40): ${avgMarketShare}%`);
+          }
         }
         if (top3Shares.length > 0) {
           avgTop3 = top3Shares.reduce((a, b) => a + b) / top3Shares.length;
+          if (isUnderArmour) {
+            console.log(`[UNDER ARMOUR DEBUG] Final avgTop3: ${avgTop3}%`);
+          }
         }
         if (top4_8Shares.length > 0) {
           avgTop4_8 = top4_8Shares.reduce((a, b) => a + b) / top4_8Shares.length;
@@ -1860,7 +1904,7 @@ function prepareCompanySerpsStatsData() {
         }
       }
 
-      companyStatsMap.set(key, {
+      const finalStats = {
         searchTerm: item.q,
         location: item.location_requested,
         device: item.device,
@@ -1882,7 +1926,14 @@ function prepareCompanySerpsStatsData() {
         newCount: 0,
         declinedCount: 0,
         historical_data: item.historical_data || []
-      });
+      };
+      
+      if (isUnderArmour) {
+        console.log('[UNDER ARMOUR DEBUG] FINAL STATS OBJECT:', finalStats);
+        console.log('[UNDER ARMOUR DEBUG] ========== END PROCESSING ==========\n');
+      }
+      
+      companyStatsMap.set(key, finalStats);
     }
   });
   
