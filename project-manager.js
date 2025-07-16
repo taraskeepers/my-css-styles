@@ -902,6 +902,7 @@ function createLocationListItem(loc) {
   window.projectTableData = null;  // Add this if exists
   window.homeData = null;  // Add this if exists
   window.projectData = [];  // Add this
+  window.company_serp_stats = []; 
 
   if (window.dataCache) {
     window.dataCache.clear();
