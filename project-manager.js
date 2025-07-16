@@ -1011,25 +1011,17 @@ serpStatsRec.data.forEach((row, idx) => {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
       
 if (serpStatsRec && serpStatsRec.data) {
-  console.log("[📥 Loading from IDB] serpStatsRec.data length:", serpStatsRec.data.length);
+  // Count null sources
+  const nullCount = serpStatsRec.data.filter(r => !r.source).length;
   
-  // Check what's in the loaded data
-  const loadedProjects = new Set(serpStatsRec.data.map(r => r.project_number));
-  const loadedSources = new Set(serpStatsRec.data.map(r => r.source).filter(Boolean));
-  console.log("  Projects in loaded data:", [...loadedProjects]);
-  console.log("  Sample sources:", [...loadedSources].slice(0, 5));
-  
-  // Check for contamination BEFORE setting
-  const contaminatedRecords = serpStatsRec.data.filter(r => 
-    r.project_number && r.project_number !== projectNumber
+  // Filter them out
+  serpStatsRec.data = serpStatsRec.data.filter(row => 
+    row.source && row.source !== null && row.source !== "" && row.source !== "Unknown"
   );
-  if (contaminatedRecords.length > 0) {
-    console.error(`❌ CONTAMINATION IN LOADED DATA! Found ${contaminatedRecords.length} records from wrong projects`);
-    console.log("Sample contaminated record:", contaminatedRecords[0]);
-  }
+  
+  console.log(`[Data Load] Excluded ${nullCount} null source records`);
   
   window.companyStatsData = serpStatsRec.data;
-  console.log("[✅ Set companyStatsData] length:", window.companyStatsData.length);
 } else {
   window.companyStatsData = [];
   console.log("[switchAccountAndReload] No serp stats data found!");
