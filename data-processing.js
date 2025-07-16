@@ -230,14 +230,12 @@ console.log("[buildProjectData DEBUG] Grouping details:", {
       });
       const avgRank = cR>0 ? sumR/cR : 40;
 
-      // DEBUG: Log rank calculation details
+// DEBUG: Log rank calculation details
 console.log(`[buildProjectData DEBUG] Rank calculation for ${sTerm}:`, {
   searchTerm: sTerm,
   location: loc,
   device: dev,
   periodDays,
-  sumPR,
-  countPR,
   avgRank,
   dayMapEntries: Object.entries(dayMap).length,
   sampleDayData: Object.entries(dayMap).slice(0, 3).map(([date, data]) => ({date, ...data}))
