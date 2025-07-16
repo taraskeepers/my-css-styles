@@ -1694,15 +1694,29 @@ function prepareCompanySerpsStatsData() {
     (window.filterState?.activeProjectNumber || 1);
   
   console.log('[ProductMap] Filtering data for project:', currentProjectNum);
+
+  // Filter companyStatsData to only include current project BEFORE processing
+const projectFilteredData = window.companyStatsData.filter(item => {
+  // Only include records from the current project
+  if (item.project_number && item.project_number !== currentProjectNum) {
+    return false;
+  }
+  return true;
+});
+
+console.log(`[ProductMap] Filtered from ${window.companyStatsData.length} to ${projectFilteredData.length} records for project ${currentProjectNum}`);
+
+// Check if we filtered out all data
+if (projectFilteredData.length === 0) {
+  console.warn(`[ProductMap] No data found for project ${currentProjectNum}`);
+  window.company_serp_stats = [];
+  return [];
+}
   
   const companyStatsMap = new Map();
   
   // Process each company's data
-  window.companyStatsData.forEach(item => {
-    // CRITICAL: Filter by current project number
-    if (item.project_number && item.project_number !== currentProjectNum) {
-      return; // Skip records from other projects
-    }
+  projectFilteredData.forEach(item => {
     
     // Skip records with null, undefined, or empty source
     if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
@@ -1955,6 +1969,7 @@ function prepareCompanySerpsStatsData() {
         device: item.device,
         rank: avgRank,
         company: item.source,
+        project_number: currentProjectNum,
         top40: parseFloat(avgMarketShare.toFixed(1)),
         top40Trend: parseFloat(marketShareTrend.toFixed(1)),
         top3: parseFloat(avgTop3.toFixed(1)),
