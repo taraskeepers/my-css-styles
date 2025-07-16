@@ -1668,7 +1668,6 @@ container.appendChild(miniSerpContainer);
 function prepareCompanySerpsStatsData() {
   console.log('[ProductMap] Preparing company SERP stats data...');
   
-  // Use companyStatsData as the source (same as company-details)
   if (!window.companyStatsData || window.companyStatsData.length === 0) {
     console.warn('[ProductMap] No companyStatsData available');
     return [];
@@ -1676,204 +1675,105 @@ function prepareCompanySerpsStatsData() {
   
   const companyStatsMap = new Map();
   
-  // Process each company's data
-window.companyStatsData.forEach(item => {
-  // Skip records with null, undefined, or empty source
-  if (!item.source || item.source.trim() === '' || item.source === 'Unknown' || 
-      !item.q || !item.location_requested || !item.device) return;
+  window.companyStatsData.forEach(item => {
+    // Skip invalid entries
+    if (!item.source || !item.q || !item.location_requested || !item.device) return;
     
     const key = `${item.source}_${item.q}_${item.location_requested}_${item.device}`;
     
     if (!companyStatsMap.has(key)) {
-// Calculate metrics from historical_data
-let avgRank = 999;
-let avgMarketShare = 0;
-let marketShareTrend = 0;
-let avgProducts = 0;
-let avgOnSale = 0;
-let avgTop3 = 0;
-let avgTop4_8 = 0;
-let avgTop9_14 = 0;
-let avgBelow14 = 0;
-
-if (item.historical_data && item.historical_data.length > 0) {
-  // Calculate 7-day average rank (excluding today)
-  const today = moment().startOf('day');
-  const sevenDaysAgo = today.clone().subtract(7, 'days');
-  
-  // Filter historical data for last 7 days (excluding today)
-  const last7DaysData = item.historical_data.filter(day => {
-    if (!day.date || !day.date.value) return false;
-    const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
-    return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[)'); // Include start, exclude end
-  });
-  
-  // Calculate average rank from historical rank data
-  const ranks = last7DaysData
-    .filter(day => day.rank != null)
-    .map(day => parseInt(day.rank, 10));
-  
-  if (ranks.length > 0) {
-    avgRank = Math.round(ranks.reduce((a, b) => a + b) / ranks.length);
-  }
-  
-  // Get last 7 days for market share metrics - use same date filtering as rank calculat
-  const last7Days = last7DaysData;
-  
-  // Calculate all market share segments
-  const marketShares = last7Days
-    .filter(day => day.market_share != null)
-    .map(day => parseFloat(day.market_share) * 100);
-  
-  const top3Shares = last7Days
-    .filter(day => day.top3_market_share != null)
-    .map(day => parseFloat(day.top3_market_share) * 100);
-    
-  const top4_8Shares = last7Days
-    .filter(day => day.top4_8_market_share != null)
-    .map(day => parseFloat(day.top4_8_market_share) * 100);
-    
-  const top9_14Shares = last7Days
-    .filter(day => day.top9_14_market_share != null)
-    .map(day => parseFloat(day.top9_14_market_share) * 100);
-    
-  const below14Shares = last7Days
-    .filter(day => day.below14_market_share != null)
-    .map(day => parseFloat(day.below14_market_share) * 100);
-  
-  if (marketShares.length > 0) {
-    avgMarketShare = marketShares.reduce((a, b) => a + b) / marketShares.length;
-  }
-  if (top3Shares.length > 0) {
-    avgTop3 = top3Shares.reduce((a, b) => a + b) / top3Shares.length;
-  }
-  if (top4_8Shares.length > 0) {
-    avgTop4_8 = top4_8Shares.reduce((a, b) => a + b) / top4_8Shares.length;
-  }
-  if (top9_14Shares.length > 0) {
-    avgTop9_14 = top9_14Shares.reduce((a, b) => a + b) / top9_14Shares.length;
-  }
-  if (below14Shares.length > 0) {
-    avgBelow14 = below14Shares.reduce((a, b) => a + b) / below14Shares.length;
-  }
-  
-  // Calculate trend (last 7 days vs previous 7 days)
-  if (item.historical_data.length >= 14) {
-    const prev7Days = item.historical_data.slice(-14, -7);
-    const prevShares = prev7Days
-      .filter(day => day.market_share != null)
-      .map(day => parseFloat(day.market_share) * 100);
-    
-    if (prevShares.length > 0) {
-      const prevAvg = prevShares.reduce((a, b) => a + b) / prevShares.length;
-      marketShareTrend = avgMarketShare - prevAvg;
-    }
-  }
-  
-  // Calculate product metrics
-  const productCounts = last7Days
-    .filter(day => day.unique_products != null)
-    .map(day => parseFloat(day.unique_products));
-  
-  const onSaleCounts = last7Days
-    .filter(day => day.un_products_on_sale != null)
-    .map(day => parseFloat(day.un_products_on_sale));
-  
-  if (productCounts.length > 0) {
-    avgProducts = productCounts.reduce((a, b) => a + b) / productCounts.length;
-  }
-  
-  if (onSaleCounts.length > 0) {
-    avgOnSale = onSaleCounts.reduce((a, b) => a + b) / onSaleCounts.length;
-  }
-}
-
-// Calculate trends for all segments (last 7 days vs previous 7 days)
-let top3Trend = 0;
-let top4_8Trend = 0;
-let top9_14Trend = 0;
-let below14Trend = 0;
-
-if (item.historical_data.length >= 14) {
-  const prev7Days = item.historical_data.slice(-14, -7);
-  
-  // Calculate previous averages for all segments
-  const prevTop3Shares = prev7Days
-    .filter(day => day.top3_market_share != null)
-    .map(day => parseFloat(day.top3_market_share) * 100);
-  
-  const prevTop4_8Shares = prev7Days
-    .filter(day => day.top4_8_market_share != null)
-    .map(day => parseFloat(day.top4_8_market_share) * 100);
-    
-  const prevTop9_14Shares = prev7Days
-    .filter(day => day.top9_14_market_share != null)
-    .map(day => parseFloat(day.top9_14_market_share) * 100);
-    
-  const prevBelow14Shares = prev7Days
-    .filter(day => day.below14_market_share != null)
-    .map(day => parseFloat(day.below14_market_share) * 100);
-  
-  // Calculate trends
-  if (prevTop3Shares.length > 0) {
-    const prevAvg = prevTop3Shares.reduce((a, b) => a + b) / prevTop3Shares.length;
-    top3Trend = avgTop3 - prevAvg;
-  }
-  
-  if (prevTop4_8Shares.length > 0) {
-    const prevAvg = prevTop4_8Shares.reduce((a, b) => a + b) / prevTop4_8Shares.length;
-    top4_8Trend = avgTop4_8 - prevAvg;
-  }
-  
-  if (prevTop9_14Shares.length > 0) {
-    const prevAvg = prevTop9_14Shares.reduce((a, b) => a + b) / prevTop9_14Shares.length;
-    top9_14Trend = avgTop9_14 - prevAvg;
-  }
-  
-  if (prevBelow14Shares.length > 0) {
-    const prevAvg = prevBelow14Shares.reduce((a, b) => a + b) / prevBelow14Shares.length;
-    below14Trend = avgBelow14 - prevAvg;
-  }
-}
-
-companyStatsMap.set(key, {
-  searchTerm: item.q,
-  location: item.location_requested,
-  device: item.device,
-  rank: avgRank,
-  company: item.source,
-  top40: parseFloat(avgMarketShare.toFixed(1)),
-  top40Trend: parseFloat(marketShareTrend.toFixed(1)),
-top3: parseFloat(avgTop3.toFixed(1)),
-top3Trend: parseFloat(top3Trend.toFixed(1)),
-top4_8: parseFloat(avgTop4_8.toFixed(1)),
-top4_8Trend: parseFloat(top4_8Trend.toFixed(1)),
-top9_14: parseFloat(avgTop9_14.toFixed(1)),
-top9_14Trend: parseFloat(top9_14Trend.toFixed(1)),
-below14: parseFloat(avgBelow14.toFixed(1)),
-below14Trend: parseFloat(below14Trend.toFixed(1)),
-  numProducts: Math.round(avgProducts),
-  numOnSale: avgProducts > 0 ? Math.round((avgOnSale / avgProducts) * 100) : 0,
-  improvedCount: 0,
-  newCount: 0,
-  declinedCount: 0,
-  historical_data: item.historical_data || []
-});
+      let avgTop40 = 0, avgTop3 = 0, avgTop4_8 = 0, avgTop9_14 = 0, avgBelow14 = 0;
+      let top40Trend = 0, top3Trend = 0, top4_8Trend = 0, top9_14Trend = 0, below14Trend = 0;
+      let avgRank = 999;
+      
+      if (item.historical_data && item.historical_data.length > 0) {
+        // Get last 7 days of data
+        const today = moment();
+        const sevenDaysAgo = today.clone().subtract(6, 'days');
+        const fourteenDaysAgo = today.clone().subtract(13, 'days');
+        
+        // Filter for last 7 days (current period)
+        const last7Days = item.historical_data.filter(day => {
+          if (!day.date?.value) return false;
+          const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
+          return dayMoment.isBetween(sevenDaysAgo, today, 'day', '[]');
+        });
+        
+        // Filter for previous 7 days (comparison period)
+        const prev7Days = item.historical_data.filter(day => {
+          if (!day.date?.value) return false;
+          const dayMoment = moment(day.date.value, 'YYYY-MM-DD');
+          return dayMoment.isBetween(fourteenDaysAgo, sevenDaysAgo, 'day', '(]');
+        });
+        
+        console.log(`[ProductMap] ${item.source} - ${item.q}: ${last7Days.length} days in current period`);
+        
+        // Calculate current period averages
+        if (last7Days.length > 0) {
+          // Market shares are stored as decimals (e.g., 0.059 = 5.9%)
+          avgTop40 = last7Days.reduce((sum, d) => sum + (parseFloat(d.market_share) || 0), 0) / last7Days.length * 100;
+          avgTop3 = last7Days.reduce((sum, d) => sum + (parseFloat(d.top3_market_share) || 0), 0) / last7Days.length * 100;
+          avgTop4_8 = last7Days.reduce((sum, d) => sum + (parseFloat(d.top4_8_market_share) || 0), 0) / last7Days.length * 100;
+          avgTop9_14 = last7Days.reduce((sum, d) => sum + (parseFloat(d.top9_14_market_share) || 0), 0) / last7Days.length * 100;
+          avgBelow14 = last7Days.reduce((sum, d) => sum + (parseFloat(d.below14_market_share) || 0), 0) / last7Days.length * 100;
+          
+          // Calculate average rank
+          const ranks = last7Days.map(d => parseFloat(d.rank)).filter(r => !isNaN(r));
+          if (ranks.length > 0) {
+            avgRank = ranks.reduce((sum, r) => sum + r, 0) / ranks.length;
+          }
+        }
+        
+        // Calculate previous period averages for trends
+        if (prev7Days.length > 0) {
+          const prevTop40 = prev7Days.reduce((sum, d) => sum + (parseFloat(d.market_share) || 0), 0) / prev7Days.length * 100;
+          const prevTop3 = prev7Days.reduce((sum, d) => sum + (parseFloat(d.top3_market_share) || 0), 0) / prev7Days.length * 100;
+          const prevTop4_8 = prev7Days.reduce((sum, d) => sum + (parseFloat(d.top4_8_market_share) || 0), 0) / prev7Days.length * 100;
+          const prevTop9_14 = prev7Days.reduce((sum, d) => sum + (parseFloat(d.top9_14_market_share) || 0), 0) / prev7Days.length * 100;
+          const prevBelow14 = prev7Days.reduce((sum, d) => sum + (parseFloat(d.below14_market_share) || 0), 0) / prev7Days.length * 100;
+          
+          // Calculate trends (current - previous)
+          top40Trend = avgTop40 - prevTop40;
+          top3Trend = avgTop3 - prevTop3;
+          top4_8Trend = avgTop4_8 - prevTop4_8;
+          top9_14Trend = avgTop9_14 - prevTop9_14;
+          below14Trend = avgBelow14 - prevBelow14;
+        }
+        
+        console.log(`[ProductMap] ${item.source} market shares:`, {
+          top40: avgTop40.toFixed(1),
+          top3: avgTop3.toFixed(1),
+          top4_8: avgTop4_8.toFixed(1),
+          top9_14: avgTop9_14.toFixed(1),
+          below14: avgBelow14.toFixed(1)
+        });
+      }
+      
+      companyStatsMap.set(key, {
+        searchTerm: item.q,
+        location: item.location_requested,
+        device: item.device,
+        rank: Math.round(avgRank),
+        company: item.source,
+        top40: avgTop40,
+        top40Trend: top40Trend,
+        top3: avgTop3,
+        top3Trend: top3Trend,
+        top4_8: avgTop4_8,
+        top4_8Trend: top4_8Trend,
+        top9_14: avgTop9_14,
+        top9_14Trend: top9_14Trend,
+        below14: avgBelow14,
+        below14Trend: below14Trend,
+        numProducts: parseInt(item.historical_data?.[item.historical_data.length - 1]?.unique_products) || 0,
+        numOnSale: parseInt(item.historical_data?.[item.historical_data.length - 1]?.un_products_on_sale) || 0,
+        historical_data: item.historical_data || []
+      });
     }
   });
   
   window.company_serp_stats = Array.from(companyStatsMap.values());
   console.log(`[ProductMap] Prepared ${window.company_serp_stats.length} company stats`);
-  
-  // Debug log to verify data
-  if (window.company_serp_stats.length > 0) {
-    console.log('[ProductMap] Sample company stat:', {
-      company: window.company_serp_stats[0].company,
-      rank: window.company_serp_stats[0].rank,
-      top40: window.company_serp_stats[0].top40,
-      top40Trend: window.company_serp_stats[0].top40Trend
-    });
-  }
   
   return window.company_serp_stats;
 }
