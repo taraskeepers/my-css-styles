@@ -878,6 +878,15 @@ function createLocationListItem(loc) {
  */
 
  async function switchAccountAndReload(prefix, projectNumber) {
+  console.group("[🔄 switchAccountAndReload] PROJECT SWITCH DEBUG");
+  console.log("Switching to prefix:", prefix, "projectNumber:", projectNumber);
+  console.log("Previous dataPrefix:", window.dataPrefix);
+  
+  // After clearing data, add:
+  console.log("Data cleared. Current state:");
+  console.log("  companyStatsData:", window.companyStatsData?.length || 0);
+  console.log("  company_serp_stats:", window.company_serp_stats?.length || 0);
+   
   console.group("[switchAccountAndReload DEBUG]");
   console.log("Called with prefix:", prefix, "projectNumber:", projectNumber);
   console.log("Previous dataPrefix:", window.dataPrefix);
@@ -997,22 +1006,25 @@ if (Array.isArray(serpStatsRec?.data)) {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
       
 if (serpStatsRec && serpStatsRec.data) {
-  // CRITICAL: Create a new array to ensure no reference issues
-  window.companyStatsData = [...serpStatsRec.data];
-  console.log("[switchAccountAndReload] REPLACED companyStatsData with:", window.companyStatsData.length, "rows");
+  console.log("[📥 Loading from IDB] serpStatsRec.data length:", serpStatsRec.data.length);
   
-  // Verify it only contains current project data
-  const projectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
-  if (projectNumbers.size > 1 || (projectNumbers.size === 1 && !projectNumbers.has(projectNumber))) {
-    console.error("❌ ERROR: companyStatsData contains wrong project data!");
-    console.error("Expected project:", projectNumber, "Found projects:", [...projectNumbers]);
-    
-    // Force filter to current project only
-    window.companyStatsData = window.companyStatsData.filter(r => 
-      r.project_number === projectNumber
-    );
-    console.log("Filtered to", window.companyStatsData.length, "records for project", projectNumber);
+  // Check what's in the loaded data
+  const loadedProjects = new Set(serpStatsRec.data.map(r => r.project_number));
+  const loadedSources = new Set(serpStatsRec.data.map(r => r.source).filter(Boolean));
+  console.log("  Projects in loaded data:", [...loadedProjects]);
+  console.log("  Sample sources:", [...loadedSources].slice(0, 5));
+  
+  // Check for contamination BEFORE setting
+  const contaminatedRecords = serpStatsRec.data.filter(r => 
+    r.project_number && r.project_number !== projectNumber
+  );
+  if (contaminatedRecords.length > 0) {
+    console.error(`❌ CONTAMINATION IN LOADED DATA! Found ${contaminatedRecords.length} records from wrong projects`);
+    console.log("Sample contaminated record:", contaminatedRecords[0]);
   }
+  
+  window.companyStatsData = serpStatsRec.data;
+  console.log("[✅ Set companyStatsData] length:", window.companyStatsData.length);
 } else {
   window.companyStatsData = [];
   console.log("[switchAccountAndReload] No serp stats data found!");
