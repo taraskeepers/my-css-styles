@@ -8265,21 +8265,6 @@ console.log("[DEBUG] Product Map - First few globalRows entries:",
           
 // Populate companies for this search term/location/device combination
 if (window.company_serp_stats && window.company_serp_stats.length > 0) {
-      console.log(`[ProductMap] Filtering companies for:`, {
-    term: term,
-    location: loc,
-    device: rowData.device,
-    totalCompanyStats: window.company_serp_stats.length,
-    matchingCompanies: companyData.length
-  });
-  
-  // Debug first 3 companies
-  if (companyData.length > 0) {
-    console.log(`[ProductMap] Company data found:`);
-    companyData.slice(0, 3).forEach(c => {
-      console.log(`  ${c.company}: rank=${c.rank}, top40=${c.top40}%, top3=${c.top3}%`);
-    });
-  }
   
   // Filter company data for this specific combination
 const companyData = window.company_serp_stats.filter(c => 
@@ -8297,6 +8282,14 @@ const companyData = window.company_serp_stats.filter(c =>
     totalCompanyStats: window.company_serp_stats.length,
     matchingCompanies: companyData.length
   });
+
+    // Debug first 3 companies
+  if (companyData.length > 0) {
+    console.log(`[ProductMap] Company data found:`);
+    companyData.slice(0, 3).forEach(c => {
+      console.log(`  ${c.company}: rank=${c.rank}, top40=${c.top40}%, top3=${c.top3}%`);
+    });
+  }
 
 if (companyData.length > 0) {
   // Sort by average rank (ascending - best rank first)
