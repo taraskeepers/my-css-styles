@@ -996,10 +996,23 @@ if (Array.isArray(serpStatsRec?.data)) {
     if (allFresh) {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
       
-// CRITICAL: Set the global data BEFORE calling onReceivedRows
 if (serpStatsRec && serpStatsRec.data) {
-  window.companyStatsData = serpStatsRec.data;
-  console.log("[switchAccountAndReload] Set companyStatsData to:", window.companyStatsData.length, "rows");
+  // CRITICAL: Create a new array to ensure no reference issues
+  window.companyStatsData = [...serpStatsRec.data];
+  console.log("[switchAccountAndReload] REPLACED companyStatsData with:", window.companyStatsData.length, "rows");
+  
+  // Verify it only contains current project data
+  const projectNumbers = new Set(window.companyStatsData.map(r => r.project_number));
+  if (projectNumbers.size > 1 || (projectNumbers.size === 1 && !projectNumbers.has(projectNumber))) {
+    console.error("❌ ERROR: companyStatsData contains wrong project data!");
+    console.error("Expected project:", projectNumber, "Found projects:", [...projectNumbers]);
+    
+    // Force filter to current project only
+    window.companyStatsData = window.companyStatsData.filter(r => 
+      r.project_number === projectNumber
+    );
+    console.log("Filtered to", window.companyStatsData.length, "records for project", projectNumber);
+  }
 } else {
   window.companyStatsData = [];
   console.log("[switchAccountAndReload] No serp stats data found!");
