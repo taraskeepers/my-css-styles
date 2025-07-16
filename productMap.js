@@ -1742,7 +1742,7 @@ function prepareCompanySerpsStatsData() {
           // Debug log for myCompany only
 if (item.source && window.myCompany && 
     item.source.toLowerCase() === window.myCompany.toLowerCase()) {
-  console.group(`[🔍 MINI-SERP DEBUG] ${item.source} - ${item.q} - ${item.device}`);
+  console.group(`[🔍 MINI-SERP DEBUG] ${item.source} - ${item.q} - ${item.location_requested} - ${item.device}`);
   
   console.log('Raw data from last 7 days:');
   last7Days.forEach((day, idx) => {
