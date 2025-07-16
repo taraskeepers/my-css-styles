@@ -527,13 +527,6 @@ async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
 
   // 1) Process data and update filters
   window.allRows = rows;
-  window._allRowsLoaded = true;
-  // Add verification
-if (!window.allRows || window.allRows.length === 0) {
-  console.error("[onReceivedRowsWithData] ERROR: allRows was not set properly!");
-} else {
-  console.log("[onReceivedRowsWithData] Successfully set allRows with", window.allRows.length, "rows");
-}
   updateSearchTermDropdown(rows);
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
@@ -581,10 +574,6 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
 
     // Called once we receive rows from parent or IDB
 async function onReceivedRows(rows) {
-  console.log(`[onReceivedRows] Called with ${rows.length} rows`);
-  console.log(`[onReceivedRows] Current window.allRows has ${window.allRows?.length || 0} rows`);
-  console.log(`[onReceivedRows] Current dataPrefix: ${window.dataPrefix}`);
-  console.log(`[onReceivedRows] Active project: ${window.filterState?.activeProjectNumber}`);
   console.log("[FINAL - function onReceivedRows] window.myCompany is now:", window.myCompany);
   console.log("Received", rows.length, "rows");
 
@@ -599,13 +588,6 @@ async function onReceivedRows(rows) {
 
   // 1) Process data and update filters
   window.allRows = rows;
-  window._allRowsLoaded = true;
-  // Add verification
-if (!window.allRows || window.allRows.length === 0) {
-  console.error("[onReceivedRowsWithData] ERROR: allRows was not set properly!");
-} else {
-  console.log("[onReceivedRowsWithData] Successfully set allRows with", window.allRows.length, "rows");
-}
   updateSearchTermDropdown(rows);
   updateEngineDropdown(rows);
   updateLocationDropdown(rows);
