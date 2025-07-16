@@ -1738,6 +1738,76 @@ function prepareCompanySerpsStatsData() {
           top4_8Trend = avgTop4_8 - prevTop4_8;
           top9_14Trend = avgTop9_14 - prevTop9_14;
           below14Trend = avgBelow14 - prevBelow14;
+
+          // Debug log for myCompany only
+if (item.source && window.myCompany && 
+    item.source.toLowerCase() === window.myCompany.toLowerCase()) {
+  console.group(`[🔍 MINI-SERP DEBUG] ${item.source} - ${item.q} - ${item.device}`);
+  
+  console.log('Raw data from last 7 days:');
+  last7Days.forEach((day, idx) => {
+    console.log(`Day ${idx + 1} (${day.date?.value}):`, {
+      market_share: day.market_share,
+      top3: day.top3_market_share,
+      top4_8: day.top4_8_market_share,
+      top9_14: day.top9_14_market_share,
+      below14: day.below14_market_share
+    });
+  });
+  
+  console.log('\nCalculations:');
+  console.log('Top 40 (Total):', {
+    sum: last7Days.reduce((sum, d) => sum + (parseFloat(d.market_share) || 0), 0),
+    count: last7Days.length,
+    average: last7Days.reduce((sum, d) => sum + (parseFloat(d.market_share) || 0), 0) / last7Days.length,
+    percentage: avgTop40.toFixed(2) + '%'
+  });
+  
+  console.log('Top 3:', {
+    sum: last7Days.reduce((sum, d) => sum + (parseFloat(d.top3_market_share) || 0), 0),
+    count: last7Days.length,
+    average: last7Days.reduce((sum, d) => sum + (parseFloat(d.top3_market_share) || 0), 0) / last7Days.length,
+    percentage: avgTop3.toFixed(2) + '%'
+  });
+  
+  console.log('Top 4-8:', {
+    sum: last7Days.reduce((sum, d) => sum + (parseFloat(d.top4_8_market_share) || 0), 0),
+    count: last7Days.length,
+    average: last7Days.reduce((sum, d) => sum + (parseFloat(d.top4_8_market_share) || 0), 0) / last7Days.length,
+    percentage: avgTop4_8.toFixed(2) + '%'
+  });
+  
+  console.log('Top 9-14:', {
+    sum: last7Days.reduce((sum, d) => sum + (parseFloat(d.top9_14_market_share) || 0), 0),
+    count: last7Days.length,
+    average: last7Days.reduce((sum, d) => sum + (parseFloat(d.top9_14_market_share) || 0), 0) / last7Days.length,
+    percentage: avgTop9_14.toFixed(2) + '%'
+  });
+  
+  console.log('Below 14:', {
+    sum: last7Days.reduce((sum, d) => sum + (parseFloat(d.below14_market_share) || 0), 0),
+    count: last7Days.length,
+    average: last7Days.reduce((sum, d) => sum + (parseFloat(d.below14_market_share) || 0), 0) / last7Days.length,
+    percentage: avgBelow14.toFixed(2) + '%'
+  });
+  
+  console.log('\nTrends (vs previous 7 days):');
+  console.log('Top 40 trend:', top40Trend.toFixed(2) + '%');
+  console.log('Top 3 trend:', top3Trend.toFixed(2) + '%');
+  console.log('Top 4-8 trend:', top4_8Trend.toFixed(2) + '%');
+  console.log('Top 9-14 trend:', top9_14Trend.toFixed(2) + '%');
+  console.log('Below 14 trend:', below14Trend.toFixed(2) + '%');
+  
+  console.log('\nFinal values for mini-serp-table:', {
+    top40: avgTop40.toFixed(1) + '%',
+    top3: avgTop3.toFixed(1) + '%',
+    top4_8: avgTop4_8.toFixed(1) + '%',
+    top9_14: avgTop9_14.toFixed(1) + '%',
+    below14: avgBelow14.toFixed(1) + '%'
+  });
+  
+  console.groupEnd();
+}
         }
         
         console.log(`[ProductMap] ${item.source} market shares:`, {
