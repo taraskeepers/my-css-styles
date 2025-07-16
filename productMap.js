@@ -2005,6 +2005,23 @@ function prepareCompanySerpsStatsData() {
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
 
+    const currentProjectNum = window.dataPrefix ? 
+    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+
+    // Check if company_serp_stats contains data from wrong project
+  if (window.company_serp_stats && window.company_serp_stats.length > 0) {
+    const statsProjectNumbers = new Set(window.company_serp_stats.map(stat => stat.project_number).filter(pn => pn != null));
+    
+    // If we have stats from multiple projects or wrong project, clear it
+    if (statsProjectNumbers.size > 1 || (statsProjectNumbers.size === 1 && !statsProjectNumbers.has(currentProjectNum))) {
+      console.warn("[renderProductMapTable] Detected stale company_serp_stats from different project(s):", [...statsProjectNumbers]);
+      window.company_serp_stats = [];
+    }
+  }
+  
+  // Always regenerate company_serp_stats to ensure it's fresh
+  prepareCompanySerpsStatsData();
+
   // Add after: console.log("[renderProductMapTable] Starting render");
 console.log("=== PRODUCT MAP DATA SOURCE ===");
 console.log("Using projectTableData:", window.projectTableData?.length || 0, "entries");
