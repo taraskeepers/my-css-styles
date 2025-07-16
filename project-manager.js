@@ -401,7 +401,15 @@ menuItem.addEventListener("click", (e) => {
           });
       }
     }
-  }, 10);
+}, 10);
+  
+  // Add debug logging after project switch
+  setTimeout(() => {
+    console.log("=== POST PROJECT SWITCH DEBUG ===");
+    if (typeof window.debugProjectState === 'function') {
+      window.debugProjectState();
+    }
+  }, 1000);
 }); // end menuItem.addEventListener
   });
 
