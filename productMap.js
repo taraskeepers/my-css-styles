@@ -1749,6 +1749,24 @@ function prepareCompanySerpsStatsData() {
           console.log(`[UNDER ARMOUR DEBUG] Last 7 days data count: ${last7DaysData.length}`);
           if (last7DaysData.length > 0) {
             console.log('[UNDER ARMOUR DEBUG] Sample day from last 7:', last7DaysData[0]);
+            console.log('[UNDER ARMOUR DEBUG] All fields in sample day:', Object.keys(last7DaysData[0]));
+            
+            // Check if market_share fields exist
+            const hasMarketShare = last7DaysData.some(day => day.market_share != null);
+            const hasTop3Share = last7DaysData.some(day => day.top3_market_share != null);
+            console.log('[UNDER ARMOUR DEBUG] Has market_share field?', hasMarketShare);
+            console.log('[UNDER ARMOUR DEBUG] Has top3_market_share field?', hasTop3Share);
+            
+            if (!hasMarketShare || !hasTop3Share) {
+              console.log('[UNDER ARMOUR DEBUG] WARNING: Missing market share fields!');
+              console.log('[UNDER ARMOUR DEBUG] Checking for alternative field names...');
+              // Log all unique field names across all days
+              const allFields = new Set();
+              last7DaysData.forEach(day => {
+                Object.keys(day).forEach(field => allFields.add(field));
+              });
+              console.log('[UNDER ARMOUR DEBUG] All unique fields:', Array.from(allFields).sort());
+            }
           }
         }
         
@@ -1768,12 +1786,16 @@ function prepareCompanySerpsStatsData() {
         
         if (isUnderArmour) {
           console.log('[UNDER ARMOUR DEBUG] Market share (top40) calculation:');
-          console.log('  - Raw market_share values:', last7DaysData
+          const rawMarketShareValues = last7DaysData
             .filter(day => day.market_share != null)
-            .map(day => day.market_share));
+            .map(day => day.market_share);
+          console.log('  - Raw market_share values:', rawMarketShareValues);
           console.log('  - Converted to percentages:', marketShares);
-          console.log('  - Sum:', marketShares.reduce((a, b) => a + b, 0));
-          console.log('  - Count:', marketShares.length);
+          if (marketShares.length > 0) {
+            console.log('  - Sum:', marketShares.reduce((a, b) => a + b, 0));
+            console.log('  - Count:', marketShares.length);
+            console.log('  - Average will be:', marketShares.reduce((a, b) => a + b, 0) / marketShares.length);
+          }
         }
         
         const top3Shares = last7DaysData
@@ -1782,12 +1804,16 @@ function prepareCompanySerpsStatsData() {
         
         if (isUnderArmour) {
           console.log('[UNDER ARMOUR DEBUG] Top3 calculation:');
-          console.log('  - Raw top3_market_share values:', last7DaysData
+          const rawTop3Values = last7DaysData
             .filter(day => day.top3_market_share != null)
-            .map(day => day.top3_market_share));
+            .map(day => day.top3_market_share);
+          console.log('  - Raw top3_market_share values:', rawTop3Values);
           console.log('  - Converted to percentages:', top3Shares);
-          console.log('  - Sum:', top3Shares.reduce((a, b) => a + b, 0));
-          console.log('  - Count:', top3Shares.length);
+          if (top3Shares.length > 0) {
+            console.log('  - Sum:', top3Shares.reduce((a, b) => a + b, 0));
+            console.log('  - Count:', top3Shares.length);
+            console.log('  - Average will be:', top3Shares.reduce((a, b) => a + b, 0) / top3Shares.length);
+          }
         }
           
         const top4_8Shares = last7DaysData
@@ -1808,12 +1834,18 @@ function prepareCompanySerpsStatsData() {
           if (isUnderArmour) {
             console.log(`[UNDER ARMOUR DEBUG] Final avgMarketShare (top40): ${avgMarketShare}%`);
           }
+        } else if (isUnderArmour) {
+          console.log('[UNDER ARMOUR DEBUG] WARNING: No market share data found!');
+          console.log('[UNDER ARMOUR DEBUG] avgMarketShare will remain:', avgMarketShare);
         }
         if (top3Shares.length > 0) {
           avgTop3 = top3Shares.reduce((a, b) => a + b) / top3Shares.length;
           if (isUnderArmour) {
             console.log(`[UNDER ARMOUR DEBUG] Final avgTop3: ${avgTop3}%`);
           }
+        } else if (isUnderArmour) {
+          console.log('[UNDER ARMOUR DEBUG] WARNING: No top3 share data found!');
+          console.log('[UNDER ARMOUR DEBUG] avgTop3 will remain:', avgTop3);
         }
         if (top4_8Shares.length > 0) {
           avgTop4_8 = top4_8Shares.reduce((a, b) => a + b) / top4_8Shares.length;
