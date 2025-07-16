@@ -6781,11 +6781,13 @@ if (window.companyStatsData && Array.isArray(window.companyStatsData)) {
       let currTop40Sum = 0, currTop3Sum = 0, currTop4_8Sum = 0, currTop9_14Sum = 0, currBelow14Sum = 0;
       currentPeriodData.forEach(day => {
         currTop40Sum += parseFloat(day.market_share || 0);
+        console.log(`[SEGM CALC DEBUG] Adding day ${day.date?.value}: market_share = ${day.market_share}, running sum = ${currTop40Sum}`);
         currTop3Sum += parseFloat(day.top3_market_share || 0);
         currTop4_8Sum += parseFloat(day.top4_8_market_share || 0);
         currTop9_14Sum += parseFloat(day.top9_14_market_share || 0);
         currBelow14Sum += parseFloat(day.below14_market_share || 0);
       });
+      console.log(`[DEBUG] Final sum: ${currTop40Sum}, count: ${currentPeriodData.length}, average: ${currTop40Sum / currentPeriodData.length}`);
       
       // Calculate averages for previous period
       let prevTop40Sum = 0, prevTop3Sum = 0, prevTop4_8Sum = 0, prevTop9_14Sum = 0, prevBelow14Sum = 0;
