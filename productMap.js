@@ -2062,12 +2062,15 @@ function prepareCompanySerpsStatsData() {
 
 // Function to render all market trend charts
 function renderAllMarketTrendCharts() {
+  console.log('[renderAllMarketTrendCharts] Starting...');
+  
   // Initialize chart instances array
   if (!window.marketTrendChartInstances) {
     window.marketTrendChartInstances = [];
   }
   
   // Clear any existing charts
+  console.log(`[renderAllMarketTrendCharts] Clearing ${window.marketTrendChartInstances.length} existing charts`);
   window.marketTrendChartInstances.forEach(chart => {
     if (chart) chart.destroy();
   });
@@ -2075,17 +2078,37 @@ function renderAllMarketTrendCharts() {
   
   // Find all market trend chart containers
   const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
+  console.log(`[renderAllMarketTrendCharts] Found ${chartContainers.length} chart containers`);
   
-  chartContainers.forEach(container => {
+  if (chartContainers.length === 0) {
+    console.warn('[renderAllMarketTrendCharts] No chart containers found! Checking if table exists...');
+    const table = document.querySelector('.product-map-table');
+    console.log('  Product map table exists:', !!table);
+    const marketTrendCols = document.querySelectorAll('.market-trend-column');
+    console.log('  Market trend columns:', marketTrendCols.length);
+    return;
+  }
+  
+  chartContainers.forEach((container, index) => {
     const term = container.getAttribute('data-term');
     const location = container.getAttribute('data-location');
     const device = container.getAttribute('data-device');
     const company = container.getAttribute('data-company');
     
+    console.log(`[renderAllMarketTrendCharts] Processing chart ${index}:`, {
+      id: container.id,
+      term, location, device, company
+    });
+    
     if (term && location && device && company) {
+      console.log(`[renderAllMarketTrendCharts] Rendering chart for ${company}`);
       renderSingleMarketTrendChart(container.id, term, location, device, company);
+    } else {
+      console.warn(`[renderAllMarketTrendCharts] Missing data attributes for chart ${index}`);
     }
   });
+  
+  console.log('[renderAllMarketTrendCharts] Complete');
 }
 
 // Function to render single market trend chart
@@ -3186,31 +3209,68 @@ const viewMarketTrendBtn = document.getElementById("viewMarketTrend");
 
 if (viewCompaniesBtn && viewMarketTrendBtn) {
 viewMarketTrendBtn.addEventListener("click", function() {
+  console.log('[ProductMap] Market Trend button clicked - starting debug...');
+  
   // Switch to Market Trend view
   viewMarketTrendBtn.classList.add("active");
   viewCompaniesBtn.classList.remove("active");
+  console.log('[ProductMap] Button states updated');
+  
+  // Debug: Check for companies columns
+  const companiesColumns = document.querySelectorAll('.companies-column');
+  console.log(`[ProductMap] Found ${companiesColumns.length} companies columns`);
   
   // Hide companies columns and show market trend columns
-  document.querySelectorAll('.companies-column').forEach(col => {
+  companiesColumns.forEach(col => {
     col.style.display = 'none';
   });
   
-  document.querySelectorAll('.market-trend-column').forEach(col => {
+  // Debug: Check for market trend columns
+  const marketTrendColumns = document.querySelectorAll('.market-trend-column');
+  console.log(`[ProductMap] Found ${marketTrendColumns.length} market trend columns`);
+  
+  marketTrendColumns.forEach((col, index) => {
+    console.log(`[ProductMap] Showing market trend column ${index}`);
     col.style.display = 'table-cell';
   });
   
   // Toggle header text
-  document.querySelectorAll('.companies-header-text').forEach(text => {
+  const companiesHeaderText = document.querySelectorAll('.companies-header-text');
+  const marketTrendHeaderText = document.querySelectorAll('.market-trend-header-text');
+  console.log(`[ProductMap] Found ${companiesHeaderText.length} companies header texts, ${marketTrendHeaderText.length} market trend header texts`);
+  
+  companiesHeaderText.forEach(text => {
     text.style.display = 'none';
   });
-  document.querySelectorAll('.market-trend-header-text').forEach(text => {
+  marketTrendHeaderText.forEach(text => {
     text.style.display = 'inline';
   });
   
+  // Debug: Check for chart containers before rendering
+  const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
+  console.log(`[ProductMap] Found ${chartContainers.length} chart containers`);
+  
+  chartContainers.forEach((container, index) => {
+    console.log(`[ProductMap] Chart container ${index}:`, {
+      id: container.id,
+      term: container.getAttribute('data-term'),
+      location: container.getAttribute('data-location'),
+      device: container.getAttribute('data-device'),
+      company: container.getAttribute('data-company')
+    });
+  });
+  
+  // Check if required data is available
+  console.log('[ProductMap] Checking required data:');
+  console.log('  window.companyStatsData available:', !!window.companyStatsData);
+  console.log('  window.companyStatsData length:', window.companyStatsData?.length || 0);
+  console.log('  window.myCompany:', window.myCompany);
+  
   // Render all market trend charts
+  console.log('[ProductMap] Calling renderAllMarketTrendCharts...');
   renderAllMarketTrendCharts();
   
-  console.log('[ProductMap] Switched to Market Trend view');
+  console.log('[ProductMap] Switched to Market Trend view - debug complete');
 });
 
 // Update the Companies button to hide market trend charts
