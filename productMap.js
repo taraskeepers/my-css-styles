@@ -3047,9 +3047,13 @@ if (allProductsToggle) {
     
     // Store the toggle state
     window.showAllProductsInMap = isChecked;
-    if (mode === 'companies') {
-  prepareCompanySerpsStatsData();
-}
+    
+    // Get the current mode
+    const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+    if (currentMode === 'companies') {
+      prepareCompanySerpsStatsData();
+    }
+    
     // Re-render the entire table
     renderProductMapTable();
   });
