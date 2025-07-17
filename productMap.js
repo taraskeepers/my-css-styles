@@ -2058,6 +2058,213 @@ function prepareCompanySerpsStatsData() {
   return window.company_serp_stats;
 }
 
+// Add these functions here (around line 800, after popupStyle creation)
+
+// Function to render all market trend charts
+function renderAllMarketTrendCharts() {
+  // Initialize chart instances array
+  if (!window.marketTrendChartInstances) {
+    window.marketTrendChartInstances = [];
+  }
+  
+  // Clear any existing charts
+  window.marketTrendChartInstances.forEach(chart => {
+    if (chart) chart.destroy();
+  });
+  window.marketTrendChartInstances = [];
+  
+  // Find all market trend chart containers
+  const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
+  
+  chartContainers.forEach(container => {
+    const term = container.getAttribute('data-term');
+    const location = container.getAttribute('data-location');
+    const device = container.getAttribute('data-device');
+    const company = container.getAttribute('data-company');
+    
+    if (term && location && device && company) {
+      renderSingleMarketTrendChart(container.id, term, location, device, company);
+    }
+  });
+}
+
+// Function to render single market trend chart
+function renderSingleMarketTrendChart(containerId, searchTerm, location, device, myCompany) {
+  const chartEl = document.getElementById(containerId);
+  if (!chartEl || !window.companyStatsData) return;
+  
+  // Filter data for this specific combination
+  const filtered = window.companyStatsData.filter(r =>
+    r.q?.toLowerCase() === searchTerm.toLowerCase() &&
+    r.location_requested?.toLowerCase() === location.toLowerCase() &&
+    r.device?.toLowerCase() === device.toLowerCase() &&
+    r.source // Has company data
+  );
+  
+  if (!filtered.length) {
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No data</p>";
+    return;
+  }
+  
+  // Use same logic as marketShareBigChart for date range
+  const days = 30;
+  let maxDate = null;
+  filtered.forEach(r => {
+    (r.historical_data || []).forEach(d => {
+      const m = moment(d.date.value, "YYYY-MM-DD");
+      if (!maxDate || m.isAfter(maxDate)) maxDate = m.clone();
+    });
+  });
+  
+  if (!maxDate) {
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No date data</p>";
+    return;
+  }
+  
+  const periodEnd = maxDate.clone();
+  const periodStart = maxDate.clone().subtract(days - 1, "days");
+  
+  // Determine share field based on SERP segment filter
+  let shareField = 'market_share';
+  if (window.filterState && window.filterState.serpSegments) {
+    switch (window.filterState.serpSegments) {
+      case 'top3': shareField = 'top3_market_share'; break;
+      case 'top4-8': shareField = 'top4_8_market_share'; break;
+      case 'top9-14': shareField = 'top9_14_market_share'; break;
+      case 'below14': shareField = 'below14_market_share'; break;
+      case 'top8': shareField = 'top8_market_share'; break;
+      case 'below8': shareField = 'below8_market_share'; break;
+      default: shareField = 'market_share';
+    }
+  }
+  
+  // Build daily data for myCompany only
+  const seriesData = [];
+  const myCompanyData = filtered.find(r => 
+    r.source?.toLowerCase() === myCompany.toLowerCase()
+  );
+  
+  if (myCompanyData && myCompanyData.historical_data) {
+    // Create data points for each day in the period
+    for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
+      
+      if (dayData) {
+        const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
+        seriesData.push({
+          x: dateStr,
+          y: shareValue
+        });
+      }
+    }
+  }
+  
+  // If no data for myCompany, show message
+  if (seriesData.length === 0) {
+    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
+    return;
+  }
+  
+  // Create chart with same styling as marketShareBigChart
+  const options = {
+    series: [{
+      name: myCompany,
+      data: seriesData
+    }],
+    chart: {
+      type: "area",
+      height: "100%",
+      width: "100%",
+      toolbar: { show: false },
+      zoom: { enabled: false },
+      animations: {
+        enabled: true,
+        speed: 500,
+        animateGradually: {
+          enabled: true,
+          delay: 50
+        },
+        dynamicAnimation: {
+          enabled: true,
+          speed: 500
+        }
+      }
+    },
+    dataLabels: { enabled: false },
+    stroke: {
+      curve: "smooth",
+      width: 2
+    },
+    xaxis: {
+      type: "datetime",
+      labels: { 
+        show: true,
+        rotate: -45,
+        rotateAlways: true,
+        style: {
+          fontSize: '10px'
+        }
+      }
+    },
+    yaxis: {
+      labels: { 
+        show: true,
+        formatter: function(val) { 
+          return val.toFixed(1) + "%"; 
+        },
+        style: {
+          fontSize: '10px'
+        }
+      },
+      title: { 
+        text: "Market Share (%)",
+        style: {
+          fontSize: '11px'
+        }
+      },
+      max: function(max) {
+        // Add some padding to the max value
+        return Math.ceil(max * 1.1);
+      }
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        shadeIntensity: 0.15,
+        inverseColors: false,
+        opacityFrom: 1,
+        opacityTo: 1,
+        stops: [0, 50, 100]
+      }
+    },
+    colors: ['#007aff'], // Use same blue as other charts
+    tooltip: {
+      x: {
+        format: 'dd MMM yyyy'
+      },
+      y: {
+        formatter: function(val) {
+          return val.toFixed(2) + "%";
+        }
+      }
+    },
+    grid: {
+      borderColor: '#e7e7e7',
+      strokeDashArray: 4
+    }
+  };
+  
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
+  
+  // Store chart instance for cleanup
+  window.marketTrendChartInstances.push(chart);
+}
+
+// Continue with the existing renderProductMapTable function...
+
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
   
@@ -2570,207 +2777,6 @@ setTimeout(() => {
     chartDataMap[chartIndex] = { term, location, device };
     chartIndex++;
   });
-
-  function renderAllMarketTrendCharts() {
-  // Initialize chart instances array
-  if (!window.marketTrendChartInstances) {
-    window.marketTrendChartInstances = [];
-  }
-  
-  // Clear any existing charts
-  window.marketTrendChartInstances.forEach(chart => {
-    if (chart) chart.destroy();
-  });
-  window.marketTrendChartInstances = [];
-  
-  // Find all market trend chart containers
-  const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
-  
-  chartContainers.forEach(container => {
-    const term = container.getAttribute('data-term');
-    const location = container.getAttribute('data-location');
-    const device = container.getAttribute('data-device');
-    const company = container.getAttribute('data-company');
-    
-    if (term && location && device && company) {
-      renderSingleMarketTrendChart(container.id, term, location, device, company);
-    }
-  });
-}
-
-function renderSingleMarketTrendChart(containerId, searchTerm, location, device, myCompany) {
-  const chartEl = document.getElementById(containerId);
-  if (!chartEl || !window.companyStatsData) return;
-  
-  // Filter data for this specific combination
-  const filtered = window.companyStatsData.filter(r =>
-    r.q?.toLowerCase() === searchTerm.toLowerCase() &&
-    r.location_requested?.toLowerCase() === location.toLowerCase() &&
-    r.device?.toLowerCase() === device.toLowerCase() &&
-    r.source // Has company data
-  );
-  
-  if (!filtered.length) {
-    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No data</p>";
-    return;
-  }
-  
-  // Use same logic as marketShareBigChart for date range
-  const days = 30;
-  let maxDate = null;
-  filtered.forEach(r => {
-    (r.historical_data || []).forEach(d => {
-      const m = moment(d.date.value, "YYYY-MM-DD");
-      if (!maxDate || m.isAfter(maxDate)) maxDate = m.clone();
-    });
-  });
-  
-  if (!maxDate) {
-    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No date data</p>";
-    return;
-  }
-  
-  const periodEnd = maxDate.clone();
-  const periodStart = maxDate.clone().subtract(days - 1, "days");
-  
-  // Determine share field based on SERP segment filter
-  let shareField = 'market_share';
-  if (window.filterState && window.filterState.serpSegments) {
-    switch (window.filterState.serpSegments) {
-      case 'top3': shareField = 'top3_market_share'; break;
-      case 'top4-8': shareField = 'top4_8_market_share'; break;
-      case 'top9-14': shareField = 'top9_14_market_share'; break;
-      case 'below14': shareField = 'below14_market_share'; break;
-      case 'top8': shareField = 'top8_market_share'; break;
-      case 'below8': shareField = 'below8_market_share'; break;
-      default: shareField = 'market_share';
-    }
-  }
-  
-  // Build daily data for myCompany only
-  const seriesData = [];
-  const myCompanyData = filtered.find(r => 
-    r.source?.toLowerCase() === myCompany.toLowerCase()
-  );
-  
-  if (myCompanyData && myCompanyData.historical_data) {
-    // Create data points for each day in the period
-    for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
-      const dateStr = d.format('YYYY-MM-DD');
-      const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
-      
-      if (dayData) {
-        const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
-        seriesData.push({
-          x: dateStr,
-          y: shareValue
-        });
-      }
-    }
-  }
-  
-  // If no data for myCompany, show message
-  if (seriesData.length === 0) {
-    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
-    return;
-  }
-  
-  // Create chart with same styling as marketShareBigChart
-  const options = {
-    series: [{
-      name: myCompany,
-      data: seriesData
-    }],
-    chart: {
-      type: "area",
-      height: "100%",
-      width: "100%",
-      toolbar: { show: false },
-      zoom: { enabled: false },
-      animations: {
-        enabled: true,
-        speed: 500,
-        animateGradually: {
-          enabled: true,
-          delay: 50
-        },
-        dynamicAnimation: {
-          enabled: true,
-          speed: 500
-        }
-      }
-    },
-    dataLabels: { enabled: false },
-    stroke: {
-      curve: "smooth",
-      width: 2
-    },
-    xaxis: {
-      type: "datetime",
-      labels: { 
-        show: true,
-        rotate: -45,
-        rotateAlways: true,
-        style: {
-          fontSize: '10px'
-        }
-      }
-    },
-    yaxis: {
-      labels: { 
-        show: true,
-        formatter: function(val) { 
-          return val.toFixed(1) + "%"; 
-        },
-        style: {
-          fontSize: '10px'
-        }
-      },
-      title: { 
-        text: "Market Share (%)",
-        style: {
-          fontSize: '11px'
-        }
-      },
-      max: function(max) {
-        // Add some padding to the max value
-        return Math.ceil(max * 1.1);
-      }
-    },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shade: 'dark',
-        shadeIntensity: 0.15,
-        inverseColors: false,
-        opacityFrom: 1,
-        opacityTo: 1,
-        stops: [0, 50, 100]
-      }
-    },
-    colors: ['#007aff'], // Use same blue as other charts
-    tooltip: {
-      x: {
-        format: 'dd MMM yyyy'
-      },
-      y: {
-        formatter: function(val) {
-          return val.toFixed(2) + "%";
-        }
-      }
-    },
-    grid: {
-      borderColor: '#e7e7e7',
-      strokeDashArray: 4
-    }
-  };
-  
-  const chart = new ApexCharts(chartEl, options);
-  chart.render();
-  
-  // Store chart instance for cleanup
-  window.marketTrendChartInstances.push(chart);
-}
   
   // Helper function to match locations flexibly
   function locationMatches(mappedLocation, productLocation) {
@@ -9587,10 +9593,6 @@ function updateChartLineVisibility(chartContainer, selectedIndex) {
   chart.update('none'); // 'none' for no animation
 }
 
-if (typeof window !== 'undefined') {
-  window.renderProductMapTable = renderProductMapTable;
-}
-
 // Debug function to verify company data
 function debugCompanyData() {
   console.group('[ProductMap Debug] Company Data Check');
@@ -9794,6 +9796,13 @@ function debugMarketShareIssue() {
   }
   
   console.log("\n=================================");
+}
+
+// Add these lines at the very end of productMap.js
+if (typeof window !== 'undefined') {
+  window.renderProductMapTable = renderProductMapTable;
+  window.renderAllMarketTrendCharts = renderAllMarketTrendCharts;
+  window.renderSingleMarketTrendChart = renderSingleMarketTrendChart;
 }
 
 // Add to window for easy access
