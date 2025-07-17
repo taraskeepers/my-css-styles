@@ -2277,7 +2277,7 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       width: "100%",
       stacked: true, // Key difference - stacked areas
       toolbar: { show: true },
-      zoom: { enabled: true },
+      zoom: { enabled: false },
       animations: {
         enabled: true,
         speed: 500,
@@ -2332,109 +2332,124 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       horizontalAlign: "left"
     },
     tooltip: {
-      custom: function({ series, dataPointIndex, w }) {
-        // Same custom tooltip as marketShareBigChart
-        let formattedDate = w.globals.labels[dataPointIndex] || "";
-        
-        // Build tooltip items
-        let tooltipItems = [];
-        for (let i = 0; i < series.length; i++) {
-          let companyName = w.config.series[i].name;
-          let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
-          let currentValue = series[i][dataPointIndex];
-          let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
-          let trendStr = "";
-          if (previousValue !== null) {
-            let diff = currentValue - previousValue;
-            if (diff > 0) {
-              trendStr = "▲ " + diff.toFixed(2) + "%";
-            } else if (diff < 0) {
-              trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
-            } else {
-              trendStr = "±0.00%";
-            }
-          }
-          tooltipItems.push({
-            companyName,
-            currentValue,
-            trendStr,
-            seriesColor
-          });
+  enabled: true,
+  shared: true,
+  followCursor: false,
+  fixed: {
+    enabled: true,
+    position: 'topRight',
+    offsetX: -100,
+    offsetY: 50
+  },
+  custom: function({ series, dataPointIndex, w }) {
+    // Same custom tooltip as marketShareBigChart
+    let formattedDate = w.globals.labels[dataPointIndex] || "";
+    
+    // Build tooltip items
+    let tooltipItems = [];
+    for (let i = 0; i < series.length; i++) {
+      let companyName = w.config.series[i].name;
+      let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
+      let currentValue = series[i][dataPointIndex];
+      let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
+      let trendStr = "";
+      if (previousValue !== null) {
+        let diff = currentValue - previousValue;
+        if (diff > 0) {
+          trendStr = "▲ " + diff.toFixed(2) + "%";
+        } else if (diff < 0) {
+          trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
+        } else {
+          trendStr = "±0.00%";
         }
-        
-        // Sort by currentValue
-        let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
-        
-        // Separate "Others"
-        let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
-        let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-        
-        // Assign ranks
-        for (let i = 0; i < nonOthersItems.length; i++) {
-          nonOthersItems[i].rank = i + 1;
-        }
-        let finalItems = nonOthersItems.concat(othersItems);
-        
-        // Build HTML
-        let html = `
-          <div style="
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 13px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 300px;
-          ">
-            <div style="margin-bottom: 8px; font-weight: 600; color: #fff;">${formattedDate}</div>
-            <table style="width: 100%; border-collapse: collapse;">
-        `;
-        
-        finalItems.forEach(item => {
-          let rankHtml = "";
-          if (item.rank) {
-            let rankColor = "#666";
-            if (item.rank <= 3) rankColor = "#4CAF50";
-            else if (item.rank <= 8) rankColor = "#FFC107";
-            else if (item.rank <= 14) rankColor = "#FF9800";
-            else rankColor = "#F44336";
-            
-            rankHtml = `<span style="
-              background: ${rankColor};
-              color: white;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-weight: bold;
-              font-size: 10px;
-              margin-right: 8px;
-            ">${item.rank}</span>`;
-          }
-          
-          let trendColored = item.trendStr;
-          if (item.trendStr.startsWith("▲")) {
-            trendColored = `<span style="color: green;">${item.trendStr}</span>`;
-          } else if (item.trendStr.startsWith("▼")) {
-            trendColored = `<span style="color: red;">${item.trendStr}</span>`;
-          }
-          
-          html += `
-            <tr>
-              <td style="padding: 4px 8px; vertical-align: middle;">
-                ${rankHtml}<strong>${item.companyName}</strong>
-              </td>
-              <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
-                ${item.currentValue.toFixed(2)}% ${trendColored}
-              </td>
-            </tr>
-          `;
-        });
-        
-        html += `</table></div>`;
-        return html;
       }
-    },
+      tooltipItems.push({
+        companyName,
+        currentValue,
+        trendStr,
+        seriesColor
+      });
+    }
+    
+    // Sort by currentValue
+    let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
+    
+    // Separate "Others"
+    let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
+    let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
+    
+    // Assign ranks
+    for (let i = 0; i < nonOthersItems.length; i++) {
+      nonOthersItems[i].rank = i + 1;
+    }
+    let finalItems = nonOthersItems.concat(othersItems);
+    
+    // Build HTML with improved positioning
+    let html = `
+      <div style="
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 13px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 280px;
+        min-width: 250px;
+        z-index: 9999;
+        position: relative;
+      ">
+        <div style="margin-bottom: 8px; font-weight: 600; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px;">${formattedDate}</div>
+        <table style="width: 100%; border-collapse: collapse;">
+    `;
+    
+    finalItems.forEach(item => {
+      let rankHtml = "";
+      if (item.rank) {
+        let rankColor = "#666";
+        if (item.rank <= 3) rankColor = "#4CAF50";
+        else if (item.rank <= 8) rankColor = "#FFC107";
+        else if (item.rank <= 14) rankColor = "#FF9800";
+        else rankColor = "#F44336";
+        
+        rankHtml = `<span style="
+          background: ${rankColor};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 10px;
+          margin-right: 8px;
+          display: inline-block;
+          min-width: 16px;
+          text-align: center;
+        ">${item.rank}</span>`;
+      }
+      
+      let trendColored = item.trendStr;
+      if (item.trendStr.startsWith("▲")) {
+        trendColored = `<span style="color: #4CAF50; font-weight: bold;">${item.trendStr}</span>`;
+      } else if (item.trendStr.startsWith("▼")) {
+        trendColored = `<span style="color: #F44336; font-weight: bold;">${item.trendStr}</span>`;
+      }
+      
+      html += `
+        <tr>
+          <td style="padding: 4px 8px; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            ${rankHtml}<strong style="color: #fff;">${item.companyName}</strong>
+          </td>
+          <td style="padding: 4px 8px; text-align: right; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <strong style="color: #fff;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += `</table></div>`;
+    return html;
+  }
+},
     fill: {
       type: "gradient",
       gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
@@ -5810,6 +5825,28 @@ body.charts-mode .products-chart-container {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
+}
+/* Fix ApexCharts tooltip positioning */
+.apexcharts-tooltip {
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
+.apexcharts-tooltip.apexcharts-theme-light {
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Ensure market trend containers have proper overflow */
+.market-trend-container {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Prevent scroll zoom on charts */
+.apexcharts-canvas {
+  overflow: hidden !important;
 }
       `;
       document.head.appendChild(style);
