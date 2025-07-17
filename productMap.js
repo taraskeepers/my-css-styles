@@ -2415,44 +2415,61 @@ tooltip: {
         ">
     `;
 
-    finalItems.forEach(item => {
-      let rankHtml = "";
-      if (item.companyName.trim().toLowerCase() !== "others") {
-        rankHtml = `<span style="
-                display: inline-block;
-                width: 22px;
-                height: 22px;
-                line-height: 22px;
-                border-radius: 11px;
-                background: ${item.seriesColor};
-                color: #fff;
-                text-align: center;
-                margin-right: 8px;
-                font-weight: bold;
-                font-size: 11px;
-              ">
-                ${item.rank}
-              </span>`;
+// Replace the rankHtml generation section (around line 1317) with this:
+finalItems.forEach(item => {
+  let rankHtml = "";
+  if (item.companyName.trim().toLowerCase() !== "others") {
+    // Check if the color is too light for white text
+    let bgColor = item.seriesColor;
+    let textColor = '#fff';
+    
+    // If it's a light grey (RGB where all values > 180), use dark text
+    if (bgColor && bgColor.startsWith('rgb')) {
+      const matches = bgColor.match(/\d+/g);
+      if (matches && matches.length >= 3) {
+        const [r, g, b] = matches.map(Number);
+        if (r > 180 && g > 180 && b > 180) {
+          textColor = '#333'; // Dark text for light backgrounds
+        }
       }
-      
-      let trendColored = item.trendStr;
-      if (item.trendStr.startsWith("▲")) {
-        trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
-      } else if (item.trendStr.startsWith("▼")) {
-        trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
-      }
-      
-      html += `
-        <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-          <td style="padding: 6px 8px; vertical-align: middle;">
-            ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
-          </td>
-          <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
-            <strong style="font-size: 13px;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
-          </td>
-        </tr>
-      `;
-    });
+    }
+    
+    rankHtml = `<span style="
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            border-radius: 11px;
+            background: ${bgColor};
+            color: ${textColor};
+            text-align: center;
+            margin-right: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid rgba(0,0,0,0.1); /* Add subtle border for better visibility */
+          ">
+            ${item.rank}
+          </span>`;
+  }
+  
+  let trendColored = item.trendStr;
+  if (item.trendStr.startsWith("▲")) {
+    trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
+  } else if (item.trendStr.startsWith("▼")) {
+    trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
+  }
+  
+  html += `
+    <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+      <td style="padding: 6px 8px; vertical-align: middle;">
+        ${rankHtml}<strong style="font-size: 13px; color: #333;">${item.companyName}</strong>
+      </td>
+      <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
+        <strong style="font-size: 13px; color: #333;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
+      </td>
+    </tr>
+  `;
+});
 
     html += `</table></div>`;
     return html;
