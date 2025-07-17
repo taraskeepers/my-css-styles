@@ -2385,11 +2385,6 @@ tooltip: {
     }
     let finalItems = nonOthersItems.concat(othersItems);
     
-    // Calculate the approximate height needed
-    const rowHeight = 30; // Approximate height per row
-    const headerHeight = 40; // Header and padding
-    const totalHeight = (finalItems.length * rowHeight) + headerHeight;
-    
     // Build HTML with inline height
     let html = `
       <div style="
@@ -2400,8 +2395,6 @@ tooltip: {
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 12px;
-        min-height: ${totalHeight}px !important;
-        height: ${totalHeight}px !important;
       ">
         <div style="font-weight: 600; margin-bottom: 6px; color: #6b7280;">
           ${formattedDate}
@@ -2414,20 +2407,20 @@ tooltip: {
       let rankHtml = "";
       if (item.companyName.trim().toLowerCase() !== "others") {
         rankHtml = `<span style="
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            border-radius: 10px;
-            background: ${item.seriesColor};
-            color: #fff;
-            text-align: center;
-            margin-right: 6px;
-            font-weight: bold;
-            font-size: 10px;
-          ">
-            ${item.rank}
-          </span>`;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${item.seriesColor};
+  color: #fff;
+  font-weight: bold;
+  font-size: 10px;
+  margin-right: 6px;
+">
+  ${item.rank}
+</span>`;
       }
       
       let trendColored = item.trendStr;
@@ -2439,10 +2432,10 @@ tooltip: {
       
       html += `
         <tr>
-          <td style="padding: 4px 8px; vertical-align: middle;">
+          <td style="padding: 2px 6px; vertical-align: middle; line-height: 1.2;">
             ${rankHtml}<strong>${item.companyName}</strong>
           </td>
-          <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
+          <td style="padding: 2px 6px; text-align: right; vertical-align: middle; line-height: 1.2;">
             ${item.currentValue.toFixed(2)}% ${trendColored}
           </td>
         </tr>
@@ -2450,16 +2443,6 @@ tooltip: {
     });
     
     html += `</table></div>`;
-    
-    // Force the tooltip container to respect our height
-    requestAnimationFrame(() => {
-      const tooltip = document.querySelector('.apexcharts-tooltip.apexcharts-active');
-      if (tooltip) {
-        tooltip.style.height = 'auto';
-        tooltip.style.maxHeight = 'none';
-        tooltip.style.overflow = 'visible';
-      }
-    });
     
     return html;
   }
