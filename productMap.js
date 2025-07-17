@@ -2832,7 +2832,7 @@ setTimeout(() => {
       }, 100);
     });
 
-// Add view switcher functionality
+    // Add view switcher functionality
 const viewProductsBtn = document.getElementById("viewProducts");
 const viewChartsBtn = document.getElementById("viewCharts");
 
@@ -2840,11 +2840,6 @@ viewProductsBtn.addEventListener("click", function() {
   // Switch to Products view
   viewProductsBtn.classList.add("active");
   viewChartsBtn.classList.remove("active");
-  
-  // Show segmentation charts
-  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
-    container.style.display = 'block';
-  });
   
   // Show all product cells, hide all chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
@@ -2856,14 +2851,9 @@ viewProductsBtn.addEventListener("click", function() {
 });
 
 viewChartsBtn.addEventListener("click", function() {
-  // Switch to Charts view - FIX THE ACTIVE STATES HERE
-  viewProductsBtn.classList.remove("active"); // Remove active from Products
-  viewChartsBtn.classList.add("active"); // Add active to Charts
-  
-  // Hide segmentation charts in Charts view
-  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
-    container.style.display = 'none';
-  });
+  // Switch to Charts view
+  viewChartsBtn.classList.add("active");
+  viewProductsBtn.classList.remove("active");
   
   // Hide all product cells, show all chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
@@ -2871,9 +2861,6 @@ viewChartsBtn.addEventListener("click", function() {
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
-    // Fix height issue
-    container.style.height = '360px';
-    container.style.maxHeight = '360px';
   });
   
   // Render charts for each row
@@ -2881,78 +2868,12 @@ viewChartsBtn.addEventListener("click", function() {
     const chartAvgPosDiv = container.querySelector('.chart-avg-position');
     const chartProductsDiv = container.querySelector('.chart-products');
     
-    // Check if small cards already exist
-    let smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-    
-    if (smallCards.length === 0) {
-      // Need to populate the chart products from the product cell
-      const row = container.closest('tr');
-      const productCell = row.querySelector('.product-cell');
-      
-      if (productCell) {
-        // Get all product cards from the product cell
-        const productCards = productCell.querySelectorAll('.ad-details');
-        const products = [];
-        
-        productCards.forEach(card => {
-          const plaIndex = card.getAttribute('data-pla-index');
-          const product = window.globalRows[plaIndex];
-          if (product) {
-            products.push(product);
-          }
-        });
-        
-        // In Charts mode, filter by myCompany
-        const myCompanyProducts = products.filter(p => p._isMyCompany);
-        
-        // Sort products by position
-        const sortByPosition = (a, b) => {
-          const posA = parseFloat(a.finalPosition) || 999;
-          const posB = parseFloat(b.finalPosition) || 999;
-          return posA - posB;
-        };
-        
-        const sortedProducts = [...myCompanyProducts].sort(sortByPosition);
-        
-        // Clear and populate chartProductsDiv
-        chartProductsDiv.innerHTML = '';
-        
-        sortedProducts.forEach((product, index) => {
-          const smallCard = document.createElement('div');
-          smallCard.classList.add('small-ad-details');
-          smallCard.setAttribute('data-product-index', index);
-          
-          const posValue = product.finalPosition || '-';
-          const trendArrow = product.arrow || '';
-          const trendValue = product.finalSlope || '';
-          const badgeColor = product.posBadgeBackground || 'gray';
-          
-          const imageUrl = product.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
-          const title = product.title || 'No title';
-          
-          smallCard.innerHTML = `
-            <div class="small-ad-pos-badge" style="background-color: ${badgeColor};">
-              <div class="small-ad-pos-value">${posValue}</div>
-              <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
-            </div>
-            <img class="small-ad-image" 
-                 src="${imageUrl}" 
-                 alt="${title}"
-                 onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
-            <div class="small-ad-title">${title}</div>
-          `;
-          
-          smallCard.productData = product;
-          chartProductsDiv.appendChild(smallCard);
-        });
-        
-        // Update smallCards reference
-        smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-      }
-    }
-    
-    // Now get products from the small cards
-    let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+// Get all products for this chart - always filter by myCompany in Charts mode
+const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+
+// In Charts mode, always show only myCompany products
+products = products.filter(p => p._isMyCompany);
     
     if (products.length > 0 && chartAvgPosDiv) {
       renderAvgPositionChart(chartAvgPosDiv, products);
@@ -3748,8 +3669,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 .products-chart-container {
   display: none;
   width: 100%;
-  height: 360px; /* Fixed height instead of 100% */
-  max-height: 360px;
+  height: 100%;
+  min-height: 280px;
   overflow: hidden;
   flex-direction: row;
   gap: 10px;
@@ -3758,8 +3679,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 .chart-products {
   width: 280px;
   height: 100%;
-  max-height: 360px; /* Match parent height */
-  overflow-y: auto; /* Changed from scroll to auto */
+  max-height: 575px;
+  overflow-y: scroll;
   overflow-x: hidden;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -3788,9 +3709,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 
 .chart-avg-position {
   flex: 1;
-  min-width: 300px;
+  min-width: 300px; /* Add minimum width */
   height: 100%;
-  max-height: 360px; /* Match parent height */
   background-color: #f9f9f9;
   border-radius: 8px;
   padding: 10px;
@@ -3799,7 +3719,6 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
   justify-content: center;
   color: #999;
   font-style: italic;
-  overflow: hidden; /* Prevent chart overflow */
 }
 
 /* Small ad details for chart view */
