@@ -2186,25 +2186,19 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
   
   // Build dailyMap[dateStr][companyName] = sumOfShare (same as marketShareBigChart)
   const dailyMap = {};
-filtered.forEach(rec => {
-  (rec.historical_data || []).forEach(d => {
-    const dd = moment(d.date.value, "YYYY-MM-DD");
-    if (!dd.isBetween(periodStart, periodEnd, "day", "[]")) return;
-    
-    const rawVal = parseFloat(d[shareField]);
-    if (isNaN(rawVal) || !isFinite(rawVal)) {
-      console.warn(`[Market Trend] Invalid share value for ${rec.source} on ${d.date.value}:`, d[shareField]);
-      return;
-    }
-    
-    const val = rawVal * 100;
-    const dateStr = dd.format("YYYY-MM-DD");
-    if (!dailyMap[dateStr]) dailyMap[dateStr] = {};
-    const cName = (rec.source && rec.source.trim()) || "Unknown";
-    if (!dailyMap[dateStr][cName]) dailyMap[dateStr][cName] = 0;
-    dailyMap[dateStr][cName] += val;
+  filtered.forEach(rec => {
+    (rec.historical_data || []).forEach(d => {
+      const dd = moment(d.date.value, "YYYY-MM-DD");
+      if (!dd.isBetween(periodStart, periodEnd, "day", "[]")) return;
+      
+      const val = parseFloat(d[shareField]) * 100 || 0;
+      const dateStr = dd.format("YYYY-MM-DD");
+      if (!dailyMap[dateStr]) dailyMap[dateStr] = {};
+      const cName = (rec.source && rec.source.trim()) || "Unknown";
+      if (!dailyMap[dateStr][cName]) dailyMap[dateStr][cName] = 0;
+      dailyMap[dateStr][cName] += val;
+    });
   });
-});
   
   // Get all unique dates in ascending order
   let allDates = Object.keys(dailyMap).sort();
@@ -2253,36 +2247,11 @@ filtered.forEach(rec => {
     seriesMap["Others"].push({ x: dateStr, y: sumOthers });
   });
   
-// Convert seriesMap => array with data validation
-let finalSeries = [];
-for (let cName in seriesMap) {
-  // Validate and clean the data
-  const cleanedData = seriesMap[cName].map(point => {
-    const cleanY = parseFloat(point.y);
-    
-    // Check for invalid values
-    if (isNaN(cleanY) || !isFinite(cleanY)) {
-      console.warn(`[Market Trend] Invalid Y value for ${cName} on ${point.x}:`, point.y);
-      return { x: point.x, y: 0 };
-    }
-    
-    // Cap extremely large values that might cause rendering issues
-    const cappedY = Math.min(Math.max(cleanY, 0), 100);
-    
-    if (cappedY !== cleanY) {
-      console.warn(`[Market Trend] Capped value for ${cName} on ${point.x}: ${cleanY} -> ${cappedY}`);
-    }
-    
-    return { 
-      x: point.x, 
-      y: Math.round(cappedY * 100) / 100 // Round to 2 decimal places
-    };
-  });
-  
-  finalSeries.push({ name: cName, data: cleanedData });
-}
-
-console.log("[Market Trend] Final series data sample:", finalSeries[0]?.data?.slice(0, 3));
+  // Convert seriesMap => array
+  let finalSeries = [];
+  for (let cName in seriesMap) {
+    finalSeries.push({ name: cName, data: seriesMap[cName] });
+  }
   
   // Apply same company selection logic as marketShareBigChart
   if (myCompany && myCompany.trim() !== "") {
@@ -2334,9 +2303,6 @@ console.log("[Market Trend] Final series data sample:", finalSeries[0]?.data?.sl
         }
       }
     },
-annotations: {
-  points: [] // Start with empty annotations
-},
     dataLabels: (myCompany && myCompany.trim() !== "")
       ? {
           enabled: true,
@@ -2358,16 +2324,10 @@ annotations: {
       curve: "smooth",
       width: 2
     },
-xaxis: {
-  type: "datetime",
-  labels: { 
-    show: true,
-    datetimeUTC: false
-  },
-  tooltip: {
-    enabled: true
-  }
-},
+    xaxis: {
+      type: "datetime",
+      labels: { show: true }
+    },
     yaxis: {
       labels: { 
         show: true,
@@ -2393,101 +2353,10 @@ tooltip: {
     colors: finalSeries.map(s => s.color || undefined) // Use our custom colors
   };
   
-// Create and render the chart
-try {
-  const chart = new ApexCharts(chartEl, options);
-  chart.render();
-  
-  // Add annotations after chart is rendered
-  setTimeout(() => {
-    console.log("[RANK DEBUG] Adding annotations after chart render");
-    
-    // Generate annotations
-    const annotations = [];
-    
-    if (myCompany && myCompany.trim() !== "") {
-      console.log("[RANK DEBUG] myCompany:", myCompany);
-      console.log("[RANK DEBUG] finalSeries length:", finalSeries.length);
-      
-      const myCompanySeriesIndex = finalSeries.findIndex(s => 
-        s.name.toLowerCase() === myCompany.trim().toLowerCase()
-      );
-      
-      console.log("[RANK DEBUG] myCompanySeriesIndex:", myCompanySeriesIndex);
-      
-      if (myCompanySeriesIndex >= 0) {
-        const myCompanyData = finalSeries[myCompanySeriesIndex].data;
-        
-        console.log("[RANK DEBUG] myCompanyData length:", myCompanyData.length);
-        
-        myCompanyData.forEach((dataPoint, pointIndex) => {
-          if (!dataPoint.x || dataPoint.y === 0) return;
-          
-          // Get all companies' values for this date
-          const dateValues = finalSeries.map(series => ({
-            name: series.name,
-            value: series.data[pointIndex]?.y || 0,
-            color: series.color || "#007aff"
-          })).filter(item => item.value > 0);
-          
-          // Sort by value descending to get rankings
-          dateValues.sort((a, b) => b.value - a.value);
-          
-          // Find myCompany's rank
-          const myCompanyRank = dateValues.findIndex(item => 
-            item.name.toLowerCase() === myCompany.trim().toLowerCase()
-          ) + 1;
-          
-          if (myCompanyRank > 0) {
-            const myCompanyColor = finalSeries[myCompanySeriesIndex].color || "#007aff";
-            
-            console.log(`[RANK DEBUG] Point ${pointIndex}: date=${dataPoint.x}, value=${dataPoint.y}, rank=${myCompanyRank}`);
-            
-            annotations.push({
-              x: dataPoint.x,
-              y: dataPoint.y,
-              marker: {
-                size: 0
-              },
-              label: {
-                borderColor: myCompanyColor,
-                borderWidth: 2,
-                borderRadius: 50,
-                offsetY: -45,
-                offsetX: 0,
-                style: {
-                  background: myCompanyColor,
-                  color: '#fff',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  padding: {
-                    left: 8,
-                    right: 8,
-                    top: 6,
-                    bottom: 6
-                  }
-                },
-                text: myCompanyRank.toString()
-              }
-            });
-          }
-        });
-        
-        console.log("[RANK DEBUG] Generated annotations after render:", annotations.length);
-        console.log("[RANK DEBUG] First annotation:", annotations[0]);
-        
-        // Update chart with annotations
-        if (annotations.length > 0) {
-          chart.updateOptions({
-            annotations: {
-              points: annotations
-            }
-          });
-          console.log("[RANK DEBUG] Annotations added to chart");
-        }
-      }
-    }
-  }, 100); // Small delay to ensure chart is fully rendered
+  // Create and render the chart
+  try {
+    const chart = new ApexCharts(chartEl, options);
+    chart.render();
     
 // Custom tooltip implementation
 const customTooltip = document.createElement('div');
