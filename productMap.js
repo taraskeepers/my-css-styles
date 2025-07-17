@@ -2397,8 +2397,8 @@ chartElement.addEventListener('mousemove', function(e) {
   for (let i = 0; i < series.length; i++) {
     let companyName = series[i].name;
     let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-    let currentValue = series[i].data[dataPointIndex];
-    let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1] : null;
+let currentValue = series[i].data[dataPointIndex].y;
+let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
     let trendStr = "";
     
     if (previousValue !== null) {
@@ -2421,7 +2421,7 @@ chartElement.addEventListener('mousemove', function(e) {
   }
   
   // Sort by value descending
-  let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
+  let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
   
   // Separate "Others"
   let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
@@ -2480,7 +2480,7 @@ chartElement.addEventListener('mousemove', function(e) {
           ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
         </td>
         <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
-          <strong style="font-size: 13px;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
+          <strong style="font-size: 13px;">${(item.currentValue || 0).toFixed(2)}%</strong> ${trendColored}
         </td>
       </tr>
     `;
