@@ -2570,6 +2570,207 @@ setTimeout(() => {
     chartDataMap[chartIndex] = { term, location, device };
     chartIndex++;
   });
+
+  function renderAllMarketTrendCharts() {
+  // Initialize chart instances array
+  if (!window.marketTrendChartInstances) {
+    window.marketTrendChartInstances = [];
+  }
+  
+  // Clear any existing charts
+  window.marketTrendChartInstances.forEach(chart => {
+    if (chart) chart.destroy();
+  });
+  window.marketTrendChartInstances = [];
+  
+  // Find all market trend chart containers
+  const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
+  
+  chartContainers.forEach(container => {
+    const term = container.getAttribute('data-term');
+    const location = container.getAttribute('data-location');
+    const device = container.getAttribute('data-device');
+    const company = container.getAttribute('data-company');
+    
+    if (term && location && device && company) {
+      renderSingleMarketTrendChart(container.id, term, location, device, company);
+    }
+  });
+}
+
+function renderSingleMarketTrendChart(containerId, searchTerm, location, device, myCompany) {
+  const chartEl = document.getElementById(containerId);
+  if (!chartEl || !window.companyStatsData) return;
+  
+  // Filter data for this specific combination
+  const filtered = window.companyStatsData.filter(r =>
+    r.q?.toLowerCase() === searchTerm.toLowerCase() &&
+    r.location_requested?.toLowerCase() === location.toLowerCase() &&
+    r.device?.toLowerCase() === device.toLowerCase() &&
+    r.source // Has company data
+  );
+  
+  if (!filtered.length) {
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No data</p>";
+    return;
+  }
+  
+  // Use same logic as marketShareBigChart for date range
+  const days = 30;
+  let maxDate = null;
+  filtered.forEach(r => {
+    (r.historical_data || []).forEach(d => {
+      const m = moment(d.date.value, "YYYY-MM-DD");
+      if (!maxDate || m.isAfter(maxDate)) maxDate = m.clone();
+    });
+  });
+  
+  if (!maxDate) {
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No date data</p>";
+    return;
+  }
+  
+  const periodEnd = maxDate.clone();
+  const periodStart = maxDate.clone().subtract(days - 1, "days");
+  
+  // Determine share field based on SERP segment filter
+  let shareField = 'market_share';
+  if (window.filterState && window.filterState.serpSegments) {
+    switch (window.filterState.serpSegments) {
+      case 'top3': shareField = 'top3_market_share'; break;
+      case 'top4-8': shareField = 'top4_8_market_share'; break;
+      case 'top9-14': shareField = 'top9_14_market_share'; break;
+      case 'below14': shareField = 'below14_market_share'; break;
+      case 'top8': shareField = 'top8_market_share'; break;
+      case 'below8': shareField = 'below8_market_share'; break;
+      default: shareField = 'market_share';
+    }
+  }
+  
+  // Build daily data for myCompany only
+  const seriesData = [];
+  const myCompanyData = filtered.find(r => 
+    r.source?.toLowerCase() === myCompany.toLowerCase()
+  );
+  
+  if (myCompanyData && myCompanyData.historical_data) {
+    // Create data points for each day in the period
+    for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
+      const dateStr = d.format('YYYY-MM-DD');
+      const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
+      
+      if (dayData) {
+        const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
+        seriesData.push({
+          x: dateStr,
+          y: shareValue
+        });
+      }
+    }
+  }
+  
+  // If no data for myCompany, show message
+  if (seriesData.length === 0) {
+    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
+    return;
+  }
+  
+  // Create chart with same styling as marketShareBigChart
+  const options = {
+    series: [{
+      name: myCompany,
+      data: seriesData
+    }],
+    chart: {
+      type: "area",
+      height: "100%",
+      width: "100%",
+      toolbar: { show: false },
+      zoom: { enabled: false },
+      animations: {
+        enabled: true,
+        speed: 500,
+        animateGradually: {
+          enabled: true,
+          delay: 50
+        },
+        dynamicAnimation: {
+          enabled: true,
+          speed: 500
+        }
+      }
+    },
+    dataLabels: { enabled: false },
+    stroke: {
+      curve: "smooth",
+      width: 2
+    },
+    xaxis: {
+      type: "datetime",
+      labels: { 
+        show: true,
+        rotate: -45,
+        rotateAlways: true,
+        style: {
+          fontSize: '10px'
+        }
+      }
+    },
+    yaxis: {
+      labels: { 
+        show: true,
+        formatter: function(val) { 
+          return val.toFixed(1) + "%"; 
+        },
+        style: {
+          fontSize: '10px'
+        }
+      },
+      title: { 
+        text: "Market Share (%)",
+        style: {
+          fontSize: '11px'
+        }
+      },
+      max: function(max) {
+        // Add some padding to the max value
+        return Math.ceil(max * 1.1);
+      }
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        shadeIntensity: 0.15,
+        inverseColors: false,
+        opacityFrom: 1,
+        opacityTo: 1,
+        stops: [0, 50, 100]
+      }
+    },
+    colors: ['#007aff'], // Use same blue as other charts
+    tooltip: {
+      x: {
+        format: 'dd MMM yyyy'
+      },
+      y: {
+        formatter: function(val) {
+          return val.toFixed(2) + "%";
+        }
+      }
+    },
+    grid: {
+      borderColor: '#e7e7e7',
+      strokeDashArray: 4
+    }
+  };
+  
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
+  
+  // Store chart instance for cleanup
+  window.marketTrendChartInstances.push(chart);
+}
   
   // Helper function to match locations flexibly
   function locationMatches(mappedLocation, productLocation) {
@@ -2978,24 +3179,67 @@ const viewCompaniesBtn = document.getElementById("viewCompanies");
 const viewMarketTrendBtn = document.getElementById("viewMarketTrend");
 
 if (viewCompaniesBtn && viewMarketTrendBtn) {
-  viewCompaniesBtn.addEventListener("click", function() {
-    // Switch to Companies view
-    viewCompaniesBtn.classList.add("active");
-    viewMarketTrendBtn.classList.remove("active");
-    
-    // Show companies column content
-    // For now, just ensure companies are visible (functionality already exists)
-    console.log('[ProductMap] Switched to Companies view');
+viewMarketTrendBtn.addEventListener("click", function() {
+  // Switch to Market Trend view
+  viewMarketTrendBtn.classList.add("active");
+  viewCompaniesBtn.classList.remove("active");
+  
+  // Hide companies columns and show market trend columns
+  document.querySelectorAll('.companies-column').forEach(col => {
+    col.style.display = 'none';
   });
+  
+  document.querySelectorAll('.market-trend-column').forEach(col => {
+    col.style.display = 'table-cell';
+  });
+  
+  // Toggle header text
+  document.querySelectorAll('.companies-header-text').forEach(text => {
+    text.style.display = 'none';
+  });
+  document.querySelectorAll('.market-trend-header-text').forEach(text => {
+    text.style.display = 'inline';
+  });
+  
+  // Render all market trend charts
+  renderAllMarketTrendCharts();
+  
+  console.log('[ProductMap] Switched to Market Trend view');
+});
 
-  viewMarketTrendBtn.addEventListener("click", function() {
-    // Switch to Market Trend view
-    viewMarketTrendBtn.classList.add("active");
-    viewCompaniesBtn.classList.remove("active");
-    
-    // Market Trend functionality will be implemented later
-    console.log('[ProductMap] Switched to Market Trend view - functionality coming soon');
+// Update the Companies button to hide market trend charts
+viewCompaniesBtn.addEventListener("click", function() {
+  // Switch to Companies view
+  viewCompaniesBtn.classList.add("active");
+  viewMarketTrendBtn.classList.remove("active");
+  
+  // Show companies columns and hide market trend columns
+  document.querySelectorAll('.companies-column').forEach(col => {
+    col.style.display = 'table-cell';
   });
+  
+  document.querySelectorAll('.market-trend-column').forEach(col => {
+    col.style.display = 'none';
+  });
+  
+  // Toggle header text
+  document.querySelectorAll('.companies-header-text').forEach(text => {
+    text.style.display = 'inline';
+  });
+  document.querySelectorAll('.market-trend-header-text').forEach(text => {
+    text.style.display = 'none';
+  });
+  
+  // Destroy any existing market trend charts to free memory
+  if (window.marketTrendChartInstances) {
+    window.marketTrendChartInstances.forEach(chart => {
+      if (chart) chart.destroy();
+    });
+    window.marketTrendChartInstances = [];
+  }
+  
+  console.log('[ProductMap] Switched to Companies view');
+});
 }
 
 // Listen for mode changes to control switcher visibility
@@ -5290,6 +5534,34 @@ body.charts-mode .products-chart-container {
   background-color: #007aff;
   color: white;
 }
+/* Market Trend Chart Styles */
+.market-trend-column {
+  padding: 10px;
+  vertical-align: middle;
+  width: 600px;
+  min-width: 600px;
+}
+
+.market-trend-chart-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.market-trend-chart-container p {
+  margin: 0;
+  line-height: 320px; /* Center vertically */
+}
+
+/* Ensure proper column visibility in Companies mode */
+.mode-companies .companies-column {
+  display: table-cell !important;
+}
+
+.mode-companies .market-trend-column {
+  display: none !important;
+}
       `;
       document.head.appendChild(style);
     }
@@ -6733,7 +7005,10 @@ thead.innerHTML = `
     <th>Device</th>
     <th>Top 40 Segmentation</th>
     <th class="products-header">Products</th>
-    <th class="companies-header">Companies</th>
+    <th class="companies-header">
+      <span class="companies-header-text">Companies</span>
+      <span class="market-trend-header-text" style="display: none;">Market Trend</span>
+    </th>
   </tr>
 `;
 table.appendChild(thead);
@@ -8749,10 +9024,39 @@ if (companyData.length > 0) {
   companyCellDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Company data not available</div>';
 }
           
-// Keep this as is - append BOTH columns
+// Add Market Trend Chart Container
+const tdMarketTrend = document.createElement("td");
+tdMarketTrend.className = "market-trend-column";
+tdMarketTrend.style.display = "none"; // Hidden by default
+
+const marketTrendContainer = document.createElement("div");
+marketTrendContainer.classList.add("market-trend-chart-container");
+marketTrendContainer.style.width = "100%";
+marketTrendContainer.style.height = "350px"; // Match row height
+marketTrendContainer.style.position = "relative";
+
+// Create unique ID for this chart
+const chartId = `marketTrendChart-${term.replace(/\s+/g, '-')}-${loc.replace(/[,\s]+/g, '-')}-${rowData.device}`;
+const chartDiv = document.createElement("div");
+chartDiv.id = chartId;
+chartDiv.style.width = "100%";
+chartDiv.style.height = "100%";
+
+marketTrendContainer.appendChild(chartDiv);
+tdMarketTrend.appendChild(marketTrendContainer);
+
+// Store data attributes for later chart rendering
+chartDiv.setAttribute('data-term', term);
+chartDiv.setAttribute('data-location', loc);
+chartDiv.setAttribute('data-device', rowData.device);
+chartDiv.setAttribute('data-company', window.myCompany || '');
+
+// Append all columns to the row
 tr.appendChild(tdProducts);
-tr.appendChild(tdCompanies);      
-          tbody.appendChild(tr);
+tr.appendChild(tdCompanies);
+tr.appendChild(tdMarketTrend);
+tbody.appendChild(tr);
+          
         });
       });
     });
