@@ -1108,7 +1108,7 @@ function renderProjectMarketShareChart(projectData) {
       width: 920,         // << increased width
       height: "100%",
       toolbar: { show: false },
-      zoom: { enabled: true },
+      zoom: { enabled: false },
       animations: {
         enabled: true,
         speed: 500,
