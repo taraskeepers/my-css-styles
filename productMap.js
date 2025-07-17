@@ -2331,23 +2331,22 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       position: "top",
       horizontalAlign: "left"
     },
-// In renderSingleMarketTrendChart function, replace the tooltip configuration with this exact implementation from core-functions.js:
-
 tooltip: {
+  enabled: true,
+  shared: false,
+  intersect: false,
+  style: {
+    fontSize: '12px'
+  },
   custom: function({ series, dataPointIndex, w }) {
-    // Use the x-axis label directly as the date.
     let formattedDate = w.globals.labels[dataPointIndex] || "";
-
+    
     // Build an array of tooltip items – one per series.
     let tooltipItems = [];
     for (let i = 0; i < series.length; i++) {
-      // Get the company name from the series config.
       let companyName = w.config.series[i].name;
-      // Get the series color from the global colors array.
       let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
-      // Get the current value.
       let currentValue = series[i][dataPointIndex];
-      // Get the previous value (if available).
       let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
       let trendStr = "";
       if (previousValue !== null) {
@@ -2367,43 +2366,47 @@ tooltip: {
         seriesColor
       });
     }
-
+    
     // Sort items by currentValue in descending order.
     let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
-
+    
     // Separate out the "Others" group (case-insensitive).
     let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
     let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-
+    
     // Assign rank numbers only to non-"Others" items.
     for (let i = 0; i < nonOthersItems.length; i++) {
       nonOthersItems[i].rank = i + 1;
     }
-    // "Others" items will be appended at the bottom.
     let finalItems = nonOthersItems.concat(othersItems);
-
-    // Build HTML with a table (invisible grid, no headers) styled in an Apple‑corp way.
-    let html = `
-      <div style="
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-size: 12px;
-      ">
+    
+    // Build HTML with EXPLICIT HEIGHT AND OVERFLOW SETTINGS
+let html = `
+  <div style="
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px;
+    min-height: fit-content !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    position: relative !important;
+  ">
         <div style="font-weight: 600; margin-bottom: 6px; color: #6b7280;">
           ${formattedDate}
         </div>
-        <table style="width: 100%;">
+        <table style="width: 100%; height: auto !important;">
     `;
-
+    
     // Loop through final items and render rows.
     finalItems.forEach(item => {
       let rankHtml = "";
       if (item.companyName.trim().toLowerCase() !== "others") {
-        // Rank badge for non-"Others" items.
         rankHtml = `<span style="
             display: inline-block;
             width: 20px;
@@ -2429,17 +2432,17 @@ tooltip: {
       }
       
       html += `
-        <tr style="border: 1px solid red !important;">
-          <td style="padding: 4px 8px; vertical-align: middle; border: 1px solid blue !important;">
-            ${rankHtml}<strong style="color: black !important;">${item.companyName}</strong>
+        <tr>
+          <td style="padding: 4px 8px; vertical-align: middle;">
+            ${rankHtml}<strong>${item.companyName}</strong>
           </td>
-          <td style="padding: 4px 8px; text-align: right; vertical-align: middle; border: 1px solid green !important;">
-            <span style="color: black !important; font-weight: bold;">${item.currentValue.toFixed(2)}%</span> ${trendColored}
+          <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
+            ${item.currentValue.toFixed(2)}% ${trendColored}
           </td>
         </tr>
       `;
     });
-
+    
     html += `</table></div>`;
     return html;
   }
