@@ -2111,10 +2111,8 @@ function renderAllMarketTrendCharts() {
   console.log('[renderAllMarketTrendCharts] Complete');
 }
 
-// Function to render single market trend chart
 function renderSingleMarketTrendChart(containerId, searchTerm, location, device, myCompany) {
-  console.log(`[renderSingleMarketTrendChart] Starting for ${containerId}`);
-    // Check if ApexCharts is available
+  // Check if ApexCharts is available
   if (typeof ApexCharts === 'undefined') {
     console.error(`[renderSingleMarketTrendChart] ApexCharts library not loaded!`);
     const chartEl = document.getElementById(containerId);
@@ -2125,23 +2123,9 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
   }
   
   const chartEl = document.getElementById(containerId);
-  if (!chartEl) {
-    console.error(`[renderSingleMarketTrendChart] Chart element not found: ${containerId}`);
-    return;
-  }
-  
-  console.log(`[renderSingleMarketTrendChart] Chart element found:`, chartEl);
-  console.log(`[renderSingleMarketTrendChart] Chart element visible:`, chartEl.offsetWidth > 0 && chartEl.offsetHeight > 0);
-  console.log(`[renderSingleMarketTrendChart] Chart element display:`, window.getComputedStyle(chartEl).display);
-  
-  if (!window.companyStatsData) {
-    console.error(`[renderSingleMarketTrendChart] No companyStatsData available`);
-    return;
-  }
+  if (!chartEl || !window.companyStatsData) return;
   
   // Filter data for this specific combination
-  console.log(`[renderSingleMarketTrendChart] Filtering data for:`, { searchTerm, location, device });
-  
   const filtered = window.companyStatsData.filter(r =>
     r.q?.toLowerCase() === searchTerm.toLowerCase() &&
     r.location_requested?.toLowerCase() === location.toLowerCase() &&
@@ -2149,36 +2133,12 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     r.source // Has company data
   );
   
-  console.log(`[renderSingleMarketTrendChart] Filtered ${window.companyStatsData.length} -> ${filtered.length} records`);
-  
   if (!filtered.length) {
-    console.warn(`[renderSingleMarketTrendChart] No data found, showing no data message`);
     chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No data</p>";
     return;
   }
   
-  // Find myCompany data
-  const myCompanyData = filtered.find(r => 
-    r.source?.toLowerCase() === myCompany.toLowerCase()
-  );
-  
-  console.log(`[renderSingleMarketTrendChart] MyCompany data found:`, !!myCompanyData);
-  
-  if (!myCompanyData) {
-    console.warn(`[renderSingleMarketTrendChart] No data for ${myCompany}, showing no data message`);
-    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
-    return;
-  }
-  
-  console.log(`[renderSingleMarketTrendChart] MyCompany historical data length:`, myCompanyData.historical_data?.length || 0);
-  
-  if (!myCompanyData.historical_data || myCompanyData.historical_data.length === 0) {
-    console.warn(`[renderSingleMarketTrendChart] No historical data for ${myCompany}`);
-    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No historical data for ${myCompany}</p>`;
-    return;
-  }
-  
-  // Use same logic as marketShareBigChart for date range
+  // Use same date range logic as marketShareBigChart
   const days = 30;
   let maxDate = null;
   filtered.forEach(r => {
@@ -2191,12 +2151,9 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
   });
   
   if (!maxDate) {
-    console.warn(`[renderSingleMarketTrendChart] No valid dates found`);
     chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No date data</p>";
     return;
   }
-  
-  console.log(`[renderSingleMarketTrendChart] Date range: ${maxDate.clone().subtract(days - 1, "days").format('YYYY-MM-DD')} to ${maxDate.format('YYYY-MM-DD')}`);
   
   const periodEnd = maxDate.clone();
   const periodStart = maxDate.clone().subtract(days - 1, "days");
@@ -2215,55 +2172,112 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     }
   }
   
-  console.log(`[renderSingleMarketTrendChart] Using share field: ${shareField}`);
+  // Build dailyMap[dateStr][companyName] = sumOfShare (same as marketShareBigChart)
+  const dailyMap = {};
+  filtered.forEach(rec => {
+    (rec.historical_data || []).forEach(d => {
+      const dd = moment(d.date.value, "YYYY-MM-DD");
+      if (!dd.isBetween(periodStart, periodEnd, "day", "[]")) return;
+      
+      const val = parseFloat(d[shareField]) * 100 || 0;
+      const dateStr = dd.format("YYYY-MM-DD");
+      if (!dailyMap[dateStr]) dailyMap[dateStr] = {};
+      const cName = (rec.source && rec.source.trim()) || "Unknown";
+      if (!dailyMap[dateStr][cName]) dailyMap[dateStr][cName] = 0;
+      dailyMap[dateStr][cName] += val;
+    });
+  });
   
-  // Build daily data for myCompany only
-  const seriesData = [];
+  // Get all unique dates in ascending order
+  let allDates = Object.keys(dailyMap).sort();
+  if (!allDates.length) {
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No market share found in this date range</p>";
+    return;
+  }
   
-  // Create data points for each day in the period
-  for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
-    const dateStr = d.format('YYYY-MM-DD');
-    const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
+  // Sum total share by company across this window => pick top 10
+  const companyTotals = {};
+  allDates.forEach(dateStr => {
+    Object.entries(dailyMap[dateStr]).forEach(([cName, val]) => {
+      if (!companyTotals[cName]) companyTotals[cName] = 0;
+      companyTotals[cName] += val;
+    });
+  });
+  const sortedByTotal = Object.entries(companyTotals).sort((a,b) => b[1] - a[1]);
+  const top10 = sortedByTotal.slice(0, 10).map(x => x[0]); // top 10
+  const isTop10 = cName => top10.includes(cName);
+
+  // Check if myCompany should be included
+  const selectedCoRaw = myCompany || "";
+  const selectedCo = selectedCoRaw.toLowerCase();
+  if (selectedCo) {
+    const lowerTop10 = top10.map(c => c.toLowerCase());
+    if (!lowerTop10.includes(selectedCo)) {
+      top10.push(selectedCoRaw);
+    }
+  }
+  
+  // Build final seriesMap with "Others" for companies not in top10
+  const seriesMap = {};
+  top10.forEach(c => { seriesMap[c] = []; });
+  seriesMap["Others"] = [];
+  
+  allDates.forEach(dateStr => {
+    const dayObj = dailyMap[dateStr];
+    let sumOthers = 0;
+    top10.forEach(c => {
+      const val = dayObj[c] || 0;
+      seriesMap[c].push({ x: dateStr, y: val });
+    });
+    Object.keys(dayObj).forEach(c => {
+      if (!isTop10(c)) sumOthers += dayObj[c];
+    });
+    seriesMap["Others"].push({ x: dateStr, y: sumOthers });
+  });
+  
+  // Convert seriesMap => array
+  let finalSeries = [];
+  for (let cName in seriesMap) {
+    finalSeries.push({ name: cName, data: seriesMap[cName] });
+  }
+  
+  // Apply same company selection logic as marketShareBigChart
+  if (myCompany && myCompany.trim() !== "") {
+    const selCompany = myCompany.trim().toLowerCase();
     
-    if (dayData && dayData[shareField] !== undefined) {
-      const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
-      seriesData.push({
-        x: dateStr,
-        y: shareValue
+    // Find the index of that series in finalSeries
+    let selIndex = finalSeries.findIndex(s => s.name.toLowerCase() === selCompany);
+    if (selIndex >= 0) {
+      // Splice it out and put it at the front (bottom layer)
+      const [selectedObj] = finalSeries.splice(selIndex, 1);
+      finalSeries.unshift(selectedObj);
+      
+      // Color the selected company normally, others in grey
+      finalSeries.forEach((seriesObj, i) => {
+        if (i === 0) {
+          // The selected company
+          seriesObj.color = "#007aff";
+        } else {
+          // All other companies in grey variants
+          const greyLevel = 180 + i * 8;
+          const capped = Math.min(greyLevel, 230);
+          const greyHex = `rgb(${capped},${capped},${capped})`;
+          seriesObj.color = greyHex;
+        }
       });
     }
   }
   
-  console.log(`[renderSingleMarketTrendChart] Generated ${seriesData.length} data points`);
-  
-  // If no data for myCompany, show message
-  if (seriesData.length === 0) {
-    console.warn(`[renderSingleMarketTrendChart] No series data generated`);
-    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
-    return;
-  }
-  
-  // Check if ApexCharts is available
-  if (typeof ApexCharts === 'undefined') {
-    console.error(`[renderSingleMarketTrendChart] ApexCharts not available!`);
-    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>Chart library not loaded</p>";
-    return;
-  }
-  
-  console.log(`[renderSingleMarketTrendChart] Creating ApexCharts instance...`);
-  
-  // Create chart with same styling as marketShareBigChart
+  // Create chart with same configuration as marketShareBigChart
   const options = {
-    series: [{
-      name: myCompany,
-      data: seriesData
-    }],
+    series: finalSeries,
     chart: {
       type: "area",
       height: "100%",
       width: "100%",
-      toolbar: { show: false },
-      zoom: { enabled: false },
+      stacked: true, // Key difference - stacked areas
+      toolbar: { show: true },
+      zoom: { enabled: true },
       animations: {
         enabled: true,
         speed: 500,
@@ -2277,79 +2291,164 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
         }
       }
     },
-    dataLabels: { enabled: false },
+    dataLabels: (myCompany && myCompany.trim() !== "")
+      ? {
+          enabled: true,
+          formatter: function(val, opts) {
+            if (opts.seriesIndex === 0) {
+              return val.toFixed(2) + "%";
+            }
+            return "";
+          },
+          offsetY: -5,
+          style: { fontSize: '12px', colors: ['#000'] }
+        }
+      : { enabled: false },
+    // Show markers only for selected series
+    markers: (myCompany && myCompany.trim() !== "")
+      ? { size: finalSeries.map((s, i) => (i === 0 ? 6 : 0)) }
+      : { size: 0 },
     stroke: {
       curve: "smooth",
       width: 2
     },
     xaxis: {
       type: "datetime",
-      labels: { 
-        show: true,
-        rotate: -45,
-        rotateAlways: true,
-        style: {
-          fontSize: '10px'
-        }
-      }
+      labels: { show: true }
     },
     yaxis: {
       labels: { 
         show: true,
         formatter: function(val) { 
-          return val.toFixed(1) + "%"; 
-        },
-        style: {
-          fontSize: '10px'
+          return val.toFixed(2); 
         }
       },
-      title: { 
-        text: "Market Share (%)",
-        style: {
-          fontSize: '11px'
+      title: { text: "Market Share (%)" },
+      max: 100
+    },
+    legend: {
+      show: true,
+      position: "top",
+      horizontalAlign: "left"
+    },
+    tooltip: {
+      custom: function({ series, dataPointIndex, w }) {
+        // Same custom tooltip as marketShareBigChart
+        let formattedDate = w.globals.labels[dataPointIndex] || "";
+        
+        // Build tooltip items
+        let tooltipItems = [];
+        for (let i = 0; i < series.length; i++) {
+          let companyName = w.config.series[i].name;
+          let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
+          let currentValue = series[i][dataPointIndex];
+          let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
+          let trendStr = "";
+          if (previousValue !== null) {
+            let diff = currentValue - previousValue;
+            if (diff > 0) {
+              trendStr = "▲ " + diff.toFixed(2) + "%";
+            } else if (diff < 0) {
+              trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
+            } else {
+              trendStr = "±0.00%";
+            }
+          }
+          tooltipItems.push({
+            companyName,
+            currentValue,
+            trendStr,
+            seriesColor
+          });
         }
-      },
-      max: function(max) {
-        // Add some padding to the max value
-        return Math.ceil(max * 1.1);
+        
+        // Sort by currentValue
+        let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
+        
+        // Separate "Others"
+        let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
+        let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
+        
+        // Assign ranks
+        for (let i = 0; i < nonOthersItems.length; i++) {
+          nonOthersItems[i].rank = i + 1;
+        }
+        let finalItems = nonOthersItems.concat(othersItems);
+        
+        // Build HTML
+        let html = `
+          <div style="
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+          ">
+            <div style="margin-bottom: 8px; font-weight: 600; color: #fff;">${formattedDate}</div>
+            <table style="width: 100%; border-collapse: collapse;">
+        `;
+        
+        finalItems.forEach(item => {
+          let rankHtml = "";
+          if (item.rank) {
+            let rankColor = "#666";
+            if (item.rank <= 3) rankColor = "#4CAF50";
+            else if (item.rank <= 8) rankColor = "#FFC107";
+            else if (item.rank <= 14) rankColor = "#FF9800";
+            else rankColor = "#F44336";
+            
+            rankHtml = `<span style="
+              background: ${rankColor};
+              color: white;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-weight: bold;
+              font-size: 10px;
+              margin-right: 8px;
+            ">${item.rank}</span>`;
+          }
+          
+          let trendColored = item.trendStr;
+          if (item.trendStr.startsWith("▲")) {
+            trendColored = `<span style="color: green;">${item.trendStr}</span>`;
+          } else if (item.trendStr.startsWith("▼")) {
+            trendColored = `<span style="color: red;">${item.trendStr}</span>`;
+          }
+          
+          html += `
+            <tr>
+              <td style="padding: 4px 8px; vertical-align: middle;">
+                ${rankHtml}<strong>${item.companyName}</strong>
+              </td>
+              <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
+                ${item.currentValue.toFixed(2)}% ${trendColored}
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += `</table></div>`;
+        return html;
       }
     },
     fill: {
-      type: 'gradient',
-      gradient: {
-        shade: 'dark',
-        shadeIntensity: 0.15,
-        inverseColors: false,
-        opacityFrom: 1,
-        opacityTo: 1,
-        stops: [0, 50, 100]
-      }
+      type: "gradient",
+      gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
     },
-    colors: ['#007aff'], // Use same blue as other charts
-    tooltip: {
-      x: {
-        format: 'dd MMM yyyy'
-      },
-      y: {
-        formatter: function(val) {
-          return val.toFixed(2) + "%";
-        }
-      }
-    },
-    grid: {
-      borderColor: '#e7e7e7',
-      strokeDashArray: 4
-    }
+    colors: finalSeries.map(s => s.color || undefined) // Use our custom colors
   };
   
+  // Create and render the chart
   try {
-    console.log(`[renderSingleMarketTrendChart] Rendering chart to element:`, chartEl);
     const chart = new ApexCharts(chartEl, options);
     chart.render();
     
     // Store chart instance for cleanup
     window.marketTrendChartInstances.push(chart);
-    console.log(`[renderSingleMarketTrendChart] Chart rendered successfully for ${containerId}`);
   } catch (error) {
     console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
     chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
