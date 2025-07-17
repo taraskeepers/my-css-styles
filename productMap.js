@@ -2331,10 +2331,15 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       position: "top",
       horizontalAlign: "left"
     },
+// In renderSingleMarketTrendChart function, replace the entire tooltip configuration with this:
+
 tooltip: {
   enabled: true,
   shared: false,
   intersect: false,
+  fixed: {
+    enabled: false  // This prevents ApexCharts from constraining the tooltip
+  },
   style: {
     fontSize: '12px'
   },
@@ -2380,27 +2385,28 @@ tooltip: {
     }
     let finalItems = nonOthersItems.concat(othersItems);
     
-    // Build HTML with EXPLICIT HEIGHT AND OVERFLOW SETTINGS
-let html = `
-  <div style="
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px;
-    min-height: fit-content !important;
-    max-height: none !important;
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-    position: relative !important;
-  ">
+    // Calculate the approximate height needed
+    const rowHeight = 30; // Approximate height per row
+    const headerHeight = 40; // Header and padding
+    const totalHeight = (finalItems.length * rowHeight) + headerHeight;
+    
+    // Build HTML with inline height
+    let html = `
+      <div style="
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 12px;
+        min-height: ${totalHeight}px !important;
+        height: ${totalHeight}px !important;
+      ">
         <div style="font-weight: 600; margin-bottom: 6px; color: #6b7280;">
           ${formattedDate}
         </div>
-        <table style="width: 100%; height: auto !important;">
+        <table style="width: 100%;">
     `;
     
     // Loop through final items and render rows.
@@ -2444,6 +2450,17 @@ let html = `
     });
     
     html += `</table></div>`;
+    
+    // Force the tooltip container to respect our height
+    requestAnimationFrame(() => {
+      const tooltip = document.querySelector('.apexcharts-tooltip.apexcharts-active');
+      if (tooltip) {
+        tooltip.style.height = 'auto';
+        tooltip.style.maxHeight = 'none';
+        tooltip.style.overflow = 'visible';
+      }
+    });
+    
     return html;
   }
 },
