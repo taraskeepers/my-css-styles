@@ -2069,12 +2069,24 @@ function renderAllMarketTrendCharts() {
     window.marketTrendChartInstances = [];
   }
   
-  // Clear any existing charts
-  console.log(`[renderAllMarketTrendCharts] Clearing ${window.marketTrendChartInstances.length} existing charts`);
-  window.marketTrendChartInstances.forEach(chart => {
-    if (chart) chart.destroy();
-  });
-  window.marketTrendChartInstances = [];
+// Clear any existing charts
+console.log(`[renderAllMarketTrendCharts] Clearing ${window.marketTrendChartInstances.length} existing charts`);
+window.marketTrendChartInstances.forEach(instance => {
+  if (instance) {
+    // Handle both old format (direct chart) and new format (object with chart and tooltip)
+    if (typeof instance.destroy === 'function') {
+      // Old format - direct chart instance
+      instance.destroy();
+    } else if (instance.chart && typeof instance.chart.destroy === 'function') {
+      // New format - object with chart and tooltip
+      instance.chart.destroy();
+      if (instance.tooltip && instance.tooltip.remove) {
+        instance.tooltip.remove();
+      }
+    }
+  }
+});
+window.marketTrendChartInstances = [];
   
   // Find all market trend chart containers
   const chartContainers = document.querySelectorAll('[id^="marketTrendChart-"]');
@@ -2520,8 +2532,6 @@ chartElement.addEventListener('mouseleave', function() {
 // Store tooltip reference for cleanup
 window.marketTrendChartInstances.push({ chart, tooltip: customTooltip });
     
-    // Store chart instance for cleanup
-    window.marketTrendChartInstances.push(chart);
   } catch (error) {
     console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
     chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
