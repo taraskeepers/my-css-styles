@@ -2333,11 +2333,15 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     },
 tooltip: {
   custom: function({ series, dataPointIndex, w }) {
-    // DEBUG: Add these console logs to see what data we're getting
+    // Existing debug logs
     console.log("[TOOLTIP DEBUG] series.length:", series.length);
     console.log("[TOOLTIP DEBUG] series:", series);
     console.log("[TOOLTIP DEBUG] w.config.series.length:", w.config.series.length);
     console.log("[TOOLTIP DEBUG] dataPointIndex:", dataPointIndex);
+    
+    // NEW DEBUG LOGS - Add these:
+    console.log("[TOOLTIP DEBUG] w.config.series names:", w.config.series.map(s => s.name));
+    console.log("[TOOLTIP DEBUG] series values at dataPointIndex:", series.map(s => s[dataPointIndex]));
     
     let formattedDate = w.globals.labels[dataPointIndex] || "";
     
@@ -2363,6 +2367,15 @@ tooltip: {
           trendStr = "±0.00%";
         }
       }
+      
+      // DEBUG: Log each tooltip item as we create it
+      console.log(`[TOOLTIP DEBUG] Item ${i}:`, {
+        companyName,
+        currentValue,
+        trendStr,
+        seriesColor
+      });
+      
       tooltipItems.push({
         companyName,
         currentValue,
@@ -2371,8 +2384,14 @@ tooltip: {
       });
     }
 
+    // DEBUG: Log the final tooltipItems array
+    console.log("[TOOLTIP DEBUG] tooltipItems:", tooltipItems);
+
     // Sort items by currentValue in descending order.
     let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
+    
+    // DEBUG: Log sorted items
+    console.log("[TOOLTIP DEBUG] sortedItems:", sortedItems);
 
     // Separate out the "Others" group (case-insensitive).
     let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
@@ -2384,6 +2403,9 @@ tooltip: {
     }
     // "Others" items will be appended at the bottom.
     let finalItems = nonOthersItems.concat(othersItems);
+    
+    // DEBUG: Log final items that will be displayed
+    console.log("[TOOLTIP DEBUG] finalItems:", finalItems);
 
     // Build HTML with a table (invisible grid, no headers) styled in an Apple‑corp way.
     let html = `
@@ -2447,6 +2469,10 @@ tooltip: {
     });
 
     html += `</table></div>`;
+    
+    // DEBUG: Log the final HTML
+    console.log("[TOOLTIP DEBUG] Final HTML:", html);
+    
     return html;
   }
 },
