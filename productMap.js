@@ -2331,77 +2331,64 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       position: "top",
       horizontalAlign: "left"
     },
+// In renderSingleMarketTrendChart function, replace the tooltip configuration with this debug version:
+
 tooltip: {
   enabled: true,
-  shared: true, // Changed to true for better handling of stacked charts
+  shared: false,
   intersect: false,
   style: {
     fontSize: '12px'
   },
   custom: function({ series, seriesIndex, dataPointIndex, w }) {
+    console.log("=== TOOLTIP DEBUG START ===");
+    console.log("dataPointIndex:", dataPointIndex);
+    console.log("series:", series);
+    console.log("w.config.series:", w.config.series);
+    console.log("w.globals.colors:", w.globals.colors);
+    
     let formattedDate = w.globals.labels[dataPointIndex] || "";
     
-    // Build an array of tooltip items – one per series
+    // Build an array of tooltip items – one per series.
     let tooltipItems = [];
-    
-    // Use w.config.series to access the original series configuration
-    for (let i = 0; i < w.config.series.length; i++) {
-      // Get the company name from series config
-      const seriesConfig = w.config.series[i];
-      const companyName = seriesConfig.name;
+    for (let i = 0; i < series.length; i++) {
+      console.log(`\n--- Processing series ${i} ---`);
       
-      // Skip if no name
-      if (!companyName) continue;
+      let companyName = w.config.series[i].name;
+      console.log("Company name:", companyName);
       
-      // Get the series color
-      const seriesColor = seriesConfig.color || w.globals.colors[i] || "#007aff";
+      let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
+      console.log("Series color:", seriesColor);
       
-      // For stacked charts, we need to calculate the actual value
-      // The series data in tooltip contains cumulative values
-      let currentValue = 0;
+      let currentValue = series[i][dataPointIndex];
+      console.log("Current value from series:", currentValue);
+      console.log("Type of current value:", typeof currentValue);
       
-      // Get the value from the series data
-      if (series && series[i] !== undefined) {
-        if (i === 0) {
-          // First series - use value as is
-          currentValue = series[i][dataPointIndex] || 0;
-        } else {
-          // For other series in stacked chart, calculate the actual value
-          // by subtracting the cumulative value of previous series
-          const currentCumulative = series[i][dataPointIndex] || 0;
-          const previousCumulative = series[i-1][dataPointIndex] || 0;
-          currentValue = currentCumulative - previousCumulative;
-        }
+      // Also try to get data from config
+      if (w.config.series[i].data && w.config.series[i].data[dataPointIndex]) {
+        console.log("Data from config:", w.config.series[i].data[dataPointIndex]);
       }
       
-      // Skip if no valid data
-      if (currentValue === 0 || isNaN(currentValue)) {
+      // Check if currentValue is valid
+      if (currentValue === undefined || currentValue === null || isNaN(currentValue)) {
+        console.log(`SKIPPING ${companyName} - invalid value`);
         continue;
       }
       
-      // Calculate trend
+      let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
       let trendStr = "";
-      if (dataPointIndex > 0) {
-        let previousValue = 0;
-        if (i === 0) {
-          previousValue = series[i][dataPointIndex - 1] || 0;
+      if (previousValue !== null) {
+        let diff = currentValue - previousValue;
+        if (diff > 0) {
+          trendStr = "▲ " + diff.toFixed(2) + "%";
+        } else if (diff < 0) {
+          trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
         } else {
-          const prevCumulative = series[i][dataPointIndex - 1] || 0;
-          const prevPrevCumulative = series[i-1][dataPointIndex - 1] || 0;
-          previousValue = prevCumulative - prevPrevCumulative;
-        }
-        
-        if (previousValue > 0) {
-          const diff = currentValue - previousValue;
-          if (diff > 0) {
-            trendStr = "▲ " + diff.toFixed(2) + "%";
-          } else if (diff < 0) {
-            trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
-          } else {
-            trendStr = "±0.00%";
-          }
+          trendStr = "±0.00%";
         }
       }
+      
+      console.log(`ADDING ${companyName} to tooltip with value ${currentValue}`);
       
       tooltipItems.push({
         companyName,
@@ -2411,27 +2398,30 @@ tooltip: {
       });
     }
     
-    // If no valid items, return empty
+    console.log("\nFinal tooltipItems:", tooltipItems);
+    console.log("=== TOOLTIP DEBUG END ===\n");
+    
+    // If no items, show debug message
     if (tooltipItems.length === 0) {
-      return '';
+      return '<div style="padding: 10px; background: #fff; border: 1px solid red;">No valid data found - check console</div>';
     }
     
-    // Sort items by currentValue in descending order
+    // Sort items by currentValue in descending order.
     let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
     
-    // Separate out the "Others" group
+    // Separate out the "Others" group (case-insensitive).
     let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
     let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
     
-    // Assign rank numbers only to non-"Others" items
+    // Assign rank numbers only to non-"Others" items.
     for (let i = 0; i < nonOthersItems.length; i++) {
       nonOthersItems[i].rank = i + 1;
     }
     
-    // "Others" items will be appended at the bottom
+    // "Others" items will be appended at the bottom.
     let finalItems = nonOthersItems.concat(othersItems);
     
-    // Build HTML
+    // Build HTML with a table
     let html = `
       <div style="
         background: white;
@@ -2456,35 +2446,19 @@ tooltip: {
     // Render each item
     finalItems.forEach(item => {
       let rankHtml = "";
-      if (item.companyName.trim().toLowerCase() !== "others" && item.rank) {
-        // Check if color is too light for white text
-        let bgColor = item.seriesColor;
-        let textColor = '#fff';
-        
-        // If it's a light grey (RGB where all values > 180), use dark text
-        if (bgColor && bgColor.startsWith('rgb')) {
-          const matches = bgColor.match(/\d+/g);
-          if (matches && matches.length >= 3) {
-            const [r, g, b] = matches.map(Number);
-            if (r > 180 && g > 180 && b > 180) {
-              textColor = '#333';
-            }
-          }
-        }
-        
+      if (item.companyName.trim().toLowerCase() !== "others") {
         rankHtml = `<span style="
           display: inline-block;
           width: 22px;
           height: 22px;
           line-height: 22px;
           border-radius: 11px;
-          background: ${bgColor};
-          color: ${textColor};
+          background: ${item.seriesColor};
+          color: #fff;
           text-align: center;
           margin-right: 8px;
           font-weight: bold;
           font-size: 11px;
-          border: 1px solid rgba(0,0,0,0.1);
         ">
           ${item.rank}
         </span>`;
@@ -2492,18 +2466,18 @@ tooltip: {
       
       let trendColored = item.trendStr;
       if (item.trendStr.startsWith("▲")) {
-        trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: green;">${item.trendStr}</span>`;
       } else if (item.trendStr.startsWith("▼")) {
-        trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: red;">${item.trendStr}</span>`;
       }
       
       html += `
-        <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-          <td style="padding: 6px 8px; vertical-align: middle;">
-            ${rankHtml}<strong style="font-size: 13px; color: #111;">${item.companyName}</strong>
+        <tr>
+          <td style="padding: 4px 8px; vertical-align: middle;">
+            ${rankHtml}<strong>${item.companyName}</strong>
           </td>
-          <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
-            <strong style="font-size: 13px; color: #111;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
+          <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
+            ${item.currentValue.toFixed(2)}% ${trendColored}
           </td>
         </tr>
       `;
