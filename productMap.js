@@ -2331,16 +2331,11 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       position: "top",
       horizontalAlign: "left"
     },
-    tooltip: {
+tooltip: {
   enabled: true,
-  shared: true,
+  shared: false,
   followCursor: false,
-  fixed: {
-    enabled: true,
-    position: 'topRight',
-    offsetX: -100,
-    offsetY: 50
-  },
+  intersect: false,
   custom: function({ series, dataPointIndex, w }) {
     // Same custom tooltip as marketShareBigChart
     let formattedDate = w.globals.labels[dataPointIndex] || "";
