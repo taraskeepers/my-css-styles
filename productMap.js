@@ -2837,34 +2837,70 @@ const viewProductsBtn = document.getElementById("viewProducts");
 const viewChartsBtn = document.getElementById("viewCharts");
 
 viewProductsBtn.addEventListener("click", function() {
+  // Add body class management
+  document.body.classList.remove('charts-mode');
+  document.body.classList.add('products-mode');
+  
   // Switch to Products view
   viewProductsBtn.classList.add("active");
   viewChartsBtn.classList.remove("active");
   
-  // Show all product cells, hide all chart containers
+  // EXPLICITLY show all product-cell-containers and hide chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
     container.style.display = 'block';
+    container.style.visibility = 'visible';
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'none';
+    container.style.visibility = 'hidden';
+  });
+  
+  // Reset table rows to original height in Products mode
+  document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
+    row.style.height = '380px';
+    row.style.maxHeight = '380px';
+  });
+  
+  // Reset table cells to original height
+  document.querySelectorAll('.product-map-table td').forEach(cell => {
+    cell.style.height = '380px';
+    cell.style.maxHeight = '380px';
   });
 });
 
 viewChartsBtn.addEventListener("click", function() {
+  // Add body class management
+  document.body.classList.remove('products-mode');
+  document.body.classList.add('charts-mode');
+  
   // Switch to Charts view
   viewChartsBtn.classList.add("active");
   viewProductsBtn.classList.remove("active");
   
-  // Hide all product cells, show all chart containers
+  // EXPLICITLY hide all product-cell-containers and show chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
     container.style.display = 'none';
+    container.style.visibility = 'hidden';
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
+    container.style.visibility = 'visible';
     // Reset any dynamic height issues
-    container.style.height = '360px';
-    container.style.maxHeight = '360px';
+    container.style.height = '580px'; // Increased for 600px row
+    container.style.maxHeight = '580px';
     container.style.overflow = 'hidden';
+  });
+  
+  // Set table rows to 600px max height in Charts mode
+  document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
+    row.style.height = '600px';
+    row.style.maxHeight = '600px';
+  });
+  
+  // Update table cells for Charts mode
+  document.querySelectorAll('.product-map-table td').forEach(cell => {
+    cell.style.height = '600px';
+    cell.style.maxHeight = '600px';
   });
   
   // Add a small delay to ensure DOM is updated before rendering charts
@@ -2874,14 +2910,14 @@ viewChartsBtn.addEventListener("click", function() {
       const chartAvgPosDiv = container.querySelector('.chart-avg-position');
       const chartProductsDiv = container.querySelector('.chart-products');
       
-      // Reset chart container dimensions
+      // Reset chart container dimensions for new row height
       if (chartAvgPosDiv) {
-        chartAvgPosDiv.style.height = '360px';
-        chartAvgPosDiv.style.maxHeight = '360px';
+        chartAvgPosDiv.style.height = '580px';
+        chartAvgPosDiv.style.maxHeight = '580px';
       }
       if (chartProductsDiv) {
-        chartProductsDiv.style.height = '360px';
-        chartProductsDiv.style.maxHeight = '360px';
+        chartProductsDiv.style.height = '580px';
+        chartProductsDiv.style.maxHeight = '580px';
       }
       
       // Get all products for this chart - always filter by myCompany in Charts mode
@@ -2928,7 +2964,7 @@ viewChartsBtn.addEventListener("click", function() {
         });
       }
     });
-  }, 100); // 100ms delay
+  }, 200); // Increased delay to ensure proper DOM updates
 });
 
 // Listen for mode changes
@@ -3686,9 +3722,10 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 /* Products chart container styles */
 .products-chart-container {
   display: none;
+  visibility: hidden;
   width: 100%;
-  height: 360px; /* Fixed height instead of 100% */
-  max-height: 360px; /* Match the fixed height */
+  height: 580px; /* 600px row minus padding */
+  max-height: 580px;
   overflow: hidden;
   flex-direction: row;
   gap: 10px;
@@ -3696,8 +3733,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 
 .chart-products {
   width: 280px;
-  height: 360px; /* Fixed height instead of 100% */
-  max-height: 360px; /* Match table cell height minus padding */
+  height: 580px; /* Match container height */
+  max-height: 580px;
   overflow-y: scroll;
   overflow-x: hidden;
   background-color: #f9f9f9;
@@ -3711,8 +3748,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 .chart-avg-position {
   flex: 1;
   min-width: 300px;
-  height: 360px; /* Fixed height instead of 100% */
-  max-height: 360px; /* Fixed height to prevent overflow */
+  height: 580px; /* Match container height */
+  max-height: 580px;
   background-color: #f9f9f9;
   border-radius: 8px;
   padding: 10px;
@@ -4985,7 +5022,19 @@ body.mode-products .companies-header {
 .product-cell-container {
   width: 100%;
   height: 100%;
-  display: block !important; /* Always block */
+  display: block !important; /* Force visible by default */
+  visibility: visible;
+}
+
+/* When in charts mode, ensure product containers are hidden */
+body.charts-mode .product-cell-container {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+body.charts-mode .products-chart-container {
+  display: flex !important;
+  visibility: visible !important;
 }
 
 .company-cell-container {
