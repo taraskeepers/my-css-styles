@@ -2332,22 +2332,25 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       horizontalAlign: "left"
     },
 tooltip: {
-  enabled: true,
-  shared: true,
-  followCursor: false,
-  fixed: {
-    enabled: true,
-    position: 'topRight',
-    offsetX: -100,
-    offsetY: 50
-  },
   custom: function({ series, dataPointIndex, w }) {
-    // Get data and build tooltip items
+    // DEBUG: Add these console logs to see what data we're getting
+    console.log("[TOOLTIP DEBUG] series.length:", series.length);
+    console.log("[TOOLTIP DEBUG] series:", series);
+    console.log("[TOOLTIP DEBUG] w.config.series.length:", w.config.series.length);
+    console.log("[TOOLTIP DEBUG] dataPointIndex:", dataPointIndex);
+    
+    let formattedDate = w.globals.labels[dataPointIndex] || "";
+    
+    // Build an array of tooltip items – one per series.
     let tooltipItems = [];
     for (let i = 0; i < series.length; i++) {
+      // Get the company name from the series config.
       let companyName = w.config.series[i].name;
+      // Get the series color from the global colors array.
       let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
+      // Get the current value.
       let currentValue = series[i][dataPointIndex];
+      // Get the previous value (if available).
       let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
       let trendStr = "";
       if (previousValue !== null) {
@@ -2367,24 +2370,22 @@ tooltip: {
         seriesColor
       });
     }
-    
-    // Sort by currentValue
+
+    // Sort items by currentValue in descending order.
     let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
-    
-    // Separate "Others"
+
+    // Separate out the "Others" group (case-insensitive).
     let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
     let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-    
-    // Assign ranks
+
+    // Assign rank numbers only to non-"Others" items.
     for (let i = 0; i < nonOthersItems.length; i++) {
       nonOthersItems[i].rank = i + 1;
     }
+    // "Others" items will be appended at the bottom.
     let finalItems = nonOthersItems.concat(othersItems);
-    
-    // Get formatted date
-    let formattedDate = w.globals.labels[dataPointIndex] || "";
-    
-    // Build HTML exactly like core-functions.js
+
+    // Build HTML with a table (invisible grid, no headers) styled in an Apple‑corp way.
     let html = `
       <div style="
           padding: 10px;
