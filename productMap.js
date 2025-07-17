@@ -2332,29 +2332,21 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       horizontalAlign: "left"
     },
 tooltip: {
+  enabled: true,
+  shared: false,
+  intersect: false,
+  style: {
+    fontSize: '12px'
+  },
   custom: function({ series, dataPointIndex, w }) {
-    // Existing debug logs
-    console.log("[TOOLTIP DEBUG] series.length:", series.length);
-    console.log("[TOOLTIP DEBUG] series:", series);
-    console.log("[TOOLTIP DEBUG] w.config.series.length:", w.config.series.length);
-    console.log("[TOOLTIP DEBUG] dataPointIndex:", dataPointIndex);
-    
-    // NEW DEBUG LOGS - Add these:
-    console.log("[TOOLTIP DEBUG] w.config.series names:", w.config.series.map(s => s.name));
-    console.log("[TOOLTIP DEBUG] series values at dataPointIndex:", series.map(s => s[dataPointIndex]));
-    
     let formattedDate = w.globals.labels[dataPointIndex] || "";
     
     // Build an array of tooltip items – one per series.
     let tooltipItems = [];
     for (let i = 0; i < series.length; i++) {
-      // Get the company name from the series config.
       let companyName = w.config.series[i].name;
-      // Get the series color from the global colors array.
       let seriesColor = (w.globals.colors && w.globals.colors[i]) || "#007aff";
-      // Get the current value.
       let currentValue = series[i][dataPointIndex];
-      // Get the previous value (if available).
       let previousValue = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
       let trendStr = "";
       if (previousValue !== null) {
@@ -2367,15 +2359,6 @@ tooltip: {
           trendStr = "±0.00%";
         }
       }
-      
-      // DEBUG: Log each tooltip item as we create it
-      console.log(`[TOOLTIP DEBUG] Item ${i}:`, {
-        companyName,
-        currentValue,
-        trendStr,
-        seriesColor
-      });
-      
       tooltipItems.push({
         companyName,
         currentValue,
@@ -2384,14 +2367,8 @@ tooltip: {
       });
     }
 
-    // DEBUG: Log the final tooltipItems array
-    console.log("[TOOLTIP DEBUG] tooltipItems:", tooltipItems);
-
     // Sort items by currentValue in descending order.
     let sortedItems = tooltipItems.slice().sort((a, b) => b.currentValue - a.currentValue);
-    
-    // DEBUG: Log sorted items
-    console.log("[TOOLTIP DEBUG] sortedItems:", sortedItems);
 
     // Separate out the "Others" group (case-insensitive).
     let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
@@ -2401,78 +2378,83 @@ tooltip: {
     for (let i = 0; i < nonOthersItems.length; i++) {
       nonOthersItems[i].rank = i + 1;
     }
-    // "Others" items will be appended at the bottom.
     let finalItems = nonOthersItems.concat(othersItems);
-    
-    // DEBUG: Log final items that will be displayed
-    console.log("[TOOLTIP DEBUG] finalItems:", finalItems);
 
-    // Build HTML with a table (invisible grid, no headers) styled in an Apple‑corp way.
+    // Convert timestamp to readable date
+    const date = new Date(parseInt(formattedDate));
+    const readableDate = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    // Build HTML - CRITICAL: Remove any height/width constraints
     let html = `
       <div style="
-          padding: 10px;
+          padding: 12px 16px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: #f9f9f9;
           border: 1px solid #ddd;
           border-radius: 8px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          min-width: 280px;
+          max-width: none;
+          max-height: none;
+          overflow: visible;
+          z-index: 10000;
+          position: relative;
       ">
-        <div style="margin-bottom: 8px; font-size: 14px; color: #333;">
-          ${formattedDate}
+        <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px;">
+          ${readableDate}
         </div>
         <table style="
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
             color: #333;
         ">
     `;
 
     finalItems.forEach(item => {
-      // Only non-"Others" get a rank circle.
       let rankHtml = "";
       if (item.companyName.trim().toLowerCase() !== "others") {
         rankHtml = `<span style="
                 display: inline-block;
-                width: 24px;
-                height: 24px;
-                line-height: 24px;
-                border-radius: 12px;
+                width: 22px;
+                height: 22px;
+                line-height: 22px;
+                border-radius: 11px;
                 background: ${item.seriesColor};
                 color: #fff;
                 text-align: center;
                 margin-right: 8px;
                 font-weight: bold;
+                font-size: 11px;
               ">
                 ${item.rank}
               </span>`;
       }
       
-      // Color the trend string based on the arrow.
       let trendColored = item.trendStr;
       if (item.trendStr.startsWith("▲")) {
-        trendColored = `<span style="color: green;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
       } else if (item.trendStr.startsWith("▼")) {
-        trendColored = `<span style="color: red;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
       }
       
       html += `
-        <tr>
-          <td style="padding: 4px 8px; vertical-align: middle;">
-            ${rankHtml}<strong>${item.companyName}</strong>
+        <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+          <td style="padding: 6px 8px; vertical-align: middle;">
+            ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
           </td>
-          <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
-            ${item.currentValue.toFixed(2)}% ${trendColored}
+          <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
+            <strong style="font-size: 13px;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
           </td>
         </tr>
       `;
     });
 
     html += `</table></div>`;
-    
-    // DEBUG: Log the final HTML
-    console.log("[TOOLTIP DEBUG] Final HTML:", html);
-    
     return html;
   }
 },
@@ -5852,10 +5834,22 @@ body.charts-mode .products-chart-container {
   visibility: visible !important;
   opacity: 1 !important;
 }
-/* Fix ApexCharts tooltip positioning */
+/* Fix ApexCharts tooltip constraints */
 .apexcharts-tooltip {
-  z-index: 9999 !important;
-  pointer-events: none !important;
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  z-index: 10000 !important;
+}
+
+.apexcharts-tooltip-custom {
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 .apexcharts-tooltip.apexcharts-theme-light {
