@@ -2841,6 +2841,11 @@ viewProductsBtn.addEventListener("click", function() {
   viewProductsBtn.classList.add("active");
   viewChartsBtn.classList.remove("active");
   
+  // Show segmentation charts
+  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'block';
+  });
+  
   // Show all product cells, hide all chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
     container.style.display = 'block';
@@ -2851,9 +2856,14 @@ viewProductsBtn.addEventListener("click", function() {
 });
 
 viewChartsBtn.addEventListener("click", function() {
-  // Switch to Charts view
-  viewProductsBtn.classList.add("active");
-  viewChartsBtn.classList.remove("active");
+  // Switch to Charts view - FIX THE ACTIVE STATES HERE
+  viewProductsBtn.classList.remove("active"); // Remove active from Products
+  viewChartsBtn.classList.add("active"); // Add active to Charts
+  
+  // Hide segmentation charts in Charts view
+  document.querySelectorAll('.segmentation-chart-container').forEach(container => {
+    container.style.display = 'none';
+  });
   
   // Hide all product cells, show all chart containers
   document.querySelectorAll('.product-cell-container').forEach(container => {
@@ -2862,7 +2872,7 @@ viewChartsBtn.addEventListener("click", function() {
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
     // Fix height issue
-    container.style.height = '360px'; // Match the td height
+    container.style.height = '360px';
     container.style.maxHeight = '360px';
   });
   
