@@ -627,7 +627,7 @@ function renderHomePieChart(homeData, canvasSelector) {
         width: 920,
         height: "100%",
         toolbar: { show: false },
-        zoom: { enabled: true },
+        zoom: { enabled: false },
         animations: {
           enabled: true,
           speed: 500,
