@@ -3279,17 +3279,36 @@ const viewMarketTrendBtn = document.getElementById("viewMarketTrend");
 
 if (viewCompaniesBtn && viewMarketTrendBtn) {
 viewMarketTrendBtn.addEventListener("click", function() {
+  console.log('[Debug] Market Trend button clicked');
+    // Add body class for CSS targeting
+  document.body.classList.add('market-trend-mode');
+  document.body.classList.remove('companies-mode');
+  
   // Switch to Market Trend view
   viewMarketTrendBtn.classList.add("active");
   viewCompaniesBtn.classList.remove("active");
   
-  // Hide company cell containers and show market trend containers
-  document.querySelectorAll('.company-cell-container').forEach(container => {
-    container.style.display = 'none';
+  // Debug: Check what elements we're finding
+  const companyCellContainers = document.querySelectorAll('.company-cell-container');
+  const marketTrendContainers = document.querySelectorAll('.market-trend-container');
+  
+  console.log(`[Debug] Found ${companyCellContainers.length} company-cell-containers`);
+  console.log(`[Debug] Found ${marketTrendContainers.length} market-trend-containers`);
+  
+  // Hide company cell containers with force
+  companyCellContainers.forEach((container, index) => {
+    console.log(`[Debug] Hiding company container ${index}:`, container);
+    container.style.display = 'none !important';
+    container.style.visibility = 'hidden';
+    container.style.opacity = '0';
   });
   
-  document.querySelectorAll('.market-trend-container').forEach(container => {
-    container.style.display = 'block';
+  // Show market trend containers with force
+  marketTrendContainers.forEach((container, index) => {
+    console.log(`[Debug] Showing market trend container ${index}:`, container);
+    container.style.display = 'block !important';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
   });
   
   // Toggle header text
@@ -3307,14 +3326,19 @@ viewMarketTrendBtn.addEventListener("click", function() {
     return;
   }
   
-  // Render all market trend charts
-  renderAllMarketTrendCharts();
+  // Wait for DOM update, then render charts
+  setTimeout(() => {
+    renderAllMarketTrendCharts();
+  }, 100);
   
   console.log('[ProductMap] Switched to Market Trend view');
 });
 
 // Update the Companies button to hide market trend charts
 viewCompaniesBtn.addEventListener("click", function() {
+    // Add body class for CSS targeting
+  document.body.classList.add('companies-mode');
+  document.body.classList.remove('market-trend-mode');
   // Switch to Companies view
   viewCompaniesBtn.classList.add("active");
   viewMarketTrendBtn.classList.remove("active");
@@ -5675,6 +5699,18 @@ body.charts-mode .products-chart-container {
 
 .mode-companies .market-trend-column {
   display: none !important;
+}
+/* Force hiding of company containers in market trend mode */
+.market-trend-mode .company-cell-container {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+.market-trend-mode .market-trend-container {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
       `;
       document.head.appendChild(style);
