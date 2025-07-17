@@ -2186,19 +2186,25 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
   
   // Build dailyMap[dateStr][companyName] = sumOfShare (same as marketShareBigChart)
   const dailyMap = {};
-  filtered.forEach(rec => {
-    (rec.historical_data || []).forEach(d => {
-      const dd = moment(d.date.value, "YYYY-MM-DD");
-      if (!dd.isBetween(periodStart, periodEnd, "day", "[]")) return;
-      
-      const val = parseFloat(d[shareField]) * 100 || 0;
-      const dateStr = dd.format("YYYY-MM-DD");
-      if (!dailyMap[dateStr]) dailyMap[dateStr] = {};
-      const cName = (rec.source && rec.source.trim()) || "Unknown";
-      if (!dailyMap[dateStr][cName]) dailyMap[dateStr][cName] = 0;
-      dailyMap[dateStr][cName] += val;
-    });
+filtered.forEach(rec => {
+  (rec.historical_data || []).forEach(d => {
+    const dd = moment(d.date.value, "YYYY-MM-DD");
+    if (!dd.isBetween(periodStart, periodEnd, "day", "[]")) return;
+    
+    const rawVal = parseFloat(d[shareField]);
+    if (isNaN(rawVal) || !isFinite(rawVal)) {
+      console.warn(`[Market Trend] Invalid share value for ${rec.source} on ${d.date.value}:`, d[shareField]);
+      return;
+    }
+    
+    const val = rawVal * 100;
+    const dateStr = dd.format("YYYY-MM-DD");
+    if (!dailyMap[dateStr]) dailyMap[dateStr] = {};
+    const cName = (rec.source && rec.source.trim()) || "Unknown";
+    if (!dailyMap[dateStr][cName]) dailyMap[dateStr][cName] = 0;
+    dailyMap[dateStr][cName] += val;
   });
+});
   
   // Get all unique dates in ascending order
   let allDates = Object.keys(dailyMap).sort();
@@ -2247,11 +2253,36 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     seriesMap["Others"].push({ x: dateStr, y: sumOthers });
   });
   
-  // Convert seriesMap => array
-  let finalSeries = [];
-  for (let cName in seriesMap) {
-    finalSeries.push({ name: cName, data: seriesMap[cName] });
-  }
+// Convert seriesMap => array with data validation
+let finalSeries = [];
+for (let cName in seriesMap) {
+  // Validate and clean the data
+  const cleanedData = seriesMap[cName].map(point => {
+    const cleanY = parseFloat(point.y);
+    
+    // Check for invalid values
+    if (isNaN(cleanY) || !isFinite(cleanY)) {
+      console.warn(`[Market Trend] Invalid Y value for ${cName} on ${point.x}:`, point.y);
+      return { x: point.x, y: 0 };
+    }
+    
+    // Cap extremely large values that might cause rendering issues
+    const cappedY = Math.min(Math.max(cleanY, 0), 100);
+    
+    if (cappedY !== cleanY) {
+      console.warn(`[Market Trend] Capped value for ${cName} on ${point.x}: ${cleanY} -> ${cappedY}`);
+    }
+    
+    return { 
+      x: point.x, 
+      y: Math.round(cappedY * 100) / 100 // Round to 2 decimal places
+    };
+  });
+  
+  finalSeries.push({ name: cName, data: cleanedData });
+}
+
+console.log("[Market Trend] Final series data sample:", finalSeries[0]?.data?.slice(0, 3));
   
   // Apply same company selection logic as marketShareBigChart
   if (myCompany && myCompany.trim() !== "") {
@@ -2327,10 +2358,16 @@ annotations: {
       curve: "smooth",
       width: 2
     },
-    xaxis: {
-      type: "datetime",
-      labels: { show: true }
-    },
+xaxis: {
+  type: "datetime",
+  labels: { 
+    show: true,
+    datetimeUTC: false
+  },
+  tooltip: {
+    enabled: true
+  }
+},
     yaxis: {
       labels: { 
         show: true,
