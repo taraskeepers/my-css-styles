@@ -3527,11 +3527,18 @@ viewCompaniesBtn.addEventListener("click", function() {
   
   // Show company cell containers and hide market trend containers
   document.querySelectorAll('.company-cell-container').forEach(container => {
+    // Reset ALL styles that might have been set by Market Trend view
     container.style.display = 'block';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
+    // Remove any !important styles by resetting the entire style property if needed
+    container.style.cssText = container.style.cssText.replace(/display\s*:\s*none\s*!important\s*;?/g, 'display: block;');
   });
   
   document.querySelectorAll('.market-trend-container').forEach(container => {
     container.style.display = 'none';
+    container.style.visibility = 'hidden';
+    container.style.opacity = '0';
   });
   
   // Toggle header text
