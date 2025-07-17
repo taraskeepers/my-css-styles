@@ -2861,57 +2861,74 @@ viewChartsBtn.addEventListener("click", function() {
   });
   document.querySelectorAll('.products-chart-container').forEach(container => {
     container.style.display = 'flex';
+    // Reset any dynamic height issues
+    container.style.height = '360px';
+    container.style.maxHeight = '360px';
+    container.style.overflow = 'hidden';
   });
   
-  // Render charts for each row
-  document.querySelectorAll('.products-chart-container').forEach(container => {
-    const chartAvgPosDiv = container.querySelector('.chart-avg-position');
-    const chartProductsDiv = container.querySelector('.chart-products');
-    
-// Get all products for this chart - always filter by myCompany in Charts mode
-const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
-
-// In Charts mode, always show only myCompany products
-products = products.filter(p => p._isMyCompany);
-    
-    if (products.length > 0 && chartAvgPosDiv) {
-      renderAvgPositionChart(chartAvgPosDiv, products);
+  // Add a small delay to ensure DOM is updated before rendering charts
+  setTimeout(() => {
+    // Render charts for each row
+    document.querySelectorAll('.products-chart-container').forEach(container => {
+      const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+      const chartProductsDiv = container.querySelector('.chart-products');
       
-      // Add click handlers to small cards for chart interaction
-      smallCards.forEach((card, index) => {
-        // Remove any existing click handler
-        const oldHandler = card._chartClickHandler;
-        if (oldHandler) {
-          card.removeEventListener('click', oldHandler);
-        }
+      // Reset chart container dimensions
+      if (chartAvgPosDiv) {
+        chartAvgPosDiv.style.height = '360px';
+        chartAvgPosDiv.style.maxHeight = '360px';
+      }
+      if (chartProductsDiv) {
+        chartProductsDiv.style.height = '360px';
+        chartProductsDiv.style.maxHeight = '360px';
+      }
+      
+      // Get all products for this chart - always filter by myCompany in Charts mode
+      const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+      let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+
+      // In Charts mode, always show only myCompany products
+      products = products.filter(p => p._isMyCompany);
+      
+      if (products.length > 0 && chartAvgPosDiv) {
+        renderAvgPositionChart(chartAvgPosDiv, products);
         
-        // Create new click handler
-        const clickHandler = function() {
-          // Toggle selection
-          if (chartAvgPosDiv.selectedProductIndex === index) {
-            // Deselect if clicking the same product
-            chartAvgPosDiv.selectedProductIndex = null;
-            card.classList.remove('active');
-          } else {
-            // Select this product
-            chartAvgPosDiv.selectedProductIndex = index;
-            // Remove active class from all cards
-            smallCards.forEach(c => c.classList.remove('active'));
-            // Add active class to clicked card
-            card.classList.add('active');
+        // Add click handlers to small cards for chart interaction
+        smallCards.forEach((card, index) => {
+          // Remove any existing click handler
+          const oldHandler = card._chartClickHandler;
+          if (oldHandler) {
+            card.removeEventListener('click', oldHandler);
           }
           
-          // Update chart visibility
-          updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
-        };
-        
-        // Store reference to handler for cleanup
-        card._chartClickHandler = clickHandler;
-        card.addEventListener('click', clickHandler);
-      });
-    }
-  });
+          // Create new click handler
+          const clickHandler = function() {
+            // Toggle selection
+            if (chartAvgPosDiv.selectedProductIndex === index) {
+              // Deselect if clicking the same product
+              chartAvgPosDiv.selectedProductIndex = null;
+              card.classList.remove('active');
+            } else {
+              // Select this product
+              chartAvgPosDiv.selectedProductIndex = index;
+              // Remove active class from all cards
+              smallCards.forEach(c => c.classList.remove('active'));
+              // Add active class to clicked card
+              card.classList.add('active');
+            }
+            
+            // Update chart visibility
+            updateChartLineVisibility(chartAvgPosDiv, chartAvgPosDiv.selectedProductIndex);
+          };
+          
+          // Store reference to handler for cleanup
+          card._chartClickHandler = clickHandler;
+          card.addEventListener('click', clickHandler);
+        });
+      }
+    });
+  }, 100); // 100ms delay
 });
 
 // Listen for mode changes
@@ -3123,6 +3140,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           max-height: 380px;
           box-sizing: border-box;
           overflow: hidden;
+          position: relative;
         }
         /* Fixed column widths - MODIFIED */
         .product-map-table th:nth-child(1), .product-map-table td:nth-child(1) { width: 190px; }
@@ -3669,8 +3687,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 .products-chart-container {
   display: none;
   width: 100%;
-  height: 100%;
-  min-height: 280px;
+  height: 360px; /* Fixed height instead of 100% */
+  max-height: 360px; /* Match the fixed height */
   overflow: hidden;
   flex-direction: row;
   gap: 10px;
@@ -3678,8 +3696,8 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 
 .chart-products {
   width: 280px;
-  height: 100%;
-  max-height: 575px;
+  height: 360px; /* Fixed height instead of 100% */
+  max-height: 360px; /* Match table cell height minus padding */
   overflow-y: scroll;
   overflow-x: hidden;
   background-color: #f9f9f9;
@@ -3687,6 +3705,24 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
   padding: 5px;
   scrollbar-width: auto;
   scrollbar-color: #ccc #f9f9f9;
+  box-sizing: border-box;
+}
+
+.chart-avg-position {
+  flex: 1;
+  min-width: 300px;
+  height: 360px; /* Fixed height instead of 100% */
+  max-height: 360px; /* Fixed height to prevent overflow */
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-style: italic;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .chart-products::-webkit-scrollbar {
@@ -3705,20 +3741,6 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
 
 .chart-products::-webkit-scrollbar-thumb:hover {
   background: #666;  /* Made darker than #999 */
-}
-
-.chart-avg-position {
-  flex: 1;
-  min-width: 300px; /* Add minimum width */
-  height: 100%;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-  font-style: italic;
 }
 
 /* Small ad details for chart view */
@@ -6934,15 +6956,22 @@ tdProducts.appendChild(productCellContainer);
 // Create products chart container (for Charts view)
 const productsChartContainer = document.createElement("div");
 productsChartContainer.classList.add("products-chart-container");
+productsChartContainer.style.height = "360px";
+productsChartContainer.style.maxHeight = "360px";
+productsChartContainer.style.overflow = "hidden";
 
 // Create chart-products container
 const chartProductsDiv = document.createElement("div");
 chartProductsDiv.classList.add("chart-products");
+chartProductsDiv.style.height = "360px";
+chartProductsDiv.style.maxHeight = "360px";
 
 // Create chart-avg-position container
 const chartAvgPositionDiv = document.createElement("div");
 chartAvgPositionDiv.classList.add("chart-avg-position");
-chartAvgPositionDiv.innerHTML = '<div>Average Position Chart (Coming Soon)</div>';
+chartAvgPositionDiv.style.height = "360px";
+chartAvgPositionDiv.style.maxHeight = "360px";
+chartAvgPositionDiv.innerHTML = '<div>Select a product to view position chart</div>';
 
 productsChartContainer.appendChild(chartProductsDiv);
 productsChartContainer.appendChild(chartAvgPositionDiv);
