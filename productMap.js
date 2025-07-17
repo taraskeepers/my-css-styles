@@ -2113,10 +2113,26 @@ function renderAllMarketTrendCharts() {
 
 // Function to render single market trend chart
 function renderSingleMarketTrendChart(containerId, searchTerm, location, device, myCompany) {
+  console.log(`[renderSingleMarketTrendChart] Starting for ${containerId}`);
+  
   const chartEl = document.getElementById(containerId);
-  if (!chartEl || !window.companyStatsData) return;
+  if (!chartEl) {
+    console.error(`[renderSingleMarketTrendChart] Chart element not found: ${containerId}`);
+    return;
+  }
+  
+  console.log(`[renderSingleMarketTrendChart] Chart element found:`, chartEl);
+  console.log(`[renderSingleMarketTrendChart] Chart element visible:`, chartEl.offsetWidth > 0 && chartEl.offsetHeight > 0);
+  console.log(`[renderSingleMarketTrendChart] Chart element display:`, window.getComputedStyle(chartEl).display);
+  
+  if (!window.companyStatsData) {
+    console.error(`[renderSingleMarketTrendChart] No companyStatsData available`);
+    return;
+  }
   
   // Filter data for this specific combination
+  console.log(`[renderSingleMarketTrendChart] Filtering data for:`, { searchTerm, location, device });
+  
   const filtered = window.companyStatsData.filter(r =>
     r.q?.toLowerCase() === searchTerm.toLowerCase() &&
     r.location_requested?.toLowerCase() === location.toLowerCase() &&
@@ -2124,8 +2140,32 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     r.source // Has company data
   );
   
+  console.log(`[renderSingleMarketTrendChart] Filtered ${window.companyStatsData.length} -> ${filtered.length} records`);
+  
   if (!filtered.length) {
+    console.warn(`[renderSingleMarketTrendChart] No data found, showing no data message`);
     chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No data</p>";
+    return;
+  }
+  
+  // Find myCompany data
+  const myCompanyData = filtered.find(r => 
+    r.source?.toLowerCase() === myCompany.toLowerCase()
+  );
+  
+  console.log(`[renderSingleMarketTrendChart] MyCompany data found:`, !!myCompanyData);
+  
+  if (!myCompanyData) {
+    console.warn(`[renderSingleMarketTrendChart] No data for ${myCompany}, showing no data message`);
+    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
+    return;
+  }
+  
+  console.log(`[renderSingleMarketTrendChart] MyCompany historical data length:`, myCompanyData.historical_data?.length || 0);
+  
+  if (!myCompanyData.historical_data || myCompanyData.historical_data.length === 0) {
+    console.warn(`[renderSingleMarketTrendChart] No historical data for ${myCompany}`);
+    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No historical data for ${myCompany}</p>`;
     return;
   }
   
@@ -2134,15 +2174,20 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
   let maxDate = null;
   filtered.forEach(r => {
     (r.historical_data || []).forEach(d => {
-      const m = moment(d.date.value, "YYYY-MM-DD");
-      if (!maxDate || m.isAfter(maxDate)) maxDate = m.clone();
+      if (d.date && d.date.value) {
+        const m = moment(d.date.value, "YYYY-MM-DD");
+        if (!maxDate || m.isAfter(maxDate)) maxDate = m.clone();
+      }
     });
   });
   
   if (!maxDate) {
+    console.warn(`[renderSingleMarketTrendChart] No valid dates found`);
     chartEl.innerHTML = "<p style='text-align:center; color:#999;'>No date data</p>";
     return;
   }
+  
+  console.log(`[renderSingleMarketTrendChart] Date range: ${maxDate.clone().subtract(days - 1, "days").format('YYYY-MM-DD')} to ${maxDate.format('YYYY-MM-DD')}`);
   
   const periodEnd = maxDate.clone();
   const periodStart = maxDate.clone().subtract(days - 1, "days");
@@ -2161,33 +2206,42 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     }
   }
   
+  console.log(`[renderSingleMarketTrendChart] Using share field: ${shareField}`);
+  
   // Build daily data for myCompany only
   const seriesData = [];
-  const myCompanyData = filtered.find(r => 
-    r.source?.toLowerCase() === myCompany.toLowerCase()
-  );
   
-  if (myCompanyData && myCompanyData.historical_data) {
-    // Create data points for each day in the period
-    for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
-      const dateStr = d.format('YYYY-MM-DD');
-      const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
-      
-      if (dayData) {
-        const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
-        seriesData.push({
-          x: dateStr,
-          y: shareValue
-        });
-      }
+  // Create data points for each day in the period
+  for (let d = periodStart.clone(); d.isSameOrBefore(periodEnd); d.add(1, 'day')) {
+    const dateStr = d.format('YYYY-MM-DD');
+    const dayData = myCompanyData.historical_data.find(h => h.date?.value === dateStr);
+    
+    if (dayData && dayData[shareField] !== undefined) {
+      const shareValue = parseFloat(dayData[shareField]) * 100 || 0;
+      seriesData.push({
+        x: dateStr,
+        y: shareValue
+      });
     }
   }
   
+  console.log(`[renderSingleMarketTrendChart] Generated ${seriesData.length} data points`);
+  
   // If no data for myCompany, show message
   if (seriesData.length === 0) {
+    console.warn(`[renderSingleMarketTrendChart] No series data generated`);
     chartEl.innerHTML = `<p style='text-align:center; color:#999;'>No data for ${myCompany}</p>`;
     return;
   }
+  
+  // Check if ApexCharts is available
+  if (typeof ApexCharts === 'undefined') {
+    console.error(`[renderSingleMarketTrendChart] ApexCharts not available!`);
+    chartEl.innerHTML = "<p style='text-align:center; color:#999;'>Chart library not loaded</p>";
+    return;
+  }
+  
+  console.log(`[renderSingleMarketTrendChart] Creating ApexCharts instance...`);
   
   // Create chart with same styling as marketShareBigChart
   const options = {
@@ -2279,11 +2333,18 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     }
   };
   
-  const chart = new ApexCharts(chartEl, options);
-  chart.render();
-  
-  // Store chart instance for cleanup
-  window.marketTrendChartInstances.push(chart);
+  try {
+    console.log(`[renderSingleMarketTrendChart] Rendering chart to element:`, chartEl);
+    const chart = new ApexCharts(chartEl, options);
+    chart.render();
+    
+    // Store chart instance for cleanup
+    window.marketTrendChartInstances.push(chart);
+    console.log(`[renderSingleMarketTrendChart] Chart rendered successfully for ${containerId}`);
+  } catch (error) {
+    console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
+    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
+  }
 }
 
 // Continue with the existing renderProductMapTable function...
@@ -3268,6 +3329,28 @@ viewMarketTrendBtn.addEventListener("click", function() {
   
   // Render all market trend charts
   console.log('[ProductMap] Calling renderAllMarketTrendCharts...');
+
+// Add this temporary debug CSS right after the Market Trend button click
+const debugStyle = document.createElement('style');
+debugStyle.id = 'market-trend-debug';
+debugStyle.textContent = `
+  .market-trend-column {
+    background-color: #ffe6e6 !important;
+    border: 2px solid red !important;
+  }
+  .companies-column {
+    background-color: #e6f3ff !important;
+    border: 2px solid blue !important;
+  }
+`;
+document.head.appendChild(debugStyle);
+
+// Remove it after 5 seconds
+setTimeout(() => {
+  const debugStyle = document.getElementById('market-trend-debug');
+  if (debugStyle) debugStyle.remove();
+}, 5000);
+  
   renderAllMarketTrendCharts();
   
   console.log('[ProductMap] Switched to Market Trend view - debug complete');
