@@ -2303,75 +2303,96 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
         }
       }
     },
-    annotations: (() => {
-    // Only add rank annotations for myCompany
-    if (!myCompany || myCompany.trim() === "") return { points: [] };
+annotations: (() => {
+  console.log("[RANK DEBUG] Starting annotation generation");
+  console.log("[RANK DEBUG] myCompany:", myCompany);
+  console.log("[RANK DEBUG] finalSeries length:", finalSeries.length);
+  console.log("[RANK DEBUG] finalSeries names:", finalSeries.map(s => s.name));
+  
+  // Only add rank annotations for myCompany
+  if (!myCompany || myCompany.trim() === "") {
+    console.log("[RANK DEBUG] No myCompany set, returning empty annotations");
+    return { points: [] };
+  }
+  
+  // Find myCompany series index
+  const myCompanySeriesIndex = finalSeries.findIndex(s => 
+    s.name.toLowerCase() === myCompany.trim().toLowerCase()
+  );
+  
+  console.log("[RANK DEBUG] myCompanySeriesIndex:", myCompanySeriesIndex);
+  
+  if (myCompanySeriesIndex === -1) {
+    console.log("[RANK DEBUG] myCompany not found in series, returning empty annotations");
+    return { points: [] };
+  }
+  
+  const annotations = [];
+  const myCompanyData = finalSeries[myCompanySeriesIndex].data;
+  
+  console.log("[RANK DEBUG] myCompanyData length:", myCompanyData.length);
+  console.log("[RANK DEBUG] myCompanyData sample:", myCompanyData.slice(0, 3));
+  
+  // Calculate rank for each date
+  myCompanyData.forEach((dataPoint, pointIndex) => {
+    if (!dataPoint.x || dataPoint.y === 0) return;
     
-    // Find myCompany series index
-    const myCompanySeriesIndex = finalSeries.findIndex(s => 
-      s.name.toLowerCase() === myCompany.trim().toLowerCase()
-    );
+    // Get all companies' values for this date
+    const dateValues = finalSeries.map(series => ({
+      name: series.name,
+      value: series.data[pointIndex]?.y || 0,
+      color: series.color || "#007aff"
+    })).filter(item => item.value > 0);
     
-    if (myCompanySeriesIndex === -1) return { points: [] };
+    // Sort by value descending to get rankings
+    dateValues.sort((a, b) => b.value - a.value);
     
-    const annotations = [];
-    const myCompanyData = finalSeries[myCompanySeriesIndex].data;
+    // Find myCompany's rank
+    const myCompanyRank = dateValues.findIndex(item => 
+      item.name.toLowerCase() === myCompany.trim().toLowerCase()
+    ) + 1;
     
-    // Calculate rank for each date
-    myCompanyData.forEach((dataPoint, pointIndex) => {
-      if (!dataPoint.x || dataPoint.y === 0) return;
+    if (myCompanyRank > 0) {
+      // Get myCompany's color
+      const myCompanyColor = finalSeries[myCompanySeriesIndex].color || "#007aff";
       
-      // Get all companies' values for this date
-      const dateValues = finalSeries.map(series => ({
-        name: series.name,
-        value: series.data[pointIndex]?.y || 0,
-        color: series.color || "#007aff"
-      })).filter(item => item.value > 0);
+      console.log(`[RANK DEBUG] Point ${pointIndex}: date=${dataPoint.x}, value=${dataPoint.y}, rank=${myCompanyRank}`);
       
-      // Sort by value descending to get rankings
-      dateValues.sort((a, b) => b.value - a.value);
-      
-      // Find myCompany's rank
-      const myCompanyRank = dateValues.findIndex(item => 
-        item.name.toLowerCase() === myCompany.trim().toLowerCase()
-      ) + 1;
-      
-      if (myCompanyRank > 0) {
-        // Get myCompany's color
-        const myCompanyColor = finalSeries[myCompanySeriesIndex].color || "#007aff";
-        
-        annotations.push({
-          x: dataPoint.x,
-          y: dataPoint.y,
-          marker: {
-            size: 0  // Hide the default marker
+      annotations.push({
+        x: dataPoint.x,
+        y: dataPoint.y,
+        marker: {
+          size: 0
+        },
+        label: {
+          borderColor: myCompanyColor,
+          borderWidth: 2,
+          borderRadius: 50,
+          offsetY: -45,
+          offsetX: 0,
+          style: {
+            background: myCompanyColor,
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            padding: {
+              left: 8,
+              right: 8,
+              top: 6,
+              bottom: 6
+            }
           },
-          label: {
-            borderColor: myCompanyColor,
-            borderWidth: 2,
-            borderRadius: 50,
-            offsetY: -45,  // Position above the market share label
-            offsetX: 0,
-            style: {
-              background: myCompanyColor,
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              padding: {
-                left: 8,
-                right: 8,
-                top: 6,
-                bottom: 6
-              }
-            },
-            text: myCompanyRank.toString()
-          }
-        });
-      }
-    });
-    
-    return { points: annotations };
-  })(),
+          text: myCompanyRank.toString()
+        }
+      });
+    }
+  });
+  
+  console.log("[RANK DEBUG] Generated annotations:", annotations.length);
+  console.log("[RANK DEBUG] First annotation:", annotations[0]);
+  
+  return { points: annotations };
+})(),
     dataLabels: (myCompany && myCompany.trim() !== "")
       ? {
           enabled: true,
