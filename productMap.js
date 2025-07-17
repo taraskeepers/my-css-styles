@@ -2333,14 +2333,16 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     },
 tooltip: {
   enabled: true,
-  shared: false,
+  shared: true,
   followCursor: false,
-  intersect: false,
+  fixed: {
+    enabled: true,
+    position: 'topRight',
+    offsetX: -100,
+    offsetY: 50
+  },
   custom: function({ series, dataPointIndex, w }) {
-    // Same custom tooltip as marketShareBigChart
-    let formattedDate = w.globals.labels[dataPointIndex] || "";
-    
-    // Build tooltip items
+    // Get data and build tooltip items
     let tooltipItems = [];
     for (let i = 0; i < series.length; i++) {
       let companyName = w.config.series[i].name;
@@ -2379,68 +2381,70 @@ tooltip: {
     }
     let finalItems = nonOthersItems.concat(othersItems);
     
-    // Build HTML with improved positioning
+    // Get formatted date
+    let formattedDate = w.globals.labels[dataPointIndex] || "";
+    
+    // Build HTML exactly like core-functions.js
     let html = `
       <div style="
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-size: 13px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        max-width: 280px;
-        min-width: 250px;
-        z-index: 9999;
-        position: relative;
+          padding: 10px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: #f9f9f9;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.08);
       ">
-        <div style="margin-bottom: 8px; font-weight: 600; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px;">${formattedDate}</div>
-        <table style="width: 100%; border-collapse: collapse;">
+        <div style="margin-bottom: 8px; font-size: 14px; color: #333;">
+          ${formattedDate}
+        </div>
+        <table style="
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            color: #333;
+        ">
     `;
-    
+
     finalItems.forEach(item => {
+      // Only non-"Others" get a rank circle.
       let rankHtml = "";
-      if (item.rank) {
-        let rankColor = "#666";
-        if (item.rank <= 3) rankColor = "#4CAF50";
-        else if (item.rank <= 8) rankColor = "#FFC107";
-        else if (item.rank <= 14) rankColor = "#FF9800";
-        else rankColor = "#F44336";
-        
+      if (item.companyName.trim().toLowerCase() !== "others") {
         rankHtml = `<span style="
-          background: ${rankColor};
-          color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 10px;
-          margin-right: 8px;
-          display: inline-block;
-          min-width: 16px;
-          text-align: center;
-        ">${item.rank}</span>`;
+                display: inline-block;
+                width: 24px;
+                height: 24px;
+                line-height: 24px;
+                border-radius: 12px;
+                background: ${item.seriesColor};
+                color: #fff;
+                text-align: center;
+                margin-right: 8px;
+                font-weight: bold;
+              ">
+                ${item.rank}
+              </span>`;
       }
       
+      // Color the trend string based on the arrow.
       let trendColored = item.trendStr;
       if (item.trendStr.startsWith("▲")) {
-        trendColored = `<span style="color: #4CAF50; font-weight: bold;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: green;">${item.trendStr}</span>`;
       } else if (item.trendStr.startsWith("▼")) {
-        trendColored = `<span style="color: #F44336; font-weight: bold;">${item.trendStr}</span>`;
+        trendColored = `<span style="color: red;">${item.trendStr}</span>`;
       }
       
       html += `
         <tr>
-          <td style="padding: 4px 8px; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            ${rankHtml}<strong style="color: #fff;">${item.companyName}</strong>
+          <td style="padding: 4px 8px; vertical-align: middle;">
+            ${rankHtml}<strong>${item.companyName}</strong>
           </td>
-          <td style="padding: 4px 8px; text-align: right; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <strong style="color: #fff;">${item.currentValue.toFixed(2)}%</strong> ${trendColored}
+          <td style="padding: 4px 8px; text-align: right; vertical-align: middle;">
+            ${item.currentValue.toFixed(2)}% ${trendColored}
           </td>
         </tr>
       `;
     });
-    
+
     html += `</table></div>`;
     return html;
   }
