@@ -716,6 +716,146 @@ if (initialViewMode === 'viewRankingExplorer') {
 }
 }
 
+function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRankingCompanyExplorer') {
+  console.log('[renderTableForSelectedCompany] Starting with', combinations.length, 'combinations');
+  
+  const existingTable = document.querySelector("#companyExplorerTableContainer .company-explorer-table");
+  if (existingTable) {
+    existingTable.remove();
+  }
+  
+  window.pendingCompanyExplorerCharts = [];
+  
+  if (window.companyExplorerApexCharts) {
+    window.companyExplorerApexCharts.forEach(chart => {
+      try { chart.destroy(); } catch (e) {}
+    });
+  }
+  window.companyExplorerApexCharts = [];
+  
+  const table = document.createElement("table");
+  table.classList.add("company-explorer-table");
+  table.style.display = ''; 
+  
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th>Search Term</th>
+      <th>Location</th>
+      <th>Device</th>
+      <th class="segmentation-column">Top 40 Segmentation</th>
+      <th>Rank & Market Share</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  
+  let chartCounter = 0;
+  
+  const locationColorMap = {};
+  const allLocationsList = [...new Set(combinations.map(c => c.location))];
+  allLocationsList.sort().forEach((loc, index) => {
+    const colorIndex = (index % 10) + 1;
+    locationColorMap[loc] = `location-bg-${colorIndex}`;
+  });
+  
+  combinations.sort((a, b) => {
+    const termCompare = (a.searchTerm || "").localeCompare(b.searchTerm || "");
+    if (termCompare !== 0) return termCompare;
+    
+    const locCompare = (a.location || "").localeCompare(b.location || "");
+    if (locCompare !== 0) return locCompare;
+    
+    const aDevice = (a.device || "").toLowerCase();
+    const bDevice = (b.device || "").toLowerCase();
+    if (aDevice.includes('desktop') && bDevice.includes('mobile')) return -1;
+    if (aDevice.includes('mobile') && bDevice.includes('desktop')) return 1;
+    return aDevice.localeCompare(bDevice);
+  });
+
+  const termGroups = {};
+  combinations.forEach(combo => {
+    if (!termGroups[combo.searchTerm]) {
+      termGroups[combo.searchTerm] = {};
+    }
+    if (!termGroups[combo.searchTerm][combo.location]) {
+      termGroups[combo.searchTerm][combo.location] = [];
+    }
+    termGroups[combo.searchTerm][combo.location].push(combo);
+  });
+  
+  Object.keys(termGroups).sort().forEach(searchTerm => {
+    const locationGroups = termGroups[searchTerm];
+    let termCellUsed = false;
+    
+    let totalRowsForTerm = 0;
+    Object.values(locationGroups).forEach(devices => {
+      totalRowsForTerm += devices.length;
+    });
+    
+    Object.keys(locationGroups).sort().forEach(location => {
+      const deviceCombinations = locationGroups[location];
+      let locCellUsed = false;
+      
+      deviceCombinations.forEach(combination => {
+        const tr = document.createElement("tr");
+        
+        if (!termCellUsed) {
+          const tdTerm = document.createElement("td");
+          tdTerm.rowSpan = totalRowsForTerm;
+          tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
+          tr.appendChild(tdTerm);
+          termCellUsed = true;
+        }
+        
+        if (!locCellUsed) {
+          const tdLoc = document.createElement("td");
+          tdLoc.rowSpan = deviceCombinations.length;
+          tdLoc.innerHTML = formatLocationCell(combination.location);
+          tdLoc.classList.add(locationColorMap[combination.location]);
+          tr.appendChild(tdLoc);
+          locCellUsed = true;
+        }
+        
+        const tdDev = document.createElement("td");
+        tdDev.innerHTML = createCompanyDeviceCell(combination);
+        tr.appendChild(tdDev);
+        
+        const tdSegmentation = document.createElement("td");
+        tdSegmentation.classList.add("segmentation-column");
+        const chartContainerId = `company-explorer-segmentation-chart-${chartCounter++}`;
+        tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="company-explorer-segmentation-chart-container loading"></div>`;
+        tr.appendChild(tdSegmentation);
+
+        const tdRankMarketShare = document.createElement("td");
+        const positionChartId = `company-explorer-position-chart-${chartCounter}`;
+        const rankMarketShareHistory = createCompanyRankMarketShareHistory(combination.record);
+
+        tdRankMarketShare.innerHTML = `
+          <div id="${positionChartId}" class="company-explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+          <div class="company-rank-market-share-history">${rankMarketShareHistory}</div>
+        `;
+        tr.appendChild(tdRankMarketShare);
+        
+        tbody.appendChild(tr);
+      });
+    });
+  });
+  
+  const container = document.querySelector("#companyExplorerTableContainer");
+  container.appendChild(table);
+
+  // Apply initial view mode
+  if (initialViewMode === 'viewRankingCompanyExplorer') {
+    const table = document.querySelector('.company-explorer-table');
+    if (table) {
+      table.classList.add('ranking-mode');
+    }
+  }
+}
+
 function createDeviceCell(combination) {
   const record = combination.record;
   
@@ -779,6 +919,104 @@ deviceHTML += `
   deviceHTML += `</div>`;
   
   return deviceHTML;
+}
+
+function createCompanyDeviceCell(combination) {
+  const record = combination.record;
+  
+  let deviceHTML = `<div class="device-container company-device-container">`;
+  
+  const deviceIcon = record.device.toLowerCase().includes('mobile') 
+    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
+    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+  
+  deviceHTML += `<div class="device-type">
+    <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
+  </div>`;
+  
+  // Company rank
+  const companyRank = record.rank || '-';
+  const rankTrend = record.rankTrend || 0;
+  const trendColor = rankTrend < 0 ? '#4CAF50' : rankTrend > 0 ? '#F44336' : '#999';
+  const trendArrow = rankTrend < 0 ? '▲' : rankTrend > 0 ? '▼' : '—';
+  
+  deviceHTML += `
+    <div class="device-rank">
+      <div class="section-header">Company Rank</div>
+      <div class="device-rank-value">${companyRank}</div>
+      <div class="device-trend" style="color:${trendColor};">
+        ${trendArrow} ${Math.abs(rankTrend).toFixed(1)}
+      </div>
+    </div>
+  `;
+  
+  // Market share
+  const marketShare = record.top40 || 0;
+  const shareChartId = `company-share-chart-${Date.now()}-${Math.random()}`;
+  
+  deviceHTML += `
+    <div class="device-share">
+      <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
+      <div id="${shareChartId}" class="pie-chart-container"></div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    createMarketSharePieChartExplorer(shareChartId, marketShare);
+  }, 50);
+
+  deviceHTML += `</div>`;
+  
+  return deviceHTML;
+}
+
+function createCompanyRankMarketShareHistory(record) {
+  if (!record || !record.historical_data) {
+    return '<div class="rank-history-container"><div class="no-data-message">No historical data</div></div>';
+  }
+  
+  const histData = record.historical_data;
+  const maxDays = 30;
+  const dateArray = [];
+  const today = moment();
+  
+  for (let i = 0; i < maxDays; i++) {
+    dateArray.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
+  }
+  
+  dateArray.reverse();
+  
+  let html = '<div class="rank-history-container">';
+  
+  // Company rank history
+  html += '<div class="rank-history-row">';
+  dateArray.forEach(date => {
+    const dayData = histData.find(h => h.date === date);
+    if (dayData && dayData.rank) {
+      const rank = Math.round(dayData.rank);
+      const colorClass = getRankColorClass(rank);
+      html += `<div class="rank-box ${colorClass}">${rank}</div>`;
+    } else {
+      html += '<div class="rank-box"></div>';
+    }
+  });
+  html += '</div>';
+  
+  // Market share history
+  html += '<div class="visibility-history-row">';
+  dateArray.forEach(date => {
+    const dayData = histData.find(h => h.date === date);
+    if (dayData && dayData.market_share !== null) {
+      const share = Math.round(dayData.market_share * 10) / 10;
+      html += `<div class="visibility-box" data-fill="${share}"><span>${share}%</span></div>`;
+    } else {
+      html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+    }
+  });
+  html += '</div>';
+  
+  html += '</div>';
+  return html;
 }
 
 function calculateAvgRankFromHistorical(record) {
@@ -2503,7 +2741,7 @@ container.innerHTML = `
     </div>
     <div id="compNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'companies' ? 'block' : 'none'};">
     </div>
-      <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
+      <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative; display: ${currentMode === 'products' ? 'block' : 'none'};">
         <div class="explorer-view-switcher">
           <button id="viewRankingExplorer" class="active">Ranking</button>
           <button id="viewChartsExplorer">Charts</button>
@@ -2516,6 +2754,21 @@ container.innerHTML = `
           Full Screen
         </button>
         <div id="productExplorerMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
+        </div>
+      </div>
+      <div id="companyExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative; display: ${currentMode === 'companies' ? 'block' : 'none'};">
+        <div class="company-explorer-view-switcher">
+          <button id="viewRankingCompanyExplorer" class="active">Ranking</button>
+          <button id="viewChartsCompanyExplorer">Charts</button>
+          <button id="viewMapCompanyExplorer">Map</button>
+        </div>
+        <button id="fullscreenToggleCompanyExplorer" class="fullscreen-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Full Screen
+        </button>
+        <div id="companyExplorerMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
         </div>
       </div>
     </div>
@@ -3135,6 +3388,66 @@ viewMapExplorerBtn.addEventListener("click", function() {
   }
 });
 
+// Add view switcher functionality for company explorer
+const viewRankingCompanyExplorerBtn = document.getElementById("viewRankingCompanyExplorer");
+const viewChartsCompanyExplorerBtn = document.getElementById("viewChartsCompanyExplorer");
+const viewMapCompanyExplorerBtn = document.getElementById("viewMapCompanyExplorer");
+
+if (viewRankingCompanyExplorerBtn) {
+  viewRankingCompanyExplorerBtn.addEventListener("click", function() {
+    viewRankingCompanyExplorerBtn.classList.add("active");
+    viewChartsCompanyExplorerBtn.classList.remove("active");
+    viewMapCompanyExplorerBtn.classList.remove("active");
+    
+    const table = document.querySelector('.company-explorer-table');
+    if (table) {
+      table.style.display = 'table';
+      table.classList.add('ranking-mode');
+    }
+    const mapContainer = document.getElementById('companyExplorerMapContainer');
+    if (mapContainer) {
+      mapContainer.style.display = 'none';
+    }
+  });
+}
+
+if (viewChartsCompanyExplorerBtn) {
+  viewChartsCompanyExplorerBtn.addEventListener("click", function() {
+    viewChartsCompanyExplorerBtn.classList.add("active");
+    viewRankingCompanyExplorerBtn.classList.remove("active");
+    viewMapCompanyExplorerBtn.classList.remove("active");
+    
+    const table = document.querySelector('.company-explorer-table');
+    if (table) {
+      table.style.display = 'table';
+      table.classList.remove('ranking-mode');
+    }
+    const mapContainer = document.getElementById('companyExplorerMapContainer');
+    if (mapContainer) {
+      mapContainer.style.display = 'none';
+    }
+  });
+}
+
+if (viewMapCompanyExplorerBtn) {
+  viewMapCompanyExplorerBtn.addEventListener("click", function() {
+    viewMapCompanyExplorerBtn.classList.add("active");
+    viewRankingCompanyExplorerBtn.classList.remove("active");
+    viewChartsCompanyExplorerBtn.classList.remove("active");
+    
+    const table = document.querySelector('.company-explorer-table');
+    if (table) {
+      table.style.display = 'none';
+    }
+    
+    const mapContainer = document.getElementById('companyExplorerMapContainer');
+    if (mapContainer) {
+      mapContainer.style.display = 'block';
+      // TODO: Implement company map view
+    }
+  });
+}
+
 // Listen for mode changes from modeSelector
 document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
   option.addEventListener('click', function() {
@@ -3146,8 +3459,23 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
     
     console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
     
-    // Re-render the entire explorer
-    renderProductExplorerTable();
+    // Show/hide appropriate panels and containers
+    const productsNavPanel = document.getElementById('productsNavPanel');
+    const compNavPanel = document.getElementById('compNavPanel');
+    const productTableContainer = document.getElementById('productExplorerTableContainer');
+    const companyTableContainer = document.getElementById('companyExplorerTableContainer');
+    
+    if (selectedMode === 'products') {
+      if (productsNavPanel) productsNavPanel.style.display = 'block';
+      if (compNavPanel) compNavPanel.style.display = 'none';
+      if (productTableContainer) productTableContainer.style.display = 'block';
+      if (companyTableContainer) companyTableContainer.style.display = 'none';
+    } else if (selectedMode === 'companies') {
+      if (productsNavPanel) productsNavPanel.style.display = 'none';
+      if (compNavPanel) compNavPanel.style.display = 'block';
+      if (productTableContainer) productTableContainer.style.display = 'none';
+      if (companyTableContainer) companyTableContainer.style.display = 'block';
+    }
   });
 });
   
@@ -4607,6 +4935,102 @@ if (getCurrentMode() === 'companies') {
 .trend-neutral {
   color: #666;
 }
+.company-explorer-table {
+  width: calc(100% - 40px);
+  margin-left: 20px;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  table-layout: fixed;
+}
+
+.company-explorer-table th {
+  height: 50px;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  border-bottom: 2px solid #ddd;
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.company-explorer-table:not(.ranking-mode) td {
+  padding: 8px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  height: 400px;
+  max-height: 400px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.company-explorer-table.ranking-mode td {
+  padding: 8px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  height: 120px !important;
+  max-height: 120px !important;
+  min-height: 120px !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.company-explorer-table { table-layout: fixed; }
+.company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; }
+.company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; }
+.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; }
+.company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; }
+.company-explorer-table th:nth-child(5), .company-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
+
+.company-explorer-table.ranking-mode .segmentation-column {
+  display: none !important;
+}
+
+.company-explorer-table.ranking-mode th:nth-child(3), 
+.company-explorer-table.ranking-mode td:nth-child(3) { 
+  width: 380px !important; 
+}
+
+.company-explorer-view-switcher {
+  position: absolute;
+  top: 10px;
+  right: 140px;
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  z-index: 100;
+}
+
+.company-explorer-view-switcher button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 17px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.company-explorer-view-switcher button.active {
+  background-color: #007aff;
+  color: white;
+}
+
+.company-explorer-view-switcher button:hover:not(.active) {
+  background-color: rgba(0, 122, 255, 0.1);
+}
     `;
     document.head.appendChild(style);
   }
@@ -5138,9 +5562,9 @@ function selectCompany(companyData, navItemElement) {
   
   console.log(`[selectCompany] Found ${companyCombinations.length} combinations for ${companyData.company}`);
   
-  // Render table for selected company
-  const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
-  renderTableForSelectedProduct(companyCombinations, currentViewMode);
+  // Render company table instead of product table
+  const currentViewMode = document.querySelector('.company-explorer-view-switcher .active')?.id || 'viewRankingCompanyExplorer';
+  renderTableForSelectedCompany(companyCombinations, currentViewMode);
 }
 
 // Debug tracker - add at the END of product_explorer.js
