@@ -5258,7 +5258,7 @@ console.log(`[renderProductExplorerTable] Using company for project ${currentPro
 .company-explorer-table { table-layout: fixed; }
 .company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; min-width: 190px; }
 .company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; min-width: 150px; }
-.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; min-width: 200px; }
+.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 300px; min-width: 300px; }
 .company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; min-width: 230px; }
 .company-explorer-table th:nth-child(5), .company-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
 
