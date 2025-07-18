@@ -2383,17 +2383,30 @@ document.body.appendChild(customTooltip);
 const chartElement = document.querySelector(`#${containerId} .apexcharts-canvas`);
 if (!chartElement) return;
 
-// Helper function to get data point from mouse position
+// Helper function to get data point from mouse position - IMPROVED
 function getDataPointFromEvent(e) {
   const rect = chartElement.getBoundingClientRect();
   const x = e.clientX - rect.left;
-  const chartWidth = rect.width;
+  
+  // Get chart's plot area to account for margins and padding
+  const plotArea = chart.w.globals.gridWidth;
+  const plotLeft = chart.w.globals.translateX;
+  
+  // Calculate relative position within the plot area
+  const relativeX = x - plotLeft;
+  const plotWidth = plotArea;
+  
+  // Calculate index based on plot area, not full chart width
   const dataLength = chart.w.globals.labels.length;
-  const index = Math.round((x / chartWidth) * (dataLength - 1));
-  return Math.max(0, Math.min(dataLength - 1, index));
+  let index = Math.round((relativeX / plotWidth) * (dataLength - 1));
+  
+  // Ensure index is within bounds
+  index = Math.max(0, Math.min(dataLength - 1, index));
+  
+  return index;
 }
 
-// Mouse move handler
+// Mouse move handler - IMPROVED
 chartElement.addEventListener('mousemove', function(e) {
   const dataPointIndex = getDataPointFromEvent(e);
   const series = chart.w.config.series;
@@ -2409,8 +2422,8 @@ chartElement.addEventListener('mousemove', function(e) {
   for (let i = 0; i < series.length; i++) {
     let companyName = series[i].name;
     let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-let currentValue = series[i].data[dataPointIndex].y;
-let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
+    let currentValue = series[i].data[dataPointIndex].y;
+    let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
     let trendStr = "";
     
     if (previousValue !== null) {
@@ -2445,14 +2458,38 @@ let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : 
   }
   let finalItems = nonOthersItems.concat(othersItems);
   
-// Format date - labels contains date strings, not timestamps
-const dateString = labels[dataPointIndex]; // This is in 'YYYY-MM-DD' format
-const date = moment(dateString, 'YYYY-MM-DD').toDate();
-const readableDate = date.toLocaleDateString('en-US', { 
-  month: 'short', 
-  day: 'numeric',
-  year: 'numeric'
-});
+  // Format date - FIXED DATE HANDLING
+  const dateString = labels[dataPointIndex];
+  let readableDate = 'Invalid date';
+  
+  try {
+    // Handle different possible date formats
+    let dateMoment;
+    if (dateString.includes('-')) {
+      // YYYY-MM-DD format
+      dateMoment = moment(dateString, 'YYYY-MM-DD');
+    } else {
+      // Try parsing as timestamp or other format
+      dateMoment = moment(dateString);
+    }
+    
+    if (dateMoment.isValid()) {
+      readableDate = dateMoment.format('MMM D, YYYY');
+    } else {
+      // Fallback: try to parse as Date object
+      const fallbackDate = new Date(dateString);
+      if (!isNaN(fallbackDate.getTime())) {
+        readableDate = fallbackDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: 'numeric'
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('Date parsing error:', error, 'for dateString:', dateString);
+    readableDate = dateString; // Show raw date string as fallback
+  }
   
   // Build HTML
   let html = `
@@ -2505,14 +2542,14 @@ const readableDate = date.toLocaleDateString('en-US', {
   customTooltip.innerHTML = html;
   customTooltip.style.display = 'block';
   
-  // Position tooltip
+  // Position tooltip - IMPROVED POSITIONING
   const tooltipRect = customTooltip.getBoundingClientRect();
-  let left = e.clientX + 10;
+  let left = e.clientX + 15; // Offset from cursor
   let top = e.clientY - tooltipRect.height / 2;
   
   // Adjust if tooltip goes off screen
-  if (left + tooltipRect.width > window.innerWidth) {
-    left = e.clientX - tooltipRect.width - 10;
+  if (left + tooltipRect.width > window.innerWidth - 10) {
+    left = e.clientX - tooltipRect.width - 15;
   }
   if (top < 10) {
     top = 10;
