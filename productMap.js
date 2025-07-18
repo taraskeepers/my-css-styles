@@ -2487,9 +2487,6 @@ function getDataPointFromEvent(e) {
   if (w.globals.seriesX && w.globals.seriesX[0] && w.globals.seriesX[0][closestIndex]) {
     const timestamp = w.globals.seriesX[0][closestIndex];
     const date = new Date(timestamp);
-    console.log('[DEBUG] Index', closestIndex, 'corresponds to date:', 
-      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    );
   }
   
   return closestIndex;
@@ -2497,7 +2494,6 @@ function getDataPointFromEvent(e) {
 
 // Function to update highlight
 function updateHighlight(dataPointIndex) {
-  console.log('[DEBUG] updateHighlight called with index:', dataPointIndex);
   
   // Remove any existing highlight for THIS chart only
   const existingHighlight = chart.w.globals.dom.baseEl.querySelector('.chart-highlight-rect');
@@ -2568,7 +2564,6 @@ function buildTooltipContent(dataPointIndex) {
   const labels = chart.w.globals.labels;
   
   if (dataPointIndex < 0 || dataPointIndex >= series[0].data.length) {
-    console.log('[DEBUG] Index out of bounds:', { dataPointIndex, seriesLength: series[0].data.length });
     return null;
   }
   
@@ -2577,7 +2572,6 @@ function buildTooltipContent(dataPointIndex) {
   series.forEach((s, idx) => {
     if (s.data[dataPointIndex] && s.data[dataPointIndex].y !== null && s.data[dataPointIndex].y !== undefined) {
       hasData = true;
-      console.log(`[DEBUG] Series ${idx} (${s.name}) has data at index ${dataPointIndex}:`, s.data[dataPointIndex].y);
     }
   });
   
@@ -2635,8 +2629,6 @@ const readableDate = adjustedDate.toLocaleDateString('en-US', {
   day: 'numeric',
   year: 'numeric'
 });
-  
-  console.log('[DEBUG] Tooltip date:', readableDate);
       
       let html = `
         <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px; padding-right: 30px;">
