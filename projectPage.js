@@ -9,6 +9,195 @@ function populateProjectPage() {
         return;
     }
     window._projectPageProcessing = true;
+
+        if (!document.getElementById("project-page-stats-style")) {
+        const style = document.createElement("style");
+        style.id = "project-page-stats-style";
+        style.textContent = `
+            .project-stats-left-column {
+              width: 220px;
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              margin-right: 20px;
+            }
+
+            .stats-rank-container,
+            .stats-market-container {
+              flex: 1;
+              background: white;
+              border-radius: 12px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+              padding: 20px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+
+            .big-rank-box {
+              width: 100px;
+              height: 100px;
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 48px;
+              font-weight: 900;
+              color: white;
+              position: relative;
+              margin-bottom: 8px;
+            }
+
+            .rank-trend-badge {
+              position: absolute;
+              top: -10px;
+              right: -10px;
+              background: white;
+              border-radius: 12px;
+              padding: 4px 8px;
+              font-size: 14px;
+              font-weight: 700;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+
+            .trend-up { color: #4CAF50; }
+            .trend-down { color: #F44336; }
+            .trend-neutral { color: #999; }
+
+            .device-ranks-row {
+              display: flex;
+              gap: 15px;
+              margin-top: 15px;
+              width: 100%;
+              justify-content: center;
+            }
+
+            .device-rank-item {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 5px;
+            }
+
+            .device-rank-icon {
+              width: 30px;
+              height: 30px;
+              object-fit: contain;
+            }
+
+            .device-rank-value {
+              font-size: 24px;
+              font-weight: 700;
+              color: #333;
+            }
+
+            .device-rank-trend {
+              font-size: 12px;
+              font-weight: 600;
+            }
+
+            .big-market-circle {
+              width: 120px;
+              height: 120px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 28px;
+              font-weight: 900;
+              color: #007aff;
+              background: white;
+              border: 3px solid #007aff;
+              position: relative;
+              overflow: hidden;
+              margin-bottom: 8px;
+            }
+
+            .market-water-fill {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              width: 100%;
+              background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
+              transition: height 0.5s ease;
+              z-index: 0;
+              animation: wave 3s ease-in-out infinite;
+              opacity: 0.7;
+            }
+
+            @keyframes wave {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-3px); }
+            }
+
+            .market-value-text {
+              position: relative;
+              z-index: 1;
+            }
+
+            .market-trend-badge {
+              position: absolute;
+              bottom: -5px;
+              right: 10px;
+              background: white;
+              border-radius: 10px;
+              padding: 2px 6px;
+              font-size: 12px;
+              font-weight: 700;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+
+            .device-market-row {
+              display: flex;
+              gap: 15px;
+              margin-top: 15px;
+              width: 100%;
+              justify-content: center;
+            }
+
+            .device-market-item {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 5px;
+            }
+
+            .device-market-value {
+              font-size: 20px;
+              font-weight: 700;
+              color: #007aff;
+            }
+
+            .device-market-trend {
+              font-size: 12px;
+              font-weight: 600;
+            }
+
+            .section-label {
+              font-size: 12px;
+              color: #666;
+              text-transform: uppercase;
+              margin-bottom: 10px;
+              font-weight: 600;
+            }
+
+            /* Additional styles for empty history boxes if needed */
+            .history-empty-box {
+              height: 24px !important;
+              min-height: 24px !important;
+              opacity: 0.5;
+            }
+
+            .history-empty-share-box {
+              height: 24px !important;
+              min-height: 24px !important;
+              opacity: 0.5;
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     try {
         logAvailableCompanies();
@@ -256,16 +445,6 @@ function buildProjectData() {
     console.warn("[buildProjectData] No companyStatsData array found.");
     return [];
   }
-
-  // CRITICAL FIX: Remove this global patching that contaminates all projects!
-  // DELETE OR COMMENT OUT THESE LINES:
-  /*
-  window.companyStatsData.forEach(row => {
-    if (row.source == null) {
-      row.source = window.myCompany || "Unknown";
-    }
-  });
-  */
   
   // Instead, only patch sources for the current project AFTER filtering
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
@@ -477,6 +656,7 @@ function buildProjectData() {
         window.projectTableData = results;
         updateProjectInfoBlock();
         updateProjectMarketShareChart();
+        updateProjectStatsDisplay();
       });
     
       console.log("→ Returning", results.length, "project data rows.");
@@ -855,6 +1035,232 @@ hideFiltersOnProjectAndHome();
     } finally {
         window._projectPageProcessing = false;
     }
+}
+
+function calculateCompanyRankData() {
+  // Get current project data
+  const projectData = window.projectTableData || [];
+  if (!projectData.length) {
+    return {
+      currentRank: '-',
+      rankTrend: 0,
+      desktopRank: '-',
+      desktopTrend: 0,
+      mobileRank: '-',
+      mobileTrend: 0
+    };
+  }
+  
+  // Calculate average ranks
+  const allData = projectData;
+  const desktopData = projectData.filter(item => item.device.toLowerCase() === 'desktop');
+  const mobileData = projectData.filter(item => item.device.toLowerCase() === 'mobile');
+  
+  // Overall average rank (current)
+  const currentAvgRank = allData.reduce((sum, item) => sum + item.avgRank, 0) / allData.length;
+  
+  // Desktop average rank
+  const desktopAvgRank = desktopData.length > 0 
+    ? desktopData.reduce((sum, item) => sum + item.avgRank, 0) / desktopData.length 
+    : 40;
+    
+  // Mobile average rank  
+  const mobileAvgRank = mobileData.length > 0
+    ? mobileData.reduce((sum, item) => sum + item.avgRank, 0) / mobileData.length
+    : 40;
+  
+  // Calculate trends (using rankChange from projectTableData)
+  const overallTrend = allData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / allData.length;
+  const desktopTrend = desktopData.length > 0
+    ? desktopData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / desktopData.length
+    : 0;
+  const mobileTrend = mobileData.length > 0
+    ? mobileData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / mobileData.length
+    : 0;
+  
+  return {
+    currentRank: Math.round(currentAvgRank),
+    rankTrend: overallTrend,
+    desktopRank: Math.round(desktopAvgRank),
+    desktopTrend: desktopTrend,
+    mobileRank: Math.round(mobileAvgRank),
+    mobileTrend: mobileTrend
+  };
+}
+
+function calculateCompanyMarketShareData() {
+  const projectData = window.projectTableData || [];
+  if (!projectData.length) {
+    return {
+      currentShare: 0,
+      shareTrend: 0,
+      desktopShare: 0,
+      desktopShareTrend: 0,
+      mobileShare: 0,
+      mobileShareTrend: 0
+    };
+  }
+  
+  const allData = projectData;
+  const desktopData = projectData.filter(item => item.device.toLowerCase() === 'desktop');
+  const mobileData = projectData.filter(item => item.device.toLowerCase() === 'mobile');
+  
+  // Calculate average market shares
+  const currentAvgShare = allData.reduce((sum, item) => sum + item.avgShare, 0) / allData.length;
+  const desktopAvgShare = desktopData.length > 0
+    ? desktopData.reduce((sum, item) => sum + item.avgShare, 0) / desktopData.length
+    : 0;
+  const mobileAvgShare = mobileData.length > 0
+    ? mobileData.reduce((sum, item) => sum + item.avgShare, 0) / mobileData.length
+    : 0;
+    
+  // Calculate trends
+  const overallShareTrend = allData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / allData.length;
+  const desktopShareTrend = desktopData.length > 0
+    ? desktopData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / desktopData.length
+    : 0;
+  const mobileShareTrend = mobileData.length > 0
+    ? mobileData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / mobileData.length
+    : 0;
+  
+  return {
+    currentShare: currentAvgShare,
+    shareTrend: overallShareTrend,
+    desktopShare: desktopAvgShare,
+    desktopShareTrend: desktopShareTrend,
+    mobileShare: mobileAvgShare,
+    mobileShareTrend: mobileShareTrend
+  };
+}
+
+function updateProjectStatsDisplay() {
+  // Get rank data
+  const rankData = calculateCompanyRankData();
+  const marketData = calculateCompanyMarketShareData();
+  
+  // Update rank display
+  const rankBox = document.getElementById('companyRankBox');
+  const rankValue = document.getElementById('companyRankValue');
+  const rankTrend = document.getElementById('companyRankTrend');
+  
+  if (rankBox && rankValue) {
+    rankValue.textContent = rankData.currentRank;
+    rankBox.style.backgroundColor = getRankBoxColor(rankData.currentRank);
+  }
+  
+  if (rankTrend) {
+    if (rankData.rankTrend < 0) {
+      rankTrend.innerHTML = `▲ ${Math.abs(rankData.rankTrend).toFixed(1)}`;
+      rankTrend.className = 'rank-trend-badge trend-up';
+    } else if (rankData.rankTrend > 0) {
+      rankTrend.innerHTML = `▼ ${rankData.rankTrend.toFixed(1)}`;
+      rankTrend.className = 'rank-trend-badge trend-down';
+    } else {
+      rankTrend.innerHTML = `± 0.0`;
+      rankTrend.className = 'rank-trend-badge trend-neutral';
+    }
+  }
+  
+  // Update desktop rank
+  const desktopRankEl = document.getElementById('desktopRankValue');
+  const desktopRankTrendEl = document.getElementById('desktopRankTrend');
+  if (desktopRankEl) desktopRankEl.textContent = rankData.desktopRank;
+  if (desktopRankTrendEl) {
+    if (rankData.desktopTrend < 0) {
+      desktopRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.desktopTrend).toFixed(1)}`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-up';
+    } else if (rankData.desktopTrend > 0) {
+      desktopRankTrendEl.innerHTML = `▼ ${rankData.desktopTrend.toFixed(1)}`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-down';
+    } else {
+      desktopRankTrendEl.innerHTML = `± 0.0`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-neutral';
+    }
+  }
+  
+  // Update mobile rank
+  const mobileRankEl = document.getElementById('mobileRankValue');
+  const mobileRankTrendEl = document.getElementById('mobileRankTrend');
+  if (mobileRankEl) mobileRankEl.textContent = rankData.mobileRank;
+  if (mobileRankTrendEl) {
+    if (rankData.mobileTrend < 0) {
+      mobileRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.mobileTrend).toFixed(1)}`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-up';
+    } else if (rankData.mobileTrend > 0) {
+      mobileRankTrendEl.innerHTML = `▼ ${rankData.mobileTrend.toFixed(1)}`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-down';
+    } else {
+      mobileRankTrendEl.innerHTML = `± 0.0`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-neutral';
+    }
+  }
+  
+  // Update market share display
+  const marketShareEl = document.getElementById('marketShareValue');
+  const marketWaterFill = document.getElementById('marketWaterFill');
+  const marketTrendEl = document.getElementById('marketShareTrend');
+  
+  if (marketShareEl) {
+    marketShareEl.textContent = `${marketData.currentShare.toFixed(1)}%`;
+  }
+  
+  if (marketWaterFill) {
+    const fillHeight = Math.min(100, marketData.currentShare * 2); // Scale for visibility
+    marketWaterFill.style.height = `${fillHeight}%`;
+  }
+  
+  if (marketTrendEl) {
+    if (marketData.shareTrend > 0) {
+      marketTrendEl.innerHTML = `▲ ${marketData.shareTrend.toFixed(1)}%`;
+      marketTrendEl.className = 'market-trend-badge trend-up';
+    } else if (marketData.shareTrend < 0) {
+      marketTrendEl.innerHTML = `▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%`;
+      marketTrendEl.className = 'market-trend-badge trend-down';
+    } else {
+      marketTrendEl.innerHTML = `± 0.0%`;
+      marketTrendEl.className = 'market-trend-badge trend-neutral';
+    }
+  }
+  
+  // Update device market shares
+  const desktopMarketEl = document.getElementById('desktopMarketValue');
+  const desktopMarketTrendEl = document.getElementById('desktopMarketTrend');
+  if (desktopMarketEl) desktopMarketEl.textContent = `${marketData.desktopShare.toFixed(1)}%`;
+  if (desktopMarketTrendEl) {
+    if (marketData.desktopShareTrend > 0) {
+      desktopMarketTrendEl.innerHTML = `▲ ${marketData.desktopShareTrend.toFixed(1)}%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-up';
+    } else if (marketData.desktopShareTrend < 0) {
+      desktopMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.desktopShareTrend).toFixed(1)}%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-down';
+    } else {
+      desktopMarketTrendEl.innerHTML = `± 0.0%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-neutral';
+    }
+  }
+  
+  const mobileMarketEl = document.getElementById('mobileMarketValue');
+  const mobileMarketTrendEl = document.getElementById('mobileMarketTrend');
+  if (mobileMarketEl) mobileMarketEl.textContent = `${marketData.mobileShare.toFixed(1)}%`;
+  if (mobileMarketTrendEl) {
+    if (marketData.mobileShareTrend > 0) {
+      mobileMarketTrendEl.innerHTML = `▲ ${marketData.mobileShareTrend.toFixed(1)}%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-up';
+    } else if (marketData.mobileShareTrend < 0) {
+      mobileMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.mobileShareTrend).toFixed(1)}%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-down';
+    } else {
+      mobileMarketTrendEl.innerHTML = `± 0.0%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-neutral';
+    }
+  }
+}
+
+function getRankBoxColor(rank) {
+  if (rank <= 1) return '#4CAF50'; // Green
+  if (rank <= 3) return '#FFC107'; // Yellow  
+  if (rank <= 5) return '#FF9800'; // Orange
+  return '#F44336'; // Red
 }
   
   function buildProjectDataForMap() {
