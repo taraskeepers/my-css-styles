@@ -2301,14 +2301,8 @@ const options = {
         enabled: true,
         speed: 500
       }
-    },
-    events: {
-      // Add this to sync with your custom tooltip
-      mouseMove: function(event, chartContext, config) {
-        // This will be triggered when mouse moves over the chart
-      }
     }
-  }, // This closing brace was in the wrong place
+  },
   dataLabels: (myCompany && myCompany.trim() !== "")
     ? {
         enabled: true,
@@ -2330,7 +2324,7 @@ const options = {
     curve: "smooth",
     width: 2
   },
-  // Single xaxis definition with crosshairs
+  // Enhanced crosshairs configuration
   xaxis: {
     type: "datetime",
     labels: { show: true },
@@ -2338,19 +2332,23 @@ const options = {
       show: true,
       width: 1,
       position: 'back',
-      opacity: 0.9,
+      opacity: 1,
       stroke: {
-        color: '#007aff',
-        width: 1,
+        color: '#376bae',
+        width: 2,
         dashArray: 0
       },
       fill: {
         type: 'solid',
-        color: '#007aff',
-        opacity: 0.1
+        color: '#B3E5FC',
+        opacity: 0.2
       },
       dropShadow: {
-        enabled: false
+        enabled: true,
+        top: 0,
+        left: 0,
+        blur: 1,
+        opacity: 0.4
       }
     }
   },
@@ -2362,7 +2360,17 @@ const options = {
       }
     },
     title: { text: "Market Share (%)" },
-    max: 100
+    max: 100,
+    // Also add crosshairs to Y axis for better visibility
+    crosshairs: {
+      show: true,
+      position: 'back',
+      stroke: {
+        color: '#376bae',
+        width: 1,
+        dashArray: 3
+      }
+    }
   },
   legend: {
     show: true,
@@ -2370,7 +2378,20 @@ const options = {
     horizontalAlign: "left"
   },
   tooltip: {
-    enabled: false  // Disable ApexCharts tooltip
+    enabled: false,  // Disable ApexCharts tooltip
+    // But enable the crosshairs
+    shared: true,
+    intersect: false
+  },
+  grid: {
+    show: true,
+    borderColor: '#f1f1f1',
+    strokeDashArray: 0,
+    xaxis: {
+      lines: {
+        show: true
+      }
+    }
   },
   fill: {
     type: "gradient",
@@ -2383,207 +2404,230 @@ const options = {
 try {
   const chart = new ApexCharts(chartEl, options);
   chart.render();
-    
-// Custom tooltip implementation
-const customTooltip = document.createElement('div');
-customTooltip.id = `custom-tooltip-${containerId}`;
-customTooltip.style.cssText = `
-  position: fixed;
-  display: none;
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  padding: 12px 16px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-width: 280px;
-  max-width: 400px;
-  max-height: none !important;
-  overflow: visible !important;
-  z-index: 10000;
-  pointer-events: none;
-`;
-document.body.appendChild(customTooltip);
 
-// Get the chart's DOM element
-const chartElement = document.querySelector(`#${containerId} .apexcharts-canvas`);
-if (!chartElement) return;
-
-// Helper function to get data point from mouse position
-// Helper function to get data point from mouse position
-function getDataPointFromEvent(e) {
-  const rect = chartElement.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  
-  // Use ApexCharts' internal coordinate system for better accuracy
-  const xAxisRange = chart.w.globals.minX && chart.w.globals.maxX ? 
-    chart.w.globals.maxX - chart.w.globals.minX : 0;
-  
-  if (!xAxisRange) return 0;
-  
-  const chartWidth = chart.w.globals.gridWidth;
-  const xRatio = x / chartWidth;
-  const xValue = chart.w.globals.minX + (xRatio * xAxisRange);
-  
-  // Find the closest data point
-  let closestIndex = 0;
-  let minDiff = Infinity;
-  
-  chart.w.globals.seriesX[0].forEach((timestamp, index) => {
-    const diff = Math.abs(timestamp - xValue);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closestIndex = index;
-    }
-  });
-  
-  return closestIndex;
-}
-
-// Mouse move handler
-chartElement.addEventListener('mousemove', function(e) {
-  const dataPointIndex = getDataPointFromEvent(e);
-  const series = chart.w.config.series;
-  const labels = chart.w.globals.labels;
-  
-  if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
-    customTooltip.style.display = 'none';
-    return;
-  }
-  
-  // Build tooltip content
-  let tooltipItems = [];
-  for (let i = 0; i < series.length; i++) {
-    let companyName = series[i].name;
-    let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-let currentValue = series[i].data[dataPointIndex].y;
-let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
-    let trendStr = "";
-    
-    if (previousValue !== null) {
-      let diff = currentValue - previousValue;
-      if (diff > 0) {
-        trendStr = "▲ " + diff.toFixed(2) + "%";
-      } else if (diff < 0) {
-        trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
-      } else {
-        trendStr = "±0.00%";
-      }
-    }
-    
-    tooltipItems.push({
-      companyName,
-      currentValue,
-      trendStr,
-      seriesColor
-    });
-  }
-  
-  // Sort by value descending
-  let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
-  
-  // Separate "Others"
-  let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
-  let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-  
-  // Assign ranks
-  for (let i = 0; i < nonOthersItems.length; i++) {
-    nonOthersItems[i].rank = i + 1;
-  }
-  let finalItems = nonOthersItems.concat(othersItems);
-  
-// Format date - labels contains timestamps when using datetime axis
-const timestamp = labels[dataPointIndex];
-const date = new Date(timestamp);
-const readableDate = date.toLocaleDateString('en-US', { 
-  month: 'short', 
-  day: 'numeric',
-  year: 'numeric'
-});
-  
-  // Build HTML
-  let html = `
-    <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px;">
-      ${readableDate}
-    </div>
-    <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #333;">
+  // Custom tooltip implementation with delay
+  const customTooltip = document.createElement('div');
+  customTooltip.id = `custom-tooltip-${containerId}`;
+  customTooltip.style.cssText = `
+    position: fixed;
+    display: none;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 12px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-width: 280px;
+    max-width: 400px;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 10000;
+    pointer-events: none;
   `;
-  
-  finalItems.forEach(item => {
-    let rankHtml = "";
-    if (item.companyName.trim().toLowerCase() !== "others") {
-      rankHtml = `<span style="
-        display: inline-block;
-        width: 22px;
-        height: 22px;
-        line-height: 22px;
-        border-radius: 11px;
-        background: ${item.seriesColor};
-        color: #fff;
-        text-align: center;
-        margin-right: 8px;
-        font-weight: bold;
-        font-size: 11px;
-      ">${item.rank}</span>`;
-    }
+  document.body.appendChild(customTooltip);
+
+  // Get the chart's DOM element
+  const chartElement = document.querySelector(`#${containerId} .apexcharts-canvas`);
+  if (!chartElement) return;
+
+  // Add a variable to store the timeout
+  let tooltipTimeout = null;
+  let currentTooltipData = null;
+
+  // Helper function to get data point from mouse position
+  function getDataPointFromEvent(e) {
+    const rect = chartElement.getBoundingClientRect();
+    const x = e.clientX - rect.left;
     
-    let trendColored = item.trendStr;
-    if (item.trendStr.startsWith("▲")) {
-      trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
-    } else if (item.trendStr.startsWith("▼")) {
-      trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
-    }
+    // Use ApexCharts' internal coordinate system for better accuracy
+    const xAxisRange = chart.w.globals.minX && chart.w.globals.maxX ? 
+      chart.w.globals.maxX - chart.w.globals.minX : 0;
     
-    html += `
-      <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <td style="padding: 6px 8px; vertical-align: middle;">
-          ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
-        </td>
-        <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
-          <strong style="font-size: 13px;">${(item.currentValue || 0).toFixed(2)}%</strong> ${trendColored}
-        </td>
-      </tr>
-    `;
+    if (!xAxisRange) return 0;
+    
+    const chartWidth = chart.w.globals.gridWidth;
+    const xRatio = x / chartWidth;
+    const xValue = chart.w.globals.minX + (xRatio * xAxisRange);
+    
+    // Find the closest data point
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    
+    chart.w.globals.seriesX[0].forEach((timestamp, index) => {
+      const diff = Math.abs(timestamp - xValue);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIndex = index;
+      }
+    });
+    
+    return closestIndex;
+  }
+
+  // Mouse move handler with delay
+  chartElement.addEventListener('mousemove', function(e) {
+    // Clear any existing timeout
+    if (tooltipTimeout) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = null;
+    }
+
+    // Store the current mouse position data
+    currentTooltipData = {
+      event: e,
+      dataPointIndex: getDataPointFromEvent(e)
+    };
+
+    // Set a new timeout for 500ms
+    tooltipTimeout = setTimeout(() => {
+      const dataPointIndex = currentTooltipData.dataPointIndex;
+      const series = chart.w.config.series;
+      const labels = chart.w.globals.labels;
+      
+      if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
+        customTooltip.style.display = 'none';
+        return;
+      }
+      
+      // Build tooltip content
+      let tooltipItems = [];
+      for (let i = 0; i < series.length; i++) {
+        let companyName = series[i].name;
+        let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
+        let currentValue = series[i].data[dataPointIndex].y;
+        let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
+        let trendStr = "";
+        
+        if (previousValue !== null) {
+          let diff = currentValue - previousValue;
+          if (diff > 0) {
+            trendStr = "▲ " + diff.toFixed(2) + "%";
+          } else if (diff < 0) {
+            trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
+          } else {
+            trendStr = "±0.00%";
+          }
+        }
+        
+        tooltipItems.push({
+          companyName,
+          currentValue,
+          trendStr,
+          seriesColor
+        });
+      }
+      
+      // Sort by value descending
+      let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
+      
+      // Separate "Others"
+      let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
+      let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
+      
+      // Assign ranks
+      for (let i = 0; i < nonOthersItems.length; i++) {
+        nonOthersItems[i].rank = i + 1;
+      }
+      let finalItems = nonOthersItems.concat(othersItems);
+      
+      // Format date
+      const timestamp = labels[dataPointIndex];
+      const date = new Date(timestamp);
+      const readableDate = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      // Build HTML
+      let html = `
+        <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px;">
+          ${readableDate}
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #333;">
+      `;
+      
+      finalItems.forEach(item => {
+        let rankHtml = "";
+        if (item.companyName.trim().toLowerCase() !== "others") {
+          rankHtml = `<span style="
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            border-radius: 11px;
+            background: ${item.seriesColor};
+            color: #fff;
+            text-align: center;
+            margin-right: 8px;
+            font-weight: bold;
+            font-size: 11px;
+          ">${item.rank}</span>`;
+        }
+        
+        let trendColored = item.trendStr;
+        if (item.trendStr.startsWith("▲")) {
+          trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
+        } else if (item.trendStr.startsWith("▼")) {
+          trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
+        }
+        
+        html += `
+          <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+            <td style="padding: 6px 8px; vertical-align: middle;">
+              ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
+            </td>
+            <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
+              <strong style="font-size: 13px;">${(item.currentValue || 0).toFixed(2)}%</strong> ${trendColored}
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `</table>`;
+      
+      // Update tooltip content
+      customTooltip.innerHTML = html;
+      customTooltip.style.display = 'block';
+      
+      // Position tooltip
+      const tooltipRect = customTooltip.getBoundingClientRect();
+      let left = currentTooltipData.event.clientX + 10;
+      let top = currentTooltipData.event.clientY - tooltipRect.height / 2;
+      
+      // Adjust if tooltip goes off screen
+      if (left + tooltipRect.width > window.innerWidth) {
+        left = currentTooltipData.event.clientX - tooltipRect.width - 10;
+      }
+      if (top < 10) {
+        top = 10;
+      }
+      if (top + tooltipRect.height > window.innerHeight - 10) {
+        top = window.innerHeight - tooltipRect.height - 10;
+      }
+      
+      customTooltip.style.left = left + 'px';
+      customTooltip.style.top = top + 'px';
+    }, 500); // 500ms delay
   });
-  
-  html += `</table>`;
-  
-  // Update tooltip content
-  customTooltip.innerHTML = html;
-  customTooltip.style.display = 'block';
-  
-  // Position tooltip
-  const tooltipRect = customTooltip.getBoundingClientRect();
-  let left = e.clientX + 10;
-  let top = e.clientY - tooltipRect.height / 2;
-  
-  // Adjust if tooltip goes off screen
-  if (left + tooltipRect.width > window.innerWidth) {
-    left = e.clientX - tooltipRect.width - 10;
-  }
-  if (top < 10) {
-    top = 10;
-  }
-  if (top + tooltipRect.height > window.innerHeight - 10) {
-    top = window.innerHeight - tooltipRect.height - 10;
-  }
-  
-  customTooltip.style.left = left + 'px';
-  customTooltip.style.top = top + 'px';
-});
 
-// Mouse leave handler
-chartElement.addEventListener('mouseleave', function() {
-  customTooltip.style.display = 'none';
-});
+  // Mouse leave handler
+  chartElement.addEventListener('mouseleave', function() {
+    // Clear any pending timeout
+    if (tooltipTimeout) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = null;
+    }
+    // Hide tooltip immediately on mouse leave
+    customTooltip.style.display = 'none';
+  });
 
-// Store tooltip reference for cleanup
-window.marketTrendChartInstances.push({ chart, tooltip: customTooltip });
+  // Store tooltip reference for cleanup
+  window.marketTrendChartInstances.push({ chart, tooltip: customTooltip });
     
-  } catch (error) {
-    console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
-    chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
-  }
+} catch (error) {
+  console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
+  chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
 }
 
 // Continue with the existing renderProductMapTable function...
