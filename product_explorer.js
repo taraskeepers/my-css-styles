@@ -515,69 +515,83 @@ thead.innerHTML = `
       const deviceCombinations = locationGroups[location];
       let locCellUsed = false;
       
-      deviceCombinations.forEach(combination => {
-        console.log('[DEBUG] Creating row for combination:', combination);
-        const tr = document.createElement("tr");
-        
-        if (!termCellUsed) {
-          const tdTerm = document.createElement("td");
-          tdTerm.rowSpan = totalRowsForTerm;
-          tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
-          tr.appendChild(tdTerm);
-          termCellUsed = true;
-        }
-        
-        if (!locCellUsed) {
-          const tdLoc = document.createElement("td");
-          tdLoc.rowSpan = deviceCombinations.length;
-          tdLoc.innerHTML = formatLocationCell(combination.location);
-          tdLoc.classList.add(locationColorMap[combination.location]);
-          tr.appendChild(tdLoc);
-          locCellUsed = true;
-        }
-        
-        const tdDev = document.createElement("td");
-        tdDev.innerHTML = createDeviceCell(combination);
-        tr.appendChild(tdDev);
-        
-const tdSegmentation = document.createElement("td");
-tdSegmentation.classList.add("segmentation-column");
-const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
-tr.appendChild(tdSegmentation);
-
-const tdRankMarketShare = document.createElement("td");
-const positionChartId = `explorer-position-chart-${chartCounter}`;
-
-// Create rank & market share history
-const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
-
-tdRankMarketShare.innerHTML = `
-  <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
-  <div class="rank-market-share-history">${rankMarketShareHistory}</div>
-`;
-tr.appendChild(tdRankMarketShare);
-        
-        const chartInfo = {
-          containerId: chartContainerId,
-          positionChartId: positionChartId,
-          combination: combination,
-          selectedProduct: window.selectedExplorerProduct
-        };
-        
-        if (!window.pendingExplorerCharts) {
-          window.pendingExplorerCharts = [];
-        }
-        window.pendingExplorerCharts.push(chartInfo);
-        
-        tbody.appendChild(tr);
-      });
+deviceCombinations.forEach(combination => {
+  console.log('[DEBUG] Creating row for combination:', combination);
+  const tr = document.createElement("tr");
+  
+  if (!termCellUsed) {
+    const tdTerm = document.createElement("td");
+    tdTerm.rowSpan = totalRowsForTerm;
+    tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
+    tr.appendChild(tdTerm);
+    termCellUsed = true;
+  }
+  
+  if (!locCellUsed) {
+    const tdLoc = document.createElement("td");
+    tdLoc.rowSpan = deviceCombinations.length;
+    tdLoc.innerHTML = formatLocationCell(combination.location);
+    tdLoc.classList.add(locationColorMap[combination.location]);
+    tr.appendChild(tdLoc);
+    locCellUsed = true;
+  }
+  
+  const tdDev = document.createElement("td");
+  tdDev.innerHTML = createDeviceCell(combination);
+  tr.appendChild(tdDev);
+  
+  const tdSegmentation = document.createElement("td");
+  tdSegmentation.classList.add("segmentation-column");
+  const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+  tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
+  tr.appendChild(tdSegmentation);
+  
+  const tdRankMarketShare = document.createElement("td");
+  const positionChartId = `explorer-position-chart-${chartCounter}`;
+  
+  // Create rank & market share history
+  const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
+  
+  tdRankMarketShare.innerHTML = `
+    <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+    <div class="rank-market-share-history">${rankMarketShareHistory}</div>
+  `;
+  tr.appendChild(tdRankMarketShare);
+  
+  const chartInfo = {
+    containerId: chartContainerId,
+    positionChartId: positionChartId,
+    combination: combination,
+    selectedProduct: window.selectedExplorerProduct
+  };
+  
+  if (!window.pendingExplorerCharts) {
+    window.pendingExplorerCharts = [];
+  }
+  window.pendingExplorerCharts.push(chartInfo);
+  
+  // THIS IS THE CRITICAL LINE - MAKE SURE IT EXISTS:
+  tbody.appendChild(tr);
+  console.log('[DEBUG] Row appended to tbody');
+});
     });
   });
   
 const container = document.querySelector("#productExplorerTableContainer");
-container.appendChild(table);
+if (!container) {
+  console.error('[ERROR] productExplorerTableContainer not found!');
+  // Try alternative container
+  const altContainer = document.querySelector("#productExplorerContainer");
+  if (altContainer) {
+    console.log('[DEBUG] Using alternative container #productExplorerContainer');
+    altContainer.appendChild(table);
+  }
+} else {
+  console.log('[DEBUG] Appending table to #productExplorerTableContainer');
+  container.appendChild(table);
+}
 
+console.log('[DEBUG] Table tbody child count:', tbody.children.length);
 console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
 
 // Set visibility fill heights for water effect
