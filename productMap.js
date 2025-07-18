@@ -2384,13 +2384,34 @@ const chartElement = document.querySelector(`#${containerId} .apexcharts-canvas`
 if (!chartElement) return;
 
 // Helper function to get data point from mouse position
+// Helper function to get data point from mouse position
 function getDataPointFromEvent(e) {
   const rect = chartElement.getBoundingClientRect();
   const x = e.clientX - rect.left;
-  const chartWidth = rect.width;
-  const dataLength = chart.w.globals.labels.length;
-  const index = Math.round((x / chartWidth) * (dataLength - 1));
-  return Math.max(0, Math.min(dataLength - 1, index));
+  
+  // Use ApexCharts' internal coordinate system for better accuracy
+  const xAxisRange = chart.w.globals.minX && chart.w.globals.maxX ? 
+    chart.w.globals.maxX - chart.w.globals.minX : 0;
+  
+  if (!xAxisRange) return 0;
+  
+  const chartWidth = chart.w.globals.gridWidth;
+  const xRatio = x / chartWidth;
+  const xValue = chart.w.globals.minX + (xRatio * xAxisRange);
+  
+  // Find the closest data point
+  let closestIndex = 0;
+  let minDiff = Infinity;
+  
+  chart.w.globals.seriesX[0].forEach((timestamp, index) => {
+    const diff = Math.abs(timestamp - xValue);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIndex = index;
+    }
+  });
+  
+  return closestIndex;
 }
 
 // Mouse move handler
@@ -2445,9 +2466,9 @@ let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : 
   }
   let finalItems = nonOthersItems.concat(othersItems);
   
-// Format date - labels contains date strings, not timestamps
-const dateString = labels[dataPointIndex]; // This is in 'YYYY-MM-DD' format
-const date = moment(dateString, 'YYYY-MM-DD').toDate();
+// Format date - labels contains timestamps when using datetime axis
+const timestamp = labels[dataPointIndex];
+const date = new Date(timestamp);
 const readableDate = date.toLocaleDateString('en-US', { 
   month: 'short', 
   day: 'numeric',
