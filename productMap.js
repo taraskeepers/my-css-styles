@@ -2652,14 +2652,19 @@ function buildTooltipContent(dataPointIndex) {
   }
   let finalItems = nonOthersItems.concat(othersItems);
   
-  // IMPORTANT: Use seriesX to get the correct timestamp, not labels
-  const timestamp = chart.w.globals.seriesX[0][dataPointIndex];
-  const date = new Date(timestamp);
-  const readableDate = date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
-  });
+// IMPORTANT: Use seriesX to get the correct timestamp, not labels
+const timestamp = chart.w.globals.seriesX[0][dataPointIndex];
+const date = new Date(timestamp);
+
+// Adjust for timezone issues - if time is near midnight, it might show previous day
+// Add 12 hours to ensure we're solidly in the correct day
+const adjustedDate = new Date(date.getTime() + (12 * 60 * 60 * 1000));
+
+const readableDate = adjustedDate.toLocaleDateString('en-US', { 
+  month: 'short', 
+  day: 'numeric',
+  year: 'numeric'
+});
   
   console.log('[DEBUG] Tooltip date:', readableDate);
       
