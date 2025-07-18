@@ -2280,36 +2280,57 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
     }
   }
   
-  // Create chart with same configuration as marketShareBigChart
-  const options = {
-    series: finalSeries,
-    chart: {
-      type: "area",
-      height: "100%",
-      width: "100%",
-      stacked: true, // Key difference - stacked areas
-      toolbar: { show: true },
-      zoom: { enabled: false },
-      animations: {
+// Create chart with same configuration as marketShareBigChart
+const options = {
+  series: finalSeries,
+  chart: {
+    type: "area",
+    height: "100%",
+    width: "100%",
+    stacked: true, // Key difference - stacked areas
+    toolbar: { show: true },
+    zoom: { enabled: false },
+    animations: {
+      enabled: true,
+      speed: 500,
+      animateGradually: {
         enabled: true,
-        speed: 500,
-        animateGradually: {
-          enabled: true,
-          delay: 50
-        },
-        dynamicAnimation: {
-          enabled: true,
-          speed: 500
-        }
+        delay: 50
       },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 500
+      }
+    },
     events: {
       // Add this to sync with your custom tooltip
       mouseMove: function(event, chartContext, config) {
         // This will be triggered when mouse moves over the chart
       }
     }
+  }, // This closing brace was in the wrong place
+  dataLabels: (myCompany && myCompany.trim() !== "")
+    ? {
+        enabled: true,
+        formatter: function(val, opts) {
+          if (opts.seriesIndex === 0) {
+            return val.toFixed(2) + "%";
+          }
+          return "";
+        },
+        offsetY: -5,
+        style: { fontSize: '12px', colors: ['#000'] }
+      }
+    : { enabled: false },
+  // Show markers only for selected series
+  markers: (myCompany && myCompany.trim() !== "")
+    ? { size: finalSeries.map((s, i) => (i === 0 ? 6 : 0)) }
+    : { size: 0 },
+  stroke: {
+    curve: "smooth",
+    width: 2
   },
-  // Add crosshairs configuration
+  // Single xaxis definition with crosshairs
   xaxis: {
     type: "datetime",
     labels: { show: true },
@@ -2325,65 +2346,43 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       },
       fill: {
         type: 'solid',
-        color: '#B1D4E0',
-        opacity: 0.2
+        color: '#007aff',
+        opacity: 0.1
+      },
+      dropShadow: {
+        enabled: false
       }
     }
   },
-    dataLabels: (myCompany && myCompany.trim() !== "")
-      ? {
-          enabled: true,
-          formatter: function(val, opts) {
-            if (opts.seriesIndex === 0) {
-              return val.toFixed(2) + "%";
-            }
-            return "";
-          },
-          offsetY: -5,
-          style: { fontSize: '12px', colors: ['#000'] }
-        }
-      : { enabled: false },
-    // Show markers only for selected series
-    markers: (myCompany && myCompany.trim() !== "")
-      ? { size: finalSeries.map((s, i) => (i === 0 ? 6 : 0)) }
-      : { size: 0 },
-    stroke: {
-      curve: "smooth",
-      width: 2
-    },
-    xaxis: {
-      type: "datetime",
-      labels: { show: true }
-    },
-    yaxis: {
-      labels: { 
-        show: true,
-        formatter: function(val) { 
-          return val.toFixed(2); 
-        }
-      },
-      title: { text: "Market Share (%)" },
-      max: 100
-    },
-    legend: {
+  yaxis: {
+    labels: { 
       show: true,
-      position: "top",
-      horizontalAlign: "left"
+      formatter: function(val) { 
+        return val.toFixed(2); 
+      }
     },
-tooltip: {
-  enabled: false  // Disable ApexCharts tooltip
-},
-    fill: {
-      type: "gradient",
-      gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
-    },
-    colors: finalSeries.map(s => s.color || undefined) // Use our custom colors
-  };
-  
-  // Create and render the chart
-  try {
-    const chart = new ApexCharts(chartEl, options);
-    chart.render();
+    title: { text: "Market Share (%)" },
+    max: 100
+  },
+  legend: {
+    show: true,
+    position: "top",
+    horizontalAlign: "left"
+  },
+  tooltip: {
+    enabled: false  // Disable ApexCharts tooltip
+  },
+  fill: {
+    type: "gradient",
+    gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
+  },
+  colors: finalSeries.map(s => s.color || undefined) // Use our custom colors
+};
+
+// Create and render the chart
+try {
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
     
 // Custom tooltip implementation
 const customTooltip = document.createElement('div');
