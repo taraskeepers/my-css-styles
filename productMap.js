@@ -2462,108 +2462,114 @@ try {
     let isTooltipOpen = false;
     let highlightRect = null;
 
-    // Helper function to get data point from mouse position
-    function getDataPointFromEvent(e) {
-      const rect = chartElement.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      
-      // Debug logging
-      console.log('[DEBUG] Mouse position:', { 
-        clientX: e.clientX, 
-        clientY: e.clientY, 
-        relativeX: x,
-        chartWidth: rect.width 
-      });
-      
-      // Get chart internals
-      const w = chart.w;
-      const gridWidth = w.globals.gridWidth;
-      const translateX = w.globals.translateX;
-      
-      // Calculate which data point we're over
-      const adjustedX = x - translateX;
-      const dataPointCount = w.globals.dataPoints;
-      const columnWidth = gridWidth / (dataPointCount - 1);
-      
-      // Find closest data point
-      let closestIndex = Math.round(adjustedX / columnWidth);
-      closestIndex = Math.max(0, Math.min(dataPointCount - 1, closestIndex));
-      
-      console.log('[DEBUG] Calculated index:', {
-        adjustedX,
-        dataPointCount,
-        columnWidth,
-        closestIndex,
-        translateX,
-        gridWidth
-      });
-      
-      return closestIndex;
-    }
+// Helper function to get data point from mouse position
+function getDataPointFromEvent(e) {
+  const rect = chartElement.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  
+  // Debug logging
+  console.log('[DEBUG] Mouse position:', { 
+    clientX: e.clientX, 
+    clientY: e.clientY, 
+    relativeX: x,
+    chartWidth: rect.width 
+  });
+  
+  // Get chart internals
+  const w = chart.w;
+  const gridWidth = w.globals.gridWidth;
+  const translateX = w.globals.translateX;
+  
+  // IMPORTANT: Use the actual labels length, not dataPoints
+  const actualDataPoints = w.globals.labels.length;
+  const columnWidth = gridWidth / (actualDataPoints - 1);
+  
+  // Calculate which data point we're over
+  const adjustedX = x - translateX;
+  
+  // Find closest data point
+  let closestIndex = Math.round(adjustedX / columnWidth);
+  closestIndex = Math.max(0, Math.min(actualDataPoints - 1, closestIndex));
+  
+  console.log('[DEBUG] Calculated index:', {
+    adjustedX,
+    actualDataPoints,  // Changed from dataPointCount
+    labelsLength: w.globals.labels.length,
+    seriesLength: w.config.series[0].data.length,
+    columnWidth,
+    closestIndex,
+    translateX,
+    gridWidth
+  });
+  
+  return closestIndex;
+}
 
-    // Function to update highlight
-    function updateHighlight(dataPointIndex) {
-      console.log('[DEBUG] updateHighlight called with index:', dataPointIndex);
-      
-      // Remove any existing highlight
-      const existingHighlight = document.querySelector('.chart-highlight-rect');
-      if (existingHighlight) {
-        existingHighlight.remove();
-      }
-      
-      if (dataPointIndex < 0) return;
-      
-      // Create a new highlight div overlay instead of SVG
-      const highlightDiv = document.createElement('div');
-      highlightDiv.className = 'chart-highlight-rect';
-      highlightDiv.style.cssText = `
-        position: absolute;
-        background-color: rgba(0, 122, 255, 0.1);
-        border-left: 2px solid #007aff;
-        border-right: 2px solid #007aff;
-        pointer-events: none;
-        z-index: 1;
-      `;
-      
-      // Calculate position
-      const gridRect = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner').getBoundingClientRect();
-      const containerRect = chartEl.getBoundingClientRect();
-      
-      const dataPoints = chart.w.globals.dataPoints;
-      const gridWidth = chart.w.globals.gridWidth;
-      const translateX = chart.w.globals.translateX;
-      const columnWidth = gridWidth / (dataPoints - 1);
-      
-      // Calculate x position for the highlight
-      let xPos = translateX + (dataPointIndex * columnWidth) - (columnWidth / 2);
-      let width = columnWidth;
-      
-      // Adjust for edge cases
-      if (dataPointIndex === 0) {
-        xPos = translateX;
-        width = columnWidth / 2;
-      } else if (dataPointIndex === dataPoints - 1) {
-        xPos = translateX + gridWidth - (columnWidth / 2);
-        width = columnWidth / 2;
-      }
-      
-      highlightDiv.style.left = xPos + 'px';
-      highlightDiv.style.top = chart.w.globals.translateY + 'px';
-      highlightDiv.style.width = width + 'px';
-      highlightDiv.style.height = chart.w.globals.gridHeight + 'px';
-      
-      // Append to chart container
-      const innerContainer = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner');
-      if (innerContainer) {
-        innerContainer.appendChild(highlightDiv);
-      }
-      
-      console.log('[DEBUG] Highlight positioned at:', {
-        left: xPos,
-        width: width,
-        dataPointIndex: dataPointIndex
-      });
-    }
+// Function to update highlight
+function updateHighlight(dataPointIndex) {
+  console.log('[DEBUG] updateHighlight called with index:', dataPointIndex);
+  
+  // Remove any existing highlight
+  const existingHighlight = document.querySelector('.chart-highlight-rect');
+  if (existingHighlight) {
+    existingHighlight.remove();
+  }
+  
+  if (dataPointIndex < 0) return;
+  
+  // Create a new highlight div overlay instead of SVG
+  const highlightDiv = document.createElement('div');
+  highlightDiv.className = 'chart-highlight-rect';
+  highlightDiv.style.cssText = `
+    position: absolute;
+    background-color: rgba(0, 122, 255, 0.1);
+    border-left: 2px solid #007aff;
+    border-right: 2px solid #007aff;
+    pointer-events: none;
+    z-index: 1;
+  `;
+  
+  // Calculate position
+  const gridRect = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner').getBoundingClientRect();
+  const containerRect = chartEl.getBoundingClientRect();
+  
+  // IMPORTANT: Use actual labels length
+  const actualDataPoints = chart.w.globals.labels.length;
+  const gridWidth = chart.w.globals.gridWidth;
+  const translateX = chart.w.globals.translateX;
+  const columnWidth = gridWidth / (actualDataPoints - 1);
+  
+  // Calculate x position for the highlight
+  let xPos = translateX + (dataPointIndex * columnWidth) - (columnWidth / 2);
+  let width = columnWidth;
+  
+  // Adjust for edge cases
+  if (dataPointIndex === 0) {
+    xPos = translateX;
+    width = columnWidth / 2;
+  } else if (dataPointIndex === actualDataPoints - 1) {
+    xPos = translateX + gridWidth - (columnWidth / 2);
+    width = columnWidth / 2;
+  }
+  
+  highlightDiv.style.left = xPos + 'px';
+  highlightDiv.style.top = chart.w.globals.translateY + 'px';
+  highlightDiv.style.width = width + 'px';
+  highlightDiv.style.height = chart.w.globals.gridHeight + 'px';
+  
+  // Append to chart container
+  const innerContainer = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner');
+  if (innerContainer) {
+    innerContainer.appendChild(highlightDiv);
+  }
+  
+  console.log('[DEBUG] Highlight positioned at:', {
+    left: xPos,
+    width: width,
+    dataPointIndex: dataPointIndex,
+    actualDataPoints: actualDataPoints
+  });
+}
 
     // Function to build tooltip content
     function buildTooltipContent(dataPointIndex) {
