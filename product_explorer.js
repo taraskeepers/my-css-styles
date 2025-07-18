@@ -731,8 +731,9 @@ function createDeviceCell(combination) {
   </div>`;
   
   // For companies mode, use rank and market share from the company stats
-  if (isCompaniesMode) {
-    const avgRank = record.rank || 999;
+  if (isCompaniesMode && record.rank !== undefined) {
+    // Company rank
+    const companyRank = record.rank || 999;
     const rankTrend = record.rankTrend || 0;
     
     let arrow = '', change = '', color = '#444';
@@ -752,14 +753,14 @@ function createDeviceCell(combination) {
     deviceHTML += `
       <div class="device-rank">
         <div class="section-header">Company Rank</div>
-        <div class="device-rank-value">${avgRank}</div>
+        <div class="device-rank-value">${companyRank}</div>
         <div class="device-trend" style="color:${color};">
           ${arrow} ${change}
         </div>
       </div>
     `;
     
-    // Use market share instead of visibility
+    // Market share (convert from decimal to percentage)
     const marketShare = (record.top40 || 0) * 100;
     const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
     deviceHTML += `
@@ -790,7 +791,7 @@ function createDeviceCell(combination) {
       </div>
     `;
   } else {
-    // Original product mode code
+    // Original product mode code - keep as is
     const avgRank = calculateAvgRankFromHistorical(record);
     deviceHTML += `
       <div class="device-rank">
@@ -965,97 +966,99 @@ function renderPendingExplorerChartsForProduct() {
     console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} charts in ${isCompaniesMode ? 'companies' : 'products'} mode`);
     
     charts.forEach((chartInfo, index) => {
-      const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
-      
-      if (isCompaniesMode) {
-        // For companies mode, use the record directly from combination
-        const companyRecord = combination.record;
-        
-        if (!companyRecord) {
-          console.log(`[renderPendingExplorerChartsForProduct] No company record found`);
-          const container = document.getElementById(containerId);
-          if (container) {
-            container.innerHTML = '<div class="no-data-message">No data for this company</div>';
-            container.classList.remove('loading');
-          }
-          return;
-        }
-        
-        // Use company's segment data if available
-        const chartData = calculateCompanySegmentData(companyRecord);
-        
-        if (!chartData || chartData.length === 0) {
-          const container = document.getElementById(containerId);
-          if (container) {
-            container.innerHTML = '<div class="no-data-message">No segment data</div>';
-            container.classList.remove('loading');
-          }
-          return;
-        }
-        
-        createProductSegmentationChart(
-          containerId,
-          chartData,
-          combination.searchTerm,
-          combination.location,
-          combination.device,
-          combination.company,
-          companyRecord
-        );
-        
-        // Store reference for position chart
-        const positionChartContainer = document.getElementById(positionChartId);
-        if (positionChartContainer) {
-          positionChartContainer.combinationRecord = companyRecord;
-          positionChartContainer.combinationInfo = combination;
-        }
-      } else {
-        // Original product mode code (keep as is)
-        const productRecords = getProductRecords(selectedProduct);
-        const specificRecord = productRecords.find(record => 
-          record.q === combination.searchTerm &&
-          record.location_requested === combination.location &&
-          record.device === combination.device
-        );
-        
-        if (!specificRecord) {
-          console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
-          const container = document.getElementById(containerId);
-          if (container) {
-            container.innerHTML = '<div class="no-data-message">No data for this product</div>';
-            container.classList.remove('loading');
-          }
-          return;
-        }
-        
-        const chartData = calculateProductSegmentData(specificRecord);
-        
-        if (!chartData || chartData.length === 0) {
-          console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
-          const container = document.getElementById(containerId);
-          if (container) {
-            container.innerHTML = '<div class="no-data-message">No segment data</div>';
-            container.classList.remove('loading');
-          }
-          return;
-        }
-        
-        createProductSegmentationChart(
-          containerId,
-          chartData,
-          combination.searchTerm,
-          combination.location,
-          combination.device,
-          selectedProduct.source,
-          specificRecord
-        );
-        
-        const positionChartContainer = document.getElementById(positionChartId);
-        if (positionChartContainer) {
-          positionChartContainer.combinationRecord = specificRecord;
-          positionChartContainer.combinationInfo = combination;
-        }
-      }
+// Inside the charts.forEach loop, replace the existing logic with:
+
+const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
+
+if (isCompaniesMode) {
+  // For companies mode, use the record directly from combination
+  const companyRecord = combination.record;
+  
+  if (!companyRecord) {
+    console.log(`[renderPendingExplorerChartsForProduct] No company record found`);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No data for this company</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  // Use company's segment data
+  const chartData = calculateCompanySegmentData(companyRecord);
+  
+  if (!chartData || chartData.length === 0) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No segment data</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  createProductSegmentationChart(
+    containerId,
+    chartData,
+    combination.searchTerm,
+    combination.location,
+    combination.device,
+    combination.company,
+    companyRecord
+  );
+  
+  // Store reference for position chart
+  const positionChartContainer = document.getElementById(positionChartId);
+  if (positionChartContainer) {
+    positionChartContainer.combinationRecord = companyRecord;
+    positionChartContainer.combinationInfo = combination;
+  }
+} else {
+  // Original product mode code - keep as is
+  const productRecords = getProductRecords(selectedProduct);
+  const specificRecord = productRecords.find(record => 
+    record.q === combination.searchTerm &&
+    record.location_requested === combination.location &&
+    record.device === combination.device
+  );
+  
+  if (!specificRecord) {
+    console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No data for this product</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  const chartData = calculateProductSegmentData(specificRecord);
+  
+  if (!chartData || chartData.length === 0) {
+    console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No segment data</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  createProductSegmentationChart(
+    containerId,
+    chartData,
+    combination.searchTerm,
+    combination.location,
+    combination.device,
+    selectedProduct.source,
+    specificRecord
+  );
+  
+  const positionChartContainer = document.getElementById(positionChartId);
+  if (positionChartContainer) {
+    positionChartContainer.combinationRecord = specificRecord;
+    positionChartContainer.combinationInfo = combination;
+  }
+}
     });
     
     window.pendingExplorerCharts = [];
@@ -1131,12 +1134,31 @@ function calculateCompanySegmentData(record) {
   // For companies, we use the segment data directly from the record
   if (!record) return null;
   
+  const top3 = (record.top3 || 0) * 100;
+  const top8 = (record.top8 || 0) * 100;
+  const top14 = (record.top14 || 0) * 100;
+  const top40 = (record.top40 || 0) * 100;
+  
+  // Calculate the segments
+  const top4_8 = top8 - top3;
+  const top9_14 = top14 - top8;
+  const below14 = top40 - top14;
+  
+  // Calculate previous values using trends
+  const top3Prev = top3 - ((record.top3Trend || 0) * 100);
+  const top8Prev = top8 - ((record.top8Trend || 0) * 100);
+  const top14Prev = top14 - ((record.top14Trend || 0) * 100);
+  const top40Prev = top40 - ((record.top40Trend || 0) * 100);
+  
+  const top4_8Prev = top8Prev - top3Prev;
+  const top9_14Prev = top14Prev - top8Prev;
+  const below14Prev = top40Prev - top14Prev;
+  
   return [
-    { label: "Top3", current: (record.top3 || 0) * 100, previous: ((record.top3 || 0) - (record.top3Trend || 0)) * 100 },
-    { label: "Top4-8", current: (record.top8 || 0) * 100, previous: ((record.top8 || 0) - (record.top8Trend || 0)) * 100 },
-    { label: "Top9-14", current: (record.top14 || 0) * 100, previous: ((record.top14 || 0) - (record.top14Trend || 0)) * 100 },
-    { label: "Below14", current: (record.top40 || 0) * 100 - (record.top14 || 0) * 100, 
-             previous: ((record.top40 || 0) - (record.top40Trend || 0)) * 100 - ((record.top14 || 0) - (record.top14Trend || 0)) * 100 }
+    { label: "Top3", current: top3, previous: top3Prev },
+    { label: "Top4-8", current: top4_8, previous: top4_8Prev },
+    { label: "Top9-14", current: top9_14, previous: top9_14Prev },
+    { label: "Below14", current: below14, previous: below14Prev }
   ];
 }
 
@@ -1273,14 +1295,14 @@ function createProductRankMarketShareHistory(record) {
     }
     
     // Get last 30 days of data
-    const dataPoints = record.historical_data.slice(-30).reverse(); // Most recent first
+    const dataPoints = record.historical_data.slice(-30);
     
     let html = '<div class="rank-history-container">';
     
     // First row: Company ranks
     html += '<div class="rank-history-row">';
     dataPoints.forEach(point => {
-      if (point && point.rank != null) {
+      if (point && point.rank !== undefined && point.rank !== null) {
         const rank = Math.round(point.rank);
         const colorClass = getRankColorClass(rank);
         html += `<div class="rank-box ${colorClass}">${rank}</div>`;
@@ -1293,7 +1315,7 @@ function createProductRankMarketShareHistory(record) {
     // Second row: Market share percentages
     html += '<div class="visibility-history-row">';
     dataPoints.forEach(point => {
-      if (point && point.market_share != null) {
+      if (point && point.market_share !== undefined && point.market_share !== null) {
         const marketShare = Math.round(point.market_share * 100 * 10) / 10;
         html += `<div class="visibility-box" data-fill="${marketShare}"><span>${marketShare}%</span></div>`;
       } else {
@@ -1305,7 +1327,7 @@ function createProductRankMarketShareHistory(record) {
     html += '</div>';
     return html;
   } else {
-    // Original product mode code (unchanged)
+    // Original product mode code - keep exactly as is
     const maxDate = moment().startOf('day');
     const minDate = maxDate.clone().subtract(29, 'days');
     
