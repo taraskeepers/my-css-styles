@@ -718,6 +718,7 @@ if (initialViewMode === 'viewRankingExplorer') {
 
 function createDeviceCell(combination) {
   const record = combination.record;
+  const isCompaniesMode = getCurrentMode() === 'companies';
   
   let deviceHTML = `<div class="device-container">`;
   
@@ -729,52 +730,113 @@ function createDeviceCell(combination) {
     <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
   </div>`;
   
-  const avgRank = calculateAvgRankFromHistorical(record);
-  deviceHTML += `
-    <div class="device-rank">
-      <div class="section-header">Avg Rank</div>
-      <div class="device-rank-value">${avgRank.value}</div>
-      <div class="device-trend" style="color:${avgRank.color};">
-        ${avgRank.arrow} ${avgRank.change}
+  // For companies mode, use rank and market share from the company stats
+  if (isCompaniesMode) {
+    const avgRank = record.rank || 999;
+    const rankTrend = record.rankTrend || 0;
+    
+    let arrow = '', change = '', color = '#444';
+    if (rankTrend < 0) {
+      arrow = '▲';
+      color = 'green';
+      change = Math.abs(rankTrend).toFixed(1);
+    } else if (rankTrend > 0) {
+      arrow = '▼';
+      color = 'red';
+      change = rankTrend.toFixed(1);
+    } else {
+      arrow = '±';
+      change = '0.0';
+    }
+    
+    deviceHTML += `
+      <div class="device-rank">
+        <div class="section-header">Company Rank</div>
+        <div class="device-rank-value">${avgRank}</div>
+        <div class="device-trend" style="color:${color};">
+          ${arrow} ${change}
+        </div>
       </div>
-    </div>
-  `;
-  
-  let avgVisibility = 0;
-  if (record.avg_visibility) {
-    avgVisibility = parseFloat(record.avg_visibility) * 100;
+    `;
+    
+    // Use market share instead of visibility
+    const marketShare = (record.top40 || 0) * 100;
+    const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+    deviceHTML += `
+      <div class="device-share">
+        <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
+        <div id="${visChartId}" class="pie-chart-container"></div>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      createMarketSharePieChartExplorer(visChartId, marketShare);
+    }, 50);
+    
+    // Status is always active for companies in the results
+    deviceHTML += `
+      <div class="device-status">
+        <div class="section-header">Status</div>
+        <div class="device-status-value">
+          <span class="status-active">Active</span>
+        </div>
+      </div>
+    `;
+    
+    deviceHTML += `
+      <div class="last-tracked-container">
+        <div class="last-tracked-label">Company Presence:</div>
+        <div class="last-tracked-value recent-tracking">Tracked</div>
+      </div>
+    `;
+  } else {
+    // Original product mode code
+    const avgRank = calculateAvgRankFromHistorical(record);
+    deviceHTML += `
+      <div class="device-rank">
+        <div class="section-header">Avg Rank</div>
+        <div class="device-rank-value">${avgRank.value}</div>
+        <div class="device-trend" style="color:${avgRank.color};">
+          ${avgRank.arrow} ${avgRank.change}
+        </div>
+      </div>
+    `;
+    
+    let avgVisibility = 0;
+    if (record.avg_visibility) {
+      avgVisibility = parseFloat(record.avg_visibility) * 100;
+    }
+
+    const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+    deviceHTML += `
+      <div class="device-share">
+        <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
+        <div id="${visChartId}" class="pie-chart-container"></div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      createMarketSharePieChartExplorer(visChartId, avgVisibility);
+    }, 50);
+
+    const lastTracked = getLastTrackedInfo(record);
+    const isActive = lastTracked.isActive;
+    deviceHTML += `
+      <div class="device-status">
+        <div class="section-header">Status</div>
+        <div class="device-status-value">
+          <span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+      </div>
+    `;
+
+    deviceHTML += `
+      <div class="last-tracked-container">
+        <div class="last-tracked-label">Last time tracked:</div>
+        <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
+      </div>
+    `;
   }
-
-const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
-deviceHTML += `
-  <div class="device-share">
-    <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
-    <div id="${visChartId}" class="pie-chart-container"></div>
-  </div>
-`;
-
-setTimeout(() => {
-  createMarketSharePieChartExplorer(visChartId, avgVisibility);
-}, 50);
-
-// Add status section for ranking mode
-const lastTracked = getLastTrackedInfo(record);
-const isActive = lastTracked.isActive;
-deviceHTML += `
-  <div class="device-status">
-    <div class="section-header">Status</div>
-    <div class="device-status-value">
-      <span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
-    </div>
-  </div>
-`;
-
-deviceHTML += `
-  <div class="last-tracked-container">
-    <div class="last-tracked-label">Last time tracked:</div>
-    <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
-  </div>
-`;
   
   deviceHTML += `</div>`;
   
@@ -899,56 +961,100 @@ function renderPendingExplorerChartsForProduct() {
       return;
     }
     
-    console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
+    const isCompaniesMode = getCurrentMode() === 'companies';
+    console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} charts in ${isCompaniesMode ? 'companies' : 'products'} mode`);
     
     charts.forEach((chartInfo, index) => {
       const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
-      console.log(`[renderPendingExplorerChartsForProduct] Processing chart ${index + 1}/${charts.length}: ${containerId}`);
       
-      const productRecords = getProductRecords(selectedProduct);
-      const specificRecord = productRecords.find(record => 
-        record.q === combination.searchTerm &&
-        record.location_requested === combination.location &&
-        record.device === combination.device
-      );
-      
-      if (!specificRecord) {
-        console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
-        const container = document.getElementById(containerId);
-        if (container) {
-          container.innerHTML = '<div class="no-data-message">No data for this product</div>';
-          container.classList.remove('loading');
+      if (isCompaniesMode) {
+        // For companies mode, use the record directly from combination
+        const companyRecord = combination.record;
+        
+        if (!companyRecord) {
+          console.log(`[renderPendingExplorerChartsForProduct] No company record found`);
+          const container = document.getElementById(containerId);
+          if (container) {
+            container.innerHTML = '<div class="no-data-message">No data for this company</div>';
+            container.classList.remove('loading');
+          }
+          return;
         }
-        return;
-      }
-      
-      const chartData = calculateProductSegmentData(specificRecord);
-      
-      if (!chartData || chartData.length === 0) {
-        console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
-        const container = document.getElementById(containerId);
-        if (container) {
-          container.innerHTML = '<div class="no-data-message">No segment data</div>';
-          container.classList.remove('loading');
+        
+        // Use company's segment data if available
+        const chartData = calculateCompanySegmentData(companyRecord);
+        
+        if (!chartData || chartData.length === 0) {
+          const container = document.getElementById(containerId);
+          if (container) {
+            container.innerHTML = '<div class="no-data-message">No segment data</div>';
+            container.classList.remove('loading');
+          }
+          return;
         }
-        return;
-      }
-      
-      createProductSegmentationChart(
-        containerId,
-        chartData,
-        combination.searchTerm,
-        combination.location,
-        combination.device,
-        selectedProduct.source,
-        specificRecord
-      );
-      
-      // Store reference to the record for position chart rendering
-      const positionChartContainer = document.getElementById(positionChartId);
-      if (positionChartContainer) {
-        positionChartContainer.combinationRecord = specificRecord;
-        positionChartContainer.combinationInfo = combination;
+        
+        createProductSegmentationChart(
+          containerId,
+          chartData,
+          combination.searchTerm,
+          combination.location,
+          combination.device,
+          combination.company,
+          companyRecord
+        );
+        
+        // Store reference for position chart
+        const positionChartContainer = document.getElementById(positionChartId);
+        if (positionChartContainer) {
+          positionChartContainer.combinationRecord = companyRecord;
+          positionChartContainer.combinationInfo = combination;
+        }
+      } else {
+        // Original product mode code (keep as is)
+        const productRecords = getProductRecords(selectedProduct);
+        const specificRecord = productRecords.find(record => 
+          record.q === combination.searchTerm &&
+          record.location_requested === combination.location &&
+          record.device === combination.device
+        );
+        
+        if (!specificRecord) {
+          console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
+          const container = document.getElementById(containerId);
+          if (container) {
+            container.innerHTML = '<div class="no-data-message">No data for this product</div>';
+            container.classList.remove('loading');
+          }
+          return;
+        }
+        
+        const chartData = calculateProductSegmentData(specificRecord);
+        
+        if (!chartData || chartData.length === 0) {
+          console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
+          const container = document.getElementById(containerId);
+          if (container) {
+            container.innerHTML = '<div class="no-data-message">No segment data</div>';
+            container.classList.remove('loading');
+          }
+          return;
+        }
+        
+        createProductSegmentationChart(
+          containerId,
+          chartData,
+          combination.searchTerm,
+          combination.location,
+          combination.device,
+          selectedProduct.source,
+          specificRecord
+        );
+        
+        const positionChartContainer = document.getElementById(positionChartId);
+        if (positionChartContainer) {
+          positionChartContainer.combinationRecord = specificRecord;
+          positionChartContainer.combinationInfo = combination;
+        }
       }
     });
     
@@ -1018,6 +1124,19 @@ function calculateProductSegmentData(record) {
     { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
     { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
     { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
+  ];
+}
+
+function calculateCompanySegmentData(record) {
+  // For companies, we use the segment data directly from the record
+  if (!record) return null;
+  
+  return [
+    { label: "Top3", current: (record.top3 || 0) * 100, previous: ((record.top3 || 0) - (record.top3Trend || 0)) * 100 },
+    { label: "Top4-8", current: (record.top8 || 0) * 100, previous: ((record.top8 || 0) - (record.top8Trend || 0)) * 100 },
+    { label: "Top9-14", current: (record.top14 || 0) * 100, previous: ((record.top14 || 0) - (record.top14Trend || 0)) * 100 },
+    { label: "Below14", current: (record.top40 || 0) * 100 - (record.top14 || 0) * 100, 
+             previous: ((record.top40 || 0) - (record.top40Trend || 0)) * 100 - ((record.top14 || 0) - (record.top14Trend || 0)) * 100 }
   ];
 }
 
@@ -1144,79 +1263,111 @@ infoContainer.innerHTML = `
   });
 }
 
-// Add this function after createProductSegmentationChart (around line 850)
 function createProductRankMarketShareHistory(record) {
-  // Use last 30 days like in position charts
-  const maxDate = moment().startOf('day');
-  const minDate = maxDate.clone().subtract(29, 'days');
+  const isCompaniesMode = getCurrentMode() === 'companies';
   
-// Create array of exactly 30 dates (newest first, oldest last)
-const dateArray = [];
-let currentDate = maxDate.clone(); // Start from newest date
-while (currentDate.isSameOrAfter(minDate)) {
-  dateArray.push(currentDate.format('YYYY-MM-DD'));
-  currentDate.subtract(1, 'day'); // Go backwards
-}
-  
-  // Check if there's any historical data at all
-  const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
-  
-  let html = '<div class="rank-history-container">';
-  
-  if (!hasHistoricalData) {
-    // Completely missing data - show gray empty boxes
-    html += '<div class="rank-history-row">';
-    dateArray.forEach(() => {
-      html += '<div class="history-empty-box"></div>';
-    });
-    html += '</div>';
+  if (isCompaniesMode) {
+    // For companies mode, use the historical_data from company stats
+    if (!record.historical_data || record.historical_data.length === 0) {
+      return '<div class="rank-history-container"><div class="no-data-message">No historical data available</div></div>';
+    }
     
-    html += '<div class="visibility-history-row">';
-    dateArray.forEach(() => {
-      html += '<div class="history-empty-box"></div>';
-    });
-    html += '</div>';
-  } else {
-    // Has some historical data - process normally
+    // Get last 30 days of data
+    const dataPoints = record.historical_data.slice(-30).reverse(); // Most recent first
     
-    // First row: Rank positions
+    let html = '<div class="rank-history-container">';
+    
+    // First row: Company ranks
     html += '<div class="rank-history-row">';
-    dateArray.forEach(dateStr => {
-      const histItem = record.historical_data.find(item => 
-        item.date?.value === dateStr
-      );
-      
-      if (histItem?.avg_position != null) {
-        // Data exists - show actual rank with color coding
-        const rank = Math.round(parseFloat(histItem.avg_position));
+    dataPoints.forEach(point => {
+      if (point && point.rank != null) {
+        const rank = Math.round(point.rank);
         const colorClass = getRankColorClass(rank);
         html += `<div class="rank-box ${colorClass}">${rank}</div>`;
       } else {
-        // Missing data for this date - empty box with no background color
         html += '<div class="rank-box"></div>';
       }
     });
     html += '</div>';
     
-    // Second row: Visibility percentages
+    // Second row: Market share percentages
     html += '<div class="visibility-history-row">';
-    dateArray.forEach(dateStr => {
-      const histItem = record.historical_data.find(item => 
-        item.date?.value === dateStr
-      );
-      
-if (histItem?.visibility != null) {
-  const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
-  html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
-} else {
-  html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
-}
+    dataPoints.forEach(point => {
+      if (point && point.market_share != null) {
+        const marketShare = Math.round(point.market_share * 100 * 10) / 10;
+        html += `<div class="visibility-box" data-fill="${marketShare}"><span>${marketShare}%</span></div>`;
+      } else {
+        html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+      }
     });
     html += '</div>';
+    
+    html += '</div>';
+    return html;
+  } else {
+    // Original product mode code (unchanged)
+    const maxDate = moment().startOf('day');
+    const minDate = maxDate.clone().subtract(29, 'days');
+    
+    const dateArray = [];
+    let currentDate = maxDate.clone();
+    while (currentDate.isSameOrAfter(minDate)) {
+      dateArray.push(currentDate.format('YYYY-MM-DD'));
+      currentDate.subtract(1, 'day');
+    }
+    
+    const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
+    
+    let html = '<div class="rank-history-container">';
+    
+    if (!hasHistoricalData) {
+      html += '<div class="rank-history-row">';
+      dateArray.forEach(() => {
+        html += '<div class="history-empty-box"></div>';
+      });
+      html += '</div>';
+      
+      html += '<div class="visibility-history-row">';
+      dateArray.forEach(() => {
+        html += '<div class="history-empty-box"></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="rank-history-row">';
+      dateArray.forEach(dateStr => {
+        const histItem = record.historical_data.find(item => 
+          item.date?.value === dateStr
+        );
+        
+        if (histItem?.avg_position != null) {
+          const rank = Math.round(parseFloat(histItem.avg_position));
+          const colorClass = getRankColorClass(rank);
+          html += `<div class="rank-box ${colorClass}">${rank}</div>`;
+        } else {
+          html += '<div class="rank-box"></div>';
+        }
+      });
+      html += '</div>';
+      
+      html += '<div class="visibility-history-row">';
+      dateArray.forEach(dateStr => {
+        const histItem = record.historical_data.find(item => 
+          item.date?.value === dateStr
+        );
+        
+        if (histItem?.visibility != null) {
+          const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
+          html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
+        } else {
+          html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+        }
+      });
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
   }
-  
-  html += '</div>';
-  return html;
 }
 
 function buildMapDataForSelectedProduct() {
