@@ -6,6 +6,11 @@ window.productMetricsSettings = {
   // Future settings can be added here
 };
 
+// Function to get current mode from modeSelector
+function getCurrentMode() {
+  return document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+}
+
 // Helper functions defined at the top level
 function getProductRecords(product) {
   if (!window.allRows || !product) return [];
@@ -2455,6 +2460,11 @@ function getRatingBadgeColor(rating) {
 
 // Main function definition
 function renderProductExplorerTable() {
+  // Ensure body class matches current mode
+const currentMode = getCurrentMode();
+document.body.classList.remove('mode-products', 'mode-companies');
+document.body.classList.add(`mode-${currentMode}`);
+  
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
   if (existingTable) {
     existingTable.remove();
@@ -3122,10 +3132,34 @@ viewMapExplorerBtn.addEventListener("click", function() {
     });
   }
 });
-  
-  console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
 
-  // Get the correct company for the current project
+// Listen for mode changes from modeSelector
+document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
+  option.addEventListener('click', function() {
+    const selectedMode = this.getAttribute('data-mode');
+    
+    // Update body class
+    document.body.classList.remove('mode-products', 'mode-companies');
+    document.body.classList.add(`mode-${selectedMode}`);
+    
+    console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
+    
+    // Re-render the product explorer table with new mode
+    if (window.selectedExplorerProduct) {
+      const combinations = getProductCombinations(window.selectedExplorerProduct);
+      const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
+      renderTableForSelectedProduct(combinations, currentViewMode);
+    }
+  });
+});
+  
+console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
+
+// Check current mode from modeSelector
+const currentMode = getCurrentMode();
+console.log(`[ProductExplorer] Current mode: ${currentMode}`);
+
+// Get the correct company for the current project
 let companyToFilter = window.myCompany; // Default fallback
 
 // Extract current project number from dataPrefix
@@ -3144,6 +3178,16 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 }
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
+
+  const currentMode = getCurrentMode();
+if (currentMode === 'companies') {
+  // Company mode specific logic - group by companies instead of individual products
+  console.log(`[ProductExplorer] Processing in COMPANIES mode`);
+  // You can add company-specific data aggregation here
+} else {
+  // Products mode (default)
+  console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
+}
   
   window.pendingExplorerCharts = [];
   if (window.explorerApexCharts) {
