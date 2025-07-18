@@ -3696,9 +3696,11 @@ if (getCurrentMode() === 'companies') {
   console.log(`[ProductExplorer] Processing in COMPANIES mode`);
   
   // Hide products nav panel, show companies nav panel
-  if (productsNavPanel) productsNavPanel.style.display = 'none';
+  const productsNav = document.getElementById('productsNavPanel');
+  if (productsNav) productsNav.style.display = 'none';
   
-  if (compNavPanel) compNavPanel.style.display = 'block';
+  const compNav = document.getElementById('compNavPanel');
+  if (compNav) compNav.style.display = 'block';
   
   renderCompaniesNavPanel();
   return; // Exit early for companies mode - DO NOT process products
@@ -3708,8 +3710,11 @@ if (getCurrentMode() === 'companies') {
 console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
 
 // Show products nav panel, hide companies nav panel
-if (productsNavPanel) productsNavPanel.style.display = 'block';
-if (compNavPanel) compNavPanel.style.display = 'none';
+const productsNav = document.getElementById('productsNavPanel');
+if (productsNav) productsNav.style.display = 'block';
+
+const compNav = document.getElementById('compNavPanel');
+if (compNav) compNav.style.display = 'none';
   
   window.pendingExplorerCharts = [];
   if (window.explorerApexCharts) {
