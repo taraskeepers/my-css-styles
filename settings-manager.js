@@ -1675,7 +1675,7 @@ settingsButton.onclick = function(e) {
   setTimeout(attachListener, 1000);
 })();
 
-// Function to handle the complete IDB refresh process
+// Fixed refreshIDBData function with better error handling
 window.refreshIDBData = async function() {
   try {
     console.log("[🔄 IDB Refresh] Starting complete database refresh...");
@@ -1689,21 +1689,43 @@ window.refreshIDBData = async function() {
 
     // Step 1: Delete the existing database
     console.log("[🔄 IDB Refresh] Step 1: Deleting existing database...");
+    let deletionSuccessful = false;
+    
     if (window.embedIDB && typeof window.embedIDB.deleteDatabase === "function") {
-      await window.embedIDB.deleteDatabase();
+      try {
+        deletionSuccessful = await window.embedIDB.deleteDatabase();
+        if (deletionSuccessful) {
+          console.log("[🔄 IDB Refresh] Database deleted successfully");
+        } else {
+          console.warn("[🔄 IDB Refresh] Database deletion failed or timed out - continuing anyway");
+        }
+      } catch (error) {
+        console.error("[🔄 IDB Refresh] Database deletion error:", error);
+        // Continue with refresh even if deletion fails
+      }
     }
     
-    // Step 2: Clear only table data, preserve project structure temporarily
+    // Step 2: Clear cached data regardless of deletion success
+    console.log("[🔄 IDB Refresh] Step 2: Clearing cached data...");
+    
+    // Preserve project structure temporarily
     const savedProjectData = window.projectData;
     const savedDemoProjectData = window.demoProjectData;
     const savedRealProjectData = window.realProjectData;
     
+    // Clear data arrays
     window.allRows = [];
     window.companyStatsData = [];
     window.marketTrendsData = [];
     window.googleSheetsData = null;
     
-    console.log("[🔄 IDB Refresh] Step 2: Cleared cached data");
+    // Clear any data caches
+    if (window.dataCache) {
+      window.dataCache.clear();
+      console.log("[🔄 IDB Refresh] Data cache cleared");
+    }
+    
+    console.log("[🔄 IDB Refresh] Cached data cleared");
 
     // Restore project data immediately
     window.projectData = savedProjectData;
@@ -1713,29 +1735,63 @@ window.refreshIDBData = async function() {
     // Step 3: Request fresh data from server
     console.log("[🔄 IDB Refresh] Step 3: Requesting fresh data from server...");
     
-    // Set a flag to indicate we're doing a full refresh
+    // Set flags to indicate we're doing a full refresh
     window._isRefreshingIDB = true;
     window._refreshRequestCount = 0;
     window._refreshExpectedCount = 2; // Expecting both demo and real account data
     
-    // Request both demo and real account data
+    // Clear any existing server request timeouts
+    if (window.serverRequestTimeout) {
+      clearTimeout(window.serverRequestTimeout);
+      window.serverRequestTimeout = null;
+    }
+    
+    // Request fresh data with timeout protection
+    const currentProjectNumber = parseInt(window.dataPrefix?.match(/pr(\d+)_/)?.[1]) || 1;
+    
+    // Set up a timeout for the refresh operation
+    const refreshTimeout = setTimeout(() => {
+      if (window._isRefreshingIDB) {
+        console.error("[🔄 IDB Refresh] Refresh operation timed out after 30 seconds");
+        window._isRefreshingIDB = false;
+        
+        // Hide loader and show error
+        if (loader) {
+          loader.style.opacity = "0";
+          setTimeout(() => { loader.style.display = "none"; }, 500);
+        }
+        
+        alert("Database refresh timed out. Please try again.");
+      }
+    }, 30000); // 30 second timeout
+    
+    // Store timeout ID so it can be cleared when refresh completes
+    window._refreshTimeoutId = refreshTimeout;
+    
+    // Send the request
     window.parent.postMessage({
       command: "requestServerData", 
-      projectNumber: 1,
+      projectNumber: currentProjectNumber,
       forceRefresh: true,
       requestBoth: true  // Signal to parent to send both demo and real data
     }, "*");
 
-// DON'T automatically fetch Google Sheets data
-// Each project manages its own Google Sheets data independently
-console.log("[IDB Refresh] Google Sheets data is project-specific, not refreshing automatically");
-window.googleSheetsData = {
-  productPerformance: [],
-  locationRevenue: []
-};
+    // Reset Google Sheets data (project-specific)
+    console.log("[🔄 IDB Refresh] Google Sheets data is project-specific, not refreshing automatically");
+    window.googleSheetsData = {
+      productPerformance: [],
+      locationRevenue: []
+    };
 
   } catch (error) {
     console.error("[🔄 IDB Refresh] Error during refresh:", error);
+    
+    // Clean up refresh state
+    window._isRefreshingIDB = false;
+    if (window._refreshTimeoutId) {
+      clearTimeout(window._refreshTimeoutId);
+      window._refreshTimeoutId = null;
+    }
     
     // Hide loader on error
     const loader = document.getElementById("overlayLoader");
@@ -1744,7 +1800,8 @@ window.googleSheetsData = {
       setTimeout(() => { loader.style.display = "none"; }, 500);
     }
     
-    alert("Error refreshing database. Please try again or refresh the page.");
+    // Show user-friendly error message
+    alert("Error refreshing database. Please check your connection and try again.");
   }
 };
 
