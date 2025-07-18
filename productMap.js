@@ -2445,13 +2445,14 @@ let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : 
   }
   let finalItems = nonOthersItems.concat(othersItems);
   
-  // Format date
-  const date = new Date(parseInt(labels[dataPointIndex]));
-  const readableDate = date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
-  });
+// Format date - labels contains date strings, not timestamps
+const dateString = labels[dataPointIndex]; // This is in 'YYYY-MM-DD' format
+const date = moment(dateString, 'YYYY-MM-DD').toDate();
+const readableDate = date.toLocaleDateString('en-US', { 
+  month: 'short', 
+  day: 'numeric',
+  year: 'numeric'
+});
   
   // Build HTML
   let html = `
