@@ -2548,13 +2548,23 @@ function updateHighlight(dataPointIndex) {
   let xPos = translateX + (dataPointIndex * columnWidth) - (columnWidth / 2);
   let width = columnWidth;
   
-  // Adjust for edge cases
+  // Special handling for first and last points
   if (dataPointIndex === 0) {
     xPos = translateX;
     width = columnWidth / 2;
   } else if (dataPointIndex === actualDataPoints - 1) {
-    xPos = translateX + gridWidth - (columnWidth / 2);
-    width = columnWidth / 2;
+    // For the last point, extend to the edge of the grid
+    xPos = translateX + (dataPointIndex * columnWidth) - (columnWidth / 2);
+    width = (translateX + gridWidth) - xPos;
+  }
+  
+  // Ensure highlight doesn't extend beyond grid boundaries
+  if (xPos < translateX) {
+    width -= (translateX - xPos);
+    xPos = translateX;
+  }
+  if (xPos + width > translateX + gridWidth) {
+    width = (translateX + gridWidth) - xPos;
   }
   
   highlightDiv.style.left = xPos + 'px';
@@ -2572,81 +2582,86 @@ function updateHighlight(dataPointIndex) {
     left: xPos,
     width: width,
     dataPointIndex: dataPointIndex,
-    actualDataPoints: actualDataPoints
+    actualDataPoints: actualDataPoints,
+    gridBounds: {
+      start: translateX,
+      end: translateX + gridWidth
+    }
   });
 }
 
-    // Function to build tooltip content
-    function buildTooltipContent(dataPointIndex) {
-      console.log('[DEBUG] Building tooltip for index:', dataPointIndex);
-      
-      const series = chart.w.config.series;
-      const labels = chart.w.globals.labels;
-      
-      if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
-        console.log('[DEBUG] Index out of bounds:', { dataPointIndex, labelsLength: labels.length });
-        return null;
+// Function to build tooltip content
+function buildTooltipContent(dataPointIndex) {
+  console.log('[DEBUG] Building tooltip for index:', dataPointIndex);
+  
+  const series = chart.w.config.series;
+  const labels = chart.w.globals.labels;
+  
+  if (dataPointIndex < 0 || dataPointIndex >= series[0].data.length) {
+    console.log('[DEBUG] Index out of bounds:', { dataPointIndex, seriesLength: series[0].data.length });
+    return null;
+  }
+  
+  // Debug: Check if data exists for this point
+  let hasData = false;
+  series.forEach((s, idx) => {
+    if (s.data[dataPointIndex] && s.data[dataPointIndex].y !== null && s.data[dataPointIndex].y !== undefined) {
+      hasData = true;
+      console.log(`[DEBUG] Series ${idx} (${s.name}) has data at index ${dataPointIndex}:`, s.data[dataPointIndex].y);
+    }
+  });
+  
+  if (!hasData) {
+    console.log('[DEBUG] No data found for this index');
+    return null;
+  }
+  
+  let tooltipItems = [];
+  for (let i = 0; i < series.length; i++) {
+    let companyName = series[i].name;
+    let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
+    let currentValue = series[i].data[dataPointIndex].y;
+    let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
+    let trendStr = "";
+    
+    if (previousValue !== null) {
+      let diff = currentValue - previousValue;
+      if (diff > 0) {
+        trendStr = "▲ " + diff.toFixed(2) + "%";
+      } else if (diff < 0) {
+        trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
+      } else {
+        trendStr = "±0.00%";
       }
-      
-      // Debug: Check if data exists for this point
-      let hasData = false;
-      series.forEach((s, idx) => {
-        if (s.data[dataPointIndex] && s.data[dataPointIndex].y !== null && s.data[dataPointIndex].y !== undefined) {
-          hasData = true;
-          console.log(`[DEBUG] Series ${idx} (${s.name}) has data at index ${dataPointIndex}:`, s.data[dataPointIndex].y);
-        }
-      });
-      
-      if (!hasData) {
-        console.log('[DEBUG] No data found for this index');
-        return null;
-      }
-      
-      let tooltipItems = [];
-      for (let i = 0; i < series.length; i++) {
-        let companyName = series[i].name;
-        let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-        let currentValue = series[i].data[dataPointIndex].y;
-        let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
-        let trendStr = "";
-        
-        if (previousValue !== null) {
-          let diff = currentValue - previousValue;
-          if (diff > 0) {
-            trendStr = "▲ " + diff.toFixed(2) + "%";
-          } else if (diff < 0) {
-            trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
-          } else {
-            trendStr = "±0.00%";
-          }
-        }
-        
-        tooltipItems.push({
-          companyName,
-          currentValue,
-          trendStr,
-          seriesColor
-        });
-      }
-      
-      let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
-      let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
-      let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-      
-      for (let i = 0; i < nonOthersItems.length; i++) {
-        nonOthersItems[i].rank = i + 1;
-      }
-      let finalItems = nonOthersItems.concat(othersItems);
-      
-      const timestamp = labels[dataPointIndex];
-      const date = new Date(timestamp);
-      const readableDate = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
-      
-      console.log('[DEBUG] Tooltip date:', readableDate);
+    }
+    
+    tooltipItems.push({
+      companyName,
+      currentValue,
+      trendStr,
+      seriesColor
+    });
+  }
+  
+  let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
+  let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
+  let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
+  
+  for (let i = 0; i < nonOthersItems.length; i++) {
+    nonOthersItems[i].rank = i + 1;
+  }
+  let finalItems = nonOthersItems.concat(othersItems);
+  
+  // IMPORTANT: Use seriesX to get the correct timestamp, not labels
+  const timestamp = chart.w.globals.seriesX[0][dataPointIndex];
+  const date = new Date(timestamp);
+  const readableDate = date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  console.log('[DEBUG] Tooltip date:', readableDate);
       
       let html = `
         <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px; padding-right: 30px;">
