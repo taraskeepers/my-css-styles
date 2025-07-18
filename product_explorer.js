@@ -3690,10 +3690,6 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
-// Get references to both nav panels
-const productsNavPanel = document.getElementById('productsNavPanel');
-const compNavPanel = document.getElementById('compNavPanel');
-
 // Apply mode-specific filtering
 if (getCurrentMode() === 'companies') {
   // Company mode specific logic
@@ -3701,6 +3697,7 @@ if (getCurrentMode() === 'companies') {
   
   // Hide products nav panel, show companies nav panel
   if (productsNavPanel) productsNavPanel.style.display = 'none';
+  
   if (compNavPanel) compNavPanel.style.display = 'block';
   
   renderCompaniesNavPanel();
