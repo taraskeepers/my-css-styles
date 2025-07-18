@@ -3155,8 +3155,6 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
   
 console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
 
-// Check current mode from modeSelector
-const currentMode = getCurrentMode();
 console.log(`[ProductExplorer] Current mode: ${currentMode}`);
 
 // Get the correct company for the current project
