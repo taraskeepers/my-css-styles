@@ -2377,12 +2377,13 @@ const options = {
     position: "top",
     horizontalAlign: "left"
   },
-  tooltip: {
-    enabled: false,  // Disable ApexCharts tooltip
-    // But enable the crosshairs
-    shared: true,
-    intersect: false
-  },
+tooltip: {
+  enabled: true,  // Enable this for crosshairs to work
+  custom: function() { return ''; }, // But return empty string to hide default tooltip
+  shared: true,
+  intersect: false,
+  followCursor: true
+},
   grid: {
     show: true,
     borderColor: '#f1f1f1',
@@ -2405,7 +2406,7 @@ try {
   const chart = new ApexCharts(chartEl, options);
   chart.render();
 
-  // Custom tooltip implementation with delay
+  // Custom tooltip implementation with click
   const customTooltip = document.createElement('div');
   customTooltip.id = `custom-tooltip-${containerId}`;
   customTooltip.style.cssText = `
@@ -2422,34 +2423,72 @@ try {
     max-height: none !important;
     overflow: visible !important;
     z-index: 10000;
-    pointer-events: none;
+    pointer-events: auto;
   `;
   document.body.appendChild(customTooltip);
 
+  // Add close button to tooltip
+  const closeButton = document.createElement('button');
+  closeButton.style.cssText = `
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  `;
+  closeButton.innerHTML = '×';
+  closeButton.onmouseover = () => { closeButton.style.backgroundColor = '#f0f0f0'; };
+  closeButton.onmouseout = () => { closeButton.style.backgroundColor = 'transparent'; };
+  
   // Get the chart's DOM element
   const chartElement = document.querySelector(`#${containerId} .apexcharts-canvas`);
   if (!chartElement) return;
 
-  // Add a variable to store the timeout
-  let tooltipTimeout = null;
-  let currentTooltipData = null;
+  // Variables to track hover and click state
+  let currentHoverIndex = -1;
+  let isTooltipOpen = false;
+  let highlightRect = null;
+
+  // Create highlight rectangle
+  const svgElement = chartElement.querySelector('svg');
+  if (svgElement) {
+    highlightRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    highlightRect.setAttribute('fill', '#007aff');
+    highlightRect.setAttribute('fill-opacity', '0.1');
+    highlightRect.setAttribute('stroke', '#007aff');
+    highlightRect.setAttribute('stroke-width', '2');
+    highlightRect.setAttribute('stroke-opacity', '0.5');
+    highlightRect.style.pointerEvents = 'none';
+    highlightRect.style.display = 'none';
+    highlightRect.style.cursor = 'pointer';
+    svgElement.appendChild(highlightRect);
+  }
 
   // Helper function to get data point from mouse position
   function getDataPointFromEvent(e) {
     const rect = chartElement.getBoundingClientRect();
     const x = e.clientX - rect.left;
     
-    // Use ApexCharts' internal coordinate system for better accuracy
     const xAxisRange = chart.w.globals.minX && chart.w.globals.maxX ? 
       chart.w.globals.maxX - chart.w.globals.minX : 0;
     
-    if (!xAxisRange) return 0;
+    if (!xAxisRange) return -1;
     
     const chartWidth = chart.w.globals.gridWidth;
     const xRatio = x / chartWidth;
     const xValue = chart.w.globals.minX + (xRatio * xAxisRange);
     
-    // Find the closest data point
     let closestIndex = 0;
     let minDiff = Infinity;
     
@@ -2464,166 +2503,229 @@ try {
     return closestIndex;
   }
 
-  // Mouse move handler with delay
-  chartElement.addEventListener('mousemove', function(e) {
-    // Clear any existing timeout
-    if (tooltipTimeout) {
-      clearTimeout(tooltipTimeout);
-      tooltipTimeout = null;
+  // Function to update highlight rectangle
+  function updateHighlight(dataPointIndex) {
+    if (!highlightRect || dataPointIndex < 0) {
+      if (highlightRect) highlightRect.style.display = 'none';
+      return;
     }
 
-    // Store the current mouse position data
-    currentTooltipData = {
-      event: e,
-      dataPointIndex: getDataPointFromEvent(e)
-    };
+    const gridRect = chart.w.globals.dom.baseEl.querySelector('.apexcharts-grid').getBoundingClientRect();
+    const chartRect = chartElement.getBoundingClientRect();
+    
+    const dataPoints = chart.w.globals.seriesX[0].length;
+    const columnWidth = chart.w.globals.gridWidth / (dataPoints - 1);
+    
+    // Calculate x position
+    let xPos = chart.w.globals.translateX + (dataPointIndex * columnWidth);
+    
+    // Adjust for first and last columns
+    if (dataPointIndex === 0) {
+      xPos -= columnWidth / 2;
+    } else if (dataPointIndex === dataPoints - 1) {
+      xPos -= columnWidth / 2;
+    } else {
+      xPos -= columnWidth / 2;
+    }
 
-    // Set a new timeout for 500ms
-    tooltipTimeout = setTimeout(() => {
-      const dataPointIndex = currentTooltipData.dataPointIndex;
-      const series = chart.w.config.series;
-      const labels = chart.w.globals.labels;
+    // Set highlight rectangle attributes
+    highlightRect.setAttribute('x', Math.max(chart.w.globals.translateX, xPos));
+    highlightRect.setAttribute('y', chart.w.globals.translateY);
+    highlightRect.setAttribute('width', Math.min(columnWidth, chart.w.globals.gridWidth));
+    highlightRect.setAttribute('height', chart.w.globals.gridHeight);
+    highlightRect.style.display = 'block';
+  }
+
+  // Function to build tooltip content
+  function buildTooltipContent(dataPointIndex) {
+    const series = chart.w.config.series;
+    const labels = chart.w.globals.labels;
+    
+    if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
+      return null;
+    }
+    
+    let tooltipItems = [];
+    for (let i = 0; i < series.length; i++) {
+      let companyName = series[i].name;
+      let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
+      let currentValue = series[i].data[dataPointIndex].y;
+      let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
+      let trendStr = "";
       
-      if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
-        customTooltip.style.display = 'none';
-        return;
-      }
-      
-      // Build tooltip content
-      let tooltipItems = [];
-      for (let i = 0; i < series.length; i++) {
-        let companyName = series[i].name;
-        let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-        let currentValue = series[i].data[dataPointIndex].y;
-        let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1].y : null;
-        let trendStr = "";
-        
-        if (previousValue !== null) {
-          let diff = currentValue - previousValue;
-          if (diff > 0) {
-            trendStr = "▲ " + diff.toFixed(2) + "%";
-          } else if (diff < 0) {
-            trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
-          } else {
-            trendStr = "±0.00%";
-          }
+      if (previousValue !== null) {
+        let diff = currentValue - previousValue;
+        if (diff > 0) {
+          trendStr = "▲ " + diff.toFixed(2) + "%";
+        } else if (diff < 0) {
+          trendStr = "▼ " + Math.abs(diff).toFixed(2) + "%";
+        } else {
+          trendStr = "±0.00%";
         }
-        
-        tooltipItems.push({
-          companyName,
-          currentValue,
-          trendStr,
-          seriesColor
-        });
       }
       
-      // Sort by value descending
-      let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
-      
-      // Separate "Others"
-      let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
-      let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
-      
-      // Assign ranks
-      for (let i = 0; i < nonOthersItems.length; i++) {
-        nonOthersItems[i].rank = i + 1;
-      }
-      let finalItems = nonOthersItems.concat(othersItems);
-      
-      // Format date
-      const timestamp = labels[dataPointIndex];
-      const date = new Date(timestamp);
-      const readableDate = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
+      tooltipItems.push({
+        companyName,
+        currentValue,
+        trendStr,
+        seriesColor
       });
+    }
+    
+    let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
+    let othersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() === "others");
+    let nonOthersItems = sortedItems.filter(item => item.companyName.trim().toLowerCase() !== "others");
+    
+    for (let i = 0; i < nonOthersItems.length; i++) {
+      nonOthersItems[i].rank = i + 1;
+    }
+    let finalItems = nonOthersItems.concat(othersItems);
+    
+    const timestamp = labels[dataPointIndex];
+    const date = new Date(timestamp);
+    const readableDate = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    let html = `
+      <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px; padding-right: 30px;">
+        ${readableDate}
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #333;">
+    `;
+    
+    finalItems.forEach(item => {
+      let rankHtml = "";
+      if (item.companyName.trim().toLowerCase() !== "others") {
+        rankHtml = `<span style="
+          display: inline-block;
+          width: 22px;
+          height: 22px;
+          line-height: 22px;
+          border-radius: 11px;
+          background: ${item.seriesColor};
+          color: #fff;
+          text-align: center;
+          margin-right: 8px;
+          font-weight: bold;
+          font-size: 11px;
+        ">${item.rank}</span>`;
+      }
       
-      // Build HTML
-      let html = `
-        <div style="margin-bottom: 10px; font-size: 14px; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 6px;">
-          ${readableDate}
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #333;">
+      let trendColored = item.trendStr;
+      if (item.trendStr.startsWith("▲")) {
+        trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
+      } else if (item.trendStr.startsWith("▼")) {
+        trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
+      }
+      
+      html += `
+        <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+          <td style="padding: 6px 8px; vertical-align: middle;">
+            ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
+          </td>
+          <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
+            <strong style="font-size: 13px;">${(item.currentValue || 0).toFixed(2)}%</strong> ${trendColored}
+          </td>
+        </tr>
       `;
+    });
+    
+    html += `</table>`;
+    return html;
+  }
+
+  // Mouse move handler - only for highlighting
+  chartElement.addEventListener('mousemove', function(e) {
+    if (isTooltipOpen) return; // Don't update highlight if tooltip is open
+    
+    const dataPointIndex = getDataPointFromEvent(e);
+    
+    if (dataPointIndex !== currentHoverIndex) {
+      currentHoverIndex = dataPointIndex;
+      updateHighlight(dataPointIndex);
       
-      finalItems.forEach(item => {
-        let rankHtml = "";
-        if (item.companyName.trim().toLowerCase() !== "others") {
-          rankHtml = `<span style="
-            display: inline-block;
-            width: 22px;
-            height: 22px;
-            line-height: 22px;
-            border-radius: 11px;
-            background: ${item.seriesColor};
-            color: #fff;
-            text-align: center;
-            margin-right: 8px;
-            font-weight: bold;
-            font-size: 11px;
-          ">${item.rank}</span>`;
-        }
-        
-        let trendColored = item.trendStr;
-        if (item.trendStr.startsWith("▲")) {
-          trendColored = `<span style="color: #22c55e; font-weight: 600;">${item.trendStr}</span>`;
-        } else if (item.trendStr.startsWith("▼")) {
-          trendColored = `<span style="color: #ef4444; font-weight: 600;">${item.trendStr}</span>`;
-        }
-        
-        html += `
-          <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-            <td style="padding: 6px 8px; vertical-align: middle;">
-              ${rankHtml}<strong style="font-size: 13px;">${item.companyName}</strong>
-            </td>
-            <td style="padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">
-              <strong style="font-size: 13px;">${(item.currentValue || 0).toFixed(2)}%</strong> ${trendColored}
-            </td>
-          </tr>
-        `;
-      });
-      
-      html += `</table>`;
-      
-      // Update tooltip content
-      customTooltip.innerHTML = html;
-      customTooltip.style.display = 'block';
-      
-      // Position tooltip
-      const tooltipRect = customTooltip.getBoundingClientRect();
-      let left = currentTooltipData.event.clientX + 10;
-      let top = currentTooltipData.event.clientY - tooltipRect.height / 2;
-      
-      // Adjust if tooltip goes off screen
-      if (left + tooltipRect.width > window.innerWidth) {
-        left = currentTooltipData.event.clientX - tooltipRect.width - 10;
+      // Change cursor to pointer when hovering over valid data point
+      if (dataPointIndex >= 0) {
+        chartElement.style.cursor = 'pointer';
+      } else {
+        chartElement.style.cursor = 'default';
       }
-      if (top < 10) {
-        top = 10;
-      }
-      if (top + tooltipRect.height > window.innerHeight - 10) {
-        top = window.innerHeight - tooltipRect.height - 10;
-      }
-      
-      customTooltip.style.left = left + 'px';
-      customTooltip.style.top = top + 'px';
-    }, 500); // 500ms delay
+    }
   });
 
   // Mouse leave handler
   chartElement.addEventListener('mouseleave', function() {
-    // Clear any pending timeout
-    if (tooltipTimeout) {
-      clearTimeout(tooltipTimeout);
-      tooltipTimeout = null;
+    if (!isTooltipOpen) {
+      currentHoverIndex = -1;
+      if (highlightRect) highlightRect.style.display = 'none';
+      chartElement.style.cursor = 'default';
     }
-    // Hide tooltip immediately on mouse leave
-    customTooltip.style.display = 'none';
   });
 
-  // Store tooltip reference for cleanup
-  window.marketTrendChartInstances.push({ chart, tooltip: customTooltip });
+  // Click handler
+  chartElement.addEventListener('click', function(e) {
+    const dataPointIndex = getDataPointFromEvent(e);
+    
+    if (dataPointIndex >= 0) {
+      const content = buildTooltipContent(dataPointIndex);
+      if (content) {
+        customTooltip.innerHTML = content;
+        customTooltip.appendChild(closeButton);
+        customTooltip.style.display = 'block';
+        isTooltipOpen = true;
+        
+        // Keep highlight visible while tooltip is open
+        updateHighlight(dataPointIndex);
+        
+        // Position tooltip
+        const tooltipRect = customTooltip.getBoundingClientRect();
+        let left = e.clientX + 10;
+        let top = e.clientY - tooltipRect.height / 2;
+        
+        if (left + tooltipRect.width > window.innerWidth) {
+          left = e.clientX - tooltipRect.width - 10;
+        }
+        if (top < 10) {
+          top = 10;
+        }
+        if (top + tooltipRect.height > window.innerHeight - 10) {
+          top = window.innerHeight - tooltipRect.height - 10;
+        }
+        
+        customTooltip.style.left = left + 'px';
+        customTooltip.style.top = top + 'px';
+      }
+    }
+  });
+
+  // Close button handler
+  closeButton.addEventListener('click', function(e) {
+    e.stopPropagation();
+    customTooltip.style.display = 'none';
+    isTooltipOpen = false;
+    if (highlightRect) highlightRect.style.display = 'none';
+    currentHoverIndex = -1;
+  });
+
+  // Click outside to close tooltip
+  document.addEventListener('click', function(e) {
+    if (isTooltipOpen && !chartElement.contains(e.target) && !customTooltip.contains(e.target)) {
+      customTooltip.style.display = 'none';
+      isTooltipOpen = false;
+      if (highlightRect) highlightRect.style.display = 'none';
+      currentHoverIndex = -1;
+    }
+  });
+
+  // Store references for cleanup
+  window.marketTrendChartInstances.push({ 
+    chart, 
+    tooltip: customTooltip,
+    highlightRect: highlightRect
+  });
     
 } catch (error) {
   console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
