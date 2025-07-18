@@ -2480,8 +2480,8 @@ function getDataPointFromEvent(e) {
   const gridWidth = w.globals.gridWidth;
   const translateX = w.globals.translateX;
   
-  // IMPORTANT: Use the actual labels length, not dataPoints
-  const actualDataPoints = w.globals.labels.length;
+  // IMPORTANT: Use the actual series data length, not labels length
+  const actualDataPoints = w.config.series[0].data.length;
   const columnWidth = gridWidth / (actualDataPoints - 1);
   
   // Calculate which data point we're over
@@ -2493,14 +2493,23 @@ function getDataPointFromEvent(e) {
   
   console.log('[DEBUG] Calculated index:', {
     adjustedX,
-    actualDataPoints,  // Changed from dataPointCount
+    actualDataPoints,
     labelsLength: w.globals.labels.length,
-    seriesLength: w.config.series[0].data.length,
+    seriesDataLength: w.config.series[0].data.length,
     columnWidth,
     closestIndex,
     translateX,
     gridWidth
   });
+  
+  // Verify the date at this index
+  if (w.globals.seriesX && w.globals.seriesX[0] && w.globals.seriesX[0][closestIndex]) {
+    const timestamp = w.globals.seriesX[0][closestIndex];
+    const date = new Date(timestamp);
+    console.log('[DEBUG] Index', closestIndex, 'corresponds to date:', 
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    );
+  }
   
   return closestIndex;
 }
@@ -2509,15 +2518,15 @@ function getDataPointFromEvent(e) {
 function updateHighlight(dataPointIndex) {
   console.log('[DEBUG] updateHighlight called with index:', dataPointIndex);
   
-  // Remove any existing highlight
-  const existingHighlight = document.querySelector('.chart-highlight-rect');
+  // Remove any existing highlight for THIS chart only
+  const existingHighlight = chart.w.globals.dom.baseEl.querySelector('.chart-highlight-rect');
   if (existingHighlight) {
     existingHighlight.remove();
   }
   
   if (dataPointIndex < 0) return;
   
-  // Create a new highlight div overlay instead of SVG
+  // Create a new highlight div overlay
   const highlightDiv = document.createElement('div');
   highlightDiv.className = 'chart-highlight-rect';
   highlightDiv.style.cssText = `
@@ -2529,12 +2538,8 @@ function updateHighlight(dataPointIndex) {
     z-index: 1;
   `;
   
-  // Calculate position
-  const gridRect = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner').getBoundingClientRect();
-  const containerRect = chartEl.getBoundingClientRect();
-  
-  // IMPORTANT: Use actual labels length
-  const actualDataPoints = chart.w.globals.labels.length;
+  // IMPORTANT: Use actual series data length
+  const actualDataPoints = chart.w.config.series[0].data.length;
   const gridWidth = chart.w.globals.gridWidth;
   const translateX = chart.w.globals.translateX;
   const columnWidth = gridWidth / (actualDataPoints - 1);
@@ -2557,7 +2562,7 @@ function updateHighlight(dataPointIndex) {
   highlightDiv.style.width = width + 'px';
   highlightDiv.style.height = chart.w.globals.gridHeight + 'px';
   
-  // Append to chart container
+  // Append to THIS chart's container only
   const innerContainer = chart.w.globals.dom.baseEl.querySelector('.apexcharts-inner');
   if (innerContainer) {
     innerContainer.appendChild(highlightDiv);
@@ -2710,17 +2715,18 @@ function updateHighlight(dataPointIndex) {
       }
     });
 
-    // Mouse leave handler
-    chartElement.addEventListener('mouseleave', function() {
-      if (!isTooltipOpen) {
-        currentHoverIndex = -1;
-        const existingHighlight = document.querySelector('.chart-highlight-rect');
-        if (existingHighlight) {
-          existingHighlight.remove();
-        }
-        chartElement.style.cursor = 'default';
-      }
-    });
+// Mouse leave handler
+chartElement.addEventListener('mouseleave', function() {
+  if (!isTooltipOpen) {
+    currentHoverIndex = -1;
+    // Remove highlight only from THIS chart
+    const thisChartHighlight = chart.w.globals.dom.baseEl.querySelector('.chart-highlight-rect');
+    if (thisChartHighlight) {
+      thisChartHighlight.remove();
+    }
+    chartElement.style.cursor = 'default';
+  }
+});
 
     // Click handler
     chartElement.addEventListener('click', function(e) {
