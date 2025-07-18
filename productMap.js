@@ -2301,9 +2301,15 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
           enabled: true,
           speed: 500
         }
+      },
+    events: {
+      // Add this to sync with your custom tooltip
+      mouseMove: function(event, chartContext, config) {
+        // This will be triggered when mouse moves over the chart
       }
-    },
-      // Add this crosshairs configuration
+    }
+  },
+  // Add crosshairs configuration
   xaxis: {
     type: "datetime",
     labels: { show: true },
@@ -2314,19 +2320,13 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
       opacity: 0.9,
       stroke: {
         color: '#007aff',
-        width: 2,
+        width: 1,
         dashArray: 0
       },
       fill: {
         type: 'solid',
         color: '#B1D4E0',
-        gradient: {
-          colorFrom: '#B1D4E0',
-          colorTo: '#B1D4E0',
-          stops: [0, 100],
-          opacityFrom: 0.4,
-          opacityTo: 0.1
-        }
+        opacity: 0.2
       }
     }
   },
@@ -2384,36 +2384,6 @@ tooltip: {
   try {
     const chart = new ApexCharts(chartEl, options);
     chart.render();
-
-  // Add custom hover highlight
-  let currentHighlight = null;
-  
-  // Add mousemove handler for custom highlight
-  chartElement.addEventListener('mousemove', function(e) {
-    const dataPointIndex = getDataPointFromEvent(e);
-    
-    // Remove previous highlight
-    if (currentHighlight) {
-      chart.removeAnnotation(currentHighlight);
-    }
-    
-    // Get the x-value (timestamp) for the current data point
-    const xValue = chart.w.globals.seriesX[0][dataPointIndex];
-    const nextXValue = chart.w.globals.seriesX[0][dataPointIndex + 1] || xValue;
-    
-    // Add vertical band annotation for the hovered date
-    currentHighlight = chart.addXaxisAnnotation({
-      x: xValue,
-      x2: nextXValue,
-      fillColor: '#007aff',
-      opacity: 0.1,
-      label: {
-        text: '',
-        style: {
-          fontSize: '0px'
-        }
-      }
-    });
     
 // Custom tooltip implementation
 const customTooltip = document.createElement('div');
@@ -2605,10 +2575,6 @@ const readableDate = date.toLocaleDateString('en-US', {
 
 // Mouse leave handler
 chartElement.addEventListener('mouseleave', function() {
-  if (currentHighlight) {
-    chart.removeAnnotation(currentHighlight);
-    currentHighlight = null;
-  }
   customTooltip.style.display = 'none';
 });
 
