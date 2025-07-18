@@ -3179,8 +3179,8 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
-  const currentMode = getCurrentMode();
-if (currentMode === 'companies') {
+// Apply mode-specific filtering
+if (getCurrentMode() === 'companies') {
   // Company mode specific logic - group by companies instead of individual products
   console.log(`[ProductExplorer] Processing in COMPANIES mode`);
   // You can add company-specific data aggregation here
