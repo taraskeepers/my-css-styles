@@ -1089,30 +1089,41 @@ function createCompanyDeviceCell(combination) {
     change = '0.0';
   }
   
-  deviceHTML += `
-    <div class="device-rank">
-      <div class="section-header">Company Rank</div>
-      <div class="device-rank-value">${companyRank}</div>
-      <div class="device-trend" style="color:${color};">
-        ${arrow} ${change}
-      </div>
+// Determine rank box color
+let rankBoxColor;
+if (companyRank === 1) {
+  rankBoxColor = '#4CAF50';
+} else if (companyRank <= 3) {
+  rankBoxColor = '#FFC107';
+} else if (companyRank <= 5) {
+  rankBoxColor = '#FF9800';
+} else {
+  rankBoxColor = '#F44336';
+}
+
+deviceHTML += `
+  <div class="device-rank">
+    <div class="section-header">Company Rank</div>
+    <div class="company-rank-box" style="background-color: ${rankBoxColor}; color: white; width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; margin: 0 auto;">${companyRank}</div>
+    <div class="device-trend" style="color:${color}; margin-top: 4px;">
+      ${arrow} ${change}
     </div>
-  `;
+  </div>
+`;
   
 // Market share (check if already in percentage)
 const marketShare = (record.top40 || 0);
 const marketSharePercentage = marketShare > 1 ? marketShare : marketShare * 100;
-  const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+  
   deviceHTML += `
     <div class="device-share">
       <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
-      <div id="${visChartId}" class="pie-chart-container"></div>
+      <div class="company-market-badge" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #007aff; background: white; border: 2px solid #007aff; margin: 0 auto; position: relative; overflow: hidden;">
+        <div class="market-badge-water" style="position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%); transition: height 0.5s ease; z-index: 0; border-radius: 50%; opacity: 0.5; height: ${Math.min(100, Math.max(0, marketSharePercentage * 2))}%;"></div>
+        <span style="position: relative; z-index: 1;">${Math.round(marketSharePercentage)}%</span>
+      </div>
     </div>
   `;
-  
-  setTimeout(() => {
-    createMarketSharePieChartExplorer(visChartId, marketShare);
-  }, 50);
   
   // Status
   deviceHTML += `
@@ -1142,16 +1153,16 @@ function createCompanyRankMarketShareHistory(record) {
     return '<div class="rank-history-container"><div class="no-data-message">No historical data available</div></div>';
   }
   
-  // Create a proper 30-day date range (earliest to latest)
-  const maxDate = moment().startOf('day');
-  const minDate = maxDate.clone().subtract(29, 'days');
-  
-  const dateArray = [];
-  let currentDate = minDate.clone();
-  while (currentDate.isSameOrBefore(maxDate)) {
-    dateArray.push(currentDate.format('YYYY-MM-DD'));
-    currentDate.add(1, 'day');
-  }
+// Create a proper 30-day date range (latest to earliest for display)
+const maxDate = moment().startOf('day');
+const minDate = maxDate.clone().subtract(29, 'days');
+
+const dateArray = [];
+let currentDate = maxDate.clone(); // Start from latest
+while (currentDate.isSameOrAfter(minDate)) {
+  dateArray.push(currentDate.format('YYYY-MM-DD'));
+  currentDate.subtract(1, 'day'); // Go backwards
+}
   
   let html = '<div class="rank-history-container">';
   
@@ -5245,10 +5256,10 @@ console.log(`[renderProductExplorerTable] Using company for project ${currentPro
 }
 /* Company Explorer Table column widths to match product table */
 .company-explorer-table { table-layout: fixed; }
-.company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; }
-.company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; }
-.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; }
-.company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; }
+.company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; min-width: 190px; }
+.company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; min-width: 150px; }
+.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; min-width: 200px; }
+.company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; min-width: 230px; }
 .company-explorer-table th:nth-child(5), .company-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
 
     `;
