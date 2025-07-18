@@ -2629,8 +2629,7 @@ try {
   console.error(`[renderSingleMarketTrendChart] Error rendering chart:`, error);
   chartEl.innerHTML = `<p style='text-align:center; color:#999;'>Error rendering chart: ${error.message}</p>`;
 }
-
-// Continue with the existing renderProductMapTable function...
+}
 
 async function renderProductMapTable() {
   console.log("[renderProductMapTable] Starting render");
