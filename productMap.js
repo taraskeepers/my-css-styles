@@ -2467,14 +2467,6 @@ function getDataPointFromEvent(e) {
   const rect = chartElement.getBoundingClientRect();
   const x = e.clientX - rect.left;
   
-  // Debug logging
-  console.log('[DEBUG] Mouse position:', { 
-    clientX: e.clientX, 
-    clientY: e.clientY, 
-    relativeX: x,
-    chartWidth: rect.width 
-  });
-  
   // Get chart internals
   const w = chart.w;
   const gridWidth = w.globals.gridWidth;
@@ -2490,17 +2482,6 @@ function getDataPointFromEvent(e) {
   // Find closest data point
   let closestIndex = Math.round(adjustedX / columnWidth);
   closestIndex = Math.max(0, Math.min(actualDataPoints - 1, closestIndex));
-  
-  console.log('[DEBUG] Calculated index:', {
-    adjustedX,
-    actualDataPoints,
-    labelsLength: w.globals.labels.length,
-    seriesDataLength: w.config.series[0].data.length,
-    columnWidth,
-    closestIndex,
-    translateX,
-    gridWidth
-  });
   
   // Verify the date at this index
   if (w.globals.seriesX && w.globals.seriesX[0] && w.globals.seriesX[0][closestIndex]) {
@@ -2577,17 +2558,6 @@ function updateHighlight(dataPointIndex) {
   if (innerContainer) {
     innerContainer.appendChild(highlightDiv);
   }
-  
-  console.log('[DEBUG] Highlight positioned at:', {
-    left: xPos,
-    width: width,
-    dataPointIndex: dataPointIndex,
-    actualDataPoints: actualDataPoints,
-    gridBounds: {
-      start: translateX,
-      end: translateX + gridWidth
-    }
-  });
 }
 
 // Function to build tooltip content
@@ -2851,14 +2821,6 @@ console.log(`[renderProductMapTable] Rendering for project ${currentProject}`);
   if (typeof window.debugProjectState === 'function') {
     window.debugProjectState();
   }
-  console.group("[📊 renderProductMapTable] DEBUG");
-  console.log("Starting render...");
-  
-  // Log current state
-  console.log("Current state:");
-  console.log("  dataPrefix:", window.dataPrefix);
-  console.log("  myCompany:", window.myCompany);
-  console.log("  activeProjectNumber:", window.filterState?.activeProjectNumber);
   
   // Check what's in company_serp_stats before rendering
   if (window.company_serp_stats) {
