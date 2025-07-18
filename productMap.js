@@ -2134,20 +2134,37 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
   const series = chart.w.config.series;
   const labels = chart.w.globals.labels;
   
-  // Debug logging
-  console.log('[DEBUG] Tooltip Debug Info:', {
-    dataPointIndex,
-    seriesLength: series?.length,
-    labelsLength: labels?.length,
-    firstSeries: series?.[0],
-    sampleLabel: labels?.[dataPointIndex]
-  });
+  // Handle null or invalid dataPointIndex
+  if (dataPointIndex === null || dataPointIndex === undefined || dataPointIndex < 0) {
+    console.log('[DEBUG] Invalid dataPointIndex, attempting to calculate from mouse position');
+    
+    // Try to calculate from mouse position as fallback
+    if (event && event.target) {
+      const rect = event.target.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const chartWidth = chart.w.globals.gridWidth || rect.width;
+      const dataLength = labels.length;
+      
+      // Account for chart padding/margins
+      const plotArea = chart.w.globals.translateX || 0;
+      const adjustedX = x - plotArea;
+      const plotWidth = chartWidth - (plotArea * 2);
+      
+      dataPointIndex = Math.round((adjustedX / plotWidth) * (dataLength - 1));
+      dataPointIndex = Math.max(0, Math.min(dataLength - 1, dataPointIndex));
+      
+      console.log('[DEBUG] Calculated dataPointIndex:', dataPointIndex, 'from mouse position');
+    }
+  }
   
+  // Final validation
   if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
-    console.log('[DEBUG] Invalid dataPointIndex:', dataPointIndex, 'labels length:', labels.length);
+    console.log('[DEBUG] Still invalid dataPointIndex after calculation:', dataPointIndex, 'labels length:', labels.length);
     customTooltip.style.display = 'none';
     return;
   }
+  
+  console.log('[DEBUG] Using dataPointIndex:', dataPointIndex);
   
   // Check if we have data
   if (!series || series.length === 0) {
@@ -2173,16 +2190,35 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
     
     let companyName = series[i].name;
     let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
-    let currentValue = series[i].data[dataPointIndex].y;
-    let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1]?.y : null;
+    
+    // Handle different data formats - ApexCharts might use different structures
+    let currentValue;
+    const dataPoint = series[i].data[dataPointIndex];
+    
+    if (typeof dataPoint === 'object' && dataPoint.y !== undefined) {
+      currentValue = dataPoint.y;
+    } else if (typeof dataPoint === 'object' && dataPoint.value !== undefined) {
+      currentValue = dataPoint.value;
+    } else if (typeof dataPoint === 'number') {
+      currentValue = dataPoint;
+    } else {
+      console.log('[DEBUG] Unknown data format for series', i, ':', dataPoint);
+      continue;
+    }
+    
+    let previousValue = null;
+    if (dataPointIndex > 0) {
+      const prevDataPoint = series[i].data[dataPointIndex - 1];
+      if (typeof prevDataPoint === 'object' && prevDataPoint.y !== undefined) {
+        previousValue = prevDataPoint.y;
+      } else if (typeof prevDataPoint === 'object' && prevDataPoint.value !== undefined) {
+        previousValue = prevDataPoint.value;
+      } else if (typeof prevDataPoint === 'number') {
+        previousValue = prevDataPoint;
+      }
+    }
+    
     let trendStr = "";
-    
-    console.log(`[DEBUG] Series ${i} data:`, {
-      companyName,
-      currentValue,
-      previousValue
-    });
-    
     if (previousValue !== null && previousValue !== undefined) {
       let diff = currentValue - previousValue;
       if (diff > 0) {
@@ -2194,6 +2230,13 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
       }
     }
     
+    console.log(`[DEBUG] Series ${i} processed:`, {
+      companyName,
+      currentValue,
+      previousValue,
+      trendStr
+    });
+    
     tooltipItems.push({
       companyName,
       currentValue,
@@ -2202,7 +2245,7 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
     });
   }
   
-  console.log('[DEBUG] Tooltip items:', tooltipItems);
+  console.log('[DEBUG] Final tooltip items:', tooltipItems);
   
   if (tooltipItems.length === 0) {
     customTooltip.innerHTML = '<div style="padding: 10px;">No data available for this point</div>';
@@ -2237,7 +2280,7 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
       dateMoment = moment(dateValue);
     } else if (typeof dateValue === 'string') {
       // Handle string dates
-      if (dateValue.includes('-')) {
+      if (dateValue.includes && dateValue.includes('-')) {
         dateMoment = moment(dateValue, 'YYYY-MM-DD');
       } else {
         dateMoment = moment(dateValue);
@@ -2304,7 +2347,7 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
   
   html += `</table>`;
   
-  console.log('[DEBUG] Final HTML:', html.substring(0, 200) + '...');
+  console.log('[DEBUG] Final HTML length:', html.length);
   
   // Update tooltip content
   customTooltip.innerHTML = html;
@@ -2497,42 +2540,51 @@ function renderSingleMarketTrendChart(containerId, searchTerm, location, device,
 // Create chart with same configuration as marketShareBigChart
 const options = {
   series: finalSeries,
-  chart: {
-    type: "area",
-    height: "100%",
-    width: "100%",
-    stacked: true, // Key difference - stacked areas
-    toolbar: { show: true },
-    zoom: { enabled: false },
-    animations: {
+chart: {
+  type: "area",
+  height: "100%",
+  width: "100%",
+  stacked: true,
+  toolbar: { show: true },
+  zoom: { enabled: false },
+  animations: {
+    enabled: true,
+    speed: 500,
+    animateGradually: {
       enabled: true,
-      speed: 500,
-      animateGradually: {
-        enabled: true,
-        delay: 50
-      },
-      dynamicAnimation: {
-        enabled: true,
-        speed: 500
-      }
+      delay: 50
     },
-    events: {
-      dataPointMouseEnter: function(event, chartContext, { dataPointIndex, seriesIndex }) {
-        showCustomTooltip(event, dataPointIndex, chartContext, containerId);
-      },
-      dataPointMouseLeave: function(event, chartContext, { dataPointIndex, seriesIndex }) {
-        hideCustomTooltip(containerId);
-      },
-      mouseMove: function(event, chartContext, { dataPointIndex, seriesIndex }) {
-        if (dataPointIndex >= 0) {
-          showCustomTooltip(event, dataPointIndex, chartContext, containerId);
-        }
-      },
-      mouseLeave: function(event, chartContext) {
-        hideCustomTooltip(containerId);
-      }
+    dynamicAnimation: {
+      enabled: true,
+      speed: 500
     }
   },
+  events: {
+    dataPointMouseEnter: function(event, chartContext, config) {
+      console.log('[DEBUG] dataPointMouseEnter:', config);
+      showCustomTooltip(event, config.dataPointIndex, chartContext, containerId);
+    },
+    dataPointMouseLeave: function(event, chartContext, config) {
+      hideCustomTooltip(containerId);
+    },
+    mouseMove: function(event, chartContext, config) {
+      // Alternative approach: calculate dataPointIndex from mouse position
+      const rect = event.target.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const chartWidth = chartContext.w.globals.gridWidth || rect.width;
+      const dataLength = chartContext.w.globals.labels.length;
+      const calculatedIndex = Math.round((x / chartWidth) * (dataLength - 1));
+      const boundedIndex = Math.max(0, Math.min(dataLength - 1, calculatedIndex));
+      
+      if (boundedIndex >= 0 && boundedIndex < dataLength) {
+        showCustomTooltip(event, boundedIndex, chartContext, containerId);
+      }
+    },
+    mouseLeave: function(event, chartContext) {
+      hideCustomTooltip(containerId);
+    }
+  }
+},
     dataLabels: (myCompany && myCompany.trim() !== "")
       ? {
           enabled: true,
