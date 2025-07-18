@@ -2123,30 +2123,65 @@ window.marketTrendChartInstances = [];
   console.log('[renderAllMarketTrendCharts] Complete');
 }
 
-// Helper functions for custom tooltip
 function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
   const customTooltip = document.getElementById(`custom-tooltip-${containerId}`);
-  if (!customTooltip) return;
+  if (!customTooltip) {
+    console.log('[DEBUG] Tooltip element not found:', containerId);
+    return;
+  }
   
   const chart = chartContext;
   const series = chart.w.config.series;
   const labels = chart.w.globals.labels;
   
+  // Debug logging
+  console.log('[DEBUG] Tooltip Debug Info:', {
+    dataPointIndex,
+    seriesLength: series?.length,
+    labelsLength: labels?.length,
+    firstSeries: series?.[0],
+    sampleLabel: labels?.[dataPointIndex]
+  });
+  
   if (dataPointIndex < 0 || dataPointIndex >= labels.length) {
+    console.log('[DEBUG] Invalid dataPointIndex:', dataPointIndex, 'labels length:', labels.length);
     customTooltip.style.display = 'none';
+    return;
+  }
+  
+  // Check if we have data
+  if (!series || series.length === 0) {
+    console.log('[DEBUG] No series data available');
+    customTooltip.innerHTML = '<div>No series data</div>';
+    customTooltip.style.display = 'block';
     return;
   }
   
   // Build tooltip content
   let tooltipItems = [];
   for (let i = 0; i < series.length; i++) {
-    if (!series[i].data[dataPointIndex]) continue;
+    console.log(`[DEBUG] Processing series ${i}:`, {
+      name: series[i].name,
+      dataLength: series[i].data?.length,
+      dataPoint: series[i].data?.[dataPointIndex]
+    });
+    
+    if (!series[i].data || !series[i].data[dataPointIndex]) {
+      console.log(`[DEBUG] No data for series ${i} at index ${dataPointIndex}`);
+      continue;
+    }
     
     let companyName = series[i].name;
     let seriesColor = series[i].color || chart.w.globals.colors[i] || "#007aff";
     let currentValue = series[i].data[dataPointIndex].y;
     let previousValue = dataPointIndex > 0 ? series[i].data[dataPointIndex - 1]?.y : null;
     let trendStr = "";
+    
+    console.log(`[DEBUG] Series ${i} data:`, {
+      companyName,
+      currentValue,
+      previousValue
+    });
     
     if (previousValue !== null && previousValue !== undefined) {
       let diff = currentValue - previousValue;
@@ -2167,6 +2202,14 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
     });
   }
   
+  console.log('[DEBUG] Tooltip items:', tooltipItems);
+  
+  if (tooltipItems.length === 0) {
+    customTooltip.innerHTML = '<div style="padding: 10px;">No data available for this point</div>';
+    customTooltip.style.display = 'block';
+    return;
+  }
+  
   // Sort by value descending
   let sortedItems = tooltipItems.slice().sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0));
   
@@ -2183,6 +2226,8 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
   // Format date - Handle timestamp properly
   const dateValue = labels[dataPointIndex];
   let readableDate = 'Invalid date';
+  
+  console.log('[DEBUG] Date value:', dateValue, 'type:', typeof dateValue);
   
   try {
     let dateMoment;
@@ -2258,6 +2303,8 @@ function showCustomTooltip(event, dataPointIndex, chartContext, containerId) {
   });
   
   html += `</table>`;
+  
+  console.log('[DEBUG] Final HTML:', html.substring(0, 200) + '...');
   
   // Update tooltip content
   customTooltip.innerHTML = html;
