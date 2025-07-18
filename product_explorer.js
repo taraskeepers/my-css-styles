@@ -423,6 +423,8 @@ function selectProduct(product, navItemElement) {
 
 function renderTableForSelectedProduct(combinations, initialViewMode = 'viewRankingExplorer') {
   console.log('[renderTableForSelectedProduct] Starting with', combinations.length, 'combinations');
+    console.log('[DEBUG] First combination structure:', combinations[0]);
+  console.log('[DEBUG] All combinations:', combinations);
   
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
   if (existingTable) {
@@ -481,8 +483,11 @@ thead.innerHTML = `
     return aDevice.localeCompare(bDevice);
   });
 
+  console.log('[DEBUG] After sorting, combinations:', combinations);
+
   const termGroups = {};
   combinations.forEach(combo => {
+    console.log('[DEBUG] Processing combination:', combo);
     if (!termGroups[combo.searchTerm]) {
       termGroups[combo.searchTerm] = {};
     }
@@ -491,8 +496,11 @@ thead.innerHTML = `
     }
     termGroups[combo.searchTerm][combo.location].push(combo);
   });
+
+  console.log('[DEBUG] Term groups:', termGroups);
   
   Object.keys(termGroups).sort().forEach(searchTerm => {
+    console.log('[DEBUG] Processing searchTerm:', searchTerm);
     const locationGroups = termGroups[searchTerm];
     let termCellUsed = false;
     
@@ -500,12 +508,15 @@ thead.innerHTML = `
     Object.values(locationGroups).forEach(devices => {
       totalRowsForTerm += devices.length;
     });
+    console.log('[DEBUG] Total rows for term:', totalRowsForTerm);
     
     Object.keys(locationGroups).sort().forEach(location => {
+      console.log('[DEBUG] Processing location:', location);
       const deviceCombinations = locationGroups[location];
       let locCellUsed = false;
       
       deviceCombinations.forEach(combination => {
+        console.log('[DEBUG] Creating row for combination:', combination);
         const tr = document.createElement("tr");
         
         if (!termCellUsed) {
@@ -5284,7 +5295,8 @@ if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketSha
 
 // Function to handle company selection
 function selectCompany(companyData, navItemElement) {
-  console.log('[selectCompany] Selecting company:', companyData.company);
+    console.log('[selectCompany] Selecting company:', companyData.company);
+  console.log('[DEBUG] Company data:', companyData);
   
   // Remove previous selection
   document.querySelectorAll('.nav-company-item').forEach(item => {
@@ -5309,6 +5321,10 @@ function selectCompany(companyData, navItemElement) {
       record: stat
     }));
   
+  console.log('[DEBUG] Raw company_serp_stats for this company:', 
+    window.company_serp_stats.filter(stat => stat.company === companyData.company)
+  );
+  console.log('[DEBUG] Mapped combinations:', companyCombinations);
   console.log(`[selectCompany] Found ${companyCombinations.length} combinations for ${companyData.company}`);
   
   // Render table for selected company
