@@ -1213,18 +1213,19 @@ function updateProjectStatsDisplay() {
     marketWaterFill.style.height = `${fillHeight}%`;
   }
   
-  if (marketTrendEl) {
+// Update market share trend (now below the circle)
+if (marketTrendEl) {
     if (marketData.shareTrend > 0) {
-      marketTrendEl.innerHTML = `▲ ${marketData.shareTrend.toFixed(1)}%`;
-      marketTrendEl.className = 'market-trend-badge trend-up';
+        marketTrendEl.innerHTML = `▲ ${marketData.shareTrend.toFixed(1)}%`;
+        marketTrendEl.className = 'market-trend-text trend-up';
     } else if (marketData.shareTrend < 0) {
-      marketTrendEl.innerHTML = `▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%`;
-      marketTrendEl.className = 'market-trend-badge trend-down';
+        marketTrendEl.innerHTML = `▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%`;
+        marketTrendEl.className = 'market-trend-text trend-down';
     } else {
-      marketTrendEl.innerHTML = `± 0.0%`;
-      marketTrendEl.className = 'market-trend-badge trend-neutral';
+        marketTrendEl.innerHTML = `± 0.0%`;
+        marketTrendEl.className = 'market-trend-text trend-neutral';
     }
-  }
+}
   
   // Update device market shares
   const desktopMarketEl = document.getElementById('desktopMarketValue');
