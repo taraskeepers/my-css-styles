@@ -4549,6 +4549,58 @@ if (getCurrentMode() === 'companies') {
 .company-counter-badge:hover {
   background-color: #0056b3;
 }
+.comp-market-badge {
+  position: relative;
+  overflow: hidden;
+}
+
+.market-badge-value {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.market-badge-water {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #0056b3 0%, #007aff 50%, #5ac8fa 100%);
+  transition: height 0.5s ease;
+  z-index: 0;
+  animation: wave 3s ease-in-out infinite;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.trend-indicator {
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.trend-up {
+  color: #4CAF50;
+}
+
+.trend-down {
+  color: #F44336;
+}
+
+.trend-neutral {
+  color: #666;
+}
     `;
     document.head.appendChild(style);
   }
@@ -4719,33 +4771,72 @@ function renderCompaniesNavPanel() {
   // Create a map to aggregate company data across all combinations
   const companyAggregateMap = new Map();
 
-  window.company_serp_stats.forEach(stat => {
-    const companyKey = stat.company;
-    
-    if (!companyAggregateMap.has(companyKey)) {
-      companyAggregateMap.set(companyKey, {
-        company: stat.company,
-        totalMarketShare: 0,
-        occurrences: 0,
-        totalRank: 0,
-        allRanks: []
-      });
-    }
-    
-    const aggData = companyAggregateMap.get(companyKey);
-    aggData.totalMarketShare += (stat.top40 || 0);
-    aggData.totalRank += (stat.rank || 999);
-    aggData.allRanks.push(stat.rank || 999);
-    aggData.occurrences += 1;
-  });
+window.company_serp_stats.forEach(stat => {
+  const companyKey = stat.company;
+  
+  if (!companyAggregateMap.has(companyKey)) {
+    companyAggregateMap.set(companyKey, {
+      company: stat.company,
+      totalMarketShare: 0,
+      totalMarketShareTrend: 0,
+      occurrences: 0,
+      totalRank: 0,
+      allRanks: [],
+      historicalData: []
+    });
+  }
+  
+  const aggData = companyAggregateMap.get(companyKey);
+  aggData.totalMarketShare += (stat.top40 || 0);
+  aggData.totalMarketShareTrend += (stat.top40Trend || 0);
+  aggData.totalRank += (stat.rank || 999);
+  aggData.allRanks.push(stat.rank || 999);
+  aggData.occurrences += 1;
+  
+  // Collect historical data if available
+  if (stat.historical_data) {
+    aggData.historicalData.push(stat.historical_data);
+  }
+});
 
-  // Calculate averages and create array
-  const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => ({
+// Calculate averages and create array
+const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => {
+  // Calculate rank trend (7 days)
+  let rankTrend = 0;
+  if (agg.historicalData.length > 0) {
+    // Get ranks from 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    let oldRankSum = 0;
+    let oldRankCount = 0;
+    
+    agg.historicalData.forEach(histData => {
+      if (histData && histData.length > 7) {
+        const oldData = histData[histData.length - 8]; // 7 days ago
+        if (oldData && oldData.rank) {
+          oldRankSum += oldData.rank;
+          oldRankCount++;
+        }
+      }
+    });
+    
+    if (oldRankCount > 0) {
+      const oldAvgRank = oldRankSum / oldRankCount;
+      const currentAvgRank = agg.totalRank / agg.occurrences;
+      rankTrend = oldAvgRank - currentAvgRank; // Positive means improvement
+    }
+  }
+  
+  return {
     company: agg.company,
     avgMarketShare: agg.totalMarketShare / agg.occurrences,
+    avgMarketShareTrend: agg.totalMarketShareTrend / agg.occurrences,
     avgRank: agg.totalRank / agg.occurrences,
+    rankTrend: rankTrend,
     occurrences: agg.occurrences
-  }));
+  };
+});
 
   // Sort by average market share (descending) to assign project-level ranks
   companiesWithAverage.sort((a, b) => b.avgMarketShare - a.avgMarketShare);
@@ -4857,7 +4948,7 @@ function createSmallCompDetails(companyData) {
     overflow: hidden;
   `;
 
-  // Company name
+  // Company name with rank trend
   const nameDiv = document.createElement('div');
   nameDiv.style.cssText = `
     font-size: 14px;
@@ -4866,24 +4957,66 @@ function createSmallCompDetails(companyData) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
   `;
-  nameDiv.textContent = companyData.company;
+  
+  const nameText = document.createElement('span');
+  nameText.textContent = companyData.company;
+  nameDiv.appendChild(nameText);
+  
+  // Add rank trend indicator
+  if (companyData.rankTrend !== undefined && companyData.rankTrend !== 0) {
+    const rankTrendSpan = document.createElement('span');
+    rankTrendSpan.className = 'trend-indicator';
+    
+    if (companyData.rankTrend > 0) {
+      rankTrendSpan.className += ' trend-up';
+      rankTrendSpan.textContent = `▲${Math.abs(companyData.rankTrend).toFixed(1)}`;
+    } else {
+      rankTrendSpan.className += ' trend-down';
+      rankTrendSpan.textContent = `▼${Math.abs(companyData.rankTrend).toFixed(1)}`;
+    }
+    nameDiv.appendChild(rankTrendSpan);
+  }
+  
   infoDiv.appendChild(nameDiv);
 
-  // Market share info
+  // Market share info with trend
   const marketShareDiv = document.createElement('div');
   marketShareDiv.style.cssText = `
     font-size: 12px;
     color: #666;
     margin-top: 2px;
+    display: flex;
+    align-items: center;
   `;
-  marketShareDiv.textContent = `Avg Market Share: ${companyData.avgMarketShare.toFixed(1)}%`;
+  
+  const marketShareText = document.createElement('span');
+  marketShareText.textContent = `Avg Market Share: ${companyData.avgMarketShare.toFixed(1)}%`;
+  marketShareDiv.appendChild(marketShareText);
+  
+  // Add market share trend
+  if (companyData.avgMarketShareTrend !== undefined && companyData.avgMarketShareTrend !== 0) {
+    const trendSpan = document.createElement('span');
+    trendSpan.className = 'trend-indicator';
+    
+    if (companyData.avgMarketShareTrend > 0) {
+      trendSpan.className += ' trend-up';
+      trendSpan.textContent = `▲${Math.abs(companyData.avgMarketShareTrend).toFixed(1)}%`;
+    } else if (companyData.avgMarketShareTrend < 0) {
+      trendSpan.className += ' trend-down';
+      trendSpan.textContent = `▼${Math.abs(companyData.avgMarketShareTrend).toFixed(1)}%`;
+    }
+    marketShareDiv.appendChild(trendSpan);
+  }
+  
   infoDiv.appendChild(marketShareDiv);
-
   container.appendChild(infoDiv);
 
-  // Market share badge (right side)
+  // Market share badge with water fill (right side)
   const marketBadge = document.createElement('div');
+  marketBadge.className = 'comp-market-badge';
   marketBadge.style.cssText = `
     width: 50px;
     height: 50px;
@@ -4897,8 +5030,23 @@ function createSmallCompDetails(companyData) {
     background: white;
     border: 2px solid #007aff;
     margin-left: 10px;
+    position: relative;
+    overflow: hidden;
   `;
-  marketBadge.textContent = `${Math.round(companyData.avgMarketShare)}%`;
+  
+  // Water fill effect
+  const waterFill = document.createElement('div');
+  waterFill.className = 'market-badge-water';
+  const fillPercentage = Math.min(100, Math.max(0, companyData.avgMarketShare * 2)); // Scale for visibility
+  waterFill.style.height = `${fillPercentage}%`;
+  marketBadge.appendChild(waterFill);
+  
+  // Value text
+  const valueSpan = document.createElement('span');
+  valueSpan.className = 'market-badge-value';
+  valueSpan.textContent = `${Math.round(companyData.avgMarketShare)}%`;
+  marketBadge.appendChild(valueSpan);
+  
   container.appendChild(marketBadge);
 
   // Hover effect
