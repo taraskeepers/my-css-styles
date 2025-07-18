@@ -423,6 +423,8 @@ function selectProduct(product, navItemElement) {
 
 function renderTableForSelectedProduct(combinations, initialViewMode = 'viewRankingExplorer') {
   console.log('[renderTableForSelectedProduct] Starting with', combinations.length, 'combinations');
+    console.log('[DEBUG] First combination structure:', combinations[0]);
+  console.log('[DEBUG] All combinations:', combinations);
   
   const existingTable = document.querySelector("#productExplorerContainer .product-explorer-table");
   if (existingTable) {
@@ -481,8 +483,11 @@ thead.innerHTML = `
     return aDevice.localeCompare(bDevice);
   });
 
+  console.log('[DEBUG] After sorting, combinations:', combinations);
+
   const termGroups = {};
   combinations.forEach(combo => {
+    console.log('[DEBUG] Processing combination:', combo);
     if (!termGroups[combo.searchTerm]) {
       termGroups[combo.searchTerm] = {};
     }
@@ -491,8 +496,11 @@ thead.innerHTML = `
     }
     termGroups[combo.searchTerm][combo.location].push(combo);
   });
+
+  console.log('[DEBUG] Term groups:', termGroups);
   
   Object.keys(termGroups).sort().forEach(searchTerm => {
+    console.log('[DEBUG] Processing searchTerm:', searchTerm);
     const locationGroups = termGroups[searchTerm];
     let termCellUsed = false;
     
@@ -500,73 +508,90 @@ thead.innerHTML = `
     Object.values(locationGroups).forEach(devices => {
       totalRowsForTerm += devices.length;
     });
+    console.log('[DEBUG] Total rows for term:', totalRowsForTerm);
     
     Object.keys(locationGroups).sort().forEach(location => {
+      console.log('[DEBUG] Processing location:', location);
       const deviceCombinations = locationGroups[location];
       let locCellUsed = false;
       
-      deviceCombinations.forEach(combination => {
-        const tr = document.createElement("tr");
-        
-        if (!termCellUsed) {
-          const tdTerm = document.createElement("td");
-          tdTerm.rowSpan = totalRowsForTerm;
-          tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
-          tr.appendChild(tdTerm);
-          termCellUsed = true;
-        }
-        
-        if (!locCellUsed) {
-          const tdLoc = document.createElement("td");
-          tdLoc.rowSpan = deviceCombinations.length;
-          tdLoc.innerHTML = formatLocationCell(combination.location);
-          tdLoc.classList.add(locationColorMap[combination.location]);
-          tr.appendChild(tdLoc);
-          locCellUsed = true;
-        }
-        
-        const tdDev = document.createElement("td");
-        tdDev.innerHTML = createDeviceCell(combination);
-        tr.appendChild(tdDev);
-        
-const tdSegmentation = document.createElement("td");
-tdSegmentation.classList.add("segmentation-column");
-const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
-tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
-tr.appendChild(tdSegmentation);
-
-const tdRankMarketShare = document.createElement("td");
-const positionChartId = `explorer-position-chart-${chartCounter}`;
-
-// Create rank & market share history
-const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
-
-tdRankMarketShare.innerHTML = `
-  <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
-  <div class="rank-market-share-history">${rankMarketShareHistory}</div>
-`;
-tr.appendChild(tdRankMarketShare);
-        
-        const chartInfo = {
-          containerId: chartContainerId,
-          positionChartId: positionChartId,
-          combination: combination,
-          selectedProduct: window.selectedExplorerProduct
-        };
-        
-        if (!window.pendingExplorerCharts) {
-          window.pendingExplorerCharts = [];
-        }
-        window.pendingExplorerCharts.push(chartInfo);
-        
-        tbody.appendChild(tr);
-      });
+deviceCombinations.forEach(combination => {
+  console.log('[DEBUG] Creating row for combination:', combination);
+  const tr = document.createElement("tr");
+  
+  if (!termCellUsed) {
+    const tdTerm = document.createElement("td");
+    tdTerm.rowSpan = totalRowsForTerm;
+    tdTerm.innerHTML = `<div class="search-term-tag">${searchTerm}</div>`;
+    tr.appendChild(tdTerm);
+    termCellUsed = true;
+  }
+  
+  if (!locCellUsed) {
+    const tdLoc = document.createElement("td");
+    tdLoc.rowSpan = deviceCombinations.length;
+    tdLoc.innerHTML = formatLocationCell(combination.location);
+    tdLoc.classList.add(locationColorMap[combination.location]);
+    tr.appendChild(tdLoc);
+    locCellUsed = true;
+  }
+  
+  const tdDev = document.createElement("td");
+  tdDev.innerHTML = createDeviceCell(combination);
+  tr.appendChild(tdDev);
+  
+  const tdSegmentation = document.createElement("td");
+  tdSegmentation.classList.add("segmentation-column");
+  const chartContainerId = `explorer-segmentation-chart-${chartCounter++}`;
+  tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
+  tr.appendChild(tdSegmentation);
+  
+  const tdRankMarketShare = document.createElement("td");
+  const positionChartId = `explorer-position-chart-${chartCounter}`;
+  
+  // Create rank & market share history
+  const rankMarketShareHistory = createProductRankMarketShareHistory(combination.record);
+  
+  tdRankMarketShare.innerHTML = `
+    <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+    <div class="rank-market-share-history">${rankMarketShareHistory}</div>
+  `;
+  tr.appendChild(tdRankMarketShare);
+  
+  const chartInfo = {
+    containerId: chartContainerId,
+    positionChartId: positionChartId,
+    combination: combination,
+    selectedProduct: window.selectedExplorerProduct
+  };
+  
+  if (!window.pendingExplorerCharts) {
+    window.pendingExplorerCharts = [];
+  }
+  window.pendingExplorerCharts.push(chartInfo);
+  
+  // THIS IS THE CRITICAL LINE - MAKE SURE IT EXISTS:
+  tbody.appendChild(tr);
+  console.log('[DEBUG] Row appended to tbody');
+});
     });
   });
   
 const container = document.querySelector("#productExplorerTableContainer");
-container.appendChild(table);
+if (!container) {
+  console.error('[ERROR] productExplorerTableContainer not found!');
+  // Try alternative container
+  const altContainer = document.querySelector("#productExplorerContainer");
+  if (altContainer) {
+    console.log('[DEBUG] Using alternative container #productExplorerContainer');
+    altContainer.appendChild(table);
+  }
+} else {
+  console.log('[DEBUG] Appending table to #productExplorerTableContainer');
+  container.appendChild(table);
+}
 
+console.log('[DEBUG] Table tbody child count:', tbody.children.length);
 console.log('[renderTableForSelectedProduct] Table created, rendering charts...');
 
 // Set visibility fill heights for water effect
@@ -716,27 +741,35 @@ if (initialViewMode === 'viewRankingExplorer') {
 }
 }
 
-function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRankingCompanyExplorer') {
-  console.log('[renderTableForSelectedCompany] Starting with', combinations.length, 'combinations');
+// Function to render company explorer table
+function renderCompanyExplorerTable(combinations, initialViewMode = 'viewRankingExplorer') {
+  console.log('[renderCompanyExplorerTable] Starting with', combinations.length, 'combinations');
   
-  const existingTable = document.querySelector("#companyExplorerTableContainer .company-explorer-table");
+  // Remove existing company explorer table if it exists
+  const existingTable = document.querySelector(".company-explorer-table");
   if (existingTable) {
     existingTable.remove();
   }
   
-  window.pendingCompanyExplorerCharts = [];
+  // Clear pending charts
+  window.pendingExplorerCharts = [];
   
-  if (window.companyExplorerApexCharts) {
-    window.companyExplorerApexCharts.forEach(chart => {
+  if (window.explorerApexCharts) {
+    window.explorerApexCharts.forEach(chart => {
       try { chart.destroy(); } catch (e) {}
     });
   }
-  window.companyExplorerApexCharts = [];
+  window.explorerApexCharts = [];
   
+  // Create new table
   const table = document.createElement("table");
   table.classList.add("company-explorer-table");
+  if (initialViewMode === 'viewRankingExplorer') {
+    table.classList.add("ranking-mode");
+  }
   table.style.display = ''; 
   
+  // Create table header
   const thead = document.createElement("thead");
   thead.innerHTML = `
     <tr>
@@ -754,6 +787,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
   
   let chartCounter = 0;
   
+  // Create location color map
   const locationColorMap = {};
   const allLocationsList = [...new Set(combinations.map(c => c.location))];
   allLocationsList.sort().forEach((loc, index) => {
@@ -761,6 +795,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
     locationColorMap[loc] = `location-bg-${colorIndex}`;
   });
   
+  // Sort combinations
   combinations.sort((a, b) => {
     const termCompare = (a.searchTerm || "").localeCompare(b.searchTerm || "");
     if (termCompare !== 0) return termCompare;
@@ -775,6 +810,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
     return aDevice.localeCompare(bDevice);
   });
 
+  // Group by term and location
   const termGroups = {};
   combinations.forEach(combo => {
     if (!termGroups[combo.searchTerm]) {
@@ -786,6 +822,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
     termGroups[combo.searchTerm][combo.location].push(combo);
   });
   
+  // Create rows
   Object.keys(termGroups).sort().forEach(searchTerm => {
     const locationGroups = termGroups[searchTerm];
     let termCellUsed = false;
@@ -802,6 +839,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
       deviceCombinations.forEach(combination => {
         const tr = document.createElement("tr");
         
+        // Search term cell
         if (!termCellUsed) {
           const tdTerm = document.createElement("td");
           tdTerm.rowSpan = totalRowsForTerm;
@@ -810,6 +848,7 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
           termCellUsed = true;
         }
         
+        // Location cell
         if (!locCellUsed) {
           const tdLoc = document.createElement("td");
           tdLoc.rowSpan = deviceCombinations.length;
@@ -819,44 +858,195 @@ function renderTableForSelectedCompany(combinations, initialViewMode = 'viewRank
           locCellUsed = true;
         }
         
+        // Device cell
         const tdDev = document.createElement("td");
         tdDev.innerHTML = createCompanyDeviceCell(combination);
         tr.appendChild(tdDev);
         
+        // Segmentation cell
         const tdSegmentation = document.createElement("td");
         tdSegmentation.classList.add("segmentation-column");
-        const chartContainerId = `company-explorer-segmentation-chart-${chartCounter++}`;
-        tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="company-explorer-segmentation-chart-container loading"></div>`;
+        const chartContainerId = `company-segmentation-chart-${chartCounter++}`;
+        tdSegmentation.innerHTML = `<div id="${chartContainerId}" class="explorer-segmentation-chart-container loading"></div>`;
         tr.appendChild(tdSegmentation);
-
+        
+        // Rank & Market Share cell
         const tdRankMarketShare = document.createElement("td");
-        const positionChartId = `company-explorer-position-chart-${chartCounter}`;
+        const positionChartId = `company-position-chart-${chartCounter}`;
+        
+        // Create rank & market share history for company
         const rankMarketShareHistory = createCompanyRankMarketShareHistory(combination.record);
-
+        
         tdRankMarketShare.innerHTML = `
-          <div id="${positionChartId}" class="company-explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
-          <div class="company-rank-market-share-history">${rankMarketShareHistory}</div>
+          <div id="${positionChartId}" class="explorer-chart-avg-position" style="display: none;">Click "Charts" view to see position trends</div>
+          <div class="rank-market-share-history">${rankMarketShareHistory}</div>
         `;
         tr.appendChild(tdRankMarketShare);
+        
+        // Store chart info for later rendering
+        const chartInfo = {
+          containerId: chartContainerId,
+          positionChartId: positionChartId,
+          combination: combination,
+          isCompanyMode: true
+        };
+        
+        if (!window.pendingExplorerCharts) {
+          window.pendingExplorerCharts = [];
+        }
+        window.pendingExplorerCharts.push(chartInfo);
         
         tbody.appendChild(tr);
       });
     });
   });
   
-  const container = document.querySelector("#companyExplorerTableContainer");
-  container.appendChild(table);
-
-  // Apply initial view mode
-  if (initialViewMode === 'viewRankingCompanyExplorer') {
-    const table = document.querySelector('.company-explorer-table');
-    if (table) {
-      table.classList.add('ranking-mode');
-    }
+  // Append table to container
+  const container = document.querySelector("#productExplorerTableContainer");
+  if (container) {
+    container.appendChild(table);
   }
+  
+  console.log('[renderCompanyExplorerTable] Table created with', tbody.children.length, 'rows');
+  
+  // Set visibility fill heights for water effect
+  setTimeout(() => {
+    setVisibilityFillHeights();
+  }, 100);
+  
+  // Render charts
+  renderPendingExplorerChartsForProduct();
 }
 
 function createDeviceCell(combination) {
+  const record = combination.record;
+  const isCompaniesMode = getCurrentMode() === 'companies';
+  
+  let deviceHTML = `<div class="device-container">`;
+  
+  const deviceIcon = record.device.toLowerCase().includes('mobile') 
+    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
+    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
+  
+  deviceHTML += `<div class="device-type">
+    <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
+  </div>`;
+  
+  // For companies mode, use rank and market share from the company stats
+  if (isCompaniesMode && record.rank !== undefined) {
+    // Company rank
+    const companyRank = record.rank || 999;
+    const rankTrend = record.rankTrend || 0;
+    
+    let arrow = '', change = '', color = '#444';
+    if (rankTrend < 0) {
+      arrow = '▲';
+      color = 'green';
+      change = Math.abs(rankTrend).toFixed(1);
+    } else if (rankTrend > 0) {
+      arrow = '▼';
+      color = 'red';
+      change = rankTrend.toFixed(1);
+    } else {
+      arrow = '±';
+      change = '0.0';
+    }
+    
+    deviceHTML += `
+      <div class="device-rank">
+        <div class="section-header">Company Rank</div>
+        <div class="device-rank-value">${companyRank}</div>
+        <div class="device-trend" style="color:${color};">
+          ${arrow} ${change}
+        </div>
+      </div>
+    `;
+    
+    // Market share (convert from decimal to percentage)
+    const marketShare = (record.top40 || 0) * 100;
+    const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+    deviceHTML += `
+      <div class="device-share">
+        <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
+        <div id="${visChartId}" class="pie-chart-container"></div>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      createMarketSharePieChartExplorer(visChartId, marketShare);
+    }, 50);
+    
+    // Status is always active for companies in the results
+    deviceHTML += `
+      <div class="device-status">
+        <div class="section-header">Status</div>
+        <div class="device-status-value">
+          <span class="status-active">Active</span>
+        </div>
+      </div>
+    `;
+    
+    deviceHTML += `
+      <div class="last-tracked-container">
+        <div class="last-tracked-label">Company Presence:</div>
+        <div class="last-tracked-value recent-tracking">Tracked</div>
+      </div>
+    `;
+  } else {
+    // Original product mode code - keep as is
+    const avgRank = calculateAvgRankFromHistorical(record);
+    deviceHTML += `
+      <div class="device-rank">
+        <div class="section-header">Avg Rank</div>
+        <div class="device-rank-value">${avgRank.value}</div>
+        <div class="device-trend" style="color:${avgRank.color};">
+          ${avgRank.arrow} ${avgRank.change}
+        </div>
+      </div>
+    `;
+    
+    let avgVisibility = 0;
+    if (record.avg_visibility) {
+      avgVisibility = parseFloat(record.avg_visibility) * 100;
+    }
+
+    const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
+    deviceHTML += `
+      <div class="device-share">
+        <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
+        <div id="${visChartId}" class="pie-chart-container"></div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      createMarketSharePieChartExplorer(visChartId, avgVisibility);
+    }, 50);
+
+    const lastTracked = getLastTrackedInfo(record);
+    const isActive = lastTracked.isActive;
+    deviceHTML += `
+      <div class="device-status">
+        <div class="section-header">Status</div>
+        <div class="device-status-value">
+          <span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+      </div>
+    `;
+
+    deviceHTML += `
+      <div class="last-tracked-container">
+        <div class="last-tracked-label">Last time tracked:</div>
+        <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
+      </div>
+    `;
+  }
+  
+  deviceHTML += `</div>`;
+  
+  return deviceHTML;
+}
+
+function createCompanyDeviceCell(combination) {
   const record = combination.record;
   
   let deviceHTML = `<div class="device-container">`;
@@ -869,131 +1059,86 @@ function createDeviceCell(combination) {
     <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
   </div>`;
   
-  const avgRank = calculateAvgRankFromHistorical(record);
-  deviceHTML += `
-    <div class="device-rank">
-      <div class="section-header">Avg Rank</div>
-      <div class="device-rank-value">${avgRank.value}</div>
-      <div class="device-trend" style="color:${avgRank.color};">
-        ${avgRank.arrow} ${avgRank.change}
-      </div>
-    </div>
-  `;
-  
-  let avgVisibility = 0;
-  if (record.avg_visibility) {
-    avgVisibility = parseFloat(record.avg_visibility) * 100;
-  }
-
-const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
-deviceHTML += `
-  <div class="device-share">
-    <div class="section-header">Visibility<br><span style="font-size: 9px;">(last 7 days)</span></div>
-    <div id="${visChartId}" class="pie-chart-container"></div>
-  </div>
-`;
-
-setTimeout(() => {
-  createMarketSharePieChartExplorer(visChartId, avgVisibility);
-}, 50);
-
-// Add status section for ranking mode
-const lastTracked = getLastTrackedInfo(record);
-const isActive = lastTracked.isActive;
-deviceHTML += `
-  <div class="device-status">
-    <div class="section-header">Status</div>
-    <div class="device-status-value">
-      <span class="${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
-    </div>
-  </div>
-`;
-
-deviceHTML += `
-  <div class="last-tracked-container">
-    <div class="last-tracked-label">Last time tracked:</div>
-    <div class="last-tracked-value ${lastTracked.class}">${lastTracked.text}</div>
-  </div>
-`;
-  
-  deviceHTML += `</div>`;
-  
-  return deviceHTML;
-}
-
-function createCompanyDeviceCell(combination) {
-  const record = combination.record;
-  
-  let deviceHTML = `<div class="device-container company-device-container">`;
-  
-  const deviceIcon = record.device.toLowerCase().includes('mobile') 
-    ? 'https://static.wixstatic.com/media/0eae2a_6764753e06f447db8d537d31ef5050db~mv2.png' 
-    : 'https://static.wixstatic.com/media/0eae2a_e3c9d599fa2b468c99191c4bdd31f326~mv2.png';
-  
-  deviceHTML += `<div class="device-type">
-    <img src="${deviceIcon}" alt="${record.device}" class="device-icon" />
-  </div>`;
-  
   // Company rank
-  const companyRank = record.rank || '-';
+  const companyRank = record.rank || 999;
   const rankTrend = record.rankTrend || 0;
-  const trendColor = rankTrend < 0 ? '#4CAF50' : rankTrend > 0 ? '#F44336' : '#999';
-  const trendArrow = rankTrend < 0 ? '▲' : rankTrend > 0 ? '▼' : '—';
+  
+  let arrow = '', change = '', color = '#444';
+  if (rankTrend < 0) {
+    arrow = '▲';
+    color = 'green';
+    change = Math.abs(rankTrend).toFixed(1);
+  } else if (rankTrend > 0) {
+    arrow = '▼';
+    color = 'red';
+    change = rankTrend.toFixed(1);
+  } else {
+    arrow = '±';
+    change = '0.0';
+  }
   
   deviceHTML += `
     <div class="device-rank">
       <div class="section-header">Company Rank</div>
       <div class="device-rank-value">${companyRank}</div>
-      <div class="device-trend" style="color:${trendColor};">
-        ${trendArrow} ${Math.abs(rankTrend).toFixed(1)}
+      <div class="device-trend" style="color:${color};">
+        ${arrow} ${change}
       </div>
     </div>
   `;
   
-  // Market share
-  const marketShare = record.top40 || 0;
-  const shareChartId = `company-share-chart-${Date.now()}-${Math.random()}`;
-  
+  // Market share (convert from decimal to percentage)
+  const marketShare = (record.top40 || 0) * 100;
+  const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
   deviceHTML += `
     <div class="device-share">
       <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
-      <div id="${shareChartId}" class="pie-chart-container"></div>
+      <div id="${visChartId}" class="pie-chart-container"></div>
     </div>
   `;
-
+  
   setTimeout(() => {
-    createMarketSharePieChartExplorer(shareChartId, marketShare);
+    createMarketSharePieChartExplorer(visChartId, marketShare);
   }, 50);
-
+  
+  // Status
+  deviceHTML += `
+    <div class="device-status">
+      <div class="section-header">Status</div>
+      <div class="device-status-value">
+        <span class="status-active">Active</span>
+      </div>
+    </div>
+  `;
+  
+  deviceHTML += `
+    <div class="last-tracked-container">
+      <div class="last-tracked-label">Company Presence:</div>
+      <div class="last-tracked-value recent-tracking">Tracked</div>
+    </div>
+  `;
+  
   deviceHTML += `</div>`;
   
   return deviceHTML;
 }
 
 function createCompanyRankMarketShareHistory(record) {
-  if (!record || !record.historical_data) {
-    return '<div class="rank-history-container"><div class="no-data-message">No historical data</div></div>';
+  // For companies mode, use the historical_data from company stats
+  if (!record.historical_data || record.historical_data.length === 0) {
+    return '<div class="rank-history-container"><div class="no-data-message">No historical data available</div></div>';
   }
   
-  const histData = record.historical_data;
-  const maxDays = 30;
-  const dateArray = [];
-  const today = moment();
-  
-  for (let i = 0; i < maxDays; i++) {
-    dateArray.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-  }
-  
-  dateArray.reverse();
+  // Get last 30 days of data
+  const dataPoints = record.historical_data.slice(-30);
   
   let html = '<div class="rank-history-container">';
   
-  // Company rank history
+  // First row: Company ranks
   html += '<div class="rank-history-row">';
-  dateArray.forEach(date => {
-    const dayData = histData.find(h => h.date === date);
-    if (dayData && dayData.rank) {
-      const rank = Math.round(dayData.rank);
+  dataPoints.forEach(point => {
+    if (point && point.rank !== undefined && point.rank !== null) {
+      const rank = Math.round(point.rank);
       const colorClass = getRankColorClass(rank);
       html += `<div class="rank-box ${colorClass}">${rank}</div>`;
     } else {
@@ -1002,13 +1147,12 @@ function createCompanyRankMarketShareHistory(record) {
   });
   html += '</div>';
   
-  // Market share history
+  // Second row: Market share percentages
   html += '<div class="visibility-history-row">';
-  dateArray.forEach(date => {
-    const dayData = histData.find(h => h.date === date);
-    if (dayData && dayData.market_share !== null) {
-      const share = Math.round(dayData.market_share * 10) / 10;
-      html += `<div class="visibility-box" data-fill="${share}"><span>${share}%</span></div>`;
+  dataPoints.forEach(point => {
+    if (point && point.market_share !== undefined && point.market_share !== null) {
+      const marketShare = Math.round(point.market_share * 100 * 10) / 10;
+      html += `<div class="visibility-box" data-fill="${marketShare}"><span>${marketShare}%</span></div>`;
     } else {
       html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
     }
@@ -1137,57 +1281,103 @@ function renderPendingExplorerChartsForProduct() {
       return;
     }
     
-    console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} product-specific charts`);
+    const isCompaniesMode = getCurrentMode() === 'companies';
+    console.log(`[renderPendingExplorerChartsForProduct] Rendering ${charts.length} charts in ${isCompaniesMode ? 'companies' : 'products'} mode`);
     
     charts.forEach((chartInfo, index) => {
-      const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
-      console.log(`[renderPendingExplorerChartsForProduct] Processing chart ${index + 1}/${charts.length}: ${containerId}`);
-      
-      const productRecords = getProductRecords(selectedProduct);
-      const specificRecord = productRecords.find(record => 
-        record.q === combination.searchTerm &&
-        record.location_requested === combination.location &&
-        record.device === combination.device
-      );
-      
-      if (!specificRecord) {
-        console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
-        const container = document.getElementById(containerId);
-        if (container) {
-          container.innerHTML = '<div class="no-data-message">No data for this product</div>';
-          container.classList.remove('loading');
-        }
-        return;
-      }
-      
-      const chartData = calculateProductSegmentData(specificRecord);
-      
-      if (!chartData || chartData.length === 0) {
-        console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
-        const container = document.getElementById(containerId);
-        if (container) {
-          container.innerHTML = '<div class="no-data-message">No segment data</div>';
-          container.classList.remove('loading');
-        }
-        return;
-      }
-      
-      createProductSegmentationChart(
-        containerId,
-        chartData,
-        combination.searchTerm,
-        combination.location,
-        combination.device,
-        selectedProduct.source,
-        specificRecord
-      );
-      
-      // Store reference to the record for position chart rendering
-      const positionChartContainer = document.getElementById(positionChartId);
-      if (positionChartContainer) {
-        positionChartContainer.combinationRecord = specificRecord;
-        positionChartContainer.combinationInfo = combination;
-      }
+// Inside the charts.forEach loop, replace the existing logic with:
+
+const { containerId, positionChartId, combination, selectedProduct } = chartInfo;
+
+if (isCompaniesMode) {
+  // For companies mode, use the record directly from combination
+  const companyRecord = combination.record;
+  
+  if (!companyRecord) {
+    console.log(`[renderPendingExplorerChartsForProduct] No company record found`);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No data for this company</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  // Use company's segment data
+  const chartData = calculateCompanySegmentData(companyRecord);
+  
+  if (!chartData || chartData.length === 0) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No segment data</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  createProductSegmentationChart(
+    containerId,
+    chartData,
+    combination.searchTerm,
+    combination.location,
+    combination.device,
+    combination.company,
+    companyRecord
+  );
+  
+  // Store reference for position chart
+  const positionChartContainer = document.getElementById(positionChartId);
+  if (positionChartContainer) {
+    positionChartContainer.combinationRecord = companyRecord;
+    positionChartContainer.combinationInfo = combination;
+  }
+} else {
+  // Original product mode code - keep as is
+  const productRecords = getProductRecords(selectedProduct);
+  const specificRecord = productRecords.find(record => 
+    record.q === combination.searchTerm &&
+    record.location_requested === combination.location &&
+    record.device === combination.device
+  );
+  
+  if (!specificRecord) {
+    console.log(`[renderPendingExplorerChartsForProduct] No record found for combination:`, combination);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No data for this product</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  const chartData = calculateProductSegmentData(specificRecord);
+  
+  if (!chartData || chartData.length === 0) {
+    console.log(`[renderPendingExplorerChartsForProduct] No chart data for ${containerId}`);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<div class="no-data-message">No segment data</div>';
+      container.classList.remove('loading');
+    }
+    return;
+  }
+  
+  createProductSegmentationChart(
+    containerId,
+    chartData,
+    combination.searchTerm,
+    combination.location,
+    combination.device,
+    selectedProduct.source,
+    specificRecord
+  );
+  
+  const positionChartContainer = document.getElementById(positionChartId);
+  if (positionChartContainer) {
+    positionChartContainer.combinationRecord = specificRecord;
+    positionChartContainer.combinationInfo = combination;
+  }
+}
     });
     
     window.pendingExplorerCharts = [];
@@ -1256,6 +1446,38 @@ function calculateProductSegmentData(record) {
     { label: "Top4-8", current: currTop8 - currTop3, previous: prevTop8 - prevTop3 },
     { label: "Top9-14", current: currTop14 - currTop8, previous: prevTop14 - prevTop8 },
     { label: "Below14", current: currTop40 - currTop14, previous: prevTop40 - prevTop14 }
+  ];
+}
+
+function calculateCompanySegmentData(record) {
+  // For companies, we use the segment data directly from the record
+  if (!record) return null;
+  
+  const top3 = (record.top3 || 0) * 100;
+  const top8 = (record.top8 || 0) * 100;
+  const top14 = (record.top14 || 0) * 100;
+  const top40 = (record.top40 || 0) * 100;
+  
+  // Calculate the segments
+  const top4_8 = top8 - top3;
+  const top9_14 = top14 - top8;
+  const below14 = top40 - top14;
+  
+  // Calculate previous values using trends
+  const top3Prev = top3 - ((record.top3Trend || 0) * 100);
+  const top8Prev = top8 - ((record.top8Trend || 0) * 100);
+  const top14Prev = top14 - ((record.top14Trend || 0) * 100);
+  const top40Prev = top40 - ((record.top40Trend || 0) * 100);
+  
+  const top4_8Prev = top8Prev - top3Prev;
+  const top9_14Prev = top14Prev - top8Prev;
+  const below14Prev = top40Prev - top14Prev;
+  
+  return [
+    { label: "Top3", current: top3, previous: top3Prev },
+    { label: "Top4-8", current: top4_8, previous: top4_8Prev },
+    { label: "Top9-14", current: top9_14, previous: top9_14Prev },
+    { label: "Below14", current: below14, previous: below14Prev }
   ];
 }
 
@@ -1382,79 +1604,111 @@ infoContainer.innerHTML = `
   });
 }
 
-// Add this function after createProductSegmentationChart (around line 850)
 function createProductRankMarketShareHistory(record) {
-  // Use last 30 days like in position charts
-  const maxDate = moment().startOf('day');
-  const minDate = maxDate.clone().subtract(29, 'days');
+  const isCompaniesMode = getCurrentMode() === 'companies';
   
-// Create array of exactly 30 dates (newest first, oldest last)
-const dateArray = [];
-let currentDate = maxDate.clone(); // Start from newest date
-while (currentDate.isSameOrAfter(minDate)) {
-  dateArray.push(currentDate.format('YYYY-MM-DD'));
-  currentDate.subtract(1, 'day'); // Go backwards
-}
-  
-  // Check if there's any historical data at all
-  const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
-  
-  let html = '<div class="rank-history-container">';
-  
-  if (!hasHistoricalData) {
-    // Completely missing data - show gray empty boxes
-    html += '<div class="rank-history-row">';
-    dateArray.forEach(() => {
-      html += '<div class="history-empty-box"></div>';
-    });
-    html += '</div>';
+  if (isCompaniesMode) {
+    // For companies mode, use the historical_data from company stats
+    if (!record.historical_data || record.historical_data.length === 0) {
+      return '<div class="rank-history-container"><div class="no-data-message">No historical data available</div></div>';
+    }
     
-    html += '<div class="visibility-history-row">';
-    dateArray.forEach(() => {
-      html += '<div class="history-empty-box"></div>';
-    });
-    html += '</div>';
-  } else {
-    // Has some historical data - process normally
+    // Get last 30 days of data
+    const dataPoints = record.historical_data.slice(-30);
     
-    // First row: Rank positions
+    let html = '<div class="rank-history-container">';
+    
+    // First row: Company ranks
     html += '<div class="rank-history-row">';
-    dateArray.forEach(dateStr => {
-      const histItem = record.historical_data.find(item => 
-        item.date?.value === dateStr
-      );
-      
-      if (histItem?.avg_position != null) {
-        // Data exists - show actual rank with color coding
-        const rank = Math.round(parseFloat(histItem.avg_position));
+    dataPoints.forEach(point => {
+      if (point && point.rank !== undefined && point.rank !== null) {
+        const rank = Math.round(point.rank);
         const colorClass = getRankColorClass(rank);
         html += `<div class="rank-box ${colorClass}">${rank}</div>`;
       } else {
-        // Missing data for this date - empty box with no background color
         html += '<div class="rank-box"></div>';
       }
     });
     html += '</div>';
     
-    // Second row: Visibility percentages
+    // Second row: Market share percentages
     html += '<div class="visibility-history-row">';
-    dateArray.forEach(dateStr => {
-      const histItem = record.historical_data.find(item => 
-        item.date?.value === dateStr
-      );
-      
-if (histItem?.visibility != null) {
-  const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
-  html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
-} else {
-  html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
-}
+    dataPoints.forEach(point => {
+      if (point && point.market_share !== undefined && point.market_share !== null) {
+        const marketShare = Math.round(point.market_share * 100 * 10) / 10;
+        html += `<div class="visibility-box" data-fill="${marketShare}"><span>${marketShare}%</span></div>`;
+      } else {
+        html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+      }
     });
     html += '</div>';
+    
+    html += '</div>';
+    return html;
+  } else {
+    // Original product mode code - keep exactly as is
+    const maxDate = moment().startOf('day');
+    const minDate = maxDate.clone().subtract(29, 'days');
+    
+    const dateArray = [];
+    let currentDate = maxDate.clone();
+    while (currentDate.isSameOrAfter(minDate)) {
+      dateArray.push(currentDate.format('YYYY-MM-DD'));
+      currentDate.subtract(1, 'day');
+    }
+    
+    const hasHistoricalData = record.historical_data && record.historical_data.length > 0;
+    
+    let html = '<div class="rank-history-container">';
+    
+    if (!hasHistoricalData) {
+      html += '<div class="rank-history-row">';
+      dateArray.forEach(() => {
+        html += '<div class="history-empty-box"></div>';
+      });
+      html += '</div>';
+      
+      html += '<div class="visibility-history-row">';
+      dateArray.forEach(() => {
+        html += '<div class="history-empty-box"></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="rank-history-row">';
+      dateArray.forEach(dateStr => {
+        const histItem = record.historical_data.find(item => 
+          item.date?.value === dateStr
+        );
+        
+        if (histItem?.avg_position != null) {
+          const rank = Math.round(parseFloat(histItem.avg_position));
+          const colorClass = getRankColorClass(rank);
+          html += `<div class="rank-box ${colorClass}">${rank}</div>`;
+        } else {
+          html += '<div class="rank-box"></div>';
+        }
+      });
+      html += '</div>';
+      
+      html += '<div class="visibility-history-row">';
+      dateArray.forEach(dateStr => {
+        const histItem = record.historical_data.find(item => 
+          item.date?.value === dateStr
+        );
+        
+        if (histItem?.visibility != null) {
+          const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
+          html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
+        } else {
+          html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+        }
+      });
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
   }
-  
-  html += '</div>';
-  return html;
 }
 
 function buildMapDataForSelectedProduct() {
@@ -2741,7 +2995,7 @@ container.innerHTML = `
     </div>
     <div id="compNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'companies' ? 'block' : 'none'};">
     </div>
-      <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative; display: ${currentMode === 'products' ? 'block' : 'none'};">
+      <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="explorer-view-switcher">
           <button id="viewRankingExplorer" class="active">Ranking</button>
           <button id="viewChartsExplorer">Charts</button>
@@ -2754,21 +3008,6 @@ container.innerHTML = `
           Full Screen
         </button>
         <div id="productExplorerMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
-        </div>
-      </div>
-      <div id="companyExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative; display: ${currentMode === 'companies' ? 'block' : 'none'};">
-        <div class="company-explorer-view-switcher">
-          <button id="viewRankingCompanyExplorer" class="active">Ranking</button>
-          <button id="viewChartsCompanyExplorer">Charts</button>
-          <button id="viewMapCompanyExplorer">Map</button>
-        </div>
-        <button id="fullscreenToggleCompanyExplorer" class="fullscreen-toggle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-          Full Screen
-        </button>
-        <div id="companyExplorerMapContainer" style="display: none; width: 100%; height: calc(100% - 60px); padding: 20px; box-sizing: border-box;">
         </div>
       </div>
     </div>
@@ -3388,66 +3627,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
   }
 });
 
-// Add view switcher functionality for company explorer
-const viewRankingCompanyExplorerBtn = document.getElementById("viewRankingCompanyExplorer");
-const viewChartsCompanyExplorerBtn = document.getElementById("viewChartsCompanyExplorer");
-const viewMapCompanyExplorerBtn = document.getElementById("viewMapCompanyExplorer");
-
-if (viewRankingCompanyExplorerBtn) {
-  viewRankingCompanyExplorerBtn.addEventListener("click", function() {
-    viewRankingCompanyExplorerBtn.classList.add("active");
-    viewChartsCompanyExplorerBtn.classList.remove("active");
-    viewMapCompanyExplorerBtn.classList.remove("active");
-    
-    const table = document.querySelector('.company-explorer-table');
-    if (table) {
-      table.style.display = 'table';
-      table.classList.add('ranking-mode');
-    }
-    const mapContainer = document.getElementById('companyExplorerMapContainer');
-    if (mapContainer) {
-      mapContainer.style.display = 'none';
-    }
-  });
-}
-
-if (viewChartsCompanyExplorerBtn) {
-  viewChartsCompanyExplorerBtn.addEventListener("click", function() {
-    viewChartsCompanyExplorerBtn.classList.add("active");
-    viewRankingCompanyExplorerBtn.classList.remove("active");
-    viewMapCompanyExplorerBtn.classList.remove("active");
-    
-    const table = document.querySelector('.company-explorer-table');
-    if (table) {
-      table.style.display = 'table';
-      table.classList.remove('ranking-mode');
-    }
-    const mapContainer = document.getElementById('companyExplorerMapContainer');
-    if (mapContainer) {
-      mapContainer.style.display = 'none';
-    }
-  });
-}
-
-if (viewMapCompanyExplorerBtn) {
-  viewMapCompanyExplorerBtn.addEventListener("click", function() {
-    viewMapCompanyExplorerBtn.classList.add("active");
-    viewRankingCompanyExplorerBtn.classList.remove("active");
-    viewChartsCompanyExplorerBtn.classList.remove("active");
-    
-    const table = document.querySelector('.company-explorer-table');
-    if (table) {
-      table.style.display = 'none';
-    }
-    
-    const mapContainer = document.getElementById('companyExplorerMapContainer');
-    if (mapContainer) {
-      mapContainer.style.display = 'block';
-      // TODO: Implement company map view
-    }
-  });
-}
-
 // Listen for mode changes from modeSelector
 document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
   option.addEventListener('click', function() {
@@ -3459,23 +3638,8 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
     
     console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
     
-    // Show/hide appropriate panels and containers
-    const productsNavPanel = document.getElementById('productsNavPanel');
-    const compNavPanel = document.getElementById('compNavPanel');
-    const productTableContainer = document.getElementById('productExplorerTableContainer');
-    const companyTableContainer = document.getElementById('companyExplorerTableContainer');
-    
-    if (selectedMode === 'products') {
-      if (productsNavPanel) productsNavPanel.style.display = 'block';
-      if (compNavPanel) compNavPanel.style.display = 'none';
-      if (productTableContainer) productTableContainer.style.display = 'block';
-      if (companyTableContainer) companyTableContainer.style.display = 'none';
-    } else if (selectedMode === 'companies') {
-      if (productsNavPanel) productsNavPanel.style.display = 'none';
-      if (compNavPanel) compNavPanel.style.display = 'block';
-      if (productTableContainer) productTableContainer.style.display = 'none';
-      if (companyTableContainer) companyTableContainer.style.display = 'block';
-    }
+    // Re-render the entire explorer
+    renderProductExplorerTable();
   });
 });
   
@@ -3503,15 +3667,21 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
-// Apply mode-specific filtering
+// In the mode change handler
 if (getCurrentMode() === 'companies') {
-  // Company mode specific logic
-  console.log(`[ProductExplorer] Processing in COMPANIES mode`);
-  renderCompaniesNavPanel();
-  return; // Exit early for companies mode
+  // Hide product table, show company table
+  const productTable = document.querySelector('.product-explorer-table');
+  if (productTable) productTable.style.display = 'none';
+  
+  const companyTable = document.querySelector('.company-explorer-table');
+  if (companyTable) companyTable.style.display = '';
 } else {
-  // Products mode (default)
-  console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
+  // Hide company table, show product table
+  const companyTable = document.querySelector('.company-explorer-table');
+  if (companyTable) companyTable.style.display = 'none';
+  
+  const productTable = document.querySelector('.product-explorer-table');
+  if (productTable) productTable.style.display = '';
 }
   
   window.pendingExplorerCharts = [];
@@ -4935,6 +5105,7 @@ if (getCurrentMode() === 'companies') {
 .trend-neutral {
   color: #666;
 }
+// Add this to the existing style block in renderProductExplorerTable
 .company-explorer-table {
   width: calc(100% - 40px);
   margin-left: 20px;
@@ -4945,7 +5116,6 @@ if (getCurrentMode() === 'companies') {
   overflow: hidden;
   table-layout: fixed;
 }
-
 .company-explorer-table th {
   height: 50px;
   padding: 12px;
@@ -4959,7 +5129,6 @@ if (getCurrentMode() === 'companies') {
   top: 0;
   z-index: 10;
 }
-
 .company-explorer-table:not(.ranking-mode) td {
   padding: 8px;
   font-size: 14px;
@@ -4971,7 +5140,6 @@ if (getCurrentMode() === 'companies') {
   box-sizing: border-box;
   overflow: hidden;
 }
-
 .company-explorer-table.ranking-mode td {
   padding: 8px;
   font-size: 14px;
@@ -4983,53 +5151,6 @@ if (getCurrentMode() === 'companies') {
   min-height: 120px !important;
   box-sizing: border-box;
   overflow: hidden;
-}
-
-.company-explorer-table { table-layout: fixed; }
-.company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; }
-.company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; }
-.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; }
-.company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; }
-.company-explorer-table th:nth-child(5), .company-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
-
-.company-explorer-table.ranking-mode .segmentation-column {
-  display: none !important;
-}
-
-.company-explorer-table.ranking-mode th:nth-child(3), 
-.company-explorer-table.ranking-mode td:nth-child(3) { 
-  width: 380px !important; 
-}
-
-.company-explorer-view-switcher {
-  position: absolute;
-  top: 10px;
-  right: 140px;
-  display: inline-flex;
-  background-color: #f0f0f0;
-  border-radius: 20px;
-  padding: 3px;
-  z-index: 100;
-}
-
-.company-explorer-view-switcher button {
-  padding: 6px 16px;
-  border: none;
-  background: transparent;
-  border-radius: 17px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #666;
-}
-
-.company-explorer-view-switcher button.active {
-  background-color: #007aff;
-  color: white;
-}
-
-.company-explorer-view-switcher button:hover:not(.active) {
-  background-color: rgba(0, 122, 255, 0.1);
 }
     `;
     document.head.appendChild(style);
@@ -5562,9 +5683,15 @@ function selectCompany(companyData, navItemElement) {
   
   console.log(`[selectCompany] Found ${companyCombinations.length} combinations for ${companyData.company}`);
   
-  // Render company table instead of product table
-  const currentViewMode = document.querySelector('.company-explorer-view-switcher .active')?.id || 'viewRankingCompanyExplorer';
-  renderTableForSelectedCompany(companyCombinations, currentViewMode);
+  // Hide product explorer table and show company explorer table
+  const productTable = document.querySelector('.product-explorer-table');
+  if (productTable) {
+    productTable.style.display = 'none';
+  }
+  
+  // Render company table
+  const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
+  renderCompanyExplorerTable(companyCombinations, currentViewMode);
 }
 
 // Debug tracker - add at the END of product_explorer.js
