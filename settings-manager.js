@@ -1369,17 +1369,32 @@ function updateCurrentCompanyDisplay() {
     };
   }
   
-// Fixed Refresh IDB button handler
+// Fixed Refresh IDB button handler with Z-index and double-click fixes
 const refreshIDBBtn = document.getElementById("refreshIDBButton");
 if (refreshIDBBtn) {
-  refreshIDBBtn.addEventListener("click", function(e) {
+  // Remove any existing listeners to prevent double-binding
+  refreshIDBBtn.replaceWith(refreshIDBBtn.cloneNode(true));
+  const newRefreshBtn = document.getElementById("refreshIDBButton");
+  
+  newRefreshBtn.addEventListener("click", function(e) {
     e.preventDefault();
     e.stopPropagation();
     
     console.log("[Debug] Refresh button clicked");
     
-    // Create backdrop
+    // Prevent multiple dialogs - check if one already exists
+    if (document.querySelector('.refresh-confirmation-backdrop')) {
+      console.log("[Debug] Dialog already exists, ignoring click");
+      return;
+    }
+    
+    // Disable the button temporarily to prevent double-clicks
+    newRefreshBtn.disabled = true;
+    newRefreshBtn.style.opacity = '0.5';
+    
+    // Create backdrop with higher z-index than settings overlay
     const backdrop = document.createElement('div');
+    backdrop.className = 'refresh-confirmation-backdrop';
     backdrop.style.cssText = `
       position: fixed;
       top: 0;
@@ -1388,14 +1403,15 @@ if (refreshIDBBtn) {
       bottom: 0;
       background: rgba(0,0,0,0.5);
       backdrop-filter: blur(2px);
-      z-index: 999998;
+      z-index: 10000000;
       display: flex;
       align-items: center;
       justify-content: center;
     `;
     
-    // Create dialog
+    // Create dialog with even higher z-index
     const dialog = document.createElement('div');
+    dialog.className = 'refresh-confirmation-dialog';
     dialog.style.cssText = `
       background: white;
       padding: 24px;
@@ -1404,7 +1420,7 @@ if (refreshIDBBtn) {
       max-width: 400px;
       width: 90%;
       position: relative;
-      z-index: 999999;
+      z-index: 10000001;
     `;
     
     // Create dialog content
@@ -1480,6 +1496,9 @@ if (refreshIDBBtn) {
     function closeDialog() {
       console.log("[Debug] Closing dialog");
       backdrop.remove();
+      // Re-enable the refresh button
+      newRefreshBtn.disabled = false;
+      newRefreshBtn.style.opacity = '1';
     }
     
     // Add event listeners with proper error handling
@@ -1503,10 +1522,15 @@ if (refreshIDBBtn) {
         window.closeSettingsOverlay();
       }
       
-      // Start refresh process
+      // Start refresh process with error handling
       if (typeof window.refreshIDBData === "function") {
         console.log("[Debug] Starting refresh process");
-        window.refreshIDBData();
+        try {
+          window.refreshIDBData();
+        } catch (error) {
+          console.error("[Debug] Error starting refresh:", error);
+          alert("Failed to start refresh process. Please reload the page.");
+        }
       } else {
         console.error("[Debug] refreshIDBData function not found");
         alert("Refresh function not available. Please reload the page.");
@@ -1778,13 +1802,15 @@ settingsButton.onclick = function(e) {
   setTimeout(attachListener, 1000);
 })();
 
-// Fixed refreshIDBData function with better error handling
+// Simplified refreshIDBData function without validation
 window.refreshIDBData = async function() {
+  let loader = null;
+  
   try {
     console.log("[🔄 IDB Refresh] Starting complete database refresh...");
     
     // Show loading overlay
-    const loader = document.getElementById("overlayLoader");
+    loader = document.getElementById("overlayLoader");
     if (loader) {
       loader.style.display = "flex";
       loader.style.opacity = "1";
@@ -1808,7 +1834,7 @@ window.refreshIDBData = async function() {
       }
     }
     
-    // Step 2: Clear cached data regardless of deletion success
+    // Step 2: Clear cached data
     console.log("[🔄 IDB Refresh] Step 2: Clearing cached data...");
     
     // Preserve project structure temporarily
@@ -1856,12 +1882,24 @@ window.refreshIDBData = async function() {
     const refreshTimeout = setTimeout(() => {
       if (window._isRefreshingIDB) {
         console.error("[🔄 IDB Refresh] Refresh operation timed out after 30 seconds");
+        
+        // Clean up state
         window._isRefreshingIDB = false;
+        if (window._refreshTimeoutId) {
+          clearTimeout(window._refreshTimeoutId);
+          window._refreshTimeoutId = null;
+        }
         
         // Hide loader and show error
         if (loader) {
           loader.style.opacity = "0";
           setTimeout(() => { loader.style.display = "none"; }, 500);
+        }
+        
+        // Remove any stuck confirmation dialogs
+        const stuckDialog = document.querySelector('.refresh-confirmation-backdrop');
+        if (stuckDialog) {
+          stuckDialog.remove();
         }
         
         alert("Database refresh timed out. Please try again.");
@@ -1897,10 +1935,15 @@ window.refreshIDBData = async function() {
     }
     
     // Hide loader on error
-    const loader = document.getElementById("overlayLoader");
     if (loader) {
       loader.style.opacity = "0";
       setTimeout(() => { loader.style.display = "none"; }, 500);
+    }
+    
+    // Remove any stuck confirmation dialogs
+    const stuckDialog = document.querySelector('.refresh-confirmation-backdrop');
+    if (stuckDialog) {
+      stuckDialog.remove();
     }
     
     // Show user-friendly error message
