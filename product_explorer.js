@@ -952,29 +952,41 @@ function createDeviceCell(combination) {
       change = '0.0';
     }
     
-    deviceHTML += `
-      <div class="device-rank">
-        <div class="section-header">Company Rank</div>
-        <div class="device-rank-value">${companyRank}</div>
-        <div class="device-trend" style="color:${color};">
-          ${arrow} ${change}
-        </div>
-      </div>
-    `;
+// Determine rank box color
+let rankBoxColor;
+if (companyRank === 1) {
+  rankBoxColor = '#4CAF50';
+} else if (companyRank <= 3) {
+  rankBoxColor = '#FFC107';
+} else if (companyRank <= 5) {
+  rankBoxColor = '#FF9800';
+} else {
+  rankBoxColor = '#F44336';
+}
+
+deviceHTML += `
+  <div class="device-rank">
+    <div class="section-header">Company Rank</div>
+    <div class="company-rank-box" style="background-color: ${rankBoxColor}; color: white; width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; margin: 0 auto;">${companyRank}</div>
+    <div class="device-trend" style="color:${color}; margin-top: 4px;">
+      ${arrow} ${change}
+    </div>
+  </div>
+`;
     
-    // Market share (convert from decimal to percentage)
-    const marketShare = (record.top40 || 0) * 100;
-    const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
-    deviceHTML += `
-      <div class="device-share">
-        <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
-        <div id="${visChartId}" class="pie-chart-container"></div>
-      </div>
-    `;
-    
-    setTimeout(() => {
-      createMarketSharePieChartExplorer(visChartId, marketShare);
-    }, 50);
+// Market share (check if already in percentage)
+const marketShare = (record.top40 || 0);
+const marketSharePercentage = marketShare > 1 ? marketShare : marketShare * 100;
+
+deviceHTML += `
+  <div class="device-share">
+    <div class="section-header">Market Share<br><span style="font-size: 9px;">(last 7 days)</span></div>
+    <div class="company-market-badge" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #007aff; background: white; border: 2px solid #007aff; margin: 0 auto; position: relative; overflow: hidden;">
+      <div class="market-badge-water" style="position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%); transition: height 0.5s ease; z-index: 0; border-radius: 50%; opacity: 0.5; height: ${Math.min(100, Math.max(0, marketSharePercentage * 2))}%;"></div>
+      <span style="position: relative; z-index: 1;">${Math.round(marketSharePercentage)}%</span>
+    </div>
+  </div>
+`;
     
     // Status is always active for companies in the results
     deviceHTML += `
@@ -1087,8 +1099,9 @@ function createCompanyDeviceCell(combination) {
     </div>
   `;
   
-  // Market share (convert from decimal to percentage)
-  const marketShare = (record.top40 || 0) * 100;
+// Market share (check if already in percentage)
+const marketShare = (record.top40 || 0);
+const marketSharePercentage = marketShare > 1 ? marketShare : marketShare * 100;
   const visChartId = `vis-chart-${Date.now()}-${Math.random()}`;
   deviceHTML += `
     <div class="device-share">
@@ -1129,32 +1142,55 @@ function createCompanyRankMarketShareHistory(record) {
     return '<div class="rank-history-container"><div class="no-data-message">No historical data available</div></div>';
   }
   
-  // Get last 30 days of data
-  const dataPoints = record.historical_data.slice(-30);
+  // Create a proper 30-day date range (earliest to latest)
+  const maxDate = moment().startOf('day');
+  const minDate = maxDate.clone().subtract(29, 'days');
+  
+  const dateArray = [];
+  let currentDate = minDate.clone();
+  while (currentDate.isSameOrBefore(maxDate)) {
+    dateArray.push(currentDate.format('YYYY-MM-DD'));
+    currentDate.add(1, 'day');
+  }
   
   let html = '<div class="rank-history-container">';
   
   // First row: Company ranks
   html += '<div class="rank-history-row">';
-  dataPoints.forEach(point => {
-    if (point && point.rank !== undefined && point.rank !== null) {
-      const rank = Math.round(point.rank);
+  dateArray.forEach(dateStr => {
+    const histItem = record.historical_data.find(item => 
+      item.date === dateStr || (item.date && item.date.value === dateStr)
+    );
+    
+    if (histItem && histItem.rank !== undefined && histItem.rank !== null) {
+      const rank = Math.round(histItem.rank);
       const colorClass = getRankColorClass(rank);
       html += `<div class="rank-box ${colorClass}">${rank}</div>`;
     } else {
-      html += '<div class="rank-box"></div>';
+      // Empty day - light grey box with 50% height
+      html += '<div class="rank-box" style="background-color: #e0e0e0 !important; height: 25px !important; opacity: 0.5;"></div>';
     }
   });
   html += '</div>';
   
   // Second row: Market share percentages
   html += '<div class="visibility-history-row">';
-  dataPoints.forEach(point => {
-    if (point && point.market_share !== undefined && point.market_share !== null) {
-      const marketShare = Math.round(point.market_share * 100 * 10) / 10;
-      html += `<div class="visibility-box" data-fill="${marketShare}"><span>${marketShare}%</span></div>`;
+  dateArray.forEach(dateStr => {
+    const histItem = record.historical_data.find(item => 
+      item.date === dateStr || (item.date && item.date.value === dateStr)
+    );
+    
+    if (histItem && histItem.market_share !== undefined && histItem.market_share !== null) {
+      let marketShare = histItem.market_share;
+      // Check if already in percentage
+      if (marketShare <= 1) {
+        marketShare = marketShare * 100;
+      }
+      const marketShareRounded = Math.round(marketShare * 10) / 10;
+      html += `<div class="visibility-box" data-fill="${marketShareRounded}"><span>${marketShareRounded}%</span></div>`;
     } else {
-      html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
+      // Empty day - light grey box with 50% height
+      html += '<div class="visibility-box" style="background-color: #e0e0e0 !important; height: 25px !important; opacity: 0.5;"><span>-</span></div>';
     }
   });
   html += '</div>';
@@ -1675,35 +1711,35 @@ function createProductRankMarketShareHistory(record) {
       html += '</div>';
     } else {
       html += '<div class="rank-history-row">';
-      dateArray.forEach(dateStr => {
-        const histItem = record.historical_data.find(item => 
-          item.date?.value === dateStr
-        );
-        
-        if (histItem?.avg_position != null) {
-          const rank = Math.round(parseFloat(histItem.avg_position));
-          const colorClass = getRankColorClass(rank);
-          html += `<div class="rank-box ${colorClass}">${rank}</div>`;
-        } else {
-          html += '<div class="rank-box"></div>';
-        }
-      });
-      html += '</div>';
-      
-      html += '<div class="visibility-history-row">';
-      dateArray.forEach(dateStr => {
-        const histItem = record.historical_data.find(item => 
-          item.date?.value === dateStr
-        );
-        
-        if (histItem?.visibility != null) {
-          const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
-          html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
-        } else {
-          html += '<div class="visibility-box" data-fill="0"><span>0%</span></div>';
-        }
-      });
-      html += '</div>';
+dateArray.forEach(dateStr => {
+  const histItem = record.historical_data.find(item => 
+    item.date?.value === dateStr
+  );
+  
+  if (histItem?.avg_position != null) {
+    const rank = Math.round(parseFloat(histItem.avg_position));
+    const colorClass = getRankColorClass(rank);
+    html += `<div class="rank-box ${colorClass}">${rank}</div>`;
+  } else {
+    html += '<div class="rank-box" style="background-color: #e0e0e0 !important; height: 25px !important; opacity: 0.5;"></div>';
+  }
+});
+html += '</div>';
+
+html += '<div class="visibility-history-row">';
+dateArray.forEach(dateStr => {
+  const histItem = record.historical_data.find(item => 
+    item.date?.value === dateStr
+  );
+  
+  if (histItem?.visibility != null) {
+    const visibility = Math.round(parseFloat(histItem.visibility) * 100 * 10) / 10;
+    html += `<div class="visibility-box" data-fill="${visibility}"><span>${visibility}%</span></div>`;
+  } else {
+    html += '<div class="visibility-box" style="background-color: #e0e0e0 !important; height: 25px !important; opacity: 0.5;"><span>-</span></div>';
+  }
+});
+html += '</div>';
     }
     
     html += '</div>';
@@ -5207,6 +5243,14 @@ console.log(`[renderProductExplorerTable] Using company for project ${currentPro
   width: 50px !important;
   height: 50px !important;
 }
+/* Company Explorer Table column widths to match product table */
+.company-explorer-table { table-layout: fixed; }
+.company-explorer-table th:nth-child(1), .company-explorer-table td:nth-child(1) { width: 190px; }
+.company-explorer-table th:nth-child(2), .company-explorer-table td:nth-child(2) { width: 150px; }
+.company-explorer-table th:nth-child(3), .company-explorer-table td:nth-child(3) { width: 200px; }
+.company-explorer-table th:nth-child(4), .company-explorer-table td:nth-child(4) { width: 230px; }
+.company-explorer-table th:nth-child(5), .company-explorer-table td:nth-child(5) { width: auto; min-width: 400px; }
+
     `;
     document.head.appendChild(style);
   }
