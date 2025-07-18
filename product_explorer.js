@@ -2497,10 +2497,12 @@ if (container.style.display === "none") {
   }
   window.explorerApexCharts = [];
   
-  container.innerHTML = `
-    <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
-      <div id="productsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
-      </div>
+container.innerHTML = `
+  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+    <div id="productsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'products' ? 'block' : 'none'};">
+    </div>
+    <div id="compNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'companies' ? 'block' : 'none'};">
+    </div>
       <div id="productExplorerTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="explorer-view-switcher">
           <button id="viewRankingExplorer" class="active">Ranking</button>
@@ -3144,12 +3146,8 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
     
     console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
     
-    // Re-render the product explorer table with new mode
-    if (window.selectedExplorerProduct) {
-      const combinations = getProductCombinations(window.selectedExplorerProduct);
-      const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
-      renderTableForSelectedProduct(combinations, currentViewMode);
-    }
+    // Re-render the entire explorer
+    renderProductExplorerTable();
   });
 });
   
@@ -3179,9 +3177,10 @@ console.log(`[renderProductExplorerTable] Using company for project ${currentPro
 
 // Apply mode-specific filtering
 if (getCurrentMode() === 'companies') {
-  // Company mode specific logic - group by companies instead of individual products
+  // Company mode specific logic
   console.log(`[ProductExplorer] Processing in COMPANIES mode`);
-  // You can add company-specific data aggregation here
+  renderCompaniesNavPanel();
+  return; // Exit early for companies mode
 } else {
   // Products mode (default)
   console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
@@ -4505,6 +4504,51 @@ if (getCurrentMode() === 'companies') {
   line-height: 1;
   color: white;
 }
+.companies-nav-container {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.companies-nav-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.companies-nav-container::-webkit-scrollbar-track {
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.companies-nav-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.companies-nav-container::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.nav-company-item {
+  margin-bottom: 5px;
+}
+
+.company-counter-badge {
+  background-color: #007aff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.company-counter-badge:hover {
+  background-color: #0056b3;
+}
     `;
     document.head.appendChild(style);
   }
@@ -4648,6 +4692,261 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
       container.appendChild(emptyMessage);
     }
   }, 100);
+}
+
+// Function to render companies in the navigation panel
+function renderCompaniesNavPanel() {
+  const compNavPanel = document.getElementById('compNavPanel');
+  if (!compNavPanel) return;
+
+  // Prepare company data if not already available
+  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
+    if (typeof prepareCompanySerpsStatsData === 'function') {
+      prepareCompanySerpsStatsData();
+    }
+  }
+
+  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
+    compNavPanel.innerHTML = `
+      <div style="padding: 15px; text-align: center; color: #666;">
+        <h3>No company data available</h3>
+        <p>Please ensure data is loaded for the current project.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Create a map to aggregate company data across all combinations
+  const companyAggregateMap = new Map();
+
+  window.company_serp_stats.forEach(stat => {
+    const companyKey = stat.company;
+    
+    if (!companyAggregateMap.has(companyKey)) {
+      companyAggregateMap.set(companyKey, {
+        company: stat.company,
+        totalMarketShare: 0,
+        occurrences: 0,
+        totalRank: 0,
+        allRanks: []
+      });
+    }
+    
+    const aggData = companyAggregateMap.get(companyKey);
+    aggData.totalMarketShare += (stat.top40 || 0);
+    aggData.totalRank += (stat.rank || 999);
+    aggData.allRanks.push(stat.rank || 999);
+    aggData.occurrences += 1;
+  });
+
+  // Calculate averages and create array
+  const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => ({
+    company: agg.company,
+    avgMarketShare: agg.totalMarketShare / agg.occurrences,
+    avgRank: agg.totalRank / agg.occurrences,
+    occurrences: agg.occurrences
+  }));
+
+  // Sort by average market share (descending) to assign project-level ranks
+  companiesWithAverage.sort((a, b) => b.avgMarketShare - a.avgMarketShare);
+
+  // Assign project-level ranks
+  companiesWithAverage.forEach((company, index) => {
+    company.projectRank = index + 1;
+  });
+
+  // Create navigation panel header
+  compNavPanel.innerHTML = `
+    <div style="padding: 15px; margin: 0; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Companies</h3>
+      <div id="companiesCounter" style="display: flex; gap: 8px;">
+        <span class="company-counter-badge all-badge" data-filter="all">${companiesWithAverage.length} Companies</span>
+      </div>
+    </div>
+  `;
+
+  const companiesNavContainer = document.createElement('div');
+  companiesNavContainer.classList.add('companies-nav-container');
+  companiesNavContainer.style.padding = '10px';
+
+  // Render each company
+  companiesWithAverage.forEach((companyData, index) => {
+    const navItem = document.createElement('div');
+    navItem.classList.add('nav-company-item');
+    navItem.style.marginBottom = '8px';
+    navItem.style.cursor = 'pointer';
+
+    const smallCompDetails = createSmallCompDetails(companyData);
+    navItem.appendChild(smallCompDetails);
+
+    // Add click handler
+    navItem.addEventListener('click', function() {
+      selectCompany(companyData, navItem);
+    });
+
+    companiesNavContainer.appendChild(navItem);
+  });
+
+  compNavPanel.appendChild(companiesNavContainer);
+
+  // Auto-select first company
+  setTimeout(() => {
+    const firstCompanyItem = document.querySelector('.nav-company-item');
+    if (firstCompanyItem) {
+      firstCompanyItem.click();
+    }
+  }, 100);
+}
+
+// Function to create small company details container
+function createSmallCompDetails(companyData) {
+  const container = document.createElement('div');
+  container.classList.add('small-comp-details');
+  
+  // Apply similar styling to small-ad-details
+  container.style.cssText = `
+    width: 370px;
+    height: 60px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    transition: all 0.2s;
+    position: relative;
+  `;
+
+  // Rank badge (left side)
+  const rankBadge = document.createElement('div');
+  rankBadge.style.cssText = `
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-right: 10px;
+    color: white;
+  `;
+  
+  // Color based on rank
+  if (companyData.projectRank === 1) {
+    rankBadge.style.backgroundColor = '#4CAF50';
+  } else if (companyData.projectRank <= 3) {
+    rankBadge.style.backgroundColor = '#FFC107';
+  } else if (companyData.projectRank <= 5) {
+    rankBadge.style.backgroundColor = '#FF9800';
+  } else {
+    rankBadge.style.backgroundColor = '#F44336';
+  }
+  
+  rankBadge.textContent = companyData.projectRank;
+  container.appendChild(rankBadge);
+
+  // Company info
+  const infoDiv = document.createElement('div');
+  infoDiv.style.cssText = `
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  `;
+
+  // Company name
+  const nameDiv = document.createElement('div');
+  nameDiv.style.cssText = `
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `;
+  nameDiv.textContent = companyData.company;
+  infoDiv.appendChild(nameDiv);
+
+  // Market share info
+  const marketShareDiv = document.createElement('div');
+  marketShareDiv.style.cssText = `
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+  `;
+  marketShareDiv.textContent = `Avg Market Share: ${companyData.avgMarketShare.toFixed(1)}%`;
+  infoDiv.appendChild(marketShareDiv);
+
+  container.appendChild(infoDiv);
+
+  // Market share badge (right side)
+  const marketBadge = document.createElement('div');
+  marketBadge.style.cssText = `
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 900;
+    color: #007aff;
+    background: white;
+    border: 2px solid #007aff;
+    margin-left: 10px;
+  `;
+  marketBadge.textContent = `${Math.round(companyData.avgMarketShare)}%`;
+  container.appendChild(marketBadge);
+
+  // Hover effect
+  container.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateX(3px)';
+    this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+  });
+
+  container.addEventListener('mouseleave', function() {
+    this.style.transform = 'translateX(0)';
+    this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+  });
+
+  return container;
+}
+
+// Function to handle company selection
+function selectCompany(companyData, navItemElement) {
+  console.log('[selectCompany] Selecting company:', companyData.company);
+  
+  // Remove previous selection
+  document.querySelectorAll('.nav-company-item').forEach(item => {
+    item.querySelector('.small-comp-details').style.border = 'none';
+  });
+  
+  // Highlight selected
+  if (navItemElement) {
+    navItemElement.querySelector('.small-comp-details').style.border = '2px solid #007aff';
+  }
+  
+  window.selectedExplorerCompany = companyData;
+  
+  // Get all combinations for this company
+  const companyCombinations = window.company_serp_stats
+    .filter(stat => stat.company === companyData.company)
+    .map(stat => ({
+      searchTerm: stat.searchTerm,
+      location: stat.location,
+      device: stat.device,
+      company: stat.company,
+      record: stat
+    }));
+  
+  console.log(`[selectCompany] Found ${companyCombinations.length} combinations for ${companyData.company}`);
+  
+  // Render table for selected company
+  const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
+  renderTableForSelectedProduct(companyCombinations, currentViewMode);
 }
 
 // Debug tracker - add at the END of product_explorer.js
