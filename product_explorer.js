@@ -3690,45 +3690,6 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
-// Apply mode-specific filtering
-if (getCurrentMode() === 'companies') {
-  // Company mode specific logic
-  console.log(`[ProductExplorer] Processing in COMPANIES mode`);
-  
-  // Hide products nav panel, show companies nav panel
-  const productsNav = document.getElementById('productsNavPanel');
-  if (productsNav) productsNav.style.display = 'none';
-  
-  const compNav = document.getElementById('compNavPanel');
-  if (compNav) compNav.style.display = 'block';
-  
-  renderCompaniesNavPanel();
-  return; // Exit early for companies mode - DO NOT process products
-}
-
-// Products mode (default)
-console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
-
-// Show products nav panel, hide companies nav panel
-const productsNav = document.getElementById('productsNavPanel');
-if (productsNav) productsNav.style.display = 'block';
-
-const compNav = document.getElementById('compNavPanel');
-if (compNav) compNav.style.display = 'none';
-  
-  window.pendingExplorerCharts = [];
-  if (window.explorerApexCharts) {
-    window.explorerApexCharts.forEach(chart => {
-      try { chart.destroy(); } catch (e) {}
-    });
-  }
-  window.explorerApexCharts = [];
-
-  if (!window.globalRows || typeof window.globalRows !== 'object') {
-    window.globalRows = {};
-    console.log("[DEBUG] Created new globalRows object");
-  }
-
   if (!document.getElementById("product-explorer-table-style")) {
     const style = document.createElement("style");
     style.id = "product-explorer-table-style";
@@ -5184,6 +5145,68 @@ if (compNav) compNav.style.display = 'none';
   box-sizing: border-box;
   overflow: hidden;
 }
+/* Company Explorer Table Ranking Mode Styles */
+.company-explorer-table.ranking-mode .device-container {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 100% !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 8px !important;
+  gap: 8px !important;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+
+.company-explorer-table.ranking-mode .device-container .device-type, 
+.company-explorer-table.ranking-mode .device-container .device-rank, 
+.company-explorer-table.ranking-mode .device-container .device-share,
+.company-explorer-table.ranking-mode .device-container .device-status {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 4px !important;
+  min-width: 60px !important;
+  text-align: center !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .last-tracked-container {
+  display: none !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .device-rank-value {
+  font-size: 24px !important;
+  margin: 2px 0 !important;
+  font-weight: bold !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .device-trend {
+  font-size: 14px !important;
+  margin: 0 !important;
+  font-weight: 600 !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .pie-chart-container {
+  width: 60px !important;
+  height: 60px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .section-header {
+  font-size: 9px !important;
+  margin-bottom: 2px !important;
+}
+
+.company-explorer-table.ranking-mode .device-container .device-icon {
+  width: 50px !important;
+  height: 50px !important;
+}
     `;
     document.head.appendChild(style);
   }
@@ -5208,6 +5231,45 @@ if (compNav) compNav.style.display = 'none';
       }
     `;
     document.head.appendChild(spinnerStyle);
+  }
+
+// Apply mode-specific filtering
+if (getCurrentMode() === 'companies') {
+  // Company mode specific logic
+  console.log(`[ProductExplorer] Processing in COMPANIES mode`);
+  
+  // Hide products nav panel, show companies nav panel
+  const productsNav = document.getElementById('productsNavPanel');
+  if (productsNav) productsNav.style.display = 'none';
+  
+  const compNav = document.getElementById('compNavPanel');
+  if (compNav) compNav.style.display = 'block';
+  
+  renderCompaniesNavPanel();
+  return; // Exit early for companies mode - DO NOT process products
+}
+
+// Products mode (default)
+console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
+
+// Show products nav panel, hide companies nav panel
+const productsNav = document.getElementById('productsNavPanel');
+if (productsNav) productsNav.style.display = 'block';
+
+const compNav = document.getElementById('compNavPanel');
+if (compNav) compNav.style.display = 'none';
+  
+  window.pendingExplorerCharts = [];
+  if (window.explorerApexCharts) {
+    window.explorerApexCharts.forEach(chart => {
+      try { chart.destroy(); } catch (e) {}
+    });
+  }
+  window.explorerApexCharts = [];
+
+  if (!window.globalRows || typeof window.globalRows !== 'object') {
+    window.globalRows = {};
+    console.log("[DEBUG] Created new globalRows object");
   }
 
   const allCompanyProducts = [];
