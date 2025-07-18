@@ -4567,12 +4567,12 @@ if (getCurrentMode() === 'companies') {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(to top, #0056b3 0%, #007aff 50%, #5ac8fa 100%);
+  background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
   transition: height 0.5s ease;
   z-index: 0;
   animation: wave 3s ease-in-out infinite;
   border-radius: 50%;
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
 @keyframes wave {
@@ -4585,17 +4585,23 @@ if (getCurrentMode() === 'companies') {
 }
 
 .trend-indicator {
-  font-size: 10px;
-  font-weight: 600;
-  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 .trend-up {
-  color: #4CAF50;
+  color: #2E7D32;
+  background-color: rgba(76, 175, 80, 0.15);
 }
 
 .trend-down {
-  color: #F44336;
+  color: #C62828;
+  background-color: rgba(244, 67, 54, 0.15);
 }
 
 .trend-neutral {
@@ -4799,43 +4805,79 @@ window.company_serp_stats.forEach(stat => {
   }
 });
 
-// Calculate averages and create array
-const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => {
-  // Calculate rank trend (7 days)
-  let rankTrend = 0;
-  if (agg.historicalData.length > 0) {
-    // Get ranks from 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+// First, calculate current averages
+const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => ({
+  company: agg.company,
+  avgMarketShare: agg.totalMarketShare / agg.occurrences,
+  avgRank: agg.totalRank / agg.occurrences,
+  occurrences: agg.occurrences,
+  historicalData: agg.historicalData
+}));
+
+// Sort by average market share to get current rankings
+companiesWithAverage.sort((a, b) => b.avgMarketShare - a.avgMarketShare);
+companiesWithAverage.forEach((company, index) => {
+  company.currentProjectRank = index + 1;
+});
+
+// Now calculate 7-days-ago rankings
+const sevenDaysAgoMap = new Map();
+
+// Process historical data to get 7-days-ago state
+window.company_serp_stats.forEach(stat => {
+  if (stat.historical_data && stat.historical_data.length > 7) {
+    const sevenDaysAgoData = stat.historical_data[stat.historical_data.length - 8];
     
-    let oldRankSum = 0;
-    let oldRankCount = 0;
-    
-    agg.historicalData.forEach(histData => {
-      if (histData && histData.length > 7) {
-        const oldData = histData[histData.length - 8]; // 7 days ago
-        if (oldData && oldData.rank) {
-          oldRankSum += oldData.rank;
-          oldRankCount++;
-        }
+    if (sevenDaysAgoData) {
+      const companyKey = stat.company;
+      
+      if (!sevenDaysAgoMap.has(companyKey)) {
+        sevenDaysAgoMap.set(companyKey, {
+          company: stat.company,
+          totalMarketShare7DaysAgo: 0,
+          occurrences7DaysAgo: 0
+        });
       }
-    });
-    
-    if (oldRankCount > 0) {
-      const oldAvgRank = oldRankSum / oldRankCount;
-      const currentAvgRank = agg.totalRank / agg.occurrences;
-      rankTrend = oldAvgRank - currentAvgRank; // Positive means improvement
+      
+      const agg7Days = sevenDaysAgoMap.get(companyKey);
+      agg7Days.totalMarketShare7DaysAgo += (sevenDaysAgoData.market_share || 0);
+      agg7Days.occurrences7DaysAgo += 1;
     }
   }
+});
+
+// Calculate 7-days-ago averages and rankings
+const companies7DaysAgo = Array.from(sevenDaysAgoMap.values()).map(agg => ({
+  company: agg.company,
+  avgMarketShare7DaysAgo: agg.totalMarketShare7DaysAgo / agg.occurrences7DaysAgo
+}));
+
+// Sort by 7-days-ago market share to get rankings
+companies7DaysAgo.sort((a, b) => b.avgMarketShare7DaysAgo - a.avgMarketShare7DaysAgo);
+const rank7DaysAgoMap = new Map();
+companies7DaysAgo.forEach((company, index) => {
+  rank7DaysAgoMap.set(company.company, index + 1);
+});
+
+// Add trend data to current companies
+companiesWithAverage.forEach(company => {
+  // Get 7-days-ago rank
+  const oldRank = rank7DaysAgoMap.get(company.company);
+  const company7DaysAgo = companies7DaysAgo.find(c => c.company === company.company);
   
-  return {
-    company: agg.company,
-    avgMarketShare: agg.totalMarketShare / agg.occurrences,
-    avgMarketShareTrend: agg.totalMarketShareTrend / agg.occurrences,
-    avgRank: agg.totalRank / agg.occurrences,
-    rankTrend: rankTrend,
-    occurrences: agg.occurrences
-  };
+  if (oldRank && company7DaysAgo) {
+    // Rank trend: negative means improvement (moved up in rank)
+    company.rankTrend = oldRank - company.currentProjectRank;
+    
+    // Market share trend: current - 7 days ago
+    company.marketShareTrend = company.avgMarketShare - company7DaysAgo.avgMarketShare7DaysAgo;
+  } else {
+    company.rankTrend = 0;
+    company.marketShareTrend = 0;
+  }
+  
+  // Use currentProjectRank as the projectRank
+  company.projectRank = company.currentProjectRank;
 });
 
   // Sort by average market share (descending) to assign project-level ranks
@@ -4965,20 +5007,22 @@ function createSmallCompDetails(companyData) {
   nameText.textContent = companyData.company;
   nameDiv.appendChild(nameText);
   
-  // Add rank trend indicator
-  if (companyData.rankTrend !== undefined && companyData.rankTrend !== 0) {
-    const rankTrendSpan = document.createElement('span');
-    rankTrendSpan.className = 'trend-indicator';
-    
-    if (companyData.rankTrend > 0) {
-      rankTrendSpan.className += ' trend-up';
-      rankTrendSpan.textContent = `▲${Math.abs(companyData.rankTrend).toFixed(1)}`;
-    } else {
-      rankTrendSpan.className += ' trend-down';
-      rankTrendSpan.textContent = `▼${Math.abs(companyData.rankTrend).toFixed(1)}`;
-    }
-    nameDiv.appendChild(rankTrendSpan);
+// Add rank trend indicator
+if (companyData.rankTrend !== undefined && companyData.rankTrend !== 0) {
+  const rankTrendSpan = document.createElement('span');
+  rankTrendSpan.className = 'trend-indicator';
+  
+  if (companyData.rankTrend > 0) {
+    rankTrendSpan.className += ' trend-up';
+    rankTrendSpan.textContent = `▲${Math.abs(companyData.rankTrend)}`;
+    rankTrendSpan.title = `Improved ${Math.abs(companyData.rankTrend)} positions vs 7 days ago`;
+  } else {
+    rankTrendSpan.className += ' trend-down';
+    rankTrendSpan.textContent = `▼${Math.abs(companyData.rankTrend)}`;
+    rankTrendSpan.title = `Declined ${Math.abs(companyData.rankTrend)} positions vs 7 days ago`;
   }
+  nameDiv.appendChild(rankTrendSpan);
+}
   
   infoDiv.appendChild(nameDiv);
 
@@ -4996,20 +5040,22 @@ function createSmallCompDetails(companyData) {
   marketShareText.textContent = `Avg Market Share: ${companyData.avgMarketShare.toFixed(1)}%`;
   marketShareDiv.appendChild(marketShareText);
   
-  // Add market share trend
-  if (companyData.avgMarketShareTrend !== undefined && companyData.avgMarketShareTrend !== 0) {
-    const trendSpan = document.createElement('span');
-    trendSpan.className = 'trend-indicator';
-    
-    if (companyData.avgMarketShareTrend > 0) {
-      trendSpan.className += ' trend-up';
-      trendSpan.textContent = `▲${Math.abs(companyData.avgMarketShareTrend).toFixed(1)}%`;
-    } else if (companyData.avgMarketShareTrend < 0) {
-      trendSpan.className += ' trend-down';
-      trendSpan.textContent = `▼${Math.abs(companyData.avgMarketShareTrend).toFixed(1)}%`;
-    }
-    marketShareDiv.appendChild(trendSpan);
+// Add market share trend
+if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketShareTrend) >= 0.1) {
+  const trendSpan = document.createElement('span');
+  trendSpan.className = 'trend-indicator';
+  
+  if (companyData.marketShareTrend > 0) {
+    trendSpan.className += ' trend-up';
+    trendSpan.textContent = `▲${companyData.marketShareTrend.toFixed(1)}%`;
+    trendSpan.title = `Increased ${companyData.marketShareTrend.toFixed(1)}% vs 7 days ago`;
+  } else if (companyData.marketShareTrend < 0) {
+    trendSpan.className += ' trend-down';
+    trendSpan.textContent = `▼${Math.abs(companyData.marketShareTrend).toFixed(1)}%`;
+    trendSpan.title = `Decreased ${Math.abs(companyData.marketShareTrend).toFixed(1)}% vs 7 days ago`;
   }
+  marketShareDiv.appendChild(trendSpan);
+}
   
   infoDiv.appendChild(marketShareDiv);
   container.appendChild(infoDiv);
