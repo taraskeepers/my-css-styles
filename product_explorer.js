@@ -3479,30 +3479,33 @@ viewRankingExplorerBtn.addEventListener("click", function() {
   viewChartsExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
   
-  // Show the table and hide map  // ADD THIS
-  const table = document.querySelector('.product-explorer-table');
+  // Check which mode we're in
+  const isCompaniesMode = getCurrentMode() === 'companies';
+  const tableSelector = isCompaniesMode ? '.company-explorer-table' : '.product-explorer-table';
+  const table = document.querySelector(tableSelector);
+  
   if (table) {
     table.style.display = 'table';
     table.classList.add('ranking-mode');
   }
+  
   const mapContainer = document.getElementById('productExplorerMapContainer');
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
-  // END ADD
   
-  // Add ranking mode to table and device containers
+  // Add ranking mode to device containers
   document.querySelectorAll('.device-container').forEach(container => {
     container.classList.add('ranking-mode');
   });
   
   // Hide position charts and segmentation column
-document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
+  document.querySelectorAll('.explorer-chart-avg-position').forEach(container => {
     container.style.display = 'none';
-});
-document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
+  });
+  document.querySelectorAll('.explorer-segmentation-chart-container').forEach(container => {
     container.style.display = 'none';
-});
+  });
   // Show rank-market-share history in ranking mode
   document.querySelectorAll('.rank-market-share-history').forEach(container => {
     container.style.display = 'block';
@@ -3515,19 +3518,22 @@ viewChartsExplorerBtn.addEventListener("click", function() {
   viewRankingExplorerBtn.classList.remove("active");
   viewMapExplorerBtn.classList.remove("active");
   
-  // Show the table and hide map  // ADD THIS
-  const table = document.querySelector('.product-explorer-table');
+  // Check which mode we're in
+  const isCompaniesMode = getCurrentMode() === 'companies';
+  const tableSelector = isCompaniesMode ? '.company-explorer-table' : '.product-explorer-table';
+  const table = document.querySelector(tableSelector);
+  
   if (table) {
     table.style.display = 'table';
     table.classList.remove('ranking-mode');
   }
+  
   const mapContainer = document.getElementById('productExplorerMapContainer');
   if (mapContainer) {
     mapContainer.style.display = 'none';
   }
-  // END ADD
   
-  // Remove ranking mode from table and device containers
+  // Remove ranking mode from device containers
   document.querySelectorAll('.device-container').forEach(container => {
     container.classList.remove('ranking-mode');
   });
@@ -3638,6 +3644,23 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
     
     console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
     
+    // Hide/show appropriate tables
+    if (selectedMode === 'companies') {
+      // Hide product table, show company table
+      const productTable = document.querySelector('.product-explorer-table');
+      if (productTable) productTable.style.display = 'none';
+      
+      const companyTable = document.querySelector('.company-explorer-table');
+      if (companyTable) companyTable.style.display = '';
+    } else {
+      // Hide company table, show product table
+      const companyTable = document.querySelector('.company-explorer-table');
+      if (companyTable) companyTable.style.display = 'none';
+      
+      const productTable = document.querySelector('.product-explorer-table');
+      if (productTable) productTable.style.display = '';
+    }
+    
     // Re-render the entire explorer
     renderProductExplorerTable();
   });
@@ -3667,22 +3690,31 @@ if (window.myCompanyArray && window.myCompanyArray.length > 0) {
 
 console.log(`[renderProductExplorerTable] Using company for project ${currentProjectNum}: ${companyToFilter}`);
 
-// In the mode change handler
+// Apply mode-specific filtering
 if (getCurrentMode() === 'companies') {
-  // Hide product table, show company table
-  const productTable = document.querySelector('.product-explorer-table');
-  if (productTable) productTable.style.display = 'none';
+  // Company mode specific logic
+  console.log(`[ProductExplorer] Processing in COMPANIES mode`);
   
-  const companyTable = document.querySelector('.company-explorer-table');
-  if (companyTable) companyTable.style.display = '';
-} else {
-  // Hide company table, show product table
-  const companyTable = document.querySelector('.company-explorer-table');
-  if (companyTable) companyTable.style.display = 'none';
+  // Hide products nav panel, show companies nav panel
+  const productsNavPanel = document.getElementById('productsNavPanel');
+  if (productsNavPanel) productsNavPanel.style.display = 'none';
   
-  const productTable = document.querySelector('.product-explorer-table');
-  if (productTable) productTable.style.display = '';
+  const compNavPanel = document.getElementById('compNavPanel');
+  if (compNavPanel) compNavPanel.style.display = 'block';
+  
+  renderCompaniesNavPanel();
+  return; // Exit early for companies mode - DO NOT process products
 }
+
+// Products mode (default)
+console.log(`[ProductExplorer] Processing in PRODUCTS mode`);
+
+// Show products nav panel, hide companies nav panel
+const productsNavPanel = document.getElementById('productsNavPanel');
+if (productsNavPanel) productsNavPanel.style.display = 'block';
+
+const compNavPanel = document.getElementById('compNavPanel');
+if (compNavPanel) compNavPanel.style.display = 'none';
   
   window.pendingExplorerCharts = [];
   if (window.explorerApexCharts) {
