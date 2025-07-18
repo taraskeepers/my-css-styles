@@ -656,7 +656,11 @@ function buildProjectData() {
         window.projectTableData = results;
         updateProjectInfoBlock();
         updateProjectMarketShareChart();
-        updateProjectStatsDisplay();
+          
+        if (typeof updateProjectStatsDisplay === 'function') {
+    updateProjectStatsDisplay();
+    console.log("[buildProjectData] Called updateProjectStatsDisplay");
+}
       });
     
       console.log("→ Returning", results.length, "project data rows.");
