@@ -1369,79 +1369,182 @@ function updateCurrentCompanyDisplay() {
     };
   }
   
-// Refresh IDB button handler
-  const refreshIDBBtn = document.getElementById("refreshIDBButton");
-  if (refreshIDBBtn) {
-    refreshIDBBtn.addEventListener("click", function() {
-      // Create a custom confirmation dialog
-      const confirmDialog = document.createElement('div');
-      confirmDialog.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        z-index: 10000001;
-        max-width: 400px;
-      `;
-      
-      confirmDialog.innerHTML = `
-        <h3 style="margin: 0 0 12px 0; font-size: 18px; color: #1a1a1a;">Refresh Database?</h3>
-        <p style="margin: 0 0 20px 0; color: #6b7280; line-height: 1.5;">
-          This will delete all cached data and reload fresh data from the server. The process may take a few moments.
-        </p>
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
-          <button id="cancelRefresh" style="
-            padding: 8px 16px;
-            border: 1px solid #e5e7eb;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-          ">Cancel</button>
-          <button id="confirmRefresh" style="
-            padding: 8px 16px;
-            border: none;
-            background: #dc2626;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-          ">Refresh</button>
-        </div>
-      `;
-      
-      const overlay = document.createElement('div');
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(2px);
-        z-index: 10000000;
-      `;
-      
-      document.body.appendChild(overlay);
-      document.body.appendChild(confirmDialog);
-      
-      document.getElementById('cancelRefresh').onclick = () => {
-        overlay.remove();
-        confirmDialog.remove();
-      };
-      
-      document.getElementById('confirmRefresh').onclick = () => {
-        overlay.remove();
-        confirmDialog.remove();
-        window.closeSettingsOverlay();
-        if (typeof window.refreshIDBData === "function") {
-          window.refreshIDBData();
-        }
-      };
+// Fixed Refresh IDB button handler
+const refreshIDBBtn = document.getElementById("refreshIDBButton");
+if (refreshIDBBtn) {
+  refreshIDBBtn.addEventListener("click", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("[Debug] Refresh button clicked");
+    
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      z-index: 999998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 90%;
+      position: relative;
+      z-index: 999999;
+    `;
+    
+    // Create dialog content
+    const title = document.createElement('h3');
+    title.textContent = 'Refresh Database?';
+    title.style.cssText = `
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      color: #1a1a1a;
+      font-weight: 600;
+    `;
+    
+    const message = document.createElement('p');
+    message.textContent = 'This will delete all cached data and reload fresh data from the server. The process may take a few moments.';
+    message.style.cssText = `
+      margin: 0 0 20px 0;
+      color: #6b7280;
+      line-height: 1.5;
+      font-size: 14px;
+    `;
+    
+    // Create button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    `;
+    
+    // Create Cancel button
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+      padding: 8px 16px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #374151;
+    `;
+    
+    // Create Refresh button
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = 'Refresh';
+    refreshBtn.style.cssText = `
+      padding: 8px 16px;
+      border: none;
+      background: #dc2626;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    `;
+    
+    // Add hover effects
+    cancelBtn.addEventListener('mouseenter', () => {
+      cancelBtn.style.background = '#f9fafb';
     });
-  }
+    cancelBtn.addEventListener('mouseleave', () => {
+      cancelBtn.style.background = 'white';
+    });
+    
+    refreshBtn.addEventListener('mouseenter', () => {
+      refreshBtn.style.background = '#b91c1c';
+    });
+    refreshBtn.addEventListener('mouseleave', () => {
+      refreshBtn.style.background = '#dc2626';
+    });
+    
+    // Function to close dialog
+    function closeDialog() {
+      console.log("[Debug] Closing dialog");
+      backdrop.remove();
+    }
+    
+    // Add event listeners with proper error handling
+    cancelBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("[Debug] Cancel clicked");
+      closeDialog();
+    });
+    
+    refreshBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("[Debug] Refresh confirmed");
+      
+      // Close dialog first
+      closeDialog();
+      
+      // Close settings overlay
+      if (typeof window.closeSettingsOverlay === "function") {
+        window.closeSettingsOverlay();
+      }
+      
+      // Start refresh process
+      if (typeof window.refreshIDBData === "function") {
+        console.log("[Debug] Starting refresh process");
+        window.refreshIDBData();
+      } else {
+        console.error("[Debug] refreshIDBData function not found");
+        alert("Refresh function not available. Please reload the page.");
+      }
+    });
+    
+    // Close on backdrop click
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) {
+        closeDialog();
+      }
+    });
+    
+    // Close on Escape key
+    function handleEscape(e) {
+      if (e.key === 'Escape') {
+        closeDialog();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble dialog
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(refreshBtn);
+    
+    dialog.appendChild(title);
+    dialog.appendChild(message);
+    dialog.appendChild(buttonContainer);
+    
+    backdrop.appendChild(dialog);
+    
+    // Add to DOM
+    document.body.appendChild(backdrop);
+    
+    console.log("[Debug] Dialog created and added to DOM");
+  });
+}
   
 window.openSettingsOverlay = function(initialTab = 'company') {
   console.log("[Settings] Opening overlay with initial tab:", initialTab);
