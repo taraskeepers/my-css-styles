@@ -1514,7 +1514,7 @@ function renderProjectMarketShareChart(projectData) {
       type: "area",
       stacked: true,
       width: 700,         // CHANGED from 920 to 700
-      height: 200,        // CHANGED from "100%" to 200
+      height: 150,        // CHANGED from "100%" to 200
       toolbar: { show: false },
       zoom: { enabled: false },
       animations: {
