@@ -1731,18 +1731,72 @@ yaxis: {
   containerDiv.appendChild(trendDiv);
 }
 
+// Add this helper function if it doesn't exist
+if (typeof findOverallMaxDateInCompanyStats === 'undefined') {
+  window.findOverallMaxDateInCompanyStats = function(data) {
+    let maxDate = null;
+    if (!data || !data.length) return null;
+    
+    data.forEach(row => {
+      if (!row.historical_data) return;
+      row.historical_data.forEach(h => {
+        const d = moment(h.date.value, "YYYY-MM-DD");
+        if (!maxDate || d.isAfter(maxDate)) {
+          maxDate = d.clone();
+        }
+      });
+    });
+    
+    return maxDate;
+  };
+}
+
 function calculateGainersLosers() {
   console.log("[calculateGainersLosers] Starting calculation...");
   
-  // Get filtered data based on current filters
-  const filtered = window.filteredData || window.allRows;
-  if (!filtered || !filtered.length) {
-    console.warn("[calculateGainersLosers] No filtered data available");
+  // Use companyStatsData to get ALL companies, not just the filtered one
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[calculateGainersLosers] No companyStatsData available");
     return { gainers: [], losers: [] };
   }
 
-  // Get the global max date
-  const globalMaxDate = getGlobalMaxDate(filtered);
+  // Get active project number from filter state
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  const currentLocation = window.filterState?.location || "";
+  const currentDevice = window.filterState?.device || "";
+  
+  console.log("[calculateGainersLosers] Filters:", { 
+    project: activeProjectNumber, 
+    location: currentLocation, 
+    device: currentDevice 
+  });
+
+  // Filter by project number first (like buildProjectData does)
+  let projectFiltered = window.companyStatsData.filter(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber;
+  });
+  
+  console.log(`[calculateGainersLosers] Found ${projectFiltered.length} records for project ${activeProjectNumber}`);
+
+  // Apply location and device filters if set
+  let filtered = projectFiltered.filter(row => {
+    // Apply location filter if set
+    if (currentLocation && row.location_requested !== currentLocation) {
+      return false;
+    }
+    // Apply device filter if set
+    if (currentDevice && currentDevice !== "All" && 
+        row.device?.toLowerCase() !== currentDevice.toLowerCase()) {
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`[calculateGainersLosers] After location/device filters: ${filtered.length} records`);
+
+  // Get the global max date from the filtered data
+  const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
   if (!globalMaxDate) {
     console.warn("[calculateGainersLosers] No valid max date found");
     return { gainers: [], losers: [] };
@@ -1759,37 +1813,48 @@ function calculateGainersLosers() {
     previous: `${previousStart.format("YYYY-MM-DD")} to ${previousEnd.format("YYYY-MM-DD")}`
   });
 
-  // Build company share data using the same logic as buildCompanyShareFromFiltered
+  // Group data by company
+  const companyGroups = {};
+  filtered.forEach(row => {
+    const companyName = row.source || row.title || "Unknown";
+    if (!companyGroups[companyName]) {
+      companyGroups[companyName] = [];
+    }
+    companyGroups[companyName].push(row);
+  });
+
+  console.log(`[calculateGainersLosers] Found ${Object.keys(companyGroups).length} unique companies`);
+
+  // Build company share data
   const companyData = {};
 
-  filtered.forEach(row => {
-    if (!row.historical_data || !Array.isArray(row.historical_data)) return;
-    
-    const companyName = row.source || row.title || "Unknown";
-    if (!companyData[companyName]) {
-      companyData[companyName] = {
-        currentDays: {},
-        previousDays: {}
-      };
-    }
+  Object.entries(companyGroups).forEach(([companyName, companyRows]) => {
+    companyData[companyName] = {
+      currentDays: {},
+      previousDays: {}
+    };
 
-    row.historical_data.forEach(dayObj => {
-      const date = moment(dayObj.date.value, "YYYY-MM-DD");
-      const shareValue = dayObj.market_share != null ? parseFloat(dayObj.market_share) * 100 : 0;
+    companyRows.forEach(row => {
+      if (!row.historical_data || !Array.isArray(row.historical_data)) return;
 
-      if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
-        const dateStr = date.format("YYYY-MM-DD");
-        if (!companyData[companyName].currentDays[dateStr]) {
-          companyData[companyName].currentDays[dateStr] = [];
+      row.historical_data.forEach(dayObj => {
+        const date = moment(dayObj.date.value, "YYYY-MM-DD");
+        const shareValue = dayObj.market_share != null ? parseFloat(dayObj.market_share) * 100 : 0;
+
+        if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
+          const dateStr = date.format("YYYY-MM-DD");
+          if (!companyData[companyName].currentDays[dateStr]) {
+            companyData[companyName].currentDays[dateStr] = [];
+          }
+          companyData[companyName].currentDays[dateStr].push(shareValue);
+        } else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
+          const dateStr = date.format("YYYY-MM-DD");
+          if (!companyData[companyName].previousDays[dateStr]) {
+            companyData[companyName].previousDays[dateStr] = [];
+          }
+          companyData[companyName].previousDays[dateStr].push(shareValue);
         }
-        companyData[companyName].currentDays[dateStr].push(shareValue);
-      } else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
-        const dateStr = date.format("YYYY-MM-DD");
-        if (!companyData[companyName].previousDays[dateStr]) {
-          companyData[companyName].previousDays[dateStr] = [];
-        }
-        companyData[companyName].previousDays[dateStr].push(shareValue);
-      }
+      });
     });
   });
 
@@ -1797,6 +1862,11 @@ function calculateGainersLosers() {
   const companyChanges = [];
   
   Object.entries(companyData).forEach(([companyName, data]) => {
+    // Skip companies without proper names
+    if (!companyName || companyName === "Unknown" || companyName === "null") {
+      return;
+    }
+    
     // Calculate current period average
     let currentSum = 0;
     let currentCount = 0;
@@ -1819,8 +1889,8 @@ function calculateGainersLosers() {
     });
     const previousAvg = previousCount > 0 ? previousSum / previousCount : 0;
 
-    // Only include companies with data in both periods
-    if (currentCount > 0 && previousCount > 0) {
+    // Only include companies with data in both periods and meaningful market share
+    if (currentCount > 0 && previousCount > 0 && (currentAvg > 0.01 || previousAvg > 0.01)) {
       const change = currentAvg - previousAvg;
       companyChanges.push({
         company: companyName,
