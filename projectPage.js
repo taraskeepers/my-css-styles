@@ -409,12 +409,7 @@ window._projectPageInitializing = false;
     }
 
     window.filterState.company = targetCompany;
-    const companyTextEl = document.getElementById("companyText");
-if (companyTextEl) {
-  companyTextEl.textContent = targetCompany;
-} else {
-  console.warn("[populateProjectPage] #companyText element not found");
-}
+    document.getElementById("companyText").textContent = targetCompany;
   
     if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
       /*console.warn("[populateProjectPage] mapsLib.js not loaded yet. Retrying in 500ms.");
@@ -425,14 +420,10 @@ if (companyTextEl) {
       return;
     }
   
-const locListContainer = document.querySelector("#projectPage #locList");
-if (!locListContainer) {
-  console.error("[populateProjectPage] #locList container not found in DOM");
-  return;
-}
-locListContainer.innerHTML = "";
-locListContainer.style.maxHeight = "1000px";
-locListContainer.style.overflowY = "auto";
+    const locListContainer = document.querySelector("#projectPage #locList");
+    locListContainer.innerHTML = "";
+    locListContainer.style.maxHeight = "1000px";
+    locListContainer.style.overflowY = "auto";
   
     // -----------------------------------------------
     // 1) Build project data
@@ -1174,39 +1165,39 @@ function updateProjectStatsDisplay() {
     }
   }
   
-// Update desktop rank
-const desktopRankEl = document.getElementById('desktopRankValue');
-const desktopRankTrendEl = document.getElementById('desktopRankTrend');
-if (desktopRankEl) desktopRankEl.textContent = rankData.desktopRank;
-if (desktopRankTrendEl) {
-  if (rankData.desktopTrend < 0) {
-    desktopRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.desktopTrend).toFixed(1)}`;
-    desktopRankTrendEl.className = 'device-rank-trend-new trend-up'; // CHANGED
-  } else if (rankData.desktopTrend > 0) {
-    desktopRankTrendEl.innerHTML = `▼ ${rankData.desktopTrend.toFixed(1)}`;
-    desktopRankTrendEl.className = 'device-rank-trend-new trend-down'; // CHANGED
-  } else {
-    desktopRankTrendEl.innerHTML = `± 0.0`;
-    desktopRankTrendEl.className = 'device-rank-trend-new trend-neutral'; // CHANGED
+  // Update desktop rank
+  const desktopRankEl = document.getElementById('desktopRankValue');
+  const desktopRankTrendEl = document.getElementById('desktopRankTrend');
+  if (desktopRankEl) desktopRankEl.textContent = rankData.desktopRank;
+  if (desktopRankTrendEl) {
+    if (rankData.desktopTrend < 0) {
+      desktopRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.desktopTrend).toFixed(1)}`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-up';
+    } else if (rankData.desktopTrend > 0) {
+      desktopRankTrendEl.innerHTML = `▼ ${rankData.desktopTrend.toFixed(1)}`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-down';
+    } else {
+      desktopRankTrendEl.innerHTML = `± 0.0`;
+      desktopRankTrendEl.className = 'device-rank-trend trend-neutral';
+    }
   }
-}
-
-// Update mobile rank
-const mobileRankEl = document.getElementById('mobileRankValue');
-const mobileRankTrendEl = document.getElementById('mobileRankTrend');
-if (mobileRankEl) mobileRankEl.textContent = rankData.mobileRank;
-if (mobileRankTrendEl) {
-  if (rankData.mobileTrend < 0) {
-    mobileRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.mobileTrend).toFixed(1)}`;
-    mobileRankTrendEl.className = 'device-rank-trend-new trend-up'; // CHANGED
-  } else if (rankData.mobileTrend > 0) {
-    mobileRankTrendEl.innerHTML = `▼ ${rankData.mobileTrend.toFixed(1)}`;
-    mobileRankTrendEl.className = 'device-rank-trend-new trend-down'; // CHANGED
-  } else {
-    mobileRankTrendEl.innerHTML = `± 0.0`;
-    mobileRankTrendEl.className = 'device-rank-trend-new trend-neutral'; // CHANGED
+  
+  // Update mobile rank
+  const mobileRankEl = document.getElementById('mobileRankValue');
+  const mobileRankTrendEl = document.getElementById('mobileRankTrend');
+  if (mobileRankEl) mobileRankEl.textContent = rankData.mobileRank;
+  if (mobileRankTrendEl) {
+    if (rankData.mobileTrend < 0) {
+      mobileRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.mobileTrend).toFixed(1)}`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-up';
+    } else if (rankData.mobileTrend > 0) {
+      mobileRankTrendEl.innerHTML = `▼ ${rankData.mobileTrend.toFixed(1)}`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-down';
+    } else {
+      mobileRankTrendEl.innerHTML = `± 0.0`;
+      mobileRankTrendEl.className = 'device-rank-trend trend-neutral';
+    }
   }
-}
   
   // Update market share display
   const marketShareEl = document.getElementById('marketShareValue');
@@ -1237,49 +1228,48 @@ if (marketTrendEl) {
 }
   
   // Update device market shares
-const desktopMarketEl = document.getElementById('desktopMarketValue');
-const desktopMarketTrendEl = document.getElementById('desktopMarketTrend');
-const desktopMarketWaterFill = document.getElementById('desktopMarketWaterFill');
-
-if (desktopMarketEl) desktopMarketEl.textContent = `${marketData.desktopShare.toFixed(1)}%`;
-if (desktopMarketWaterFill) {
-  const fillHeight = Math.min(100, marketData.desktopShare * 2); // Scale for visibility
-  desktopMarketWaterFill.style.height = `${fillHeight}%`;
-}
-if (desktopMarketTrendEl) {
-  if (marketData.desktopShareTrend > 0) {
-    desktopMarketTrendEl.innerHTML = `▲ ${marketData.desktopShareTrend.toFixed(1)}%`;
-    desktopMarketTrendEl.className = 'device-market-trend-new trend-up'; // CHANGED
-  } else if (marketData.desktopShareTrend < 0) {
-    desktopMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.desktopShareTrend).toFixed(1)}%`;
-    desktopMarketTrendEl.className = 'device-market-trend-new trend-down'; // CHANGED
-  } else {
-    desktopMarketTrendEl.innerHTML = `± 0.0%`;
-    desktopMarketTrendEl.className = 'device-market-trend-new trend-neutral'; // CHANGED
+  const desktopMarketEl = document.getElementById('desktopMarketValue');
+  const desktopMarketTrendEl = document.getElementById('desktopMarketTrend');
+  if (desktopMarketEl) desktopMarketEl.textContent = `${marketData.desktopShare.toFixed(1)}%`;
+  if (desktopMarketTrendEl) {
+    if (marketData.desktopShareTrend > 0) {
+      desktopMarketTrendEl.innerHTML = `▲ ${marketData.desktopShareTrend.toFixed(1)}%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-up';
+    } else if (marketData.desktopShareTrend < 0) {
+      desktopMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.desktopShareTrend).toFixed(1)}%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-down';
+    } else {
+      desktopMarketTrendEl.innerHTML = `± 0.0%`;
+      desktopMarketTrendEl.className = 'device-market-trend trend-neutral';
+    }
   }
-}
 
-const mobileMarketEl = document.getElementById('mobileMarketValue');
-const mobileMarketTrendEl = document.getElementById('mobileMarketTrend');
-const mobileMarketWaterFill = document.getElementById('mobileMarketWaterFill');
-
-if (mobileMarketEl) mobileMarketEl.textContent = `${marketData.mobileShare.toFixed(1)}%`;
-if (mobileMarketWaterFill) {
-  const fillHeight = Math.min(100, marketData.mobileShare * 2); // Scale for visibility
-  mobileMarketWaterFill.style.height = `${fillHeight}%`;
-}
-if (mobileMarketTrendEl) {
-  if (marketData.mobileShareTrend > 0) {
-    mobileMarketTrendEl.innerHTML = `▲ ${marketData.mobileShareTrend.toFixed(1)}%`;
-    mobileMarketTrendEl.className = 'device-market-trend-new trend-up'; // CHANGED
-  } else if (marketData.mobileShareTrend < 0) {
-    mobileMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.mobileShareTrend).toFixed(1)}%`;
-    mobileMarketTrendEl.className = 'device-market-trend-new trend-down'; // CHANGED
-  } else {
-    mobileMarketTrendEl.innerHTML = `± 0.0%`;
-    mobileMarketTrendEl.className = 'device-market-trend-new trend-neutral'; // CHANGED
+  const desktopMarketWaterFill = document.getElementById('desktopMarketWaterFill');
+  if (desktopMarketWaterFill) {
+    const fillHeight = Math.min(100, marketData.desktopShare * 2);
+    desktopMarketWaterFill.style.height = `${fillHeight}%`;
   }
-}
+  
+  const mobileMarketEl = document.getElementById('mobileMarketValue');
+  const mobileMarketTrendEl = document.getElementById('mobileMarketTrend');
+  if (mobileMarketEl) mobileMarketEl.textContent = `${marketData.mobileShare.toFixed(1)}%`;
+  if (mobileMarketTrendEl) {
+    if (marketData.mobileShareTrend > 0) {
+      mobileMarketTrendEl.innerHTML = `▲ ${marketData.mobileShareTrend.toFixed(1)}%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-up';
+    } else if (marketData.mobileShareTrend < 0) {
+      mobileMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.mobileShareTrend).toFixed(1)}%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-down';
+    } else {
+      mobileMarketTrendEl.innerHTML = `± 0.0%`;
+      mobileMarketTrendEl.className = 'device-market-trend trend-neutral';
+    }
+  }
+  const mobileMarketWaterFill = document.getElementById('mobileMarketWaterFill');
+  if (mobileMarketWaterFill) {
+    const fillHeight = Math.min(100, marketData.mobileShare * 2);
+    mobileMarketWaterFill.style.height = `${fillHeight}%`;
+  }
 }
 
 function getRankBoxColor(rank) {
@@ -1595,14 +1585,13 @@ function renderProjectMarketShareChart(projectData) {
     },
 yaxis: {
   labels: {
-    show: false, // CHANGED: was true
-    formatter: val => val.toFixed(2)
+    show: false
   },
-  title: { text: "" }, // CHANGED: removed title
+  title: { text: "" },
   max: 100
 },
 grid: {
-  show: false // ADD this line to remove grid lines
+  show: false
 },
     legend: {
       show: false // no legend on the chart
