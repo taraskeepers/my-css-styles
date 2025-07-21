@@ -1145,6 +1145,8 @@ function updateProjectStatsDisplay() {
   const rankEl = document.getElementById('companyRankValue');
   const rankTrendEl = document.getElementById('companyRankTrend');
   if (rankEl) rankEl.textContent = rankData.currentRank;
+ const rankBox = document.getElementById('companyRankBox');
+if (rankBox) rankBox.style.backgroundColor = getRankBoxColor(rankData.currentRank);
   if (rankTrendEl) {
     if (rankData.rankTrend < 0) {
       rankTrendEl.innerHTML = `▲ ${Math.abs(rankData.rankTrend).toFixed(1)}`;
