@@ -1205,12 +1205,12 @@ if (rankBox) rankBox.style.backgroundColor = getRankBoxColor(rankData.currentRan
   if (marketShareEl) marketShareEl.textContent = shareData.currentShare.toFixed(1) + '%';
   if (marketWaterFill) marketWaterFill.style.height = Math.min(shareData.currentShare, 100) + '%';
 
-    if (marketTrendEl) {
-  if (marketData.shareTrend > 0) {
-    marketTrendEl.innerHTML = `<span style="color: #4CAF50;">▲ ${marketData.shareTrend.toFixed(1)}%</span>`;
+if (marketTrendEl) {
+  if (shareData.shareTrend > 0) {
+    marketTrendEl.innerHTML = `<span style="color: #4CAF50;">▲ ${shareData.shareTrend.toFixed(1)}%</span>`;
     marketTrendEl.className = 'market-trend-text';
-  } else if (marketData.shareTrend < 0) {
-    marketTrendEl.innerHTML = `<span style="color: #F44336;">▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%</span>`;
+  } else if (shareData.shareTrend < 0) {
+    marketTrendEl.innerHTML = `<span style="color: #F44336;">▼ ${Math.abs(shareData.shareTrend).toFixed(1)}%</span>`;
     marketTrendEl.className = 'market-trend-text';
   } else {
     marketTrendEl.innerHTML = `<span style="color: #999;">± 0.0%</span>`;
