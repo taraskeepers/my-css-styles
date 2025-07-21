@@ -1138,125 +1138,120 @@ function calculateCompanyMarketShareData() {
 }
 
 function updateProjectStatsDisplay() {
-  // Get rank data
   const rankData = calculateCompanyRankData();
-  const marketData = calculateCompanyMarketShareData();
+  const shareData = calculateCompanyMarketShareData();
   
-  // Update rank display
-  const rankBox = document.getElementById('companyRankBox');
-  const rankValue = document.getElementById('companyRankValue');
-  const rankTrend = document.getElementById('companyRankTrend');
-  
-  if (rankBox && rankValue) {
-    rankValue.textContent = rankData.currentRank;
-    rankBox.style.backgroundColor = getRankBoxColor(rankData.currentRank);
-  }
-  
-  if (rankTrend) {
+  // Update main rank
+  const rankEl = document.getElementById('companyRankValue');
+  const rankTrendEl = document.getElementById('companyRankTrend');
+  if (rankEl) rankEl.textContent = rankData.currentRank;
+  if (rankTrendEl) {
     if (rankData.rankTrend < 0) {
-      rankTrend.innerHTML = `▲ ${Math.abs(rankData.rankTrend).toFixed(1)}`;
-      rankTrend.className = 'rank-trend-badge trend-up';
+      rankTrendEl.innerHTML = `▲ ${Math.abs(rankData.rankTrend).toFixed(1)}`;
+      rankTrendEl.className = 'rank-trend-badge trend-up';
     } else if (rankData.rankTrend > 0) {
-      rankTrend.innerHTML = `▼ ${rankData.rankTrend.toFixed(1)}`;
-      rankTrend.className = 'rank-trend-badge trend-down';
+      rankTrendEl.innerHTML = `▼ ${rankData.rankTrend.toFixed(1)}`;
+      rankTrendEl.className = 'rank-trend-badge trend-down';
     } else {
-      rankTrend.innerHTML = `± 0.0`;
-      rankTrend.className = 'rank-trend-badge trend-neutral';
+      rankTrendEl.innerHTML = `± 0.0`;
+      rankTrendEl.className = 'rank-trend-badge trend-neutral';
     }
   }
   
-  // Update desktop rank
+  // Update desktop rank with new classes
   const desktopRankEl = document.getElementById('desktopRankValue');
   const desktopRankTrendEl = document.getElementById('desktopRankTrend');
   if (desktopRankEl) desktopRankEl.textContent = rankData.desktopRank;
   if (desktopRankTrendEl) {
     if (rankData.desktopTrend < 0) {
       desktopRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.desktopTrend).toFixed(1)}`;
-      desktopRankTrendEl.className = 'device-rank-trend trend-up';
+      desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-up';
     } else if (rankData.desktopTrend > 0) {
       desktopRankTrendEl.innerHTML = `▼ ${rankData.desktopTrend.toFixed(1)}`;
-      desktopRankTrendEl.className = 'device-rank-trend trend-down';
+      desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-down';
     } else {
       desktopRankTrendEl.innerHTML = `± 0.0`;
-      desktopRankTrendEl.className = 'device-rank-trend trend-neutral';
+      desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-neutral';
     }
   }
   
-  // Update mobile rank
+  // Update mobile rank with new classes
   const mobileRankEl = document.getElementById('mobileRankValue');
   const mobileRankTrendEl = document.getElementById('mobileRankTrend');
   if (mobileRankEl) mobileRankEl.textContent = rankData.mobileRank;
   if (mobileRankTrendEl) {
     if (rankData.mobileTrend < 0) {
       mobileRankTrendEl.innerHTML = `▲ ${Math.abs(rankData.mobileTrend).toFixed(1)}`;
-      mobileRankTrendEl.className = 'device-rank-trend trend-up';
+      mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-up';
     } else if (rankData.mobileTrend > 0) {
       mobileRankTrendEl.innerHTML = `▼ ${rankData.mobileTrend.toFixed(1)}`;
-      mobileRankTrendEl.className = 'device-rank-trend trend-down';
+      mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-down';
     } else {
       mobileRankTrendEl.innerHTML = `± 0.0`;
-      mobileRankTrendEl.className = 'device-rank-trend trend-neutral';
+      mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-neutral';
     }
   }
   
-  // Update market share display
+  // Update main market share
   const marketShareEl = document.getElementById('marketShareValue');
   const marketWaterFill = document.getElementById('marketWaterFill');
   const marketTrendEl = document.getElementById('marketShareTrend');
   
-  if (marketShareEl) {
-    marketShareEl.textContent = `${marketData.currentShare.toFixed(1)}%`;
-  }
-  
-  if (marketWaterFill) {
-    const fillHeight = Math.min(100, marketData.currentShare * 2); // Scale for visibility
-    marketWaterFill.style.height = `${fillHeight}%`;
-  }
-  
-// Update market share trend (now below the circle)
-if (marketTrendEl) {
-    if (marketData.shareTrend > 0) {
-        marketTrendEl.innerHTML = `▲ ${marketData.shareTrend.toFixed(1)}%`;
-        marketTrendEl.className = 'market-trend-text trend-up';
-    } else if (marketData.shareTrend < 0) {
-        marketTrendEl.innerHTML = `▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%`;
-        marketTrendEl.className = 'market-trend-text trend-down';
+  if (marketShareEl) marketShareEl.textContent = shareData.currentShare.toFixed(1) + '%';
+  if (marketWaterFill) marketWaterFill.style.height = Math.min(shareData.currentShare, 100) + '%';
+  if (marketTrendEl) {
+    const trendValue = shareData.shareTrend;
+    if (trendValue > 0) {
+      marketTrendEl.innerHTML = `▲ ${trendValue.toFixed(2)}%`;
+      marketTrendEl.className = 'market-trend-value trend-up';
+    } else if (trendValue < 0) {
+      marketTrendEl.innerHTML = `▼ ${Math.abs(trendValue).toFixed(2)}%`;
+      marketTrendEl.className = 'market-trend-value trend-down';
     } else {
-        marketTrendEl.innerHTML = `± 0.0%`;
-        marketTrendEl.className = 'market-trend-text trend-neutral';
-    }
-}
-  
-  // Update device market shares
-  const desktopMarketEl = document.getElementById('desktopMarketValue');
-  const desktopMarketTrendEl = document.getElementById('desktopMarketTrend');
-  if (desktopMarketEl) desktopMarketEl.textContent = `${marketData.desktopShare.toFixed(1)}%`;
-  if (desktopMarketTrendEl) {
-    if (marketData.desktopShareTrend > 0) {
-      desktopMarketTrendEl.innerHTML = `▲ ${marketData.desktopShareTrend.toFixed(1)}%`;
-      desktopMarketTrendEl.className = 'device-market-trend trend-up';
-    } else if (marketData.desktopShareTrend < 0) {
-      desktopMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.desktopShareTrend).toFixed(1)}%`;
-      desktopMarketTrendEl.className = 'device-market-trend trend-down';
-    } else {
-      desktopMarketTrendEl.innerHTML = `± 0.0%`;
-      desktopMarketTrendEl.className = 'device-market-trend trend-neutral';
+      marketTrendEl.innerHTML = `± 0.00%`;
+      marketTrendEl.className = 'market-trend-value trend-neutral';
     }
   }
   
-  const mobileMarketEl = document.getElementById('mobileMarketValue');
-  const mobileMarketTrendEl = document.getElementById('mobileMarketTrend');
-  if (mobileMarketEl) mobileMarketEl.textContent = `${marketData.mobileShare.toFixed(1)}%`;
-  if (mobileMarketTrendEl) {
-    if (marketData.mobileShareTrend > 0) {
-      mobileMarketTrendEl.innerHTML = `▲ ${marketData.mobileShareTrend.toFixed(1)}%`;
-      mobileMarketTrendEl.className = 'device-market-trend trend-up';
-    } else if (marketData.mobileShareTrend < 0) {
-      mobileMarketTrendEl.innerHTML = `▼ ${Math.abs(marketData.mobileShareTrend).toFixed(1)}%`;
-      mobileMarketTrendEl.className = 'device-market-trend trend-down';
+  // Update desktop market share with water fill
+  const desktopShareEl = document.getElementById('desktopShareValue');
+  const desktopWaterFill = document.getElementById('desktopWaterFill');
+  const desktopShareTrendEl = document.getElementById('desktopShareTrend');
+  
+  if (desktopShareEl) desktopShareEl.textContent = shareData.desktopShare.toFixed(1) + '%';
+  if (desktopWaterFill) desktopWaterFill.style.height = Math.min(shareData.desktopShare, 100) + '%';
+  if (desktopShareTrendEl) {
+    const trendValue = shareData.desktopShareTrend;
+    if (trendValue > 0) {
+      desktopShareTrendEl.innerHTML = `▲ ${trendValue.toFixed(2)}%`;
+      desktopShareTrendEl.className = 'device-market-trend device-trend-up';
+    } else if (trendValue < 0) {
+      desktopShareTrendEl.innerHTML = `▼ ${Math.abs(trendValue).toFixed(2)}%`;
+      desktopShareTrendEl.className = 'device-market-trend device-trend-down';
     } else {
-      mobileMarketTrendEl.innerHTML = `± 0.0%`;
-      mobileMarketTrendEl.className = 'device-market-trend trend-neutral';
+      desktopShareTrendEl.innerHTML = `± 0.00%`;
+      desktopShareTrendEl.className = 'device-market-trend device-trend-neutral';
+    }
+  }
+  
+  // Update mobile market share with water fill
+  const mobileShareEl = document.getElementById('mobileShareValue');
+  const mobileWaterFill = document.getElementById('mobileWaterFill');
+  const mobileShareTrendEl = document.getElementById('mobileShareTrend');
+  
+  if (mobileShareEl) mobileShareEl.textContent = shareData.mobileShare.toFixed(1) + '%';
+  if (mobileWaterFill) mobileWaterFill.style.height = Math.min(shareData.mobileShare, 100) + '%';
+  if (mobileShareTrendEl) {
+    const trendValue = shareData.mobileShareTrend;
+    if (trendValue > 0) {
+      mobileShareTrendEl.innerHTML = `▲ ${trendValue.toFixed(2)}%`;
+      mobileShareTrendEl.className = 'device-market-trend device-trend-up';
+    } else if (trendValue < 0) {
+      mobileShareTrendEl.innerHTML = `▼ ${Math.abs(trendValue).toFixed(2)}%`;
+      mobileShareTrendEl.className = 'device-market-trend device-trend-down';
+    } else {
+      mobileShareTrendEl.innerHTML = `± 0.00%`;
+      mobileShareTrendEl.className = 'device-market-trend device-trend-neutral';
     }
   }
 }
@@ -1445,7 +1440,7 @@ function renderProjectMarketShareChart(projectData) {
     { name: "Mobile Only",   data: mobSeries  }
   ];
 
-  // 3) The same custom tooltip logic
+  // 3) Custom tooltip logic (keeping your existing logic)
   function customTooltip({ series, dataPointIndex, w }) {
     const formattedDate = w.globals.labels[dataPointIndex] || "";
     let items = [];
@@ -1453,94 +1448,42 @@ function renderProjectMarketShareChart(projectData) {
       const label       = w.config.series[i].name;
       const color       = w.globals.colors?.[i] || "#007aff";
       const currentVal  = series[i][dataPointIndex];
-      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
-      let diffStr = "";
-      if (prevVal !== null) {
-        const diff = currentVal - prevVal;
-        if (diff > 0) {
-          diffStr = `▲ ${diff.toFixed(2)}%`;
-        } else if (diff < 0) {
-          diffStr = `▼ ${Math.abs(diff).toFixed(2)}%`;
-        } else {
-          diffStr = "±0.00%";
-        }
-      }
-      items.push({ label, color, currentVal, diffStr });
+      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : currentVal;
+      const change      = currentVal - prevVal;
+      const changeStr   = change > 0 ? `+${change.toFixed(2)}` : change.toFixed(2);
+      
+      items.push(`
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <span style="display:inline-block; width:10px; height:10px; background:${color}; border-radius:50%;"></span>
+          <span style="flex:1;">${label}:</span>
+          <span style="font-weight:bold;">${currentVal.toFixed(2)}%</span>
+          <span style="color:${change>=0?'green':'red'}; font-size:0.9em;">(${changeStr})</span>
+        </div>
+      `);
     }
-
-    // Sort descending by currentVal
-    items.sort((a, b) => b.currentVal - a.currentVal);
-
-    // Build HTML
-    let html = `
-      <div style="
-        padding: 8px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-      ">
-      <div style="margin-bottom:4px; font-size:12px; color:#333;">
-        ${formattedDate}
+    
+    return `
+      <div style="background:white; border:1px solid #ccc; border-radius:4px; padding:8px; font-size:13px;">
+        <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid #eee; padding-bottom:4px;">
+          ${formattedDate}
+        </div>
+        ${items.join("")}
       </div>
-      <table style="width:100%; border-collapse:collapse; font-size:12px; color:#333;">
     `;
-    items.forEach(item => {
-      let diffColor = "#666";
-      if (item.diffStr.startsWith("▲")) diffColor = "green";
-      else if (item.diffStr.startsWith("▼")) diffColor = "red";
-
-      html += `
-        <tr>
-          <td style="padding:2px 4px; vertical-align:middle;">
-            <span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${item.color};margin-right:6px;"></span>
-            <strong>${item.label}</strong>
-          </td>
-          <td style="padding:2px 4px;text-align:right;vertical-align:middle;">
-            ${item.currentVal.toFixed(2)}%
-            <span style="color:${diffColor}; margin-left:6px;">
-              ${item.diffStr}
-            </span>
-          </td>
-        </tr>
-      `;
-    });
-    html += "</table></div>";
-    return html;
   }
 
-  // 4) ApexCharts config: 
+  // 4) ApexCharts options with your requested modifications
   const options = {
-    series: finalSeries,
     chart: {
       type: "area",
-      stacked: true,
-      width: 920,         // << increased width
-      height: "100%",
+      height: 200,  // CHANGED from original
+      width: 700,   // CHANGED from original
       toolbar: { show: false },
-      zoom: { enabled: false },
-      animations: {
-        enabled: true,
-        speed: 500,
-        animateGradually: { enabled: true, delay: 50 },
-        dynamicAnimation: { enabled: true, speed: 500 }
-      }
+      zoom: { enabled: false }
     },
-    title: {
-      text: "Market Share",
-      align: "left",
-      offsetY: 10,
-      margin: 0,
-      style: {
-        fontSize: "14px",
-        color: "#333"
-      }
-    },
-    // -- dataLabels: point labels on seriesIndex=0 only
     dataLabels: {
       enabled: true,
-      enabledOnSeries: [0], // only totalAvg line
+      enabledOnSeries: [0],  // only on "All Devices"
       formatter: (val) => val.toFixed(2) + "%",
       offsetY: -5,
       style: {
@@ -1552,17 +1495,13 @@ function renderProjectMarketShareChart(projectData) {
       curve: "smooth",
       width: 2
     },
-    // -- Markers: bigger marker for totalAvg only
     markers: {
-      size: [5, 0, 0]
+      size: [5, 0, 0]  // bigger marker for totalAvg only
     },
-    // -- Fill gradient for all, but we override color with array
     fill: {
       type: "gradient",
       gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
     },
-    // -- Colors: first line is #007aff (blue),
-    //    next two are greys
     colors: [
       "#007aff",
       "rgb(180,180,180)",
@@ -1574,14 +1513,16 @@ function renderProjectMarketShareChart(projectData) {
     },
     yaxis: {
       labels: {
-        show: true,
-        formatter: val => val.toFixed(2)
+        show: false  // CHANGED - Hide Y-axis labels as requested
       },
-      title: { text: "Market Share (%)" },
+      title: { text: "" },  // Remove Y-axis title
       max: 100
     },
+    grid: {
+      show: false  // CHANGED - Remove grid lines as requested
+    },
     legend: {
-      show: false // no legend on the chart
+      show: false
     },
     tooltip: {
       custom: customTooltip
