@@ -1442,6 +1442,16 @@ function renderProjectMarketShareChart(projectData) {
     { name: "Mobile Only",   data: mobSeries  }
   ];
 
+  let maxValue = 0;
+  finalSeries.forEach(series => {
+    series.data.forEach(point => {
+      if (point.y > maxValue) {
+        maxValue = point.y;
+      }
+    });
+  });
+  const yAxisMax = Math.ceil(maxValue * 3); // 3x the max value, rounded up
+
   // 3) The same custom tooltip logic
   function customTooltip({ series, dataPointIndex, w }) {
     const formattedDate = w.globals.labels[dataPointIndex] || "";
@@ -1559,14 +1569,14 @@ function renderProjectMarketShareChart(projectData) {
       type: "datetime",
       labels: { show: true }
     },
-    yaxis: {
-      labels: {
-        show: false,        // CHANGED from true to false - Hide Y-axis labels
-        formatter: val => val.toFixed(2)
-      },
-      title: { text: "" },  // CHANGED - Remove Y-axis title
-      max: 100
-    },
+yaxis: {
+  labels: {
+    show: false,
+    formatter: val => val.toFixed(2)
+  },
+  title: { text: "" },
+  max: yAxisMax    // CHANGED from 100 to dynamic yAxisMax
+},
     grid: {
       show: false          // ADDED - Remove grid lines
     },
