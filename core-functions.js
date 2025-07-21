@@ -1023,6 +1023,10 @@ if (resultsEl.classList.contains("list-mode")) {
             renderSerpCompaniesTable(window.companyStatsData);
             fixSerpCompaniesTable();
           }
+    // Update project page gainers/losers if visible
+  if (document.getElementById("projectPage").style.display !== "none" && typeof renderGainersLosers === 'function') {
+    renderGainersLosers();
+  }
             // ====== ADD CACHE SAVE HERE ======
         // Cache the rendered HTML
         if (cacheKey && window.dataCache && outputDiv) {
