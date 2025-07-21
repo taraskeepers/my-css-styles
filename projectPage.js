@@ -1524,16 +1524,6 @@ function renderProjectMarketShareChart(projectData) {
         dynamicAnimation: { enabled: true, speed: 500 }
       }
     },
-    title: {
-      text: "Market Share",
-      align: "left",
-      offsetY: 10,
-      margin: 0,
-      style: {
-        fontSize: "14px",
-        color: "#333"
-      }
-    },
     // -- dataLabels: point labels on seriesIndex=0 only
     dataLabels: {
       enabled: true,
