@@ -1764,14 +1764,13 @@ function calculateGainersLosers() {
   // Get filter settings
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   const currentLocation = window.filterState?.location || "";
-  const currentDevice = window.filterState?.device || "";
   const periodDays = window.filterState.period === "3d" ? 3 : 
                      window.filterState.period === "30d" ? 30 : 7;
   
   console.log("[calculateGainersLosers] Filters:", { 
     project: activeProjectNumber, 
     location: currentLocation, 
-    device: currentDevice,
+    device: "All (combined)", // Always show combined data
     period: periodDays
   });
 
@@ -1781,15 +1780,13 @@ function calculateGainersLosers() {
     return rowProjNum === activeProjectNumber;
   });
   
-  // Apply location and device filters
+  // Apply location filter only - NOT device filter
+  // We want to show combined desktop + mobile data for gainers/losers
   let filtered = projectFiltered.filter(row => {
     if (currentLocation && row.location_requested !== currentLocation) {
       return false;
     }
-    if (currentDevice && currentDevice !== "All" && 
-        row.device?.toLowerCase() !== currentDevice.toLowerCase()) {
-      return false;
-    }
+    // Don't filter by device - we want to see combined data
     return true;
   });
 
@@ -1831,6 +1828,8 @@ function calculateGainersLosers() {
     }
     companyGroups[companyName][groupKey].push(row);
   });
+
+  console.log(`[calculateGainersLosers] Found ${Object.keys(companyGroups).length} unique companies`);
 
   // Calculate changes for each company
   const companyChanges = [];
@@ -1913,18 +1912,29 @@ function calculateGainersLosers() {
   });
 
   console.log(`[calculateGainersLosers] Calculated changes for ${companyChanges.length} companies`);
+  
+  // Debug: Show all companies with their changes
+  if (companyChanges.length < 10) {
+    console.log("[calculateGainersLosers] All company changes:", 
+      companyChanges.map(c => `${c.company}: ${c.change.toFixed(2)}%`)
+    );
+  }
 
-  // Sort by absolute change and get top 10
-  const sortedByChange = [...companyChanges].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
-  const top10 = sortedByChange.slice(0, 10);
+  // Sort gainers and losers separately to ensure we get 5 of each
+  const allGainers = companyChanges.filter(c => c.change > 0)
+    .sort((a, b) => b.change - a.change);
+  const allLosers = companyChanges.filter(c => c.change < 0)
+    .sort((a, b) => a.change - b.change); // Most negative first
 
-  // Separate gainers and losers
-  const gainers = top10.filter(c => c.change > 0).slice(0, 5);
-  const losers = top10.filter(c => c.change < 0).slice(0, 5);
+  // Take top 5 of each
+  const gainers = allGainers.slice(0, 5);
+  const losers = allLosers.slice(0, 5);
 
   console.log("[calculateGainersLosers] Results:", { 
-    gainersCount: gainers.length, 
-    losersCount: losers.length 
+    totalGainers: allGainers.length,
+    totalLosers: allLosers.length,
+    showingGainers: gainers.length, 
+    showingLosers: losers.length 
   });
 
   return { gainers, losers };
