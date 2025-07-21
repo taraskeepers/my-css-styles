@@ -2,22 +2,7 @@
 window._isLoadingProjectData = false;
 window._projectLoadAttempts = {}; // Track attempts per project
 
-(function() {
-  'use strict';
-
-  // ============================================
-  // 1. INITIALIZATION FLAGS AND STATE
-  // ============================================
-  window._projectPageInitialized = false;
-  window._projectPageInitializing = false;
-  window._projectPageProcessing = false;
-  window._projectLoadAttempts = {};
-  window.projectTableData = [];
-
-  // ============================================
-  // 2. MAIN POPULATE FUNCTION
-  // ============================================
-  window.populateProjectPage = function() {
+function populateProjectPage() {
     // Prevent multiple simultaneous executions
     if (window._projectPageProcessing) {
         console.log("[populateProjectPage] Already processing, skipping duplicate call");
@@ -440,10 +425,8 @@ window._projectPageInitializing = false;
     locListContainer.style.maxHeight = "1000px";
     locListContainer.style.overflowY = "auto";
   
-  // ============================================
-  // 3. DATA BUILDING FUNCTIONS
-  // ============================================
-        
+    // -----------------------------------------------
+    // 1) Build project data
 function buildProjectData() {
   console.group("[🧪 buildProjectData]");
   console.log("→ window.companyStatsData.length =", window.companyStatsData?.length || 0);
@@ -1433,12 +1416,6 @@ function getRankBoxColor(rank) {
     }
   }
 
-  function updateProjectMarketShareChart() {
-    renderProjectMarketShareChart(window.projectTableData);
-    renderProjectPieChart(window.projectTableData);
-    renderProjectDailyRankBoxes(window.projectTableData);
-  }
-
 function renderProjectMarketShareChart(projectData) {
   const chartEl = document.getElementById("projectMarketShareChart");
   if (!chartEl) return;
@@ -1615,89 +1592,6 @@ function renderProjectMarketShareChart(projectData) {
   window.projectMarketShareChartInstance = new ApexCharts(chartEl, options);
   window.projectMarketShareChartInstance.render();
 }
-
-
-function hideFiltersOnProjectAndHome() {
-  const isProjectVisible = document.getElementById("projectPage")?.style.display !== "none";
-  const isHomeVisible = document.getElementById("homePage")?.style.display !== "none";
-  const isProductMapVisible = document.getElementById("productMapPage")?.style.display !== "none";
-  const isProductExplorerVisible = document.getElementById("productExplorerPage")?.style.display !== "none";
-  const isGoogleAdsVisible = document.getElementById("googleAdsPage")?.style.display !== "none";
-  
-  const shouldHide = isProjectVisible || isHomeVisible || isProductMapVisible || isProductExplorerVisible || isGoogleAdsVisible;
-
-  // DON'T hide the navigation selectors - they should always be visible
-  // Remove the code that was hiding modeSelector and pageSelector
-
-  const hasStateSelected = window.filterState?.location && window.filterState.location.trim() !== "";
-
-  const idsToToggle = [
-    "deviceFilter",
-    "locationFilter",
-    "date-range-picker-container",
-    "tabsWrapper",
-    "top-bar"
-  ];
-
-  idsToToggle.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.add("fade-toggle");
-      el.classList.remove("fade-visible");
-      el.classList.add("fade-hidden");
-    }
-  });
-  const locationText = document.getElementById("locationText");
-  if (locationText && window.filterState.location) {
-    locationText.textContent = formatLocation(window.filterState.location);
-  }
-}
-
-function showFiltersOnMainPage() {
-  const isMainVisible = document.getElementById("main")?.style.display !== "none";
-  if (!isMainVisible) return;
-
-  // Navigation selectors are always visible, no need to show them here
-
-  const idsToShow = [
-    "deviceFilter",
-    "locationFilter",
-    "date-range-picker-container",
-    "tabsWrapper",
-    "top-bar"
-  ];
-
-  idsToShow.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.add("fade-toggle");
-      el.classList.remove("fade-hidden");
-      el.classList.add("fade-visible");
-    }
-  });
-}
-
-  function logAvailableCompanies() {
-    if (!window.companyStatsData || !Array.isArray(window.companyStatsData)) {
-      console.warn("[logAvailableCompanies] No companyStatsData available");
-      return;
-    }
-    
-    const companies = [...new Set(window.companyStatsData.map(r => r.source))];
-    const projNums = [...new Set(window.companyStatsData.map(r => r.project_number))];
-    
-    console.group("[🔍 Available Company Data]");
-    console.log("Current Account:", document.getElementById("selectedAccountText")?.textContent);
-    console.log("dataPrefix:", window.dataPrefix);
-    console.log("isDemoMode:", window._isDemoMode);
-    console.log("myCompany:", window.myCompany);
-    console.log("frontendCompany:", window.frontendCompany);
-    console.log("Project Numbers:", projNums);
-    console.log("Companies:", companies);
-    console.groupEnd();
-  }
-
-
 
 /**
  * renderProjectPieChart
