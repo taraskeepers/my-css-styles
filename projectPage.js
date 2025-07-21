@@ -659,6 +659,7 @@ function buildProjectData() {
           
         if (typeof updateProjectStatsDisplay === 'function') {
     updateProjectStatsDisplay();
+    renderGainersLosers();
     console.log("[buildProjectData] Called updateProjectStatsDisplay");
 }
       });
@@ -1138,6 +1139,8 @@ function calculateCompanyMarketShareData() {
 }
 
 function updateProjectStatsDisplay() {
+      // Render the gainers/losers section
+  renderGainersLosers();
   const rankData = calculateCompanyRankData();
   const shareData = calculateCompanyMarketShareData();
   
@@ -1726,6 +1729,173 @@ yaxis: {
   }
 
   containerDiv.appendChild(trendDiv);
+}
+
+function calculateGainersLosers() {
+  console.log("[calculateGainersLosers] Starting calculation...");
+  
+  // Get filtered data based on current filters
+  const filtered = window.filteredData || window.allRows;
+  if (!filtered || !filtered.length) {
+    console.warn("[calculateGainersLosers] No filtered data available");
+    return { gainers: [], losers: [] };
+  }
+
+  // Get the global max date
+  const globalMaxDate = getGlobalMaxDate(filtered);
+  if (!globalMaxDate) {
+    console.warn("[calculateGainersLosers] No valid max date found");
+    return { gainers: [], losers: [] };
+  }
+
+  // Define date ranges
+  const currentEnd = globalMaxDate.clone();
+  const currentStart = currentEnd.clone().subtract(6, "days");
+  const previousEnd = currentStart.clone().subtract(1, "days");
+  const previousStart = previousEnd.clone().subtract(6, "days");
+
+  console.log("[calculateGainersLosers] Date ranges:", {
+    current: `${currentStart.format("YYYY-MM-DD")} to ${currentEnd.format("YYYY-MM-DD")}`,
+    previous: `${previousStart.format("YYYY-MM-DD")} to ${previousEnd.format("YYYY-MM-DD")}`
+  });
+
+  // Build company share data using the same logic as buildCompanyShareFromFiltered
+  const companyData = {};
+
+  filtered.forEach(row => {
+    if (!row.historical_data || !Array.isArray(row.historical_data)) return;
+    
+    const companyName = row.source || row.title || "Unknown";
+    if (!companyData[companyName]) {
+      companyData[companyName] = {
+        currentDays: {},
+        previousDays: {}
+      };
+    }
+
+    row.historical_data.forEach(dayObj => {
+      const date = moment(dayObj.date.value, "YYYY-MM-DD");
+      const shareValue = dayObj.market_share != null ? parseFloat(dayObj.market_share) * 100 : 0;
+
+      if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
+        const dateStr = date.format("YYYY-MM-DD");
+        if (!companyData[companyName].currentDays[dateStr]) {
+          companyData[companyName].currentDays[dateStr] = [];
+        }
+        companyData[companyName].currentDays[dateStr].push(shareValue);
+      } else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
+        const dateStr = date.format("YYYY-MM-DD");
+        if (!companyData[companyName].previousDays[dateStr]) {
+          companyData[companyName].previousDays[dateStr] = [];
+        }
+        companyData[companyName].previousDays[dateStr].push(shareValue);
+      }
+    });
+  });
+
+  // Calculate averages for each company
+  const companyChanges = [];
+  
+  Object.entries(companyData).forEach(([companyName, data]) => {
+    // Calculate current period average
+    let currentSum = 0;
+    let currentCount = 0;
+    Object.values(data.currentDays).forEach(dayValues => {
+      dayValues.forEach(val => {
+        currentSum += val;
+        currentCount++;
+      });
+    });
+    const currentAvg = currentCount > 0 ? currentSum / currentCount : 0;
+
+    // Calculate previous period average
+    let previousSum = 0;
+    let previousCount = 0;
+    Object.values(data.previousDays).forEach(dayValues => {
+      dayValues.forEach(val => {
+        previousSum += val;
+        previousCount++;
+      });
+    });
+    const previousAvg = previousCount > 0 ? previousSum / previousCount : 0;
+
+    // Only include companies with data in both periods
+    if (currentCount > 0 && previousCount > 0) {
+      const change = currentAvg - previousAvg;
+      companyChanges.push({
+        company: companyName,
+        currentShare: currentAvg,
+        previousShare: previousAvg,
+        change: change,
+        changePercent: previousAvg > 0 ? (change / previousAvg) * 100 : 0
+      });
+    }
+  });
+
+  console.log(`[calculateGainersLosers] Calculated changes for ${companyChanges.length} companies`);
+
+  // Sort by absolute change and get top 10
+  const sortedByChange = [...companyChanges].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+  const top10 = sortedByChange.slice(0, 10);
+
+  // Separate gainers and losers
+  const gainers = top10.filter(c => c.change > 0).slice(0, 5);
+  const losers = top10.filter(c => c.change < 0).slice(0, 5);
+
+  console.log("[calculateGainersLosers] Results:", { 
+    gainersCount: gainers.length, 
+    losersCount: losers.length 
+  });
+
+  return { gainers, losers };
+}
+
+function renderGainersLosers() {
+  console.log("[renderGainersLosers] Starting render...");
+  
+  const { gainers, losers } = calculateGainersLosers();
+  
+  // Render gainers
+  const gainersContainer = document.getElementById("topGainersList");
+  if (gainersContainer) {
+    gainersContainer.innerHTML = "";
+    
+    if (gainers.length === 0) {
+      gainersContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 10px;">No gainers found</div>';
+    } else {
+      gainers.forEach((company, index) => {
+        const item = document.createElement("div");
+        item.className = "company-list-item";
+        item.innerHTML = `
+          <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
+          <span class="share-value">${company.currentShare.toFixed(1)}%</span>
+          <span class="trend-value positive">+${company.change.toFixed(2)}%</span>
+        `;
+        gainersContainer.appendChild(item);
+      });
+    }
+  }
+  
+  // Render losers
+  const losersContainer = document.getElementById("topLosersList");
+  if (losersContainer) {
+    losersContainer.innerHTML = "";
+    
+    if (losers.length === 0) {
+      losersContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 10px;">No losers found</div>';
+    } else {
+      losers.forEach((company, index) => {
+        const item = document.createElement("div");
+        item.className = "company-list-item";
+        item.innerHTML = `
+          <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
+          <span class="share-value">${company.currentShare.toFixed(1)}%</span>
+          <span class="trend-value negative">${company.change.toFixed(2)}%</span>
+        `;
+        losersContainer.appendChild(item);
+      });
+    }
+  }
 }
 
 function renderProjectDailyRankBoxes(projectData) {
