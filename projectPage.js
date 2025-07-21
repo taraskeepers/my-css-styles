@@ -1751,41 +1751,41 @@ if (typeof findOverallMaxDateInCompanyStats === 'undefined') {
   };
 }
 
+// Replace your existing calculateGainersLosers function with this fixed version
 function calculateGainersLosers() {
   console.log("[calculateGainersLosers] Starting calculation...");
   
-  // Use companyStatsData to get ALL companies, not just the filtered one
+  // Use companyStatsData to get ALL companies
   if (!window.companyStatsData || !window.companyStatsData.length) {
     console.warn("[calculateGainersLosers] No companyStatsData available");
     return { gainers: [], losers: [] };
   }
 
-  // Get active project number from filter state
+  // Get filter settings
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   const currentLocation = window.filterState?.location || "";
   const currentDevice = window.filterState?.device || "";
+  const periodDays = window.filterState.period === "3d" ? 3 : 
+                     window.filterState.period === "30d" ? 30 : 7;
   
   console.log("[calculateGainersLosers] Filters:", { 
     project: activeProjectNumber, 
     location: currentLocation, 
-    device: currentDevice 
+    device: currentDevice,
+    period: periodDays
   });
 
-  // Filter by project number first (like buildProjectData does)
+  // Filter by project number first
   let projectFiltered = window.companyStatsData.filter(row => {
     const rowProjNum = parseInt(row.project_number, 10);
     return rowProjNum === activeProjectNumber;
   });
   
-  console.log(`[calculateGainersLosers] Found ${projectFiltered.length} records for project ${activeProjectNumber}`);
-
-  // Apply location and device filters if set
+  // Apply location and device filters
   let filtered = projectFiltered.filter(row => {
-    // Apply location filter if set
     if (currentLocation && row.location_requested !== currentLocation) {
       return false;
     }
-    // Apply device filter if set
     if (currentDevice && currentDevice !== "All" && 
         row.device?.toLowerCase() !== currentDevice.toLowerCase()) {
       return false;
@@ -1793,111 +1793,121 @@ function calculateGainersLosers() {
     return true;
   });
 
-  console.log(`[calculateGainersLosers] After location/device filters: ${filtered.length} records`);
+  console.log(`[calculateGainersLosers] After filters: ${filtered.length} records`);
 
-  // Get the global max date from the filtered data
+  // Get the global max date
   const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
   if (!globalMaxDate) {
     console.warn("[calculateGainersLosers] No valid max date found");
     return { gainers: [], losers: [] };
   }
 
-  // Define date ranges
+  // Define date ranges based on the selected period
   const currentEnd = globalMaxDate.clone();
-  const currentStart = currentEnd.clone().subtract(6, "days");
+  const currentStart = currentEnd.clone().subtract(periodDays - 1, "days");
   const previousEnd = currentStart.clone().subtract(1, "days");
-  const previousStart = previousEnd.clone().subtract(6, "days");
+  const previousStart = previousEnd.clone().subtract(periodDays - 1, "days");
 
   console.log("[calculateGainersLosers] Date ranges:", {
     current: `${currentStart.format("YYYY-MM-DD")} to ${currentEnd.format("YYYY-MM-DD")}`,
     previous: `${previousStart.format("YYYY-MM-DD")} to ${previousEnd.format("YYYY-MM-DD")}`
   });
 
-  // Group data by company
+  // Group by company and calculate using the same method as buildProjectData
   const companyGroups = {};
+  
   filtered.forEach(row => {
     const companyName = row.source || row.title || "Unknown";
+    const searchTerm = row.q || row.search || "(no term)";
+    const loc = row.location_requested || "Unknown";
+    const dev = row.device || "Unknown";
+    const groupKey = `${companyName}||${searchTerm}||${loc}||${dev}`;
+    
     if (!companyGroups[companyName]) {
-      companyGroups[companyName] = [];
+      companyGroups[companyName] = {};
     }
-    companyGroups[companyName].push(row);
+    if (!companyGroups[companyName][groupKey]) {
+      companyGroups[companyName][groupKey] = [];
+    }
+    companyGroups[companyName][groupKey].push(row);
   });
 
-  console.log(`[calculateGainersLosers] Found ${Object.keys(companyGroups).length} unique companies`);
-
-  // Build company share data
-  const companyData = {};
-
-  Object.entries(companyGroups).forEach(([companyName, companyRows]) => {
-    companyData[companyName] = {
-      currentDays: {},
-      previousDays: {}
-    };
-
-    companyRows.forEach(row => {
-      if (!row.historical_data || !Array.isArray(row.historical_data)) return;
-
-      row.historical_data.forEach(dayObj => {
-        const date = moment(dayObj.date.value, "YYYY-MM-DD");
-        const shareValue = dayObj.market_share != null ? parseFloat(dayObj.market_share) * 100 : 0;
-
-        if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
-          const dateStr = date.format("YYYY-MM-DD");
-          if (!companyData[companyName].currentDays[dateStr]) {
-            companyData[companyName].currentDays[dateStr] = [];
-          }
-          companyData[companyName].currentDays[dateStr].push(shareValue);
-        } else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
-          const dateStr = date.format("YYYY-MM-DD");
-          if (!companyData[companyName].previousDays[dateStr]) {
-            companyData[companyName].previousDays[dateStr] = [];
-          }
-          companyData[companyName].previousDays[dateStr].push(shareValue);
-        }
-      });
-    });
-  });
-
-  // Calculate averages for each company
+  // Calculate changes for each company
   const companyChanges = [];
   
-  Object.entries(companyData).forEach(([companyName, data]) => {
-    // Skip companies without proper names
+  Object.entries(companyGroups).forEach(([companyName, searchGroups]) => {
     if (!companyName || companyName === "Unknown" || companyName === "null") {
       return;
     }
+
+    const groupAverages = [];
     
-    // Calculate current period average
-    let currentSum = 0;
-    let currentCount = 0;
-    Object.values(data.currentDays).forEach(dayValues => {
-      dayValues.forEach(val => {
-        currentSum += val;
-        currentCount++;
+    // Calculate average for each search term/location/device combination
+    Object.entries(searchGroups).forEach(([groupKey, rows]) => {
+      // Merge historical data for this group
+      let mergedHist = [];
+      rows.forEach(r => {
+        if (Array.isArray(r.historical_data)) {
+          mergedHist = mergedHist.concat(r.historical_data);
+        }
+      });
+
+      if (!mergedHist.length) return;
+
+      // Build day map
+      const dayMap = {};
+      mergedHist.forEach(obj => {
+        if (obj.date?.value) {
+          dayMap[obj.date.value] = {
+            s: obj.market_share != null ? parseFloat(obj.market_share) * 100 : 0
+          };
+        }
+      });
+
+      // Calculate current period average
+      let sumShare = 0;
+      let run = currentStart.clone();
+      while (run.isSameOrBefore(currentEnd, "day")) {
+        const ds = run.format("YYYY-MM-DD");
+        sumShare += (dayMap[ds]?.s || 0);
+        run.add(1, "days");
+      }
+      const avgShare = sumShare / periodDays;
+
+      // Calculate previous period average
+      let prevSumShare = 0;
+      run = previousStart.clone();
+      while (run.isSameOrBefore(previousEnd, "day")) {
+        const ds = run.format("YYYY-MM-DD");
+        prevSumShare += (dayMap[ds]?.s || 0);
+        run.add(1, "days");
+      }
+      const prevAvgShare = prevSumShare / periodDays;
+      
+      const trendVal = avgShare - prevAvgShare;
+      
+      groupAverages.push({
+        avgShare,
+        prevAvgShare,
+        trendVal
       });
     });
-    const currentAvg = currentCount > 0 ? currentSum / currentCount : 0;
 
-    // Calculate previous period average
-    let previousSum = 0;
-    let previousCount = 0;
-    Object.values(data.previousDays).forEach(dayValues => {
-      dayValues.forEach(val => {
-        previousSum += val;
-        previousCount++;
-      });
-    });
-    const previousAvg = previousCount > 0 ? previousSum / previousCount : 0;
+    if (groupAverages.length === 0) return;
 
-    // Only include companies with data in both periods and meaningful market share
-    if (currentCount > 0 && previousCount > 0 && (currentAvg > 0.01 || previousAvg > 0.01)) {
-      const change = currentAvg - previousAvg;
+    // Average across all groups (same as calculateCompanyMarketShareData does)
+    const currentAvg = groupAverages.reduce((sum, g) => sum + g.avgShare, 0) / groupAverages.length;
+    const previousAvg = groupAverages.reduce((sum, g) => sum + g.prevAvgShare, 0) / groupAverages.length;
+    const trendAvg = groupAverages.reduce((sum, g) => sum + g.trendVal, 0) / groupAverages.length;
+
+    // Only include companies with meaningful data
+    if (currentAvg > 0.01 || previousAvg > 0.01) {
       companyChanges.push({
         company: companyName,
         currentShare: currentAvg,
         previousShare: previousAvg,
-        change: change,
-        changePercent: previousAvg > 0 ? (change / previousAvg) * 100 : 0
+        change: trendAvg,
+        changePercent: previousAvg > 0 ? (trendAvg / previousAvg) * 100 : 0
       });
     }
   });
