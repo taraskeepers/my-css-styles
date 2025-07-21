@@ -1201,19 +1201,19 @@ if (rankBox) rankBox.style.backgroundColor = getRankBoxColor(rankData.currentRan
   
   if (marketShareEl) marketShareEl.textContent = shareData.currentShare.toFixed(1) + '%';
   if (marketWaterFill) marketWaterFill.style.height = Math.min(shareData.currentShare, 100) + '%';
-  if (marketTrendEl) {
-    const trendValue = shareData.shareTrend;
-    if (trendValue > 0) {
-      marketTrendEl.innerHTML = `▲ ${trendValue.toFixed(2)}%`;
-      marketTrendEl.className = 'market-trend-value trend-up';
-    } else if (trendValue < 0) {
-      marketTrendEl.innerHTML = `▼ ${Math.abs(trendValue).toFixed(2)}%`;
-      marketTrendEl.className = 'market-trend-value trend-down';
-    } else {
-      marketTrendEl.innerHTML = `± 0.00%`;
-      marketTrendEl.className = 'market-trend-value trend-neutral';
-    }
+
+    if (marketTrendEl) {
+  if (marketData.shareTrend > 0) {
+    marketTrendEl.innerHTML = `<span style="color: #4CAF50;">▲ ${marketData.shareTrend.toFixed(1)}%</span>`;
+    marketTrendEl.className = 'market-trend-text';
+  } else if (marketData.shareTrend < 0) {
+    marketTrendEl.innerHTML = `<span style="color: #F44336;">▼ ${Math.abs(marketData.shareTrend).toFixed(1)}%</span>`;
+    marketTrendEl.className = 'market-trend-text';
+  } else {
+    marketTrendEl.innerHTML = `<span style="color: #999;">± 0.0%</span>`;
+    marketTrendEl.className = 'market-trend-text';
   }
+}
   
   // Update desktop market share with water fill
   const desktopShareEl = document.getElementById('desktopShareValue');
