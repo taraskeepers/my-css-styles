@@ -409,7 +409,12 @@ window._projectPageInitializing = false;
     }
 
     window.filterState.company = targetCompany;
-    document.getElementById("companyText").textContent = targetCompany;
+    const companyTextEl = document.getElementById("companyText");
+if (companyTextEl) {
+  companyTextEl.textContent = targetCompany;
+} else {
+  console.warn("[populateProjectPage] #companyText element not found");
+}
   
     if (!window.mapHelpers || typeof window.mapHelpers.drawUsMapWithLocations !== "function") {
       /*console.warn("[populateProjectPage] mapsLib.js not loaded yet. Retrying in 500ms.");
@@ -420,10 +425,14 @@ window._projectPageInitializing = false;
       return;
     }
   
-    const locListContainer = document.querySelector("#projectPage #locList");
-    locListContainer.innerHTML = "";
-    locListContainer.style.maxHeight = "1000px";
-    locListContainer.style.overflowY = "auto";
+const locListContainer = document.querySelector("#projectPage #locList");
+if (!locListContainer) {
+  console.error("[populateProjectPage] #locList container not found in DOM");
+  return;
+}
+locListContainer.innerHTML = "";
+locListContainer.style.maxHeight = "1000px";
+locListContainer.style.overflowY = "auto";
   
     // -----------------------------------------------
     // 1) Build project data
