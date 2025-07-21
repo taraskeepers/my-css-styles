@@ -1440,7 +1440,7 @@ function renderProjectMarketShareChart(projectData) {
     { name: "Mobile Only",   data: mobSeries  }
   ];
 
-  // 3) Custom tooltip logic (keeping your existing logic)
+  // 3) The same custom tooltip logic
   function customTooltip({ series, dataPointIndex, w }) {
     const formattedDate = w.globals.labels[dataPointIndex] || "";
     let items = [];
@@ -1448,42 +1448,94 @@ function renderProjectMarketShareChart(projectData) {
       const label       = w.config.series[i].name;
       const color       = w.globals.colors?.[i] || "#007aff";
       const currentVal  = series[i][dataPointIndex];
-      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : currentVal;
-      const change      = currentVal - prevVal;
-      const changeStr   = change > 0 ? `+${change.toFixed(2)}` : change.toFixed(2);
-      
-      items.push(`
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-          <span style="display:inline-block; width:10px; height:10px; background:${color}; border-radius:50%;"></span>
-          <span style="flex:1;">${label}:</span>
-          <span style="font-weight:bold;">${currentVal.toFixed(2)}%</span>
-          <span style="color:${change>=0?'green':'red'}; font-size:0.9em;">(${changeStr})</span>
-        </div>
-      `);
+      const prevVal     = dataPointIndex > 0 ? series[i][dataPointIndex - 1] : null;
+      let diffStr = "";
+      if (prevVal !== null) {
+        const diff = currentVal - prevVal;
+        if (diff > 0) {
+          diffStr = `▲ ${diff.toFixed(2)}%`;
+        } else if (diff < 0) {
+          diffStr = `▼ ${Math.abs(diff).toFixed(2)}%`;
+        } else {
+          diffStr = "±0.00%";
+        }
+      }
+      items.push({ label, color, currentVal, diffStr });
     }
-    
-    return `
-      <div style="background:white; border:1px solid #ccc; border-radius:4px; padding:8px; font-size:13px;">
-        <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid #eee; padding-bottom:4px;">
-          ${formattedDate}
-        </div>
-        ${items.join("")}
+
+    // Sort descending by currentVal
+    items.sort((a, b) => b.currentVal - a.currentVal);
+
+    // Build HTML
+    let html = `
+      <div style="
+        padding: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      ">
+      <div style="margin-bottom:4px; font-size:12px; color:#333;">
+        ${formattedDate}
       </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; color:#333;">
     `;
+    items.forEach(item => {
+      let diffColor = "#666";
+      if (item.diffStr.startsWith("▲")) diffColor = "green";
+      else if (item.diffStr.startsWith("▼")) diffColor = "red";
+
+      html += `
+        <tr>
+          <td style="padding:2px 4px; vertical-align:middle;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${item.color};margin-right:6px;"></span>
+            <strong>${item.label}</strong>
+          </td>
+          <td style="padding:2px 4px;text-align:right;vertical-align:middle;">
+            ${item.currentVal.toFixed(2)}%
+            <span style="color:${diffColor}; margin-left:6px;">
+              ${item.diffStr}
+            </span>
+          </td>
+        </tr>
+      `;
+    });
+    html += "</table></div>";
+    return html;
   }
 
-  // 4) ApexCharts options with your requested modifications
+  // 4) ApexCharts config: 
   const options = {
+    series: finalSeries,
     chart: {
       type: "area",
-      height: 200,  // CHANGED from original
-      width: 700,   // CHANGED from original
+      stacked: true,
+      width: 700,         // CHANGED from 920 to 700
+      height: 200,        // CHANGED from "100%" to 200
       toolbar: { show: false },
-      zoom: { enabled: false }
+      zoom: { enabled: false },
+      animations: {
+        enabled: true,
+        speed: 500,
+        animateGradually: { enabled: true, delay: 50 },
+        dynamicAnimation: { enabled: true, speed: 500 }
+      }
     },
+    title: {
+      text: "Market Share",
+      align: "left",
+      offsetY: 10,
+      margin: 0,
+      style: {
+        fontSize: "14px",
+        color: "#333"
+      }
+    },
+    // -- dataLabels: point labels on seriesIndex=0 only
     dataLabels: {
       enabled: true,
-      enabledOnSeries: [0],  // only on "All Devices"
+      enabledOnSeries: [0], // only totalAvg line
       formatter: (val) => val.toFixed(2) + "%",
       offsetY: -5,
       style: {
@@ -1495,13 +1547,17 @@ function renderProjectMarketShareChart(projectData) {
       curve: "smooth",
       width: 2
     },
+    // -- Markers: bigger marker for totalAvg only
     markers: {
-      size: [5, 0, 0]  // bigger marker for totalAvg only
+      size: [5, 0, 0]
     },
+    // -- Fill gradient for all, but we override color with array
     fill: {
       type: "gradient",
       gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
     },
+    // -- Colors: first line is #007aff (blue),
+    //    next two are greys
     colors: [
       "#007aff",
       "rgb(180,180,180)",
@@ -1513,16 +1569,17 @@ function renderProjectMarketShareChart(projectData) {
     },
     yaxis: {
       labels: {
-        show: false  // CHANGED - Hide Y-axis labels as requested
+        show: false,        // CHANGED from true to false - Hide Y-axis labels
+        formatter: val => val.toFixed(2)
       },
-      title: { text: "" },  // Remove Y-axis title
+      title: { text: "" },  // CHANGED - Remove Y-axis title
       max: 100
     },
     grid: {
-      show: false  // CHANGED - Remove grid lines as requested
+      show: false          // ADDED - Remove grid lines
     },
     legend: {
-      show: false
+      show: false // no legend on the chart
     },
     tooltip: {
       custom: customTooltip
