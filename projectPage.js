@@ -1483,43 +1483,33 @@ function getRankBoxColor(rank) {
 function updateInfoBlockCompaniesStats() {
   console.log("[updateInfoBlockCompaniesStats] Starting...");
   
-  // Get unique companies from current filtered data
-  const companies = new Set();
-  const products = new Set();
-  
-  if (window.companyStatsData && window.companyStatsData.length > 0) {
-    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  // Get latest values from unfiltered marketTrends data
+  if (window.marketTrends && window.marketTrends.length > 0) {
+    // Find the latest date
+    let latestDate = null;
+    let latestRecord = null;
     
-    // Filter by project only - NO location or device filters for infoBlock
-    const filtered = window.companyStatsData.filter(row => {
-      const rowProjNum = parseInt(row.project_number, 10);
-      return rowProjNum === activeProjectNumber;
-      // NO location filter
-      // NO device filter
-    });
-    
-    // Count unique companies and products
-    filtered.forEach(row => {
-      if (row.source && row.source !== "Unknown" && row.source !== "null") {
-        companies.add(row.source);
-      }
-      if (row.title) {
-        products.add(row.title);
+    window.marketTrends.forEach(record => {
+      const d = moment(record.date.value, "YYYY-MM-DD");
+      if (!latestDate || d.isAfter(latestDate)) {
+        latestDate = d.clone();
+        latestRecord = record;
       }
     });
+    
+    if (latestRecord) {
+      const companiesEl = document.getElementById('infoBlockTotalCompanies');
+      const productsEl = document.getElementById('infoBlockTotalProducts');
+      
+      if (companiesEl) companiesEl.textContent = latestRecord.companies || 0;
+      if (productsEl) productsEl.textContent = latestRecord.un_products || 0;
+    }
   }
   
-  // Update counts
-  const companiesEl = document.getElementById('infoBlockTotalCompanies');
-  const productsEl = document.getElementById('infoBlockTotalProducts');
-  
-  if (companiesEl) companiesEl.textContent = companies.size;
-  if (productsEl) productsEl.textContent = products.size;
-  
-  // Render the trend charts
+  // Render the trend charts with unfiltered data
   renderInfoBlockTrendCharts();
   
-  // Get all companies with their market share data (unfiltered, 7-day period)
+  // Get all companies with their market share data (already unfiltered)
   const allCompanies = getAllCompaniesWithMarketShare();
   
   // Render the companies list
@@ -1528,32 +1518,34 @@ function updateInfoBlockCompaniesStats() {
 
 // Add this new function to render the trend charts
 function renderInfoBlockTrendCharts() {
+  console.log("[renderInfoBlockTrendCharts] Starting...");
+  
   // Render Companies Trend Chart
   const companiesCanvas = document.getElementById('infoBlockCompaniesTrendChart');
   if (companiesCanvas) {
     const ctx = companiesCanvas.getContext('2d');
     
-    // Get trend data (you'll need to adapt this based on your data structure)
-    const trendData = buildCompaniesTrendData(14); // 14 days of data
+    // Get UNFILTERED trend data
+    const trendData = buildInfoBlockCompaniesTrendData(14);
     
     if (trendData && trendData.length > 0) {
+      // Clear canvas
+      ctx.clearRect(0, 0, 170, 55);
+      
       // Create gradient
       const gradient = ctx.createLinearGradient(0, 0, 0, 55);
       gradient.addColorStop(0, 'rgba(66, 133, 244, 0.4)');
       gradient.addColorStop(1, 'rgba(66, 133, 244, 0.05)');
       
-      // Clear canvas
-      ctx.clearRect(0, 0, 170, 55);
-      
-      // Draw the trend line
-      ctx.beginPath();
-      ctx.strokeStyle = '#4285f4';
-      ctx.lineWidth = 2;
-      ctx.fillStyle = gradient;
-      
-      const maxCount = Math.max(...trendData.map(d => d.count));
-      const minCount = Math.min(...trendData.map(d => d.count));
+      // Calculate scale
+      const values = trendData.map(d => d.count);
+      const maxCount = Math.max(...values, 1);
+      const minCount = Math.min(...values, 0);
       const range = maxCount - minCount || 1;
+      
+      // Draw filled area
+      ctx.beginPath();
+      ctx.fillStyle = gradient;
       
       trendData.forEach((point, index) => {
         const x = (index / (trendData.length - 1)) * 170;
@@ -1566,7 +1558,7 @@ function renderInfoBlockTrendCharts() {
         }
       });
       
-      // Fill area under the line
+      // Complete the fill
       ctx.lineTo(170, 55);
       ctx.lineTo(0, 55);
       ctx.closePath();
@@ -1574,6 +1566,9 @@ function renderInfoBlockTrendCharts() {
       
       // Draw the line
       ctx.beginPath();
+      ctx.strokeStyle = '#4285f4';
+      ctx.lineWidth = 2;
+      
       trendData.forEach((point, index) => {
         const x = (index / (trendData.length - 1)) * 170;
         const y = 55 - ((point.count - minCount) / range) * 45 - 5;
@@ -1593,31 +1588,31 @@ function renderInfoBlockTrendCharts() {
   if (productsCanvas) {
     const ctx = productsCanvas.getContext('2d');
     
-    // Get trend data for products
-    const trendData = buildProductsTrendData(14); // 14 days of data
+    // Get UNFILTERED trend data
+    const trendData = buildInfoBlockProductsTrendData(14);
     
-    if (trendData && trendData.length > 0) {
+    if (trendData && trendData.unProducts && trendData.unProducts.length > 0) {
+      // Clear canvas
+      ctx.clearRect(0, 0, 170, 55);
+      
       // Create gradient
       const gradient = ctx.createLinearGradient(0, 0, 0, 55);
       gradient.addColorStop(0, 'rgba(255, 152, 0, 0.4)');
       gradient.addColorStop(1, 'rgba(255, 152, 0, 0.05)');
       
-      // Clear canvas
-      ctx.clearRect(0, 0, 170, 55);
-      
-      // Draw the trend line
-      ctx.beginPath();
-      ctx.strokeStyle = '#ff9800';
-      ctx.lineWidth = 2;
-      ctx.fillStyle = gradient;
-      
-      const maxCount = Math.max(...trendData.map(d => d.count));
-      const minCount = Math.min(...trendData.map(d => d.count));
+      // Calculate scale
+      const values = trendData.unProducts;
+      const maxCount = Math.max(...values, 1);
+      const minCount = Math.min(...values, 0);
       const range = maxCount - minCount || 1;
       
-      trendData.forEach((point, index) => {
-        const x = (index / (trendData.length - 1)) * 170;
-        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+      // Draw filled area
+      ctx.beginPath();
+      ctx.fillStyle = gradient;
+      
+      trendData.unProducts.forEach((count, index) => {
+        const x = (index / (trendData.unProducts.length - 1)) * 170;
+        const y = 55 - ((count - minCount) / range) * 45 - 5;
         
         if (index === 0) {
           ctx.moveTo(x, y);
@@ -1626,7 +1621,7 @@ function renderInfoBlockTrendCharts() {
         }
       });
       
-      // Fill area under the line
+      // Complete the fill
       ctx.lineTo(170, 55);
       ctx.lineTo(0, 55);
       ctx.closePath();
@@ -1634,9 +1629,12 @@ function renderInfoBlockTrendCharts() {
       
       // Draw the line
       ctx.beginPath();
-      trendData.forEach((point, index) => {
-        const x = (index / (trendData.length - 1)) * 170;
-        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+      ctx.strokeStyle = '#ff9800';
+      ctx.lineWidth = 2;
+      
+      trendData.unProducts.forEach((count, index) => {
+        const x = (index / (trendData.unProducts.length - 1)) * 170;
+        const y = 55 - ((count - minCount) / range) * 45 - 5;
         
         if (index === 0) {
           ctx.moveTo(x, y);
@@ -1645,6 +1643,25 @@ function renderInfoBlockTrendCharts() {
         }
       });
       ctx.stroke();
+      
+      // Optionally, draw the "on sale" line in a lighter color
+      if (trendData.unProductsOnSale && trendData.unProductsOnSale.length > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 152, 0, 0.5)';
+        ctx.lineWidth = 1;
+        
+        trendData.unProductsOnSale.forEach((count, index) => {
+          const x = (index / (trendData.unProductsOnSale.length - 1)) * 170;
+          const y = 55 - ((count - minCount) / range) * 45 - 5;
+          
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+      }
     }
   }
 }
@@ -2403,6 +2420,83 @@ function renderGainersLosers() {
       });
     }
   }
+}
+
+// Build companies trend data without filters (except project)
+function buildInfoBlockCompaniesTrendData(days = 14) {
+  console.log("[buildInfoBlockCompaniesTrendData] Building unfiltered companies trend...");
+  
+  if (!window.marketTrends || !window.marketTrends.length) {
+    console.warn("[buildInfoBlockCompaniesTrendData] No marketTrends data available");
+    return [];
+  }
+  
+  // Get latest date from marketTrends
+  let latestDate = null;
+  window.marketTrends.forEach(record => {
+    const d = moment(record.date.value, "YYYY-MM-DD");
+    if (!latestDate || d.isAfter(latestDate)) {
+      latestDate = d.clone();
+    }
+  });
+  
+  if (!latestDate) return [];
+  
+  // NO FILTERS - use all marketTrends data
+  const trendData = [];
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const day = latestDate.clone().subtract(i, 'days');
+    const rec = window.marketTrends.find(record => 
+      moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day')
+    );
+    trendData.push({
+      date: day.format("YYYY-MM-DD"),
+      count: rec ? rec.companies : 0
+    });
+  }
+  
+  console.log("[buildInfoBlockCompaniesTrendData] Returning", trendData.length, "days of data");
+  return trendData;
+}
+
+// Build products trend data without filters (except project)
+function buildInfoBlockProductsTrendData(days = 14) {
+  console.log("[buildInfoBlockProductsTrendData] Building unfiltered products trend...");
+  
+  if (!window.marketTrends || !window.marketTrends.length) {
+    console.warn("[buildInfoBlockProductsTrendData] No marketTrends data available");
+    return { dates: [], unProducts: [], unProductsOnSale: [] };
+  }
+  
+  // Get latest date from marketTrends
+  let latestDate = null;
+  window.marketTrends.forEach(record => {
+    const d = moment(record.date.value, "YYYY-MM-DD");
+    if (!latestDate || d.isAfter(latestDate)) {
+      latestDate = d.clone();
+    }
+  });
+  
+  if (!latestDate) return { dates: [], unProducts: [], unProductsOnSale: [] };
+  
+  // NO FILTERS - use all marketTrends data
+  const unProducts = [];
+  const unProductsOnSale = [];
+  const dates = [];
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const day = latestDate.clone().subtract(i, 'days');
+    dates.push(day.format("YYYY-MM-DD"));
+    const rec = window.marketTrends.find(record => 
+      moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day')
+    );
+    unProducts.push(rec ? rec.un_products : 0);
+    unProductsOnSale.push(rec ? rec.un_products_on_sale : 0);
+  }
+  
+  console.log("[buildInfoBlockProductsTrendData] Returning", dates.length, "days of data");
+  return { dates, unProducts, unProductsOnSale };
 }
 
 function renderProjectDailyRankBoxes(projectData) {
