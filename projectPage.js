@@ -13,41 +13,42 @@ async function loadMarketTrendsData() {
   console.log("[loadMarketTrendsData] Looking for table:", tableName);
   
   try {
-    // Open IndexedDB
+    // Open the correct database - myAppDB
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('appDatabase', 1);
+      const request = indexedDB.open('myAppDB', 1);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
     
-    // Check if table exists
-    if (!db.objectStoreNames.contains(tableName)) {
-      console.warn(`[loadMarketTrendsData] Table ${tableName} not found in IndexedDB`);
+    // Access the projectData object store
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const store = transaction.objectStore('projectData');
+    
+    // Get the specific table by its key
+    const request = store.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    if (!result || !result.data) {
+      console.warn(`[loadMarketTrendsData] Table ${tableName} not found in projectData`);
       window.projectMarketTrendsData = [];
       return;
     }
     
-    // Read data from the table
-    const transaction = db.transaction([tableName], 'readonly');
-    const store = transaction.objectStore(tableName);
-    const request = store.getAll();
-    
-    const data = await new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    
-    console.log(`[loadMarketTrendsData] Loaded ${data.length} records from ${tableName}`);
+    console.log(`[loadMarketTrendsData] Loaded ${result.data.length} records from ${tableName}`);
     
     // Store in window object
-    window.projectMarketTrendsData = data;
+    window.projectMarketTrendsData = result.data;
     
     // Debug: Show sample of loaded data
-    if (data.length > 0) {
-      console.log("[loadMarketTrendsData] Sample record:", data[0]);
+    if (result.data.length > 0) {
+      console.log("[loadMarketTrendsData] Sample record:", result.data[0]);
       
       // Check for q="all" records
-      const allRecords = data.filter(row => row.q === "all");
+      const allRecords = result.data.filter(row => row.q === "all");
       console.log(`[loadMarketTrendsData] Found ${allRecords.length} records with q="all"`);
       
       if (allRecords.length > 0) {
