@@ -199,43 +199,43 @@ function populateProjectPage() {
         document.head.appendChild(style);
     }
 
-    // Add this function to load company_serp_stats data
-async function loadCompanySerpStats() {
-  console.log("[loadCompanySerpStats] Loading company SERP stats...");
-  
-  const activeProjectNumber = window.filterState?.activeProjectNumber || 1;
-  const tableName = `${window.dataPrefix}pr${activeProjectNumber}_company_serp_stats`;
-  
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction(['dataStore'], 'readonly');
-    const store = transaction.objectStore('dataStore');
-    const request = store.get(tableName);
-    
-    return new Promise((resolve, reject) => {
-      request.onsuccess = function(event) {
-        const result = event.target.result;
-        if (result && result.data) {
-          console.log(`[loadCompanySerpStats] Loaded ${result.data.length} records from ${tableName}`);
-          window.companySerpStatsData = result.data;
-          resolve(result.data);
-        } else {
-          console.warn(`[loadCompanySerpStats] No data found for ${tableName}`);
-          window.companySerpStatsData = [];
-          resolve([]);
-        }
-      };
+        // Add this function to load company_serp_stats data
+    async function loadCompanySerpStats() {
+      console.log("[loadCompanySerpStats] Loading company SERP stats...");
       
-      request.onerror = function() {
-        console.error("[loadCompanySerpStats] Error loading data");
-        reject(request.error);
-      };
-    });
-  } catch (error) {
-    console.error("[loadCompanySerpStats] Error:", error);
-    return [];
-  }
-}
+      const activeProjectNumber = window.filterState?.activeProjectNumber || 1;
+      const tableName = `${window.dataPrefix}pr${activeProjectNumber}_company_serp_stats`;
+      
+      try {
+        const db = await openDatabase();
+        const transaction = db.transaction(['dataStore'], 'readonly');
+        const store = transaction.objectStore('dataStore');
+        const request = store.get(tableName);
+        
+        return new Promise((resolve, reject) => {
+          request.onsuccess = function(event) {
+            const result = event.target.result;
+            if (result && result.data) {
+              console.log(`[loadCompanySerpStats] Loaded ${result.data.length} records from ${tableName}`);
+              window.companySerpStatsData = result.data;
+              resolve(result.data);
+            } else {
+              console.warn(`[loadCompanySerpStats] No data found for ${tableName}`);
+              window.companySerpStatsData = [];
+              resolve([]);
+            }
+          };
+          
+          request.onerror = function() {
+            console.error("[loadCompanySerpStats] Error loading data");
+            reject(request.error);
+          };
+        });
+      } catch (error) {
+        console.error("[loadCompanySerpStats] Error:", error);
+        return [];
+      }
+    }
     
     try {
         logAvailableCompanies();
