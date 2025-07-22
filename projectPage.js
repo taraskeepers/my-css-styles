@@ -2426,37 +2426,62 @@ function renderGainersLosers() {
 function buildInfoBlockCompaniesTrendData(days = 14) {
   console.log("[buildInfoBlockCompaniesTrendData] Building unfiltered companies trend...");
   
-  if (!window.marketTrends || !window.marketTrends.length) {
-    console.warn("[buildInfoBlockCompaniesTrendData] No marketTrends data available");
+  // Check if marketTrendsData exists
+  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+    console.warn("[buildInfoBlockCompaniesTrendData] window.marketTrendsData not found or not an array");
     return [];
   }
   
-  // Get latest date from marketTrends
+  console.log("[buildInfoBlockCompaniesTrendData] marketTrendsData length:", window.marketTrendsData.length);
+  
+  // Get latest date from ALL marketTrendsData (no filtering by search term, engine, device, or location)
   let latestDate = null;
-  window.marketTrends.forEach(record => {
-    const d = moment(record.date.value, "YYYY-MM-DD");
-    if (!latestDate || d.isAfter(latestDate)) {
-      latestDate = d.clone();
+  window.marketTrendsData.forEach(record => {
+    if (record.date && record.date.value) {
+      const d = moment(record.date.value, "YYYY-MM-DD");
+      if (!latestDate || d.isAfter(latestDate)) {
+        latestDate = d.clone();
+      }
     }
   });
   
-  if (!latestDate) return [];
+  if (!latestDate) {
+    console.warn("[buildInfoBlockCompaniesTrendData] No valid dates found");
+    return [];
+  }
   
-  // NO FILTERS - use all marketTrends data
+  console.log("[buildInfoBlockCompaniesTrendData] Latest date:", latestDate.format("YYYY-MM-DD"));
+  
   const trendData = [];
   
   for (let i = days - 1; i >= 0; i--) {
     const day = latestDate.clone().subtract(i, 'days');
-    const rec = window.marketTrends.find(record => 
-      moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day')
-    );
+    const dayStr = day.format("YYYY-MM-DD");
+    
+    // Find ALL records for this day (no filtering) and sum up companies
+    const recordsForDay = window.marketTrendsData.filter(record => {
+      return record.date && 
+             record.date.value && 
+             moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day');
+    });
+    
+    // Since there might be multiple records per day (different search terms, etc.), 
+    // we need to get the unique companies count. 
+    // Assuming each record has the total companies for that specific filter combination,
+    // we should take the max or first one (they should be the same for total companies)
+    let count = 0;
+    if (recordsForDay.length > 0) {
+      // Take the first record's companies count (they should all be the same for a given day)
+      count = parseInt(recordsForDay[0].companies, 10) || 0;
+    }
+    
     trendData.push({
-      date: day.format("YYYY-MM-DD"),
-      count: rec ? rec.companies : 0
+      date: dayStr,
+      count: count
     });
   }
   
-  console.log("[buildInfoBlockCompaniesTrendData] Returning", trendData.length, "days of data");
+  console.log("[buildInfoBlockCompaniesTrendData] Trend data sample:", trendData.slice(0, 3));
   return trendData;
 }
 
@@ -2464,39 +2489,126 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
 function buildInfoBlockProductsTrendData(days = 14) {
   console.log("[buildInfoBlockProductsTrendData] Building unfiltered products trend...");
   
-  if (!window.marketTrends || !window.marketTrends.length) {
-    console.warn("[buildInfoBlockProductsTrendData] No marketTrends data available");
+  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+    console.warn("[buildInfoBlockProductsTrendData] window.marketTrendsData not found");
     return { dates: [], unProducts: [], unProductsOnSale: [] };
   }
   
-  // Get latest date from marketTrends
+  // Get latest date from ALL marketTrendsData
   let latestDate = null;
-  window.marketTrends.forEach(record => {
-    const d = moment(record.date.value, "YYYY-MM-DD");
-    if (!latestDate || d.isAfter(latestDate)) {
-      latestDate = d.clone();
+  window.marketTrendsData.forEach(record => {
+    if (record.date && record.date.value) {
+      const d = moment(record.date.value, "YYYY-MM-DD");
+      if (!latestDate || d.isAfter(latestDate)) {
+        latestDate = d.clone();
+      }
     }
   });
   
-  if (!latestDate) return { dates: [], unProducts: [], unProductsOnSale: [] };
+  if (!latestDate) {
+    console.warn("[buildInfoBlockProductsTrendData] No valid dates found");
+    return { dates: [], unProducts: [], unProductsOnSale: [] };
+  }
   
-  // NO FILTERS - use all marketTrends data
   const unProducts = [];
   const unProductsOnSale = [];
   const dates = [];
   
   for (let i = days - 1; i >= 0; i--) {
     const day = latestDate.clone().subtract(i, 'days');
-    dates.push(day.format("YYYY-MM-DD"));
-    const rec = window.marketTrends.find(record => 
-      moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day')
-    );
-    unProducts.push(rec ? rec.un_products : 0);
-    unProductsOnSale.push(rec ? rec.un_products_on_sale : 0);
+    const dayStr = day.format("YYYY-MM-DD");
+    dates.push(dayStr);
+    
+    // Find ALL records for this day
+    const recordsForDay = window.marketTrendsData.filter(record => {
+      return record.date && 
+             record.date.value && 
+             moment(record.date.value, "YYYY-MM-DD").isSame(day, 'day');
+    });
+    
+    let products = 0;
+    let onSale = 0;
+    
+    if (recordsForDay.length > 0) {
+      // Take the first record's values (they should be the same across all records for that day)
+      products = parseInt(recordsForDay[0].un_products, 10) || 0;
+      onSale = parseInt(recordsForDay[0].un_products_on_sale, 10) || 0;
+    }
+    
+    unProducts.push(products);
+    unProductsOnSale.push(onSale);
   }
   
-  console.log("[buildInfoBlockProductsTrendData] Returning", dates.length, "days of data");
+  console.log("[buildInfoBlockProductsTrendData] Products sample:", unProducts.slice(0, 3));
   return { dates, unProducts, unProductsOnSale };
+}
+
+// Updated function to get counts from marketTrendsData
+function updateInfoBlockCompaniesStats() {
+  console.log("[updateInfoBlockCompaniesStats] Starting...");
+  
+  // Debug: Check what data is available
+  console.log("[DEBUG] window.marketTrendsData exists?", !!window.marketTrendsData);
+  console.log("[DEBUG] window.marketTrendsData length?", window.marketTrendsData?.length);
+  if (window.marketTrendsData && window.marketTrendsData.length > 0) {
+    console.log("[DEBUG] Sample marketTrends record:", window.marketTrendsData[0]);
+  }
+  
+  // Get latest values from unfiltered marketTrendsData
+  if (window.marketTrendsData && Array.isArray(window.marketTrendsData) && window.marketTrendsData.length > 0) {
+    // Find the latest date
+    let latestDate = null;
+    let latestRecords = [];
+    
+    // First, find the latest date
+    window.marketTrendsData.forEach(record => {
+      if (record.date && record.date.value) {
+        const d = moment(record.date.value, "YYYY-MM-DD");
+        if (!latestDate || d.isAfter(latestDate)) {
+          latestDate = d.clone();
+        }
+      }
+    });
+    
+    // Then get all records for that date
+    if (latestDate) {
+      latestRecords = window.marketTrendsData.filter(record => {
+        return record.date && 
+               record.date.value && 
+               moment(record.date.value, "YYYY-MM-DD").isSame(latestDate, 'day');
+      });
+    }
+    
+    console.log("[updateInfoBlockCompaniesStats] Latest date:", latestDate?.format("YYYY-MM-DD"));
+    console.log("[updateInfoBlockCompaniesStats] Records for latest date:", latestRecords.length);
+    
+    if (latestRecords.length > 0) {
+      // Take the first record (all records for the same date should have the same totals)
+      const latestRecord = latestRecords[0];
+      
+      const companiesEl = document.getElementById('infoBlockTotalCompanies');
+      const productsEl = document.getElementById('infoBlockTotalProducts');
+      
+      const companiesCount = parseInt(latestRecord.companies, 10) || 0;
+      const productsCount = parseInt(latestRecord.un_products, 10) || 0;
+      
+      console.log("[updateInfoBlockCompaniesStats] Setting counts - Companies:", companiesCount, "Products:", productsCount);
+      
+      if (companiesEl) companiesEl.textContent = companiesCount;
+      if (productsEl) productsEl.textContent = productsCount;
+    }
+  } else {
+    console.warn("[updateInfoBlockCompaniesStats] No marketTrendsData available");
+  }
+  
+  // Render the trend charts with unfiltered data
+  renderInfoBlockTrendCharts();
+  
+  // Get all companies with their market share data (already unfiltered)
+  const allCompanies = getAllCompaniesWithMarketShare();
+  
+  // Render the companies list
+  renderInfoBlockCompaniesList(allCompanies);
 }
 
 function renderProjectDailyRankBoxes(projectData) {
