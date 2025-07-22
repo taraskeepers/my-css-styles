@@ -2523,11 +2523,9 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Filter for records where q="all" and matching project
+// Filter for records where q="all" (already filtered by project when loaded)
   const projectMarketData = window.projectMarketTrendsData.filter(row => {
-    return row.q === "all" && 
-           row.tableName && 
-           row.tableName.includes(`_pr${activeProjectNumber}_`);
+    return row.q === "all";
   });
   
   console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
@@ -2589,11 +2587,9 @@ function buildInfoBlockProductsTrendData(days = 14) {
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Filter for records where q="all" and matching project
+// Filter for records where q="all" (already filtered by project when loaded)
   const projectMarketData = window.projectMarketTrendsData.filter(row => {
-    return row.q === "all" && 
-           row.tableName && 
-           row.tableName.includes(`_pr${activeProjectNumber}_`);
+    return row.q === "all";
   });
   
   console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
@@ -2658,11 +2654,9 @@ function updateInfoBlockCompaniesStats() {
   if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
-    // Filter for records where q="all" and matching project
+// Filter for records where q="all" (already filtered by project when loaded)
     const projectMarketData = window.projectMarketTrendsData.filter(row => {
-      return row.q === "all" && 
-             row.tableName && 
-             row.tableName.includes(`_pr${activeProjectNumber}_`);
+      return row.q === "all";
     });
     
     if (projectMarketData.length > 0) {
