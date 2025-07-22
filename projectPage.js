@@ -23,7 +23,7 @@ async function loadMarketTrendsData() {
     // Check if table exists
     if (!db.objectStoreNames.contains(tableName)) {
       console.warn(`[loadMarketTrendsData] Table ${tableName} not found in IndexedDB`);
-      window.marketTrendsData = [];
+      window.projectMarketTrendsData = [];
       return;
     }
     
@@ -40,7 +40,7 @@ async function loadMarketTrendsData() {
     console.log(`[loadMarketTrendsData] Loaded ${data.length} records from ${tableName}`);
     
     // Store in window object
-    window.marketTrendsData = data;
+    window.projectMarketTrendsData = data;
     
     // Debug: Show sample of loaded data
     if (data.length > 0) {
@@ -57,17 +57,17 @@ async function loadMarketTrendsData() {
     
   } catch (error) {
     console.error("[loadMarketTrendsData] Error loading market trends:", error);
-    window.marketTrendsData = [];
+    window.projectMarketTrendsData = [];
   }
 }
 
 async function populateProjectPage() {
     // Debug: Check if marketTrendsData is loaded
     console.log("[DEBUG] Checking marketTrendsData:", {
-      exists: !!window.marketTrendsData,
-      isArray: Array.isArray(window.marketTrendsData),
-      length: window.marketTrendsData?.length || 0,
-      sample: window.marketTrendsData?.[0]
+      exists: !!window.projectMarketTrendsData,
+      isArray: Array.isArray(window.projectMarketTrendsData),
+      length: window.projectMarketTrendsData?.length || 0,
+      sample: window.projectMarketTrendsData?.[0]
     });
     
     // Prevent multiple simultaneous executions
@@ -410,7 +410,7 @@ window._projectPageInitializing = false;
   window._projectLoadAttempts[projectKey] = 0;
 
   // Load market trends data if not already loaded
-  if (!window.marketTrendsData || window.marketTrendsData.length === 0) {
+  if (!window.projectMarketTrendsData || window.projectMarketTrendsData.length === 0) {
     console.log("[populateProjectPage] Loading market trends data...");
     await loadMarketTrendsData();
   }
@@ -422,7 +422,7 @@ window._projectPageInitializing = false;
       "[POPULATEPROJECTPAGE] ▶ populateProjectPage() called with:",
       "\n   myCompany =", window.myCompany,
       "\n   companyStatsData.length =", window.companyStatsData?.length,
-      "\n   marketTrendsData.length =", window.marketTrendsData?.length
+      "\n   marketTrendsData.length =", window.projectMarketTrendsData?.length
     );
 
     console.group("[🧪 projectPage population diagnostics]");
@@ -2515,7 +2515,7 @@ function renderGainersLosers() {
 function buildInfoBlockCompaniesTrendData(days = 14) {
   console.log("[buildInfoBlockCompaniesTrendData] Building companies trend from market_trends...");
   
-  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+  if (!window.projectMarketTrendsData || !Array.isArray(window.projectMarketTrendsData)) {
     console.warn("[buildInfoBlockCompaniesTrendData] No marketTrendsData available");
     return [];
   }
@@ -2523,7 +2523,7 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
   // Filter for records where q="all" and matching project
-  const projectMarketData = window.marketTrendsData.filter(row => {
+  const projectMarketData = window.projectMarketTrendsData.filter(row => {
     return row.q === "all" && 
            row.tableName && 
            row.tableName.includes(`_pr${activeProjectNumber}_`);
@@ -2581,7 +2581,7 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
 function buildInfoBlockProductsTrendData(days = 14) {
   console.log("[buildInfoBlockProductsTrendData] Building products trend from market_trends...");
   
-  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+  if (!window.projectMarketTrendsData || !Array.isArray(window.projectMarketTrendsData)) {
     console.warn("[buildInfoBlockProductsTrendData] No marketTrendsData available");
     return { dates: [], unProducts: [], unProductsOnSale: [] };
   }
@@ -2589,7 +2589,7 @@ function buildInfoBlockProductsTrendData(days = 14) {
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
   // Filter for records where q="all" and matching project
-  const projectMarketData = window.marketTrendsData.filter(row => {
+  const projectMarketData = window.projectMarketTrendsData.filter(row => {
     return row.q === "all" && 
            row.tableName && 
            row.tableName.includes(`_pr${activeProjectNumber}_`);
@@ -2647,18 +2647,18 @@ function updateInfoBlockCompaniesStats() {
   console.log("[updateInfoBlockCompaniesStats] Starting...");
   
   // Debug: Check what data is available
-  console.log("[DEBUG] window.marketTrendsData exists?", !!window.marketTrendsData);
-  console.log("[DEBUG] window.marketTrendsData length?", window.marketTrendsData?.length);
-  if (window.marketTrendsData && window.marketTrendsData.length > 0) {
-    console.log("[DEBUG] Sample marketTrends record:", window.marketTrendsData[0]);
+  console.log("[DEBUG] window.projectMarketTrendsData exists?", !!window.projectMarketTrendsData);
+  console.log("[DEBUG] window.projectMarketTrendsData length?", window.projectMarketTrendsData?.length);
+  if (window.projectMarketTrendsData && window.projectMarketTrendsData.length > 0) {
+    console.log("[DEBUG] Sample marketTrends record:", window.projectMarketTrendsData[0]);
   }
   
 // Get latest counts from market_trends data where q="all"
-  if (window.marketTrendsData && Array.isArray(window.marketTrendsData) && window.marketTrendsData.length > 0) {
+  if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
     // Filter for records where q="all" and matching project
-    const projectMarketData = window.marketTrendsData.filter(row => {
+    const projectMarketData = window.projectMarketTrendsData.filter(row => {
       return row.q === "all" && 
              row.tableName && 
              row.tableName.includes(`_pr${activeProjectNumber}_`);
