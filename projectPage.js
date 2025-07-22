@@ -1517,14 +1517,155 @@ function updateInfoBlockCompaniesStats() {
   if (companiesEl) companiesEl.textContent = companies.size;
   if (productsEl) productsEl.textContent = products.size;
   
-  // Get all companies with their market share data
-  const { gainers, losers } = calculateGainersLosers();
+  // Render the trend charts
+  renderInfoBlockTrendCharts();
   
-  // Get ALL companies, not just top gainers/losers
+  // Get all companies with their market share data
   const allCompanies = getAllCompaniesWithMarketShare();
   
   // Render the companies list
   renderInfoBlockCompaniesList(allCompanies);
+}
+
+// Add this new function to render the trend charts
+function renderInfoBlockTrendCharts() {
+  // Render Companies Trend Chart
+  const companiesCanvas = document.getElementById('infoBlockCompaniesTrendChart');
+  if (companiesCanvas) {
+    const ctx = companiesCanvas.getContext('2d');
+    
+    // Get trend data (you'll need to adapt this based on your data structure)
+    const trendData = buildCompaniesTrendData(14); // 14 days of data
+    
+    if (trendData && trendData.length > 0) {
+      // Create gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, 55);
+      gradient.addColorStop(0, 'rgba(66, 133, 244, 0.4)');
+      gradient.addColorStop(1, 'rgba(66, 133, 244, 0.05)');
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 170, 55);
+      
+      // Draw the trend line
+      ctx.beginPath();
+      ctx.strokeStyle = '#4285f4';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = gradient;
+      
+      const maxCount = Math.max(...trendData.map(d => d.count));
+      const minCount = Math.min(...trendData.map(d => d.count));
+      const range = maxCount - minCount || 1;
+      
+      trendData.forEach((point, index) => {
+        const x = (index / (trendData.length - 1)) * 170;
+        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      // Fill area under the line
+      ctx.lineTo(170, 55);
+      ctx.lineTo(0, 55);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw the line
+      ctx.beginPath();
+      trendData.forEach((point, index) => {
+        const x = (index / (trendData.length - 1)) * 170;
+        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    }
+  }
+  
+  // Render Products Trend Chart
+  const productsCanvas = document.getElementById('infoBlockProductsTrendChart');
+  if (productsCanvas) {
+    const ctx = productsCanvas.getContext('2d');
+    
+    // Get trend data for products
+    const trendData = buildProductsTrendData(14); // 14 days of data
+    
+    if (trendData && trendData.length > 0) {
+      // Create gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, 55);
+      gradient.addColorStop(0, 'rgba(255, 152, 0, 0.4)');
+      gradient.addColorStop(1, 'rgba(255, 152, 0, 0.05)');
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 170, 55);
+      
+      // Draw the trend line
+      ctx.beginPath();
+      ctx.strokeStyle = '#ff9800';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = gradient;
+      
+      const maxCount = Math.max(...trendData.map(d => d.count));
+      const minCount = Math.min(...trendData.map(d => d.count));
+      const range = maxCount - minCount || 1;
+      
+      trendData.forEach((point, index) => {
+        const x = (index / (trendData.length - 1)) * 170;
+        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      // Fill area under the line
+      ctx.lineTo(170, 55);
+      ctx.lineTo(0, 55);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw the line
+      ctx.beginPath();
+      trendData.forEach((point, index) => {
+        const x = (index / (trendData.length - 1)) * 170;
+        const y = 55 - ((point.count - minCount) / range) * 45 - 5;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    }
+  }
+}
+
+// Add this helper function if it doesn't exist
+function buildProductsTrendData(days = 14) {
+  // This is a placeholder - you'll need to implement this based on your data structure
+  // It should return an array of objects with { date: "YYYY-MM-DD", count: number }
+  // Similar to buildCompaniesTrendData but for products
+  
+  // For now, return sample data
+  const data = [];
+  const today = moment();
+  for (let i = days - 1; i >= 0; i--) {
+    data.push({
+      date: today.clone().subtract(i, 'days').format('YYYY-MM-DD'),
+      count: Math.floor(Math.random() * 100) + 50
+    });
+  }
+  return data;
 }
 
 function getAllCompaniesWithMarketShare() {
@@ -1534,19 +1675,23 @@ function getAllCompaniesWithMarketShare() {
     return [];
   }
 
-  // Use the same logic as calculateGainersLosers but return ALL companies
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   const currentLocation = window.filterState?.location || "";
+  const currentDevice = window.filterState?.device || ""; // Include device filter
   const periodDays = window.filterState.period === "3d" ? 3 : 
                      window.filterState.period === "30d" ? 30 : 7;
   
-  // Filter by project and location
+  // Filter by project, location, AND device
   let filtered = window.companyStatsData.filter(row => {
     const rowProjNum = parseInt(row.project_number, 10);
     if (rowProjNum !== activeProjectNumber) return false;
     if (currentLocation && row.location_requested !== currentLocation) return false;
+    if (currentDevice && row.device && row.device.toLowerCase() !== currentDevice.toLowerCase()) return false;
     return true;
   });
+
+  console.log(`[getAllCompaniesWithMarketShare] Filtered to ${filtered.length} records`);
+  console.log(`Filters: project=${activeProjectNumber}, location="${currentLocation}", device="${currentDevice}"`);
 
   const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
   if (!globalMaxDate) return [];
@@ -1556,99 +1701,78 @@ function getAllCompaniesWithMarketShare() {
   const previousEnd = currentStart.clone().subtract(1, "days");
   const previousStart = previousEnd.clone().subtract(periodDays - 1, "days");
 
-  // Group by company
-  const companyGroups = {};
+  // Group by company and collect ALL historical data points
+  const companyData = {};
   
   filtered.forEach(row => {
     const companyName = row.source || row.title || "Unknown";
     if (!companyName || companyName === "Unknown" || companyName === "null") return;
     
-    const searchTerm = row.q || row.search || "(no term)";
-    const loc = row.location_requested || "Unknown";
-    const dev = row.device || "Unknown";
-    const groupKey = `${companyName}||${searchTerm}||${loc}||${dev}`;
+    if (!companyData[companyName]) {
+      companyData[companyName] = {
+        currentPeriodData: [],
+        previousPeriodData: []
+      };
+    }
     
-    if (!companyGroups[companyName]) {
-      companyGroups[companyName] = {};
+    // Collect all historical data points for this company
+    if (Array.isArray(row.historical_data)) {
+      row.historical_data.forEach(hist => {
+        if (hist.date?.value && hist.market_share != null) {
+          const date = moment(hist.date.value, "YYYY-MM-DD");
+          const shareValue = parseFloat(hist.market_share) * 100;
+          
+          // Add to current period data
+          if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
+            companyData[companyName].currentPeriodData.push(shareValue);
+          }
+          // Add to previous period data
+          else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
+            companyData[companyName].previousPeriodData.push(shareValue);
+          }
+        }
+      });
     }
-    if (!companyGroups[companyName][groupKey]) {
-      companyGroups[companyName][groupKey] = [];
-    }
-    companyGroups[companyName][groupKey].push(row);
   });
 
-  // Calculate market share for each company
-  const companyData = [];
+  // Calculate ACTUAL averages (not average of averages)
+  const results = [];
   
-  Object.entries(companyGroups).forEach(([companyName, searchGroups]) => {
-    const groupAverages = [];
+  Object.entries(companyData).forEach(([companyName, data]) => {
+    if (data.currentPeriodData.length === 0 && data.previousPeriodData.length === 0) return;
     
-    Object.entries(searchGroups).forEach(([groupKey, rows]) => {
-      let mergedHist = [];
-      rows.forEach(r => {
-        if (Array.isArray(r.historical_data)) {
-          mergedHist = mergedHist.concat(r.historical_data);
-        }
-      });
-
-      if (!mergedHist.length) return;
-
-      const dayMap = {};
-      mergedHist.forEach(obj => {
-        if (obj.date?.value) {
-          dayMap[obj.date.value] = {
-            s: obj.market_share != null ? parseFloat(obj.market_share) * 100 : 0
-          };
-        }
-      });
-
-      let sumShare = 0;
-      let run = currentStart.clone();
-      while (run.isSameOrBefore(currentEnd, "day")) {
-        const ds = run.format("YYYY-MM-DD");
-        sumShare += (dayMap[ds]?.s || 0);
-        run.add(1, "days");
-      }
-      const avgShare = sumShare / periodDays;
-
-      let prevSumShare = 0;
-      run = previousStart.clone();
-      while (run.isSameOrBefore(previousEnd, "day")) {
-        const ds = run.format("YYYY-MM-DD");
-        prevSumShare += (dayMap[ds]?.s || 0);
-        run.add(1, "days");
-      }
-      const prevAvgShare = prevSumShare / periodDays;
+    // Calculate true average across all data points
+    const currentShare = data.currentPeriodData.length > 0
+      ? data.currentPeriodData.reduce((sum, val) => sum + val, 0) / data.currentPeriodData.length
+      : 0;
       
-      const trendVal = avgShare - prevAvgShare;
-      
-      groupAverages.push({
-        avgShare,
-        prevAvgShare,
-        trendVal
-      });
-    });
-
-    if (groupAverages.length === 0) return;
-
-    const currentAvg = groupAverages.reduce((sum, g) => sum + g.avgShare, 0) / groupAverages.length;
-    const previousAvg = groupAverages.reduce((sum, g) => sum + g.prevAvgShare, 0) / groupAverages.length;
-    const trendAvg = groupAverages.reduce((sum, g) => sum + g.trendVal, 0) / groupAverages.length;
-
-    if (currentAvg > 0.01 || previousAvg > 0.01) {
-      companyData.push({
+    const previousShare = data.previousPeriodData.length > 0
+      ? data.previousPeriodData.reduce((sum, val) => sum + val, 0) / data.previousPeriodData.length
+      : 0;
+    
+    const change = currentShare - previousShare;
+    
+    // Only include companies with meaningful data
+    if (currentShare > 0.01 || previousShare > 0.01) {
+      results.push({
         company: companyName,
-        currentShare: currentAvg,
-        previousShare: previousAvg,
-        change: trendAvg
+        currentShare: currentShare,
+        previousShare: previousShare,
+        change: change,
+        dataPoints: data.currentPeriodData.length // For debugging
       });
     }
   });
 
   // Sort by market share (descending)
-  companyData.sort((a, b) => b.currentShare - a.currentShare);
+  results.sort((a, b) => b.currentShare - a.currentShare);
   
-  return companyData;
+  console.log(`[getAllCompaniesWithMarketShare] Returning ${results.length} companies`);
+  if (results.length > 0) {
+    console.log("Sample result:", results[0]);
+  }
+  
+  return results;
 }
 
 function renderInfoBlockCompaniesList(companies) {
@@ -1675,17 +1799,15 @@ function renderInfoBlockCompaniesList(companies) {
     const trendSymbol = company.change > 0 ? "+" : "";
     
     item.innerHTML = `
-      <div style="display: flex; align-items: center; margin-bottom: 2px;">
-        <span class="infoblock-company-rank" style="font-size: 12px; width: 30px;" title="${company.company}">${index + 1}.</span>
-        <span class="infoblock-company-name" style="font-size: 12px; flex: 1;" title="${company.company}">${company.company}</span>
-      </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <div class="infoblock-share-bar-container" style="flex: 1;">
+        <span class="infoblock-company-rank" style="font-size: 12px; min-width: 20px; color: #666;">${index + 1}.</span>
+        <span class="infoblock-company-name" style="font-size: 12px; min-width: 80px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${company.company}">${company.company}</span>
+        <div class="infoblock-share-bar-container" style="flex: 1; max-width: 100px;">
           <div class="infoblock-share-bar-fill" style="width: ${barWidth}%;">
             <span class="infoblock-share-bar-value">${company.currentShare.toFixed(1)}%</span>
           </div>
         </div>
-        <span class="infoblock-trend-value ${trendClass}" style="min-width: 60px; text-align: right;">${trendSymbol}${company.change.toFixed(2)}%</span>
+        <span class="infoblock-trend-value ${trendClass}" style="min-width: 50px; text-align: right; font-size: 11px;">${trendSymbol}${company.change.toFixed(2)}%</span>
       </div>
     `;
     
