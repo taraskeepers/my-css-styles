@@ -630,6 +630,12 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
       processTableData(serpStats, "company_serp_stats");
       processTableData(marketTrends, "market_trends");
 
+      if (document.getElementById("projectPage").style.display !== "none") {
+  setTimeout(() => {
+    updateInfoBlockCompaniesStats();
+  }, 100);
+}
+
       // Now call renderData (if defined) to render the page with the loaded data
       if (typeof renderData === "function") {
         console.log("[TRACE] renderData() called from onReceivedRows");
