@@ -1489,14 +1489,13 @@ function updateInfoBlockCompaniesStats() {
   
   if (window.companyStatsData && window.companyStatsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-    const currentLocation = window.filterState?.location || "";
     
-    // Filter data by project and location
+    // Filter by project only - NO location or device filters for infoBlock
     const filtered = window.companyStatsData.filter(row => {
       const rowProjNum = parseInt(row.project_number, 10);
-      if (rowProjNum !== activeProjectNumber) return false;
-      if (currentLocation && row.location_requested !== currentLocation) return false;
-      return true;
+      return rowProjNum === activeProjectNumber;
+      // NO location filter
+      // NO device filter
     });
     
     // Count unique companies and products
@@ -1520,7 +1519,7 @@ function updateInfoBlockCompaniesStats() {
   // Render the trend charts
   renderInfoBlockTrendCharts();
   
-  // Get all companies with their market share data
+  // Get all companies with their market share data (unfiltered, 7-day period)
   const allCompanies = getAllCompaniesWithMarketShare();
   
   // Render the companies list
@@ -1676,22 +1675,19 @@ function getAllCompaniesWithMarketShare() {
   }
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  const currentLocation = window.filterState?.location || "";
-  const currentDevice = window.filterState?.device || ""; // Include device filter
-  const periodDays = window.filterState.period === "3d" ? 3 : 
-                     window.filterState.period === "30d" ? 30 : 7;
+  // ALWAYS use 7 days, ignore filter state
+  const periodDays = 7;
   
-  // Filter by project, location, AND device
+  // Filter by project only - IGNORE location and device filters
   let filtered = window.companyStatsData.filter(row => {
     const rowProjNum = parseInt(row.project_number, 10);
-    if (rowProjNum !== activeProjectNumber) return false;
-    if (currentLocation && row.location_requested !== currentLocation) return false;
-    if (currentDevice && row.device && row.device.toLowerCase() !== currentDevice.toLowerCase()) return false;
-    return true;
+    return rowProjNum === activeProjectNumber;
+    // NO location filter
+    // NO device filter
   });
 
   console.log(`[getAllCompaniesWithMarketShare] Filtered to ${filtered.length} records`);
-  console.log(`Filters: project=${activeProjectNumber}, location="${currentLocation}", device="${currentDevice}"`);
+  console.log(`Using fixed parameters: project=${activeProjectNumber}, period=7 days, no location/device filters`);
 
   const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
   if (!globalMaxDate) return [];
@@ -1768,6 +1764,7 @@ function getAllCompaniesWithMarketShare() {
   results.sort((a, b) => b.currentShare - a.currentShare);
   
   console.log(`[getAllCompaniesWithMarketShare] Returning ${results.length} companies`);
+  console.log(`Data calculated for: ALL locations, ALL devices, 7-day period`);
   if (results.length > 0) {
     console.log("Sample result:", results[0]);
   }
