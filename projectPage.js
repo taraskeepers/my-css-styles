@@ -1967,7 +1967,7 @@ function renderGainersLosers() {
         item.innerHTML = `
           <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
           <div class="share-bar-container">
-            <div class="share-bar-fill gainer" style="width: ${barWidth}%;">
+            <div class="share-bar-fill" style="width: ${barWidth}%;">
               <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
             </div>
           </div>
@@ -1996,7 +1996,7 @@ function renderGainersLosers() {
         item.innerHTML = `
           <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
           <div class="share-bar-container">
-            <div class="share-bar-fill loser" style="width: ${barWidth}%;">
+            <div class="share-bar-fill" style="width: ${barWidth}%;">
               <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
             </div>
           </div>
