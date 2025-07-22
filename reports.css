@@ -1628,7 +1628,7 @@ ion-range::part(knob) {
    25) #infoBlock
    ============================================== */
 #infoBlock {
-  width: 230px;
+  width: 270px;
   height: 600px;
   background: #fff;
   border-radius: 8px;
