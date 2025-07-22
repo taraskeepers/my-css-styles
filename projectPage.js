@@ -1,11 +1,21 @@
 // Global flags to prevent infinite loops
 window._isLoadingProjectData = false;
 window._projectLoadAttempts = {}; // Track attempts per project
+// Cache for market trends data by project number
+window._marketTrendsCache = {};
 
 async function loadMarketTrendsData() {
   console.log("[loadMarketTrendsData] Starting to load market trends data...");
   
   const activeProjectNumber = window.filterState?.activeProjectNumber || 1;
+  
+  // Check if we already have this project's data cached
+  if (window._marketTrendsCache[activeProjectNumber]) {
+    console.log(`[loadMarketTrendsData] Using cached data for project ${activeProjectNumber}`);
+    window.projectMarketTrendsData = window._marketTrendsCache[activeProjectNumber];
+    return;
+  }
+  
   const prefix = window.dataPrefix || "acc1_pr1_";
   const accountPrefix = prefix.split('_')[0]; // Get 'acc1' or 'demo'
   const tableName = `${accountPrefix}_pr${activeProjectNumber}_market_trends`;
@@ -35,12 +45,14 @@ async function loadMarketTrendsData() {
     if (!result || !result.data) {
       console.warn(`[loadMarketTrendsData] Table ${tableName} not found in projectData`);
       window.projectMarketTrendsData = [];
+      window._marketTrendsCache[activeProjectNumber] = [];
       return;
     }
     
     console.log(`[loadMarketTrendsData] Loaded ${result.data.length} records from ${tableName}`);
     
-    // Store in window object
+    // Store in cache and window object
+    window._marketTrendsCache[activeProjectNumber] = result.data;
     window.projectMarketTrendsData = result.data;
     
     // Debug: Show sample of loaded data
@@ -59,8 +71,20 @@ async function loadMarketTrendsData() {
   } catch (error) {
     console.error("[loadMarketTrendsData] Error loading market trends:", error);
     window.projectMarketTrendsData = [];
+    window._marketTrendsCache[activeProjectNumber] = [];
   }
 }
+
+// Function to clear market trends cache (call when data is updated)
+window.clearMarketTrendsCache = function(projectNumber = null) {
+  if (projectNumber) {
+    delete window._marketTrendsCache[projectNumber];
+    console.log(`[clearMarketTrendsCache] Cleared cache for project ${projectNumber}`);
+  } else {
+    window._marketTrendsCache = {};
+    console.log("[clearMarketTrendsCache] Cleared all market trends cache");
+  }
+};
 
 async function populateProjectPage() {
     // Debug: Check if marketTrendsData is loaded
@@ -410,11 +434,8 @@ window._projectPageInitializing = false;
   const projectKey = `pr${projectNumber}`;
   window._projectLoadAttempts[projectKey] = 0;
 
-  // Load market trends data if not already loaded
-  if (!window.projectMarketTrendsData || window.projectMarketTrendsData.length === 0) {
-    console.log("[populateProjectPage] Loading market trends data...");
-    await loadMarketTrendsData();
-  }
+// Load market trends data for current project (will use cache if available)
+  await loadMarketTrendsData();
 
     // Main logic for handling the project page population
     console.log("[📊 POPULATEPROJECTPAGE] myCompany used:", window.myCompany);
