@@ -2,44 +2,6 @@
 window._isLoadingProjectData = false;
 window._projectLoadAttempts = {}; // Track attempts per project
 
-        // Add this function to load company_serp_stats data
-    async function loadCompanySerpStats() {
-      console.log("[loadCompanySerpStats] Loading company SERP stats...");
-      
-      const activeProjectNumber = window.filterState?.activeProjectNumber || 1;
-      const tableName = `${window.dataPrefix}pr${activeProjectNumber}_company_serp_stats`;
-      
-      try {
-        const db = await openDatabase();
-        const transaction = db.transaction(['dataStore'], 'readonly');
-        const store = transaction.objectStore('dataStore');
-        const request = store.get(tableName);
-        
-        return new Promise((resolve, reject) => {
-          request.onsuccess = function(event) {
-            const result = event.target.result;
-            if (result && result.data) {
-              console.log(`[loadCompanySerpStats] Loaded ${result.data.length} records from ${tableName}`);
-              window.companySerpStatsData = result.data;
-              resolve(result.data);
-            } else {
-              console.warn(`[loadCompanySerpStats] No data found for ${tableName}`);
-              window.companySerpStatsData = [];
-              resolve([]);
-            }
-          };
-          
-          request.onerror = function() {
-            console.error("[loadCompanySerpStats] Error loading data");
-            reject(request.error);
-          };
-        });
-      } catch (error) {
-        console.error("[loadCompanySerpStats] Error:", error);
-        return [];
-      }
-    }
-
 function populateProjectPage() {
     // Prevent multiple simultaneous executions
     if (window._projectPageProcessing) {
@@ -694,11 +656,6 @@ function buildProjectData() {
         window.projectTableData = results;
         updateProjectInfoBlock();
         updateProjectMarketShareChart();
-
-        // Ensure company SERP stats are loaded for info block
-loadCompanySerpStats().then(() => {
-  updateInfoBlockCompaniesStats();
-});
           
         if (typeof updateProjectStatsDisplay === 'function') {
     updateProjectStatsDisplay();
@@ -1520,10 +1477,7 @@ function getRankBoxColor(rank) {
         shareMobEl.classList.add("trend-neutral");
       }
     }
-      // Load and update companies stats
-loadCompanySerpStats().then(() => {
-  updateInfoBlockCompaniesStats();
-});
+      updateInfoBlockCompaniesStats();
   }
 
 function updateInfoBlockCompaniesStats() {
@@ -2484,31 +2438,34 @@ function renderGainersLosers() {
   }
 }
 
-// Build companies trend data using company_serp_stats
+// Build companies trend data from market_trends table
 function buildInfoBlockCompaniesTrendData(days = 14) {
-  console.log("[buildInfoBlockCompaniesTrendData] Building companies trend from SERP stats...");
+  console.log("[buildInfoBlockCompaniesTrendData] Building companies trend from market_trends...");
   
-  if (!window.companySerpStatsData || !Array.isArray(window.companySerpStatsData)) {
-    console.warn("[buildInfoBlockCompaniesTrendData] No companySerpStatsData available");
+  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+    console.warn("[buildInfoBlockCompaniesTrendData] No marketTrendsData available");
     return [];
   }
   
-  // Filter for q="all" records only
-  const projectLevelRecords = window.companySerpStatsData.filter(record => record.q === "all");
-  console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectLevelRecords.length} companies with q="all"`);
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Get the latest date from historical data
+  // Filter for records where q="all" and matching project
+  const projectMarketData = window.marketTrendsData.filter(row => {
+    return row.q === "all" && 
+           row.tableName && 
+           row.tableName.includes(`_pr${activeProjectNumber}_`);
+  });
+  
+  console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
+  
+  // Get the latest date from the data
   let latestDate = null;
-  projectLevelRecords.forEach(record => {
-    if (record.historical_data && Array.isArray(record.historical_data)) {
-      record.historical_data.forEach(hist => {
-        if (hist.date && hist.date.value) {
-          const d = moment(hist.date.value, "YYYY-MM-DD");
-          if (!latestDate || d.isAfter(latestDate)) {
-            latestDate = d.clone();
-          }
-        }
-      });
+  projectMarketData.forEach(row => {
+    if (row.date && row.date.value) {
+      const d = moment(row.date.value, "YYYY-MM-DD");
+      if (!latestDate || d.isAfter(latestDate)) {
+        latestDate = d.clone();
+      }
     }
   });
   
@@ -2517,63 +2474,64 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
     return [];
   }
   
+  // Build trend data for the last 'days' days
   const trendData = [];
   
-  // Build data for each of the last 'days' days
   for (let i = days - 1; i >= 0; i--) {
-    const day = latestDate.clone().subtract(i, 'days');
-    const dayStr = day.format("YYYY-MM-DD");
+    const targetDate = latestDate.clone().subtract(i, 'days');
+    const targetDateStr = targetDate.format("YYYY-MM-DD");
     
-    // Count unique companies that have data for this day
-    const companiesForDay = new Set();
+    // Find the record for this date
+    const dayRecord = projectMarketData.find(row => 
+      row.date && row.date.value === targetDateStr
+    );
     
-    projectLevelRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        // Check if this company has data for this specific day
-        const hasDataForDay = record.historical_data.some(hist => 
-          hist.date && hist.date.value === dayStr
-        );
-        
-        if (hasDataForDay && record.source) {
-          companiesForDay.add(record.source);
-        }
-      }
-    });
-    
-    trendData.push({
-      date: dayStr,
-      count: companiesForDay.size
-    });
+    if (dayRecord && dayRecord.companies) {
+      trendData.push({
+        date: targetDateStr,
+        count: parseInt(dayRecord.companies, 10) || 0
+      });
+    } else {
+      // No data for this day
+      trendData.push({
+        date: targetDateStr,
+        count: 0
+      });
+    }
   }
   
-  console.log("[buildInfoBlockCompaniesTrendData] Trend data sample:", trendData.slice(-3));
+  console.log("[buildInfoBlockCompaniesTrendData] Trend data:", trendData.slice(-3));
   return trendData;
 }
 
-// Build products trend data using company_serp_stats
+// Build products trend data from market_trends table
 function buildInfoBlockProductsTrendData(days = 14) {
-  console.log("[buildInfoBlockProductsTrendData] Building products trend from SERP stats...");
+  console.log("[buildInfoBlockProductsTrendData] Building products trend from market_trends...");
   
-  if (!window.companySerpStatsData || !Array.isArray(window.companySerpStatsData)) {
-    console.warn("[buildInfoBlockProductsTrendData] No companySerpStatsData available");
+  if (!window.marketTrendsData || !Array.isArray(window.marketTrendsData)) {
+    console.warn("[buildInfoBlockProductsTrendData] No marketTrendsData available");
     return { dates: [], unProducts: [], unProductsOnSale: [] };
   }
   
-  // Filter for q="all" records only
-  const projectLevelRecords = window.companySerpStatsData.filter(record => record.q === "all");
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Get the latest date
+  // Filter for records where q="all" and matching project
+  const projectMarketData = window.marketTrendsData.filter(row => {
+    return row.q === "all" && 
+           row.tableName && 
+           row.tableName.includes(`_pr${activeProjectNumber}_`);
+  });
+  
+  console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
+  
+  // Get the latest date from the data
   let latestDate = null;
-  projectLevelRecords.forEach(record => {
-    if (record.historical_data && Array.isArray(record.historical_data)) {
-      record.historical_data.forEach(hist => {
-        if (hist.date && hist.date.value) {
-          const d = moment(hist.date.value, "YYYY-MM-DD");
-          if (!latestDate || d.isAfter(latestDate)) {
-            latestDate = d.clone();
-          }
-        }
-      });
+  projectMarketData.forEach(row => {
+    if (row.date && row.date.value) {
+      const d = moment(row.date.value, "YYYY-MM-DD");
+      if (!latestDate || d.isAfter(latestDate)) {
+        latestDate = d.clone();
+      }
     }
   });
   
@@ -2582,114 +2540,96 @@ function buildInfoBlockProductsTrendData(days = 14) {
     return { dates: [], unProducts: [], unProductsOnSale: [] };
   }
   
+  // Build trend data for the last 'days' days
   const dates = [];
   const unProducts = [];
   const unProductsOnSale = [];
   
-  // Build data for each of the last 'days' days
   for (let i = days - 1; i >= 0; i--) {
-    const day = latestDate.clone().subtract(i, 'days');
-    const dayStr = day.format("YYYY-MM-DD");
-    dates.push(dayStr);
+    const targetDate = latestDate.clone().subtract(i, 'days');
+    const targetDateStr = targetDate.format("YYYY-MM-DD");
+    dates.push(targetDateStr);
     
-    // Sum unique products across all companies for this day
-    let totalUniqueProducts = 0;
-    let totalProductsOnSale = 0;
+    // Find the record for this date
+    const dayRecord = projectMarketData.find(row => 
+      row.date && row.date.value === targetDateStr
+    );
     
-    projectLevelRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        // Find the historical data entry for this specific day
-        const dayData = record.historical_data.find(hist => 
-          hist.date && hist.date.value === dayStr
-        );
-        
-        if (dayData) {
-          // Sum unique_products (convert from string to number)
-          if (dayData.unique_products) {
-            totalUniqueProducts += parseInt(dayData.unique_products, 10) || 0;
-          }
-          
-          // Sum products on sale if available
-          if (dayData.un_products_on_sale) {
-            totalProductsOnSale += parseInt(dayData.un_products_on_sale, 10) || 0;
-          }
-        }
-      }
-    });
-    
-    unProducts.push(totalUniqueProducts);
-    unProductsOnSale.push(totalProductsOnSale);
+    if (dayRecord) {
+      unProducts.push(parseInt(dayRecord.un_products, 10) || 0);
+      unProductsOnSale.push(parseInt(dayRecord.un_products_on_sale, 10) || 0);
+    } else {
+      // No data for this day
+      unProducts.push(0);
+      unProductsOnSale.push(0);
+    }
   }
   
-  console.log("[buildInfoBlockProductsTrendData] Products trend sample:", unProducts.slice(-3));
+  console.log("[buildInfoBlockProductsTrendData] Products trend:", unProducts.slice(-3));
   return { dates, unProducts, unProductsOnSale };
 }
 
-// Updated function to get counts from company_serp_stats
-async function updateInfoBlockCompaniesStats() {
+// Updated function to get counts from marketTrendsData
+function updateInfoBlockCompaniesStats() {
   console.log("[updateInfoBlockCompaniesStats] Starting...");
   
-  // Load company_serp_stats data if not already loaded
-  if (!window.companySerpStatsData) {
-    await loadCompanySerpStats();
+  // Debug: Check what data is available
+  console.log("[DEBUG] window.marketTrendsData exists?", !!window.marketTrendsData);
+  console.log("[DEBUG] window.marketTrendsData length?", window.marketTrendsData?.length);
+  if (window.marketTrendsData && window.marketTrendsData.length > 0) {
+    console.log("[DEBUG] Sample marketTrends record:", window.marketTrendsData[0]);
   }
   
-  // Get latest counts from company_serp_stats
-  if (window.companySerpStatsData && Array.isArray(window.companySerpStatsData) && window.companySerpStatsData.length > 0) {
-    // Filter for q="all" records
-    const projectLevelRecords = window.companySerpStatsData.filter(record => record.q === "all");
+// Get latest counts from market_trends data where q="all"
+  if (window.marketTrendsData && Array.isArray(window.marketTrendsData) && window.marketTrendsData.length > 0) {
+    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
-    // Count unique companies
-    const uniqueCompanies = new Set(projectLevelRecords.map(r => r.source).filter(s => s && s !== "Unknown"));
-    const companiesCount = uniqueCompanies.size;
-    
-    // Get latest date and sum products for that date
-    let latestDate = null;
-    let latestProductsCount = 0;
-    
-    projectLevelRecords.forEach(record => {
-      if (record.historical_data && Array.isArray(record.historical_data)) {
-        record.historical_data.forEach(hist => {
-          if (hist.date && hist.date.value) {
-            const d = moment(hist.date.value, "YYYY-MM-DD");
-            if (!latestDate || d.isAfter(latestDate)) {
-              latestDate = d.clone();
-            }
-          }
-        });
-      }
+    // Filter for records where q="all" and matching project
+    const projectMarketData = window.marketTrendsData.filter(row => {
+      return row.q === "all" && 
+             row.tableName && 
+             row.tableName.includes(`_pr${activeProjectNumber}_`);
     });
     
-    // Sum products for the latest date
-    if (latestDate) {
-      const latestDateStr = latestDate.format("YYYY-MM-DD");
-      projectLevelRecords.forEach(record => {
-        if (record.historical_data && Array.isArray(record.historical_data)) {
-          const dayData = record.historical_data.find(hist => 
-            hist.date && hist.date.value === latestDateStr
-          );
-          if (dayData && dayData.unique_products) {
-            latestProductsCount += parseInt(dayData.unique_products, 10) || 0;
+    if (projectMarketData.length > 0) {
+      // Find the latest date
+      let latestDate = null;
+      let latestRecord = null;
+      
+      projectMarketData.forEach(record => {
+        if (record.date && record.date.value) {
+          const d = moment(record.date.value, "YYYY-MM-DD");
+          if (!latestDate || d.isAfter(latestDate)) {
+            latestDate = d.clone();
+            latestRecord = record;
           }
         }
       });
+      
+      if (latestRecord) {
+        const companiesEl = document.getElementById('infoBlockTotalCompanies');
+        const productsEl = document.getElementById('infoBlockTotalProducts');
+        
+        const companiesCount = parseInt(latestRecord.companies, 10) || 0;
+        const productsCount = parseInt(latestRecord.un_products, 10) || 0;
+        
+        console.log("[updateInfoBlockCompaniesStats] Latest date:", latestDate.format("YYYY-MM-DD"));
+        console.log("[updateInfoBlockCompaniesStats] Setting counts - Companies:", companiesCount, "Products:", productsCount);
+        
+        if (companiesEl) companiesEl.textContent = companiesCount;
+        if (productsEl) productsEl.textContent = productsCount;
+      }
+    } else {
+      console.warn("[updateInfoBlockCompaniesStats] No q='all' records found for project", activeProjectNumber);
     }
-    
-    console.log("[updateInfoBlockCompaniesStats] Setting counts - Companies:", companiesCount, "Products:", latestProductsCount);
-    
-    const companiesEl = document.getElementById('infoBlockTotalCompanies');
-    const productsEl = document.getElementById('infoBlockTotalProducts');
-    
-    if (companiesEl) companiesEl.textContent = companiesCount;
-    if (productsEl) productsEl.textContent = latestProductsCount;
   } else {
-    console.warn("[updateInfoBlockCompaniesStats] No companySerpStatsData available");
+    console.warn("[updateInfoBlockCompaniesStats] No marketTrendsData available");
   }
   
-  // Render the trend charts with the new data
+  // Render the trend charts with unfiltered data
   renderInfoBlockTrendCharts();
   
-  // Get all companies with their market share data
+  // Get all companies with their market share data (already unfiltered)
   const allCompanies = getAllCompaniesWithMarketShare();
   
   // Render the companies list
