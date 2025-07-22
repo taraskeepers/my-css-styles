@@ -1667,7 +1667,7 @@ function renderInfoBlockCompaniesList(companies) {
   
   companies.forEach((company, index) => {
     const item = document.createElement("div");
-    item.className = "company-list-item";
+    item.className = "infoblock-company-item";
     item.style.marginBottom = "8px";
     
     const barWidth = (company.currentShare / maxShare) * 100;
@@ -1676,16 +1676,16 @@ function renderInfoBlockCompaniesList(companies) {
     
     item.innerHTML = `
       <div style="display: flex; align-items: center; margin-bottom: 2px;">
-        <span class="company-name" style="font-size: 12px; width: 30px;" title="${company.company}">${index + 1}.</span>
-        <span class="company-name" style="font-size: 12px; flex: 1;" title="${company.company}">${company.company}</span>
+        <span class="infoblock-company-rank" style="font-size: 12px; width: 30px;" title="${company.company}">${index + 1}.</span>
+        <span class="infoblock-company-name" style="font-size: 12px; flex: 1;" title="${company.company}">${company.company}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <div class="share-bar-container" style="flex: 1;">
-          <div class="share-bar-fill" style="width: ${barWidth}%;">
-            <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
+        <div class="infoblock-share-bar-container" style="flex: 1;">
+          <div class="infoblock-share-bar-fill" style="width: ${barWidth}%;">
+            <span class="infoblock-share-bar-value">${company.currentShare.toFixed(1)}%</span>
           </div>
         </div>
-        <span class="trend-value ${trendClass}" style="min-width: 60px; text-align: right;">${trendSymbol}${company.change.toFixed(2)}%</span>
+        <span class="infoblock-trend-value ${trendClass}" style="min-width: 60px; text-align: right;">${trendSymbol}${company.change.toFixed(2)}%</span>
       </div>
     `;
     
