@@ -1477,7 +1477,221 @@ function getRankBoxColor(rank) {
         shareMobEl.classList.add("trend-neutral");
       }
     }
+      updateInfoBlockCompaniesStats();
   }
+
+function updateInfoBlockCompaniesStats() {
+  console.log("[updateInfoBlockCompaniesStats] Starting...");
+  
+  // Get unique companies from current filtered data
+  const companies = new Set();
+  const products = new Set();
+  
+  if (window.companyStatsData && window.companyStatsData.length > 0) {
+    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+    const currentLocation = window.filterState?.location || "";
+    
+    // Filter data by project and location
+    const filtered = window.companyStatsData.filter(row => {
+      const rowProjNum = parseInt(row.project_number, 10);
+      if (rowProjNum !== activeProjectNumber) return false;
+      if (currentLocation && row.location_requested !== currentLocation) return false;
+      return true;
+    });
+    
+    // Count unique companies and products
+    filtered.forEach(row => {
+      if (row.source && row.source !== "Unknown" && row.source !== "null") {
+        companies.add(row.source);
+      }
+      if (row.title) {
+        products.add(row.title);
+      }
+    });
+  }
+  
+  // Update counts
+  const companiesEl = document.getElementById('infoBlockTotalCompanies');
+  const productsEl = document.getElementById('infoBlockTotalProducts');
+  
+  if (companiesEl) companiesEl.textContent = companies.size;
+  if (productsEl) productsEl.textContent = products.size;
+  
+  // Get all companies with their market share data
+  const { gainers, losers } = calculateGainersLosers();
+  
+  // Get ALL companies, not just top gainers/losers
+  const allCompanies = getAllCompaniesWithMarketShare();
+  
+  // Render the companies list
+  renderInfoBlockCompaniesList(allCompanies);
+}
+
+function getAllCompaniesWithMarketShare() {
+  console.log("[getAllCompaniesWithMarketShare] Starting...");
+  
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    return [];
+  }
+
+  // Use the same logic as calculateGainersLosers but return ALL companies
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  const currentLocation = window.filterState?.location || "";
+  const periodDays = window.filterState.period === "3d" ? 3 : 
+                     window.filterState.period === "30d" ? 30 : 7;
+  
+  // Filter by project and location
+  let filtered = window.companyStatsData.filter(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    if (rowProjNum !== activeProjectNumber) return false;
+    if (currentLocation && row.location_requested !== currentLocation) return false;
+    return true;
+  });
+
+  const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
+  if (!globalMaxDate) return [];
+
+  const currentEnd = globalMaxDate.clone();
+  const currentStart = currentEnd.clone().subtract(periodDays - 1, "days");
+  const previousEnd = currentStart.clone().subtract(1, "days");
+  const previousStart = previousEnd.clone().subtract(periodDays - 1, "days");
+
+  // Group by company
+  const companyGroups = {};
+  
+  filtered.forEach(row => {
+    const companyName = row.source || row.title || "Unknown";
+    if (!companyName || companyName === "Unknown" || companyName === "null") return;
+    
+    const searchTerm = row.q || row.search || "(no term)";
+    const loc = row.location_requested || "Unknown";
+    const dev = row.device || "Unknown";
+    const groupKey = `${companyName}||${searchTerm}||${loc}||${dev}`;
+    
+    if (!companyGroups[companyName]) {
+      companyGroups[companyName] = {};
+    }
+    if (!companyGroups[companyName][groupKey]) {
+      companyGroups[companyName][groupKey] = [];
+    }
+    companyGroups[companyName][groupKey].push(row);
+  });
+
+  // Calculate market share for each company
+  const companyData = [];
+  
+  Object.entries(companyGroups).forEach(([companyName, searchGroups]) => {
+    const groupAverages = [];
+    
+    Object.entries(searchGroups).forEach(([groupKey, rows]) => {
+      let mergedHist = [];
+      rows.forEach(r => {
+        if (Array.isArray(r.historical_data)) {
+          mergedHist = mergedHist.concat(r.historical_data);
+        }
+      });
+
+      if (!mergedHist.length) return;
+
+      const dayMap = {};
+      mergedHist.forEach(obj => {
+        if (obj.date?.value) {
+          dayMap[obj.date.value] = {
+            s: obj.market_share != null ? parseFloat(obj.market_share) * 100 : 0
+          };
+        }
+      });
+
+      let sumShare = 0;
+      let run = currentStart.clone();
+      while (run.isSameOrBefore(currentEnd, "day")) {
+        const ds = run.format("YYYY-MM-DD");
+        sumShare += (dayMap[ds]?.s || 0);
+        run.add(1, "days");
+      }
+      const avgShare = sumShare / periodDays;
+
+      let prevSumShare = 0;
+      run = previousStart.clone();
+      while (run.isSameOrBefore(previousEnd, "day")) {
+        const ds = run.format("YYYY-MM-DD");
+        prevSumShare += (dayMap[ds]?.s || 0);
+        run.add(1, "days");
+      }
+      const prevAvgShare = prevSumShare / periodDays;
+      
+      const trendVal = avgShare - prevAvgShare;
+      
+      groupAverages.push({
+        avgShare,
+        prevAvgShare,
+        trendVal
+      });
+    });
+
+    if (groupAverages.length === 0) return;
+
+    const currentAvg = groupAverages.reduce((sum, g) => sum + g.avgShare, 0) / groupAverages.length;
+    const previousAvg = groupAverages.reduce((sum, g) => sum + g.prevAvgShare, 0) / groupAverages.length;
+    const trendAvg = groupAverages.reduce((sum, g) => sum + g.trendVal, 0) / groupAverages.length;
+
+    if (currentAvg > 0.01 || previousAvg > 0.01) {
+      companyData.push({
+        company: companyName,
+        currentShare: currentAvg,
+        previousShare: previousAvg,
+        change: trendAvg
+      });
+    }
+  });
+
+  // Sort by market share (descending)
+  companyData.sort((a, b) => b.currentShare - a.currentShare);
+  
+  return companyData;
+}
+
+function renderInfoBlockCompaniesList(companies) {
+  const container = document.getElementById("infoBlockCompaniesList");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  
+  if (companies.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">No companies found</div>';
+    return;
+  }
+  
+  // Find max share for scaling bars
+  const maxShare = Math.max(...companies.map(c => c.currentShare), 10);
+  
+  companies.forEach((company, index) => {
+    const item = document.createElement("div");
+    item.className = "company-list-item";
+    item.style.marginBottom = "8px";
+    
+    const barWidth = (company.currentShare / maxShare) * 100;
+    const trendClass = company.change > 0 ? "positive" : company.change < 0 ? "negative" : "neutral";
+    const trendSymbol = company.change > 0 ? "+" : "";
+    
+    item.innerHTML = `
+      <div style="display: flex; align-items: center; margin-bottom: 2px;">
+        <span class="company-name" style="font-size: 12px; width: 30px;" title="${company.company}">${index + 1}.</span>
+        <span class="company-name" style="font-size: 12px; flex: 1;" title="${company.company}">${company.company}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="share-bar-container" style="flex: 1;">
+          <div class="share-bar-fill" style="width: ${barWidth}%;">
+            <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
+          </div>
+        </div>
+        <span class="trend-value ${trendClass}" style="min-width: 60px; text-align: right;">${trendSymbol}${company.change.toFixed(2)}%</span>
+      </div>
+    `;
+    
+    container.appendChild(item);
+  });
+}
 
 function renderProjectMarketShareChart(projectData) {
   const chartEl = document.getElementById("projectMarketShareChart");
