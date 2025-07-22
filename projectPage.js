@@ -778,59 +778,76 @@ function buildProjectData() {
             tr.style.backgroundColor = "#f8f8f8";
           }
   
-          // (1) SearchTerm cell
-          if (!termCellUsed) {
-            const tdTerm = document.createElement("td");
-            tdTerm.style.verticalAlign = "middle";
-            tdTerm.style.fontWeight = "bold";
-            tdTerm.rowSpan = totalRowsForTerm;
-            tdTerm.textContent = term;
-            tr.appendChild(tdTerm);
-            termCellUsed = true;
-          }
+// (1) SearchTerm cell with tag styling
+if (!termCellUsed) {
+  const tdTerm = document.createElement("td");
+  tdTerm.style.verticalAlign = "middle";
+  tdTerm.style.padding = "8px";
+  tdTerm.rowSpan = totalRowsForTerm;
   
-          // (2) Location cell
-          if (!locCellUsed) {
-            const tdLoc = document.createElement("td");
-            tdLoc.style.verticalAlign = "middle";
-            tdLoc.rowSpan = deviceCount;
-            // same 2-line approach from your home table:
-            const parts = loc.split(",");
-            const line1 = parts[0] ? parts[0].trim() : "";
-            const line2 = parts.slice(1).map(x => x.trim()).join(", ");
-            tdLoc.innerHTML = `
-              <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
-              <div style="font-size:14px;">${line2}</div>
-            `;
-            tr.appendChild(tdLoc);
-            locCellUsed = true;
-          }
+  const termTag = document.createElement("span");
+  termTag.className = "search-term-tag";
+  termTag.textContent = term;
+  tdTerm.appendChild(termTag);
   
-          // (3) Device
-          const tdDev = document.createElement("td");
-          tdDev.textContent = data.device;
-          tr.appendChild(tdDev);
+  tr.appendChild(tdTerm);
+  termCellUsed = true;
+}
   
-          // (4) Avg Rank
-          const tdRank = document.createElement("td");
-          tdRank.style.textAlign = "center";
-          const rankVal = data.avgRank.toFixed(2);
-          let rankHTML = `<div style="font-size:18px; font-weight:bold;">${rankVal}</div>`;
-          if (data.rankChange !== undefined) {
-            let arrow = "±", color = "#444";
-            if (data.rankChange < 0) {
-              arrow = "▲"; color = "green";
-            } else if (data.rankChange > 0) {
-              arrow = "▼"; color = "red";
-            }
-            rankHTML += `
-              <div style="font-size:12px; color:${color};">
-                ${arrow} ${Math.abs(data.rankChange).toFixed(2)}
-              </div>
-            `;
-          }
-          tdRank.innerHTML = rankHTML;
-          tr.appendChild(tdRank);
+// (2) Location cell with background
+if (!locCellUsed) {
+  const tdLoc = document.createElement("td");
+  tdLoc.style.verticalAlign = "middle";
+  tdLoc.className = "location-cell";
+  tdLoc.rowSpan = deviceCount;
+  // same 2-line approach from your home table:
+  const parts = loc.split(",");
+  const line1 = parts[0] ? parts[0].trim() : "";
+  const line2 = parts.slice(1).map(x => x.trim()).join(", ");
+  tdLoc.innerHTML = `
+    <div style="font-size:20px; font-weight:bold; margin-bottom:4px;">${line1}</div>
+    <div style="font-size:14px;">${line2}</div>
+  `;
+  tr.appendChild(tdLoc);
+  locCellUsed = true;
+}
+  
+// (3) Device with icons
+const tdDev = document.createElement("td");
+tdDev.style.textAlign = "center";
+tdDev.style.padding = "8px";
+
+const deviceIcon = document.createElement("img");
+deviceIcon.className = "device-icon";
+const deviceType = data.device.toLowerCase();
+
+if (deviceType === "desktop") {
+  deviceIcon.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2' ry='2'/%3E%3Cline x1='8' y1='21' x2='16' y2='21'/%3E%3Cline x1='12' y1='17' x2='12' y2='21'/%3E%3C/svg%3E";
+} else {
+  deviceIcon.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='5' y='2' width='14' height='20' rx='2' ry='2'/%3E%3Cline x1='12' y1='18' x2='12' y2='18'/%3E%3C/svg%3E";
+}
+
+tdDev.appendChild(deviceIcon);
+tr.appendChild(tdDev);
+  
+// (4) Avg Rank with colored box
+const tdRank = document.createElement("td");
+tdRank.style.textAlign = "center";
+tdRank.style.padding = "8px";
+
+const rankBox = document.createElement("div");
+rankBox.className = "rank-box";
+
+// Determine trend based on rankChange
+if (data.rankChange !== undefined && data.rankChange > 0) {
+  rankBox.classList.add("negative-trend"); // Higher rank = worse
+} else {
+  rankBox.classList.add("positive-trend"); // Lower rank = better
+}
+
+rankBox.textContent = data.avgRank.toFixed(1);
+tdRank.appendChild(rankBox);
+tr.appendChild(tdRank);
   
           // (5) Market Share & Trend (merged into one cell)
           const tdShareTrend = document.createElement("td");
