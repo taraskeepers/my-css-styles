@@ -734,7 +734,7 @@ function buildProjectData() {
         <tr style="height:30px;">
           <th style="width:180px;">Search Term</th>
           <th style="width:220px;">Location</th>
-          <th style="width:100px;">Device</th>
+          <th style="width:60px;">Device</th>
           <th style="width:120px;">Avg Rank</th>
           <th style="width:140px;">Market Share &amp; Trend</th>
           <th style="width:400px; position:relative;">
@@ -753,6 +753,21 @@ function buildProjectData() {
   
     // Collect all searchTerms sorted
     const searchTerms = Object.keys(nestedMap).sort();
+
+// Create a map of locations to color indices
+const locationColorMap = {};
+let colorIndex = 1;
+const allLocations = new Set();
+Object.keys(nestedMap).forEach(term => {
+  Object.keys(nestedMap[term]).forEach(loc => {
+    allLocations.add(loc);
+  });
+});
+[...allLocations].sort().forEach(loc => {
+  locationColorMap[loc] = colorIndex;
+  colorIndex = (colorIndex % 8) + 1; // Cycle through 8 colors
+});
+        
     searchTerms.forEach(term => {
       const locObj = nestedMap[term];
       const allLocs = Object.keys(locObj).sort();
@@ -798,7 +813,8 @@ if (!termCellUsed) {
 if (!locCellUsed) {
   const tdLoc = document.createElement("td");
   tdLoc.style.verticalAlign = "middle";
-  tdLoc.className = "location-cell";
+  const colorClass = locationColorMap[loc] || 1;
+  tdLoc.className = `location-cell location-cell-${colorClass}`;
   tdLoc.rowSpan = deviceCount;
   // same 2-line approach from your home table:
   const parts = loc.split(",");
@@ -835,18 +851,48 @@ const tdRank = document.createElement("td");
 tdRank.style.textAlign = "center";
 tdRank.style.padding = "8px";
 
+// Container for rank box and trend
+const rankContainer = document.createElement("div");
+rankContainer.style.display = "flex";
+rankContainer.style.alignItems = "center";
+rankContainer.style.justifyContent = "center";
+
 const rankBox = document.createElement("div");
 rankBox.className = "rank-box";
 
 // Determine trend based on rankChange
-if (data.rankChange !== undefined && data.rankChange > 0) {
-  rankBox.classList.add("negative-trend"); // Higher rank = worse
-} else {
-  rankBox.classList.add("positive-trend"); // Lower rank = better
+let trendClass = "positive-trend";
+let trendArrow = "";
+let trendColor = "positive";
+
+if (data.rankChange !== undefined) {
+  if (data.rankChange > 0) {
+    rankBox.classList.add("negative-trend"); // Higher rank = worse
+    trendArrow = "▼";
+    trendColor = "negative";
+  } else if (data.rankChange < 0) {
+    rankBox.classList.add("positive-trend"); // Lower rank = better
+    trendArrow = "▲";
+    trendColor = "positive";
+  } else {
+    rankBox.classList.add("positive-trend"); // No change
+    trendArrow = "±";
+    trendColor = "positive";
+  }
 }
 
 rankBox.textContent = data.avgRank.toFixed(1);
-tdRank.appendChild(rankBox);
+rankContainer.appendChild(rankBox);
+
+// Add trend indicator if exists
+if (data.rankChange !== undefined) {
+  const trendSpan = document.createElement("span");
+  trendSpan.className = `rank-trend ${trendColor}`;
+  trendSpan.textContent = `${trendArrow} ${Math.abs(data.rankChange).toFixed(2)}`;
+  rankContainer.appendChild(trendSpan);
+}
+
+tdRank.appendChild(rankContainer);
 tr.appendChild(tdRank);
   
           // (5) Market Share & Trend (merged into one cell)
