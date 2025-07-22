@@ -1802,9 +1802,10 @@ function renderInfoBlockCompaniesList(companies) {
       <div style="display: flex; align-items: center; gap: 8px;">
         <span class="infoblock-company-rank" style="font-size: 12px; min-width: 20px; color: #666;">${index + 1}.</span>
         <span class="infoblock-company-name" style="font-size: 12px; min-width: 80px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${company.company}">${company.company}</span>
-        <div class="infoblock-share-bar-container" style="flex: 1; max-width: 100px;">
-          <div class="infoblock-share-bar-fill" style="width: ${barWidth}%;">
-            <span class="infoblock-share-bar-value">${company.currentShare.toFixed(1)}%</span>
+        <div class="infoblock-share-wrapper" style="position: relative; flex: 1; max-width: 100px;">
+          <span class="infoblock-share-value-above">${company.currentShare.toFixed(1)}%</span>
+          <div class="infoblock-share-bar-container">
+            <div class="infoblock-share-bar-fill" style="width: ${barWidth}%;"></div>
           </div>
         </div>
         <span class="infoblock-trend-value ${trendClass}" style="min-width: 50px; text-align: right; font-size: 11px;">${trendSymbol}${company.change.toFixed(2)}%</span>
