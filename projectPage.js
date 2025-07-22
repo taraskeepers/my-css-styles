@@ -1945,6 +1945,10 @@ function renderGainersLosers() {
   
   const { gainers, losers } = calculateGainersLosers();
   
+  // Find the maximum share value across all companies for scaling
+  const allCompanies = [...gainers, ...losers];
+  const maxShare = Math.max(...allCompanies.map(c => c.currentShare), 10); // Minimum 10% for scale
+  
   // Render gainers
   const gainersContainer = document.getElementById("topGainersList");
   if (gainersContainer) {
@@ -1956,9 +1960,17 @@ function renderGainersLosers() {
       gainers.forEach((company, index) => {
         const item = document.createElement("div");
         item.className = "company-list-item";
+        
+        // Calculate bar width as percentage of max
+        const barWidth = (company.currentShare / maxShare) * 100;
+        
         item.innerHTML = `
           <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
-          <span class="share-value">${company.currentShare.toFixed(1)}%</span>
+          <div class="share-bar-container">
+            <div class="share-bar-fill gainer" style="width: ${barWidth}%;">
+              <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
+            </div>
+          </div>
           <span class="trend-value positive">+${company.change.toFixed(2)}%</span>
         `;
         gainersContainer.appendChild(item);
@@ -1977,9 +1989,17 @@ function renderGainersLosers() {
       losers.forEach((company, index) => {
         const item = document.createElement("div");
         item.className = "company-list-item";
+        
+        // Calculate bar width as percentage of max
+        const barWidth = (company.currentShare / maxShare) * 100;
+        
         item.innerHTML = `
           <span class="company-name" title="${company.company}">${index + 1}. ${company.company}</span>
-          <span class="share-value">${company.currentShare.toFixed(1)}%</span>
+          <div class="share-bar-container">
+            <div class="share-bar-fill loser" style="width: ${barWidth}%;">
+              <span class="share-bar-value">${company.currentShare.toFixed(1)}%</span>
+            </div>
+          </div>
           <span class="trend-value negative">${company.change.toFixed(2)}%</span>
         `;
         losersContainer.appendChild(item);
