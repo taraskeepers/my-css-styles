@@ -2,7 +2,74 @@
 window._isLoadingProjectData = false;
 window._projectLoadAttempts = {}; // Track attempts per project
 
-function populateProjectPage() {
+async function loadMarketTrendsData() {
+  console.log("[loadMarketTrendsData] Starting to load market trends data...");
+  
+  const activeProjectNumber = window.filterState?.activeProjectNumber || 1;
+  const prefix = window.dataPrefix || "acc1_pr1_";
+  const accountPrefix = prefix.split('_')[0]; // Get 'acc1' or 'demo'
+  const tableName = `${accountPrefix}_pr${activeProjectNumber}_market_trends`;
+  
+  console.log("[loadMarketTrendsData] Looking for table:", tableName);
+  
+  try {
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('appDatabase', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Check if table exists
+    if (!db.objectStoreNames.contains(tableName)) {
+      console.warn(`[loadMarketTrendsData] Table ${tableName} not found in IndexedDB`);
+      window.marketTrendsData = [];
+      return;
+    }
+    
+    // Read data from the table
+    const transaction = db.transaction([tableName], 'readonly');
+    const store = transaction.objectStore(tableName);
+    const request = store.getAll();
+    
+    const data = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    console.log(`[loadMarketTrendsData] Loaded ${data.length} records from ${tableName}`);
+    
+    // Store in window object
+    window.marketTrendsData = data;
+    
+    // Debug: Show sample of loaded data
+    if (data.length > 0) {
+      console.log("[loadMarketTrendsData] Sample record:", data[0]);
+      
+      // Check for q="all" records
+      const allRecords = data.filter(row => row.q === "all");
+      console.log(`[loadMarketTrendsData] Found ${allRecords.length} records with q="all"`);
+      
+      if (allRecords.length > 0) {
+        console.log("[loadMarketTrendsData] Sample q='all' record:", allRecords[0]);
+      }
+    }
+    
+  } catch (error) {
+    console.error("[loadMarketTrendsData] Error loading market trends:", error);
+    window.marketTrendsData = [];
+  }
+}
+
+async function populateProjectPage() {
+    // Debug: Check if marketTrendsData is loaded
+    console.log("[DEBUG] Checking marketTrendsData:", {
+      exists: !!window.marketTrendsData,
+      isArray: Array.isArray(window.marketTrendsData),
+      length: window.marketTrendsData?.length || 0,
+      sample: window.marketTrendsData?.[0]
+    });
+    
     // Prevent multiple simultaneous executions
     if (window._projectPageProcessing) {
         console.log("[populateProjectPage] Already processing, skipping duplicate call");
@@ -341,6 +408,12 @@ window._projectPageInitializing = false;
   const projectNumber = window.filterState?.activeProjectNumber || 1;
   const projectKey = `pr${projectNumber}`;
   window._projectLoadAttempts[projectKey] = 0;
+
+  // Load market trends data if not already loaded
+  if (!window.marketTrendsData || window.marketTrendsData.length === 0) {
+    console.log("[populateProjectPage] Loading market trends data...");
+    await loadMarketTrendsData();
+  }
 
     // Main logic for handling the project page population
     console.log("[📊 POPULATEPROJECTPAGE] myCompany used:", window.myCompany);
