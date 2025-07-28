@@ -3851,7 +3851,10 @@ function renderROASMetricsTable(container, data) {
 );
   
 // Get Campaign="All" records only for device segmentation
-const allRecords = data.filter(row => row['Campaign Name'] === 'All');
+const allRecords = data.filter(row => 
+  row['Campaign Name'] === 'All' && 
+  row['Channel Type'] === 'All'
+);
   
   const bucketType = window.selectedBucketType || 'ROAS_Bucket';
   
