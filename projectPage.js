@@ -1716,10 +1716,12 @@ function renderInfoBlockTrendCharts() {
         }
       });
       ctx.stroke();
-      
-      // Add hover functionality
-      addTrendChartHover(companiesCanvas, trendData, 'Companies', (point) => point.count);
     }
+    
+    // Add hover after drawing is complete
+    setTimeout(() => {
+      addSimpleTrendChartHover(companiesCanvas, trendData, 'Companies');
+    }, 100);
   }
   
   // Render Products Trend Chart
@@ -1801,33 +1803,24 @@ function renderInfoBlockTrendCharts() {
         });
         ctx.stroke();
       }
-      
-      // Add hover functionality for products chart
-      const productDataForHover = trendData.dates.map((date, index) => ({
-        date: date,
-        count: trendData.unProducts[index]
-      }));
-      addTrendChartHover(productsCanvas, productDataForHover, 'Products', (point) => point.count);
     }
+    
+    // Add hover after drawing is complete
+    const productDataForHover = trendData.dates.map((date, index) => ({
+      date: date,
+      count: trendData.unProducts[index]
+    }));
+    setTimeout(() => {
+      addSimpleTrendChartHover(productsCanvas, productDataForHover, 'Products');
+    }, 100);
   }
 }
 
-function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
+function addSimpleTrendChartHover(canvas, trendData, chartType) {
   // Remove any existing tooltip
   let existingTooltip = document.getElementById(`tooltip-${chartType.toLowerCase()}`);
   if (existingTooltip) {
     existingTooltip.remove();
-  }
-  
-  // Store references to event handlers so we can remove them later
-  if (!canvas._hoverHandlers) {
-    canvas._hoverHandlers = [];
-  } else {
-    // Remove existing event listeners
-    canvas._hoverHandlers.forEach(handler => {
-      canvas.removeEventListener(handler.type, handler.func);
-    });
-    canvas._hoverHandlers = [];
   }
   
   // Create tooltip element
@@ -1837,8 +1830,8 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
   tooltip.style.display = 'none';
   document.body.appendChild(tooltip);
   
-  // Mouse move handler
-  const mouseMoveHandler = function(event) {
+  // Add mouse move event listener
+  canvas.onmousemove = function(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     
@@ -1848,7 +1841,7 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
     // Make sure index is within bounds
     if (dataPointIndex >= 0 && dataPointIndex < trendData.length) {
       const point = trendData[dataPointIndex];
-      const value = valueExtractor(point);
+      const value = point.count || point.count;
       const date = moment(point.date, 'YYYY-MM-DD').format('MMM DD, YYYY');
       
       // Show tooltip
@@ -1861,20 +1854,10 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
     }
   };
   
-  // Mouse leave handler
-  const mouseLeaveHandler = function() {
+  // Add mouse leave event listener
+  canvas.onmouseleave = function() {
     tooltip.style.display = 'none';
   };
-  
-  // Add event listeners
-  canvas.addEventListener('mousemove', mouseMoveHandler);
-  canvas.addEventListener('mouseleave', mouseLeaveHandler);
-  
-  // Store handlers for cleanup
-  canvas._hoverHandlers.push(
-    { type: 'mousemove', func: mouseMoveHandler },
-    { type: 'mouseleave', func: mouseLeaveHandler }
-  );
 }
 
 // Add this helper function if it doesn't exist
