@@ -1819,10 +1819,16 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
     existingTooltip.remove();
   }
   
-  // Remove existing event listeners
-  const newCanvas = canvas.cloneNode(true);
-  canvas.parentNode.replaceChild(newCanvas, canvas);
-  canvas = newCanvas;
+  // Store references to event handlers so we can remove them later
+  if (!canvas._hoverHandlers) {
+    canvas._hoverHandlers = [];
+  } else {
+    // Remove existing event listeners
+    canvas._hoverHandlers.forEach(handler => {
+      canvas.removeEventListener(handler.type, handler.func);
+    });
+    canvas._hoverHandlers = [];
+  }
   
   // Create tooltip element
   const tooltip = document.createElement('div');
@@ -1831,11 +1837,10 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
   tooltip.style.display = 'none';
   document.body.appendChild(tooltip);
   
-  // Add mouse move event listener
-  canvas.addEventListener('mousemove', function(event) {
+  // Mouse move handler
+  const mouseMoveHandler = function(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
     
     // Calculate which data point is closest to the mouse
     const dataPointIndex = Math.round((x / 170) * (trendData.length - 1));
@@ -1854,17 +1859,22 @@ function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
       tooltip.style.left = (event.clientX + 10) + 'px';
       tooltip.style.top = (event.clientY - 40) + 'px';
     }
-  });
+  };
   
-  // Add mouse leave event listener
-  canvas.addEventListener('mouseleave', function() {
+  // Mouse leave handler
+  const mouseLeaveHandler = function() {
     tooltip.style.display = 'none';
-  });
+  };
   
-  // Also hide tooltip when mouse enters other elements
-  canvas.addEventListener('mouseout', function() {
-    tooltip.style.display = 'none';
-  });
+  // Add event listeners
+  canvas.addEventListener('mousemove', mouseMoveHandler);
+  canvas.addEventListener('mouseleave', mouseLeaveHandler);
+  
+  // Store handlers for cleanup
+  canvas._hoverHandlers.push(
+    { type: 'mousemove', func: mouseMoveHandler },
+    { type: 'mouseleave', func: mouseLeaveHandler }
+  );
 }
 
 // Add this helper function if it doesn't exist
