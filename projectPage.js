@@ -102,194 +102,219 @@ async function populateProjectPage() {
     }
     window._projectPageProcessing = true;
 
-        if (!document.getElementById("project-page-stats-style")) {
-        const style = document.createElement("style");
-        style.id = "project-page-stats-style";
-        style.textContent = `
-            .project-stats-left-column {
-              width: 220px;
-              height: 100%;
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              margin-right: 20px;
-            }
+if (!document.getElementById("project-page-stats-style")) {
+    const style = document.createElement("style");
+    style.id = "project-page-stats-style";
+    style.textContent = `
+        .project-stats-left-column {
+          width: 220px;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-right: 20px;
+        }
 
-            .stats-rank-container,
-            .stats-market-container {
-              flex: 1;
-              background: white;
-              border-radius: 12px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-              padding: 20px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-            }
+        .stats-rank-container,
+        .stats-market-container {
+          flex: 1;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
 
-            .big-rank-box {
-              width: 100px;
-              height: 100px;
-              border-radius: 12px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 48px;
-              font-weight: 900;
-              color: white;
-              position: relative;
-              margin-bottom: 8px;
-            }
+        .big-rank-box {
+          width: 100px;
+          height: 100px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 48px;
+          font-weight: 900;
+          color: white;
+          position: relative;
+          margin-bottom: 8px;
+        }
 
-            .rank-trend-badge {
-              position: absolute;
-              top: -10px;
-              right: -10px;
-              background: white;
-              border-radius: 12px;
-              padding: 4px 8px;
-              font-size: 14px;
-              font-weight: 700;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
+        .rank-trend-badge {
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          background: white;
+          border-radius: 12px;
+          padding: 4px 8px;
+          font-size: 14px;
+          font-weight: 700;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-            .trend-up { color: #4CAF50; }
-            .trend-down { color: #F44336; }
-            .trend-neutral { color: #999; }
+        .trend-up { color: #4CAF50; }
+        .trend-down { color: #F44336; }
+        .trend-neutral { color: #999; }
 
-            .device-ranks-row {
-              display: flex;
-              gap: 15px;
-              margin-top: 15px;
-              width: 100%;
-              justify-content: center;
-            }
+        .device-ranks-row {
+          display: flex;
+          gap: 15px;
+          margin-top: 15px;
+          width: 100%;
+          justify-content: center;
+        }
 
-            .device-rank-item {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 5px;
-            }
+        .device-rank-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
 
-            .device-rank-icon {
-              width: 30px;
-              height: 30px;
-              object-fit: contain;
-            }
+        .device-rank-icon {
+          width: 30px;
+          height: 30px;
+          object-fit: contain;
+        }
 
-            .device-rank-value {
-              font-size: 24px;
-              font-weight: 700;
-              color: #333;
-            }
+        .device-rank-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: #333;
+        }
 
-            .device-rank-trend {
-              font-size: 12px;
-              font-weight: 600;
-            }
+        .device-rank-trend {
+          font-size: 12px;
+          font-weight: 600;
+        }
 
-            .big-market-circle {
-              width: 120px;
-              height: 120px;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 28px;
-              font-weight: 900;
-              color: #007aff;
-              background: white;
-              border: 3px solid #007aff;
-              position: relative;
-              overflow: hidden;
-              margin-bottom: 8px;
-            }
+        .big-market-circle {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          color: #007aff;
+          background: white;
+          border: 3px solid #007aff;
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 8px;
+        }
 
-            .market-water-fill {
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              width: 100%;
-              background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
-              transition: height 0.5s ease;
-              z-index: 0;
-              animation: wave 3s ease-in-out infinite;
-              opacity: 0.7;
-            }
+        .market-water-fill {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
+          transition: height 0.5s ease;
+          z-index: 0;
+          animation: wave 3s ease-in-out infinite;
+          opacity: 0.7;
+        }
 
-            @keyframes wave {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-3px); }
-            }
+        @keyframes wave {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
 
-            .market-value-text {
-              position: relative;
-              z-index: 1;
-            }
+        .market-value-text {
+          position: relative;
+          z-index: 1;
+        }
 
-            .market-trend-badge {
-              position: absolute;
-              bottom: -5px;
-              right: 10px;
-              background: white;
-              border-radius: 10px;
-              padding: 2px 6px;
-              font-size: 12px;
-              font-weight: 700;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
+        .market-trend-badge {
+          position: absolute;
+          bottom: -5px;
+          right: 10px;
+          background: white;
+          border-radius: 10px;
+          padding: 2px 6px;
+          font-size: 12px;
+          font-weight: 700;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-            .device-market-row {
-              display: flex;
-              gap: 15px;
-              margin-top: 15px;
-              width: 100%;
-              justify-content: center;
-            }
+        .device-market-row {
+          display: flex;
+          gap: 15px;
+          margin-top: 15px;
+          width: 100%;
+          justify-content: center;
+        }
 
-            .device-market-item {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 5px;
-            }
+        .device-market-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
 
-            .device-market-value {
-              font-size: 20px;
-              font-weight: 700;
-              color: #007aff;
-            }
+        .device-market-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: #007aff;
+        }
 
-            .device-market-trend {
-              font-size: 12px;
-              font-weight: 600;
-            }
+        .device-market-trend {
+          font-size: 12px;
+          font-weight: 600;
+        }
 
-            .section-label {
-              font-size: 12px;
-              color: #666;
-              text-transform: uppercase;
-              margin-bottom: 10px;
-              font-weight: 600;
-            }
+        .section-label {
+          font-size: 12px;
+          color: #666;
+          text-transform: uppercase;
+          margin-bottom: 10px;
+          font-weight: 600;
+        }
 
-            /* Additional styles for empty history boxes if needed */
-            .history-empty-box {
-              height: 24px !important;
-              min-height: 24px !important;
-              opacity: 0.5;
-            }
+        /* Additional styles for empty history boxes if needed */
+        .history-empty-box {
+          height: 24px !important;
+          min-height: 24px !important;
+          opacity: 0.5;
+        }
 
-            .history-empty-share-box {
-              height: 24px !important;
-              min-height: 24px !important;
-              opacity: 0.5;
-            }
-        `;
-        document.head.appendChild(style);
-    }
+        .history-empty-share-box {
+          height: 24px !important;
+          min-height: 24px !important;
+          opacity: 0.5;
+        }
+
+        /* Tooltip styles for trend charts */
+        .trend-chart-tooltip {
+          position: absolute;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          pointer-events: none;
+          z-index: 1000;
+          white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .trend-chart-tooltip::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+    `;
+    document.head.appendChild(style);
+}
     
     try {
         logAvailableCompanies();
@@ -1691,6 +1716,9 @@ function renderInfoBlockTrendCharts() {
         }
       });
       ctx.stroke();
+      
+      // Add hover functionality
+      addTrendChartHover(companiesCanvas, trendData, 'Companies', (point) => point.count);
     }
   }
   
@@ -1773,8 +1801,70 @@ function renderInfoBlockTrendCharts() {
         });
         ctx.stroke();
       }
+      
+      // Add hover functionality for products chart
+      const productDataForHover = trendData.dates.map((date, index) => ({
+        date: date,
+        count: trendData.unProducts[index]
+      }));
+      addTrendChartHover(productsCanvas, productDataForHover, 'Products', (point) => point.count);
     }
   }
+}
+
+function addTrendChartHover(canvas, trendData, chartType, valueExtractor) {
+  // Remove any existing tooltip
+  let existingTooltip = document.getElementById(`tooltip-${chartType.toLowerCase()}`);
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+  
+  // Remove existing event listeners
+  const newCanvas = canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+  canvas = newCanvas;
+  
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.id = `tooltip-${chartType.toLowerCase()}`;
+  tooltip.className = 'trend-chart-tooltip';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
+  
+  // Add mouse move event listener
+  canvas.addEventListener('mousemove', function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Calculate which data point is closest to the mouse
+    const dataPointIndex = Math.round((x / 170) * (trendData.length - 1));
+    
+    // Make sure index is within bounds
+    if (dataPointIndex >= 0 && dataPointIndex < trendData.length) {
+      const point = trendData[dataPointIndex];
+      const value = valueExtractor(point);
+      const date = moment(point.date, 'YYYY-MM-DD').format('MMM DD, YYYY');
+      
+      // Show tooltip
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${date}</strong><br/>${chartType}: ${value}`;
+      
+      // Position tooltip near mouse cursor
+      tooltip.style.left = (event.clientX + 10) + 'px';
+      tooltip.style.top = (event.clientY - 40) + 'px';
+    }
+  });
+  
+  // Add mouse leave event listener
+  canvas.addEventListener('mouseleave', function() {
+    tooltip.style.display = 'none';
+  });
+  
+  // Also hide tooltip when mouse enters other elements
+  canvas.addEventListener('mouseout', function() {
+    tooltip.style.display = 'none';
+  });
 }
 
 // Add this helper function if it doesn't exist
