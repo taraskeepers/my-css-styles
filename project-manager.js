@@ -501,10 +501,11 @@ function createSearchCard(search, parentProject) {
     allLocations = [search.location];
   }
 
-  allLocations.forEach(loc => {
-    const locItem = document.createElement("div");
-    locItem.className = "location-item";
-    locItem.textContent = loc;
+allLocations.forEach(loc => {
+  const locItem = document.createElement("div");
+  locItem.className = "location-item";
+  locItem.textContent = loc;
+  locItem.setAttribute("data-first-letter", loc.charAt(0).toUpperCase());
   
     // ➜ Make each location row clickable
     locItem.addEventListener("click", (e) => {
