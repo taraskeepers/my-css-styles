@@ -5831,10 +5831,35 @@ function createSelectedCompanyStats(companyData) {
   statsContainer.innerHTML = `
     <!-- Left Side with Rank and Market Share side by side -->
     <div class="project-stats-left-section" style="display: flex; flex-direction: row; gap: 10px; margin-right: 20px;">
-      <!-- Rank Container -->
-      <div class="stats-rank-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div class="section-label">COMPANY RANK</div>
-        <div id="selectedCompanyRankBox" class="big-rank-box">
+<!-- Rank Container -->
+<div class="stats-rank-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <!-- Company Name Header -->
+  <div class="company-name-header" style="
+    height: 80px;
+    width: 100%;
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 0 16px;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+    border-radius: 12px;
+    border: 1px solid #1a252f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 
+      0 4px 8px rgba(0,0,0,0.2),
+      0 1px 3px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  ">${companyData.company}</div>
+  <div class="section-label">COMPANY RANK</div>
+  <div id="selectedCompanyRankBox" class="big-rank-box">
           <span id="selectedCompanyRankValue">${Math.round(companyData.currentRank)}</span>
           <div id="selectedCompanyRankTrend" class="rank-trend-badge"></div>
         </div>
@@ -5943,47 +5968,8 @@ function createSelectedCompanyStats(companyData) {
     </div>
   `;
 
-  // Add the company name header exactly like in projectStats
-  const companyNameHeader = document.createElement('div');
-  companyNameHeader.className = 'company-name-header';
-  companyNameHeader.style.cssText = `
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
-    padding: 0 20px;
-    height: 80px;
-    font-size: 18px;
-    font-weight: 800;
-    color: #ffffff;
-    text-align: center;
-    border-radius: 12px;
-    border: 1px solid #1a252f;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 
-      0 4px 8px rgba(0,0,0,0.2),
-      0 1px 3px rgba(0,0,0,0.3),
-      inset 0 1px 0 rgba(255,255,255,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  `;
-  companyNameHeader.textContent = companyData.company;
-  
-  // Add hover effect
-  companyNameHeader.innerHTML = companyData.company;
-  
-  // Insert the container with proper spacing
-  const spacerDiv = document.createElement('div');
-  spacerDiv.style.height = '50px'; // Space for the absolute positioned header
-  tableContainer.insertBefore(spacerDiv, tableContainer.firstChild);
-  
-  statsContainer.appendChild(companyNameHeader);
-  tableContainer.insertBefore(statsContainer, spacerDiv.nextSibling);
+// Insert the container directly
+  tableContainer.insertBefore(statsContainer, tableContainer.firstChild);
 
   // Add the :before pseudo-element animation
   const styleId = 'selectedCompanyHeaderStyle';
