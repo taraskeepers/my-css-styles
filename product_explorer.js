@@ -5468,119 +5468,38 @@ function renderCompaniesNavPanel() {
     return;
   }
 
-  // Create a map to aggregate company data across all combinations
-  const companyAggregateMap = new Map();
+// Use pre-calculated data from company_serp_stats where q="all" and device="all"
+const allCompanyRecords = window.company_serp_stats.filter(stat => 
+  stat.q === "all" && stat.device === "all"
+);
 
-window.company_serp_stats.forEach(stat => {
-  const companyKey = stat.company;
-  
-  if (!companyAggregateMap.has(companyKey)) {
-    companyAggregateMap.set(companyKey, {
-      company: stat.company,
-      totalMarketShare: 0,
-      totalMarketShareTrend: 0,
-      occurrences: 0,
-      totalRank: 0,
-      allRanks: [],
-      historicalData: []
-    });
-  }
-  
-  const aggData = companyAggregateMap.get(companyKey);
-  aggData.totalMarketShare += (stat.top40 || 0);
-  aggData.totalMarketShareTrend += (stat.top40Trend || 0);
-  aggData.totalRank += (stat.rank || 999);
-  aggData.allRanks.push(stat.rank || 999);
-  aggData.occurrences += 1;
-  
-  // Collect historical data if available
-  if (stat.historical_data) {
-    aggData.historicalData.push(stat.historical_data);
-  }
-});
+console.log(`[renderCompaniesNavPanel] Found ${allCompanyRecords.length} companies with q="all" and device="all"`);
 
-// First, calculate current averages
-const companiesWithAverage = Array.from(companyAggregateMap.values()).map(agg => ({
-  company: agg.company,
-  avgMarketShare: agg.totalMarketShare / agg.occurrences,
-  avgRank: agg.totalRank / agg.occurrences,
-  occurrences: agg.occurrences,
-  historicalData: agg.historicalData
-}));
+// Transform to the expected format and sort by rank (lowest rank = best = top of list)
+const companiesWithAverage = allCompanyRecords
+  .filter(record => record.source && record.source !== "Unknown" && record.source !== "null")
+  .map(record => ({
+    company: record.source,
+    currentRank: parseFloat(record["7d_rank"] || 999),
+    previousRank: parseFloat(record["7d_prev_rank"] || 999),
+    avgMarketShare: parseFloat(record["7d_market_share"] || 0) * 100, // Convert to percentage
+    previousMarketShare: parseFloat(record["7d_prev_market_share"] || 0) * 100,
+    rankTrend: (parseFloat(record["7d_prev_rank"] || 999)) - (parseFloat(record["7d_rank"] || 999)), // Positive = improvement
+    marketShareTrend: (parseFloat(record["7d_market_share"] || 0) * 100) - (parseFloat(record["7d_prev_market_share"] || 0) * 100),
+    occurrences: 1,
+    historicalData: record.historical_data || []
+  }))
+  .sort((a, b) => a.currentRank - b.currentRank); // Sort by rank (lowest first)
 
-// Sort by average market share to get current rankings
-companiesWithAverage.sort((a, b) => b.avgMarketShare - a.avgMarketShare);
+// Assign project ranks based on sorted order
 companiesWithAverage.forEach((company, index) => {
-  company.currentProjectRank = index + 1;
+  company.projectRank = index + 1;
 });
 
-// Now calculate 7-days-ago rankings
-const sevenDaysAgoMap = new Map();
-
-// Process historical data to get 7-days-ago state
-window.company_serp_stats.forEach(stat => {
-  if (stat.historical_data && stat.historical_data.length > 7) {
-    const sevenDaysAgoData = stat.historical_data[stat.historical_data.length - 8];
-    
-    if (sevenDaysAgoData) {
-      const companyKey = stat.company;
-      
-      if (!sevenDaysAgoMap.has(companyKey)) {
-        sevenDaysAgoMap.set(companyKey, {
-          company: stat.company,
-          totalMarketShare7DaysAgo: 0,
-          occurrences7DaysAgo: 0
-        });
-      }
-      
-      const agg7Days = sevenDaysAgoMap.get(companyKey);
-      agg7Days.totalMarketShare7DaysAgo += (sevenDaysAgoData.market_share || 0);
-      agg7Days.occurrences7DaysAgo += 1;
-    }
-  }
-});
-
-// Calculate 7-days-ago averages and rankings
-const companies7DaysAgo = Array.from(sevenDaysAgoMap.values()).map(agg => ({
-  company: agg.company,
-  avgMarketShare7DaysAgo: agg.totalMarketShare7DaysAgo / agg.occurrences7DaysAgo
-}));
-
-// Sort by 7-days-ago market share to get rankings
-companies7DaysAgo.sort((a, b) => b.avgMarketShare7DaysAgo - a.avgMarketShare7DaysAgo);
-const rank7DaysAgoMap = new Map();
-companies7DaysAgo.forEach((company, index) => {
-  rank7DaysAgoMap.set(company.company, index + 1);
-});
-
-// Add trend data to current companies
-companiesWithAverage.forEach(company => {
-  // Get 7-days-ago rank
-  const oldRank = rank7DaysAgoMap.get(company.company);
-  const company7DaysAgo = companies7DaysAgo.find(c => c.company === company.company);
-  
-  if (oldRank && company7DaysAgo) {
-    // Rank trend: negative means improvement (moved up in rank)
-    company.rankTrend = oldRank - company.currentProjectRank;
-    
-    // Market share trend: current - 7 days ago
-    company.marketShareTrend = company.avgMarketShare - company7DaysAgo.avgMarketShare7DaysAgo;
-  } else {
-    company.rankTrend = 0;
-    company.marketShareTrend = 0;
-  }
-  
-  // Use currentProjectRank as the projectRank
-  company.projectRank = company.currentProjectRank;
-});
-
-  // Sort by average market share (descending) to assign project-level ranks
-  companiesWithAverage.sort((a, b) => b.avgMarketShare - a.avgMarketShare);
-
-  // Assign project-level ranks
-  companiesWithAverage.forEach((company, index) => {
-    company.projectRank = index + 1;
-  });
+console.log(`[renderCompaniesNavPanel] Sorted ${companiesWithAverage.length} companies by rank`);
+if (companiesWithAverage.length > 0) {
+  console.log("[renderCompaniesNavPanel] Top company:", companiesWithAverage[0]);
+}
 
   // Create navigation panel header
   compNavPanel.innerHTML = `
@@ -5644,34 +5563,36 @@ function createSmallCompDetails(companyData) {
     position: relative;
   `;
 
-  // Rank badge (left side)
-  const rankBadge = document.createElement('div');
-  rankBadge.style.cssText = `
-    width: 50px;
-    min-width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 4px;
-    margin-right: 10px;
-    color: white;
-  `;
+// Rank badge (left side) - now using actual rank instead of project rank
+const rankBadge = document.createElement('div');
+rankBadge.style.cssText = `
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 4px;
+  margin-right: 10px;
+  color: white;
+`;
+
+// Color based on actual rank (not project rank)
+const actualRank = Math.round(companyData.currentRank);
+if (actualRank === 1) {
+  rankBadge.style.backgroundColor = '#4CAF50';
+} else if (actualRank <= 3) {
+  rankBadge.style.backgroundColor = '#FFC107';
+} else if (actualRank <= 5) {
+  rankBadge.style.backgroundColor = '#FF9800';
+} else {
+  rankBadge.style.backgroundColor = '#F44336';
+}
+
+rankBadge.textContent = actualRank;
   
-  // Color based on rank
-  if (companyData.projectRank === 1) {
-    rankBadge.style.backgroundColor = '#4CAF50';
-  } else if (companyData.projectRank <= 3) {
-    rankBadge.style.backgroundColor = '#FFC107';
-  } else if (companyData.projectRank <= 5) {
-    rankBadge.style.backgroundColor = '#FF9800';
-  } else {
-    rankBadge.style.backgroundColor = '#F44336';
-  }
-  
-  rankBadge.textContent = companyData.projectRank;
   container.appendChild(rankBadge);
 
   // Company info
@@ -5754,40 +5675,75 @@ if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketSha
   infoDiv.appendChild(marketShareDiv);
   container.appendChild(infoDiv);
 
-  // Market share badge with water fill (right side)
-  const marketBadge = document.createElement('div');
-  marketBadge.className = 'comp-market-badge';
-  marketBadge.style.cssText = `
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 900;
-    color: #007aff;
-    background: white;
-    border: 2px solid #007aff;
-    margin-left: 10px;
-    position: relative;
-    overflow: hidden;
+// Market share badge with water fill and trend (right side)
+const marketShareContainer = document.createElement('div');
+marketShareContainer.style.cssText = `
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 10px;
+`;
+
+const marketBadge = document.createElement('div');
+marketBadge.className = 'comp-market-badge';
+marketBadge.style.cssText = `
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: #007aff;
+  background: white;
+  border: 2px solid #007aff;
+  position: relative;
+  overflow: hidden;
+`;
+
+// Water fill effect
+const waterFill = document.createElement('div');
+waterFill.className = 'market-badge-water';
+const fillPercentage = Math.min(100, Math.max(0, companyData.avgMarketShare * 2)); // Scale for visibility
+waterFill.style.height = `${fillPercentage}%`;
+marketBadge.appendChild(waterFill);
+
+// Value text
+const valueSpan = document.createElement('span');
+valueSpan.className = 'market-badge-value';
+valueSpan.textContent = `${Math.round(companyData.avgMarketShare)}%`;
+marketBadge.appendChild(valueSpan);
+
+marketShareContainer.appendChild(marketBadge);
+
+// Add market share trend below the badge
+if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketShareTrend) >= 0.1) {
+  const trendSpan = document.createElement('span');
+  trendSpan.style.cssText = `
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 2px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    display: inline-block;
   `;
   
-  // Water fill effect
-  const waterFill = document.createElement('div');
-  waterFill.className = 'market-badge-water';
-  const fillPercentage = Math.min(100, Math.max(0, companyData.avgMarketShare * 2)); // Scale for visibility
-  waterFill.style.height = `${fillPercentage}%`;
-  marketBadge.appendChild(waterFill);
-  
-  // Value text
-  const valueSpan = document.createElement('span');
-  valueSpan.className = 'market-badge-value';
-  valueSpan.textContent = `${Math.round(companyData.avgMarketShare)}%`;
-  marketBadge.appendChild(valueSpan);
-  
-  container.appendChild(marketBadge);
+  if (companyData.marketShareTrend > 0) {
+    trendSpan.style.color = '#2E7D32';
+    trendSpan.style.backgroundColor = 'rgba(76, 175, 80, 0.15)';
+    trendSpan.textContent = `▲${companyData.marketShareTrend.toFixed(1)}%`;
+    trendSpan.title = `Increased ${companyData.marketShareTrend.toFixed(1)}% vs 7 days ago`;
+  } else {
+    trendSpan.style.color = '#C62828';
+    trendSpan.style.backgroundColor = 'rgba(244, 67, 54, 0.15)';
+    trendSpan.textContent = `▼${Math.abs(companyData.marketShareTrend).toFixed(1)}%`;
+    trendSpan.title = `Decreased ${Math.abs(companyData.marketShareTrend).toFixed(1)}% vs 7 days ago`;
+  }
+  marketShareContainer.appendChild(trendSpan);
+}
+
+container.appendChild(marketShareContainer);
 
   // Hover effect
   container.addEventListener('mouseenter', function() {
