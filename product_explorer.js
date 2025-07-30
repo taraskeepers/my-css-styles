@@ -5899,11 +5899,11 @@ function createSelectedCompanyStats(companyData) {
       </div>
     </div>
     
-    <!-- Right side with Market Share Chart and Daily Rank -->
+<!-- Right side with Market Share Chart and Daily Rank -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
       <!-- Market Share Chart -->
-      <div class="stats-chart-container" style="flex: 1; height: 100%; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
-        <div class="section-label">Market Share Trend</div>
+      <div class="stats-chart-container" style="flex: 1; height: 200px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+        <div class="section-label">Market Share</div>
         <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
           <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 150px; margin: 0 auto;"></div>
           <div id="selectedCompanyDailyRankContainer" style="
@@ -5918,6 +5918,32 @@ function createSelectedCompanyStats(companyData) {
             width: 700px;
             margin: 0;
           "></div>
+        </div>
+      </div>
+      
+      <!-- Gainers/Losers Section -->
+      <div class="companyStats-inner products" style="width: 100%; flex: 1; overflow-y: auto; background: white; border-radius: 12px; padding: 10px;">
+        <div id="selectedCompanyGainersLosersSection" style="width: 100%; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+          <div class="gainers-losers-container" style="display: flex; gap: 20px; min-height: 160px;">
+            <!-- Gainers Column -->
+            <div class="gainers-column" style="flex: 1;">
+              <div class="column-header" style="background: #e8f5e9; padding: 8px; border-radius: 4px; text-align: center;">
+                <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">↑ TOP GAINERS</span>
+              </div>
+              <div id="selectedTopGainersList" class="company-list" style="max-height: 120px; overflow-y: auto;">
+                <!-- Will be populated dynamically -->
+              </div>
+            </div>
+            <!-- Losers Column -->
+            <div class="losers-column" style="flex: 1;">
+              <div class="column-header" style="background: #ffebee; padding: 8px; border-radius: 4px; text-align: center;">
+                <span style="color: #c62828; font-weight: bold; font-size: 13px;">↓ TOP LOSERS</span>
+              </div>
+              <div id="selectedTopLosersList" class="company-list" style="max-height: 120px; overflow-y: auto;">
+                <!-- Will be populated dynamically -->
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -5978,6 +6004,126 @@ function updateSelectedCompanyStats(companyData) {
   
   // Render daily rank boxes
   renderSelectedCompanyDailyRankBoxes(companyData);
+    // ADD THIS LINE HERE - This is the last line before the closing brace
+  renderSelectedCompanyGainersLosers();
+}
+
+function renderSelectedCompanyGainersLosers() {
+  // Use the same calculation as in projectPage.js
+  const { gainers, losers } = calculateGainersLosers();
+  
+  // Find the maximum share value for scaling
+  const allCompanies = [...gainers, ...losers];
+  const maxShare = Math.max(...allCompanies.map(c => c.currentShare), 10);
+  
+  // Render gainers
+  const gainersContainer = document.getElementById("selectedTopGainersList");
+  if (gainersContainer) {
+    gainersContainer.innerHTML = "";
+    
+    if (gainers.length === 0) {
+      gainersContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 12px;">No gainers found</div>';
+    } else {
+      gainers.slice(0, 3).forEach((company, index) => { // Show only top 3
+        const item = document.createElement("div");
+        item.style.cssText = "padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;";
+        
+        const barWidth = (company.currentShare / maxShare) * 100;
+        
+        item.innerHTML = `
+          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${company.company}">${index + 1}. ${company.company}</span>
+          <div style="width: 80px; height: 20px; background: #e0e0e0; border-radius: 3px; margin: 0 8px; position: relative;">
+            <div style="width: ${barWidth}%; height: 100%; background: #4CAF50; border-radius: 3px;"></div>
+            <span style="position: absolute; left: 4px; top: 2px; font-size: 10px; font-weight: bold;">${company.currentShare.toFixed(1)}%</span>
+          </div>
+          <span style="color: #4CAF50; font-weight: bold; font-size: 11px;">+${company.change.toFixed(2)}%</span>
+        `;
+        gainersContainer.appendChild(item);
+      });
+    }
+  }
+  
+  // Render losers
+  const losersContainer = document.getElementById("selectedTopLosersList");
+  if (losersContainer) {
+    losersContainer.innerHTML = "";
+    
+    if (losers.length === 0) {
+      losersContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 12px;">No losers found</div>';
+    } else {
+      losers.slice(0, 3).forEach((company, index) => { // Show only top 3
+        const item = document.createElement("div");
+        item.style.cssText = "padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;";
+        
+        const barWidth = (company.currentShare / maxShare) * 100;
+        
+        item.innerHTML = `
+          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${company.company}">${index + 1}. ${company.company}</span>
+          <div style="width: 80px; height: 20px; background: #e0e0e0; border-radius: 3px; margin: 0 8px; position: relative;">
+            <div style="width: ${barWidth}%; height: 100%; background: #F44336; border-radius: 3px;"></div>
+            <span style="position: absolute; left: 4px; top: 2px; font-size: 10px; font-weight: bold;">${company.currentShare.toFixed(1)}%</span>
+          </div>
+          <span style="color: #F44336; font-weight: bold; font-size: 11px;">${company.change.toFixed(2)}%</span>
+        `;
+        losersContainer.appendChild(item);
+      });
+    }
+  }
+}
+
+// Import the calculateGainersLosers function from projectPage.js if not already available
+if (typeof calculateGainersLosers === 'undefined') {
+  window.calculateGainersLosers = function() {
+    // Copy the implementation from projectPage.js
+    console.log("[calculateGainersLosers] Starting calculation...");
+    
+    if (!window.companyStatsData || !window.companyStatsData.length) {
+      console.warn("[calculateGainersLosers] No companyStatsData available");
+      return { gainers: [], losers: [] };
+    }
+
+    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+    
+    const allCompanyRecords = window.companyStatsData.filter(row => {
+      const rowProjNum = parseInt(row.project_number, 10);
+      return rowProjNum === activeProjectNumber && 
+             row.q === "all" && 
+             row.device === "all";
+    });
+
+    const companyChanges = [];
+    
+    allCompanyRecords.forEach(record => {
+      const companyName = record.source;
+      if (!companyName || companyName === "Unknown" || companyName === "null") {
+        return;
+      }
+
+      const currentShare = parseFloat(record["7d_market_share"] || 0) * 100;
+      const previousShare = parseFloat(record["7d_prev_market_share"] || 0) * 100;
+      const change = currentShare - previousShare;
+
+      if (currentShare > 0.01 || previousShare > 0.01) {
+        companyChanges.push({
+          company: companyName,
+          currentShare: currentShare,
+          previousShare: previousShare,
+          change: change,
+          changePercent: previousShare > 0 ? (change / previousShare) * 100 : 0
+        });
+      }
+    });
+
+    const allGainers = companyChanges.filter(c => c.change > 0)
+      .sort((a, b) => b.change - a.change);
+    const allLosers = companyChanges.filter(c => c.change < 0)
+      .sort((a, b) => a.change - b.change);
+
+    const gainers = allGainers.slice(0, 5);
+    const losers = allLosers.slice(0, 5);
+
+    return { gainers, losers };
+  };
 }
 
 function getRankBoxColorExplorer(rank) {
@@ -6118,49 +6264,160 @@ function renderSelectedCompanyMarketShareChart(companyData) {
   const chartEl = document.getElementById("selectedCompanyMarketShareChart");
   if (!chartEl) return;
   
-  // This would need historical data from companyData
-  // For now, create a simple trend chart
-  // You'll need to adapt this based on your actual data structure
+  // Destroy any existing chart
+  if (window.selectedCompanyMarketShareChartInstance) {
+    window.selectedCompanyMarketShareChartInstance.destroy();
+    window.selectedCompanyMarketShareChartInstance = null;
+  }
+  
+  // Get the historical data from the company's allDeviceRecord
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "all" && 
+           rowCompany.toLowerCase() === companyData.company.toLowerCase();
+  });
+  
+  if (!allDeviceRecord || !allDeviceRecord.historical_data) {
+    chartEl.innerHTML = "<p>No historical data available</p>";
+    return;
+  }
+  
+  // Build chart data from historical_data
+  const chartData = allDeviceRecord.historical_data
+    .filter(d => d.date && d.date.value && d.market_share != null)
+    .map(d => ({
+      x: d.date.value, // Use the string value, not the object
+      y: parseFloat(d.market_share) * 100
+    }))
+    .sort((a, b) => a.x.localeCompare(b.x)); // Sort by date
+  
+  if (chartData.length === 0) {
+    chartEl.innerHTML = "<p>No market share data available</p>";
+    return;
+  }
+  
+  // Create series for all devices, desktop, and mobile
+  const desktopRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "desktop" && 
+           rowCompany.toLowerCase() === companyData.company.toLowerCase();
+  });
+  
+  const mobileRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "mobile" && 
+           rowCompany.toLowerCase() === companyData.company.toLowerCase();
+  });
+  
+  const series = [
+    {
+      name: "All Devices",
+      data: chartData
+    }
+  ];
+  
+  if (desktopRecord && desktopRecord.historical_data) {
+    const desktopData = desktopRecord.historical_data
+      .filter(d => d.date && d.date.value && d.market_share != null)
+      .map(d => ({
+        x: d.date.value,
+        y: parseFloat(d.market_share) * 100
+      }))
+      .sort((a, b) => a.x.localeCompare(b.x));
+    
+    series.push({
+      name: "Desktop Only",
+      data: desktopData
+    });
+  }
+  
+  if (mobileRecord && mobileRecord.historical_data) {
+    const mobileData = mobileRecord.historical_data
+      .filter(d => d.date && d.date.value && d.market_share != null)
+      .map(d => ({
+        x: d.date.value,
+        y: parseFloat(d.market_share) * 100
+      }))
+      .sort((a, b) => a.x.localeCompare(b.x));
+    
+    series.push({
+      name: "Mobile Only",
+      data: mobileData
+    });
+  }
   
   const options = {
-    series: [{
-      name: "Market Share",
-      data: companyData.historicalData ? 
-        companyData.historicalData.map(d => ({
-          x: d.date,
-          y: (d.market_share || 0) * 100
-        })) : []
-    }],
+    series: series,
     chart: {
       type: "area",
+      stacked: true,
       height: 150,
       width: 700,
       toolbar: { show: false },
       zoom: { enabled: false }
     },
+    dataLabels: {
+      enabled: true,
+      enabledOnSeries: [0], // only on All Devices
+      formatter: (val) => val.toFixed(1) + "%",
+      offsetY: -5,
+      style: {
+        fontSize: "10px",
+        colors: ["#000"]
+      }
+    },
     stroke: {
       curve: "smooth",
       width: 2
     },
+    markers: {
+      size: [4, 0, 0]
+    },
     fill: {
       type: "gradient",
-      gradient: { opacityFrom: 0.6, opacityTo: 0.1 }
+      gradient: { opacityFrom: 0.75, opacityTo: 0.95 }
     },
-    colors: ["#007aff"],
+    colors: ["#007aff", "rgb(180,180,180)", "rgb(210,210,210)"],
     xaxis: {
       type: "datetime",
-      labels: { show: true }
+      labels: { 
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: 'dd MMM',
+          day: 'dd MMM',
+          hour: 'HH:mm'
+        }
+      }
     },
     yaxis: {
       labels: {
         formatter: val => val.toFixed(1) + '%'
-      }
+      },
+      max: Math.ceil(Math.max(...chartData.map(d => d.y)) * 1.2)
     },
-    grid: { show: false }
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      x: {
+        format: 'dd MMM yyyy'
+      }
+    }
   };
   
-  const chart = new ApexCharts(chartEl, options);
-  chart.render();
+  window.selectedCompanyMarketShareChartInstance = new ApexCharts(chartEl, options);
+  window.selectedCompanyMarketShareChartInstance.render();
 }
 
 function renderSelectedCompanyDailyRankBoxes(companyData) {
@@ -6169,45 +6426,62 @@ function renderSelectedCompanyDailyRankBoxes(companyData) {
   
   container.innerHTML = "";
   
-  // Get historical data for daily ranks
-  if (companyData.historicalData && companyData.historicalData.length > 0) {
-    // Take last 30 days
-    const last30Days = companyData.historicalData.slice(-30);
-    
-    last30Days.forEach(dayData => {
-      const rankVal = dayData.rank || 40;
-      const box = document.createElement("div");
-      box.style.cssText = `
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        border-radius: 4px;
-        margin-right: 3px;
-      `;
-      
-      if (rankVal === 40) {
-        box.style.background = "#ddd";
-        box.textContent = "";
-      } else {
-        if (rankVal <= 1) {
-          box.style.background = "#dfffd6";
-        } else if (rankVal <= 3) {
-          box.style.background = "#ffffc2";
-        } else if (rankVal <= 5) {
-          box.style.background = "#ffe0bd";
-        } else {
-          box.style.background = "#ffcfcf";
-        }
-        box.textContent = Math.round(rankVal);
-      }
-      
-      box.title = dayData.date || '';
-      container.appendChild(box);
-    });
+  // Get the historical data from the company's allDeviceRecord
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "all" && 
+           rowCompany.toLowerCase() === companyData.company.toLowerCase();
+  });
+  
+  if (!allDeviceRecord || !allDeviceRecord.historical_data) {
+    return;
   }
+  
+  // Sort historical data by date and take last 30 days
+  const sortedData = allDeviceRecord.historical_data
+    .filter(d => d.date && d.date.value && d.rank != null)
+    .sort((a, b) => a.date.value.localeCompare(b.date.value));
+  
+  const last30Days = sortedData.slice(-30);
+  
+  last30Days.forEach(dayData => {
+    const rankVal = parseFloat(dayData.rank) || 40;
+    const box = document.createElement("div");
+    box.style.cssText = `
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 3px;
+      margin-right: 1px;
+    `;
+    
+    if (rankVal === 40) {
+      box.style.background = "#ddd";
+      box.textContent = "";
+    } else {
+      if (rankVal <= 1) {
+        box.style.background = "#dfffd6";
+      } else if (rankVal <= 3) {
+        box.style.background = "#ffffc2";
+      } else if (rankVal <= 5) {
+        box.style.background = "#ffe0bd";
+      } else {
+        box.style.background = "#ffcfcf";
+      }
+      box.textContent = Math.round(rankVal);
+    }
+    
+    box.title = dayData.date.value || '';
+    container.appendChild(box);
+  });
 }
 
 // Debug tracker - add at the END of product_explorer.js
