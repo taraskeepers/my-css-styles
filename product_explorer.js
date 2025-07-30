@@ -3684,6 +3684,12 @@ viewMapExplorerBtn.addEventListener("click", function() {
 document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
   option.addEventListener('click', function() {
     const selectedMode = this.getAttribute('data-mode');
+
+        // Clean up selectedCompanyStats when switching modes
+    const existingStats = document.getElementById('selectedCompanyStats');
+    if (existingStats) {
+      existingStats.remove();
+    }
     
     // Update body class
     document.body.classList.remove('mode-products', 'mode-companies');
@@ -5783,10 +5789,425 @@ const companyCombinations = window.company_serp_stats
   if (productTable) {
     productTable.style.display = 'none';
   }
+
+  createSelectedCompanyStats(companyData);
   
   // Render company table
   const currentViewMode = document.querySelector('.explorer-view-switcher .active')?.id || 'viewRankingExplorer';
   renderCompanyExplorerTable(companyCombinations, currentViewMode);
+}
+
+function createSelectedCompanyStats(companyData) {
+  // Remove existing stats container if any
+  const existingStats = document.getElementById('selectedCompanyStats');
+  if (existingStats) {
+    existingStats.remove();
+  }
+
+  // Get the table container
+  const tableContainer = document.getElementById('productExplorerTableContainer');
+  if (!tableContainer) return;
+
+  // Create the stats container
+  const statsContainer = document.createElement('div');
+  statsContainer.id = 'selectedCompanyStats';
+  statsContainer.className = 'project-page-wrapper';
+  statsContainer.style.cssText = `
+    width: calc(100% - 40px);
+    height: 450px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin: 10px 20px 20px 20px;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 12px;
+  `;
+
+  // Build the HTML structure similar to projectStats
+  statsContainer.innerHTML = `
+    <!-- Company Name Header -->
+    <div class="company-name-header" id="selectedCompanyNameHeader" style="
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: #f9f9f9;
+      padding: 0 20px;
+    ">${companyData.company}</div>
+
+    <!-- Left Side with Rank and Market Share side by side -->
+    <div class="project-stats-left-section" style="display: flex; flex-direction: row; gap: 10px; margin-right: 20px;">
+      <!-- Rank Container -->
+      <div class="stats-rank-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="section-label">COMPANY RANK</div>
+        <div id="selectedCompanyRankBox" class="big-rank-box">
+          <span id="selectedCompanyRankValue">${Math.round(companyData.currentRank)}</span>
+          <div id="selectedCompanyRankTrend" class="rank-trend-badge"></div>
+        </div>
+        <div class="device-ranks-row">
+          <div class="device-rank-box">
+            <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
+            </svg>
+            <div id="selectedDesktopRankValue" class="device-rank-number">-</div>
+            <div id="selectedDesktopRankTrend" class="device-rank-trend-badge"></div>
+          </div>
+          <div class="device-rank-box">
+            <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+            </svg>
+            <div id="selectedMobileRankValue" class="device-rank-number">-</div>
+            <div id="selectedMobileRankTrend" class="device-rank-trend-badge"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Market Share Container -->
+      <div class="stats-market-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="section-label">MARKET SHARE</div>
+        <div class="market-circle-wrapper" style="position: relative; margin-bottom: 5px;">
+          <div class="big-market-circle">
+            <div id="selectedMarketWaterFill" class="market-water-fill"></div>
+            <span id="selectedMarketShareValue" class="market-value-text">${companyData.avgMarketShare.toFixed(1)}%</span>
+          </div>
+        </div>
+        <div id="selectedMarketShareTrend" class="market-trend-text"></div>
+        <div class="device-market-circles-row">
+          <div class="device-market-item">
+            <div class="device-market-circle">
+              <div id="selectedDesktopWaterFill" class="device-water-fill" style="height: 0%;"></div>
+              <span id="selectedDesktopShareValue" style="position: relative; z-index: 1;">0%</span>
+            </div>
+            <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
+            </svg>
+            <div id="selectedDesktopShareTrend" class="device-market-trend"></div>
+          </div>
+          <div class="device-market-item">
+            <div class="device-market-circle">
+              <div id="selectedMobileWaterFill" class="device-water-fill" style="height: 0%;"></div>
+              <span id="selectedMobileShareValue" style="position: relative; z-index: 1;">0%</span>
+            </div>
+            <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+            </svg>
+            <div id="selectedMobileShareTrend" class="device-market-trend"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right side with Market Share Chart and Daily Rank -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+      <!-- Market Share Chart -->
+      <div class="stats-chart-container" style="flex: 1; height: 100%; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+        <div class="section-label">Market Share Trend</div>
+        <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
+          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 150px; margin: 0 auto;"></div>
+          <div id="selectedCompanyDailyRankContainer" style="
+            display: flex;
+            gap: 1px;
+            padding: 5px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            justify-content: flex-start;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            width: 700px;
+            margin: 0;
+          "></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Insert before the table (at the beginning of tableContainer)
+  tableContainer.insertBefore(statsContainer, tableContainer.firstChild);
+
+  // Populate the stats with data
+  updateSelectedCompanyStats(companyData);
+}
+
+function updateSelectedCompanyStats(companyData) {
+  // Update rank trend badge
+  const rankTrendEl = document.getElementById('selectedCompanyRankTrend');
+  if (rankTrendEl) {
+    if (companyData.rankTrend > 0) {
+      rankTrendEl.innerHTML = `▲ ${Math.abs(companyData.rankTrend).toFixed(1)}`;
+      rankTrendEl.className = 'rank-trend-badge trend-up';
+    } else if (companyData.rankTrend < 0) {
+      rankTrendEl.innerHTML = `▼ ${Math.abs(companyData.rankTrend).toFixed(1)}`;
+      rankTrendEl.className = 'rank-trend-badge trend-down';
+    } else {
+      rankTrendEl.innerHTML = `± 0.0`;
+      rankTrendEl.className = 'rank-trend-badge trend-neutral';
+    }
+  }
+
+  // Update rank box color
+  const rankBox = document.getElementById('selectedCompanyRankBox');
+  if (rankBox) {
+    rankBox.style.backgroundColor = getRankBoxColorExplorer(companyData.currentRank);
+  }
+
+  // Update market share water fill
+  const waterFill = document.getElementById('selectedMarketWaterFill');
+  if (waterFill) {
+    waterFill.style.height = Math.min(companyData.avgMarketShare, 100) + '%';
+  }
+
+  // Update market share trend
+  const shareTrendEl = document.getElementById('selectedMarketShareTrend');
+  if (shareTrendEl) {
+    if (companyData.marketShareTrend > 0) {
+      shareTrendEl.innerHTML = `<span style="color: #4CAF50;">▲ ${companyData.marketShareTrend.toFixed(2)}%</span>`;
+    } else if (companyData.marketShareTrend < 0) {
+      shareTrendEl.innerHTML = `<span style="color: #F44336;">▼ ${Math.abs(companyData.marketShareTrend).toFixed(2)}%</span>`;
+    } else {
+      shareTrendEl.innerHTML = `<span style="color: #999;">± 0.00%</span>`;
+    }
+  }
+
+  // Get device-specific data
+  updateSelectedCompanyDeviceStats(companyData.company);
+  
+  // Render the market share chart
+  renderSelectedCompanyMarketShareChart(companyData);
+  
+  // Render daily rank boxes
+  renderSelectedCompanyDailyRankBoxes(companyData);
+}
+
+function getRankBoxColorExplorer(rank) {
+  if (rank <= 1) return '#4CAF50'; // Green
+  if (rank <= 3) return '#FFC107'; // Yellow  
+  if (rank <= 5) return '#FF9800'; // Orange
+  return '#F44336'; // Red
+}
+
+function updateSelectedCompanyDeviceStats(companyName) {
+  if (!window.companyStatsData || !window.companyStatsData.length) return;
+  
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  
+  // Find desktop and mobile records
+  const desktopRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "desktop" && 
+           rowCompany.toLowerCase() === companyName.toLowerCase();
+  });
+  
+  const mobileRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "mobile" && 
+           rowCompany.toLowerCase() === companyName.toLowerCase();
+  });
+  
+  // Update desktop stats
+  if (desktopRecord) {
+    const desktopRank = parseFloat(desktopRecord["7d_rank"] || 40);
+    const desktopPrevRank = parseFloat(desktopRecord["7d_prev_rank"] || 40);
+    const desktopTrend = desktopRank - desktopPrevRank;
+    const desktopShare = parseFloat(desktopRecord["7d_market_share"] || 0) * 100;
+    const desktopPrevShare = parseFloat(desktopRecord["7d_prev_market_share"] || 0) * 100;
+    const desktopShareTrend = desktopShare - desktopPrevShare;
+    
+    // Update rank
+    const desktopRankEl = document.getElementById('selectedDesktopRankValue');
+    if (desktopRankEl) desktopRankEl.textContent = Math.round(desktopRank);
+    
+    // Update rank trend
+    const desktopRankTrendEl = document.getElementById('selectedDesktopRankTrend');
+    if (desktopRankTrendEl) {
+      if (desktopTrend < 0) {
+        desktopRankTrendEl.innerHTML = `▲ ${Math.abs(desktopTrend).toFixed(1)}`;
+        desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-up';
+      } else if (desktopTrend > 0) {
+        desktopRankTrendEl.innerHTML = `▼ ${desktopTrend.toFixed(1)}`;
+        desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-down';
+      } else {
+        desktopRankTrendEl.innerHTML = `± 0.0`;
+        desktopRankTrendEl.className = 'device-rank-trend-badge device-trend-neutral';
+      }
+    }
+    
+    // Update share
+    const desktopShareEl = document.getElementById('selectedDesktopShareValue');
+    if (desktopShareEl) desktopShareEl.textContent = desktopShare.toFixed(1) + '%';
+    
+    const desktopWaterFill = document.getElementById('selectedDesktopWaterFill');
+    if (desktopWaterFill) desktopWaterFill.style.height = Math.min(desktopShare, 100) + '%';
+    
+    // Update share trend
+    const desktopShareTrendEl = document.getElementById('selectedDesktopShareTrend');
+    if (desktopShareTrendEl) {
+      if (desktopShareTrend > 0) {
+        desktopShareTrendEl.innerHTML = `▲ ${desktopShareTrend.toFixed(2)}%`;
+        desktopShareTrendEl.className = 'device-market-trend device-trend-up';
+      } else if (desktopShareTrend < 0) {
+        desktopShareTrendEl.innerHTML = `▼ ${Math.abs(desktopShareTrend).toFixed(2)}%`;
+        desktopShareTrendEl.className = 'device-market-trend device-trend-down';
+      } else {
+        desktopShareTrendEl.innerHTML = `± 0.00%`;
+        desktopShareTrendEl.className = 'device-market-trend device-trend-neutral';
+      }
+    }
+  }
+  
+  // Update mobile stats (similar logic)
+  if (mobileRecord) {
+    const mobileRank = parseFloat(mobileRecord["7d_rank"] || 40);
+    const mobilePrevRank = parseFloat(mobileRecord["7d_prev_rank"] || 40);
+    const mobileTrend = mobileRank - mobilePrevRank;
+    const mobileShare = parseFloat(mobileRecord["7d_market_share"] || 0) * 100;
+    const mobilePrevShare = parseFloat(mobileRecord["7d_prev_market_share"] || 0) * 100;
+    const mobileShareTrend = mobileShare - mobilePrevShare;
+    
+    // Update rank
+    const mobileRankEl = document.getElementById('selectedMobileRankValue');
+    if (mobileRankEl) mobileRankEl.textContent = Math.round(mobileRank);
+    
+    // Update rank trend
+    const mobileRankTrendEl = document.getElementById('selectedMobileRankTrend');
+    if (mobileRankTrendEl) {
+      if (mobileTrend < 0) {
+        mobileRankTrendEl.innerHTML = `▲ ${Math.abs(mobileTrend).toFixed(1)}`;
+        mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-up';
+      } else if (mobileTrend > 0) {
+        mobileRankTrendEl.innerHTML = `▼ ${mobileTrend.toFixed(1)}`;
+        mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-down';
+      } else {
+        mobileRankTrendEl.innerHTML = `± 0.0`;
+        mobileRankTrendEl.className = 'device-rank-trend-badge device-trend-neutral';
+      }
+    }
+    
+    // Update share
+    const mobileShareEl = document.getElementById('selectedMobileShareValue');
+    if (mobileShareEl) mobileShareEl.textContent = mobileShare.toFixed(1) + '%';
+    
+    const mobileWaterFill = document.getElementById('selectedMobileWaterFill');
+    if (mobileWaterFill) mobileWaterFill.style.height = Math.min(mobileShare, 100) + '%';
+    
+    // Update share trend
+    const mobileShareTrendEl = document.getElementById('selectedMobileShareTrend');
+    if (mobileShareTrendEl) {
+      if (mobileShareTrend > 0) {
+        mobileShareTrendEl.innerHTML = `▲ ${mobileShareTrend.toFixed(2)}%`;
+        mobileShareTrendEl.className = 'device-market-trend device-trend-up';
+      } else if (mobileShareTrend < 0) {
+        mobileShareTrendEl.innerHTML = `▼ ${Math.abs(mobileShareTrend).toFixed(2)}%`;
+        mobileShareTrendEl.className = 'device-market-trend device-trend-down';
+      } else {
+        mobileShareTrendEl.innerHTML = `± 0.00%`;
+        mobileShareTrendEl.className = 'device-market-trend device-trend-neutral';
+      }
+    }
+  }
+}
+
+function renderSelectedCompanyMarketShareChart(companyData) {
+  const chartEl = document.getElementById("selectedCompanyMarketShareChart");
+  if (!chartEl) return;
+  
+  // This would need historical data from companyData
+  // For now, create a simple trend chart
+  // You'll need to adapt this based on your actual data structure
+  
+  const options = {
+    series: [{
+      name: "Market Share",
+      data: companyData.historicalData ? 
+        companyData.historicalData.map(d => ({
+          x: d.date,
+          y: (d.market_share || 0) * 100
+        })) : []
+    }],
+    chart: {
+      type: "area",
+      height: 150,
+      width: 700,
+      toolbar: { show: false },
+      zoom: { enabled: false }
+    },
+    stroke: {
+      curve: "smooth",
+      width: 2
+    },
+    fill: {
+      type: "gradient",
+      gradient: { opacityFrom: 0.6, opacityTo: 0.1 }
+    },
+    colors: ["#007aff"],
+    xaxis: {
+      type: "datetime",
+      labels: { show: true }
+    },
+    yaxis: {
+      labels: {
+        formatter: val => val.toFixed(1) + '%'
+      }
+    },
+    grid: { show: false }
+  };
+  
+  const chart = new ApexCharts(chartEl, options);
+  chart.render();
+}
+
+function renderSelectedCompanyDailyRankBoxes(companyData) {
+  const container = document.getElementById("selectedCompanyDailyRankContainer");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  
+  // Get historical data for daily ranks
+  if (companyData.historicalData && companyData.historicalData.length > 0) {
+    // Take last 30 days
+    const last30Days = companyData.historicalData.slice(-30);
+    
+    last30Days.forEach(dayData => {
+      const rankVal = dayData.rank || 40;
+      const box = document.createElement("div");
+      box.style.cssText = `
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        border-radius: 4px;
+        margin-right: 3px;
+      `;
+      
+      if (rankVal === 40) {
+        box.style.background = "#ddd";
+        box.textContent = "";
+      } else {
+        if (rankVal <= 1) {
+          box.style.background = "#dfffd6";
+        } else if (rankVal <= 3) {
+          box.style.background = "#ffffc2";
+        } else if (rankVal <= 5) {
+          box.style.background = "#ffe0bd";
+        } else {
+          box.style.background = "#ffcfcf";
+        }
+        box.textContent = Math.round(rankVal);
+      }
+      
+      box.title = dayData.date || '';
+      container.appendChild(box);
+    });
+  }
 }
 
 // Debug tracker - add at the END of product_explorer.js
