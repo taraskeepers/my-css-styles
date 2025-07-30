@@ -5576,19 +5576,19 @@ rankBadge.style.cssText = `
   color: white;
 `;
 
-// Color based on actual rank (not project rank)
-const actualRank = Math.round(companyData.currentRank);
-if (actualRank === 1) {
+// Color based on position in list (projectRank = order in the sorted list)
+const orderRank = companyData.projectRank; // This is the position in the sorted list (1, 2, 3, etc.)
+if (orderRank === 1) {
   rankBadge.style.backgroundColor = '#4CAF50';
-} else if (actualRank <= 3) {
+} else if (orderRank <= 3) {
   rankBadge.style.backgroundColor = '#FFC107';
-} else if (actualRank <= 5) {
+} else if (orderRank <= 5) {
   rankBadge.style.backgroundColor = '#FF9800';
 } else {
   rankBadge.style.backgroundColor = '#F44336';
 }
 
-rankBadge.textContent = actualRank;
+rankBadge.textContent = orderRank; // Show position in list, not actual rank
   
   container.appendChild(rankBadge);
 
@@ -5638,38 +5638,19 @@ if (companyData.rankTrend > 0) {
   
   infoDiv.appendChild(nameDiv);
 
-  // Market share info with trend
-  const marketShareDiv = document.createElement('div');
-  marketShareDiv.style.cssText = `
-    font-size: 12px;
-    color: #666;
-    margin-top: 2px;
-    display: flex;
-    align-items: center;
-  `;
-  
-  const marketShareText = document.createElement('span');
-  marketShareText.textContent = `Avg Market Share: ${companyData.avgMarketShare.toFixed(1)}%`;
-  marketShareDiv.appendChild(marketShareText);
-  
-// Add market share trend
-if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketShareTrend) >= 0.1) {
-  const trendSpan = document.createElement('span');
-  trendSpan.className = 'trend-indicator';
-  
-  if (companyData.marketShareTrend > 0) {
-    trendSpan.className += ' trend-up';
-    trendSpan.textContent = `▲${companyData.marketShareTrend.toFixed(1)}%`;
-    trendSpan.title = `Increased ${companyData.marketShareTrend.toFixed(1)}% vs 7 days ago`;
-  } else if (companyData.marketShareTrend < 0) {
-    trendSpan.className += ' trend-down';
-    trendSpan.textContent = `▼${Math.abs(companyData.marketShareTrend).toFixed(1)}%`;
-    trendSpan.title = `Decreased ${Math.abs(companyData.marketShareTrend).toFixed(1)}% vs 7 days ago`;
-  }
-  marketShareDiv.appendChild(trendSpan);
-}
-  
-  infoDiv.appendChild(marketShareDiv);
+// Last 7 days rank info (no trend)
+const rankInfoDiv = document.createElement('div');
+rankInfoDiv.style.cssText = `
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+`;
+
+const rankInfoText = document.createElement('span');
+rankInfoText.textContent = `Last 7 days rank: ${companyData.currentRank.toFixed(1)}`;
+rankInfoDiv.appendChild(rankInfoText);
+
+infoDiv.appendChild(rankInfoDiv);
   container.appendChild(infoDiv);
 
 // Market share badge with trend on the right side
@@ -5780,15 +5761,20 @@ if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
   }
 }
 
+// Get all combinations for this company, excluding "all" values
 const companyCombinations = window.company_serp_stats
-    .filter(stat => stat.company === companyData.company)
-    .map(stat => ({
-      searchTerm: stat.searchTerm,
-      location: stat.location,
-      device: stat.device,
-      company: stat.company,
-      record: stat
-    }));
+  .filter(stat => {
+    return stat.company === companyData.company && 
+           stat.searchTerm !== "all" && 
+           stat.location !== "all";
+  })
+  .map(stat => ({
+    searchTerm: stat.searchTerm,
+    location: stat.location,
+    device: stat.device,
+    company: stat.company,
+    record: stat
+  }));
   
   console.log(`[selectCompany] Found ${companyCombinations.length} combinations for ${companyData.company}`);
   
