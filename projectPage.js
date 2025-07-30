@@ -312,6 +312,33 @@ if (!document.getElementById("project-page-stats-style")) {
           border-style: solid;
           border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
         }
+        .company-name-header {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
     `;
     document.head.appendChild(style);
 }
@@ -1429,6 +1456,27 @@ const mobileRecord = window.companyStatsData.find(row => {
 function updateProjectStatsDisplay() {
       // Render the gainers/losers section
   renderGainersLosers();
+
+  const companyNameEl = document.getElementById('companyNameHeader');
+  if (companyNameEl) {
+    const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+    let displayCompany = '';
+    
+    if (isDemo) {
+      displayCompany = "Nike";
+    } else {
+      if (window.frontendCompany && window.frontendCompany.trim()) {
+        displayCompany = window.frontendCompany.trim();
+      } else if (window.myCompany && window.myCompany.trim()) {
+        displayCompany = window.myCompany.trim();
+      } else {
+        displayCompany = "My Company";
+      }
+    }
+    
+    companyNameEl.textContent = displayCompany;
+  }
+  
   const rankData = calculateCompanyRankData();
   const shareData = calculateCompanyMarketShareData();
   
