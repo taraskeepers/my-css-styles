@@ -1889,12 +1889,12 @@ function getAllCompaniesWithMarketShare() {
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
   // Filter for records where q="all" for the current project
-  const allRecords = window.companyStatsData.filter(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all";
-  });
+const allRecords = window.companyStatsData.filter(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
+});
   
-  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="all" for project ${activeProjectNumber}`);
+  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="all" and device="all" for project ${activeProjectNumber}`);
 
   const results = [];
   
@@ -2578,11 +2578,11 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
 // Filter for records where q="all" (already filtered by project when loaded)
-  const projectMarketData = window.projectMarketTrendsData.filter(row => {
-    return row.q === "all";
-  });
+const projectMarketData = window.projectMarketTrendsData.filter(row => {
+  return row.q === "all" && row.device === "all";
+});
   
-  console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
+  console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
   
   // Get the latest date from the data
   let latestDate = null;
@@ -2642,11 +2642,11 @@ function buildInfoBlockProductsTrendData(days = 14) {
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
 // Filter for records where q="all" (already filtered by project when loaded)
-  const projectMarketData = window.projectMarketTrendsData.filter(row => {
-    return row.q === "all";
-  });
+const projectMarketData = window.projectMarketTrendsData.filter(row => {
+  return row.q === "all" && row.device === "all";
+});
   
-  console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} q="all" records for project ${activeProjectNumber}`);
+  console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
   
   // Get the latest date from the data
   let latestDate = null;
@@ -2709,9 +2709,9 @@ function updateInfoBlockCompaniesStats() {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
 // Filter for records where q="all" (already filtered by project when loaded)
-    const projectMarketData = window.projectMarketTrendsData.filter(row => {
-      return row.q === "all";
-    });
+const projectMarketData = window.projectMarketTrendsData.filter(row => {
+  return row.q === "all" && row.device === "all";
+});
     
     if (projectMarketData.length > 0) {
       // Find the latest date
