@@ -1248,22 +1248,52 @@ function calculateCompanyRankData() {
   }
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+
+  // Determine target company (same logic as buildProjectData)
+let targetCompany = "";
+const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+if (isDemo) {
+  targetCompany = "Nike";
+} else {
+  if (window.frontendCompany && window.frontendCompany.trim()) {
+    targetCompany = window.frontendCompany.trim();
+  } else if (window.myCompany && window.myCompany.trim()) {
+    targetCompany = window.myCompany.trim();
+  } else {
+    targetCompany = "REI"; // fallback
+    console.warn(`[calculateCompanyRankData] No company specified. Defaulting to "${targetCompany}"`);
+  }
+}
+
+console.log(`[calculateCompanyRankData] Looking for company: "${targetCompany}"`);
   
   // Find records for q="all" with different devices
-  const allDeviceRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
-  });
-  
-  const desktopRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "desktop";
-  });
-  
-  const mobileRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "mobile";
-  });
+const allDeviceRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "all" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
+
+const desktopRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "desktop" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
+
+const mobileRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "mobile" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
 
   // Extract rank data for all devices
   const currentRank = allDeviceRecord ? parseFloat(allDeviceRecord["7d_rank"] || 40) : 40;
@@ -1315,22 +1345,52 @@ function calculateCompanyMarketShareData() {
   }
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+
+  // Determine target company (same logic as buildProjectData)
+let targetCompany = "";
+const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+if (isDemo) {
+  targetCompany = "Nike";
+} else {
+  if (window.frontendCompany && window.frontendCompany.trim()) {
+    targetCompany = window.frontendCompany.trim();
+  } else if (window.myCompany && window.myCompany.trim()) {
+    targetCompany = window.myCompany.trim();
+  } else {
+    targetCompany = "REI"; // fallback
+    console.warn(`[calculateCompanyMarketShareData] No company specified. Defaulting to "${targetCompany}"`);
+  }
+}
+
+console.log(`[calculateCompanyMarketShareData] Looking for company: "${targetCompany}"`);
   
   // Find records for q="all" with different devices
-  const allDeviceRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
-  });
-  
-  const desktopRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "desktop";
-  });
-  
-  const mobileRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "mobile";
-  });
+const allDeviceRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "all" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
+
+const desktopRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "desktop" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
+
+const mobileRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "mobile" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
 
   // Extract market share data for all devices (convert from decimal to percentage)
   const currentShare = allDeviceRecord ? parseFloat(allDeviceRecord["7d_market_share"] || 0) * 100 : 0;
