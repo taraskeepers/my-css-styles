@@ -1879,86 +1879,36 @@ function buildProductsTrendData(days = 14) {
 }
 
 function getAllCompaniesWithMarketShare() {
-  console.log("[getAllCompaniesWithMarketShare] Starting...");
+  console.log("[getAllCompaniesWithMarketShare] Starting with pre-calculated data...");
   
   if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[getAllCompaniesWithMarketShare] No companyStatsData available");
     return [];
   }
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  // ALWAYS use 7 days, ignore filter state
-  const periodDays = 7;
   
-  // Filter by project only - IGNORE location and device filters
-  let filtered = window.companyStatsData.filter(row => {
+  // Filter for records where q="all" for the current project
+  const allRecords = window.companyStatsData.filter(row => {
     const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber;
-    // NO location filter
-    // NO device filter
+    return rowProjNum === activeProjectNumber && row.q === "all";
   });
-
-  console.log(`[getAllCompaniesWithMarketShare] Filtered to ${filtered.length} records`);
-  console.log(`Using fixed parameters: project=${activeProjectNumber}, period=7 days, no location/device filters`);
-
-  const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
-  if (!globalMaxDate) return [];
-
-  const currentEnd = globalMaxDate.clone();
-  const currentStart = currentEnd.clone().subtract(periodDays - 1, "days");
-  const previousEnd = currentStart.clone().subtract(1, "days");
-  const previousStart = previousEnd.clone().subtract(periodDays - 1, "days");
-
-  // Group by company and collect ALL historical data points
-  const companyData = {};
   
-  filtered.forEach(row => {
-    const companyName = row.source || row.title || "Unknown";
-    if (!companyName || companyName === "Unknown" || companyName === "null") return;
-    
-    if (!companyData[companyName]) {
-      companyData[companyName] = {
-        currentPeriodData: [],
-        previousPeriodData: []
-      };
-    }
-    
-    // Collect all historical data points for this company
-    if (Array.isArray(row.historical_data)) {
-      row.historical_data.forEach(hist => {
-        if (hist.date?.value && hist.market_share != null) {
-          const date = moment(hist.date.value, "YYYY-MM-DD");
-          const shareValue = parseFloat(hist.market_share) * 100;
-          
-          // Add to current period data
-          if (date.isBetween(currentStart, currentEnd, "day", "[]")) {
-            companyData[companyName].currentPeriodData.push(shareValue);
-          }
-          // Add to previous period data
-          else if (date.isBetween(previousStart, previousEnd, "day", "[]")) {
-            companyData[companyName].previousPeriodData.push(shareValue);
-          }
-        }
-      });
-    }
-  });
+  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="all" for project ${activeProjectNumber}`);
 
-  // Calculate ACTUAL averages (not average of averages)
   const results = [];
   
-  Object.entries(companyData).forEach(([companyName, data]) => {
-    if (data.currentPeriodData.length === 0 && data.previousPeriodData.length === 0) return;
-    
-    // Calculate true average across all data points
-    const currentShare = data.currentPeriodData.length > 0
-      ? data.currentPeriodData.reduce((sum, val) => sum + val, 0) / data.currentPeriodData.length
-      : 0;
-      
-    const previousShare = data.previousPeriodData.length > 0
-      ? data.previousPeriodData.reduce((sum, val) => sum + val, 0) / data.previousPeriodData.length
-      : 0;
-    
+  allRecords.forEach(record => {
+    const companyName = record.source;
+    if (!companyName || companyName === "Unknown" || companyName === "null") {
+      return;
+    }
+
+    // Extract market share values (convert from decimal to percentage)
+    const currentShare = parseFloat(record["7d_market_share"] || 0) * 100;
+    const previousShare = parseFloat(record["7d_prev_market_share"] || 0) * 100;
     const change = currentShare - previousShare;
-    
+
     // Only include companies with meaningful data
     if (currentShare > 0.01 || previousShare > 0.01) {
       results.push({
@@ -1966,7 +1916,7 @@ function getAllCompaniesWithMarketShare() {
         currentShare: currentShare,
         previousShare: previousShare,
         change: change,
-        dataPoints: data.currentPeriodData.length // For debugging
+        dataPoints: 1 // For debugging - each company has one record
       });
     }
   });
@@ -1974,10 +1924,10 @@ function getAllCompaniesWithMarketShare() {
   // Sort by market share (descending)
   results.sort((a, b) => b.currentShare - a.currentShare);
   
-  console.log(`[getAllCompaniesWithMarketShare] Returning ${results.length} companies`);
-  console.log(`Data calculated for: ALL locations, ALL devices, 7-day period`);
+  console.log(`[getAllCompaniesWithMarketShare] Returning ${results.length} companies (sorted by market share)`);
+  console.log(`Data source: pre-calculated 7d market share from company_serp_stats (q="all" records)`);
   if (results.length > 0) {
-    console.log("Sample result:", results[0]);
+    console.log("Top company:", results[0]);
   }
   
   return results;
