@@ -413,11 +413,11 @@ menuItem.addEventListener("click", (e) => {
 }); // end menuItem.addEventListener
   });
 
-  // 8) Add a toggle button to collapse the entire left column
-  const toggleButton = document.createElement("div");
-  toggleButton.id = "toggleCollapseButton";
-  toggleButton.textContent = "←→";
-  leftCol.appendChild(toggleButton);
+// 8) Add a toggle button to collapse the entire left column
+const toggleButton = document.createElement("div");
+toggleButton.id = "toggleCollapseButton";
+toggleButton.textContent = "←→";
+projectListContainer.appendChild(toggleButton); // Changed from leftCol to projectListContainer
   console.log("[renderProjects] ➕ Appended #toggleCollapseButton to leftColumn.");
 
   let isCollapsed = false;
