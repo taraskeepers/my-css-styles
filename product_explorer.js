@@ -5451,27 +5451,24 @@ function renderCompaniesNavPanel() {
   const compNavPanel = document.getElementById('compNavPanel');
   if (!compNavPanel) return;
 
-  // Prepare company data if not already available
-  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
-    if (typeof prepareCompanySerpsStatsData === 'function') {
-      prepareCompanySerpsStatsData();
-    }
-  }
+// Use the same data source as projectPage.js
+if (!window.companyStatsData || window.companyStatsData.length === 0) {
+  compNavPanel.innerHTML = `
+    <div style="padding: 15px; text-align: center; color: #666;">
+      <h3>No company data available</h3>
+      <p>Please ensure data is loaded for the current project.</p>
+    </div>
+  `;
+  return;
+}
 
-  if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
-    compNavPanel.innerHTML = `
-      <div style="padding: 15px; text-align: center; color: #666;">
-        <h3>No company data available</h3>
-        <p>Please ensure data is loaded for the current project.</p>
-      </div>
-    `;
-    return;
-  }
+const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
 
-// Use pre-calculated data from company_serp_stats where q="all" and device="all"
-const allCompanyRecords = window.company_serp_stats.filter(stat => 
-  stat.q === "all" && stat.device === "all"
-);
+// Use pre-calculated data from companyStatsData where q="all" and device="all"
+const allCompanyRecords = window.companyStatsData.filter(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
+});
 
 console.log(`[renderCompaniesNavPanel] Found ${allCompanyRecords.length} companies with q="all" and device="all"`);
 
