@@ -312,32 +312,60 @@ if (!document.getElementById("project-page-stats-style")) {
           border-style: solid;
           border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
         }
+
         .company-name-header {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
+  height: 80px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
   text-align: center;
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
+  margin-bottom: 15px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+  border-radius: 12px;
+  border: 1px solid #1a252f;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  min-height: 20px;
+  letter-spacing: 1px;
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.2),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
+.company-name-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.company-name-header:hover::before {
+  left: 100%;
+}
+
+.company-name-header:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 6px 12px rgba(0,0,0,0.25),
+    0 2px 4px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+}
 .section-label {
   font-size: 11px;
-  color: #666;
+  color: #888;
   text-transform: uppercase;
   margin-bottom: 12px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
     `;
     document.head.appendChild(style);
