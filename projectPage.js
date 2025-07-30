@@ -2416,168 +2416,61 @@ if (typeof findOverallMaxDateInCompanyStats === 'undefined') {
 
 // Replace your existing calculateGainersLosers function with this fixed version
 function calculateGainersLosers() {
-  console.log("[calculateGainersLosers] Starting calculation...");
+  console.log("[calculateGainersLosers] Starting calculation with pre-calculated data...");
   
-  // Use companyStatsData to get ALL companies
   if (!window.companyStatsData || !window.companyStatsData.length) {
     console.warn("[calculateGainersLosers] No companyStatsData available");
     return { gainers: [], losers: [] };
   }
 
-  // Get filter settings
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  const currentLocation = window.filterState?.location || "";
-  const periodDays = window.filterState.period === "3d" ? 3 : 
-                     window.filterState.period === "30d" ? 30 : 7;
   
   console.log("[calculateGainersLosers] Filters:", { 
     project: activeProjectNumber, 
-    location: currentLocation, 
-    device: "All (combined)", // Always show combined data
-    period: periodDays
+    q: "all",
+    device: "all"
   });
 
-  // Filter by project number first
-  let projectFiltered = window.companyStatsData.filter(row => {
+  // Get ALL companies with q="all" and device="all" for the current project
+  const allCompanyRecords = window.companyStatsData.filter(row => {
     const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber;
-  });
-  
-  // Apply location filter only - NOT device filter
-  // We want to show combined desktop + mobile data for gainers/losers
-  let filtered = projectFiltered.filter(row => {
-    if (currentLocation && row.location_requested !== currentLocation) {
-      return false;
-    }
-    // Don't filter by device - we want to see combined data
-    return true;
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "all";
   });
 
-  console.log(`[calculateGainersLosers] After filters: ${filtered.length} records`);
-
-  // Get the global max date
-  const globalMaxDate = findOverallMaxDateInCompanyStats(filtered);
-  if (!globalMaxDate) {
-    console.warn("[calculateGainersLosers] No valid max date found");
-    return { gainers: [], losers: [] };
-  }
-
-  // Define date ranges based on the selected period
-  const currentEnd = globalMaxDate.clone();
-  const currentStart = currentEnd.clone().subtract(periodDays - 1, "days");
-  const previousEnd = currentStart.clone().subtract(1, "days");
-  const previousStart = previousEnd.clone().subtract(periodDays - 1, "days");
-
-  console.log("[calculateGainersLosers] Date ranges:", {
-    current: `${currentStart.format("YYYY-MM-DD")} to ${currentEnd.format("YYYY-MM-DD")}`,
-    previous: `${previousStart.format("YYYY-MM-DD")} to ${previousEnd.format("YYYY-MM-DD")}`
-  });
-
-  // Group by company and calculate using the same method as buildProjectData
-  const companyGroups = {};
-  
-  filtered.forEach(row => {
-    const companyName = row.source || row.title || "Unknown";
-    const searchTerm = row.q || row.search || "(no term)";
-    const loc = row.location_requested || "Unknown";
-    const dev = row.device || "Unknown";
-    const groupKey = `${companyName}||${searchTerm}||${loc}||${dev}`;
-    
-    if (!companyGroups[companyName]) {
-      companyGroups[companyName] = {};
-    }
-    if (!companyGroups[companyName][groupKey]) {
-      companyGroups[companyName][groupKey] = [];
-    }
-    companyGroups[companyName][groupKey].push(row);
-  });
-
-  console.log(`[calculateGainersLosers] Found ${Object.keys(companyGroups).length} unique companies`);
+  console.log(`[calculateGainersLosers] Found ${allCompanyRecords.length} company records with q="all" and device="all"`);
 
   // Calculate changes for each company
   const companyChanges = [];
   
-  Object.entries(companyGroups).forEach(([companyName, searchGroups]) => {
+  allCompanyRecords.forEach(record => {
+    const companyName = record.source;
     if (!companyName || companyName === "Unknown" || companyName === "null") {
       return;
     }
 
-    const groupAverages = [];
-    
-    // Calculate average for each search term/location/device combination
-    Object.entries(searchGroups).forEach(([groupKey, rows]) => {
-      // Merge historical data for this group
-      let mergedHist = [];
-      rows.forEach(r => {
-        if (Array.isArray(r.historical_data)) {
-          mergedHist = mergedHist.concat(r.historical_data);
-        }
-      });
-
-      if (!mergedHist.length) return;
-
-      // Build day map
-      const dayMap = {};
-      mergedHist.forEach(obj => {
-        if (obj.date?.value) {
-          dayMap[obj.date.value] = {
-            s: obj.market_share != null ? parseFloat(obj.market_share) * 100 : 0
-          };
-        }
-      });
-
-      // Calculate current period average
-      let sumShare = 0;
-      let run = currentStart.clone();
-      while (run.isSameOrBefore(currentEnd, "day")) {
-        const ds = run.format("YYYY-MM-DD");
-        sumShare += (dayMap[ds]?.s || 0);
-        run.add(1, "days");
-      }
-      const avgShare = sumShare / periodDays;
-
-      // Calculate previous period average
-      let prevSumShare = 0;
-      run = previousStart.clone();
-      while (run.isSameOrBefore(previousEnd, "day")) {
-        const ds = run.format("YYYY-MM-DD");
-        prevSumShare += (dayMap[ds]?.s || 0);
-        run.add(1, "days");
-      }
-      const prevAvgShare = prevSumShare / periodDays;
-      
-      const trendVal = avgShare - prevAvgShare;
-      
-      groupAverages.push({
-        avgShare,
-        prevAvgShare,
-        trendVal
-      });
-    });
-
-    if (groupAverages.length === 0) return;
-
-    // Average across all groups (same as calculateCompanyMarketShareData does)
-    const currentAvg = groupAverages.reduce((sum, g) => sum + g.avgShare, 0) / groupAverages.length;
-    const previousAvg = groupAverages.reduce((sum, g) => sum + g.prevAvgShare, 0) / groupAverages.length;
-    const trendAvg = groupAverages.reduce((sum, g) => sum + g.trendVal, 0) / groupAverages.length;
+    // Extract market share values (convert from decimal to percentage)
+    const currentShare = parseFloat(record["7d_market_share"] || 0) * 100;
+    const previousShare = parseFloat(record["7d_prev_market_share"] || 0) * 100;
+    const change = currentShare - previousShare;
 
     // Only include companies with meaningful data
-    if (currentAvg > 0.01 || previousAvg > 0.01) {
+    if (currentShare > 0.01 || previousShare > 0.01) {
       companyChanges.push({
         company: companyName,
-        currentShare: currentAvg,
-        previousShare: previousAvg,
-        change: trendAvg,
-        changePercent: previousAvg > 0 ? (trendAvg / previousAvg) * 100 : 0
+        currentShare: currentShare,
+        previousShare: previousShare,
+        change: change,
+        changePercent: previousShare > 0 ? (change / previousShare) * 100 : 0
       });
     }
   });
 
   console.log(`[calculateGainersLosers] Calculated changes for ${companyChanges.length} companies`);
   
-  // Debug: Show all companies with their changes
-  if (companyChanges.length < 10) {
+  // Debug: Show all companies with their changes (if reasonable number)
+  if (companyChanges.length <= 20) {
     console.log("[calculateGainersLosers] All company changes:", 
       companyChanges.map(c => `${c.company}: ${c.change.toFixed(2)}%`)
     );
@@ -2599,6 +2492,7 @@ function calculateGainersLosers() {
     showingGainers: gainers.length, 
     showingLosers: losers.length 
   });
+  console.log("[calculateGainersLosers] Data source: pre-calculated 7d market share from company_serp_stats");
 
   return { gainers, losers };
 }
@@ -2872,7 +2766,7 @@ function renderProjectDailyRankBoxes(projectData) {
   container.innerHTML = "";
 
   // 2) Build the dailyRank array
-  const dailyArr = buildProjectDailyRankAverages(projectData);
+  const dailyArr = buildProjectDailyRankAveragesFromCompanyStats();
   if (!Array.isArray(dailyArr) || !dailyArr.length) {
     container.textContent = "No rank data available.";
     return;
@@ -3043,6 +2937,77 @@ function buildProjectDailyAveragesFromCompanyStats() {
   }
 
   return dailyData;
+}
+
+function buildProjectDailyRankAveragesFromCompanyStats() {
+  console.log("[buildProjectDailyRankAveragesFromCompanyStats] Building rank data from company_serp_stats...");
+  
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[buildProjectDailyRankAveragesFromCompanyStats] No companyStatsData available");
+    return [];
+  }
+
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  
+  // Determine target company (same logic as other functions)
+  let targetCompany = "";
+  const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+  if (isDemo) {
+    targetCompany = "Nike";
+  } else {
+    if (window.frontendCompany && window.frontendCompany.trim()) {
+      targetCompany = window.frontendCompany.trim();
+    } else if (window.myCompany && window.myCompany.trim()) {
+      targetCompany = window.myCompany.trim();
+    } else {
+      targetCompany = "REI"; // fallback
+      console.warn(`[buildProjectDailyRankAveragesFromCompanyStats] No company specified. Defaulting to "${targetCompany}"`);
+    }
+  }
+
+  console.log(`[buildProjectDailyRankAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
+
+  // Find the record for q="all" and device="all"
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "all" && 
+           rowCompany.toLowerCase() === targetCompany.toLowerCase();
+  });
+
+  if (!allDeviceRecord) {
+    console.warn("[buildProjectDailyRankAveragesFromCompanyStats] No matching record found");
+    return [];
+  }
+
+  if (!allDeviceRecord.historical_data || !Array.isArray(allDeviceRecord.historical_data)) {
+    console.warn("[buildProjectDailyRankAveragesFromCompanyStats] No historical data found");
+    return [];
+  }
+
+  // Build daily rank data
+  const dailyRankData = [];
+  
+  allDeviceRecord.historical_data.forEach(hist => {
+    if (hist.date && hist.date.value && hist.rank != null) {
+      dailyRankData.push({
+        date: hist.date.value,
+        avgRank: parseFloat(hist.rank) || 40
+      });
+    }
+  });
+
+  // Sort by date
+  dailyRankData.sort((a, b) => a.date.localeCompare(b.date));
+
+  console.log(`[buildProjectDailyRankAveragesFromCompanyStats] Built ${dailyRankData.length} daily rank points`);
+  if (dailyRankData.length > 0) {
+    console.log("[buildProjectDailyRankAveragesFromCompanyStats] Sample data:", dailyRankData[0]);
+  }
+
+  return dailyRankData;
 }
 
 // Helper function to reset all loading states (useful for debugging)
