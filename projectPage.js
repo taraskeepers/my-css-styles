@@ -1233,9 +1233,10 @@ hideFiltersOnProjectAndHome();
 }
 
 function calculateCompanyRankData() {
-  // Get current project data
-  const projectData = window.projectTableData || [];
-  if (!projectData.length) {
+  console.log("[calculateCompanyRankData] Using pre-calculated rank data...");
+  
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[calculateCompanyRankData] No companyStatsData available");
     return {
       currentRank: '-',
       rankTrend: 0,
@@ -1245,47 +1246,64 @@ function calculateCompanyRankData() {
       mobileTrend: 0
     };
   }
+
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Calculate average ranks
-  const allData = projectData;
-  const desktopData = projectData.filter(item => item.device.toLowerCase() === 'desktop');
-  const mobileData = projectData.filter(item => item.device.toLowerCase() === 'mobile');
+  // Find records for q="all" with different devices
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
+  });
   
-  // Overall average rank (current)
-  const currentAvgRank = allData.reduce((sum, item) => sum + item.avgRank, 0) / allData.length;
+  const desktopRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "desktop";
+  });
   
-  // Desktop average rank
-  const desktopAvgRank = desktopData.length > 0 
-    ? desktopData.reduce((sum, item) => sum + item.avgRank, 0) / desktopData.length 
-    : 40;
-    
-  // Mobile average rank  
-  const mobileAvgRank = mobileData.length > 0
-    ? mobileData.reduce((sum, item) => sum + item.avgRank, 0) / mobileData.length
-    : 40;
+  const mobileRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "mobile";
+  });
+
+  // Extract rank data for all devices
+  const currentRank = allDeviceRecord ? parseFloat(allDeviceRecord["7d_rank"] || 40) : 40;
+  const prevRank = allDeviceRecord ? parseFloat(allDeviceRecord["7d_prev_rank"] || 40) : 40;
+  const rankTrend = currentRank - prevRank; // Note: positive = worse rank, negative = better rank
   
-  // Calculate trends (using rankChange from projectTableData)
-  const overallTrend = allData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / allData.length;
-  const desktopTrend = desktopData.length > 0
-    ? desktopData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / desktopData.length
-    : 0;
-  const mobileTrend = mobileData.length > 0
-    ? mobileData.reduce((sum, item) => sum + (item.rankChange || 0), 0) / mobileData.length
-    : 0;
+  // Extract rank data for desktop
+  const desktopRank = desktopRecord ? parseFloat(desktopRecord["7d_rank"] || 40) : 40;
+  const desktopPrevRank = desktopRecord ? parseFloat(desktopRecord["7d_prev_rank"] || 40) : 40;
+  const desktopTrend = desktopRank - desktopPrevRank;
   
+  // Extract rank data for mobile
+  const mobileRank = mobileRecord ? parseFloat(mobileRecord["7d_rank"] || 40) : 40;
+  const mobilePrevRank = mobileRecord ? parseFloat(mobileRecord["7d_prev_rank"] || 40) : 40;
+  const mobileTrend = mobileRank - mobilePrevRank;
+  
+  console.log("[calculateCompanyRankData] Results:", {
+    currentRank: Math.round(currentRank),
+    rankTrend,
+    desktopRank: Math.round(desktopRank),
+    desktopTrend,
+    mobileRank: Math.round(mobileRank),
+    mobileTrend
+  });
+
   return {
-    currentRank: Math.round(currentAvgRank),
-    rankTrend: overallTrend,
-    desktopRank: Math.round(desktopAvgRank),
+    currentRank: Math.round(currentRank),
+    rankTrend: rankTrend,
+    desktopRank: Math.round(desktopRank),
     desktopTrend: desktopTrend,
-    mobileRank: Math.round(mobileAvgRank),
+    mobileRank: Math.round(mobileRank),
     mobileTrend: mobileTrend
   };
 }
 
 function calculateCompanyMarketShareData() {
-  const projectData = window.projectTableData || [];
-  if (!projectData.length) {
+  console.log("[calculateCompanyMarketShareData] Using pre-calculated market share data...");
+  
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[calculateCompanyMarketShareData] No companyStatsData available");
     return {
       currentShare: 0,
       shareTrend: 0,
@@ -1295,35 +1313,55 @@ function calculateCompanyMarketShareData() {
       mobileShareTrend: 0
     };
   }
+
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  const allData = projectData;
-  const desktopData = projectData.filter(item => item.device.toLowerCase() === 'desktop');
-  const mobileData = projectData.filter(item => item.device.toLowerCase() === 'mobile');
+  // Find records for q="all" with different devices
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
+  });
   
-  // Calculate average market shares
-  const currentAvgShare = allData.reduce((sum, item) => sum + item.avgShare, 0) / allData.length;
-  const desktopAvgShare = desktopData.length > 0
-    ? desktopData.reduce((sum, item) => sum + item.avgShare, 0) / desktopData.length
-    : 0;
-  const mobileAvgShare = mobileData.length > 0
-    ? mobileData.reduce((sum, item) => sum + item.avgShare, 0) / mobileData.length
-    : 0;
-    
-  // Calculate trends
-  const overallShareTrend = allData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / allData.length;
-  const desktopShareTrend = desktopData.length > 0
-    ? desktopData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / desktopData.length
-    : 0;
-  const mobileShareTrend = mobileData.length > 0
-    ? mobileData.reduce((sum, item) => sum + (item.trendVal || 0), 0) / mobileData.length
-    : 0;
+  const desktopRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "desktop";
+  });
   
+  const mobileRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "mobile";
+  });
+
+  // Extract market share data for all devices (convert from decimal to percentage)
+  const currentShare = allDeviceRecord ? parseFloat(allDeviceRecord["7d_market_share"] || 0) * 100 : 0;
+  const prevShare = allDeviceRecord ? parseFloat(allDeviceRecord["7d_prev_market_share"] || 0) * 100 : 0;
+  const shareTrend = currentShare - prevShare;
+  
+  // Extract market share data for desktop
+  const desktopShare = desktopRecord ? parseFloat(desktopRecord["7d_market_share"] || 0) * 100 : 0;
+  const desktopPrevShare = desktopRecord ? parseFloat(desktopRecord["7d_prev_market_share"] || 0) * 100 : 0;
+  const desktopShareTrend = desktopShare - desktopPrevShare;
+  
+  // Extract market share data for mobile
+  const mobileShare = mobileRecord ? parseFloat(mobileRecord["7d_market_share"] || 0) * 100 : 0;
+  const mobilePrevShare = mobileRecord ? parseFloat(mobileRecord["7d_prev_market_share"] || 0) * 100 : 0;
+  const mobileShareTrend = mobileShare - mobilePrevShare;
+  
+  console.log("[calculateCompanyMarketShareData] Results:", {
+    currentShare,
+    shareTrend,
+    desktopShare,
+    desktopShareTrend,
+    mobileShare,
+    mobileShareTrend
+  });
+
   return {
-    currentShare: currentAvgShare,
-    shareTrend: overallShareTrend,
-    desktopShare: desktopAvgShare,
+    currentShare: currentShare,
+    shareTrend: shareTrend,
+    desktopShare: desktopShare,
     desktopShareTrend: desktopShareTrend,
-    mobileShare: mobileAvgShare,
+    mobileShare: mobileShare,
     mobileShareTrend: mobileShareTrend
   };
 }
