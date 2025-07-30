@@ -595,13 +595,20 @@ function buildProjectData() {
   const availableCompanies = [...new Set(window.companyStatsData.map(r => r.source?.toLowerCase()))];
   console.log("[buildProjectData] Available companies:", availableCompanies);
 
-  // Apply filter based on active project number FIRST
-  let projectFiltered = window.companyStatsData.filter(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber;
-  });
-  
-  console.log(`[buildProjectData] Filtered to ${projectFiltered.length} records for project ${activeProjectNumber}`);
+// Apply filter based on active project number FIRST
+let projectFiltered = window.companyStatsData.filter(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  return rowProjNum === activeProjectNumber;
+});
+
+console.log(`[buildProjectData] Filtered to ${projectFiltered.length} records for project ${activeProjectNumber}`);
+
+// EXCLUDE records where q="all" OR location_requested="all" for the project table
+projectFiltered = projectFiltered.filter(row => {
+  return row.q !== "all" && row.location_requested !== "all";
+});
+
+console.log(`[buildProjectData] After excluding q="all" and location_requested="all": ${projectFiltered.length} records`);
   
   // NOW patch sources only for this project's records if needed
   if (!isDemo && window.myCompanyArray && window.myCompanyArray.length > 0) {
