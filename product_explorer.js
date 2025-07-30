@@ -5624,15 +5624,15 @@ if (companyData.rankTrend !== undefined && companyData.rankTrend !== 0) {
   const rankTrendSpan = document.createElement('span');
   rankTrendSpan.className = 'trend-indicator';
   
-  if (companyData.rankTrend > 0) {
-    rankTrendSpan.className += ' trend-up';
-    rankTrendSpan.textContent = `▲${Math.abs(companyData.rankTrend)}`;
-    rankTrendSpan.title = `Improved ${Math.abs(companyData.rankTrend)} positions vs 7 days ago`;
-  } else {
-    rankTrendSpan.className += ' trend-down';
-    rankTrendSpan.textContent = `▼${Math.abs(companyData.rankTrend)}`;
-    rankTrendSpan.title = `Declined ${Math.abs(companyData.rankTrend)} positions vs 7 days ago`;
-  }
+if (companyData.rankTrend > 0) {
+  rankTrendSpan.className += ' trend-up';
+  rankTrendSpan.textContent = `▲${Math.abs(companyData.rankTrend).toFixed(2)}`;
+  rankTrendSpan.title = `Improved ${Math.abs(companyData.rankTrend).toFixed(2)} positions vs 7 days ago`;
+} else {
+  rankTrendSpan.className += ' trend-down';
+  rankTrendSpan.textContent = `▼${Math.abs(companyData.rankTrend).toFixed(2)}`;
+  rankTrendSpan.title = `Declined ${Math.abs(companyData.rankTrend).toFixed(2)} positions vs 7 days ago`;
+}
   nameDiv.appendChild(rankTrendSpan);
 }
   
@@ -5672,13 +5672,14 @@ if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketSha
   infoDiv.appendChild(marketShareDiv);
   container.appendChild(infoDiv);
 
-// Market share badge with water fill and trend (right side)
+// Market share badge with trend on the right side
 const marketShareContainer = document.createElement('div');
 marketShareContainer.style.cssText = `
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   margin-left: 10px;
+  gap: 6px;
 `;
 
 const marketBadge = document.createElement('div');
@@ -5714,28 +5715,28 @@ marketBadge.appendChild(valueSpan);
 
 marketShareContainer.appendChild(marketBadge);
 
-// Add market share trend below the badge
+// Add market share trend to the right of the badge
 if (companyData.marketShareTrend !== undefined && Math.abs(companyData.marketShareTrend) >= 0.1) {
   const trendSpan = document.createElement('span');
   trendSpan.style.cssText = `
     font-size: 10px;
     font-weight: 700;
-    margin-top: 2px;
     padding: 2px 4px;
     border-radius: 3px;
     display: inline-block;
+    white-space: nowrap;
   `;
   
   if (companyData.marketShareTrend > 0) {
     trendSpan.style.color = '#2E7D32';
     trendSpan.style.backgroundColor = 'rgba(76, 175, 80, 0.15)';
-    trendSpan.textContent = `▲${companyData.marketShareTrend.toFixed(1)}%`;
-    trendSpan.title = `Increased ${companyData.marketShareTrend.toFixed(1)}% vs 7 days ago`;
+    trendSpan.textContent = `▲${companyData.marketShareTrend.toFixed(2)}%`;
+    trendSpan.title = `Increased ${companyData.marketShareTrend.toFixed(2)}% vs 7 days ago`;
   } else {
     trendSpan.style.color = '#C62828';
     trendSpan.style.backgroundColor = 'rgba(244, 67, 54, 0.15)';
-    trendSpan.textContent = `▼${Math.abs(companyData.marketShareTrend).toFixed(1)}%`;
-    trendSpan.title = `Decreased ${Math.abs(companyData.marketShareTrend).toFixed(1)}% vs 7 days ago`;
+    trendSpan.textContent = `▼${Math.abs(companyData.marketShareTrend).toFixed(2)}%`;
+    trendSpan.title = `Decreased ${Math.abs(companyData.marketShareTrend).toFixed(2)}% vs 7 days ago`;
   }
   marketShareContainer.appendChild(trendSpan);
 }
@@ -5772,8 +5773,14 @@ function selectCompany(companyData, navItemElement) {
   
   window.selectedExplorerCompany = companyData;
   
-  // Get all combinations for this company
-  const companyCombinations = window.company_serp_stats
+// Make sure we have the original company_serp_stats data for the table
+if (!window.company_serp_stats || window.company_serp_stats.length === 0) {
+  if (typeof prepareCompanySerpsStatsData === 'function') {
+    prepareCompanySerpsStatsData();
+  }
+}
+
+const companyCombinations = window.company_serp_stats
     .filter(stat => stat.company === companyData.company)
     .map(stat => ({
       searchTerm: stat.searchTerm,
