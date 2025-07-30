@@ -420,12 +420,37 @@ toggleButton.textContent = "←→";
 projectListContainer.appendChild(toggleButton); // Changed from leftCol to projectListContainer
   console.log("[renderProjects] ➕ Appended #toggleCollapseButton to leftColumn.");
 
-  let isCollapsed = false;
-  toggleButton.addEventListener("click", () => {
-    console.log("[renderProjects] 🖱️ toggleCollapseButton clicked; current isCollapsed:", isCollapsed);
-    leftCol.classList.toggle("collapsed", !isCollapsed);
-    isCollapsed = !isCollapsed;
-  });
+let isCollapsed = false;
+toggleButton.addEventListener("click", () => {
+  console.log("[renderProjects] 🖱️ toggleCollapseButton clicked; current isCollapsed:", isCollapsed);
+  leftCol.classList.toggle("collapsed", !isCollapsed);
+  isCollapsed = !isCollapsed;
+  
+  // Update account selector text based on collapsed state
+  const accountText = document.getElementById("selectedAccountText");
+  if (accountText) {
+    const currentText = accountText.textContent.trim();
+    if (isCollapsed) {
+      // Show abbreviated version
+      if (currentText === "DEMO") {
+        accountText.textContent = "DEMO";
+      } else if (currentText === "Account 1") {
+        accountText.textContent = "A1";
+      } else {
+        // Extract first letter + number if possible
+        const match = currentText.match(/Account (\d+)/);
+        accountText.textContent = match ? `A${match[1]}` : currentText.charAt(0);
+      }
+    } else {
+      // Show full version
+      if (currentText === "DEMO") {
+        accountText.textContent = "DEMO";
+      } else if (currentText === "A1" || currentText.startsWith("A")) {
+        accountText.textContent = "Account 1";
+      }
+    }
+  }
+});
 
   // 9) Wrap up
   console.log("[renderProjects] ✅ Finished rendering projects successfully.");
