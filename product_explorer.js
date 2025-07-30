@@ -5808,139 +5808,166 @@ function createSelectedCompanyStats(companyData) {
   const tableContainer = document.getElementById('productExplorerTableContainer');
   if (!tableContainer) return;
 
-  // Create the stats container
+  // Create wrapper div for centering
+  const statsWrapper = document.createElement('div');
+  statsWrapper.style.cssText = `
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  `;
+
+  // Create the stats container with fixed width
   const statsContainer = document.createElement('div');
   statsContainer.id = 'selectedCompanyStats';
   statsContainer.className = 'project-page-wrapper';
   statsContainer.style.cssText = `
-    width: calc(100% - 40px);
+    width: 1241px;
     height: 450px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     gap: 10px;
-    margin: 10px 20px 20px 20px;
+    margin: 10px 0;
     background-color: #f9f9f9;
     padding: 15px;
     border-radius: 12px;
+    position: relative;
   `;
 
-  // Build the HTML structure similar to projectStats
+  // Build the HTML structure
   statsContainer.innerHTML = `
-    <!-- Company Name Header -->
-    <div class="company-name-header" id="selectedCompanyNameHeader" style="
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      background: #f9f9f9;
-      padding: 0 20px;
+    <!-- Company Name Header at the top -->
+    <div class="company-name-header" style="
+      height: 80px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 15px;
+      padding: 0 16px;
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+      border-radius: 12px;
+      border: 1px solid #1a252f;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 
+        0 4px 8px rgba(0,0,0,0.2),
+        0 1px 3px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
     ">${companyData.company}</div>
 
-    <!-- Left Side with Rank and Market Share side by side -->
-    <div class="project-stats-left-section" style="display: flex; flex-direction: row; gap: 10px; margin-right: 20px;">
-      <!-- Rank Container -->
-      <div class="stats-rank-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div class="section-label">COMPANY RANK</div>
-        <div id="selectedCompanyRankBox" class="big-rank-box">
-          <span id="selectedCompanyRankValue">${Math.round(companyData.currentRank)}</span>
-          <div id="selectedCompanyRankTrend" class="rank-trend-badge"></div>
-        </div>
-        <div class="device-ranks-row">
-          <div class="device-rank-box">
-            <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
-            </svg>
-            <div id="selectedDesktopRankValue" class="device-rank-number">-</div>
-            <div id="selectedDesktopRankTrend" class="device-rank-trend-badge"></div>
+    <!-- Main content area -->
+    <div style="display: flex; flex-direction: row; gap: 10px; flex: 1;">
+      <!-- Left Side with Rank and Market Share side by side -->
+      <div class="project-stats-left-section" style="display: flex; flex-direction: row; gap: 10px; margin-right: 20px;">
+        <!-- Rank Container -->
+        <div class="stats-rank-container" style="width: 220px; height: 100%; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div class="section-label">COMPANY RANK</div>
+          <div id="selectedCompanyRankBox" class="big-rank-box">
+            <span id="selectedCompanyRankValue">${Math.round(companyData.currentRank)}</span>
+            <div id="selectedCompanyRankTrend" class="rank-trend-badge"></div>
           </div>
-          <div class="device-rank-box">
-            <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-            </svg>
-            <div id="selectedMobileRankValue" class="device-rank-number">-</div>
-            <div id="selectedMobileRankTrend" class="device-rank-trend-badge"></div>
+          <div class="device-ranks-row">
+            <div class="device-rank-box">
+              <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
+              </svg>
+              <div id="selectedDesktopRankValue" class="device-rank-number">-</div>
+              <div id="selectedDesktopRankTrend" class="device-rank-trend-badge"></div>
+            </div>
+            <div class="device-rank-box">
+              <svg class="device-rank-icon-modern" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+              </svg>
+              <div id="selectedMobileRankValue" class="device-rank-number">-</div>
+              <div id="selectedMobileRankTrend" class="device-rank-trend-badge"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Market Share Container -->
+        <div class="stats-market-container" style="width: 220px; height: 100%; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div class="section-label">MARKET SHARE</div>
+          <div class="market-circle-wrapper" style="position: relative; margin-bottom: 5px;">
+            <div class="big-market-circle">
+              <div id="selectedMarketWaterFill" class="market-water-fill"></div>
+              <span id="selectedMarketShareValue" class="market-value-text">${companyData.avgMarketShare.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div id="selectedMarketShareTrend" class="market-trend-text"></div>
+          <div class="device-market-circles-row">
+            <div class="device-market-item">
+              <div class="device-market-circle">
+                <div id="selectedDesktopWaterFill" class="device-water-fill" style="height: 0%;"></div>
+                <span id="selectedDesktopShareValue" style="position: relative; z-index: 1;">0%</span>
+              </div>
+              <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
+              </svg>
+              <div id="selectedDesktopShareTrend" class="device-market-trend"></div>
+            </div>
+            <div class="device-market-item">
+              <div class="device-market-circle">
+                <div id="selectedMobileWaterFill" class="device-water-fill" style="height: 0%;"></div>
+                <span id="selectedMobileShareValue" style="position: relative; z-index: 1;">0%</span>
+              </div>
+              <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+              </svg>
+              <div id="selectedMobileShareTrend" class="device-market-trend"></div>
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- Market Share Container -->
-      <div class="stats-market-container" style="width: 220px; height: 100%; background: transparent; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div class="section-label">MARKET SHARE</div>
-        <div class="market-circle-wrapper" style="position: relative; margin-bottom: 5px;">
-          <div class="big-market-circle">
-            <div id="selectedMarketWaterFill" class="market-water-fill"></div>
-            <span id="selectedMarketShareValue" class="market-value-text">${companyData.avgMarketShare.toFixed(1)}%</span>
+      <!-- Right side with Market Share Chart and Gainers/Losers -->
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Market Share Chart Container -->
+        <div class="stats-chart-container" style="flex: 1; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+          <div class="section-label">Market Share</div>
+          <div class="chart-content" style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+            <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 150px; margin: 0 auto;"></div>
+            <div id="selectedCompanyDailyRankContainer" style="
+              display: flex;
+              gap: 1px;
+              padding: 5px;
+              background: #f8f8f8;
+              border-radius: 8px;
+              justify-content: flex-start;
+              flex-wrap: nowrap;
+              overflow-x: auto;
+              width: 700px;
+              margin: 0 auto;
+            "></div>
           </div>
         </div>
-        <div id="selectedMarketShareTrend" class="market-trend-text"></div>
-        <div class="device-market-circles-row">
-          <div class="device-market-item">
-            <div class="device-market-circle">
-              <div id="selectedDesktopWaterFill" class="device-water-fill" style="height: 0%;"></div>
-              <span id="selectedDesktopShareValue" style="position: relative; z-index: 1;">0%</span>
-            </div>
-            <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 3H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 13H4V5h16v11z"/>
-            </svg>
-            <div id="selectedDesktopShareTrend" class="device-market-trend"></div>
-          </div>
-          <div class="device-market-item">
-            <div class="device-market-circle">
-              <div id="selectedMobileWaterFill" class="device-water-fill" style="height: 0%;"></div>
-              <span id="selectedMobileShareValue" style="position: relative; z-index: 1;">0%</span>
-            </div>
-            <svg class="device-icon-label" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-            </svg>
-            <div id="selectedMobileShareTrend" class="device-market-trend"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-<!-- Right side with Market Share Chart and Daily Rank -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-      <!-- Market Share Chart -->
-      <div class="stats-chart-container" style="flex: 1; height: 200px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
-        <div class="section-label">Market Share</div>
-        <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
-          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 150px; margin: 0 auto;"></div>
-          <div id="selectedCompanyDailyRankContainer" style="
-            display: flex;
-            gap: 1px;
-            padding: 5px;
-            background: #f8f8f8;
-            border-radius: 8px;
-            justify-content: flex-start;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            width: 700px;
-            margin: 0;
-          "></div>
-        </div>
-      </div>
-      
-      <!-- Gainers/Losers Section -->
-      <div class="companyStats-inner products" style="width: 100%; flex: 1; overflow-y: auto; background: white; border-radius: 12px; padding: 10px;">
-        <div id="selectedCompanyGainersLosersSection" style="width: 100%; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-          <div class="gainers-losers-container" style="display: flex; gap: 20px; min-height: 160px;">
-            <!-- Gainers Column -->
-            <div class="gainers-column" style="flex: 1;">
-              <div class="column-header" style="background: #e8f5e9; padding: 8px; border-radius: 4px; text-align: center;">
-                <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">↑ TOP GAINERS</span>
+        
+        <!-- Products Table Container (Gainers/Losers) -->
+        <div class="companyStats-inner products" style="width: 100%; height: 200px; overflow-y: auto;">
+          <div id="selectedCompanyGainersLosersSection" style="width: 100%; height: 100%; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+            <div class="gainers-losers-container" style="display: flex; gap: 20px; min-height: 180px;">
+              <!-- Gainers Column -->
+              <div class="gainers-column" style="flex: 1;">
+                <div class="column-header" style="background: #e8f5e9; padding: 8px; border-radius: 4px; text-align: center;">
+                  <span style="color: #2e7d32; font-weight: bold; font-size: 13px;">↑ TOP GAINERS</span>
+                </div>
+                <div id="selectedTopGainersList" class="company-list" style="max-height: 150px; overflow-y: auto;">
+                  <!-- Will be populated dynamically -->
+                </div>
               </div>
-              <div id="selectedTopGainersList" class="company-list" style="max-height: 120px; overflow-y: auto;">
-                <!-- Will be populated dynamically -->
-              </div>
-            </div>
-            <!-- Losers Column -->
-            <div class="losers-column" style="flex: 1;">
-              <div class="column-header" style="background: #ffebee; padding: 8px; border-radius: 4px; text-align: center;">
-                <span style="color: #c62828; font-weight: bold; font-size: 13px;">↓ TOP LOSERS</span>
-              </div>
-              <div id="selectedTopLosersList" class="company-list" style="max-height: 120px; overflow-y: auto;">
-                <!-- Will be populated dynamically -->
+              <!-- Losers Column -->
+              <div class="losers-column" style="flex: 1;">
+                <div class="column-header" style="background: #ffebee; padding: 8px; border-radius: 4px; text-align: center;">
+                  <span style="color: #c62828; font-weight: bold; font-size: 13px;">↓ TOP LOSERS</span>
+                </div>
+                <div id="selectedTopLosersList" class="company-list" style="max-height: 150px; overflow-y: auto;">
+                  <!-- Will be populated dynamically -->
+                </div>
               </div>
             </div>
           </div>
@@ -5949,8 +5976,32 @@ function createSelectedCompanyStats(companyData) {
     </div>
   `;
 
-  // Insert before the table (at the beginning of tableContainer)
-  tableContainer.insertBefore(statsContainer, tableContainer.firstChild);
+  // Add stats container to wrapper, then wrapper to table container
+  statsWrapper.appendChild(statsContainer);
+  tableContainer.insertBefore(statsWrapper, tableContainer.firstChild);
+
+  // Add the :before pseudo-element animation for company name header
+  const styleId = 'selectedCompanyHeaderStyle';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      #selectedCompanyStats .company-name-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.6s ease;
+      }
+      #selectedCompanyStats .company-name-header:hover::before {
+        left: 100%;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   // Populate the stats with data
   updateSelectedCompanyStats(companyData);
@@ -6358,13 +6409,13 @@ function renderSelectedCompanyMarketShareChart(companyData) {
   
   const options = {
     series: series,
-    chart: {
-      type: "area",
-      stacked: true,
-      height: 150,
-      width: 700,
-      toolbar: { show: false },
-      zoom: { enabled: false }
+chart: {
+  type: "area",
+  stacked: true,
+  width: 700,    // Fixed width
+  height: 150,   // Fixed height
+  toolbar: { show: false },
+  zoom: { enabled: false }
     },
     dataLabels: {
       enabled: true,
