@@ -2090,7 +2090,7 @@ function renderProjectMarketShareChart(projectData) {
   }
 
   // 1) Build daily data => .deskAvg, .mobAvg, .totalAvg
-  const dailyArr = buildProjectDailyAverages(projectData);
+  const dailyArr = buildProjectDailyAveragesFromCompanyStats();
   if (!Array.isArray(dailyArr) || !dailyArr.length) {
     chartEl.innerHTML = "<p>No valid daily data for projectMarketShareChart</p>";
     return;
@@ -2919,6 +2919,130 @@ function renderProjectDailyRankBoxes(projectData) {
 
     container.appendChild(box);
   });
+}
+
+function buildProjectDailyAveragesFromCompanyStats() {
+  console.log("[buildProjectDailyAveragesFromCompanyStats] Building chart data from company_serp_stats...");
+  
+  if (!window.companyStatsData || !window.companyStatsData.length) {
+    console.warn("[buildProjectDailyAveragesFromCompanyStats] No companyStatsData available");
+    return [];
+  }
+
+  const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+  
+  // Determine target company (same logic as rank/share functions)
+  let targetCompany = "";
+  const isDemo = window.dataPrefix?.startsWith("demo_") || window._isDemoMode === true;
+  if (isDemo) {
+    targetCompany = "Nike";
+  } else {
+    if (window.frontendCompany && window.frontendCompany.trim()) {
+      targetCompany = window.frontendCompany.trim();
+    } else if (window.myCompany && window.myCompany.trim()) {
+      targetCompany = window.myCompany.trim();
+    } else {
+      targetCompany = "REI"; // fallback
+      console.warn(`[buildProjectDailyAveragesFromCompanyStats] No company specified. Defaulting to "${targetCompany}"`);
+    }
+  }
+
+  console.log(`[buildProjectDailyAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
+
+  // Find the three records we need
+  const allDeviceRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "all" && 
+           rowCompany.toLowerCase() === targetCompany.toLowerCase();
+  });
+  
+  const desktopRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "desktop" && 
+           rowCompany.toLowerCase() === targetCompany.toLowerCase();
+  });
+  
+  const mobileRecord = window.companyStatsData.find(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    const rowCompany = (row.source || "").trim();
+    return rowProjNum === activeProjectNumber && 
+           row.q === "all" && 
+           row.device === "mobile" && 
+           rowCompany.toLowerCase() === targetCompany.toLowerCase();
+  });
+
+  console.log("[buildProjectDailyAveragesFromCompanyStats] Found records:", {
+    allDevice: !!allDeviceRecord,
+    desktop: !!desktopRecord,
+    mobile: !!mobileRecord
+  });
+
+  // Collect all dates from all records to ensure we have complete date coverage
+  const allDates = new Set();
+  [allDeviceRecord, desktopRecord, mobileRecord].forEach(record => {
+    if (record && record.historical_data && Array.isArray(record.historical_data)) {
+      record.historical_data.forEach(hist => {
+        if (hist.date && hist.date.value) {
+          allDates.add(hist.date.value);
+        }
+      });
+    }
+  });
+
+  // Convert to sorted array
+  const sortedDates = Array.from(allDates).sort();
+  console.log(`[buildProjectDailyAveragesFromCompanyStats] Found ${sortedDates.length} unique dates`);
+
+  // Build daily data
+  const dailyData = [];
+  
+  sortedDates.forEach(dateStr => {
+    const dayObj = {
+      date: dateStr,
+      totalAvg: 0,   // All devices
+      deskAvg: 0,    // Desktop only  
+      mobAvg: 0      // Mobile only
+    };
+
+    // Extract market share for all devices
+    if (allDeviceRecord && allDeviceRecord.historical_data) {
+      const histEntry = allDeviceRecord.historical_data.find(h => h.date && h.date.value === dateStr);
+      if (histEntry && histEntry.market_share != null) {
+        dayObj.totalAvg = parseFloat(histEntry.market_share) * 100; // Convert to percentage
+      }
+    }
+
+    // Extract market share for desktop
+    if (desktopRecord && desktopRecord.historical_data) {
+      const histEntry = desktopRecord.historical_data.find(h => h.date && h.date.value === dateStr);
+      if (histEntry && histEntry.market_share != null) {
+        dayObj.deskAvg = parseFloat(histEntry.market_share) * 100; // Convert to percentage
+      }
+    }
+
+    // Extract market share for mobile
+    if (mobileRecord && mobileRecord.historical_data) {
+      const histEntry = mobileRecord.historical_data.find(h => h.date && h.date.value === dateStr);
+      if (histEntry && histEntry.market_share != null) {
+        dayObj.mobAvg = parseFloat(histEntry.market_share) * 100; // Convert to percentage
+      }
+    }
+
+    dailyData.push(dayObj);
+  });
+
+  console.log(`[buildProjectDailyAveragesFromCompanyStats] Built ${dailyData.length} daily data points`);
+  if (dailyData.length > 0) {
+    console.log("[buildProjectDailyAveragesFromCompanyStats] Sample data:", dailyData[0]);
+  }
+
+  return dailyData;
 }
 
 // Helper function to reset all loading states (useful for debugging)
