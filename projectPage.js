@@ -1366,12 +1366,21 @@ if (isDemo) {
 
 console.log(`[calculateCompanyRankData] Looking for company: "${targetCompany}"`);
   
-  // Find records for q="all" with different devices
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[calculateCompanyRankData] Using search term: "${searchTermToUse}"`);
+
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
+
+// Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1383,8 +1392,9 @@ const allDeviceRecord = window.companyStatsData.find(row => {
 const desktopRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "desktop" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1396,8 +1406,9 @@ const desktopRecord = window.companyStatsData.find(row => {
 const mobileRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "mobile" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1475,21 +1486,31 @@ if (isDemo) {
 
 console.log(`[calculateCompanyMarketShareData] Looking for company: "${targetCompany}"`);
   
-  // Find records for q="all" with different devices
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
+
+// Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
 
 const desktopRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "desktop" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -1497,8 +1518,9 @@ const desktopRecord = window.companyStatsData.find(row => {
 const mobileRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "mobile" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -2125,20 +2147,25 @@ function getAllCompaniesWithMarketShare() {
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Filter for records where q="all" for the current project
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[getAllCompaniesWithMarketShare] Using search term: "${searchTermToUse}"`);
+
+// Filter for records where q matches the search term for the current project
 const allRecords = window.companyStatsData.filter(row => {
   const rowProjNum = parseInt(row.project_number, 10);
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
          row.engine === "all" &&
          row.google_domain === "all";
 });
-  
-  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="all" and device="all" for project ${activeProjectNumber}`);
 
+console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="${searchTermToUse}" and device="all" for project ${activeProjectNumber}`);
+  
   const results = [];
   
   allRecords.forEach(record => {
@@ -2718,12 +2745,17 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-// Filter for records where q="all" (already filtered by project when loaded)
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildInfoBlockCompaniesTrendData] Using search term: "${searchTermToUse}"`);
+
+// Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === "all" && row.device === "all";
+  const rowSearchTerm = row.q || "";
+  return rowSearchTerm === searchTermToUse && row.device === "all";
 });
   
-  console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
+console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="${searchTermToUse}" and device="all" for project ${activeProjectNumber}`);
   
   // Get the latest date from the data
   let latestDate = null;
@@ -2782,12 +2814,17 @@ function buildInfoBlockProductsTrendData(days = 14) {
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-// Filter for records where q="all" (already filtered by project when loaded)
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildInfoBlockProductsTrendData] Using search term: "${searchTermToUse}"`);
+
+// Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === "all" && row.device === "all";
+  const rowSearchTerm = row.q || "";
+  return rowSearchTerm === searchTermToUse && row.device === "all";
 });
   
-  console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
+console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} records with q="${searchTermToUse}" and device="all" for project ${activeProjectNumber}`);
   
   // Get the latest date from the data
   let latestDate = null;
@@ -2849,10 +2886,17 @@ function updateInfoBlockCompaniesStats() {
   if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
-// Filter for records where q="all" (already filtered by project when loaded)
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildInfoBlockCompaniesTrendData] Using search term: "${searchTermToUse}"`);
+
+// Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === "all" && row.device === "all";
+  const rowSearchTerm = row.q || "";
+  return rowSearchTerm === searchTermToUse && row.device === "all";
 });
+  
+console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="${searchTermToUse}" and device="all" for project ${activeProjectNumber}`);
     
     if (projectMarketData.length > 0) {
       // Find the latest date
@@ -2985,12 +3029,17 @@ function buildProjectDailyAveragesFromCompanyStats() {
 
   console.log(`[buildProjectDailyAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
 
-  // Find the three records we need
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
+
+// Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
   return rowProjNum === activeProjectNumber && 
-         row.q === "all" && 
+         rowSearchTerm === searchTermToUse && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -2999,23 +3048,25 @@ const allDeviceRecord = window.companyStatsData.find(row => {
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
   
-  const desktopRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    const rowCompany = (row.source || "").trim();
-    return rowProjNum === activeProjectNumber && 
-           row.q === "all" && 
-           row.device === "desktop" && 
-           rowCompany.toLowerCase() === targetCompany.toLowerCase();
-  });
+const desktopRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
+  return rowProjNum === activeProjectNumber && 
+         rowSearchTerm === searchTermToUse && 
+         row.device === "desktop" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
   
-  const mobileRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    const rowCompany = (row.source || "").trim();
-    return rowProjNum === activeProjectNumber && 
-           row.q === "all" && 
-           row.device === "mobile" && 
-           rowCompany.toLowerCase() === targetCompany.toLowerCase();
-  });
+const mobileRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
+  return rowProjNum === activeProjectNumber && 
+         rowSearchTerm === searchTermToUse && 
+         row.device === "mobile" && 
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
 
   console.log("[buildProjectDailyAveragesFromCompanyStats] Found records:", {
     allDevice: !!allDeviceRecord,
@@ -3113,15 +3164,24 @@ function buildProjectDailyRankAveragesFromCompanyStats() {
 
   console.log(`[buildProjectDailyRankAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
 
-  // Find the record for q="all" and device="all"
-  const allDeviceRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    const rowCompany = (row.source || "").trim();
-    return rowProjNum === activeProjectNumber && 
-           row.q === "all" && 
-           row.device === "all" && 
-           rowCompany.toLowerCase() === targetCompany.toLowerCase();
-  });
+// Determine which search term to use - selected or "all"
+const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
+
+// Find the three records we need
+const allDeviceRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  const rowSearchTerm = row.q || "";
+  return rowProjNum === activeProjectNumber && 
+         rowSearchTerm === searchTermToUse && 
+         row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
 
   if (!allDeviceRecord) {
     console.warn("[buildProjectDailyRankAveragesFromCompanyStats] No matching record found");
