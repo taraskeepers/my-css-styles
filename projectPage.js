@@ -677,6 +677,19 @@ if (window.filterState?.selectedSearchCard?.searchTerm) {
   
   console.log(`[buildProjectData] After search term filter: ${projectFiltered.length} records`);
 }
+
+// Apply location filter if one is selected
+if (window.filterState?.location) {
+  const selectedLocation = window.filterState.location;
+  console.log(`[buildProjectData] Applying location filter: "${selectedLocation}"`);
+  
+  projectFiltered = projectFiltered.filter(row => {
+    const rowLocation = row.location_requested || "";
+    return rowLocation.toLowerCase() === selectedLocation.toLowerCase();
+  });
+  
+  console.log(`[buildProjectData] After location filter: ${projectFiltered.length} records`);
+}
   
   // NOW patch sources only for this project's records if needed
   if (!isDemo && window.myCompanyArray && window.myCompanyArray.length > 0) {
