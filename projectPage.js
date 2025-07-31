@@ -102,6 +102,71 @@ async function populateProjectPage() {
     }
     window._projectPageProcessing = true;
 
+    // ==========================================
+    // 🚨 DEBUG CODE - SearchTerm Analysis
+    // ==========================================
+    console.group("🔍 [Q-FILTER] SearchTerm Analysis - Embed Load");
+    console.log("📍 Function: populateProjectPage()");
+    console.log("⏰ Timestamp:", new Date().toISOString());
+    
+    // Check if filterState exists
+    console.log("📊 window.filterState exists?", !!window.filterState);
+    
+    if (window.filterState) {
+        console.log("📊 Complete filterState object:", JSON.stringify(window.filterState, null, 2));
+        
+        // Specifically check searchTerm
+        const searchTerm = window.filterState?.searchTerm;
+        console.log("🎯 window.filterState.searchTerm:", searchTerm);
+        console.log("🎯 searchTerm type:", typeof searchTerm);
+        console.log("🎯 searchTerm length:", searchTerm?.length || 0);
+        console.log("🎯 searchTerm is empty/undefined?", !searchTerm || searchTerm === "");
+        
+        // Check selectedSearchCard
+        const selectedCard = window.filterState?.selectedSearchCard;
+        console.log("🎯 window.filterState.selectedSearchCard:", selectedCard);
+        if (selectedCard) {
+            console.log("🎯 selectedSearchCard.searchTerm:", selectedCard?.searchTerm);
+        }
+        
+        // Check what will be used in the filtering logic
+        const effectiveSearchTerm = window.filterState?.searchTerm || "all";
+        console.log("🎯 Effective search term (for filtering):", effectiveSearchTerm);
+        
+        // Check other relevant filter properties
+        console.log("📍 Other filter properties:");
+        console.log("   - activeProjectNumber:", window.filterState?.activeProjectNumber);
+        console.log("   - company:", window.filterState?.company);
+        console.log("   - location:", window.filterState?.location);
+        console.log("   - period:", window.filterState?.period);
+    } else {
+        console.warn("❌ window.filterState is not defined!");
+    }
+    
+    // Check if this is the first load
+    if (!window._debugSearchTermLogged) {
+        console.log("🚀 FIRST TIME EMBED LOAD DETECTED");
+        window._debugSearchTermLogged = true;
+        
+        // Log data sources that might affect filtering
+        console.log("📊 Available data sources:");
+        console.log("   - companyStatsData length:", window.companyStatsData?.length || 0);
+        console.log("   - projectData length:", window.projectData?.length || 0);
+        console.log("   - projectMarketTrendsData length:", window.projectMarketTrendsData?.length || 0);
+        
+        // Check if any search terms are available in the data
+        if (window.companyStatsData && window.companyStatsData.length > 0) {
+            const uniqueSearchTerms = [...new Set(window.companyStatsData.map(r => r.q))].filter(q => q && q !== "null");
+            console.log("🔍 Available search terms in data:", uniqueSearchTerms.slice(0, 10)); // Show first 10
+            console.log("🔍 Total unique search terms:", uniqueSearchTerms.length);
+        }
+    }
+    
+    console.groupEnd();
+    // ==========================================
+    // 🚨 END DEBUG CODE
+    // ==========================================
+
 if (!document.getElementById("project-page-stats-style")) {
     const style = document.createElement("style");
     style.id = "project-page-stats-style";
