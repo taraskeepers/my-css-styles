@@ -522,9 +522,9 @@ allLocations.forEach(loc => {
       console.log("[DEBUG] Location clicked:", loc);
       e.stopPropagation();   // prevent card's click event from firing
 // Show searchTerm tag and enable company selector
-const searchTermContainer = document.getElementById("searchTermContainer");
-if (searchTermContainer) {
-  searchTermContainer.style.display = "block";
+const searchTermRow = document.getElementById("searchTermRow");
+if (searchTermRow) {
+  searchTermRow.style.display = "flex";
 }
   document.getElementById("companySelector").classList.remove("disabled");
   
@@ -598,9 +598,9 @@ if (projPageEl) {
     e.stopPropagation();
     console.log("[DEBUG] Search card clicked, toggling submenu");
 // Show searchTerm tag and enable company selector
-const searchTermContainer = document.getElementById("searchTermContainer");
-if (searchTermContainer) {
-  searchTermContainer.style.display = "block";
+const searchTermRow = document.getElementById("searchTermRow");
+if (searchTermRow) {
+  searchTermRow.style.display = "flex";
 }
   document.getElementById("companySelector").classList.remove("disabled");
 
@@ -731,15 +731,15 @@ function clearSelectedSearchCards() {
 *******************************************************/
 function updateFilterContainer(search) {
 // A) The "searchTerm" tag
-const searchTermContainer = document.getElementById("searchTermContainer");
+const searchTermRow = document.getElementById("searchTermRow");
 const searchTermTag = document.getElementById("searchTermTag");
 
-if (searchTermContainer && searchTermTag) {
+if (searchTermRow && searchTermTag) {
   if (search.search && search.search !== 'all') {
     searchTermTag.textContent = search.search;
-    searchTermContainer.style.display = "block";
+    searchTermRow.style.display = "flex";
   } else {
-    searchTermContainer.style.display = "none";
+    searchTermRow.style.display = "none";
   }
 }
 
