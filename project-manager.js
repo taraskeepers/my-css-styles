@@ -368,7 +368,7 @@ if (projPageEl) {
     
     // Disable company selector
     document.getElementById("companySelector").classList.add("disabled");
-    document.getElementById("searchTerm").style.display = "none";
+    document.getElementById("searchTermContainer").style.display = "none";
 
     // 5) Always reload data when switching projects to ensure correct data
     const newPrefix = `acc1_pr${project.project_number}_`;
@@ -521,8 +521,11 @@ allLocations.forEach(loc => {
     locItem.addEventListener("click", (e) => {
       console.log("[DEBUG] Location clicked:", loc);
       e.stopPropagation();   // prevent card's click event from firing
-      // Show searchTerm and enable company selector
-  document.getElementById("searchTerm").style.display = "";
+// Show searchTerm tag and enable company selector
+const searchTermContainer = document.getElementById("searchTermContainer");
+if (searchTermContainer) {
+  searchTermContainer.style.display = "block";
+}
   document.getElementById("companySelector").classList.remove("disabled");
   
       // 1) Clear existing “selected” location rows in this submenu
@@ -594,8 +597,11 @@ if (projPageEl) {
   card.addEventListener("click", (e) => {
     e.stopPropagation();
     console.log("[DEBUG] Search card clicked, toggling submenu");
-    // Show searchTerm and enable company selector
-  document.getElementById("searchTerm").style.display = "";
+// Show searchTerm tag and enable company selector
+const searchTermContainer = document.getElementById("searchTermContainer");
+if (searchTermContainer) {
+  searchTermContainer.style.display = "block";
+}
   document.getElementById("companySelector").classList.remove("disabled");
 
     // a) Clear other selections and highlight this card
@@ -724,16 +730,18 @@ function clearSelectedSearchCards() {
      (searchTerm, engine, device, location)
 *******************************************************/
 function updateFilterContainer(search) {
-  // A) The “searchTerm” box
-  const searchTermValue = document.getElementById("searchTermValue");
-  if (searchTermValue) {
-    searchTermValue.innerHTML = "";
-    if (search.search) {
-      const termSpan = document.createElement("span");
-      termSpan.textContent = search.search;
-      searchTermValue.appendChild(termSpan);
-    }
+// A) The "searchTerm" tag
+const searchTermContainer = document.getElementById("searchTermContainer");
+const searchTermTag = document.getElementById("searchTermTag");
+
+if (searchTermContainer && searchTermTag) {
+  if (search.search && search.search !== 'all') {
+    searchTermTag.textContent = search.search;
+    searchTermContainer.style.display = "block";
+  } else {
+    searchTermContainer.style.display = "none";
   }
+}
 
   // ✅ Also update filterState.searchTerm
   window.filterState.searchTerm = (search.search || "").trim();
