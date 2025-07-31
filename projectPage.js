@@ -1436,7 +1436,7 @@ const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1449,7 +1449,7 @@ const desktopRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "desktop" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1462,7 +1462,7 @@ const mobileRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "mobile" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -1545,7 +1545,7 @@ const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -1554,7 +1554,7 @@ const desktopRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "desktop" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -1563,7 +1563,7 @@ const mobileRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "mobile" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -2194,7 +2194,7 @@ function getAllCompaniesWithMarketShare() {
 const allRecords = window.companyStatsData.filter(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -2638,7 +2638,7 @@ function calculateGainersLosers() {
 const allCompanyRecords = window.companyStatsData.filter(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -2785,7 +2785,7 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   
 // Filter for records where q="all" (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === (window.filterState?.searchTerm || "all") && row.device === "all";
+  return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && row.device === "all";
 });
   
   console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
@@ -2849,7 +2849,7 @@ function buildInfoBlockProductsTrendData(days = 14) {
   
 // Filter for records where q="all" (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === (window.filterState?.searchTerm || "all") && row.device === "all";
+  return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && row.device === "all";
 });
   
   console.log(`[buildInfoBlockProductsTrendData] Found ${projectMarketData.length} records with q="all" and device="all" for project ${activeProjectNumber}`);
@@ -2916,7 +2916,7 @@ function updateInfoBlockCompaniesStats() {
     
 // Filter for records where q="all" (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === (window.filterState?.searchTerm || "all") && row.device === "all";
+  return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && row.device === "all";
 });
     
     if (projectMarketData.length > 0) {
@@ -3055,7 +3055,7 @@ const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          row.location_requested === "all" &&
          row.traffic_source === "all" &&
@@ -3068,7 +3068,7 @@ const desktopRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "desktop" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -3077,7 +3077,7 @@ const mobileRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "mobile" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
@@ -3183,7 +3183,7 @@ const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
   const rowCompany = (row.source || "").trim();
   return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.searchTerm || "all") && 
+         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
          row.device === "all" && 
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
