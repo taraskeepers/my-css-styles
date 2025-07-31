@@ -664,6 +664,19 @@ projectFiltered = projectFiltered.filter(row => {
 });
 
 console.log(`[buildProjectData] After excluding q="all" and location_requested="all": ${projectFiltered.length} records`);
+
+// Apply search term filter if one is selected
+if (window.filterState?.selectedSearchCard?.searchTerm) {
+  const selectedSearchTerm = window.filterState.selectedSearchCard.searchTerm;
+  console.log(`[buildProjectData] Applying search term filter: "${selectedSearchTerm}"`);
+  
+  projectFiltered = projectFiltered.filter(row => {
+    const rowSearchTerm = row.q || row.search || "";
+    return rowSearchTerm.toLowerCase() === selectedSearchTerm.toLowerCase();
+  });
+  
+  console.log(`[buildProjectData] After search term filter: ${projectFiltered.length} records`);
+}
   
   // NOW patch sources only for this project's records if needed
   if (!isDemo && window.myCompanyArray && window.myCompanyArray.length > 0) {
