@@ -1902,138 +1902,6 @@ function getRankBoxColor(rank) {
       updateInfoBlockCompaniesStats();
   }
 
-function updateInfoBlockCompaniesStats() {
-  console.log("[updateInfoBlockCompaniesStats] Starting...");
-  
-  // Get unique companies from companyStatsData over the last 14 days
-  const companies = new Set();
-  
-  if (window.companyStatsData && Array.isArray(window.companyStatsData) && window.companyStatsData.length > 0) {
-    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-    
-    // Filter for records where all filters = "all"
-    const allFiltersRecords = window.companyStatsData.filter(row => {
-      const rowProjNum = parseInt(row.project_number, 10);
-      return rowProjNum === activeProjectNumber && 
-             row.q === "all" && 
-             row.device === "all" && 
-             row.location_requested === "all" &&
-             row.traffic_source === "all" &&
-             row.engine === "all" &&
-             row.google_domain === "all";
-    });
-    
-    console.log(`[updateInfoBlockCompaniesStats] Found ${allFiltersRecords.length} records with all filters = "all"`);
-    
-    // Get the latest date from historical data
-    let latestDate = null;
-    allFiltersRecords.forEach(row => {
-      if (row.historical_data && Array.isArray(row.historical_data)) {
-        row.historical_data.forEach(hist => {
-          if (hist.date && hist.date.value) {
-            const d = moment(hist.date.value, "YYYY-MM-DD");
-            if (!latestDate || d.isAfter(latestDate)) {
-              latestDate = d.clone();
-            }
-          }
-        });
-      }
-    });
-    
-    if (latestDate) {
-      // Calculate date 14 days ago
-      const startDate = latestDate.clone().subtract(13, 'days'); // 13 days ago + today = 14 days
-      
-      // Count unique companies that were active in the last 14 days
-      allFiltersRecords.forEach(row => {
-        if (row.source && row.source !== "Unknown" && row.source !== "null") {
-          // Check if this company had any activity in the last 14 days
-          let wasActive = false;
-          if (row.historical_data && Array.isArray(row.historical_data)) {
-            wasActive = row.historical_data.some(hist => {
-              if (hist.date && hist.date.value) {
-                const histDate = moment(hist.date.value, "YYYY-MM-DD");
-                return histDate.isSameOrAfter(startDate) && histDate.isSameOrBefore(latestDate) &&
-                       (hist.rank != null || hist.market_share != null);
-              }
-              return false;
-            });
-          }
-          
-          if (wasActive) {
-            companies.add(row.source);
-          }
-        }
-      });
-    }
-    
-    console.log(`[updateInfoBlockCompaniesStats] Found ${companies.size} unique companies active in last 14 days`);
-  }
-  
-  // Update companies count
-  const companiesEl = document.getElementById('infoBlockTotalCompanies');
-  if (companiesEl) companiesEl.textContent = companies.size;
-  
-  // Get highest products count from marketTrendsData over last 14 days
-  let maxProductsCount = 0;
-  if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
-    const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-    
-    // Filter for records where q matches the selected search term (or "all")
-    // Note: NOT applying traffic_source filter for marketTrendsData
-    const projectMarketData = window.projectMarketTrendsData.filter(row => {
-      return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
-             row.device === "all";
-    });
-    
-    if (projectMarketData.length > 0) {
-      // Find the latest date
-      let latestDate = null;
-      projectMarketData.forEach(record => {
-        if (record.date && record.date.value) {
-          const d = moment(record.date.value, "YYYY-MM-DD");
-          if (!latestDate || d.isAfter(latestDate)) {
-            latestDate = d.clone();
-          }
-        }
-      });
-      
-      if (latestDate) {
-        // Calculate date 14 days ago
-        const startDate = latestDate.clone().subtract(13, 'days');
-        
-        // Find the maximum un_products value in the last 14 days
-        projectMarketData.forEach(record => {
-          if (record.date && record.date.value) {
-            const recordDate = moment(record.date.value, "YYYY-MM-DD");
-            if (recordDate.isSameOrAfter(startDate) && recordDate.isSameOrBefore(latestDate)) {
-              const productsCount = parseInt(record.un_products, 10) || 0;
-              if (productsCount > maxProductsCount) {
-                maxProductsCount = productsCount;
-              }
-            }
-          }
-        });
-        
-        console.log(`[updateInfoBlockCompaniesStats] Highest products count in last 14 days: ${maxProductsCount}`);
-      }
-    }
-  }
-  
-  // Update products count
-  const productsEl = document.getElementById('infoBlockTotalProducts');
-  if (productsEl) productsEl.textContent = maxProductsCount;
-  
-  // Render the trend charts
-  renderInfoBlockTrendCharts();
-  
-  // Get all companies with their market share data (this should still use current filters)
-  const allCompanies = getAllCompaniesWithMarketShare();
-  
-  // Render the companies list
-  renderInfoBlockCompaniesList(allCompanies);
-}
-
 // Add this new function to render the trend charts
 function renderInfoBlockTrendCharts() {
   console.log("[renderInfoBlockTrendCharts] Starting...");
@@ -2998,61 +2866,129 @@ const projectMarketData = window.projectMarketTrendsData.filter(row => {
 function updateInfoBlockCompaniesStats() {
   console.log("[updateInfoBlockCompaniesStats] Starting...");
   
-  // Debug: Check what data is available
-  console.log("[DEBUG] window.projectMarketTrendsData exists?", !!window.projectMarketTrendsData);
-  console.log("[DEBUG] window.projectMarketTrendsData length?", window.projectMarketTrendsData?.length);
-  if (window.projectMarketTrendsData && window.projectMarketTrendsData.length > 0) {
-    console.log("[DEBUG] Sample marketTrends record:", window.projectMarketTrendsData[0]);
-  }
+  // Get unique companies from companyStatsData over the last 14 days
+  const companies = new Set();
   
-// Get latest counts from market_trends data where q="all"
-  if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
+  if (window.companyStatsData && Array.isArray(window.companyStatsData) && window.companyStatsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
     
-// Filter for records where q="all" (already filtered by project when loaded)
-const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && row.device === "all";
-});
+    // Filter for records where all filters = "all"
+    const allFiltersRecords = window.companyStatsData.filter(row => {
+      const rowProjNum = parseInt(row.project_number, 10);
+      return rowProjNum === activeProjectNumber && 
+             row.q === "all" && 
+             row.device === "all" && 
+             row.location_requested === "all" &&
+             row.traffic_source === "all" &&
+             row.engine === "all" &&
+             row.google_domain === "all";
+    });
+    
+    console.log(`[updateInfoBlockCompaniesStats] Found ${allFiltersRecords.length} records with all filters = "all"`);
+    
+    // Get the latest date from historical data
+    let latestDate = null;
+    allFiltersRecords.forEach(row => {
+      if (row.historical_data && Array.isArray(row.historical_data)) {
+        row.historical_data.forEach(hist => {
+          if (hist.date && hist.date.value) {
+            const d = moment(hist.date.value, "YYYY-MM-DD");
+            if (!latestDate || d.isAfter(latestDate)) {
+              latestDate = d.clone();
+            }
+          }
+        });
+      }
+    });
+    
+    if (latestDate) {
+      // Calculate date 14 days ago
+      const startDate = latestDate.clone().subtract(13, 'days'); // 13 days ago + today = 14 days
+      
+      // Count unique companies that were active in the last 14 days
+      allFiltersRecords.forEach(row => {
+        if (row.source && row.source !== "Unknown" && row.source !== "null") {
+          // Check if this company had any activity in the last 14 days
+          let wasActive = false;
+          if (row.historical_data && Array.isArray(row.historical_data)) {
+            wasActive = row.historical_data.some(hist => {
+              if (hist.date && hist.date.value) {
+                const histDate = moment(hist.date.value, "YYYY-MM-DD");
+                return histDate.isSameOrAfter(startDate) && histDate.isSameOrBefore(latestDate) &&
+                       (hist.rank != null || hist.market_share != null);
+              }
+              return false;
+            });
+          }
+          
+          if (wasActive) {
+            companies.add(row.source);
+          }
+        }
+      });
+    }
+    
+    console.log(`[updateInfoBlockCompaniesStats] Found ${companies.size} unique companies active in last 14 days`);
+  }
+  
+  // Update companies count
+  const companiesEl = document.getElementById('infoBlockTotalCompanies');
+  if (companiesEl) companiesEl.textContent = companies.size;
+  
+  // Get highest products count from marketTrendsData over last 14 days
+  let maxProductsCount = 0;
+  if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
+    // Filter for records where q matches the selected search term (or "all")
+    // Note: NOT applying traffic_source filter for marketTrendsData
+    const projectMarketData = window.projectMarketTrendsData.filter(row => {
+      return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
+             row.device === "all";
+    });
+    
+    console.log(`[updateInfoBlockCompaniesStats] Found ${projectMarketData.length} marketTrends records for products count`);
     
     if (projectMarketData.length > 0) {
       // Find the latest date
       let latestDate = null;
-      let latestRecord = null;
-      
       projectMarketData.forEach(record => {
         if (record.date && record.date.value) {
           const d = moment(record.date.value, "YYYY-MM-DD");
           if (!latestDate || d.isAfter(latestDate)) {
             latestDate = d.clone();
-            latestRecord = record;
           }
         }
       });
       
-      if (latestRecord) {
-        const companiesEl = document.getElementById('infoBlockTotalCompanies');
-        const productsEl = document.getElementById('infoBlockTotalProducts');
+      if (latestDate) {
+        // Calculate date 14 days ago
+        const startDate = latestDate.clone().subtract(13, 'days');
         
-        const companiesCount = parseInt(latestRecord.companies, 10) || 0;
-        const productsCount = parseInt(latestRecord.un_products, 10) || 0;
+        // Find the maximum un_products value in the last 14 days
+        projectMarketData.forEach(record => {
+          if (record.date && record.date.value) {
+            const recordDate = moment(record.date.value, "YYYY-MM-DD");
+            if (recordDate.isSameOrAfter(startDate) && recordDate.isSameOrBefore(latestDate)) {
+              const productsCount = parseInt(record.un_products, 10) || 0;
+              if (productsCount > maxProductsCount) {
+                maxProductsCount = productsCount;
+              }
+            }
+          }
+        });
         
-        console.log("[updateInfoBlockCompaniesStats] Latest date:", latestDate.format("YYYY-MM-DD"));
-        console.log(`[updateInfoBlockCompaniesStats] Setting counts for q="${window.filterState?.selectedSearchCard?.searchTerm || "all"}" - Companies:`, companiesCount, "Products:", productsCount);
-        
-        if (companiesEl) companiesEl.textContent = companiesCount;
-        if (productsEl) productsEl.textContent = productsCount;
+        console.log(`[updateInfoBlockCompaniesStats] Highest products count in last 14 days: ${maxProductsCount}`);
       }
-    } else {
-      console.warn("[updateInfoBlockCompaniesStats] No q='all' records found for project", activeProjectNumber);
     }
-  } else {
-    console.warn("[updateInfoBlockCompaniesStats] No marketTrendsData available");
   }
   
-  // Render the trend charts with unfiltered data
+  // Update products count
+  const productsEl = document.getElementById('infoBlockTotalProducts');
+  if (productsEl) productsEl.textContent = maxProductsCount;
+  
+  // Render the trend charts
   renderInfoBlockTrendCharts();
   
-  // Get all companies with their market share data (already unfiltered)
+  // Get all companies with their market share data (this should still use current filters)
   const allCompanies = getAllCompaniesWithMarketShare();
   
   // Render the companies list
