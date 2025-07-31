@@ -1272,82 +1272,11 @@ const raw = buildHomeData(fallbackCo);
 
 /* All functions that do real-time data gathering and populate the dropdown lists */
 
-      function updateSearchTermDropdown(rows) {
-        // 1. Gather distinct q values and counts
-        const qCounts = {};
-        rows.forEach(r => {
-          const qVal = r.q || "";
-          if (!qCounts[qVal]) { qCounts[qVal] = 0; }
-          qCounts[qVal]++;
-        });
-        // 2. Convert to array and sort descending by count
-        const allQ = Object.keys(qCounts).map(qVal => ({ name: qVal, count: qCounts[qVal] }));
-        allQ.sort((a, b) => b.count - a.count);       
-      
-        // 4. Get the dropdown element and clear previous content
-        const dropdown = document.getElementById("searchTermDropdown");
-        dropdown.innerHTML = "";
-        
-        // 5. Insert a search input box
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = "Search term...";
-        input.style.cssText = `
-          display: block;
-          width: 90%;
-          margin: 8px auto;
-          padding: 6px 8px;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-          font-size: 14px;
-        `;
-        dropdown.appendChild(input);
-        
-        // 7. Helper to render the list items
-        function renderQList(arr) {
-          // Remove list items beyond input and liAll
-          while (dropdown.childNodes.length > 2) {
-            dropdown.removeChild(dropdown.lastChild);
-          }
-          arr.forEach(item => {
-            const li = document.createElement("li");
-            li.textContent = `${item.name} (${item.count})`;
-            li.style.cursor = "pointer";
-            li.addEventListener("click", () => {
-                window.filterState.searchTerm = item.name;
-              document.getElementById("searchTermValue").textContent = item.name;
-              dropdown.style.display = "none";
-              window.onFilterChange('searchTerm');
-              window.filterState.visibilityRange = { min: 0, max: 100 };
-              const visSlider = document.querySelector('#visibilityRange');
-              visSlider.value = { lower: 0, upper: 100 };
-              document.getElementById("visibilityValueDisplay").textContent = "0 - 100";
-              
-              if (typeof renderData === "function") {
-  console.log("[TRACE] renderData() called from renderQList");
-  console.trace();
-  renderData();
-} else {
-  console.warn("renderData() not yet defined — skipping this trace");
+function updateSearchTermDropdown(rows) {
+  // This dropdown no longer exists in the new UI
+  // Keep the function empty to avoid breaking other code that calls it
+  return;
 }
-              updateCompanyDropdown(window.filteredData);
-            });
-            dropdown.appendChild(li);
-          });
-        }
-        
-        // 8. Render the list and attach search handler
-        renderQList(allQ);
-        input.addEventListener("input", () => {
-          const typed = input.value.toLowerCase();
-          if (typed.length < 2) {
-            renderQList(allQ);
-          } else {
-            const filtered = allQ.filter(x => x.name.toLowerCase().includes(typed));
-            renderQList(filtered);
-          }
-        });
-      }
 
     function updateEngineDropdown(rows) {
         // 1. Gather distinct engine values
