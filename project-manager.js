@@ -345,15 +345,15 @@ menuItem.addEventListener("click", (e) => {
     document.getElementById("productExplorerPage").style.display = "none";
     document.getElementById("googleAdsPage").style.display = "none";
 
-        // Hide second row when leaving project page
-    const secondRow = document.getElementById('secondRow');
-    if (secondRow) {
-      secondRow.classList.remove('visible');
-    }
-    const projectPageEl = document.getElementById('projectPage');
-    if (projectPageEl) {
-      projectPageEl.classList.remove('with-search-row');
-    }
+// Hide second row when leaving project page
+const secondRowEl = document.getElementById('secondRow');
+if (secondRowEl) {
+  secondRowEl.classList.remove('visible');
+}
+const projPageEl = document.getElementById('projectPage');
+if (projPageEl) {
+  projPageEl.classList.remove('with-search-row');
+}
     
     // Show project page
     document.getElementById("projectPage").style.display = "block";
@@ -550,15 +550,15 @@ allLocations.forEach(loc => {
 setTimeout(() => {
   console.log("[DEBUG] Navigating to main page, filterState.location is:", window.filterState.location);
 
-    // Hide second row when leaving project page
-  const secondRow = document.getElementById('secondRow');
-  if (secondRow) {
-    secondRow.classList.remove('visible');
-  }
-  const projectPageEl = document.getElementById('projectPage');
-  if (projectPageEl) {
-    projectPageEl.classList.remove('with-search-row');
-  }
+// Hide second row when leaving project page
+const secondRowEl = document.getElementById('secondRow');
+if (secondRowEl) {
+  secondRowEl.classList.remove('visible');
+}
+const projPageEl = document.getElementById('projectPage');
+if (projPageEl) {
+  projPageEl.classList.remove('with-search-row');
+}
   
   // Show main page
   document.getElementById("homePage").style.display = "none";
