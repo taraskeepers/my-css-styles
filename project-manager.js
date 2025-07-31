@@ -373,7 +373,10 @@ if (projPageEl) {
     
     // Disable company selector
     document.getElementById("companySelector").classList.add("disabled");
-    document.getElementById("searchTermRow").style.display = "none";
+    const searchTermRow = document.getElementById("searchTermRow");
+if (searchTermRow) {
+  searchTermRow.style.display = "none";
+}
 
     // 5) Always reload data when switching projects to ensure correct data
     const newPrefix = `acc1_pr${project.project_number}_`;
