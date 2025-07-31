@@ -2865,12 +2865,16 @@ function updateInfoBlockCompaniesStats() {
 // Get latest counts from market_trends data where q="all"
   if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-
-// Filter for records where q matches the search term (already filtered by project when loaded)
-const projectMarketData = window.projectMarketTrendsData.filter(row => {
-  const rowSearchTerm = row.q || "";
-  return rowSearchTerm === searchTermToUse && row.device === "all";
-});
+    
+    // Determine which search term to use - selected or "all"
+    const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
+    console.log(`[updateInfoBlockCompaniesStats] Using search term: "${searchTermToUse}"`);
+    
+    // Filter for records where q matches the search term (already filtered by project when loaded)
+    const projectMarketData = window.projectMarketTrendsData.filter(row => {
+      const rowSearchTerm = row.q || "";
+      return rowSearchTerm === searchTermToUse && row.device === "all";
+    });
   
 console.log(`[buildInfoBlockCompaniesTrendData] Found ${projectMarketData.length} records with q="${searchTermToUse}" and device="all" for project ${activeProjectNumber}`);
     
