@@ -441,7 +441,10 @@ function autoPickDefaultFirstGroup(allRows) {
     if (searchArr.length>0) {
       // The top searchTerm
       window.filterState.searchTerm = searchArr[0].name;
-      document.getElementById("searchTermValue").textContent = searchArr[0].name;
+      const searchTermElement = document.getElementById("searchTermValue");
+      if (searchTermElement) {
+        searchTermElement.textContent = searchArr[0].name;
+      }
     } else {
       // no searchTerm found => bail
       return;
