@@ -309,7 +309,6 @@ menuItem.addEventListener("click", (e) => {
 
   // 1) Mark which project_number is active
   if (!window.filterState) window.filterState = {};
-  window.filterState.activeProjectNumber = project.project_number;
 
 // Clear any search card selection when switching projects
 window.filterState.selectedSearchCard = null;
@@ -382,8 +381,11 @@ if (searchTermRow) {
     const newPrefix = `acc1_pr${project.project_number}_`;
 
     // Check if we're actually switching to a different project
-    const currentProjectNumber = window.filterState.activeProjectNumber;
-    const isActuallyDifferentProject = currentProjectNumber !== project.project_number;
+const currentProjectNumber = window.filterState.activeProjectNumber || 1;
+const isActuallyDifferentProject = currentProjectNumber !== project.project_number;
+
+// NOW set the active project number AFTER the comparison
+window.filterState.activeProjectNumber = project.project_number;
 
     if (window.dataPrefix !== newPrefix || isActuallyDifferentProject) {
       console.log(`[renderProjects] [🔁 Project switch] from ${window.dataPrefix} (project ${currentProjectNumber}) => ${newPrefix} (project ${project.project_number})`);
