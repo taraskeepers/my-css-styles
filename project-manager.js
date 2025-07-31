@@ -1203,10 +1203,15 @@ console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true")
       "*"
     );
   } finally {
-    // 4) Hide the loader once loading is done or if we asked server
-    if (loader) {
-      loader.style.opacity = "0";
-      setTimeout(() => { loader.style.display = "none"; }, 500);
-    }
+  // 4) Hide the loader once loading is done or if we asked server
+  const loader = document.getElementById("overlayLoader");
+  if (loader) {
+    loader.style.opacity = "0";
+    setTimeout(() => { 
+      if (loader) { // Double-check in timeout
+        loader.style.display = "none"; 
+      }
+    }, 500);
   }
+}
 }
