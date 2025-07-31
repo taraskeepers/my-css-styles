@@ -2180,6 +2180,9 @@ function buildProductsTrendData(days = 14) {
   return data;
 }
 
+// Add this debug code to getAllCompaniesWithMarketShare() function
+// RIGHT AFTER: const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
+
 function getAllCompaniesWithMarketShare() {
   console.log("[getAllCompaniesWithMarketShare] Starting with pre-calculated data...");
   
@@ -2190,20 +2193,88 @@ function getAllCompaniesWithMarketShare() {
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
   
-  // Filter for records where q="all" for the current project
-const allRecords = window.companyStatsData.filter(row => {
-  const rowProjNum = parseInt(row.project_number, 10);
-  return rowProjNum === activeProjectNumber && 
-         row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
-         row.device === "all" && 
-         row.location_requested === "all" &&
-         row.traffic_source === "all" &&
-         row.engine === "all" &&
-         row.google_domain === "all";
-});
+  // 🚨 DEBUG: Log the filtering criteria
+  console.group("🔍 [DEBUG] getAllCompaniesWithMarketShare Filtering");
+  console.log("📊 Total companyStatsData records:", window.companyStatsData.length);
+  console.log("🎯 activeProjectNumber:", activeProjectNumber);
+  console.log("🎯 searchTerm:", window.filterState?.selectedSearchCard?.searchTerm || "all");
   
-  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="${window.filterState?.selectedSearchCard?.searchTerm || "all"}" and device="all" for project ${activeProjectNumber}`);
+  // 🚨 DEBUG: Step-by-step filtering
   
+  // Step 1: Filter by project number
+  const step1 = window.companyStatsData.filter(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber;
+  });
+  console.log("📈 Step 1 - After project filter:", step1.length, "records");
+  
+  // Step 2: Filter by q
+  const step2 = step1.filter(row => {
+    return row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all");
+  });
+  console.log("📈 Step 2 - After q filter:", step2.length, "records");
+  
+  // Step 3: Filter by device
+  const step3 = step2.filter(row => {
+    return row.device === "all";
+  });
+  console.log("📈 Step 3 - After device filter:", step3.length, "records");
+  
+  // Step 4: Filter by location_requested
+  const step4 = step3.filter(row => {
+    return row.location_requested === "all";
+  });
+  console.log("📈 Step 4 - After location_requested filter:", step4.length, "records");
+  
+  // Step 5: Filter by traffic_source
+  const step5 = step4.filter(row => {
+    return row.traffic_source === "all";
+  });
+  console.log("📈 Step 5 - After traffic_source filter:", step5.length, "records");
+  
+  // Step 6: Filter by engine
+  const step6 = step5.filter(row => {
+    return row.engine === "all";
+  });
+  console.log("📈 Step 6 - After engine filter:", step6.length, "records");
+  
+  // Step 7: Filter by google_domain
+  const step7 = step6.filter(row => {
+    return row.google_domain === "all";
+  });
+  console.log("📈 Step 7 - After google_domain filter:", step7.length, "records");
+  
+  // 🚨 DEBUG: Show sample records at each step
+  if (step1.length > 0) console.log("Sample after step 1:", step1[0]);
+  if (step2.length > 0) console.log("Sample after step 2:", step2[0]);
+  if (step7.length > 0) console.log("Sample after step 7:", step7[0]);
+  
+  // 🚨 DEBUG: Check for project number mismatches
+  const uniqueProjectNumbers = [...new Set(window.companyStatsData.map(r => r.project_number))];
+  console.log("🔍 Unique project numbers in data:", uniqueProjectNumbers);
+  console.log("🔍 Looking for project number:", activeProjectNumber);
+  
+  // 🚨 DEBUG: Check for q value mismatches
+  const uniqueQValues = [...new Set(step1.map(r => r.q))];
+  console.log("🔍 Unique q values for this project:", uniqueQValues);
+  
+  console.groupEnd();
+  
+  // Continue with the original filtering logic...
+  const allRecords = window.companyStatsData.filter(row => {
+    const rowProjNum = parseInt(row.project_number, 10);
+    return rowProjNum === activeProjectNumber && 
+           row.q === (window.filterState?.selectedSearchCard?.searchTerm || "all") && 
+           row.device === "all" && 
+           row.location_requested === "all" &&
+           row.traffic_source === "all" &&
+           row.engine === "all" &&
+           row.google_domain === "all";
+  });
+  
+  console.log(`[getAllCompaniesWithMarketShare] Final result: ${allRecords.length} companies found`);
+  
+  // Rest of the function continues normally...
   const results = [];
   
   allRecords.forEach(record => {
@@ -2224,19 +2295,15 @@ const allRecords = window.companyStatsData.filter(row => {
         currentShare: currentShare,
         previousShare: previousShare,
         change: change,
-        dataPoints: 1 // For debugging - each company has one record
+        dataPoints: 1
       });
     }
   });
 
+  console.log(`[getAllCompaniesWithMarketShare] After processing: ${results.length} companies with meaningful data`);
+  
   // Sort by market share (descending)
   results.sort((a, b) => b.currentShare - a.currentShare);
-  
-  console.log(`[getAllCompaniesWithMarketShare] Returning ${results.length} companies (sorted by market share)`);
-  console.log(`Data source: pre-calculated 7d market share from company_serp_stats (q="all" records)`);
-  if (results.length > 0) {
-    console.log("Top company:", results[0]);
-  }
   
   return results;
 }
