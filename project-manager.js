@@ -629,39 +629,8 @@ setTimeout(() => {
         console.warn("renderData() not yet defined — skipping this trace");
       }      
 
-setTimeout(() => {
-  populateHomePage(true);
-  
-  // Show Home Page explicitly
-  document.getElementById("homePage").style.display = "block";
-  document.getElementById("main").style.display = "none";
-  document.getElementById("projectPage").style.display = "none";
-  document.getElementById("productMapPage").style.display = "none";
-  document.getElementById("productExplorerPage").style.display = "none";
-  document.getElementById("googleAdsPage").style.display = "none";
-  hideFiltersOnProjectAndHome();
-  
-  // No need to update old button states anymore
-  
-  // Set active project number globally
-  const projNum = parseInt(card.getAttribute("project-number"), 10);
-  window.filterState.activeProjectNumber = projNum;
-        
-        // Only set the flag right before we need it (immediately before selection)
-        window._ignoreProjectMenuClick = true;
-        
-        // Highlight only the correct .project-menu-item
-        document.querySelectorAll(".project-menu-item.selected").forEach(el => {
-          el.classList.remove("selected");
-        });
-        
-        const matchingItem = document.querySelector(`.project-menu-item[project-number="${projNum}"]`);
-        if (matchingItem) {
-          matchingItem.classList.add("selected");
-          // Reset the flag after selection is done
-          window._ignoreProjectMenuClick = false;
-        }
-      }, 10);
+// Update filters based on selected search card
+console.log("[Search Card] Updating filters, staying on project page");
     } else {
       // new project => reload from IDB or server
       console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
