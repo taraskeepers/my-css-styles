@@ -1370,10 +1370,6 @@ console.log(`[calculateCompanyRankData] Looking for company: "${targetCompany}"`
 const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
 console.log(`[calculateCompanyRankData] Using search term: "${searchTermToUse}"`);
 
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
-
 // Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
@@ -1485,10 +1481,6 @@ if (isDemo) {
 }
 
 console.log(`[calculateCompanyMarketShareData] Looking for company: "${targetCompany}"`);
-  
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
 
 // Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
@@ -2146,10 +2138,6 @@ function getAllCompaniesWithMarketShare() {
   }
 
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[getAllCompaniesWithMarketShare] Using search term: "${searchTermToUse}"`);
 
 // Filter for records where q matches the search term for the current project
 const allRecords = window.companyStatsData.filter(row => {
@@ -2744,10 +2732,6 @@ function buildInfoBlockCompaniesTrendData(days = 14) {
   }
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildInfoBlockCompaniesTrendData] Using search term: "${searchTermToUse}"`);
 
 // Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
@@ -2813,10 +2797,6 @@ function buildInfoBlockProductsTrendData(days = 14) {
   }
   
   const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-  
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildInfoBlockProductsTrendData] Using search term: "${searchTermToUse}"`);
 
 // Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
@@ -2885,10 +2865,6 @@ function updateInfoBlockCompaniesStats() {
 // Get latest counts from market_trends data where q="all"
   if (window.projectMarketTrendsData && Array.isArray(window.projectMarketTrendsData) && window.projectMarketTrendsData.length > 0) {
     const activeProjectNumber = parseInt(window.filterState?.activeProjectNumber, 10);
-    
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildInfoBlockCompaniesTrendData] Using search term: "${searchTermToUse}"`);
 
 // Filter for records where q matches the search term (already filtered by project when loaded)
 const projectMarketData = window.projectMarketTrendsData.filter(row => {
@@ -3029,10 +3005,6 @@ function buildProjectDailyAveragesFromCompanyStats() {
 
   console.log(`[buildProjectDailyAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
 
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
-
 // Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
   const rowProjNum = parseInt(row.project_number, 10);
@@ -3163,10 +3135,6 @@ function buildProjectDailyRankAveragesFromCompanyStats() {
   }
 
   console.log(`[buildProjectDailyRankAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
-
-// Determine which search term to use - selected or "all"
-const searchTermToUse = window.filterState?.selectedSearchCard?.searchTerm || "all";
-console.log(`[buildProjectDailyAveragesFromCompanyStats] Using search term: "${searchTermToUse}"`);
 
 // Find the three records we need
 const allDeviceRecord = window.companyStatsData.find(row => {
