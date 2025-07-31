@@ -736,7 +736,10 @@ const searchTermTag = document.getElementById("searchTermTag");
 
 if (searchTermRow && searchTermTag) {
   if (search.search && search.search !== 'all') {
-    searchTermTag.textContent = search.search;
+    const searchTermText = document.getElementById("searchTermText");
+    if (searchTermText) {
+      searchTermText.textContent = search.search;
+    }
     searchTermRow.style.display = "flex";
   } else {
     searchTermRow.style.display = "none";
