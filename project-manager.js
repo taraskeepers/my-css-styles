@@ -310,6 +310,11 @@ menuItem.addEventListener("click", (e) => {
   // 1) Mark which project_number is active
   if (!window.filterState) window.filterState = {};
   window.filterState.activeProjectNumber = project.project_number;
+
+// Clear any search card selection when switching projects
+window.filterState.selectedSearchCard = null;
+window.filterState.searchTerm = "";
+  
   console.log("[renderProjects]   Updated filterState.activeProjectNumber =>", project.project_number);
 
   // Reset modeSelector to COMPANIES when switching projects
@@ -518,24 +523,25 @@ allLocations.forEach(loc => {
   locItem.setAttribute("data-first-letter", loc.charAt(0).toUpperCase());
   
     // ➜ Make each location row clickable
-    locItem.addEventListener("click", (e) => {
+locItem.addEventListener("click", (e) => {
       console.log("[DEBUG] Location clicked:", loc);
       e.stopPropagation();   // prevent card's click event from firing
-// Show searchTerm tag and enable company selector
-const searchTermRow = document.getElementById("searchTermRow");
-if (searchTermRow) {
-  searchTermRow.style.display = "flex";
-}
-  document.getElementById("companySelector").classList.remove("disabled");
-  
-      // 1) Clear existing “selected” location rows in this submenu
+      
+      // Show searchTerm tag and enable company selector
+      const searchTermRow = document.getElementById("searchTermRow");
+      if (searchTermRow) {
+        searchTermRow.style.display = "flex";
+      }
+      document.getElementById("companySelector").classList.remove("disabled");
+      
+      // 1) Clear existing "selected" location rows in this submenu
       locationsSubmenu.querySelectorAll(".location-item.selected")
                       .forEach(item => item.classList.remove("selected"));
   
-      // 2) Make this loc row “selected”
+      // 2) Make this loc row "selected"
       locItem.classList.add("selected");
   
-      // 3) Also ensure the card is marked “selected”
+      // 3) Also ensure the card is marked "selected"
       clearSelectedSearchCards(); 
       card.classList.add("selected");
   
@@ -549,40 +555,50 @@ if (searchTermRow) {
       document.getElementById("locationText").textContent = formatLocation(loc);
       console.log("[DEBUG] locationText updated to:", document.getElementById("locationText").textContent);
       
-// 7) Navigate to main page and trigger data refresh
-setTimeout(() => {
-  console.log("[DEBUG] Navigating to main page, filterState.location is:", window.filterState.location);
+      // Check if we're on projectPage
+      const projectPageEl = document.getElementById("projectPage");
+      if (projectPageEl && projectPageEl.style.display !== "none") {
+        console.log("[Location Click] On projectPage, refreshing with location filter...");
+        
+        // Refresh the project page with both search term and location filters
+        populateProjectPage();
+      } else {
+        // Original navigation code for when not on project page
+        // 7) Navigate to main page and trigger data refresh
+        setTimeout(() => {
+          console.log("[DEBUG] Navigating to main page, filterState.location is:", window.filterState.location);
 
-// Hide second row when leaving project page
-const secondRowEl = document.getElementById('secondRow');
-if (secondRowEl) {
-  secondRowEl.classList.remove('visible');
-}
-const projPageEl = document.getElementById('projectPage');
-if (projPageEl) {
-  projPageEl.classList.remove('with-search-row');
-}
-  
-  // Show main page
-  document.getElementById("homePage").style.display = "none";
-  document.getElementById("main").style.display = "block";
-  document.getElementById("projectPage").style.display = "none";
-  document.getElementById("productMapPage").style.display = "none";
-  document.getElementById("productExplorerPage").style.display = "none";
-  document.getElementById("googleAdsPage").style.display = "none";
-  
-  // Show filters
-  showFiltersOnMainPage();
-  document.getElementById("tabsContainer").classList.add("open");
-  document.getElementById("tabsWrapper").style.display = "block";
-  
-  // Trigger data refresh
-  if (typeof renderData === "function") {
-    renderData();
-  }
-  updateCompanyDropdown(window.filteredData);
-}, 0);
-  
+          // Hide second row when leaving project page
+          const secondRowEl = document.getElementById('secondRow');
+          if (secondRowEl) {
+            secondRowEl.classList.remove('visible');
+          }
+          const projPageEl = document.getElementById('projectPage');
+          if (projPageEl) {
+            projPageEl.classList.remove('with-search-row');
+          }
+          
+          // Show main page
+          document.getElementById("homePage").style.display = "none";
+          document.getElementById("main").style.display = "block";
+          document.getElementById("projectPage").style.display = "none";
+          document.getElementById("productMapPage").style.display = "none";
+          document.getElementById("productExplorerPage").style.display = "none";
+          document.getElementById("googleAdsPage").style.display = "none";
+          
+          // Show filters
+          showFiltersOnMainPage();
+          document.getElementById("tabsContainer").classList.add("open");
+          document.getElementById("tabsWrapper").style.display = "block";
+          
+          // Trigger data refresh
+          if (typeof renderData === "function") {
+            renderData();
+          }
+          updateCompanyDropdown(window.filteredData);
+        }, 0);
+      }
+      
       // ✅ Do NOT call renderData() or populateHomePage() again — mainButton does it
     });
   
