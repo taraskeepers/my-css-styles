@@ -130,7 +130,7 @@ async function populateProjectPage() {
         }
         
         // Check what will be used in the filtering logic
-        const effectiveSearchTerm = window.filterState?.searchTerm || "all";
+        const effectiveSearchTerm = window.filterState?.selectedSearchCard?.searchTerm || "all";
         console.log("🎯 Effective search term (for filtering):", effectiveSearchTerm);
         
         // Check other relevant filter properties
@@ -2202,7 +2202,7 @@ const allRecords = window.companyStatsData.filter(row => {
          row.google_domain === "all";
 });
   
-  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="${window.filterState?.searchTerm || "all"}" and device="all" for project ${activeProjectNumber}`);
+  console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="${window.filterState?.selectedSearchCard?.searchTerm || "all"}" and device="all" for project ${activeProjectNumber}`);
   
   const results = [];
   
@@ -2646,7 +2646,7 @@ const allCompanyRecords = window.companyStatsData.filter(row => {
          row.google_domain === "all";
 });
 
-  console.log(`[calculateGainersLosers] Found ${allCompanyRecords.length} company records with q="${window.filterState?.searchTerm || "all"}" and device="all"`);
+  console.log(`[calculateGainersLosers] Found ${allCompanyRecords.length} company records with q="${window.filterState?.selectedSearchCard?.searchTerm || "all"}" and device="all"`);
 
   // Calculate changes for each company
   const companyChanges = [];
@@ -2942,7 +2942,7 @@ const projectMarketData = window.projectMarketTrendsData.filter(row => {
         const productsCount = parseInt(latestRecord.un_products, 10) || 0;
         
         console.log("[updateInfoBlockCompaniesStats] Latest date:", latestDate.format("YYYY-MM-DD"));
-        console.log(`[updateInfoBlockCompaniesStats] Setting counts for q="${window.filterState?.searchTerm || "all"}" - Companies:`, companiesCount, "Products:", productsCount);
+        console.log(`[updateInfoBlockCompaniesStats] Setting counts for q="${window.filterState?.selectedSearchCard?.searchTerm || "all"}" - Companies:`, companiesCount, "Products:", productsCount);
         
         if (companiesEl) companiesEl.textContent = companiesCount;
         if (productsEl) productsEl.textContent = productsCount;
