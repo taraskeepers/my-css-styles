@@ -1282,15 +1282,16 @@ if (projectPageEl && projectPageEl.style.display !== "none") {
   console.log("[SKIP CHECK] ⛔ projectPage not visible — skipping map render.");
 }  
 hideFiltersOnProjectAndHome();
-// Show second row with animation when on project page
-const secondRow = document.getElementById('secondRow');
-const projectPageEl = document.getElementById('projectPage');
 
-if (secondRow && projectPageEl) {
+// Show second row with animation when on project page
+const secondRowElement = document.getElementById('secondRow');
+const projectPageElement = document.getElementById('projectPage');
+
+if (secondRowElement && projectPageElement) {
   // Add visible class to second row
   setTimeout(() => {
-    secondRow.classList.add('visible');
-    projectPageEl.classList.add('with-search-row');
+    secondRowElement.classList.add('visible');
+    projectPageElement.classList.add('with-search-row');
   }, 100);
 }
       
