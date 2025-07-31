@@ -660,7 +660,12 @@ console.log(`[buildProjectData] Filtered to ${projectFiltered.length} records fo
 
 // EXCLUDE records where q="all" OR location_requested="all" for the project table
 projectFiltered = projectFiltered.filter(row => {
-  return row.q !== "all" && row.location_requested !== "all";
+  return row.q !== "all" && 
+         row.location_requested !== "all" && 
+         row.device !== "all" &&
+         row.traffic_source !== "all" &&
+         row.engine !== "all" &&
+         row.google_domain !== "all";
 });
 
 console.log(`[buildProjectData] After excluding q="all" and location_requested="all": ${projectFiltered.length} records`);
@@ -1368,6 +1373,10 @@ const allDeviceRecord = window.companyStatsData.find(row => {
   return rowProjNum === activeProjectNumber && 
          row.q === "all" && 
          row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
 
@@ -1377,6 +1386,10 @@ const desktopRecord = window.companyStatsData.find(row => {
   return rowProjNum === activeProjectNumber && 
          row.q === "all" && 
          row.device === "desktop" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
 
@@ -1386,6 +1399,10 @@ const mobileRecord = window.companyStatsData.find(row => {
   return rowProjNum === activeProjectNumber && 
          row.q === "all" && 
          row.device === "mobile" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
          rowCompany.toLowerCase() === targetCompany.toLowerCase();
 });
 
@@ -2111,7 +2128,13 @@ function getAllCompaniesWithMarketShare() {
   // Filter for records where q="all" for the current project
 const allRecords = window.companyStatsData.filter(row => {
   const rowProjNum = parseInt(row.project_number, 10);
-  return rowProjNum === activeProjectNumber && row.q === "all" && row.device === "all";
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all";
 });
   
   console.log(`[getAllCompaniesWithMarketShare] Found ${allRecords.length} companies with q="all" and device="all" for project ${activeProjectNumber}`);
@@ -2547,12 +2570,16 @@ function calculateGainersLosers() {
   });
 
   // Get ALL companies with q="all" and device="all" for the current project
-  const allCompanyRecords = window.companyStatsData.filter(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    return rowProjNum === activeProjectNumber && 
-           row.q === "all" && 
-           row.device === "all";
-  });
+const allCompanyRecords = window.companyStatsData.filter(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all";
+});
 
   console.log(`[calculateGainersLosers] Found ${allCompanyRecords.length} company records with q="all" and device="all"`);
 
@@ -2959,14 +2986,18 @@ function buildProjectDailyAveragesFromCompanyStats() {
   console.log(`[buildProjectDailyAveragesFromCompanyStats] Looking for company: "${targetCompany}"`);
 
   // Find the three records we need
-  const allDeviceRecord = window.companyStatsData.find(row => {
-    const rowProjNum = parseInt(row.project_number, 10);
-    const rowCompany = (row.source || "").trim();
-    return rowProjNum === activeProjectNumber && 
-           row.q === "all" && 
-           row.device === "all" && 
-           rowCompany.toLowerCase() === targetCompany.toLowerCase();
-  });
+const allDeviceRecord = window.companyStatsData.find(row => {
+  const rowProjNum = parseInt(row.project_number, 10);
+  const rowCompany = (row.source || "").trim();
+  return rowProjNum === activeProjectNumber && 
+         row.q === "all" && 
+         row.device === "all" && 
+         row.location_requested === "all" &&
+         row.traffic_source === "all" &&
+         row.engine === "all" &&
+         row.google_domain === "all" &&
+         rowCompany.toLowerCase() === targetCompany.toLowerCase();
+});
   
   const desktopRecord = window.companyStatsData.find(row => {
     const rowProjNum = parseInt(row.project_number, 10);
