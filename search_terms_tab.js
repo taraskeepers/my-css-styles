@@ -377,60 +377,102 @@ function renderSearchTermsTableInternal(container) {
     </div>
 
         <!-- Advanced Filters Row -->
-    <div class="advanced-filters-row" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
-      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-        <button id="defaultFiltersBtn" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
-          Default
-        </button>
-        
-        ${(() => {
-          const maxValues = calculateSliderMaxValues();
-          return `
-            <div style="flex: 1; display: flex; gap: 20px; align-items: center;">
+    ${window.searchTermsFilter === 'negatives' ? (() => {
+      const maxValues = calculateSliderMaxValues();
+      return `
+        <!-- Advanced Filters Row -->
+        <div class="advanced-filters-row" style="
+          margin: 20px 0 24px 0; 
+          padding: 20px 24px;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-radius: 16px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        ">
+          <div style="display: flex; align-items: center; gap: 32px;">
+            <button id="defaultFiltersBtn" style="
+              padding: 10px 20px;
+              background: #007AFF;
+              color: white;
+              border: none;
+              border-radius: 10px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              transition: all 0.2s ease;
+              white-space: nowrap;
+            ">
+              Reset Filters
+            </button>
+            
+            <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px;">
               <!-- Impressions Slider -->
-              <div style="flex: 1; min-width: 150px;">
-                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
-                  Impressions ≥ <span id="impressionsValue">${window.searchTermsSliderFilters.impressions}</span>
-                </label>
+              <div class="slider-container">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    Impressions
+                  </label>
+                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    ≥ <span id="impressionsValue">${window.searchTermsSliderFilters.impressions}</span>
+                  </span>
+                </div>
                 <input type="range" id="impressionsSlider" min="0" max="${maxValues.impressions}" 
                        value="${window.searchTermsSliderFilters.impressions}" 
-                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+                       class="apple-slider">
               </div>
               
               <!-- Clicks Slider -->
-              <div style="flex: 1; min-width: 150px;">
-                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
-                  Clicks ≥ <span id="clicksValue">${window.searchTermsSliderFilters.clicks}</span>
-                </label>
+              <div class="slider-container">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    Clicks
+                  </label>
+                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    ≥ <span id="clicksValue">${window.searchTermsSliderFilters.clicks}</span>
+                  </span>
+                </div>
                 <input type="range" id="clicksSlider" min="0" max="${maxValues.clicks}" 
                        value="${window.searchTermsSliderFilters.clicks}" 
-                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+                       class="apple-slider">
               </div>
               
               <!-- CTR Slider -->
-              <div style="flex: 1; min-width: 150px;">
-                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
-                  CTR ≥ <span id="ctrValue">${window.searchTermsSliderFilters.ctr.toFixed(1)}</span>%
-                </label>
+              <div class="slider-container">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    CTR
+                  </label>
+                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    ≥ <span id="ctrValue">${window.searchTermsSliderFilters.ctr.toFixed(1)}</span>%
+                  </span>
+                </div>
                 <input type="range" id="ctrSlider" min="0" max="${maxValues.ctr}" step="0.1"
                        value="${window.searchTermsSliderFilters.ctr}" 
-                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+                       class="apple-slider">
               </div>
               
               <!-- Conversions Slider -->
-              <div style="flex: 1; min-width: 150px;">
-                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
-                  Conversions ≥ <span id="conversionsValue">${window.searchTermsSliderFilters.conversions}</span>
-                </label>
+              <div class="slider-container">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    Conversions
+                  </label>
+                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    ≥ <span id="conversionsValue">${window.searchTermsSliderFilters.conversions}</span>
+                  </span>
+                </div>
                 <input type="range" id="conversionsSlider" min="0" max="${maxValues.conversions}" 
                        value="${window.searchTermsSliderFilters.conversions}" 
-                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+                       class="apple-slider">
               </div>
             </div>
-          `;
-        })()}
-      </div>
-    </div>
+          </div>
+        </div>
+      `;
+    })() : ''}
         
     <table class="search-terms-table" style="width: 100%; border-collapse: collapse; background: white;">
       <thead>
@@ -1331,18 +1373,28 @@ function attachSearchTermsEventListeners() {
     });
   }
   
-  // Slider event handlers
+  // Attach slider event listeners if on negatives filter
+  if (window.searchTermsFilter === 'negatives') {
+    setTimeout(() => {
+      attachSliderEventListeners();
+    }, 100);
+  }
+}
+
+/**
+ * Attach slider event listeners (called once when filter changes to negatives)
+ */
+function attachSliderEventListeners() {
   const impressionsSlider = document.getElementById('impressionsSlider');
   const clicksSlider = document.getElementById('clicksSlider');
   const ctrSlider = document.getElementById('ctrSlider');
   const conversionsSlider = document.getElementById('conversionsSlider');
   
-  if (impressionsSlider) {
-    // Update value display on input
+  if (impressionsSlider && !impressionsSlider.hasAttribute('data-listener-attached')) {
+    impressionsSlider.setAttribute('data-listener-attached', 'true');
     impressionsSlider.addEventListener('input', function() {
       document.getElementById('impressionsValue').textContent = this.value;
     });
-    // Apply filter on change (mouse release)
     impressionsSlider.addEventListener('change', function() {
       window.searchTermsSliderFilters.impressions = parseInt(this.value);
       window.searchTermsCurrentPage = 1;
@@ -1350,7 +1402,8 @@ function attachSearchTermsEventListeners() {
     });
   }
   
-  if (clicksSlider) {
+  if (clicksSlider && !clicksSlider.hasAttribute('data-listener-attached')) {
+    clicksSlider.setAttribute('data-listener-attached', 'true');
     clicksSlider.addEventListener('input', function() {
       document.getElementById('clicksValue').textContent = this.value;
     });
@@ -1361,7 +1414,8 @@ function attachSearchTermsEventListeners() {
     });
   }
   
-  if (ctrSlider) {
+  if (ctrSlider && !ctrSlider.hasAttribute('data-listener-attached')) {
+    ctrSlider.setAttribute('data-listener-attached', 'true');
     ctrSlider.addEventListener('input', function() {
       document.getElementById('ctrValue').textContent = parseFloat(this.value).toFixed(1);
     });
@@ -1372,7 +1426,8 @@ function attachSearchTermsEventListeners() {
     });
   }
   
-  if (conversionsSlider) {
+  if (conversionsSlider && !conversionsSlider.hasAttribute('data-listener-attached')) {
+    conversionsSlider.setAttribute('data-listener-attached', 'true');
     conversionsSlider.addEventListener('input', function() {
       document.getElementById('conversionsValue').textContent = this.value;
     });
@@ -1383,11 +1438,10 @@ function attachSearchTermsEventListeners() {
     });
   }
   
-  // Default button handler
   const defaultFiltersBtn = document.getElementById('defaultFiltersBtn');
-  if (defaultFiltersBtn) {
+  if (defaultFiltersBtn && !defaultFiltersBtn.hasAttribute('data-listener-attached')) {
+    defaultFiltersBtn.setAttribute('data-listener-attached', 'true');
     defaultFiltersBtn.addEventListener('click', function() {
-      // Reset to default values
       window.searchTermsSliderFilters = {
         impressions: 0,
         clicks: 50,
@@ -1395,7 +1449,6 @@ function attachSearchTermsEventListeners() {
         conversions: 0
       };
       
-      // Update slider positions and values
       if (impressionsSlider) {
         impressionsSlider.value = 0;
         document.getElementById('impressionsValue').textContent = '0';
@@ -1512,52 +1565,72 @@ function addSearchTermsStyles() {
         line-height: 1.4;
         text-align: center;
       }
-      /* Slider styles */
-      .advanced-filters-row input[type="range"] {
+      /* Apple-style slider styles */
+      .apple-slider {
         -webkit-appearance: none;
         appearance: none;
-        background: #ddd;
+        width: 100%;
+        height: 4px;
+        background: #E5E5E7;
         outline: none;
-        transition: background 0.3s;
+        border-radius: 2px;
+        transition: all 0.3s ease;
       }
       
-      .advanced-filters-row input[type="range"]:hover {
-        background: #ccc;
-      }
-      
-      .advanced-filters-row input[type="range"]::-webkit-slider-thumb {
+      .apple-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 18px;
-        height: 18px;
-        background: #1976d2;
+        width: 20px;
+        height: 20px;
+        background: white;
         cursor: pointer;
         border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: transform 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
       }
       
-      .advanced-filters-row input[type="range"]::-webkit-slider-thumb:hover {
+      .apple-slider::-webkit-slider-thumb:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
         transform: scale(1.1);
       }
       
-      .advanced-filters-row input[type="range"]::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        background: #1976d2;
+      .apple-slider::-webkit-slider-thumb:active {
+        transform: scale(0.95);
+      }
+      
+      .apple-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: white;
         cursor: pointer;
         border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         border: none;
-        transition: transform 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
       }
       
-      .advanced-filters-row input[type="range"]::-moz-range-thumb:hover {
+      .apple-slider::-moz-range-thumb:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
         transform: scale(1.1);
+      }
+      
+      .apple-slider::-moz-range-track {
+        height: 4px;
+        background: #E5E5E7;
+        border-radius: 2px;
       }
       
       #defaultFiltersBtn:hover {
-        background: #1565c0 !important;
+        background: #0051D5 !important;
+        transform: scale(1.02);
+      }
+      
+      #defaultFiltersBtn:active {
+        transform: scale(0.98);
+      }
+      
+      .slider-container {
+        padding: 8px 0;
       }
     `;
     document.head.appendChild(style);
