@@ -75,6 +75,36 @@ async function loadMarketTrendsData() {
   }
 }
 
+/**
+ * Animates a counter from 0 to target value over specified duration
+ */
+function animateCounter(element, targetValue, duration = 1000) {
+  if (!element) return;
+  
+  const startValue = 0;
+  const startTime = performance.now();
+  
+  function updateCounter(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Use easeOutCubic for a smooth deceleration effect
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+    
+    const currentValue = Math.round(startValue + (targetValue - startValue) * easedProgress);
+    element.textContent = currentValue;
+    
+    if (progress < 1) {
+      requestAnimationFrame(updateCounter);
+    } else {
+      // Ensure we end with the exact target value
+      element.textContent = targetValue;
+    }
+  }
+  
+  requestAnimationFrame(updateCounter);
+}
+
 // Function to clear market trends cache (call when data is updated)
 window.clearMarketTrendsCache = function(projectNumber = null) {
   if (projectNumber) {
@@ -2933,7 +2963,7 @@ function updateInfoBlockCompaniesStats() {
   
   // Update companies count
   const companiesEl = document.getElementById('infoBlockTotalCompanies');
-  if (companiesEl) companiesEl.textContent = companies.size;
+  if (companiesEl) animateCounter(companiesEl, companies.size, 1000);
   
   // Get highest products count from marketTrendsData over last 14 days
   let maxProductsCount = 0;
@@ -2983,7 +3013,7 @@ function updateInfoBlockCompaniesStats() {
   
   // Update products count
   const productsEl = document.getElementById('infoBlockTotalProducts');
-  if (productsEl) productsEl.textContent = maxProductsCount;
+  if (productsEl) animateCounter(productsEl, products.size, 1000);
   
   // Render the trend charts
   renderInfoBlockTrendCharts();
