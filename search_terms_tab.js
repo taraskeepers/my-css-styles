@@ -116,8 +116,8 @@ async function loadAndRenderSearchTerms() {
     const topBucketMap = {};
     if (result365d && result365d.data) {
       result365d.data.forEach(item => {
-        if (item.Query && item['Top Bucket']) {
-          topBucketMap[item.Query.toLowerCase()] = item['Top Bucket'];
+        if (item.Query && item['Top_Bucket']) {
+          topBucketMap[item.Query.toLowerCase()] = item['Top_Bucket'];
         }
       });
     }
@@ -143,6 +143,15 @@ async function loadAndRenderSearchTerms() {
       item['Top Bucket'] = topBucketMap[queryLower] || '';
       item['Trend Data'] = trend90dMap[queryLower] || null;
     });
+    
+    // Debug logging for Top Bucket assignment
+    console.log('[Search Terms] 365d data entries:', result365d?.data?.length || 0);
+    console.log('[Search Terms] Top bucket map entries:', Object.keys(topBucketMap).length);
+    console.log('[Search Terms] Sample top bucket entries:', Object.entries(topBucketMap).slice(0, 5));
+    
+    const itemsWithTopBucket = filteredData.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
+    console.log('[Search Terms] Items with Top Bucket assigned:', itemsWithTopBucket.length);
+    console.log('[Search Terms] Sample items with buckets:', itemsWithTopBucket.slice(0, 3).map(item => ({query: item.Query, bucket: item['Top Bucket']})));
     
     // Process the data
     window.searchTermsData = filteredData;
@@ -866,7 +875,7 @@ function renderMissingTopBucketTerms() {
   // Find terms in 365d data that are not in current period
   const currentQueries = new Set(window.searchTermsData.map(d => d.Query));
   const missingTerms = window.searchTermsData365d.filter(d => 
-    d['Top Bucket'] && !currentQueries.has(d.Query)
+    d['Top_Bucket'] && !currentQueries.has(d.Query)
   ).slice(0, 10);
   
   if (missingTerms.length === 0) return '';
@@ -900,19 +909,19 @@ function renderMissingTopBucketTerms() {
       <tr style="background: ${index % 2 === 0 ? 'white' : '#fff8e1'}; border-bottom: 1px solid #ffe0b2;">
         <td style="padding: 10px; font-weight: 500; font-size: 13px;">${term.Query}</td>
         <td style="padding: 10px; text-align: center;">
-          ${getTopBucketBadge(term['Top Bucket'])}
+          ${getTopBucketBadge(term['Top_Bucket'])}
         </td>
         <td style="padding: 10px; text-align: center; font-size: 13px;">
-          ${term.Impressions.toLocaleString()}
+          ${Math.round(term.Impressions / 12).toLocaleString()}
           <div style="font-size: 11px; color: #666;">CTR: ${ctr}%</div>
         </td>
-        <td style="padding: 10px; text-align: center; font-size: 13px;">${term.Clicks.toLocaleString()}</td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">${Math.round(term.Clicks / 12).toLocaleString()}</td>
         <td style="padding: 10px; text-align: center; font-size: 13px;">
-          ${term.Conversions}
+          ${(term.Conversions / 12).toFixed(2)}
           <div style="font-size: 11px; color: #666;">CVR: ${cvr}%</div>
         </td>
         <td style="padding: 10px; text-align: center; font-size: 13px; font-weight: 600;">
-          $${term.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+          ${(term.Value / 12).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
         </td>
       </tr>
     `;
