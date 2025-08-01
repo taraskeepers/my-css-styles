@@ -4191,24 +4191,6 @@ roasChannelsContainer.style.cssText = `
 
 contentWrapper.appendChild(roasChannelsContainer);
 
-// Create Search Terms container
-const searchTermsContainer = document.createElement('div');
-searchTermsContainer.id = 'search_terms_container';
-searchTermsContainer.className = 'google-ads-search-terms-container';
-searchTermsContainer.style.cssText = `
-  width: 1195px;
-  margin: 100px 0 20px 20px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 20px;
-  display: none;
-  max-height: 80vh;
-  overflow-y: auto;
-`;
-
-contentWrapper.appendChild(searchTermsContainer);
-
 // Replace the original append - table should be INSIDE contentWrapper
 contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
 container.appendChild(contentWrapper);
@@ -6015,7 +5997,6 @@ container.innerHTML = `
   <button id="viewOverviewGoogleAds">Product Overview</button>
   <button id="viewBucketsGoogleAds">Buckets & Funnels</button>
   <button id="viewChartsGoogleAds">Rank Map</button>
-  <button id="viewSearchTermsGoogleAds">Search Terms</button>
   <button id="viewMapGoogleAds">Map</button>
 </div>
               <div class="chart-mode-toggle-top">
@@ -6105,8 +6086,6 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
-  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
-  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6237,8 +6216,6 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
-  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
-  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6364,8 +6341,6 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
-  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
-  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6501,13 +6476,6 @@ if (productInfo) productInfo.style.display = 'none';
   }
 });
 
-// Initialize Search Terms button from the external module
-if (window.initializeSearchTermsButton) {
-  window.initializeSearchTermsButton();
-} else {
-  console.warn('[Google Ads] Search Terms initialization function not found. Make sure google_ads_search_terms.js is loaded.');
-}
-
 // Add Performance Overview button functionality
 const viewPerformanceOverviewGoogleAdsBtn = document.getElementById("viewPerformanceOverviewGoogleAds");
 
@@ -6519,8 +6487,6 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
-  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
-  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
   // Collapse the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6603,8 +6569,6 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewChartsGoogleAdsBtn.classList.remove("active");
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
-  const viewSearchTermsGoogleAdsBtn = document.getElementById("viewSearchTermsGoogleAds");
-  if (viewSearchTermsGoogleAdsBtn) viewSearchTermsGoogleAdsBtn.classList.remove("active");
 
 // Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
