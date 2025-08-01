@@ -14,6 +14,12 @@ window.searchTermsSortColumn = 'Impressions';
 window.searchTermsSortAscending = false;
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
 window.productRankingToggleState = false;
+window.searchTermsSliderFilters = {
+  impressions: 0,
+  clicks: 50,
+  ctr: 0,
+  conversions: 0
+};
 
 /**
  * Main function to render the Search Terms table
@@ -367,6 +373,62 @@ function renderSearchTermsTableInternal(container) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+        <!-- Advanced Filters Row -->
+    <div class="advanced-filters-row" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <button id="defaultFiltersBtn" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+          Default
+        </button>
+        
+        ${(() => {
+          const maxValues = calculateSliderMaxValues();
+          return `
+            <div style="flex: 1; display: flex; gap: 20px; align-items: center;">
+              <!-- Impressions Slider -->
+              <div style="flex: 1; min-width: 150px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
+                  Impressions ≥ <span id="impressionsValue">${window.searchTermsSliderFilters.impressions}</span>
+                </label>
+                <input type="range" id="impressionsSlider" min="0" max="${maxValues.impressions}" 
+                       value="${window.searchTermsSliderFilters.impressions}" 
+                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+              </div>
+              
+              <!-- Clicks Slider -->
+              <div style="flex: 1; min-width: 150px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
+                  Clicks ≥ <span id="clicksValue">${window.searchTermsSliderFilters.clicks}</span>
+                </label>
+                <input type="range" id="clicksSlider" min="0" max="${maxValues.clicks}" 
+                       value="${window.searchTermsSliderFilters.clicks}" 
+                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+              </div>
+              
+              <!-- CTR Slider -->
+              <div style="flex: 1; min-width: 150px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
+                  CTR ≥ <span id="ctrValue">${window.searchTermsSliderFilters.ctr.toFixed(1)}</span>%
+                </label>
+                <input type="range" id="ctrSlider" min="0" max="${maxValues.ctr}" step="0.1"
+                       value="${window.searchTermsSliderFilters.ctr}" 
+                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+              </div>
+              
+              <!-- Conversions Slider -->
+              <div style="flex: 1; min-width: 150px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">
+                  Conversions ≥ <span id="conversionsValue">${window.searchTermsSliderFilters.conversions}</span>
+                </label>
+                <input type="range" id="conversionsSlider" min="0" max="${maxValues.conversions}" 
+                       value="${window.searchTermsSliderFilters.conversions}" 
+                       style="width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer;">
+              </div>
+            </div>
+          `;
+        })()}
       </div>
     </div>
         
@@ -783,24 +845,48 @@ function renderSearchTermPieCharts(searchTerm) {
 function getFilteredSearchTermsData() {
   let data = [...window.searchTermsData];
   
+  // Apply tab filter first
   switch(window.searchTermsFilter) {
     case 'topbucket':
-      // Filter for items that have Top Bucket data
       data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
       break;
     case 'negatives':
-      // Filter for potential negative terms (low CTR, no conversions)
-      data = data.filter(item => {
-        const ctr = item.Impressions > 0 ? (item.Clicks / item.Impressions * 100) : 0;
-        return ctr < 1 && item.Conversions === 0 && item.Impressions > 100;
-      });
+      data = data.filter(item => item.Clicks >= 50 && item.Conversions === 0);
       break;
+    case 'all':
     default:
-      // 'all' - no filtering
+      // No filter needed
       break;
   }
   
+  // Apply slider filters
+  const filters = window.searchTermsSliderFilters;
+  data = data.filter(item => {
+    const ctr = item.Impressions > 0 ? (item.Clicks / item.Impressions * 100) : 0;
+    
+    return (item.Impressions || 0) >= filters.impressions &&
+           (item.Clicks || 0) >= filters.clicks &&
+           ctr >= filters.ctr &&
+           (item.Conversions || 0) >= filters.conversions;
+  });
+  
   return data;
+}
+
+/**
+ * Calculate max values for sliders from the dataset
+ */
+function calculateSliderMaxValues() {
+  const data = window.searchTermsData;
+  
+  const maxValues = {
+    impressions: Math.max(...data.map(d => d.Impressions || 0)),
+    clicks: Math.max(...data.map(d => d.Clicks || 0)),
+    ctr: Math.max(...data.map(d => d.Impressions > 0 ? (d.Clicks / d.Impressions * 100) : 0)),
+    conversions: Math.max(...data.map(d => d.Conversions || 0))
+  };
+  
+  return maxValues;
 }
 
 function sortSearchTermsData() {
@@ -1241,7 +1327,94 @@ function attachSearchTermsEventListeners() {
             }, 300);
           }
         });
+}
+    });
+  }
+  
+  // Slider event handlers
+  const impressionsSlider = document.getElementById('impressionsSlider');
+  const clicksSlider = document.getElementById('clicksSlider');
+  const ctrSlider = document.getElementById('ctrSlider');
+  const conversionsSlider = document.getElementById('conversionsSlider');
+  
+  if (impressionsSlider) {
+    // Update value display on input
+    impressionsSlider.addEventListener('input', function() {
+      document.getElementById('impressionsValue').textContent = this.value;
+    });
+    // Apply filter on change (mouse release)
+    impressionsSlider.addEventListener('change', function() {
+      window.searchTermsSliderFilters.impressions = parseInt(this.value);
+      window.searchTermsCurrentPage = 1;
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  }
+  
+  if (clicksSlider) {
+    clicksSlider.addEventListener('input', function() {
+      document.getElementById('clicksValue').textContent = this.value;
+    });
+    clicksSlider.addEventListener('change', function() {
+      window.searchTermsSliderFilters.clicks = parseInt(this.value);
+      window.searchTermsCurrentPage = 1;
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  }
+  
+  if (ctrSlider) {
+    ctrSlider.addEventListener('input', function() {
+      document.getElementById('ctrValue').textContent = parseFloat(this.value).toFixed(1);
+    });
+    ctrSlider.addEventListener('change', function() {
+      window.searchTermsSliderFilters.ctr = parseFloat(this.value);
+      window.searchTermsCurrentPage = 1;
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  }
+  
+  if (conversionsSlider) {
+    conversionsSlider.addEventListener('input', function() {
+      document.getElementById('conversionsValue').textContent = this.value;
+    });
+    conversionsSlider.addEventListener('change', function() {
+      window.searchTermsSliderFilters.conversions = parseInt(this.value);
+      window.searchTermsCurrentPage = 1;
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  }
+  
+  // Default button handler
+  const defaultFiltersBtn = document.getElementById('defaultFiltersBtn');
+  if (defaultFiltersBtn) {
+    defaultFiltersBtn.addEventListener('click', function() {
+      // Reset to default values
+      window.searchTermsSliderFilters = {
+        impressions: 0,
+        clicks: 50,
+        ctr: 0,
+        conversions: 0
+      };
+      
+      // Update slider positions and values
+      if (impressionsSlider) {
+        impressionsSlider.value = 0;
+        document.getElementById('impressionsValue').textContent = '0';
       }
+      if (clicksSlider) {
+        clicksSlider.value = 50;
+        document.getElementById('clicksValue').textContent = '50';
+      }
+      if (ctrSlider) {
+        ctrSlider.value = 0;
+        document.getElementById('ctrValue').textContent = '0.0';
+      }
+      if (conversionsSlider) {
+        conversionsSlider.value = 0;
+        document.getElementById('conversionsValue').textContent = '0';
+      }
+      
+      window.searchTermsCurrentPage = 1;
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
     });
   }
 }
@@ -1338,6 +1511,53 @@ function addSearchTermsStyles() {
         white-space: normal;
         line-height: 1.4;
         text-align: center;
+      }
+      /* Slider styles */
+      .advanced-filters-row input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: #ddd;
+        outline: none;
+        transition: background 0.3s;
+      }
+      
+      .advanced-filters-row input[type="range"]:hover {
+        background: #ccc;
+      }
+      
+      .advanced-filters-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #1976d2;
+        cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+      }
+      
+      .advanced-filters-row input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+      }
+      
+      .advanced-filters-row input[type="range"]::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        background: #1976d2;
+        cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        border: none;
+        transition: transform 0.2s;
+      }
+      
+      .advanced-filters-row input[type="range"]::-moz-range-thumb:hover {
+        transform: scale(1.1);
+      }
+      
+      #defaultFiltersBtn:hover {
+        background: #1565c0 !important;
       }
     `;
     document.head.appendChild(style);
