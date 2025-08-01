@@ -14,12 +14,6 @@ window.searchTermsSortColumn = 'Impressions';
 window.searchTermsSortAscending = false;
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
 window.productRankingToggleState = false;
-window.searchTermsSliderFilters = {
-  impressions: 0,
-  clicks: 50,
-  ctr: 0,
-  conversions: 0
-};
 
 /**
  * Main function to render the Search Terms table
@@ -375,104 +369,6 @@ function renderSearchTermsTableInternal(container) {
         </div>
       </div>
     </div>
-
-        <!-- Advanced Filters Row -->
-    ${window.searchTermsFilter === 'negatives' ? (() => {
-      const maxValues = calculateSliderMaxValues();
-      return `
-        <!-- Advanced Filters Row -->
-        <div class="advanced-filters-row" style="
-          margin: 20px 0 24px 0; 
-          padding: 20px 24px;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-radius: 16px;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        ">
-          <div style="display: flex; align-items: center; gap: 32px;">
-            <button id="defaultFiltersBtn" style="
-              padding: 10px 20px;
-              background: #007AFF;
-              color: white;
-              border: none;
-              border-radius: 10px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 500;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              transition: all 0.2s ease;
-              white-space: nowrap;
-            ">
-              Reset Filters
-            </button>
-            
-            <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px;">
-              <!-- Impressions Slider -->
-              <div class="slider-container">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    Impressions
-                  </label>
-                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    ≥ <span id="impressionsValue">${window.searchTermsSliderFilters.impressions}</span>
-                  </span>
-                </div>
-                <input type="range" id="impressionsSlider" min="0" max="${maxValues.impressions}" 
-                       value="${window.searchTermsSliderFilters.impressions}" 
-                       class="apple-slider">
-              </div>
-              
-              <!-- Clicks Slider -->
-              <div class="slider-container">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    Clicks
-                  </label>
-                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    ≥ <span id="clicksValue">${window.searchTermsSliderFilters.clicks}</span>
-                  </span>
-                </div>
-                <input type="range" id="clicksSlider" min="0" max="${maxValues.clicks}" 
-                       value="${window.searchTermsSliderFilters.clicks}" 
-                       class="apple-slider">
-              </div>
-              
-              <!-- CTR Slider -->
-              <div class="slider-container">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    CTR
-                  </label>
-                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    ≥ <span id="ctrValue">${window.searchTermsSliderFilters.ctr.toFixed(1)}</span>%
-                  </span>
-                </div>
-                <input type="range" id="ctrSlider" min="0" max="${maxValues.ctr}" step="0.1"
-                       value="${window.searchTermsSliderFilters.ctr}" 
-                       class="apple-slider">
-              </div>
-              
-              <!-- Conversions Slider -->
-              <div class="slider-container">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                  <label style="font-size: 13px; color: #1d1d1f; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    Conversions
-                  </label>
-                  <span style="font-size: 13px; color: #007AFF; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                    ≥ <span id="conversionsValue">${window.searchTermsSliderFilters.conversions}</span>
-                  </span>
-                </div>
-                <input type="range" id="conversionsSlider" min="0" max="${maxValues.conversions}" 
-                       value="${window.searchTermsSliderFilters.conversions}" 
-                       class="apple-slider">
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    })() : ''}
         
     <table class="search-terms-table" style="width: 100%; border-collapse: collapse; background: white;">
       <thead>
@@ -887,48 +783,24 @@ function renderSearchTermPieCharts(searchTerm) {
 function getFilteredSearchTermsData() {
   let data = [...window.searchTermsData];
   
-  // Apply tab filter first
   switch(window.searchTermsFilter) {
     case 'topbucket':
+      // Filter for items that have Top Bucket data
       data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
       break;
     case 'negatives':
-      data = data.filter(item => item.Clicks >= 50 && item.Conversions === 0);
+      // Filter for potential negative terms (low CTR, no conversions)
+      data = data.filter(item => {
+        const ctr = item.Impressions > 0 ? (item.Clicks / item.Impressions * 100) : 0;
+        return ctr < 1 && item.Conversions === 0 && item.Impressions > 100;
+      });
       break;
-    case 'all':
     default:
-      // No filter needed
+      // 'all' - no filtering
       break;
   }
   
-  // Apply slider filters
-  const filters = window.searchTermsSliderFilters;
-  data = data.filter(item => {
-    const ctr = item.Impressions > 0 ? (item.Clicks / item.Impressions * 100) : 0;
-    
-    return (item.Impressions || 0) >= filters.impressions &&
-           (item.Clicks || 0) >= filters.clicks &&
-           ctr >= filters.ctr &&
-           (item.Conversions || 0) >= filters.conversions;
-  });
-  
   return data;
-}
-
-/**
- * Calculate max values for sliders from the dataset
- */
-function calculateSliderMaxValues() {
-  const data = window.searchTermsData;
-  
-  const maxValues = {
-    impressions: Math.max(...data.map(d => d.Impressions || 0)),
-    clicks: Math.max(...data.map(d => d.Clicks || 0)),
-    ctr: Math.max(...data.map(d => d.Impressions > 0 ? (d.Clicks / d.Impressions * 100) : 0)),
-    conversions: Math.max(...data.map(d => d.Conversions || 0))
-  };
-  
-  return maxValues;
 }
 
 function sortSearchTermsData() {
@@ -1369,105 +1241,7 @@ function attachSearchTermsEventListeners() {
             }, 300);
           }
         });
-}
-    });
-  }
-  
-  // Attach slider event listeners if on negatives filter
-  if (window.searchTermsFilter === 'negatives') {
-    setTimeout(() => {
-      attachSliderEventListeners();
-    }, 100);
-  }
-}
-
-/**
- * Attach slider event listeners (called once when filter changes to negatives)
- */
-function attachSliderEventListeners() {
-  const impressionsSlider = document.getElementById('impressionsSlider');
-  const clicksSlider = document.getElementById('clicksSlider');
-  const ctrSlider = document.getElementById('ctrSlider');
-  const conversionsSlider = document.getElementById('conversionsSlider');
-  
-  if (impressionsSlider && !impressionsSlider.hasAttribute('data-listener-attached')) {
-    impressionsSlider.setAttribute('data-listener-attached', 'true');
-    impressionsSlider.addEventListener('input', function() {
-      document.getElementById('impressionsValue').textContent = this.value;
-    });
-    impressionsSlider.addEventListener('change', function() {
-      window.searchTermsSliderFilters.impressions = parseInt(this.value);
-      window.searchTermsCurrentPage = 1;
-      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
-    });
-  }
-  
-  if (clicksSlider && !clicksSlider.hasAttribute('data-listener-attached')) {
-    clicksSlider.setAttribute('data-listener-attached', 'true');
-    clicksSlider.addEventListener('input', function() {
-      document.getElementById('clicksValue').textContent = this.value;
-    });
-    clicksSlider.addEventListener('change', function() {
-      window.searchTermsSliderFilters.clicks = parseInt(this.value);
-      window.searchTermsCurrentPage = 1;
-      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
-    });
-  }
-  
-  if (ctrSlider && !ctrSlider.hasAttribute('data-listener-attached')) {
-    ctrSlider.setAttribute('data-listener-attached', 'true');
-    ctrSlider.addEventListener('input', function() {
-      document.getElementById('ctrValue').textContent = parseFloat(this.value).toFixed(1);
-    });
-    ctrSlider.addEventListener('change', function() {
-      window.searchTermsSliderFilters.ctr = parseFloat(this.value);
-      window.searchTermsCurrentPage = 1;
-      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
-    });
-  }
-  
-  if (conversionsSlider && !conversionsSlider.hasAttribute('data-listener-attached')) {
-    conversionsSlider.setAttribute('data-listener-attached', 'true');
-    conversionsSlider.addEventListener('input', function() {
-      document.getElementById('conversionsValue').textContent = this.value;
-    });
-    conversionsSlider.addEventListener('change', function() {
-      window.searchTermsSliderFilters.conversions = parseInt(this.value);
-      window.searchTermsCurrentPage = 1;
-      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
-    });
-  }
-  
-  const defaultFiltersBtn = document.getElementById('defaultFiltersBtn');
-  if (defaultFiltersBtn && !defaultFiltersBtn.hasAttribute('data-listener-attached')) {
-    defaultFiltersBtn.setAttribute('data-listener-attached', 'true');
-    defaultFiltersBtn.addEventListener('click', function() {
-      window.searchTermsSliderFilters = {
-        impressions: 0,
-        clicks: 50,
-        ctr: 0,
-        conversions: 0
-      };
-      
-      if (impressionsSlider) {
-        impressionsSlider.value = 0;
-        document.getElementById('impressionsValue').textContent = '0';
       }
-      if (clicksSlider) {
-        clicksSlider.value = 50;
-        document.getElementById('clicksValue').textContent = '50';
-      }
-      if (ctrSlider) {
-        ctrSlider.value = 0;
-        document.getElementById('ctrValue').textContent = '0.0';
-      }
-      if (conversionsSlider) {
-        conversionsSlider.value = 0;
-        document.getElementById('conversionsValue').textContent = '0';
-      }
-      
-      window.searchTermsCurrentPage = 1;
-      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
     });
   }
 }
@@ -1564,73 +1338,6 @@ function addSearchTermsStyles() {
         white-space: normal;
         line-height: 1.4;
         text-align: center;
-      }
-      /* Apple-style slider styles */
-      .apple-slider {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 100%;
-        height: 4px;
-        background: #E5E5E7;
-        outline: none;
-        border-radius: 2px;
-        transition: all 0.3s ease;
-      }
-      
-      .apple-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 20px;
-        height: 20px;
-        background: white;
-        cursor: pointer;
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      
-      .apple-slider::-webkit-slider-thumb:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
-        transform: scale(1.1);
-      }
-      
-      .apple-slider::-webkit-slider-thumb:active {
-        transform: scale(0.95);
-      }
-      
-      .apple-slider::-moz-range-thumb {
-        width: 20px;
-        height: 20px;
-        background: white;
-        cursor: pointer;
-        border-radius: 50%;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      
-      .apple-slider::-moz-range-thumb:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
-        transform: scale(1.1);
-      }
-      
-      .apple-slider::-moz-range-track {
-        height: 4px;
-        background: #E5E5E7;
-        border-radius: 2px;
-      }
-      
-      #defaultFiltersBtn:hover {
-        background: #0051D5 !important;
-        transform: scale(1.02);
-      }
-      
-      #defaultFiltersBtn:active {
-        transform: scale(0.98);
-      }
-      
-      .slider-container {
-        padding: 8px 0;
       }
     `;
     document.head.appendChild(style);
