@@ -75,36 +75,6 @@ async function loadMarketTrendsData() {
   }
 }
 
-/**
- * Animates a counter from 0 to target value over specified duration
- */
-function animateCounter(element, targetValue, duration = 1000) {
-  if (!element) return;
-  
-  const startValue = 0;
-  const startTime = performance.now();
-  
-  function updateCounter(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    
-    // Use easeOutCubic for a smooth deceleration effect
-    const easedProgress = 1 - Math.pow(1 - progress, 3);
-    
-    const currentValue = Math.round(startValue + (targetValue - startValue) * easedProgress);
-    element.textContent = currentValue;
-    
-    if (progress < 1) {
-      requestAnimationFrame(updateCounter);
-    } else {
-      // Ensure we end with the exact target value
-      element.textContent = targetValue;
-    }
-  }
-  
-  requestAnimationFrame(updateCounter);
-}
-
 // Function to clear market trends cache (call when data is updated)
 window.clearMarketTrendsCache = function(projectNumber = null) {
   if (projectNumber) {
@@ -2892,6 +2862,34 @@ const projectMarketData = window.projectMarketTrendsData.filter(row => {
   return { dates, unProducts, unProductsOnSale };
 }
 
+// Animation function for counting numbers
+function animateCounter(element, targetValue, duration = 1000, startValue = 0) {
+  if (!element || targetValue === undefined) return;
+  
+  const startTime = performance.now();
+  const valueDiff = targetValue - startValue;
+  
+  function updateCounter(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Use easeOutCubic for smooth deceleration
+    const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+    const currentValue = Math.round(startValue + (valueDiff * easeOutCubic));
+    
+    element.textContent = currentValue.toLocaleString(); // Add comma separators for large numbers
+    
+    if (progress < 1) {
+      requestAnimationFrame(updateCounter);
+    } else {
+      // Ensure we end exactly on the target value
+      element.textContent = targetValue.toLocaleString();
+    }
+  }
+  
+  requestAnimationFrame(updateCounter);
+}
+
 // Updated function to get counts from marketTrendsData
 function updateInfoBlockCompaniesStats() {
   console.log("[updateInfoBlockCompaniesStats] Starting...");
@@ -2961,9 +2959,11 @@ function updateInfoBlockCompaniesStats() {
     console.log(`[updateInfoBlockCompaniesStats] Found ${companies.size} unique companies active in last 14 days`);
   }
   
-  // Update companies count
+  // Animate companies count
   const companiesEl = document.getElementById('infoBlockTotalCompanies');
-  if (companiesEl) animateCounter(companiesEl, companies.size, 1000);
+  if (companiesEl) {
+    animateCounter(companiesEl, companies.size, 1000, 0);
+  }
   
   // Get highest products count from marketTrendsData over last 14 days
   let maxProductsCount = 0;
@@ -3011,9 +3011,11 @@ function updateInfoBlockCompaniesStats() {
     }
   }
   
-  // Update products count
+  // Animate products count
   const productsEl = document.getElementById('infoBlockTotalProducts');
-  if (productsEl) animateCounter(productsEl, products.size, 1000);
+  if (productsEl) {
+    animateCounter(productsEl, maxProductsCount, 1000, 0);
+  }
   
   // Render the trend charts
   renderInfoBlockTrendCharts();
