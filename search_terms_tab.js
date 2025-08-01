@@ -1199,6 +1199,31 @@ function renderSearchTermsStats(data) {
     return sum + (trendRevenue || 0);
   }, 0);
 
+  // Prepare data for horizontal bars
+  const barData = Object.entries(bucketMetrics).map(([name, metrics]) => {
+    const clicksPercent = totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0;
+    const revenuePercent = totalRevenue > 0 ? ((metrics.revenue || 0) / totalRevenue * 100) : 0;
+    
+    // Calculate previous percentages
+    const prevClicksPercent = prevTotalClicks > 0 ? 
+      ((metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100)) / prevTotalClicks * 100) : 0;
+    const prevRevenuePercent = prevTotalRevenue > 0 ? 
+      ((metrics.value / (1 + (metrics.valueTrend || 0) / 100) * (metrics.revenue / metrics.value)) / prevTotalRevenue * 100) : 0;
+    
+    // Calculate percentage point changes
+    const clicksPercentChange = clicksPercent - prevClicksPercent;
+    const revenuePercentChange = revenuePercent - prevRevenuePercent;
+    
+    return {
+      name,
+      color: metrics.color,
+      clicksPercent,
+      revenuePercent,
+      clicksTrend: clicksPercentChange,
+      revenueTrend: revenuePercentChange
+    };
+  });
+
   let html = `
     <div style="
       background: #ffffff;
@@ -1232,39 +1257,152 @@ function renderSearchTermsStats(data) {
       
       <div style="display: flex; gap: 24px;">
         
-        <!-- Left side: Pie Chart -->
+        <!-- Left side: Horizontal Bars -->
         <div style="
-          flex: 0 0 200px;
+          flex: 0 0 280px;
         ">
           <div style="
             background: #f9fafb;
             border: 1px solid #e5e7eb;
             border-radius: 10px;
-            padding: 16px;
+            padding: 20px;
           ">
             <h4 style="
-              margin: 0 0 12px 0;
+              margin: 0 0 20px 0;
               text-align: center;
               color: #374151;
-              font-size: 13px;
+              font-size: 14px;
               font-weight: 600;
-            ">Click Distribution</h4>
+            ">Distribution Overview</h4>
             
-            <div style="position: relative; display: flex; justify-content: center;">
-              <canvas id="bucketPieChart" width="140" height="140" style="cursor: pointer; display: block;"></canvas>
+            <!-- Clicks Distribution -->
+            <div style="margin-bottom: 24px;">
+              <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 10px;
+              ">
+                <span style="font-size: 13px; font-weight: 600; color: #374151;">% of Clicks</span>
+                <span style="font-size: 12px; color: #6b7280;">${totalClicks.toLocaleString()} total</span>
+              </div>
+              <div style="margin-bottom: 8px;">
+                ${barData.map(item => `
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 6px;
+                  ">
+                    <div style="
+                      width: 100%;
+                      height: 20px;
+                      background: #e5e7eb;
+                      border-radius: 4px;
+                      position: relative;
+                      overflow: hidden;
+                    ">
+                      <div style="
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        height: 100%;
+                        width: ${Math.min(item.clicksPercent, 100)}%;
+                        background: ${item.color};
+                        transition: width 0.3s ease;
+                      "></div>
+                      <div style="
+                        position: absolute;
+                        left: 8px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: ${item.clicksPercent > 10 ? 'white' : '#374151'};
+                        z-index: 1;
+                      ">
+                        ${item.clicksPercent.toFixed(1)}%
+                        ${Math.abs(item.clicksTrend) >= 0.1 ? `
+                          <span style="font-weight: 500; opacity: 0.9;">
+                            ${item.clicksTrend > 0 ? '+' : ''}${item.clicksTrend.toFixed(1)}pp
+                          </span>
+                        ` : ''}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="
+                padding-top: 8px;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+                flex-wrap: wrap;
+              ">
+                ${barData.slice(0, 3).map(item => `
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="width: 8px; height: 8px; background: ${item.color}; border-radius: 2px;"></div>
+                    <span style="font-size: 10px; color: #6b7280;">${item.name.split(' ').slice(0, 2).join(' ')}</span>
+                  </div>
+                `).join('')}
+              </div>
             </div>
             
-            <div style="
-              margin-top: 12px;
-              text-align: center;
-              padding-top: 12px;
-              border-top: 1px solid #e5e7eb;
-            ">
-              <div style="font-size: 18px; font-weight: 700; color: #1f2937;">
-                ${totalClicks.toLocaleString()}
+            <!-- Revenue Distribution -->
+            <div>
+              <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 10px;
+              ">
+                <span style="font-size: 13px; font-weight: 600; color: #374151;">% of Revenue</span>
+                <span style="font-size: 12px; color: #6b7280;">${(totalRevenue * 100).toFixed(1)}% total</span>
               </div>
-              <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
-                Total Clicks
+              <div>
+                ${barData.map(item => `
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 6px;
+                  ">
+                    <div style="
+                      width: 100%;
+                      height: 20px;
+                      background: #e5e7eb;
+                      border-radius: 4px;
+                      position: relative;
+                      overflow: hidden;
+                    ">
+                      <div style="
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        height: 100%;
+                        width: ${Math.min(item.revenuePercent, 100)}%;
+                        background: ${item.color}88;
+                        transition: width 0.3s ease;
+                      "></div>
+                      <div style="
+                        position: absolute;
+                        left: 8px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: ${item.revenuePercent > 10 ? 'white' : '#374151'};
+                        z-index: 1;
+                      ">
+                        ${item.revenuePercent.toFixed(1)}%
+                        ${Math.abs(item.revenueTrend) >= 0.1 ? `
+                          <span style="font-weight: 500; opacity: 0.9;">
+                            ${item.revenueTrend > 0 ? '+' : ''}${item.revenueTrend.toFixed(1)}pp
+                          </span>
+                        ` : ''}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
           </div>
@@ -1275,50 +1413,41 @@ function renderSearchTermsStats(data) {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         ">
   `;
   
   // Create stat cards for each bucket
   Object.entries(bucketMetrics).forEach(([bucketName, metrics]) => {
-    const clicksPercent = totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0;
-    const revenuePercent = totalRevenue > 0 ? ((metrics.revenue || 0) / totalRevenue * 100) : 0;
-    
-    // Calculate previous percentages
-    const prevClicksPercent = prevTotalClicks > 0 ? 
-      ((metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100)) / prevTotalClicks * 100) : 0;
-    const prevRevenuePercent = prevTotalRevenue > 0 ? 
-      ((metrics.value / (1 + (metrics.valueTrend || 0) / 100) * (metrics.revenue / metrics.value)) / prevTotalRevenue * 100) : 0;
-    
-    // Calculate percentage point changes
-    const clicksPercentChange = clicksPercent - prevClicksPercent;
-    const revenuePercentChange = revenuePercent - prevRevenuePercent;
-    
     // Format trend indicators
-    const getTrendIndicator = (change) => {
-      if (Math.abs(change) < 0.1) return { arrow: '', color: '#9ca3af', text: '0.0pp' };
-      const arrow = change > 0 ? '↑' : '↓';
-      const color = change > 0 ? '#10b981' : '#ef4444';
-      return { arrow, color, text: `${change > 0 ? '+' : ''}${change.toFixed(1)}pp` };
+    const getTrendIndicator = (value, trend) => {
+      if (!trend || Math.abs(trend) < 0.1) return value.toLocaleString();
+      const arrow = trend > 0 ? '↑' : '↓';
+      const color = trend > 0 ? '#10b981' : '#ef4444';
+      return `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span>${value.toLocaleString()}</span>
+          <span style="color: ${color}; font-size: 10px; font-weight: 500;">
+            ${arrow}${Math.abs(trend).toFixed(0)}%
+          </span>
+        </div>
+      `;
     };
-    
-    const clicksPercentTrend = getTrendIndicator(clicksPercentChange);
-    const revenuePercentTrend = getTrendIndicator(revenuePercentChange);
     
     html += `
       <div class="bucket-stat-card" data-bucket="${bucketName}" style="
         background: #ffffff;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
-        padding: 16px;
+        padding: 12px 16px;
         transition: all 0.3s ease;
         cursor: pointer;
         position: relative;
         overflow: hidden;
         display: flex;
         align-items: center;
-        gap: 20px;
-        height: 90px;
+        gap: 16px;
+        height: 80px;
       ">
         <!-- Color accent bar -->
         <div style="
@@ -1330,16 +1459,35 @@ function renderSearchTermsStats(data) {
           background: ${metrics.color};
         "></div>
         
-        <!-- Left Section: Percentages -->
+        <!-- Terms Count -->
         <div style="
-          flex: 0 0 160px;
-          padding-left: 12px;
+          flex: 0 0 80px;
+          text-align: center;
+          padding-left: 8px;
         ">
           <div style="
+            font-size: 28px;
+            font-weight: 700;
+            color: ${metrics.color};
+            line-height: 1;
+          ">${metrics.count}</div>
+          <div style="
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+          ">terms</div>
+        </div>
+        
+        <!-- Bucket Name and Metrics -->
+        <div style="flex: 1;">
+          <div style="
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 12px;
           ">
             <div style="
               width: 10px;
@@ -1347,122 +1495,76 @@ function renderSearchTermsStats(data) {
               border-radius: 50%;
               background: ${metrics.color};
             "></div>
-            <div style="
-              font-size: 13px;
-              font-weight: 600;
-              color: #1f2937;
-            ">${bucketName}</div>
+            ${bucketName}
           </div>
           
-          <div style="display: flex; gap: 24px;">
-            <!-- % of Clicks -->
-            <div>
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">% of clicks</div>
-              <div style="display: flex; align-items: baseline; gap: 4px;">
-                <span style="font-size: 18px; font-weight: 700; color: #1f2937;">
-                  ${clicksPercent.toFixed(1)}%
-                </span>
-                ${clicksPercentTrend.text !== '0.0pp' ? `
-                  <span style="font-size: 11px; color: ${clicksPercentTrend.color}; font-weight: 500;">
-                    ${clicksPercentTrend.arrow}${clicksPercentTrend.text}
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-            
-            <!-- % of Revenue -->
-            <div>
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">% of revenue</div>
-              <div style="display: flex; align-items: baseline; gap: 4px;">
-                <span style="font-size: 18px; font-weight: 700; color: #1f2937;">
-                  ${revenuePercent.toFixed(1)}%
-                </span>
-                ${revenuePercentTrend.text !== '0.0pp' ? `
-                  <span style="font-size: 11px; color: ${revenuePercentTrend.color}; font-weight: 500;">
-                    ${revenuePercentTrend.arrow}${revenuePercentTrend.text}
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Middle Section: Main Metrics -->
-        <div style="
-          flex: 1;
-          display: flex;
-          gap: 20px;
-          align-items: center;
-          padding: 0 20px;
-          border-left: 1px solid #f3f4f6;
-          border-right: 1px solid #f3f4f6;
-        ">
-          <div style="text-align: center;">
-            <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">${metrics.count} terms</div>
-            <div style="font-size: 10px; color: #9ca3af;">in bucket</div>
-          </div>
-          
-          <div style="flex: 1; display: flex; gap: 20px; justify-content: center;">
-            <div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">Clicks</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${metrics.clicks.toLocaleString()}
-              </div>
-            </div>
-            
-            <div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">Value</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${(metrics.value || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
-              </div>
-            </div>
-            
-            <div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">Conversions</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${metrics.conversions.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Right Section: Rates -->
-        <div style="
-          flex: 0 0 120px;
-          display: flex;
-          gap: 16px;
-          align-items: center;
-          justify-content: flex-end;
-          padding-right: 8px;
-        ">
+          <!-- Metrics Grid -->
           <div style="
-            background: #f9fafb;
-            padding: 8px 12px;
-            border-radius: 6px;
-            text-align: center;
-            min-width: 50px;
+            display: flex;
+            gap: 24px;
+            align-items: center;
           ">
-            <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
+            <!-- Primary Metrics -->
+            <div style="display: flex; gap: 20px;">
+              <div>
+                <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                  ${getTrendIndicator(metrics.clicks, metrics.clicksTrend)}
+                </div>
+              </div>
+              
+              <div>
+                <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                  ${metrics.value > 0 ? getTrendIndicator(metrics.value, metrics.valueTrend).replace(/(\d+(?:,\d{3})*(?:\.\d+)?)/g, '$$$1') : '$0'}
+                </div>
+              </div>
+              
+              <div>
+                <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conv.</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                  ${getTrendIndicator(metrics.conversions, metrics.conversionsTrend)}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Separator -->
             <div style="
-              font-size: 14px;
-              font-weight: 600;
-              color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
-            ">${(metrics.ctr || 0).toFixed(1)}%</div>
-          </div>
-          
-          <div style="
-            background: #f9fafb;
-            padding: 8px 12px;
-            border-radius: 6px;
-            text-align: center;
-            min-width: 50px;
-          ">
-            <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
-            <div style="
-              font-size: 14px;
-              font-weight: 600;
-              color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
-            ">${(metrics.cvr || 0).toFixed(1)}%</div>
+              width: 1px;
+              height: 32px;
+              background: #e5e7eb;
+            "></div>
+            
+            <!-- Rate Metrics -->
+            <div style="display: flex; gap: 16px;">
+              <div style="
+                text-align: center;
+                padding: 4px 12px;
+                background: #f9fafb;
+                border-radius: 6px;
+              ">
+                <div style="font-size: 9px; color: #6b7280; margin-bottom: 1px;">CTR</div>
+                <div style="
+                  font-size: 13px;
+                  font-weight: 600;
+                  color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
+                ">${(metrics.ctr || 0).toFixed(1)}%</div>
+              </div>
+              
+              <div style="
+                text-align: center;
+                padding: 4px 12px;
+                background: #f9fafb;
+                border-radius: 6px;
+              ">
+                <div style="font-size: 9px; color: #6b7280; margin-bottom: 1px;">CVR</div>
+                <div style="
+                  font-size: 13px;
+                  font-weight: 600;
+                  color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
+                ">${(metrics.cvr || 0).toFixed(1)}%</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1496,227 +1598,15 @@ function renderSearchTermsStats(data) {
   return { html, bucketMetrics, totalClicks };
 }
 
-/**
- * Enhanced pie chart rendering with better visuals
- */
-function renderBucketPieChart(bucketMetrics, totalClicks) {
-  const canvas = document.getElementById('bucketPieChart');
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d');
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = 60;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  // Prepare data
-  const chartData = Object.entries(bucketMetrics)
-    .filter(([_, metrics]) => metrics.clicks > 0)
-    .map(([name, metrics]) => ({
-      name,
-      value: metrics.clicks,
-      color: metrics.color,
-      percentage: totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0
-    }))
-    .sort((a, b) => b.value - a.value); // Sort by value for better visual
-  
-  if (chartData.length === 0) {
-    // Draw placeholder
-    ctx.fillStyle = '#e2e8f0';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    ctx.fillStyle = '#64748b';
-    ctx.font = '14px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('No data', centerX, centerY);
-    return;
-  }
-  
-  // Draw pie slices
-  let currentAngle = -Math.PI / 2; // Start at top
-  canvas.sliceData = [];
-  
-  chartData.forEach((slice, index) => {
-    const sliceAngle = (slice.value / totalClicks) * 2 * Math.PI;
-    
-    // Draw slice with shadow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 1;
-    
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-    ctx.closePath();
-    ctx.fillStyle = slice.color;
-    ctx.fill();
-    
-    ctx.restore();
-    
-    // Draw border
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-    ctx.closePath();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Store slice data for interaction
-    canvas.sliceData.push({
-      startAngle: currentAngle,
-      endAngle: currentAngle + sliceAngle,
-      ...slice
-    });
-    
-    currentAngle += sliceAngle;
-  });
-  
-  // Store data for interactions
-  canvas.totalClicks = totalClicks;
-  canvas.bucketMetrics = bucketMetrics;
-}
+
 
 /**
  * Enhanced event listeners with better interactions
  */
 function addBucketChartEventListeners() {
-  const canvas = document.getElementById('bucketPieChart');
-  const tooltip = document.getElementById('bucketTooltip');
-  if (!canvas || !tooltip) return;
-  
   let highlightedBucket = null;
   
-  // Mouse move for hover effects
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-    
-    if (distance <= 70 && canvas.sliceData && canvas.sliceData.length > 0) {
-      const angle = Math.atan2(y - centerY, x - centerX);
-      let normalizedAngle = angle;
-      if (normalizedAngle < -Math.PI / 2) {
-        normalizedAngle += 2 * Math.PI;
-      }
-      
-      const hoveredSlice = canvas.sliceData.find(slice => {
-        let startAngle = slice.startAngle;
-        let endAngle = slice.endAngle;
-        
-        if (startAngle < -Math.PI / 2) startAngle += 2 * Math.PI;
-        if (endAngle < -Math.PI / 2) endAngle += 2 * Math.PI;
-        
-        return normalizedAngle >= startAngle && normalizedAngle <= endAngle;
-      });
-      
-      if (hoveredSlice) {
-        const bucketMetrics = canvas.bucketMetrics[hoveredSlice.name];
-        const revenuePercent = ((bucketMetrics.revenue || 0) * 100).toFixed(1);
-        
-tooltip.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">
-            ${hoveredSlice.name}
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <div style="display: flex; justify-content: space-between; gap: 20px;">
-              <span style="color: #94a3b8;">Terms:</span> 
-              <span style="font-weight: 600;">${bucketMetrics.count}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 20px;">
-              <span style="color: #94a3b8;">Clicks:</span> 
-              <span style="font-weight: 600;">${hoveredSlice.value.toLocaleString()}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 20px;">
-              <span style="color: #94a3b8;">% of Clicks:</span> 
-              <span style="font-weight: 600;">${hoveredSlice.percentage.toFixed(1)}%</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 20px;">
-              <span style="color: #94a3b8;">% of Revenue:</span> 
-              <span style="font-weight: 600;">${revenuePercent}%</span>
-            </div>
-          </div>
-        `;
-        
-        tooltip.style.display = 'block';
-        tooltip.style.left = (e.clientX + 15) + 'px';
-        tooltip.style.top = (e.clientY - 10) + 'px';
-        
-        canvas.style.cursor = 'pointer';
-      } else {
-        tooltip.style.display = 'none';
-        canvas.style.cursor = 'default';
-      }
-    } else {
-      tooltip.style.display = 'none';
-      canvas.style.cursor = 'default';
-    }
-  });
-  
-  // Mouse leave
-  canvas.addEventListener('mouseleave', () => {
-    tooltip.style.display = 'none';
-    canvas.style.cursor = 'default';
-  });
-  
-  // Click to highlight
-  canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-    
-    if (distance <= 70 && canvas.sliceData && canvas.sliceData.length > 0) {
-      const angle = Math.atan2(y - centerY, x - centerX);
-      let normalizedAngle = angle;
-      if (normalizedAngle < -Math.PI / 2) {
-        normalizedAngle += 2 * Math.PI;
-      }
-      
-      const clickedSlice = canvas.sliceData.find(slice => {
-        let startAngle = slice.startAngle;
-        let endAngle = slice.endAngle;
-        
-        if (startAngle < -Math.PI / 2) startAngle += 2 * Math.PI;
-        if (endAngle < -Math.PI / 2) endAngle += 2 * Math.PI;
-        
-        return normalizedAngle >= startAngle && normalizedAngle <= endAngle;
-      });
-      
-      if (clickedSlice) {
-        // Remove previous highlights
-        document.querySelectorAll('.bucket-stat-card').forEach(card => {
-          card.style.transform = 'scale(1)';
-          card.style.boxShadow = 'none';
-          card.style.borderColor = '#e2e8f0';
-        });
-        
-        // Add new highlight
-        const card = document.querySelector(`[data-bucket="${clickedSlice.name}"]`);
-        if (card) {
-          card.style.transform = 'scale(1.02)';
-          card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-          card.style.borderColor = clickedSlice.color;
-          highlightedBucket = clickedSlice.name;
-        }
-      }
-    }
-  });
-  
-// Card hover and click interactions
+  // Card hover and click interactions
   document.querySelectorAll('.bucket-stat-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
       if (highlightedBucket !== card.getAttribute('data-bucket')) {
@@ -1748,10 +1638,6 @@ tooltip.innerHTML = `
       card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
       card.style.background = '#fafbfc';
       const bucketName = card.getAttribute('data-bucket');
-      const bucketMetrics = canvas.bucketMetrics[bucketName];
-      if (bucketMetrics) {
-        card.style.borderColor = bucketMetrics.color;
-      }
       highlightedBucket = bucketName;
     });
   });
@@ -1944,15 +1830,8 @@ function attachSearchTermsEventListeners() {
   
   // Render bucket pie chart and add interactions
   setTimeout(() => {
-    const canvas = document.getElementById('bucketPieChart');
-    if (canvas && window.searchTermsData) {
-      const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
-      const bucketMetrics = calculateBucketMetrics(buckets);
-      const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
-      
-      renderBucketPieChart(bucketMetrics, totalClicks);
-      addBucketChartEventListeners();
-    }
+    // Pie chart removed - now using horizontal bars
+    addBucketChartEventListeners();
   }, 200);
 }
 
