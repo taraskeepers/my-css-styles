@@ -334,8 +334,11 @@ function renderSearchTermsTableInternal(container) {
     .sort((a, b) => (b.Value || 0) - (a.Value || 0))
     .slice(0, 10)
     .map(item => item.Query);
+
+  // Render stats container
+  const statsResult = renderSearchTermsStats(allData);
   
-  let html = `
+  let html = statsResult.html + `
     <div style="margin-bottom: 20px;">
       <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1060,6 +1063,386 @@ function renderMissingTopBucketTerms() {
 }
 
 /**
+ * Classify search terms into buckets based on the framework
+ */
+function classifySearchTermsIntoBuckets(data) {
+  // Calculate dynamic thresholds
+  const totalConversions = data.reduce((sum, term) => sum + (term.Conversions || 0), 0);
+  const totalClicks = data.reduce((sum, term) => sum + (term.Clicks || 0), 0);
+  const totalValue = data.reduce((sum, term) => sum + (term.Value || 0), 0);
+  const totalRevenue = data.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0);
+  
+  const avgCVR = totalClicks > 0 ? (totalConversions / totalClicks) : 0;
+  const avgValuePerClick = totalClicks > 0 ? (totalValue / totalClicks) : 0;
+  const revenueThreshold = data.length > 0 ? (totalRevenue / data.length) * 2 : 0;
+  
+  const buckets = {
+    'Top Search Terms': { terms: [], color: '#FFD700', description: 'Historical top performers' },
+    'Zero Converting Terms': { terms: [], color: '#FF4444', description: 'High clicks, no conversions' },
+    'High Revenue Terms': { terms: [], color: '#00C851', description: 'Strong current performers' },
+    'Hidden Gems': { terms: [], color: '#33B5E5', description: 'Low volume, converting' },
+    'Low Performance': { terms: [], color: '#CCCCCC', description: 'Cleanup candidates' },
+    'Mid-Performance': { terms: [], color: '#FF8800', description: 'Monitor and test' }
+  };
+  
+  data.forEach(term => {
+    const clicks = term.Clicks || 0;
+    const conversions = term.Conversions || 0;
+    const value = term.Value || 0;
+    const cvr = clicks > 0 ? (conversions / clicks) : 0;
+    const valuePerClick = clicks > 0 ? (value / clicks) : 0;
+    const revenueShare = term['% of all revenue'] || 0;
+    const topBucket = term['Top Bucket'];
+    
+    // Bucket 1: Top Search Terms
+    if (topBucket && topBucket !== '') {
+      buckets['Top Search Terms'].terms.push(term);
+    }
+    // Bucket 2: Zero Converting Terms
+    else if (conversions === 0 && clicks >= 50) {
+      buckets['Zero Converting Terms'].terms.push(term);
+    }
+    // Bucket 3: High Revenue Terms
+    else if (conversions > 0 && (cvr >= avgCVR || valuePerClick >= avgValuePerClick || revenueShare >= revenueThreshold)) {
+      buckets['High Revenue Terms'].terms.push(term);
+    }
+    // Bucket 4: Hidden Gems
+    else if (clicks < 10 && (conversions > 0 || value > 0)) {
+      buckets['Hidden Gems'].terms.push(term);
+    }
+    // Bucket 5: Low Performance
+    else if (clicks < 10 && conversions === 0 && value === 0) {
+      buckets['Low Performance'].terms.push(term);
+    }
+    // Bucket 6: Mid-Performance
+    else {
+      buckets['Mid-Performance'].terms.push(term);
+    }
+  });
+  
+  return buckets;
+}
+
+/**
+ * Calculate aggregated metrics for each bucket
+ */
+function calculateBucketMetrics(buckets) {
+  const bucketMetrics = {};
+  
+  Object.entries(buckets).forEach(([bucketName, bucketData]) => {
+    const terms = bucketData.terms;
+    const metrics = {
+      count: terms.length,
+      clicks: terms.reduce((sum, term) => sum + (term.Clicks || 0), 0),
+      impressions: terms.reduce((sum, term) => sum + (term.Impressions || 0), 0),
+      conversions: terms.reduce((sum, term) => sum + (term.Conversions || 0), 0),
+      value: terms.reduce((sum, term) => sum + (term.Value || 0), 0),
+      revenue: terms.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0)
+    };
+    
+    // Calculate trend data
+    const trendMetrics = {
+      clicks: 0,
+      impressions: 0,
+      conversions: 0,
+      value: 0
+    };
+    
+    terms.forEach(term => {
+      if (term['Trend Data']) {
+        trendMetrics.clicks += term['Trend Data'].Clicks || 0;
+        trendMetrics.impressions += term['Trend Data'].Impressions || 0;
+        trendMetrics.conversions += term['Trend Data'].Conversions || 0;
+        trendMetrics.value += term['Trend Data'].Value || 0;
+      }
+    });
+    
+    // Calculate percentage changes
+    metrics.clicksTrend = trendMetrics.clicks > 0 ? ((metrics.clicks - trendMetrics.clicks) / trendMetrics.clicks * 100) : 0;
+    metrics.conversionsTrend = trendMetrics.conversions > 0 ? ((metrics.conversions - trendMetrics.conversions) / trendMetrics.conversions * 100) : 0;
+    metrics.valueTrend = trendMetrics.value > 0 ? ((metrics.value - trendMetrics.value) / trendMetrics.value * 100) : 0;
+    
+    // Calculate rates
+    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions * 100) : 0;
+    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks * 100) : 0;
+    
+    bucketMetrics[bucketName] = {
+      ...metrics,
+      color: bucketData.color,
+      description: bucketData.description
+    };
+  });
+  
+  return bucketMetrics;
+}
+
+/**
+ * Render the search terms stats container
+ */
+function renderSearchTermsStats(data) {
+  const buckets = classifySearchTermsIntoBuckets(data);
+  const bucketMetrics = calculateBucketMetrics(buckets);
+  
+  // Calculate total clicks for percentages
+  const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
+  
+  let html = `
+    <div class="search-terms-stats-container">
+      <!-- Pie Chart Container -->
+      <div class="bucket-pie-chart-container">
+        <h4 style="margin: 0 0 15px 0; text-align: center; color: #333; font-size: 16px;">Search Terms by Bucket</h4>
+        <canvas id="bucketPieChart" width="200" height="200" style="cursor: pointer;"></canvas>
+        <div style="margin-top: 10px; text-align: center; font-size: 13px; color: #666;">
+          Based on ${data.length.toLocaleString()} terms
+        </div>
+      </div>
+      
+      <!-- Stats Grid -->
+      <div class="bucket-stats-grid">
+  `;
+  
+  Object.entries(bucketMetrics).forEach(([bucketName, metrics]) => {
+    const clicksPercent = totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0;
+    const revenuePercent = metrics.revenue * 100;
+    
+    // Format trend indicators
+    const getTrendIndicator = (trend) => {
+      if (Math.abs(trend) < 0.1) return { arrow: '', color: '#999', text: '0%' };
+      const arrow = trend > 0 ? '↗' : '↘';
+      const color = trend > 0 ? '#4CAF50' : '#F44336';
+      return { arrow, color, text: `${Math.abs(trend).toFixed(1)}%` };
+    };
+    
+    const clicksTrendInd = getTrendIndicator(metrics.clicksTrend);
+    const valueTrendInd = getTrendIndicator(metrics.valueTrend);
+    
+    html += `
+      <div class="bucket-stat-card" data-bucket="${bucketName}">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <div style="width: 12px; height: 12px; border-radius: 50%; background: ${metrics.color};"></div>
+          <div style="font-size: 13px; font-weight: 600; color: #333; flex: 1;">${bucketName}</div>
+          <div style="font-size: 11px; color: #666;">${metrics.count} terms</div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+          <div>
+            <div style="color: #666;">Clicks</div>
+            <div style="font-weight: 600; color: #333;">
+              ${metrics.clicks.toLocaleString()}
+              <span style="color: ${clicksTrendInd.color}; font-size: 10px; margin-left: 4px;">
+                ${clicksTrendInd.arrow} ${clicksTrendInd.text}
+              </span>
+            </div>
+          </div>
+          
+          <div>
+            <div style="color: #666;">Value</div>
+            <div style="font-weight: 600; color: #333;">
+              $${metrics.value.toLocaleString(undefined, {maximumFractionDigits: 0})}
+              <span style="color: ${valueTrendInd.color}; font-size: 10px; margin-left: 4px;">
+                ${valueTrendInd.arrow} ${valueTrendInd.text}
+              </span>
+            </div>
+          </div>
+          
+          <div>
+            <div style="color: #666;">CVR</div>
+            <div style="font-weight: 600; color: #333;">${metrics.cvr.toFixed(1)}%</div>
+          </div>
+          
+          <div>
+            <div style="color: #666;">Revenue %</div>
+            <div style="font-weight: 600; color: #333;">${revenuePercent.toFixed(1)}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+    <div class="bucket-tooltip" id="bucketTooltip" style="display: none;"></div>
+  `;
+  
+  return { html, bucketMetrics, totalClicks };
+}
+
+/**
+ * Render pie chart for buckets
+ */
+function renderBucketPieChart(bucketMetrics, totalClicks) {
+  const canvas = document.getElementById('bucketPieChart');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = 80;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Prepare data
+  const chartData = Object.entries(bucketMetrics)
+    .filter(([_, metrics]) => metrics.clicks > 0)
+    .map(([name, metrics]) => ({
+      name,
+      value: metrics.clicks,
+      color: metrics.color,
+      percentage: totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0
+    }));
+  
+  // Draw pie slices
+  let currentAngle = -Math.PI / 2; // Start at top
+  
+  chartData.forEach((slice, index) => {
+    const sliceAngle = (slice.value / totalClicks) * 2 * Math.PI;
+    
+    // Draw slice
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = slice.color;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Store slice data for click detection
+    if (!canvas.sliceData) canvas.sliceData = [];
+    canvas.sliceData[index] = {
+      startAngle: currentAngle,
+      endAngle: currentAngle + sliceAngle,
+      ...slice
+    };
+    
+    currentAngle += sliceAngle;
+  });
+  
+  // Store total clicks for tooltip
+  canvas.totalClicks = totalClicks;
+  canvas.bucketMetrics = bucketMetrics;
+}
+
+/**
+ * Add event listeners for pie chart interactions
+ */
+function addBucketChartEventListeners() {
+  const canvas = document.getElementById('bucketPieChart');
+  const tooltip = document.getElementById('bucketTooltip');
+  if (!canvas || !tooltip) return;
+  
+  let highlightedBucket = null;
+  
+  // Mouse move for hover effects
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+    
+    if (distance <= 80 && canvas.sliceData) {
+      const angle = Math.atan2(y - centerY, x - centerX);
+      const normalizedAngle = angle < -Math.PI / 2 ? angle + 2 * Math.PI : angle;
+      
+      const hoveredSlice = canvas.sliceData.find(slice => {
+        let startAngle = slice.startAngle;
+        let endAngle = slice.endAngle;
+        
+        // Normalize angles
+        if (startAngle < -Math.PI / 2) startAngle += 2 * Math.PI;
+        if (endAngle < -Math.PI / 2) endAngle += 2 * Math.PI;
+        
+        return normalizedAngle >= startAngle && normalizedAngle <= endAngle;
+      });
+      
+      if (hoveredSlice) {
+        const bucketMetrics = canvas.bucketMetrics[hoveredSlice.name];
+        const revenuePercent = (bucketMetrics.revenue * 100).toFixed(1);
+        
+        tooltip.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 4px;">${hoveredSlice.name}</div>
+          <div>Clicks: ${hoveredSlice.value.toLocaleString()} (${hoveredSlice.percentage.toFixed(1)}%)</div>
+          <div>Revenue: ${revenuePercent}%</div>
+        `;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 10) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+        
+        canvas.style.cursor = 'pointer';
+      } else {
+        tooltip.style.display = 'none';
+        canvas.style.cursor = 'default';
+      }
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'default';
+    }
+  });
+  
+  // Mouse leave
+  canvas.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+    canvas.style.cursor = 'default';
+  });
+  
+  // Click to highlight
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+    
+    if (distance <= 80 && canvas.sliceData) {
+      const angle = Math.atan2(y - centerY, x - centerX);
+      const normalizedAngle = angle < -Math.PI / 2 ? angle + 2 * Math.PI : angle;
+      
+      const clickedSlice = canvas.sliceData.find(slice => {
+        let startAngle = slice.startAngle;
+        let endAngle = slice.endAngle;
+        
+        if (startAngle < -Math.PI / 2) startAngle += 2 * Math.PI;
+        if (endAngle < -Math.PI / 2) endAngle += 2 * Math.PI;
+        
+        return normalizedAngle >= startAngle && normalizedAngle <= endAngle;
+      });
+      
+      if (clickedSlice) {
+        // Remove previous highlight
+        document.querySelectorAll('.bucket-stat-card.highlighted').forEach(card => {
+          card.classList.remove('highlighted');
+        });
+        
+        // Add new highlight
+        const card = document.querySelector(`[data-bucket="${clickedSlice.name}"]`);
+        if (card) {
+          card.classList.add('highlighted');
+          highlightedBucket = clickedSlice.name;
+        }
+      }
+    }
+  });
+  
+  // Card click to highlight
+  document.querySelectorAll('.bucket-stat-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.bucket-stat-card.highlighted').forEach(c => {
+        c.classList.remove('highlighted');
+      });
+      card.classList.add('highlighted');
+    });
+  });
+}
+
+/**
  * Event handlers
  */
 function handleSearchTermsFilter(filter) {
@@ -1240,9 +1623,22 @@ function attachSearchTermsEventListeners() {
             }, 300);
           }
         });
-      }
+}
     });
   }
+  
+  // Render bucket pie chart and add interactions
+  setTimeout(() => {
+    const canvas = document.getElementById('bucketPieChart');
+    if (canvas && window.searchTermsData) {
+      const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
+      const bucketMetrics = calculateBucketMetrics(buckets);
+      const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
+      
+      renderBucketPieChart(bucketMetrics, totalClicks);
+      addBucketChartEventListeners();
+    }
+  }, 200);
 }
 
 /**
@@ -1338,6 +1734,63 @@ function addSearchTermsStyles() {
         line-height: 1.4;
         text-align: center;
       }
+      .search-terms-stats-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  height: 250px;
+  display: flex;
+  gap: 20px;
+}
+
+.bucket-pie-chart-container {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.bucket-stats-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 10px;
+}
+
+.bucket-stat-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.bucket-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.bucket-stat-card.highlighted {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.bucket-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
     `;
     document.head.appendChild(style);
   }
