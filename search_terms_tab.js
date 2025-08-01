@@ -788,11 +788,10 @@ function getFilteredSearchTermsData() {
       // Filter for items that have Top Bucket data
       data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
       break;
-    case 'negatives':
-      // Filter for potential negative terms (low CTR, no conversions)
+case 'negatives':
+      // Filter for potential negative terms (no conversions, sufficient clicks)
       data = data.filter(item => {
-        const ctr = item.Impressions > 0 ? (item.Clicks / item.Impressions * 100) : 0;
-        return ctr < 1 && item.Conversions === 0 && item.Impressions > 100;
+        return item.Conversions === 0 && item.Clicks >= 50;
       });
       break;
     default:
