@@ -1177,18 +1177,13 @@ function calculateBucketMetrics(buckets) {
 }
 
 /**
- * COMPLETE REPLACEMENT for the search terms stats functionality
- * This fixes the broken design and creates a proper modern layout
- */
-
-/**
  * Render the search terms stats container with proper modern design
  */
 function renderSearchTermsStats(data) {
   const buckets = classifySearchTermsIntoBuckets(data);
   const bucketMetrics = calculateBucketMetrics(buckets);
   
-  // Calculate total clicks for percentages
+  // Calculate total clicks and revenue for percentages
   const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
   const totalRevenue = Object.values(bucketMetrics).reduce((sum, bucket) => sum + (bucket.revenue || 0), 0);
   
@@ -1205,57 +1200,86 @@ function renderSearchTermsStats(data) {
 
   let html = `
     <div style="
-      background: white;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       padding: 24px;
       margin-bottom: 24px;
-      height: 250px;
     ">
-      <div style="display: flex; height: 100%; gap: 24px;">
+      <!-- Header Section -->
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #f3f4f6;
+      ">
+        <h3 style="
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1f2937;
+        ">Search Terms Analysis by Performance Bucket</h3>
+        <div style="
+          font-size: 14px;
+          color: #6b7280;
+        ">
+          ${data.length} total search terms analyzed
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 32px;">
         
         <!-- Left side: Pie Chart -->
         <div style="
-          flex: 0 0 280px;
+          flex: 0 0 240px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #f8f9ff, #ffffff);
-          border-radius: 8px;
-          padding: 16px;
-          border: 1px solid #e8ecf7;
         ">
-          <h4 style="
-            margin: 0 0 16px 0;
-            text-align: center;
-            color: #2c3e50;
-            font-size: 16px;
-            font-weight: 600;
-          ">Search Terms by Bucket</h4>
-          
-          <div style="position: relative;">
-            <canvas id="bucketPieChart" width="180" height="180" style="cursor: pointer; display: block;"></canvas>
-          </div>
-          
           <div style="
-            margin-top: 12px;
-            text-align: center;
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 500;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
           ">
-            Based on ${data.length.toLocaleString()} terms
+            <h4 style="
+              margin: 0 0 16px 0;
+              text-align: center;
+              color: #374151;
+              font-size: 14px;
+              font-weight: 600;
+            ">Click Distribution</h4>
+            
+            <div style="position: relative; display: flex; justify-content: center;">
+              <canvas id="bucketPieChart" width="160" height="160" style="cursor: pointer; display: block;"></canvas>
+            </div>
+            
+            <div style="
+              margin-top: 16px;
+              text-align: center;
+              padding-top: 16px;
+              border-top: 1px solid #e5e7eb;
+            ">
+              <div style="font-size: 20px; font-weight: 700; color: #1f2937;">
+                ${totalClicks.toLocaleString()}
+              </div>
+              <div style="font-size: 13px; color: #6b7280; margin-top: 2px;">
+                Total Clicks
+              </div>
+            </div>
           </div>
         </div>
         
-        <!-- Right side: Stats Grid -->
+        <!-- Right side: Bucket Cards Grid -->
         <div style="
           flex: 1;
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
-          padding: 8px;
+          grid-auto-rows: minmax(160px, auto);
         ">
   `;
   
@@ -1266,8 +1290,8 @@ function renderSearchTermsStats(data) {
     
     // Format trend indicators
     const getTrendIndicator = (trend) => {
-      if (Math.abs(trend) < 0.1) return { arrow: '', color: '#64748b', text: '0%' };
-      const arrow = trend > 0 ? '↗' : '↘';
+      if (Math.abs(trend) < 0.1) return { arrow: '', color: '#9ca3af', text: '0%' };
+      const arrow = trend > 0 ? '↑' : '↓';
       const color = trend > 0 ? '#10b981' : '#ef4444';
       return { arrow, color, text: `${Math.abs(trend).toFixed(1)}%` };
     };
@@ -1277,131 +1301,217 @@ function renderSearchTermsStats(data) {
     
     html += `
       <div class="bucket-stat-card" data-bucket="${bucketName}" style="
-        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
         border-radius: 10px;
-        padding: 16px;
-        border: 1px solid #e2e8f0;
+        padding: 20px;
         transition: all 0.3s ease;
         cursor: pointer;
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       ">
-        <!-- Color indicator bar -->
+        <!-- Color accent bar -->
         <div style="
           position: absolute;
           top: 0;
           left: 0;
-          width: 4px;
-          height: 100%;
+          right: 0;
+          height: 4px;
           background: ${metrics.color};
         "></div>
         
-        <!-- Header -->
+        <!-- Header Section -->
         <div style="
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         ">
           <div style="
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            flex: 1;
           ">
             <div style="
-              width: 10px;
-              height: 10px;
+              width: 12px;
+              height: 12px;
               border-radius: 50%;
               background: ${metrics.color};
+              flex-shrink: 0;
             "></div>
             <div style="
-              font-size: 13px;
+              font-size: 14px;
               font-weight: 600;
-              color: #1e293b;
-              line-height: 1.2;
+              color: #1f2937;
+              line-height: 1.3;
             ">${bucketName}</div>
           </div>
           <div style="
-            font-size: 11px;
-            color: #64748b;
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-size: 12px;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
           ">${metrics.count} terms</div>
         </div>
         
-        <!-- Metrics grid -->
+        <!-- Main Metrics -->
         <div style="
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          font-size: 11px;
+          gap: 16px;
+          margin-bottom: 16px;
+          flex: 1;
         ">
+          <!-- Clicks -->
           <div>
-            <div style="color: #64748b; margin-bottom: 4px;">Clicks</div>
+            <div style="color: #6b7280; font-size: 12px; margin-bottom: 6px;">Clicks</div>
             <div style="
-              font-weight: 600;
-              color: #1e293b;
-              font-size: 14px;
+              font-weight: 700;
+              color: #1f2937;
+              font-size: 18px;
               display: flex;
-              align-items: center;
-              gap: 4px;
+              align-items: baseline;
+              gap: 6px;
             ">
               ${metrics.clicks.toLocaleString()}
               ${clicksTrendInd.text !== '0%' ? `
                 <span style="
                   color: ${clicksTrendInd.color};
-                  font-size: 10px;
+                  font-size: 12px;
+                  font-weight: 500;
                 ">
                   ${clicksTrendInd.arrow}${clicksTrendInd.text}
                 </span>
               ` : ''}
             </div>
-            <div style="
-              font-size: 10px;
-              color: #64748b;
-              margin-top: 2px;
-            ">${clicksPercent.toFixed(1)}% of total</div>
           </div>
           
+          <!-- Value -->
           <div>
-            <div style="color: #64748b; margin-bottom: 4px;">Value</div>
+            <div style="color: #6b7280; font-size: 12px; margin-bottom: 6px;">Value</div>
             <div style="
-              font-weight: 600;
-              color: #1e293b;
-              font-size: 14px;
+              font-weight: 700;
+              color: #1f2937;
+              font-size: 18px;
               display: flex;
-              align-items: center;
-              gap: 4px;
+              align-items: baseline;
+              gap: 6px;
             ">
               $${(metrics.value || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
               ${valueTrendInd.text !== '0%' ? `
                 <span style="
                   color: ${valueTrendInd.color};
-                  font-size: 10px;
+                  font-size: 12px;
+                  font-weight: 500;
                 ">
                   ${valueTrendInd.arrow}${valueTrendInd.text}
                 </span>
               ` : ''}
             </div>
           </div>
-          
-          <div>
-            <div style="color: #64748b; margin-bottom: 4px;">CVR</div>
+        </div>
+        
+        <!-- Secondary Metrics -->
+        <div style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          padding-top: 16px;
+          border-top: 1px solid #f3f4f6;
+        ">
+          <!-- CVR -->
+          <div style="
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 6px;
+          ">
+            <div style="color: #6b7280; font-size: 11px; margin-bottom: 4px;">Conv. Rate</div>
             <div style="
               font-weight: 600;
-              color: #1e293b;
-              font-size: 14px;
+              color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
+              font-size: 16px;
             ">${(metrics.cvr || 0).toFixed(1)}%</div>
           </div>
           
-          <div>
-            <div style="color: #64748b; margin-bottom: 4px;">Revenue %</div>
+          <!-- CTR -->
+          <div style="
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 6px;
+          ">
+            <div style="color: #6b7280; font-size: 11px; margin-bottom: 4px;">Click Rate</div>
             <div style="
               font-weight: 600;
-              color: #1e293b;
-              font-size: 14px;
-            ">${revenuePercent.toFixed(1)}%</div>
+              color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
+              font-size: 16px;
+            ">${(metrics.ctr || 0).toFixed(1)}%</div>
+          </div>
+        </div>
+        
+        <!-- Percentage Bars -->
+        <div style="
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #f3f4f6;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        ">
+          <!-- % of Clicks -->
+          <div>
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 4px;
+            ">
+              <span style="font-size: 11px; color: #6b7280;">% of all clicks</span>
+              <span style="font-size: 13px; font-weight: 600; color: #1f2937;">${clicksPercent.toFixed(1)}%</span>
+            </div>
+            <div style="
+              height: 6px;
+              background: #f3f4f6;
+              border-radius: 3px;
+              overflow: hidden;
+            ">
+              <div style="
+                height: 100%;
+                background: ${metrics.color};
+                width: ${Math.min(clicksPercent, 100)}%;
+                transition: width 0.3s ease;
+              "></div>
+            </div>
+          </div>
+          
+          <!-- % of Revenue -->
+          <div>
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 4px;
+            ">
+              <span style="font-size: 11px; color: #6b7280;">% of all revenue</span>
+              <span style="font-size: 13px; font-weight: 600; color: #1f2937;">${revenuePercent.toFixed(1)}%</span>
+            </div>
+            <div style="
+              height: 6px;
+              background: #f3f4f6;
+              border-radius: 3px;
+              overflow: hidden;
+            ">
+              <div style="
+                height: 100%;
+                background: ${metrics.color}88;
+                width: ${Math.min(revenuePercent, 100)}%;
+                transition: width 0.3s ease;
+              "></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1418,16 +1528,17 @@ function renderSearchTermsStats(data) {
       position: absolute;
       background: rgba(15, 23, 42, 0.95);
       color: white;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 13px;
       pointer-events: none;
       z-index: 1000;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       backdrop-filter: blur(10px);
       display: none;
       font-weight: 500;
-      line-height: 1.4;
+      line-height: 1.5;
+      max-width: 280px;
     "></div>
   `;
   
@@ -1562,19 +1673,27 @@ function addBucketChartEventListeners() {
         const bucketMetrics = canvas.bucketMetrics[hoveredSlice.name];
         const revenuePercent = ((bucketMetrics.revenue || 0) * 100).toFixed(1);
         
-        tooltip.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 6px; color: #ffffff;">
+tooltip.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">
             ${hoveredSlice.name}
           </div>
-          <div style="margin-bottom: 3px;">
-            <span style="color: #cbd5e1;">Clicks:</span> 
-            <span style="color: #ffffff; font-weight: 600;">
-              ${hoveredSlice.value.toLocaleString()} (${hoveredSlice.percentage.toFixed(1)}%)
-            </span>
-          </div>
-          <div>
-            <span style="color: #cbd5e1;">Revenue:</span> 
-            <span style="color: #ffffff; font-weight: 600;">${revenuePercent}%</span>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+              <span style="color: #94a3b8;">Terms:</span> 
+              <span style="font-weight: 600;">${bucketMetrics.count}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+              <span style="color: #94a3b8;">Clicks:</span> 
+              <span style="font-weight: 600;">${hoveredSlice.value.toLocaleString()}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+              <span style="color: #94a3b8;">% of Clicks:</span> 
+              <span style="font-weight: 600;">${hoveredSlice.percentage.toFixed(1)}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+              <span style="color: #94a3b8;">% of Revenue:</span> 
+              <span style="font-weight: 600;">${revenuePercent}%</span>
+            </div>
           </div>
         `;
         
@@ -1974,6 +2093,19 @@ function addSearchTermsStyles() {
         white-space: normal;
         line-height: 1.4;
         text-align: center;
+      }
+      .bucket-stat-card {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      
+      .bucket-stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db !important;
+      }
+      
+      .bucket-stat-card:active {
+        transform: translateY(-2px);
       }
     `;
     document.head.appendChild(style);
