@@ -104,15 +104,55 @@ async function loadAndRenderSearchTerms() {
     
     db.close();
     
+    if (!result || !result.data || result.data.length === 0) {
+      container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
+      return;
+    }
+    
+    // Filter out "blank" search terms
+    const filteredData = result.data.filter(item => item.Query && item.Query.toLowerCase() !== 'blank');
+    
+    // Create a map of Top_Bucket values from 365d data
+    const topBucketMap = {};
+    if (result365d && result365d.data) {
+      result365d.data.forEach(item => {
+        if (item.Query && item['Top Bucket']) {
+          topBucketMap[item.Query.toLowerCase()] = item['Top Bucket'];
+        }
+      });
+    }
+    
+    // Create a map of 90d data for trends
+    const trend90dMap = {};
+    if (result90d && result90d.data) {
+      result90d.data.forEach(item => {
+        if (item.Query) {
+          trend90dMap[item.Query.toLowerCase()] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        }
+      });
+    }
+    
+    // Add Top_Bucket and trend data to current data
+    filteredData.forEach(item => {
+      const queryLower = item.Query.toLowerCase();
+      item['Top Bucket'] = topBucketMap[queryLower] || '';
+      item['Trend Data'] = trend90dMap[queryLower] || null;
+    });
+    
     // Process the data
-    window.searchTermsData = result?.data || [];
+    window.searchTermsData = filteredData;
     window.searchTermsData365d = result365d?.data || [];
     window.searchTermsData90d = result90d?.data || [];
     
     // Initialize pagination and sorting
     window.searchTermsCurrentPage = 1;
     window.searchTermsPerPage = 50;
-    window.searchTermsSortColumn = 'Impressions';
+    window.searchTermsSortColumn = 'Clicks';
     window.searchTermsSortAscending = false;
     window.searchTermsFilter = 'all';
     
@@ -125,6 +165,49 @@ async function loadAndRenderSearchTerms() {
   } catch (error) {
     console.error('[loadAndRenderSearchTerms] Error:', error);
     container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading search terms data</div>';
+  }
+}
+
+/**
+ * Function to get total unique products count
+ */
+async function getTotalProductsCount() {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const uniqueProducts = new Set();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data) {
+          result.data.forEach(item => {
+            if (item['Product Title']) {
+              uniqueProducts.add(item['Product Title']);
+            }
+          });
+        }
+        resolve();
+      };
+      getRequest.onerror = () => resolve();
+    });
+    
+    db.close();
+    return uniqueProducts.size;
+  } catch (error) {
+    console.error('[Search Terms] Error getting total products:', error);
+    return 0;
   }
 }
 
@@ -231,25 +314,43 @@ function renderSearchTermsTableInternal(container) {
     const globalIndex = startIndex + index + 1;
     const ctr = row.Impressions > 0 ? (row.Clicks / row.Impressions * 100).toFixed(2) : 0;
     const cvr = row.Clicks > 0 ? (row.Conversions / row.Clicks * 100).toFixed(2) : 0;
-    const cvrColor = cvr > avgCVR ? '#4CAF50' : cvr > avgCVR * 0.5 ? '#FF9800' : '#F44336';
     
-    // Get bar widths for visualization
+    // Calculate bar widths (max 100px)
     const impressionBarWidth = maxImpressions > 0 ? (row.Impressions / maxImpressions * 100) : 0;
     const clickBarWidth = maxClicks > 0 ? (row.Clicks / maxClicks * 100) : 0;
     
-    // Get trend data if available
-    const trendData = window.searchTermsData90d.find(d => d.Query === row.Query);
+    // Get top bucket for this search term
+    const topBucket = row['Top Bucket'] || '';
     
-    // Get top bucket from 365d data
-    const bucketData365d = window.searchTermsData365d.find(d => d.Query === row.Query);
-    const topBucket = bucketData365d ? bucketData365d['Top Bucket'] : null;
+    // Get trend data
+    const trendData = row['Trend Data'];
+    
+    // Determine row background
+    let rowBg = index % 2 === 1 ? '#f9f9f9' : 'white';
+    if (row.Clicks >= 50 && row.Conversions === 0) {
+      rowBg = '#ffebee'; // Light red
+    } else if (top10ByValue.includes(row.Query)) {
+      rowBg = '#e8f5e9'; // Light green
+    }
+    
+    // Determine CVR color
+    let cvrColor = '#666';
+    if (parseFloat(cvr) === 0) {
+      cvrColor = '#F44336'; // Red for 0%
+    } else if (parseFloat(cvr) >= avgCVR) {
+      cvrColor = '#4CAF50'; // Green for >= average
+    } else {
+      cvrColor = '#FF9800'; // Orange for < average
+    }
     
     html += `
-      <tr style="border-bottom: 1px solid #eee;" data-search-term="${row.Query}">
-        <td style="padding: 8px; text-align: center; font-weight: 600; color: #666;">${globalIndex}</td>
+      <tr style="background-color: ${rowBg};" class="search-term-row" data-search-term="${row.Query}">
+        <td style="padding: 8px; text-align: center;">
+          ${getIndexWithTopBucket(globalIndex, topBucket)}
+        </td>
         <td style="padding: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="search-term-tag">${row.Query}</span>
+            <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
             ${topBucket ? getTopBucketBadge(topBucket) : ''}
           </div>
         </td>
@@ -312,6 +413,271 @@ function renderSearchTermsTableInternal(container) {
 }
 
 /**
+ * Function to calculate product ranking metrics for a search term
+ */
+async function calculateProductRankingMetrics(searchTerm) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    return [];
+  }
+  
+  const normalizedTerm = searchTerm.toLowerCase().trim();
+  
+  // Get total products count
+  const totalProducts = await getTotalProductsCount();
+  
+  // Get company to filter
+  const companyToFilter = window.myCompany || '';
+  
+  const results = [];
+  
+  // Check if projectTableData exists and has data
+  if (window.projectTableData && Array.isArray(window.projectTableData)) {
+    // Group by location/device from projectTableData
+    const projectDataMap = {};
+    
+    window.projectTableData.forEach(item => {
+      if (item.searchTerm && item.searchTerm.toLowerCase().trim() === normalizedTerm) {
+        const key = `${item.location}|${item.device}`;
+        projectDataMap[key] = item;
+      }
+    });
+    
+    // For each location/device combination found in projectTableData
+    for (const [key, projectData] of Object.entries(projectDataMap)) {
+      const [location, device] = key.split('|');
+      
+      // Count active/inactive products from allRows
+      let activeCount = 0;
+      let inactiveCount = 0;
+      let prevActiveCount = 0;
+      
+      // Get products for this location/device
+      const products = window.allRows.filter(product => 
+        product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase() &&
+        product.location_requested === location &&
+        product.device === device
+      );
+      
+      // Count active/inactive
+      products.forEach(product => {
+        if (product.product_status === 'inactive') {
+          inactiveCount++;
+        } else {
+          activeCount++;
+        }
+        
+        // Track previous period active products
+        if (product.product_status !== 'inactive') {
+          // For previous period, check if product had data
+          if (product.historical_data && Array.isArray(product.historical_data)) {
+            const days = 7;
+            const endDate = moment().subtract(1, 'days');
+            const startDate = endDate.clone().subtract(days - 1, 'days');
+            const prevEndDate = startDate.clone().subtract(1, 'days');
+            const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
+            
+            const hasPrevData = product.historical_data.some(item => {
+              if (!item.date || !item.date.value) return false;
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            });
+            if (hasPrevData) {
+              prevActiveCount++;
+            }
+          }
+        }
+      });
+      
+      // Calculate percentage of all products
+      const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
+      
+      // Use pre-calculated values from projectTableData
+      results.push({
+        location: location,
+        device: device,
+        avgRank: projectData.avgRank || 0,
+        rankTrend: projectData.rankChange || 0, // Note: rankChange is the trend
+        marketShare: projectData.avgShare || 0,
+        shareTrend: projectData.trendVal || 0,
+        activeProducts: activeCount,
+        inactiveProducts: inactiveCount,
+        prevActiveProducts: prevActiveCount,
+        productsTrend: activeCount - prevActiveCount,
+        percentOfAllProducts: percentOfAllProducts,
+        totalProducts: totalProducts
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Function to render product ranking sub-rows
+ */
+async function renderProductRankingSubRows(searchTerm) {
+  const metrics = await calculateProductRankingMetrics(searchTerm);
+  
+  if (!metrics || metrics.length === 0) {
+    return ''; // Don't add sub-row if no data
+  }
+  
+  let html = '';
+  
+  metrics.forEach((metric, index) => {
+    // Format location (shorter)
+    const locationParts = metric.location.split(',');
+    const city = locationParts[0] || metric.location;
+    
+    // Device icon - using Unicode symbols instead of images
+    const deviceIcon = metric.device.toLowerCase().includes('mobile') ? '📱' : '💻';
+    
+    // Format trends
+    const rankArrow = metric.rankTrend < 0 ? '↑' : metric.rankTrend > 0 ? '↓' : '';
+    const rankColor = metric.rankTrend < 0 ? '#4CAF50' : metric.rankTrend > 0 ? '#F44336' : '#999';
+    
+    const shareArrow = metric.shareTrend > 0 ? '↑' : metric.shareTrend < 0 ? '↓' : '';
+    const shareColor = metric.shareTrend > 0 ? '#4CAF50' : metric.shareTrend < 0 ? '#F44336' : '#999';
+    
+    html += `
+      <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
+        <td colspan="9" style="padding: 0;">
+          <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
+            <!-- Device (moved to first position) -->
+            <div style="flex: 0 0 40px; font-size: 24px; text-align: center;">
+              ${deviceIcon}
+            </div>
+            
+            <!-- Active Products (Main metric) -->
+            <div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+              <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+                ${metric.activeProducts}
+              </div>
+              <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+                PRODUCTS
+              </div>
+              ${metric.productsTrend !== 0 ? `
+                <div style="font-size: 11px; color: ${metric.productsTrend > 0 ? '#4CAF50' : '#F44336'}; margin-top: 2px;">
+                  ${metric.productsTrend > 0 ? '↑' : '↓'} ${Math.abs(metric.productsTrend)}
+                </div>
+              ` : ''}
+            </div>
+            
+            <!-- % of All Products with pie chart -->
+            <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
+              <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
+              <div>
+                <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+                <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+                  ${metric.percentOfAllProducts.toFixed(1)}%
+                </span>
+                <div style="font-size: 11px; color: #999;">
+                  (${metric.totalProducts} total)
+                </div>
+              </div>
+            </div>
+            
+            <!-- Location -->
+            <div style="flex: 0 0 140px;">
+              <span style="font-size: 13px; font-weight: 600; color: #333;">${city}</span>
+            </div>
+            
+            <!-- Avg Rank (square box) -->
+            <div style="flex: 0 0 auto; text-align: center;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 50px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0; position: relative;">
+                <span style="font-size: 18px; font-weight: 700; color: #333; line-height: 1;">
+                  ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+                </span>
+                ${rankArrow ? `<span style="font-size: 11px; color: ${rankColor}; line-height: 1; margin-top: 2px;">
+                  ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+                </span>` : ''}
+              </div>
+            </div>
+            
+            <!-- Market Share (progress bar) -->
+            <div style="flex: 1;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Market Share</div>
+              <div style="position: relative; background: #e0e0e0; height: 24px; border-radius: 12px; overflow: hidden;">
+                <div style="position: absolute; left: 0; top: 0; height: 100%; background: #1976d2; width: ${Math.min(metric.marketShare, 100)}%; transition: width 0.3s ease;"></div>
+                <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; padding: 0 12px; justify-content: space-between;">
+                  <span style="font-size: 14px; font-weight: 700; color: ${metric.marketShare > 50 ? 'white' : '#333'}; z-index: 1;">
+                    ${metric.marketShare.toFixed(1)}%
+                  </span>
+                  ${shareArrow ? `<span style="font-size: 12px; color: ${metric.marketShare > 50 ? 'white' : shareColor}; z-index: 1;">
+                    ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
+                  </span>` : ''}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Inactive count -->
+            ${metric.inactiveProducts > 0 ? `
+              <div style="flex: 0 0 auto; text-align: center; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 8px;">
+                <span style="font-size: 11px; color: #999;">Inactive:</span>
+                <span style="font-size: 13px; font-weight: 600; color: #757575; margin-left: 4px;">
+                  ${metric.inactiveProducts}
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  
+  // Store pie chart data for later rendering
+  window.searchTermsPieChartData = window.searchTermsPieChartData || {};
+  window.searchTermsPieChartData[searchTerm] = metrics;
+  
+  return html;
+}
+
+/**
+ * Function to render pie charts for a specific search term
+ */
+function renderSearchTermPieCharts(searchTerm) {
+  const metrics = window.searchTermsPieChartData[searchTerm];
+  if (!metrics) return;
+  
+  metrics.forEach((metric, idx) => {
+    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const percentage = metric.percentOfAllProducts;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 30, 30);
+      
+      // Draw filled portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
+      ctx.closePath();
+      ctx.fillStyle = '#1976d2';
+      ctx.fill();
+      
+      // Draw remaining portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+}
+
+/**
  * Helper functions for data filtering, sorting, and display
  */
 function getFilteredSearchTermsData() {
@@ -319,11 +685,8 @@ function getFilteredSearchTermsData() {
   
   switch(window.searchTermsFilter) {
     case 'topbucket':
-      // Filter for items that have Top Bucket data in 365d
-      data = data.filter(item => {
-        const bucketData = window.searchTermsData365d.find(d => d.Query === item.Query);
-        return bucketData && bucketData['Top Bucket'];
-      });
+      // Filter for items that have Top Bucket data
+      data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
       break;
     case 'negatives':
       // Filter for potential negative terms (low CTR, no conversions)
@@ -435,19 +798,68 @@ function getMetricWithTrend(current, previous, type, barWidth = null) {
 function getTopBucketBadge(topBucket) {
   if (!topBucket) return '';
   
+  const bucketConfig = {
+    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: 'Top 1' },
+    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: 'Top 2' },
+    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: 'Top 3' },
+    'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
+    'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
+    'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
+  };
+  
+  const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
+  
   return `
     <span style="
-      background: linear-gradient(135deg, #ff6b6b, #feca57);
-      color: white;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
       font-weight: 600;
-      text-transform: uppercase;
-      margin-left: 8px;
       white-space: nowrap;
-    ">${topBucket}</span>
+      border: 1px solid ${config.color}40;
+    ">
+      ${config.label}
+    </span>
   `;
+}
+
+function getIndexWithTopBucket(index, topBucket) {
+  const bucketStyles = {
+    'Top1': { bg: '#FFD700', color: '#000' },
+    'Top2': { bg: '#C0C0C0', color: '#000' },
+    'Top3': { bg: '#CD7F32', color: '#fff' },
+    'Top4': { bg: '#4CAF50', color: '#fff' },
+    'Top5': { bg: '#2196F3', color: '#fff' },
+    'Top10': { bg: '#9C27B0', color: '#fff' }
+  };
+  
+  const style = bucketStyles[topBucket];
+  
+  if (style) {
+    return `
+      <div style="
+        background: ${style.bg};
+        color: ${style.color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        margin: 0 auto;
+      ">
+        ${index}
+      </div>
+    `;
+  }
+  
+  return `<div style="font-weight: 600; color: #666; font-size: 13px;">${index}</div>`;
 }
 
 function renderMissingTopBucketTerms() {
@@ -474,7 +886,7 @@ function renderMissingTopBucketTerms() {
             <th style="padding: 10px; text-align: center; font-size: 13px;">Avg. Monthly Impressions</th>
             <th style="padding: 10px; text-align: center; font-size: 13px;">Avg. Monthly Clicks</th>
             <th style="padding: 10px; text-align: center; font-size: 13px;">Avg. Monthly Conversions</th>
-            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Value</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px;">Avg. Monthly Value</th>
           </tr>
         </thead>
         <tbody>
@@ -549,6 +961,36 @@ function changeSearchTermsPage(direction) {
 }
 
 /**
+ * Load product ranking data for all visible search terms
+ */
+async function loadProductRankingDataForAllTerms() {
+  console.log("[Search Terms] Loading product ranking data for all terms...");
+  
+  const subRows = document.querySelectorAll('.product-ranking-rows');
+  const promises = [];
+  
+  subRows.forEach(subRow => {
+    const searchTerm = subRow.getAttribute('data-search-term');
+    if (searchTerm) {
+      const promise = renderProductRankingSubRows(searchTerm).then(html => {
+        if (html) {
+          subRow.innerHTML = html;
+          // Render pie charts for this search term
+          setTimeout(() => {
+            renderSearchTermPieCharts(searchTerm);
+          }, 50);
+          subRow.style.display = 'table-row-group';
+        }
+      });
+      promises.push(promise);
+    }
+  });
+  
+  await Promise.all(promises);
+  console.log("[Search Terms] Product ranking data loaded for all terms");
+}
+
+/**
  * Attach event listeners
  */
 function attachSearchTermsEventListeners() {
@@ -609,54 +1051,66 @@ function attachSearchTermsEventListeners() {
     // Apply initial state
     if (productRankingToggle.checked) {
       const allSubRows = document.querySelectorAll('.product-ranking-rows');
-      allSubRows.forEach(subRow => {
-        subRow.style.display = 'table-row-group';
+      const promises = [];
+      
+      allSubRows.forEach(subRows => {
+        const searchTerm = subRows.getAttribute('data-search-term');
+        if (searchTerm) {
+          const promise = renderProductRankingSubRows(searchTerm).then(html => {
+            if (html) {
+              subRows.innerHTML = html;
+              // Render pie charts for this search term
+              setTimeout(() => {
+                renderSearchTermPieCharts(searchTerm);
+              }, 50);
+              subRows.style.display = 'table-row-group';
+            }
+          });
+          promises.push(promise);
+        }
       });
+      
+      Promise.all(promises);
     }
     
     productRankingToggle.addEventListener('change', function() {
       window.productRankingToggleState = this.checked;
       
+      // Update toggle styling
+      const toggleSlider = this.nextElementSibling;
+      if (toggleSlider) {
+        if (this.checked) {
+          toggleSlider.style.backgroundColor = '#007aff';
+        } else {
+          toggleSlider.style.backgroundColor = '#ccc';
+        }
+      }
+      
       const allSubRows = document.querySelectorAll('.product-ranking-rows');
+      
       if (this.checked) {
-        // Show all sub-rows and load data if needed
-        allSubRows.forEach(subRow => {
-          subRow.style.display = 'table-row-group';
-        });
-        
-        // Load product ranking data for all visible search terms
+        // Load and show product ranking data
         loadProductRankingDataForAllTerms();
       } else {
         // Hide all sub-rows
-        allSubRows.forEach(subRow => {
-          subRow.style.display = 'none';
+        allSubRows.forEach(subRows => {
+          if (subRows.innerHTML) {
+            const rows = subRows.querySelectorAll('.product-ranking-subrow');
+            rows.forEach((row, i) => {
+              row.style.transition = 'all 0.3s ease';
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+            });
+            setTimeout(() => {
+              subRows.style.display = 'none';
+              // Clear the HTML to force re-render next time
+              subRows.innerHTML = '';
+            }, 300);
+          }
         });
       }
     });
   }
-}
-
-async function loadProductRankingDataForAllTerms() {
-  // This would load product ranking data for each search term
-  // For now, we'll just show placeholder data
-  console.log("[Search Terms] Loading product ranking data...");
-  
-  const subRows = document.querySelectorAll('.product-ranking-rows');
-  subRows.forEach(subRow => {
-    const searchTerm = subRow.getAttribute('data-search-term');
-    if (subRow.innerHTML.trim() === '') {
-      // Add placeholder product ranking data
-      subRow.innerHTML = `
-        <tr style="background: #f8f9fa;">
-          <td colspan="9" style="padding: 10px 20px;">
-            <div style="font-size: 12px; color: #666;">
-              Product ranking data for "${searchTerm}" - Loading...
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-  });
 }
 
 /**
