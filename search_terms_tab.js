@@ -1177,7 +1177,12 @@ function calculateBucketMetrics(buckets) {
 }
 
 /**
- * Render the search terms stats container
+ * COMPLETE REPLACEMENT for the search terms stats functionality
+ * This fixes the broken design and creates a proper modern layout
+ */
+
+/**
+ * Render the search terms stats container with proper modern design
  */
 function renderSearchTermsStats(data) {
   const buckets = classifySearchTermsIntoBuckets(data);
@@ -1185,74 +1190,218 @@ function renderSearchTermsStats(data) {
   
   // Calculate total clicks for percentages
   const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
+  const totalRevenue = Object.values(bucketMetrics).reduce((sum, bucket) => sum + (bucket.revenue || 0), 0);
   
+  // Prepare chart data for pie chart
+  const chartData = Object.entries(bucketMetrics)
+    .filter(([_, metrics]) => metrics.clicks > 0)
+    .map(([name, metrics]) => ({
+      name,
+      value: metrics.clicks,
+      color: metrics.color,
+      percentage: totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0,
+      metrics
+    }));
+
   let html = `
-    <div class="search-terms-stats-container">
-      <!-- Pie Chart Container -->
-      <div class="bucket-pie-chart-container">
-        <h4 style="margin: 0 0 15px 0; text-align: center; color: #333; font-size: 16px;">Search Terms by Bucket</h4>
-        <canvas id="bucketPieChart" width="200" height="200" style="cursor: pointer;"></canvas>
-        <div style="margin-top: 10px; text-align: center; font-size: 13px; color: #666;">
-          Based on ${data.length.toLocaleString()} terms
+    <div style="
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+      height: 250px;
+    ">
+      <div style="display: flex; height: 100%; gap: 24px;">
+        
+        <!-- Left side: Pie Chart -->
+        <div style="
+          flex: 0 0 280px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f8f9ff, #ffffff);
+          border-radius: 8px;
+          padding: 16px;
+          border: 1px solid #e8ecf7;
+        ">
+          <h4 style="
+            margin: 0 0 16px 0;
+            text-align: center;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+          ">Search Terms by Bucket</h4>
+          
+          <div style="position: relative;">
+            <canvas id="bucketPieChart" width="180" height="180" style="cursor: pointer; display: block;"></canvas>
+          </div>
+          
+          <div style="
+            margin-top: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+          ">
+            Based on ${data.length.toLocaleString()} terms
+          </div>
         </div>
-      </div>
-      
-      <!-- Stats Grid -->
-      <div class="bucket-stats-grid">
+        
+        <!-- Right side: Stats Grid -->
+        <div style="
+          flex: 1;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          padding: 8px;
+        ">
   `;
   
+  // Create stat cards for each bucket
   Object.entries(bucketMetrics).forEach(([bucketName, metrics]) => {
     const clicksPercent = totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0;
-    const revenuePercent = metrics.revenue * 100;
+    const revenuePercent = totalRevenue > 0 ? ((metrics.revenue || 0) / totalRevenue * 100) : 0;
     
     // Format trend indicators
     const getTrendIndicator = (trend) => {
-      if (Math.abs(trend) < 0.1) return { arrow: '', color: '#999', text: '0%' };
+      if (Math.abs(trend) < 0.1) return { arrow: '', color: '#64748b', text: '0%' };
       const arrow = trend > 0 ? '↗' : '↘';
-      const color = trend > 0 ? '#4CAF50' : '#F44336';
+      const color = trend > 0 ? '#10b981' : '#ef4444';
       return { arrow, color, text: `${Math.abs(trend).toFixed(1)}%` };
     };
     
-    const clicksTrendInd = getTrendIndicator(metrics.clicksTrend);
-    const valueTrendInd = getTrendIndicator(metrics.valueTrend);
+    const clicksTrendInd = getTrendIndicator(metrics.clicksTrend || 0);
+    const valueTrendInd = getTrendIndicator(metrics.valueTrend || 0);
     
     html += `
-      <div class="bucket-stat-card" data-bucket="${bucketName}">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <div style="width: 12px; height: 12px; border-radius: 50%; background: ${metrics.color};"></div>
-          <div style="font-size: 13px; font-weight: 600; color: #333; flex: 1;">${bucketName}</div>
-          <div style="font-size: 11px; color: #666;">${metrics.count} terms</div>
+      <div class="bucket-stat-card" data-bucket="${bucketName}" style="
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        border-radius: 10px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      ">
+        <!-- Color indicator bar -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: ${metrics.color};
+        "></div>
+        
+        <!-- Header -->
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        ">
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          ">
+            <div style="
+              width: 10px;
+              height: 10px;
+              border-radius: 50%;
+              background: ${metrics.color};
+            "></div>
+            <div style="
+              font-size: 13px;
+              font-weight: 600;
+              color: #1e293b;
+              line-height: 1.2;
+            ">${bucketName}</div>
+          </div>
+          <div style="
+            font-size: 11px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+          ">${metrics.count} terms</div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+        <!-- Metrics grid -->
+        <div style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          font-size: 11px;
+        ">
           <div>
-            <div style="color: #666;">Clicks</div>
-            <div style="font-weight: 600; color: #333;">
+            <div style="color: #64748b; margin-bottom: 4px;">Clicks</div>
+            <div style="
+              font-weight: 600;
+              color: #1e293b;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            ">
               ${metrics.clicks.toLocaleString()}
-              <span style="color: ${clicksTrendInd.color}; font-size: 10px; margin-left: 4px;">
-                ${clicksTrendInd.arrow} ${clicksTrendInd.text}
-              </span>
+              ${clicksTrendInd.text !== '0%' ? `
+                <span style="
+                  color: ${clicksTrendInd.color};
+                  font-size: 10px;
+                ">
+                  ${clicksTrendInd.arrow}${clicksTrendInd.text}
+                </span>
+              ` : ''}
+            </div>
+            <div style="
+              font-size: 10px;
+              color: #64748b;
+              margin-top: 2px;
+            ">${clicksPercent.toFixed(1)}% of total</div>
+          </div>
+          
+          <div>
+            <div style="color: #64748b; margin-bottom: 4px;">Value</div>
+            <div style="
+              font-weight: 600;
+              color: #1e293b;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            ">
+              $${(metrics.value || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
+              ${valueTrendInd.text !== '0%' ? `
+                <span style="
+                  color: ${valueTrendInd.color};
+                  font-size: 10px;
+                ">
+                  ${valueTrendInd.arrow}${valueTrendInd.text}
+                </span>
+              ` : ''}
             </div>
           </div>
           
           <div>
-            <div style="color: #666;">Value</div>
-            <div style="font-weight: 600; color: #333;">
-              $${metrics.value.toLocaleString(undefined, {maximumFractionDigits: 0})}
-              <span style="color: ${valueTrendInd.color}; font-size: 10px; margin-left: 4px;">
-                ${valueTrendInd.arrow} ${valueTrendInd.text}
-              </span>
-            </div>
+            <div style="color: #64748b; margin-bottom: 4px;">CVR</div>
+            <div style="
+              font-weight: 600;
+              color: #1e293b;
+              font-size: 14px;
+            ">${(metrics.cvr || 0).toFixed(1)}%</div>
           </div>
           
           <div>
-            <div style="color: #666;">CVR</div>
-            <div style="font-weight: 600; color: #333;">${metrics.cvr.toFixed(1)}%</div>
-          </div>
-          
-          <div>
-            <div style="color: #666;">Revenue %</div>
-            <div style="font-weight: 600; color: #333;">${revenuePercent.toFixed(1)}%</div>
+            <div style="color: #64748b; margin-bottom: 4px;">Revenue %</div>
+            <div style="
+              font-weight: 600;
+              color: #1e293b;
+              font-size: 14px;
+            ">${revenuePercent.toFixed(1)}%</div>
           </div>
         </div>
       </div>
@@ -1260,16 +1409,33 @@ function renderSearchTermsStats(data) {
   });
   
   html += `
+        </div>
       </div>
     </div>
-    <div class="bucket-tooltip" id="bucketTooltip" style="display: none;"></div>
+    
+    <!-- Tooltip -->
+    <div id="bucketTooltip" style="
+      position: absolute;
+      background: rgba(15, 23, 42, 0.95);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      display: none;
+      font-weight: 500;
+      line-height: 1.4;
+    "></div>
   `;
   
   return { html, bucketMetrics, totalClicks };
 }
 
 /**
- * Render pie chart for buckets
+ * Enhanced pie chart rendering with better visuals
  */
 function renderBucketPieChart(bucketMetrics, totalClicks) {
   const canvas = document.getElementById('bucketPieChart');
@@ -1278,7 +1444,7 @@ function renderBucketPieChart(bucketMetrics, totalClicks) {
   const ctx = canvas.getContext('2d');
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
-  const radius = 80;
+  const radius = 70;
   
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1291,43 +1457,72 @@ function renderBucketPieChart(bucketMetrics, totalClicks) {
       value: metrics.clicks,
       color: metrics.color,
       percentage: totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0
-    }));
+    }))
+    .sort((a, b) => b.value - a.value); // Sort by value for better visual
+  
+  if (chartData.length === 0) {
+    // Draw placeholder
+    ctx.fillStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.fillStyle = '#64748b';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data', centerX, centerY);
+    return;
+  }
   
   // Draw pie slices
   let currentAngle = -Math.PI / 2; // Start at top
+  canvas.sliceData = [];
   
   chartData.forEach((slice, index) => {
     const sliceAngle = (slice.value / totalClicks) * 2 * Math.PI;
     
-    // Draw slice
+    // Draw slice with shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
+    
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
     ctx.closePath();
     ctx.fillStyle = slice.color;
     ctx.fill();
+    
+    ctx.restore();
+    
+    // Draw border
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 2;
     ctx.stroke();
     
-    // Store slice data for click detection
-    if (!canvas.sliceData) canvas.sliceData = [];
-    canvas.sliceData[index] = {
+    // Store slice data for interaction
+    canvas.sliceData.push({
       startAngle: currentAngle,
       endAngle: currentAngle + sliceAngle,
       ...slice
-    };
+    });
     
     currentAngle += sliceAngle;
   });
   
-  // Store total clicks for tooltip
+  // Store data for interactions
   canvas.totalClicks = totalClicks;
   canvas.bucketMetrics = bucketMetrics;
 }
 
 /**
- * Add event listeners for pie chart interactions
+ * Enhanced event listeners with better interactions
  */
 function addBucketChartEventListeners() {
   const canvas = document.getElementById('bucketPieChart');
@@ -1346,15 +1541,17 @@ function addBucketChartEventListeners() {
     const centerY = canvas.height / 2;
     const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
     
-    if (distance <= 80 && canvas.sliceData) {
+    if (distance <= 70 && canvas.sliceData && canvas.sliceData.length > 0) {
       const angle = Math.atan2(y - centerY, x - centerX);
-      const normalizedAngle = angle < -Math.PI / 2 ? angle + 2 * Math.PI : angle;
+      let normalizedAngle = angle;
+      if (normalizedAngle < -Math.PI / 2) {
+        normalizedAngle += 2 * Math.PI;
+      }
       
       const hoveredSlice = canvas.sliceData.find(slice => {
         let startAngle = slice.startAngle;
         let endAngle = slice.endAngle;
         
-        // Normalize angles
         if (startAngle < -Math.PI / 2) startAngle += 2 * Math.PI;
         if (endAngle < -Math.PI / 2) endAngle += 2 * Math.PI;
         
@@ -1363,15 +1560,26 @@ function addBucketChartEventListeners() {
       
       if (hoveredSlice) {
         const bucketMetrics = canvas.bucketMetrics[hoveredSlice.name];
-        const revenuePercent = (bucketMetrics.revenue * 100).toFixed(1);
+        const revenuePercent = ((bucketMetrics.revenue || 0) * 100).toFixed(1);
         
         tooltip.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 4px;">${hoveredSlice.name}</div>
-          <div>Clicks: ${hoveredSlice.value.toLocaleString()} (${hoveredSlice.percentage.toFixed(1)}%)</div>
-          <div>Revenue: ${revenuePercent}%</div>
+          <div style="font-weight: 600; margin-bottom: 6px; color: #ffffff;">
+            ${hoveredSlice.name}
+          </div>
+          <div style="margin-bottom: 3px;">
+            <span style="color: #cbd5e1;">Clicks:</span> 
+            <span style="color: #ffffff; font-weight: 600;">
+              ${hoveredSlice.value.toLocaleString()} (${hoveredSlice.percentage.toFixed(1)}%)
+            </span>
+          </div>
+          <div>
+            <span style="color: #cbd5e1;">Revenue:</span> 
+            <span style="color: #ffffff; font-weight: 600;">${revenuePercent}%</span>
+          </div>
         `;
+        
         tooltip.style.display = 'block';
-        tooltip.style.left = (e.clientX + 10) + 'px';
+        tooltip.style.left = (e.clientX + 15) + 'px';
         tooltip.style.top = (e.clientY - 10) + 'px';
         
         canvas.style.cursor = 'pointer';
@@ -1401,9 +1609,12 @@ function addBucketChartEventListeners() {
     const centerY = canvas.height / 2;
     const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
     
-    if (distance <= 80 && canvas.sliceData) {
+    if (distance <= 70 && canvas.sliceData && canvas.sliceData.length > 0) {
       const angle = Math.atan2(y - centerY, x - centerX);
-      const normalizedAngle = angle < -Math.PI / 2 ? angle + 2 * Math.PI : angle;
+      let normalizedAngle = angle;
+      if (normalizedAngle < -Math.PI / 2) {
+        normalizedAngle += 2 * Math.PI;
+      }
       
       const clickedSlice = canvas.sliceData.find(slice => {
         let startAngle = slice.startAngle;
@@ -1416,28 +1627,58 @@ function addBucketChartEventListeners() {
       });
       
       if (clickedSlice) {
-        // Remove previous highlight
-        document.querySelectorAll('.bucket-stat-card.highlighted').forEach(card => {
-          card.classList.remove('highlighted');
+        // Remove previous highlights
+        document.querySelectorAll('.bucket-stat-card').forEach(card => {
+          card.style.transform = 'scale(1)';
+          card.style.boxShadow = 'none';
+          card.style.borderColor = '#e2e8f0';
         });
         
         // Add new highlight
         const card = document.querySelector(`[data-bucket="${clickedSlice.name}"]`);
         if (card) {
-          card.classList.add('highlighted');
+          card.style.transform = 'scale(1.02)';
+          card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+          card.style.borderColor = clickedSlice.color;
           highlightedBucket = clickedSlice.name;
         }
       }
     }
   });
   
-  // Card click to highlight
+  // Card hover and click interactions
   document.querySelectorAll('.bucket-stat-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      if (highlightedBucket !== card.getAttribute('data-bucket')) {
+        card.style.transform = 'translateY(-2px)';
+        card.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+      }
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      if (highlightedBucket !== card.getAttribute('data-bucket')) {
+        card.style.transform = 'scale(1)';
+        card.style.boxShadow = 'none';
+      }
+    });
+    
     card.addEventListener('click', () => {
-      document.querySelectorAll('.bucket-stat-card.highlighted').forEach(c => {
-        c.classList.remove('highlighted');
+      // Remove previous highlights
+      document.querySelectorAll('.bucket-stat-card').forEach(c => {
+        c.style.transform = 'scale(1)';
+        c.style.boxShadow = 'none';
+        c.style.borderColor = '#e2e8f0';
       });
-      card.classList.add('highlighted');
+      
+      // Add highlight
+      card.style.transform = 'scale(1.02)';
+      card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+      const bucketName = card.getAttribute('data-bucket');
+      const bucketMetrics = canvas.bucketMetrics[bucketName];
+      if (bucketMetrics) {
+        card.style.borderColor = bucketMetrics.color;
+      }
+      highlightedBucket = bucketName;
     });
   });
 }
@@ -1734,63 +1975,6 @@ function addSearchTermsStyles() {
         line-height: 1.4;
         text-align: center;
       }
-      .search-terms-stats-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-  height: 250px;
-  display: flex;
-  gap: 20px;
-}
-
-.bucket-pie-chart-container {
-  flex: 0 0 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.bucket-stats-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 10px;
-}
-
-.bucket-stat-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border-radius: 8px;
-  padding: 12px;
-  border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.bucket-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.bucket-stat-card.highlighted {
-  border-color: #007aff;
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
-}
-
-.bucket-tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
     `;
     document.head.appendChild(style);
   }
