@@ -1230,38 +1230,50 @@ function renderSearchTermsStats(data) {
         </div>
       </div>
       
-      <!-- Distribution Labels -->
-      <div style="
-        display: flex;
-        gap: 20px;
-        margin-bottom: 12px;
-        padding-left: 160px;
-      ">
-        <div style="
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        ">
-          <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
-          % of Clicks
-          <span style="font-weight: 400; color: #6b7280;">(${totalClicks.toLocaleString()} total)</span>
-        </div>
-        <div style="
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        ">
-          <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
-          % of Revenue
-          <span style="font-weight: 400; color: #6b7280;">(${(totalRevenue * 100).toFixed(1)}% total)</span>
-        </div>
-      </div>
+<!-- Distribution Labels -->
+<div style="
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+">
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
+    % of Clicks
+    <span style="font-weight: 400; color: #6b7280;">(${totalClicks.toLocaleString()} total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
+    % of Revenue
+    <span style="font-weight: 400; color: #6b7280;">(${(totalRevenue * 100).toFixed(1)}% total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
+    % of Value
+    <span style="font-weight: 400; color: #6b7280;">($${data.reduce((sum, d) => sum + (d.Value || 0), 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total)</span>
+  </div>
+</div>
       
       <!-- Buckets Container -->
       <div style="
@@ -1285,113 +1297,203 @@ function renderSearchTermsStats(data) {
     // Calculate percentage point changes
     const clicksPercentChange = clicksPercent - prevClicksPercent;
     const revenuePercentChange = revenuePercent - prevRevenuePercent;
+
+    // Calculate value percentage
+const totalValue = data.reduce((sum, d) => sum + (d.Value || 0), 0);
+const valuePercent = totalValue > 0 ? (metrics.value / totalValue * 100) : 0;
+const prevTotalValue = Object.values(bucketMetrics).reduce((sum, bucket) => {
+  const trendValue = bucket.valueTrend ? (bucket.value / (1 + bucket.valueTrend / 100)) : bucket.value;
+  return sum + trendValue;
+}, 0);
+const prevValuePercent = prevTotalValue > 0 ? 
+  ((metrics.value / (1 + (metrics.valueTrend || 0) / 100)) / prevTotalValue * 100) : 0;
+const valuePercentChange = valuePercent - prevValuePercent;
     
-    // Format trend indicators
-    const getTrendIndicator = (value, trend) => {
-      if (!trend || Math.abs(trend) < 0.1) return value.toLocaleString();
-      const arrow = trend > 0 ? '↑' : '↓';
-      const color = trend > 0 ? '#10b981' : '#ef4444';
-      return `
-        <div style="display: flex; align-items: baseline; gap: 4px;">
-          <span>${value.toLocaleString()}</span>
-          <span style="color: ${color}; font-size: 10px; font-weight: 500;">
-            ${arrow}${Math.abs(trend).toFixed(0)}%
-          </span>
-        </div>
-      `;
-    };
+// Format trend indicators
+const getTrendIndicator = (value, trend, isPercentage = false) => {
+  const formattedValue = isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString();
+  if (!trend || Math.abs(trend) < 0.1) {
+    return `<div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>`;
+  }
+  const arrow = trend > 0 ? '↑' : '↓';
+  const bgColor = trend > 0 ? '#10b981' : '#ef4444';
+  return `
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>
+      <div style="
+        display: inline-block;
+        background: ${bgColor};
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-top: 2px;
+      ">
+        ${arrow} ${Math.abs(trend).toFixed(0)}%
+      </div>
+    </div>
+  `;
+};
     
     html += `
       <div style="display: flex; gap: 20px; align-items: center;">
-        <!-- Distribution Bars for this bucket -->
-        <div style="
-          flex: 0 0 140px;
-          height: 80px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: 8px;
-        ">
-          <!-- % of Clicks Bar -->
-          <div>
-            <div style="
-              width: 100%;
-              height: 20px;
-              background: #e5e7eb;
-              border-radius: 4px;
-              position: relative;
-              overflow: hidden;
-            ">
-              <div style="
-                position: absolute;
-                left: 0;
-                top: 0;
-                height: 100%;
-                width: ${Math.min(clicksPercent, 100)}%;
-                background: #1e40af;
-                transition: width 0.3s ease;
-              "></div>
-              <div style="
-                position: absolute;
-                left: 8px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 11px;
-                font-weight: 600;
-                color: ${clicksPercent > 10 ? 'white' : '#374151'};
-                z-index: 1;
-                white-space: nowrap;
-              ">
-                ${clicksPercent.toFixed(1)}%
-                ${Math.abs(clicksPercentChange) >= 0.1 ? `
-                  <span style="font-weight: 500; opacity: 0.9;">
-                    ${clicksPercentChange > 0 ? '+' : ''}${clicksPercentChange.toFixed(1)}pp
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-          
-          <!-- % of Revenue Bar -->
-          <div>
-            <div style="
-              width: 100%;
-              height: 20px;
-              background: #e5e7eb;
-              border-radius: 4px;
-              position: relative;
-              overflow: hidden;
-            ">
-              <div style="
-                position: absolute;
-                left: 0;
-                top: 0;
-                height: 100%;
-                width: ${Math.min(revenuePercent, 100)}%;
-                background: #059669;
-                transition: width 0.3s ease;
-              "></div>
-              <div style="
-                position: absolute;
-                left: 8px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 11px;
-                font-weight: 600;
-                color: ${revenuePercent > 10 ? 'white' : '#374151'};
-                z-index: 1;
-                white-space: nowrap;
-              ">
-                ${revenuePercent.toFixed(1)}%
-                ${Math.abs(revenuePercentChange) >= 0.1 ? `
-                  <span style="font-weight: 500; opacity: 0.9;">
-                    ${revenuePercentChange > 0 ? '+' : ''}${revenuePercentChange.toFixed(1)}pp
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-        </div>
+<!-- Distribution Bars for this bucket -->
+<div style="
+  flex: 0 0 140px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(clicksPercent, 100)}%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${clicksPercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        ${clicksPercent.toFixed(1)}%
+      </div>
+    </div>
+    ${Math.abs(clicksPercentChange) >= 0.1 ? `
+      <div style="
+        background: ${clicksPercentChange > 0 ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 32px;
+        text-align: center;
+      ">
+        ${clicksPercentChange > 0 ? '↑' : '↓'} ${Math.abs(clicksPercentChange).toFixed(0)}%
+      </div>
+    ` : '<div style="width: 32px;"></div>'}
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(revenuePercent, 100)}%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${revenuePercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        ${revenuePercent.toFixed(1)}%
+      </div>
+    </div>
+    ${Math.abs(revenuePercentChange) >= 0.1 ? `
+      <div style="
+        background: ${revenuePercentChange > 0 ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 32px;
+        text-align: center;
+      ">
+        ${revenuePercentChange > 0 ? '↑' : '↓'} ${Math.abs(revenuePercentChange).toFixed(0)}%
+      </div>
+    ` : '<div style="width: 32px;"></div>'}
+  </div>
+  
+  <!-- % of Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(valuePercent, 100)}%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${valuePercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        ${valuePercent.toFixed(1)}%
+      </div>
+    </div>
+    ${Math.abs(valuePercentChange) >= 0.1 ? `
+      <div style="
+        background: ${valuePercentChange > 0 ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 32px;
+        text-align: center;
+      ">
+        ${valuePercentChange > 0 ? '↑' : '↓'} ${Math.abs(valuePercentChange).toFixed(0)}%
+      </div>
+    ` : '<div style="width: 32px;"></div>'}
+  </div>
+</div>
         
         <!-- Bucket Card -->
         <div class="bucket-stat-card" data-bucket="${bucketName}" style="
@@ -1404,7 +1506,7 @@ function renderSearchTermsStats(data) {
           overflow: hidden;
           display: flex;
           align-items: center;
-          height: 80px;
+          height: 70px;
           flex: 1;
         ">
           <!-- Colored left section -->
@@ -1460,76 +1562,166 @@ function renderSearchTermsStats(data) {
             </div>
           </div>
           
-          <!-- Metrics Section -->
-          <div style="
-            flex: 1;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            gap: 0;
-          ">
-            <!-- Clicks -->
-            <div style="flex: 0 0 120px;">
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${getTrendIndicator(metrics.clicks, metrics.clicksTrend)}
-              </div>
-            </div>
-            
-            <!-- Value -->
-            <div style="flex: 0 0 140px;">
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${metrics.value > 0 ? getTrendIndicator(metrics.value, metrics.valueTrend).replace(/(\d+(?:,\d{3})*(?:\.\d+)?)/g, '$$$1') : '$0'}
-              </div>
-            </div>
-            
-            <!-- Conversions -->
-            <div style="flex: 0 0 120px;">
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conversions</div>
-              <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                ${getTrendIndicator(metrics.conversions, metrics.conversionsTrend)}
-              </div>
-            </div>
-            
-            <!-- CTR -->
-            <div style="
-              flex: 0 0 80px;
-              text-align: center;
-            ">
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
-              <div style="
-                display: inline-block;
-                padding: 4px 12px;
-                background: #f3f4f6;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
-              ">${(metrics.ctr || 0).toFixed(1)}%</div>
-            </div>
-            
-            <!-- CVR -->
-            <div style="
-              flex: 0 0 80px;
-              text-align: center;
-            ">
-              <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
-              <div style="
-                display: inline-block;
-                padding: 4px 12px;
-                background: #f3f4f6;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
-              ">${(metrics.cvr || 0).toFixed(1)}%</div>
-            </div>
-          </div>
-        </div>
+        <!-- Metrics Section -->
+<div style="
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+">
+  <!-- Clicks -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.clicks.toLocaleString()}
       </div>
-    `;
-  });
+      ${metrics.clicksTrend && Math.abs(metrics.clicksTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.clicksTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.clicksTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.clicksTrend).toFixed(0)}%
+        </div>
+      ` : ''}
+    </div>
+  </div>
+  
+  <!-- Value -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
+      </div>
+      ${metrics.valueTrend && Math.abs(metrics.valueTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.valueTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.valueTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.valueTrend).toFixed(0)}%
+        </div>
+      ` : ''}
+    </div>
+  </div>
+  
+  <!-- Conversions -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conversions</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.conversions.toLocaleString()}
+      </div>
+      ${metrics.conversionsTrend && Math.abs(metrics.conversionsTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.conversionsTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.conversionsTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.conversionsTrend).toFixed(0)}%
+        </div>
+      ` : ''}
+    </div>
+  </div>
+  
+  <!-- CTR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
+    <div>
+      <div style="
+        display: inline-block;
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
+      ">${(metrics.ctr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CTR
+        const prevImpressions = metrics.impressions / (1 + (metrics.impressionsTrend || 0) / 100);
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevCTR = prevImpressions > 0 ? (prevClicks / prevImpressions * 100) : 0;
+        const ctrChange = prevCTR > 0 ? ((metrics.ctr - prevCTR) / prevCTR * 100) : 0;
+        
+        return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+  
+  <!-- CVR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
+    <div>
+      <div style="
+        display: inline-block;
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
+      ">${(metrics.cvr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CVR
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevConversions = metrics.conversions / (1 + (metrics.conversionsTrend || 0) / 100);
+        const prevCVR = prevClicks > 0 ? (prevConversions / prevClicks * 100) : 0;
+        const cvrChange = prevCVR > 0 ? ((metrics.cvr - prevCVR) / prevCVR * 100) : 0;
+        
+        return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+</div>
+</div>
+</div>
+`;
+});
   
   html += `
       </div>
