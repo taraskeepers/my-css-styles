@@ -372,7 +372,7 @@ await Promise.all(summaryPromises);
     .map(item => item.Query);
 
   // Render stats container
-  const statsResult = await renderSearchTermsStats(allData);
+  const statsResult = renderSearchTermsStats(allData);
   
 // Add toggle controls at the top
 let html = `
@@ -1386,123 +1386,11 @@ function calculateBucketMetrics(buckets) {
 }
 
 /**
- * Calculate bucket metrics segmented by channel type
- */
-async function calculateBucketMetricsByChannel(buckets) {
-  const segmentedMetrics = {};
-  
-  for (const [bucketName, bucketData] of Object.entries(buckets)) {
-    const terms = bucketData.terms;
-    const channelMetrics = {};
-    
-    // Get all unique search terms in this bucket
-    const searchTerms = terms.map(t => t.Query);
-    
-    // Load channel data for these terms
-    for (const searchTerm of searchTerms) {
-      const channelData = await loadChannelDataForSearchTerm(searchTerm);
-      
-      channelData.forEach(data => {
-        const channel = data.Channel_Type;
-        if (!channelMetrics[channel]) {
-          channelMetrics[channel] = {
-            clicks: 0,
-            impressions: 0,
-            conversions: 0,
-            value: 0,
-            terms: 0
-          };
-        }
-        
-        channelMetrics[channel].clicks += data.Clicks || 0;
-        channelMetrics[channel].impressions += data.Impressions || 0;
-        channelMetrics[channel].conversions += data.Conversions || 0;
-        channelMetrics[channel].value += data.Value || 0;
-        channelMetrics[channel].terms++;
-      });
-    }
-    
-    // Calculate rates
-    Object.keys(channelMetrics).forEach(channel => {
-      const metrics = channelMetrics[channel];
-      metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions * 100) : 0;
-      metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks * 100) : 0;
-    });
-    
-    segmentedMetrics[bucketName] = channelMetrics;
-  }
-  
-  return segmentedMetrics;
-}
-
-/**
- * Calculate bucket metrics segmented by campaign
- */
-async function calculateBucketMetricsByCampaign(buckets) {
-  const segmentedMetrics = {};
-  
-  for (const [bucketName, bucketData] of Object.entries(buckets)) {
-    const terms = bucketData.terms;
-    const campaignMetrics = {};
-    
-    // Get all unique search terms in this bucket
-    const searchTerms = terms.map(t => t.Query);
-    
-    // Load campaign data for these terms
-    for (const searchTerm of searchTerms) {
-      const campaignData = await loadCampaignDataForSearchTerm(searchTerm);
-      
-      campaignData.forEach(data => {
-        const key = `${data.Campaign_Name}|||${data.Channel_Type}`;
-        if (!campaignMetrics[key]) {
-          campaignMetrics[key] = {
-            campaignName: data.Campaign_Name,
-            channelType: data.Channel_Type,
-            clicks: 0,
-            impressions: 0,
-            conversions: 0,
-            value: 0,
-            terms: 0
-          };
-        }
-        
-        campaignMetrics[key].clicks += data.Clicks || 0;
-        campaignMetrics[key].impressions += data.Impressions || 0;
-        campaignMetrics[key].conversions += data.Conversions || 0;
-        campaignMetrics[key].value += data.Value || 0;
-        campaignMetrics[key].terms++;
-      });
-    }
-    
-    // Calculate rates
-    Object.keys(campaignMetrics).forEach(key => {
-      const metrics = campaignMetrics[key];
-      metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions * 100) : 0;
-      metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks * 100) : 0;
-    });
-    
-    segmentedMetrics[bucketName] = campaignMetrics;
-  }
-  
-  return segmentedMetrics;
-}
-
-/**
  * Render the search terms stats container with proper modern design
  */
-async function renderSearchTermsStats(data) {
+function renderSearchTermsStats(data) {
   const buckets = classifySearchTermsIntoBuckets(data);
   const bucketMetrics = calculateBucketMetrics(buckets);
-  
-  // Calculate segmented metrics if toggles are active
-  let channelSegmentedMetrics = null;
-  let campaignSegmentedMetrics = null;
-  
-  if (window.searchTermsChannelToggleState) {
-    channelSegmentedMetrics = await calculateBucketMetricsByChannel(buckets);
-  } else if (window.searchTermsCampaignToggleState) {
-    campaignSegmentedMetrics = await calculateBucketMetricsByCampaign(buckets);
-  }
   
   // Calculate total clicks and revenue for percentages
   const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
@@ -1620,23 +1508,45 @@ async function renderSearchTermsStats(data) {
     const revenuePercentChange = revenuePercent - prevRevenuePercent;
 
     // Calculate value percentage
-    const totalValue = data.reduce((sum, d) => sum + (d.Value || 0), 0);
-    const valuePercent = totalValue > 0 ? (metrics.value / totalValue * 100) : 0;
-    const prevTotalValue = Object.values(bucketMetrics).reduce((sum, bucket) => {
-      const trendValue = bucket.valueTrend ? (bucket.value / (1 + bucket.valueTrend / 100)) : bucket.value;
-      return sum + trendValue;
-    }, 0);
-    const prevValuePercent = prevTotalValue > 0 ? 
-      ((metrics.value / (1 + (metrics.valueTrend || 0) / 100)) / prevTotalValue * 100) : 0;
-    const valuePercentChange = valuePercent - prevValuePercent;
+const totalValue = data.reduce((sum, d) => sum + (d.Value || 0), 0);
+const valuePercent = totalValue > 0 ? (metrics.value / totalValue * 100) : 0;
+const prevTotalValue = Object.values(bucketMetrics).reduce((sum, bucket) => {
+  const trendValue = bucket.valueTrend ? (bucket.value / (1 + bucket.valueTrend / 100)) : bucket.value;
+  return sum + trendValue;
+}, 0);
+const prevValuePercent = prevTotalValue > 0 ? 
+  ((metrics.value / (1 + (metrics.valueTrend || 0) / 100)) / prevTotalValue * 100) : 0;
+const valuePercentChange = valuePercent - prevValuePercent;
     
-    // Check if we should expand this card
-    const shouldExpand = window.searchTermsChannelToggleState || window.searchTermsCampaignToggleState;
-    const segmentData = window.searchTermsChannelToggleState ? channelSegmentedMetrics?.[bucketName] : 
-                       window.searchTermsCampaignToggleState ? campaignSegmentedMetrics?.[bucketName] : null;
+// Format trend indicators
+const getTrendIndicator = (value, trend, isPercentage = false) => {
+  const formattedValue = isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString();
+  if (!trend || Math.abs(trend) < 0.1) {
+    return `<div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>`;
+  }
+  const arrow = trend > 0 ? '↑' : '↓';
+  const bgColor = trend > 0 ? '#10b981' : '#ef4444';
+  return `
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>
+      <div style="
+        display: inline-block;
+        background: ${bgColor};
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-top: 2px;
+      ">
+        ${arrow} ${Math.abs(trend).toFixed(0)}%
+      </div>
+    </div>
+  `;
+};
     
     html += `
-      <div style="display: flex; gap: 20px; align-items: ${shouldExpand && segmentData ? 'flex-start' : 'center'};">
+      <div style="display: flex; gap: 20px; align-items: center;">
 <!-- Distribution Bars for this bucket -->
 <div style="
   flex: 0 0 140px;
@@ -1800,7 +1710,7 @@ async function renderSearchTermsStats(data) {
   </div>
 </div>
         
-<!-- Bucket Card (now with potential expansion) -->
+<!-- Bucket Card -->
 <div class="bucket-stat-card" data-bucket="${bucketName}" style="
   background: ${window.selectedSearchTermsBucket === bucketName ? '#f8fafc' : '#ffffff'};
   border: ${window.selectedSearchTermsBucket === bucketName ? `3px solid ${metrics.color}` : '1px solid #e5e7eb'};
@@ -1810,320 +1720,238 @@ async function renderSearchTermsStats(data) {
   position: relative;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  height: 70px;
   flex: 1;
   ${window.selectedSearchTermsBucket === bucketName ? 'box-shadow: 0 4px 12px rgba(0,0,0,0.15);' : ''}
 ">
-  <!-- Main card content -->
-  <div style="display: flex; align-items: center; height: 70px;">
-    ${window.selectedSearchTermsBucket === bucketName ? `
-      <!-- Selected Indicator -->
-      <div style="
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 24px;
-        height: 24px;
-        background: ${metrics.color};
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-      ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </div>
-    ` : ''}
-    
-    <!-- Colored left section -->
+  ${window.selectedSearchTermsBucket === bucketName ? `
+    <!-- Selected Indicator -->
     <div style="
-      flex: 0 0 100px;
-      height: 100%;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
       background: ${metrics.color};
+      border-radius: 50%;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
+      z-index: 10;
     ">
-      <div style="
-        font-size: 32px;
-        font-weight: 700;
-        color: white;
-        line-height: 1;
-      ">${metrics.count}</div>
-      <div style="
-        font-size: 11px;
-        color: white;
-        margin-top: 4px;
-        opacity: 0.9;
-      ">terms</div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
     </div>
-    
-    <!-- Bucket Name Section -->
-    <div style="
-      flex: 0 0 180px;
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      background: #f9fafb;
-      height: 100%;
-      border-right: 1px solid #e5e7eb;
-    ">
-      <div style="
-        font-size: 14px;
-        font-weight: 600;
-        color: #1f2937;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      ">
-        <div style="
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: ${metrics.color};
-        "></div>
-        ${bucketName}
-      </div>
-    </div>
-    
-    <!-- Metrics Section -->
-    <div style="
-      flex: 1;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 0;
-    ">
-      <!-- Clicks -->
-      <div style="flex: 1; text-align: center;">
-        <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
-        <div>
-          <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
-            ${metrics.clicks.toLocaleString()}
-          </div>
-          ${metrics.clicksTrend && Math.abs(metrics.clicksTrend) >= 0.1 ? `
-            <div style="
-              display: inline-block;
-              background: ${metrics.clicksTrend > 0 ? '#10b981' : '#ef4444'};
-              color: white;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 500;
-              margin-top: 2px;
-            ">
-              ${metrics.clicksTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.clicksTrend).toFixed(0)}%
-            </div>
-          ` : ''}
-        </div>
-      </div>
-      
-      <!-- Value -->
-      <div style="flex: 1; text-align: center;">
-        <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
-        <div>
-          <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
-            $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
-          </div>
-          ${metrics.valueTrend && Math.abs(metrics.valueTrend) >= 0.1 ? `
-            <div style="
-              display: inline-block;
-              background: ${metrics.valueTrend > 0 ? '#10b981' : '#ef4444'};
-              color: white;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 500;
-              margin-top: 2px;
-            ">
-              ${metrics.valueTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.valueTrend).toFixed(0)}%
-            </div>
-          ` : ''}
-        </div>
-      </div>
-      
-      <!-- Conversions -->
-      <div style="flex: 1; text-align: center;">
-        <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conversions</div>
-        <div>
-          <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
-            ${metrics.conversions.toLocaleString()}
-          </div>
-          ${metrics.conversionsTrend && Math.abs(metrics.conversionsTrend) >= 0.1 ? `
-            <div style="
-              display: inline-block;
-              background: ${metrics.conversionsTrend > 0 ? '#10b981' : '#ef4444'};
-              color: white;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 500;
-              margin-top: 2px;
-            ">
-              ${metrics.conversionsTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.conversionsTrend).toFixed(0)}%
-            </div>
-          ` : ''}
-        </div>
-      </div>
-      
-      <!-- CTR -->
-      <div style="flex: 0.8; text-align: center;">
-        <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
-        <div>
+  ` : ''}
+          <!-- Colored left section -->
           <div style="
-            padding: 4px 10px;
-            background: #f3f4f6;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
-          ">${(metrics.ctr || 0).toFixed(1)}%</div>
-        </div>
-      </div>
-      
-      <!-- CVR -->
-      <div style="flex: 0.8; text-align: center;">
-        <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
-        <div>
-          <div style="
-            padding: 4px 10px;
-            background: #f3f4f6;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
-          ">${(metrics.cvr || 0).toFixed(1)}%</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  ${shouldExpand && segmentData && Object.keys(segmentData).length > 0 ? `
-    <!-- Expanded section for segmented data -->
-    <div style="
-      background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-      border-top: 1px solid #e5e7eb;
-      padding: 12px 16px;
-      animation: slideDown 0.3s ease;
-    ">
-      <div style="
-        font-size: 11px;
-        font-weight: 600;
-        color: #6b7280;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      ">
-        ${window.searchTermsChannelToggleState ? 'By Channel Type' : 'By Campaign'}
-      </div>
-      
-      <!-- Segmented data rows -->
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        ${(() => {
-          // Sort segments by value
-          const sortedSegments = Object.entries(segmentData)
-            .sort((a, b) => (b[1].value || 0) - (a[1].value || 0))
-            .slice(0, 5); // Show top 5
+            flex: 0 0 100px;
+            height: 100%;
+            background: ${metrics.color};
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          ">
+            <div style="
+              font-size: 32px;
+              font-weight: 700;
+              color: white;
+              line-height: 1;
+            ">${metrics.count}</div>
+            <div style="
+              font-size: 11px;
+              color: white;
+              margin-top: 4px;
+              opacity: 0.9;
+            ">terms</div>
+          </div>
           
-          return sortedSegments.map(([segmentKey, segmentMetrics]) => {
-            const segmentName = window.searchTermsChannelToggleState ? 
-              segmentKey : 
-              segmentMetrics.campaignName;
-            
-            const segmentIcon = window.searchTermsChannelToggleState ?
-              (segmentKey === 'PMax' ? '🎯' : '🛒') :
-              (segmentMetrics.channelType === 'PMax' ? '🎯' : '🛒');
-            
-            return `
+          <!-- Bucket Name Section -->
+          <div style="
+            flex: 0 0 180px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            height: 100%;
+            border-right: 1px solid #e5e7eb;
+          ">
+            <div style="
+              font-size: 14px;
+              font-weight: 600;
+              color: #1f2937;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            ">
               <div style="
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 8px 12px;
-                background: white;
-                border-radius: 6px;
-                border: 1px solid #e5e7eb;
-              ">
-                <!-- Icon -->
-                <div style="font-size: 16px;">${segmentIcon}</div>
-                
-                <!-- Name -->
-                <div style="
-                  flex: 0 0 140px;
-                  font-size: 12px;
-                  font-weight: 600;
-                  color: #374151;
-                  overflow: hidden;
-                  text-overflow: ellipsis;
-                  white-space: nowrap;
-                " title="${segmentName}">
-                  ${segmentName.length > 20 ? segmentName.substring(0, 17) + '...' : segmentName}
-                </div>
-                
-                <!-- Metrics -->
-                <div style="flex: 1; display: flex; align-items: center; gap: 16px;">
-                  <!-- Clicks -->
-                  <div style="flex: 1;">
-                    <div style="font-size: 10px; color: #9ca3af;">Clicks</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #374151;">
-                      ${segmentMetrics.clicks.toLocaleString()}
-                    </div>
-                  </div>
-                  
-                  <!-- Value -->
-                  <div style="flex: 1;">
-                    <div style="font-size: 10px; color: #9ca3af;">Value</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #059669;">
-                      $${segmentMetrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-                    </div>
-                  </div>
-                  
-                  <!-- Conversions -->
-                  <div style="flex: 1;">
-                    <div style="font-size: 10px; color: #9ca3af;">Conv</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #374151;">
-                      ${segmentMetrics.conversions.toFixed(1)}
-                    </div>
-                  </div>
-                  
-                  <!-- CVR -->
-                  <div style="flex: 0.8;">
-                    <div style="font-size: 10px; color: #9ca3af;">CVR</div>
-                    <div style="
-                      font-size: 12px;
-                      font-weight: 600;
-                      padding: 2px 6px;
-                      background: ${segmentMetrics.cvr > 0 ? '#dcfce7' : '#f3f4f6'};
-                      color: ${segmentMetrics.cvr > 0 ? '#059669' : '#6b7280'};
-                      border-radius: 4px;
-                      text-align: center;
-                    ">
-                      ${segmentMetrics.cvr.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('');
-        })()}
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: ${metrics.color};
+              "></div>
+              ${bucketName}
+            </div>
+          </div>
+          
+        <!-- Metrics Section -->
+<div style="
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+">
+  <!-- Clicks -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.clicks.toLocaleString()}
       </div>
-      
-      ${Object.keys(segmentData).length > 5 ? `
+      ${metrics.clicksTrend && Math.abs(metrics.clicksTrend) >= 0.1 ? `
         <div style="
-          margin-top: 6px;
+          display: inline-block;
+          background: ${metrics.clicksTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
           font-size: 11px;
-          color: #9ca3af;
-          text-align: center;
+          font-weight: 500;
+          margin-top: 2px;
         ">
-          +${Object.keys(segmentData).length - 5} more ${window.searchTermsChannelToggleState ? 'channels' : 'campaigns'}
+          ${metrics.clicksTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.clicksTrend).toFixed(0)}%
         </div>
       ` : ''}
     </div>
-  ` : ''}
+  </div>
+  
+  <!-- Value -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
+      </div>
+      ${metrics.valueTrend && Math.abs(metrics.valueTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.valueTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.valueTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.valueTrend).toFixed(0)}%
+        </div>
+      ` : ''}
+    </div>
+  </div>
+  
+  <!-- Conversions -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conversions</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.conversions.toLocaleString()}
+      </div>
+      ${metrics.conversionsTrend && Math.abs(metrics.conversionsTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.conversionsTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.conversionsTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.conversionsTrend).toFixed(0)}%
+        </div>
+      ` : ''}
+    </div>
+  </div>
+  
+<!-- CTR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
+    <div>
+      <div style="
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
+      ">${(metrics.ctr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CTR
+        const prevImpressions = metrics.impressions / (1 + (metrics.impressionsTrend || 0) / 100);
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevCTR = prevImpressions > 0 ? (prevClicks / prevImpressions * 100) : 0;
+        const ctrChange = prevCTR > 0 ? ((metrics.ctr - prevCTR) / prevCTR * 100) : 0;
+        
+        return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+  
+  <!-- CVR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
+    <div>
+      <div style="
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
+      ">${(metrics.cvr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CVR
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevConversions = metrics.conversions / (1 + (metrics.conversionsTrend || 0) / 100);
+        const prevCVR = prevClicks > 0 ? (prevConversions / prevClicks * 100) : 0;
+        const cvrChange = prevCVR > 0 ? ((metrics.cvr - prevCVR) / prevCVR * 100) : 0;
+        
+        return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+</div>
 </div>
 </div>
 `;
@@ -2727,8 +2555,6 @@ if (channelTypesToggle) {
         }, 300);
       });
     }
-    // Re-render stats when toggle changes
-    renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
   });
 }
 
@@ -2809,8 +2635,6 @@ if (campaignsToggle) {
         }, 300);
       });
     }
-        // Re-render stats when toggle changes
-    renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
   });
 }
   
@@ -2958,24 +2782,6 @@ function addSearchTermsStyles() {
 
 .campaign-subrow:hover {
   background-color: #ffe8cc !important;
-}
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    max-height: 500px;
-  }
-}
-
-.bucket-stat-card {
-  transition: all 0.3s ease;
-}
-
-.bucket-stat-card[data-expanded="true"] {
-  height: auto !important;
 }
     `;
     document.head.appendChild(style);
