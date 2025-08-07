@@ -1670,20 +1670,19 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         
 return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
   <div style="
+    display: inline-block;
     background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
     color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
     font-weight: 500;
     margin-top: 2px;
-    min-width: 32px;
-    text-align: center;
+    white-space: nowrap;
   ">
     ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
   </div>
 ` : '';
-      })()}
     </div>
   </div>
   
@@ -1709,15 +1708,15 @@ return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
         
 return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
   <div style="
+    display: inline-block;
     background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
     color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
     font-weight: 500;
     margin-top: 2px;
-    min-width: 32px;
-    text-align: center;
+    white-space: nowrap;
   ">
     ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
   </div>
