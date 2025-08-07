@@ -1668,25 +1668,27 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         const prevCTR = prevImpressions > 0 ? (prevClicks / prevImpressions * 100) : 0;
         const ctrChange = prevCTR > 0 ? ((metrics.ctr - prevCTR) / prevCTR * 100) : 0;
         
-return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
-  <div style="
-    display: inline-block;
-    background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
-    color: white;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 500;
-    margin-top: 2px;
-    white-space: nowrap;
-  ">
-    ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
-  </div>
-` : '';
+        return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
+          <div style="
+            background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 500;
+            margin-top: 2px;
+            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+          ">
+            ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
     </div>
   </div>
   
-<!-- CVR -->
+  <!-- CVR -->
   <div style="flex: 0.8; text-align: center;">
     <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
     <div>
@@ -1706,21 +1708,22 @@ return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
         const prevCVR = prevClicks > 0 ? (prevConversions / prevClicks * 100) : 0;
         const cvrChange = prevCVR > 0 ? ((metrics.cvr - prevCVR) / prevCVR * 100) : 0;
         
-return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
-  <div style="
-    display: inline-block;
-    background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
-    color: white;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 500;
-    margin-top: 2px;
-    white-space: nowrap;
-  ">
-    ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
-  </div>
-` : '';
+        return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
+          <div style="
+            background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 500;
+            margin-top: 2px;
+            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+          ">
+            ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
+          </div>
+        ` : '';
       })()}
     </div>
   </div>
