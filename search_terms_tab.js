@@ -1672,14 +1672,11 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
           <div style="
             background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 500;
             margin-top: 2px;
-            white-space: nowrap;
-            min-width: 32px;
-            text-align: center;
           ">
             ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
           </div>
@@ -1712,14 +1709,11 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
           <div style="
             background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 500;
             margin-top: 2px;
-            white-space: nowrap;
-            min-width: 32px;
-            text-align: center;
           ">
             ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
           </div>
