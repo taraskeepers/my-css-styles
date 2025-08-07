@@ -758,8 +758,10 @@ processProductBucketsChunk: async function(chunk, startIndex) {
 processSearchTermsData: async function(searchInsightsData, searchTermsData) {
   console.log('[Search Terms] Processing search terms data...');
   
-  // Create a map to aggregate data by query
-  const queryMap = new Map();
+  // Create maps for different aggregation levels
+  const allQueryMap = new Map();      // Combined all channels
+  const shoppingQueryMap = new Map(); // Shopping only
+  const pmaxQueryMap = new Map();     // PMax only
   
   // Helper to parse numeric values
   const parseNumber = (value) => {
@@ -767,78 +769,67 @@ processSearchTermsData: async function(searchInsightsData, searchTermsData) {
     return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
   };
   
-  // Process Search Insights data
+  // Helper to update query map
+  const updateQueryMap = (map, query, clicks, impressions, conversions, value) => {
+    if (query && clicks > 1) { // Only process if clicks > 1
+      if (!map.has(query)) {
+        map.set(query, {
+          query: query,
+          clicks: 0,
+          impressions: 0,
+          conversions: 0,
+          value: 0
+        });
+      }
+      
+      const data = map.get(query);
+      data.clicks += clicks;
+      data.impressions += impressions;
+      data.conversions += conversions;
+      data.value += value;
+    }
+  };
+  
+  // Process Search Insights data (PMax campaigns)
   searchInsightsData.forEach(row => {
     const query = (row['Category Label'] || '').trim();
     const clicks = parseNumber(row['Clicks']);
+    const impressions = parseNumber(row['Impr']);
+    const conversions = parseNumber(row['Conv']);
+    const value = parseNumber(row['Value']);
     
-    if (query && clicks > 1) { // Only process if clicks > 1
-      if (!queryMap.has(query)) {
-        queryMap.set(query, {
-          query: query,
-          clicks: 0,
-          impressions: 0,
-          conversions: 0,
-          value: 0
-        });
-      }
-      
-      const data = queryMap.get(query);
-      data.clicks += clicks;
-      data.impressions += parseNumber(row['Impr']);
-      data.conversions += parseNumber(row['Conv']);
-      data.value += parseNumber(row['Value']);
-    }
+    // Add to PMax-specific map
+    updateQueryMap(pmaxQueryMap, query, clicks, impressions, conversions, value);
+    // Add to combined map
+    updateQueryMap(allQueryMap, query, clicks, impressions, conversions, value);
   });
   
-  // Process Search Terms data
+  // Process Search Terms data (Shopping campaigns)
   searchTermsData.forEach(row => {
     const query = (row['Search Term'] || '').trim();
     const clicks = parseNumber(row['Clicks']);
+    const impressions = parseNumber(row['Impr']);
+    const conversions = parseNumber(row['Conv']);
+    const value = parseNumber(row['Value']);
     
-    if (query && clicks > 1) { // Only process if clicks > 1
-      if (!queryMap.has(query)) {
-        queryMap.set(query, {
-          query: query,
-          clicks: 0,
-          impressions: 0,
-          conversions: 0,
-          value: 0
-        });
-      }
-      
-      const data = queryMap.get(query);
-      data.clicks += clicks;
-      data.impressions += parseNumber(row['Impr']);
-      data.conversions += parseNumber(row['Conv']);
-      data.value += parseNumber(row['Value']);
-    }
+    // Add to Shopping-specific map
+    updateQueryMap(shoppingQueryMap, query, clicks, impressions, conversions, value);
+    // Add to combined map
+    updateQueryMap(allQueryMap, query, clicks, impressions, conversions, value);
   });
   
-// Calculate total value for percentage calculation (excluding "blank" queries)
-let totalValue = 0;
-queryMap.forEach((data, query) => {
-  if (query.toLowerCase() !== 'blank') {
-    totalValue += data.value;
-  }
-});
-  
-  // Convert map to array
-  const searchTermsArray = Array.from(queryMap.values());
-  
-  // Sort by value descending
-  searchTermsArray.sort((a, b) => b.value - a.value);
+  // First, determine global Top_Bucket rankings based on "all/all" data
+  const allQueryArray = Array.from(allQueryMap.values());
+  allQueryArray.sort((a, b) => b.value - a.value);
   
   // Separate blank and non-blank queries for ranking
-  const nonBlankQueries = searchTermsArray.filter(item => 
+  const nonBlankQueries = allQueryArray.filter(item => 
     item.query.toLowerCase() !== 'blank'
   );
-  const blankQueries = searchTermsArray.filter(item => 
-    item.query.toLowerCase() === 'blank'
-  );
   
-  // Assign Top_Bucket values to non-blank queries
-  const processedArray = nonBlankQueries.map((data, index) => {
+  // Create a map of query to Top_Bucket based on global ranking
+  const globalTopBuckets = new Map();
+  nonBlankQueries.forEach((data, index) => {
     let topBucket = '';
     
     if (index === 0) topBucket = 'Top1';
@@ -849,35 +840,65 @@ queryMap.forEach((data, query) => {
     else if (index >= 5 && index <= 9) topBucket = 'Top10';
     // Queries beyond top 10 don't get a Top_Bucket value
     
-    return {
-      Query: data.query,
-      Clicks: Math.round(data.clicks),
-      Impressions: Math.round(data.impressions),
-      Conversions: this.round2(data.conversions),
-      Value: this.round2(data.value),
-      '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0,
-      Top_Bucket: topBucket
-    };
+    globalTopBuckets.set(data.query, topBucket);
   });
   
-  // Add blank queries back without Top_Bucket
-  const blankProcessed = blankQueries.map(data => ({
-    Query: data.query,
-    Clicks: Math.round(data.clicks),
-    Impressions: Math.round(data.impressions),
-    Conversions: this.round2(data.conversions),
-    Value: this.round2(data.value),
-    '% of all revenue': totalValue > 0 ? this.round2(data.value / totalValue) : 0,
-    Top_Bucket: '' // No top bucket for blank queries
-  }));
+  // Calculate total value for "all/all" percentage calculation (excluding "blank" queries)
+  let allTotalValue = 0;
+  allQueryMap.forEach((data, query) => {
+    if (query.toLowerCase() !== 'blank') {
+      allTotalValue += data.value;
+    }
+  });
   
-  // Combine all queries (non-blank first, then blank)
-  const finalArray = [...processedArray, ...blankProcessed];
+  // Helper function to process a query map into final format with global Top_Bucket
+  const processQueryMap = (queryMap, campaignName, channelType) => {
+    // Calculate total value for percentage calculation within this channel (excluding "blank" queries)
+    let channelTotalValue = 0;
+    queryMap.forEach((data, query) => {
+      if (query.toLowerCase() !== 'blank') {
+        channelTotalValue += data.value;
+      }
+    });
+    
+    // Convert map to array
+    const searchTermsArray = Array.from(queryMap.values());
+    
+    // Sort by value descending
+    searchTermsArray.sort((a, b) => b.value - a.value);
+    
+    // Process all queries
+    const processedArray = searchTermsArray.map((data) => {
+      const isBlank = data.query.toLowerCase() === 'blank';
+      
+      return {
+        Query: data.query,
+        Campaign_Name: campaignName,
+        Channel_Type: channelType,
+        Clicks: Math.round(data.clicks),
+        Impressions: Math.round(data.impressions),
+        Conversions: this.round2(data.conversions),
+        Value: this.round2(data.value),
+        '% of all revenue': channelTotalValue > 0 ? this.round2((data.value / channelTotalValue) * 100) : 0,
+        Top_Bucket: isBlank ? '' : (globalTopBuckets.get(data.query) || '')
+      };
+    });
+    
+    return processedArray;
+  };
   
-  console.log(`[Search Terms] Processed ${finalArray.length} unique search terms`);
-  console.log(`[Search Terms] Total value: ${this.round2(totalValue)}`);
+  // Process each aggregation level
+  const allResults = processQueryMap(allQueryMap, 'all', 'all');
+  const shoppingResults = processQueryMap(shoppingQueryMap, 'all', 'Shopping');
+  const pmaxResults = processQueryMap(pmaxQueryMap, 'all', 'PMax');
+  
+  // Combine all results
+  const finalArray = [...allResults, ...shoppingResults, ...pmaxResults];
+  
+  console.log(`[Search Terms] Processed ${allQueryMap.size} unique search terms`);
+  console.log(`[Search Terms] Total records: ${finalArray.length} (${allResults.length} all + ${shoppingResults.length} shopping + ${pmaxResults.length} pmax)`);
   if (nonBlankQueries.length > 0) {
-    console.log(`[Search Terms] Top query: "${nonBlankQueries[0].query}" with value ${this.round2(nonBlankQueries[0].value)}`);
+    console.log(`[Search Terms] Global Top1 query: "${nonBlankQueries[0].query}" with value ${this.round2(nonBlankQueries[0].value)}`);
   }
   
   return finalArray;
