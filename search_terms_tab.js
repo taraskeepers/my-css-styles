@@ -104,38 +104,49 @@ async function loadAndRenderSearchTerms() {
     
     db.close();
     
-    if (!result || !result.data || result.data.length === 0) {
-      container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
-      return;
-    }
+if (!result || !result.data || result.data.length === 0) {
+  container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
+  return;
+}
+
+// Filter for only "all/all" records and exclude "blank" search terms
+const filteredData = result.data.filter(item => 
+  item.Query && 
+  item.Query.toLowerCase() !== 'blank' &&
+  item.Campaign_Name === 'all' &&
+  item.Channel_Type === 'all'
+);
+
+console.log(`[Search Terms] Filtered to ${filteredData.length} all/all records from ${result.data.length} total records`);
     
-    // Filter out "blank" search terms
-    const filteredData = result.data.filter(item => item.Query && item.Query.toLowerCase() !== 'blank');
-    
-    // Create a map of Top_Bucket values from 365d data
-    const topBucketMap = {};
-    if (result365d && result365d.data) {
-      result365d.data.forEach(item => {
-        if (item.Query && item['Top_Bucket']) {
-          topBucketMap[item.Query.toLowerCase()] = item['Top_Bucket'];
-        }
-      });
-    }
-    
-    // Create a map of 90d data for trends
-    const trend90dMap = {};
-    if (result90d && result90d.data) {
-      result90d.data.forEach(item => {
-        if (item.Query) {
-          trend90dMap[item.Query.toLowerCase()] = {
-            Impressions: (item.Impressions || 0) / 3,
-            Clicks: (item.Clicks || 0) / 3,
-            Conversions: (item.Conversions || 0) / 3,
-            Value: (item.Value || 0) / 3
-          };
-        }
-      });
-    }
+// Create a map of Top_Bucket values from 365d data (only from all/all records)
+const topBucketMap = {};
+if (result365d && result365d.data) {
+  result365d.data
+    .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
+    .forEach(item => {
+      if (item.Query && item['Top_Bucket']) {
+        topBucketMap[item.Query.toLowerCase()] = item['Top_Bucket'];
+      }
+    });
+}
+
+// Create a map of 90d data for trends (only from all/all records)
+const trend90dMap = {};
+if (result90d && result90d.data) {
+  result90d.data
+    .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
+    .forEach(item => {
+      if (item.Query) {
+        trend90dMap[item.Query.toLowerCase()] = {
+          Impressions: (item.Impressions || 0) / 3,
+          Clicks: (item.Clicks || 0) / 3,
+          Conversions: (item.Conversions || 0) / 3,
+          Value: (item.Value || 0) / 3
+        };
+      }
+    });
+}
     
     // Add Top_Bucket and trend data to current data
     filteredData.forEach(item => {
@@ -153,10 +164,15 @@ async function loadAndRenderSearchTerms() {
     console.log('[Search Terms] Items with Top Bucket assigned:', itemsWithTopBucket.length);
     console.log('[Search Terms] Sample items with buckets:', itemsWithTopBucket.slice(0, 3).map(item => ({query: item.Query, bucket: item['Top Bucket']})));
     
-    // Process the data
-    window.searchTermsData = filteredData;
-    window.searchTermsData365d = result365d?.data || [];
-    window.searchTermsData90d = result90d?.data || [];
+// Process the data
+window.searchTermsData = filteredData;
+// Store filtered 365d and 90d data (only all/all records)
+window.searchTermsData365d = result365d?.data?.filter(item => 
+  item.Campaign_Name === 'all' && item.Channel_Type === 'all'
+) || [];
+window.searchTermsData90d = result90d?.data?.filter(item => 
+  item.Campaign_Name === 'all' && item.Channel_Type === 'all'
+) || [];
     
     // Initialize pagination and sorting
     window.searchTermsCurrentPage = 1;
@@ -977,10 +993,12 @@ function findMissingTopBucketTerms() {
   // Get current search term queries
   const currentQueries = new Set(window.searchTermsData.map(d => d.Query.toLowerCase()));
   
-  // Find terms with Top_Bucket in 365d that are not in current data
+  // Find terms with Top_Bucket in 365d that are not in current data (only all/all records)
   const missingTerms = window.searchTermsData365d
     .filter(item => {
-      return item['Top_Bucket'] && 
+      return item.Campaign_Name === 'all' && 
+             item.Channel_Type === 'all' &&
+             item['Top_Bucket'] && 
              item['Top_Bucket'] !== '' && 
              !currentQueries.has(item.Query.toLowerCase());
     })
