@@ -1670,6 +1670,7 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         
         return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
           <div style="
+            display: inline-block;
             background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
             padding: 2px 6px;
@@ -1707,6 +1708,7 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         
         return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
           <div style="
+            display: inline-block;
             background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
             padding: 2px 6px;
