@@ -159,6 +159,13 @@ if (result90d && result90d.data) {
       item['Top Bucket'] = topBucketMap[queryLower] || '';
       item['Trend Data'] = trend90dMap[queryLower] || null;
     });
+
+    // Calculate total revenue from all/all records only for correct percentage
+const totalRevenue = filteredData.reduce((sum, item) => sum + (item.Value || 0), 0);
+filteredData.forEach(item => {
+  // Recalculate percentage based on all/all total
+  item['% of all revenue'] = totalRevenue > 0 ? (item.Value / totalRevenue) : 0;
+});
     
     // Debug logging for Top Bucket assignment
     console.log('[Search Terms] 365d data entries:', result365d?.data?.length || 0);
@@ -432,15 +439,6 @@ let html = `
           Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
           ${window.selectedSearchTermsBucket ? ` (filtered by ${window.selectedSearchTermsBucket})` : ''}
         </div>
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
-            <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-              <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
-              <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
-                <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
-              </span>
-            </label>
-          </div>
           <div class="search-terms-filter-switcher" style="display: flex; gap: 0; background: #f0f0f0; border-radius: 8px; padding: 2px;">
             <button class="filter-btn ${window.searchTermsFilter === 'all' ? 'active' : ''}" data-filter="all" 
                     style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'all' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
@@ -1956,8 +1954,10 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
 </div>
 </div>
 </div>
+${window.searchTermsChannelToggleState ? `<div class="bucket-breakdown-container" id="breakdown-${bucketName.replace(/\s+/g, '-')}"></div>` : ''}
+</div>
 `;
-});
+  });
   
   html += `
       </div>
@@ -2197,6 +2197,156 @@ async function loadCampaignDataForSearchTerm(searchTerm) {
     console.error('[Campaign Data] Error loading:', error);
     return [];
   }
+}
+
+/**
+ * Load channel breakdown for a specific bucket
+ */
+async function loadBucketChannelBreakdown(bucketName) {
+  const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
+  const bucketData = buckets[bucketName];
+  if (!bucketData || !bucketData.terms) return null;
+  
+  const bucketQueries = new Set(bucketData.terms.map(t => t.Query));
+  
+  // Load all channel data for bucket queries
+  const tablePrefix = getProjectTablePrefix();
+  const days = window.selectedDateRangeDays || 30;
+  const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+  const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+  
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('myAppDB');
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = () => reject(new Error('Failed to open database'));
+  });
+  
+  const transaction = db.transaction(['projectData'], 'readonly');
+  const objectStore = transaction.objectStore('projectData');
+  const getRequest = objectStore.get(tableName);
+  
+  const result = await new Promise((resolve, reject) => {
+    getRequest.onsuccess = () => resolve(getRequest.result);
+    getRequest.onerror = () => reject(getRequest.error);
+  });
+  
+  db.close();
+  
+  if (!result || !result.data) return null;
+  
+  // Aggregate by channel type
+  const channelAggregates = {};
+  
+  result.data
+    .filter(item => 
+      bucketQueries.has(item.Query) && 
+      item.Campaign_Name === 'all' && 
+      item.Channel_Type !== 'all'
+    )
+    .forEach(item => {
+      const channel = item.Channel_Type;
+      if (!channelAggregates[channel]) {
+        channelAggregates[channel] = {
+          clicks: 0,
+          value: 0,
+          conversions: 0,
+          impressions: 0
+        };
+      }
+      channelAggregates[channel].clicks += item.Clicks || 0;
+      channelAggregates[channel].value += item.Value || 0;
+      channelAggregates[channel].conversions += item.Conversions || 0;
+      channelAggregates[channel].impressions += item.Impressions || 0;
+    });
+  
+  return channelAggregates;
+}
+
+/**
+ * Render bucket breakdown section
+ */
+function renderBucketBreakdown(bucketName, channelData) {
+  if (!channelData || Object.keys(channelData).length === 0) return '';
+  
+  let html = `
+    <div class="bucket-breakdown" data-bucket="${bucketName}" style="
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.5);
+      border-top: 1px solid #e5e7eb;
+      display: none;
+    ">
+      <div style="display: flex; gap: 20px; align-items: center;">
+  `;
+  
+  // Render each channel
+  Object.entries(channelData).forEach(([channel, data]) => {
+    const channelIcon = channel === 'PMax' ? '🎯' : '🛒';
+    const channelColor = channel === 'PMax' ? '#8b5cf6' : '#3b82f6';
+    const ctr = data.impressions > 0 ? (data.clicks / data.impressions * 100).toFixed(1) : 0;
+    const cvr = data.clicks > 0 ? (data.conversions / data.clicks * 100).toFixed(1) : 0;
+    
+    html += `
+      <div style="
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 10px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid ${channelColor}30;
+      ">
+        <div style="font-size: 20px;">${channelIcon}</div>
+        <div style="flex: 1;">
+          <div style="
+            font-size: 11px;
+            font-weight: 600;
+            color: ${channelColor};
+            margin-bottom: 2px;
+          ">${channel}</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div>
+              <span style="font-size: 14px; font-weight: 700; color: #1f2937;">
+                ${data.clicks.toLocaleString()}
+              </span>
+              <span style="font-size: 10px; color: #6b7280; margin-left: 2px;">clicks</span>
+            </div>
+            <div>
+              <span style="font-size: 14px; font-weight: 700; color: #059669;">
+                $${data.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              </span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <span style="
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                color: ${parseFloat(ctr) > 3 ? '#059669' : '#6b7280'};
+              ">CTR ${ctr}%</span>
+              <span style="
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                color: ${parseFloat(cvr) > 0 ? '#059669' : '#6b7280'};
+              ">CVR ${cvr}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+  `;
+  
+  return html;
 }
 
 /**
@@ -2542,6 +2692,29 @@ if (channelTypesToggle) {
           }
         }
       }
+
+      // Load and show bucket breakdowns
+      const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
+      for (const bucketName of Object.keys(buckets)) {
+        const channelData = await loadBucketChannelBreakdown(bucketName);
+        const breakdownHtml = renderBucketBreakdown(bucketName, channelData);
+        const container = document.getElementById(`breakdown-${bucketName.replace(/\s+/g, '-')}`);
+        if (container && breakdownHtml) {
+          container.innerHTML = breakdownHtml;
+          const breakdown = container.querySelector('.bucket-breakdown');
+          if (breakdown) {
+            breakdown.style.display = 'block';
+            breakdown.style.opacity = '0';
+            breakdown.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+              breakdown.style.transition = 'all 0.3s ease';
+              breakdown.style.opacity = '1';
+              breakdown.style.transform = 'translateY(0)';
+            }, 50);
+          }
+        }
+      }
+      
     } else {
       // Hide channel rows
       document.querySelectorAll('.channel-type-rows').forEach(tbody => {
@@ -2554,6 +2727,16 @@ if (channelTypesToggle) {
         setTimeout(() => {
           tbody.style.display = 'none';
           tbody.innerHTML = '';
+        }, 300);
+      });
+
+      // Hide bucket breakdowns
+      document.querySelectorAll('.bucket-breakdown').forEach(breakdown => {
+        breakdown.style.transition = 'all 0.3s ease';
+        breakdown.style.opacity = '0';
+        breakdown.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+          breakdown.style.display = 'none';
         }, 300);
       });
     }
