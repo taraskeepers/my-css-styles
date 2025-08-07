@@ -14,6 +14,7 @@ window.searchTermsSortColumn = 'Impressions';
 window.searchTermsSortAscending = false;
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
 window.productRankingToggleState = false;
+window.selectedSearchTermsBucket = null;
 
 /**
  * Main function to render the Search Terms table
@@ -289,9 +290,9 @@ function renderSummaryRow(summary) {
         <div style="font-size: 16px; color: #1976d2;">Σ</div>
       </td>
       <td style="padding: 12px;">
-        <div style="font-weight: 700; color: #1976d2; font-size: 15px;">
-          Summary (${summary.count} terms)
-        </div>
+<div style="font-weight: 700; color: #1976d2; font-size: 15px;">
+  ${window.selectedSearchTermsBucket ? `${window.selectedSearchTermsBucket} Summary` : 'Summary'} (${summary.count} terms)
+</div>
       </td>
       <td style="padding: 12px; text-align: center;">
         ${getMetricWithTrend(summary.impressions, summary.trendData.impressions, 'impressions', null, true)}
@@ -354,15 +355,54 @@ function renderSearchTermsTableInternal(container) {
   // Render stats container
   const statsResult = renderSearchTermsStats(allData);
   
-  let html = statsResult.html + `
+// Add toggle controls at the top
+let html = `
+    <!-- Top Controls Section -->
+    <div style="
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    ">
+      <div style="display: flex; align-items: center; gap: 24px;">
+        <!-- Product Ranking Toggle -->
+        <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+          <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
+          <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+            <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
+            <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+              <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+            </span>
+          </label>
+        </div>
+        <!-- Placeholder for future toggles/switchers -->
+        <div id="additionalTogglesContainer" style="display: flex; align-items: center; gap: 24px;">
+          <!-- Future toggles will be added here -->
+        </div>
+      </div>
+      <div style="font-size: 13px; color: #6b7280;">
+        ${window.selectedSearchTermsBucket ? `Filtering: ${window.selectedSearchTermsBucket}` : 'All search terms displayed'}
+      </div>
+    </div>
+  `;
+
+  // Add stats container
+  html += statsResult.html;
+  
+  // Add main table section
+  html += `
     <div style="margin-bottom: 20px;">
       <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="color: #666; font-size: 14px;">
           Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
+          ${window.selectedSearchTermsBucket ? ` (filtered by ${window.selectedSearchTermsBucket})` : ''}
         </div>
         <div style="display: flex; align-items: center; gap: 16px;">
-          <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
             <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
             <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
               <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
@@ -422,11 +462,11 @@ function renderSearchTermsTableInternal(container) {
       <tbody>
   `;
 
-    // Add summary row if filter is active
-  if (window.searchTermsFilter !== 'all') {
-    const summaryData = calculateSummaryData(data);
-    html += renderSummaryRow(summaryData);
-  }
+// Add summary row if filter is active or bucket is selected
+if (window.searchTermsFilter !== 'all' || window.selectedSearchTermsBucket) {
+  const summaryData = calculateSummaryData(data);
+  html += renderSummaryRow(summaryData);
+}
   
   // Render table rows
   pageData.forEach((row, index) => {
@@ -802,19 +842,31 @@ function renderSearchTermPieCharts(searchTerm) {
 function getFilteredSearchTermsData() {
   let data = [...window.searchTermsData];
   
+  // First apply bucket filter if a bucket is selected
+  if (window.selectedSearchTermsBucket) {
+    const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
+    const selectedBucketData = buckets[window.selectedSearchTermsBucket];
+    if (selectedBucketData && selectedBucketData.terms) {
+      // Get the queries from the selected bucket
+      const selectedQueries = new Set(selectedBucketData.terms.map(t => t.Query));
+      data = data.filter(item => selectedQueries.has(item.Query));
+    }
+  }
+  
+  // Then apply the existing filter
   switch(window.searchTermsFilter) {
     case 'topbucket':
       // Filter for items that have Top Bucket data
       data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
       break;
-case 'negatives':
+    case 'negatives':
       // Filter for potential negative terms (no conversions, sufficient clicks)
       data = data.filter(item => {
         return item.Conversions === 0 && item.Clicks >= 50;
       });
       break;
     default:
-      // 'all' - no filtering
+      // 'all' - no additional filtering
       break;
   }
   
@@ -1519,20 +1571,41 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
   </div>
 </div>
         
-        <!-- Bucket Card -->
-        <div class="bucket-stat-card" data-bucket="${bucketName}" style="
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          height: 70px;
-          flex: 1;
-        ">
+<!-- Bucket Card -->
+<div class="bucket-stat-card" data-bucket="${bucketName}" style="
+  background: ${window.selectedSearchTermsBucket === bucketName ? '#f8fafc' : '#ffffff'};
+  border: ${window.selectedSearchTermsBucket === bucketName ? `3px solid ${metrics.color}` : '1px solid #e5e7eb'};
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: 70px;
+  flex: 1;
+  ${window.selectedSearchTermsBucket === bucketName ? 'box-shadow: 0 4px 12px rgba(0,0,0,0.15);' : ''}
+">
+  ${window.selectedSearchTermsBucket === bucketName ? `
+    <!-- Selected Indicator -->
+    <div style="
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: ${metrics.color};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    ">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+  ` : ''}
           <!-- Colored left section -->
           <div style="
             flex: 0 0 100px;
@@ -1757,37 +1830,41 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
  * Enhanced event listeners with better interactions
  */
 function addBucketChartEventListeners() {
-  let highlightedBucket = null;
-  
   // Card hover and click interactions
   document.querySelectorAll('.bucket-stat-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
-      if (highlightedBucket !== card.getAttribute('data-bucket')) {
+      const bucketName = card.getAttribute('data-bucket');
+      if (window.selectedSearchTermsBucket !== bucketName) {
         card.style.transform = 'translateX(4px)';
         card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
       }
     });
     
     card.addEventListener('mouseleave', () => {
-      if (highlightedBucket !== card.getAttribute('data-bucket')) {
+      const bucketName = card.getAttribute('data-bucket');
+      if (window.selectedSearchTermsBucket !== bucketName) {
         card.style.transform = 'translateX(0)';
         card.style.boxShadow = 'none';
       }
     });
     
     card.addEventListener('click', () => {
-      // Remove previous highlights
-      document.querySelectorAll('.bucket-stat-card').forEach(c => {
-        c.style.transform = 'translateX(0)';
-        c.style.boxShadow = 'none';
-        c.style.borderColor = '#e5e7eb';
-      });
-      
-      // Add highlight
-      card.style.transform = 'translateX(4px)';
-      card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
       const bucketName = card.getAttribute('data-bucket');
-      highlightedBucket = bucketName;
+      
+      // Toggle selection
+      if (window.selectedSearchTermsBucket === bucketName) {
+        // Deselect
+        window.selectedSearchTermsBucket = null;
+      } else {
+        // Select new bucket
+        window.selectedSearchTermsBucket = bucketName;
+      }
+      
+      // Reset pagination when filtering changes
+      window.searchTermsCurrentPage = 1;
+      
+      // Re-render the entire table
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
     });
   });
 }
