@@ -2053,6 +2053,9 @@ async function loadChannelDataForSearchTerm(searchTerm) {
     const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
     const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
     
+    // Also get 90d table for trend comparison
+    const tableName90d = `${tablePrefix}googleSheets_searchTerms_90d`;
+    
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
       request.onsuccess = (event) => resolve(event.target.result);
@@ -2061,11 +2064,19 @@ async function loadChannelDataForSearchTerm(searchTerm) {
     
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
     
+    // Load current data
+    const getRequest = objectStore.get(tableName);
     const result = await new Promise((resolve, reject) => {
       getRequest.onsuccess = () => resolve(getRequest.result);
       getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    // Load 90d data for trends
+    const getRequest90d = objectStore.get(tableName90d);
+    const result90d = await new Promise((resolve, reject) => {
+      getRequest90d.onsuccess = () => resolve(getRequest90d.result);
+      getRequest90d.onerror = () => reject(getRequest90d.error);
     });
     
     db.close();
@@ -2073,11 +2084,37 @@ async function loadChannelDataForSearchTerm(searchTerm) {
     if (!result || !result.data) return [];
     
     // Filter for this search term and channel-level aggregations
-    return result.data.filter(item => 
+    const currentData = result.data.filter(item => 
       item.Query === searchTerm && 
       item.Campaign_Name === 'all' && 
       item.Channel_Type !== 'all'
     );
+    
+    // Create trend map from 90d data
+    const trend90dMap = {};
+    if (result90d && result90d.data) {
+      result90d.data
+        .filter(item => 
+          item.Query === searchTerm && 
+          item.Campaign_Name === 'all' && 
+          item.Channel_Type !== 'all'
+        )
+        .forEach(item => {
+          trend90dMap[item.Channel_Type] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        });
+    }
+    
+    // Add trend data to current data
+    currentData.forEach(item => {
+      item['Trend Data'] = trend90dMap[item.Channel_Type] || null;
+    });
+    
+    return currentData;
   } catch (error) {
     console.error('[Channel Data] Error loading:', error);
     return [];
@@ -2094,6 +2131,9 @@ async function loadCampaignDataForSearchTerm(searchTerm) {
     const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
     const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
     
+    // Also get 90d table for trend comparison
+    const tableName90d = `${tablePrefix}googleSheets_searchTerms_90d`;
+    
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
       request.onsuccess = (event) => resolve(event.target.result);
@@ -2102,11 +2142,19 @@ async function loadCampaignDataForSearchTerm(searchTerm) {
     
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
     
+    // Load current data
+    const getRequest = objectStore.get(tableName);
     const result = await new Promise((resolve, reject) => {
       getRequest.onsuccess = () => resolve(getRequest.result);
       getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    // Load 90d data for trends
+    const getRequest90d = objectStore.get(tableName90d);
+    const result90d = await new Promise((resolve, reject) => {
+      getRequest90d.onsuccess = () => resolve(getRequest90d.result);
+      getRequest90d.onerror = () => reject(getRequest90d.error);
     });
     
     db.close();
@@ -2114,10 +2162,37 @@ async function loadCampaignDataForSearchTerm(searchTerm) {
     if (!result || !result.data) return [];
     
     // Filter for this search term and individual campaigns
-    return result.data.filter(item => 
+    const currentData = result.data.filter(item => 
       item.Query === searchTerm && 
       item.Campaign_Name !== 'all'
     );
+    
+    // Create trend map from 90d data
+    const trend90dMap = {};
+    if (result90d && result90d.data) {
+      result90d.data
+        .filter(item => 
+          item.Query === searchTerm && 
+          item.Campaign_Name !== 'all'
+        )
+        .forEach(item => {
+          const key = `${item.Campaign_Name}|||${item.Channel_Type}`;
+          trend90dMap[key] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        });
+    }
+    
+    // Add trend data to current data
+    currentData.forEach(item => {
+      const key = `${item.Campaign_Name}|||${item.Channel_Type}`;
+      item['Trend Data'] = trend90dMap[key] || null;
+    });
+    
+    return currentData;
   } catch (error) {
     console.error('[Campaign Data] Error loading:', error);
     return [];
@@ -2135,6 +2210,9 @@ function renderChannelTypeSubRows(channelData, searchTerm) {
   channelData.forEach((data, index) => {
     const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
     const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
+    
+    // Get trend data
+    const trendData = data['Trend Data'];
     
     // Channel icon
     const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
@@ -2159,13 +2237,19 @@ function renderChannelTypeSubRows(channelData, searchTerm) {
             ">${data.Channel_Type}</span>
           </div>
         </td>
-        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Impressions.toLocaleString()}</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">${data.Clicks.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Impressions, trendData?.Impressions, 'impressions')}
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Clicks, trendData?.Clicks, 'clicks')}
+        </td>
         <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Conversions}</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Conversions, trendData?.Conversions, 'conversions')}
+        </td>
         <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">
-          $${data.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Value, trendData?.Value, 'value')}
         </td>
         <td style="padding: 8px; text-align: center; font-size: 13px;">
           ${(data['% of all revenue'] * 100).toFixed(2)}%
@@ -2192,6 +2276,9 @@ function renderCampaignSubRows(campaignData, searchTerm) {
     const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
     const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
     
+    // Get trend data
+    const trendData = data['Trend Data'];
+    
     // Channel icon
     const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
     
@@ -2217,13 +2304,19 @@ function renderCampaignSubRows(campaignData, searchTerm) {
             </span>
           </div>
         </td>
-        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Impressions.toLocaleString()}</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">${data.Clicks.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Impressions, trendData?.Impressions, 'impressions')}
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Clicks, trendData?.Clicks, 'clicks')}
+        </td>
         <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Conversions}</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Conversions, trendData?.Conversions, 'conversions')}
+        </td>
         <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
-        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">
-          $${data.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Value, trendData?.Value, 'value')}
         </td>
         <td style="padding: 8px; text-align: center; font-size: 13px;">
           ${(data['% of all revenue'] * 100).toFixed(2)}%
