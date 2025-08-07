@@ -15,6 +15,10 @@ window.searchTermsSortAscending = false;
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
 window.productRankingToggleState = false;
 window.selectedSearchTermsBucket = null;
+window.searchTermsChannelToggleState = false;
+window.searchTermsCampaignToggleState = false;
+window.searchTermsChannelData = {};  // Cache for channel data
+window.searchTermsCampaignData = {};  // Cache for campaign data
 
 /**
  * Main function to render the Search Terms table
@@ -365,37 +369,55 @@ await Promise.all(summaryPromises);
   
 // Add toggle controls at the top
 let html = `
-    <!-- Top Controls Section -->
-    <div style="
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    ">
-      <div style="display: flex; align-items: center; gap: 24px;">
-        <!-- Product Ranking Toggle -->
-        <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
-          <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
-          <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-            <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
-            <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
-              <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
-            </span>
-          </label>
-        </div>
-        <!-- Placeholder for future toggles/switchers -->
-        <div id="additionalTogglesContainer" style="display: flex; align-items: center; gap: 24px;">
-          <!-- Future toggles will be added here -->
-        </div>
-      </div>
-      <div style="font-size: 13px; color: #6b7280;">
-        ${window.selectedSearchTermsBucket ? `Filtering: ${window.selectedSearchTermsBucket}` : 'All search terms displayed'}
-      </div>
+<!-- Top Controls Section -->
+<div style="
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+">
+  <div style="display: flex; align-items: center; gap: 24px;">
+    <!-- Product Ranking Toggle -->
+    <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
+      <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
     </div>
+    
+    <!-- Channel Types Toggle -->
+    <div class="channel-types-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="channel-types-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Channel Types</label>
+      <label class="channel-types-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="channelTypesToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="channel-types-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
+    </div>
+    
+    <!-- Campaigns Toggle -->
+    <div class="campaigns-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="campaigns-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Campaigns</label>
+      <label class="campaigns-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="campaignsToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="campaigns-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
+    </div>
+  </div>
+  <div style="font-size: 13px; color: #6b7280;">
+    ${window.selectedSearchTermsBucket ? `Filtering: ${window.selectedSearchTermsBucket}` : 'All search terms displayed'}
+  </div>
+</div>
   `;
 
   // Add stats container
@@ -544,8 +566,10 @@ if (window.searchTermsFilter !== 'all' || window.selectedSearchTermsBucket) {
       </tr>
     `;
 
-    // Add sub-rows container (will remain empty if no data)
-    html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+// Add sub-rows container (will remain empty if no data)
+html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+html += `<tbody class="channel-type-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+html += `<tbody class="campaign-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
   });
   
   html += `
@@ -2020,6 +2044,198 @@ function changeSearchTermsPage(direction) {
 }
 
 /**
+ * Load channel breakdown data for a search term
+ */
+async function loadChannelDataForSearchTerm(searchTerm) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return [];
+    
+    // Filter for this search term and channel-level aggregations
+    return result.data.filter(item => 
+      item.Query === searchTerm && 
+      item.Campaign_Name === 'all' && 
+      item.Channel_Type !== 'all'
+    );
+  } catch (error) {
+    console.error('[Channel Data] Error loading:', error);
+    return [];
+  }
+}
+
+/**
+ * Load campaign breakdown data for a search term
+ */
+async function loadCampaignDataForSearchTerm(searchTerm) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return [];
+    
+    // Filter for this search term and individual campaigns
+    return result.data.filter(item => 
+      item.Query === searchTerm && 
+      item.Campaign_Name !== 'all'
+    );
+  } catch (error) {
+    console.error('[Campaign Data] Error loading:', error);
+    return [];
+  }
+}
+
+/**
+ * Render channel type sub-rows
+ */
+function renderChannelTypeSubRows(channelData, searchTerm) {
+  if (!channelData || channelData.length === 0) return '';
+  
+  let html = '';
+  
+  channelData.forEach((data, index) => {
+    const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
+    const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
+    
+    // Channel icon
+    const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
+    const channelColor = data.Channel_Type === 'PMax' ? '#8b5cf6' : '#3b82f6';
+    
+    html += `
+      <tr class="channel-type-subrow" style="background: ${index % 2 === 0 ? '#f0f7ff' : '#e8f3ff'};">
+        <td style="padding: 8px; text-align: center;">
+          <div style="width: 24px; height: 24px; margin: 0 auto; font-size: 16px;">
+            ${channelIcon}
+          </div>
+        </td>
+        <td style="padding: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="
+              background: ${channelColor};
+              color: white;
+              padding: 3px 10px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+            ">${data.Channel_Type}</span>
+          </div>
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Impressions.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">${data.Clicks.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Conversions}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">
+          $${data.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">
+          ${(data['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
+  });
+  
+  return html;
+}
+
+/**
+ * Render campaign sub-rows
+ */
+function renderCampaignSubRows(campaignData, searchTerm) {
+  if (!campaignData || campaignData.length === 0) return '';
+  
+  let html = '';
+  
+  // Sort by value descending
+  campaignData.sort((a, b) => (b.Value || 0) - (a.Value || 0));
+  
+  campaignData.forEach((data, index) => {
+    const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
+    const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
+    
+    // Channel icon
+    const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
+    
+    // Truncate long campaign names
+    const campaignName = data.Campaign_Name.length > 30 
+      ? data.Campaign_Name.substring(0, 27) + '...' 
+      : data.Campaign_Name;
+    
+    html += `
+      <tr class="campaign-subrow" style="background: ${index % 2 === 0 ? '#fff8f0' : '#fff4e6'};">
+        <td style="padding: 8px; text-align: center;">
+          <div style="width: 24px; height: 24px; margin: 0 auto; font-size: 16px;">
+            ${channelIcon}
+          </div>
+        </td>
+        <td style="padding: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 12px; font-weight: 600; color: #333;" title="${data.Campaign_Name}">
+              ${campaignName}
+            </span>
+            <span style="font-size: 10px; color: #666;">
+              ${data.Channel_Type}
+            </span>
+          </div>
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Impressions.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">${data.Clicks.toLocaleString()}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">${data.Conversions}</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; font-weight: 600;">
+          $${data.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">
+          ${(data['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
+  });
+  
+  return html;
+}
+
+/**
  * Load product ranking data for all visible search terms
  */
 async function loadProductRankingDataForAllTerms() {
@@ -2170,6 +2386,166 @@ function attachSearchTermsEventListeners() {
 }
     });
   }
+
+  // Channel Types toggle functionality
+const channelTypesToggle = document.getElementById('channelTypesToggle');
+if (channelTypesToggle) {
+  // Restore saved state
+  channelTypesToggle.checked = window.searchTermsChannelToggleState || false;
+  
+  // Style the toggle based on state
+  const toggleSlider = channelTypesToggle.nextElementSibling;
+  if (toggleSlider && channelTypesToggle.checked) {
+    toggleSlider.style.backgroundColor = '#007aff';
+  }
+  
+  channelTypesToggle.addEventListener('change', async function() {
+    window.searchTermsChannelToggleState = this.checked;
+    
+    // Update toggle styling
+    const toggleSlider = this.nextElementSibling;
+    if (toggleSlider) {
+      toggleSlider.style.backgroundColor = this.checked ? '#007aff' : '#ccc';
+    }
+    
+    if (this.checked) {
+      // Turn off campaigns toggle if it's on
+      const campaignsToggle = document.getElementById('campaignsToggle');
+      if (campaignsToggle && campaignsToggle.checked) {
+        campaignsToggle.checked = false;
+        window.searchTermsCampaignToggleState = false;
+        const campaignsSlider = campaignsToggle.nextElementSibling;
+        if (campaignsSlider) campaignsSlider.style.backgroundColor = '#ccc';
+        
+        // Hide campaign rows
+        document.querySelectorAll('.campaign-rows').forEach(tbody => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        });
+      }
+      
+      // Load and show channel data
+      const allChannelRows = document.querySelectorAll('.channel-type-rows');
+      for (const tbody of allChannelRows) {
+        const searchTerm = tbody.getAttribute('data-search-term');
+        if (searchTerm) {
+          const channelData = await loadChannelDataForSearchTerm(searchTerm);
+          const html = renderChannelTypeSubRows(channelData, searchTerm);
+          if (html) {
+            tbody.innerHTML = html;
+            tbody.style.display = 'table-row-group';
+            
+            // Animate appearance
+            const rows = tbody.querySelectorAll('.channel-type-subrow');
+            rows.forEach((row, i) => {
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+              setTimeout(() => {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+              }, i * 50);
+            });
+          }
+        }
+      }
+    } else {
+      // Hide channel rows
+      document.querySelectorAll('.channel-type-rows').forEach(tbody => {
+        const rows = tbody.querySelectorAll('.channel-type-subrow');
+        rows.forEach((row, i) => {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+        });
+        setTimeout(() => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        }, 300);
+      });
+    }
+  });
+}
+
+// Campaigns toggle functionality
+const campaignsToggle = document.getElementById('campaignsToggle');
+if (campaignsToggle) {
+  // Restore saved state
+  campaignsToggle.checked = window.searchTermsCampaignToggleState || false;
+  
+  // Style the toggle based on state
+  const toggleSlider = campaignsToggle.nextElementSibling;
+  if (toggleSlider && campaignsToggle.checked) {
+    toggleSlider.style.backgroundColor = '#007aff';
+  }
+  
+  campaignsToggle.addEventListener('change', async function() {
+    window.searchTermsCampaignToggleState = this.checked;
+    
+    // Update toggle styling
+    const toggleSlider = this.nextElementSibling;
+    if (toggleSlider) {
+      toggleSlider.style.backgroundColor = this.checked ? '#007aff' : '#ccc';
+    }
+    
+    if (this.checked) {
+      // Turn off channel types toggle if it's on
+      const channelToggle = document.getElementById('channelTypesToggle');
+      if (channelToggle && channelToggle.checked) {
+        channelToggle.checked = false;
+        window.searchTermsChannelToggleState = false;
+        const channelSlider = channelToggle.nextElementSibling;
+        if (channelSlider) channelSlider.style.backgroundColor = '#ccc';
+        
+        // Hide channel rows
+        document.querySelectorAll('.channel-type-rows').forEach(tbody => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        });
+      }
+      
+      // Load and show campaign data
+      const allCampaignRows = document.querySelectorAll('.campaign-rows');
+      for (const tbody of allCampaignRows) {
+        const searchTerm = tbody.getAttribute('data-search-term');
+        if (searchTerm) {
+          const campaignData = await loadCampaignDataForSearchTerm(searchTerm);
+          const html = renderCampaignSubRows(campaignData, searchTerm);
+          if (html) {
+            tbody.innerHTML = html;
+            tbody.style.display = 'table-row-group';
+            
+            // Animate appearance
+            const rows = tbody.querySelectorAll('.campaign-subrow');
+            rows.forEach((row, i) => {
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+              setTimeout(() => {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+              }, i * 50);
+            });
+          }
+        }
+      }
+    } else {
+      // Hide campaign rows
+      document.querySelectorAll('.campaign-rows').forEach(tbody => {
+        const rows = tbody.querySelectorAll('.campaign-subrow');
+        rows.forEach((row, i) => {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+        });
+        setTimeout(() => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        }, 300);
+      });
+    }
+  });
+}
   
   // Render bucket pie chart and add interactions
   setTimeout(() => {
@@ -2293,6 +2669,28 @@ function addSearchTermsStyles() {
   transform: scale(1.05);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
   background: linear-gradient(135deg, #e8f4ff 0%, #d6e7f7 100%) !important;
+}
+.channel-types-toggle input:checked + .channel-types-slider,
+.campaigns-toggle input:checked + .campaigns-slider {
+  background-color: #007aff;
+}
+
+.channel-types-toggle input:checked + .channel-types-slider span,
+.campaigns-toggle input:checked + .campaigns-slider span {
+  transform: translateX(20px);
+}
+
+.channel-type-subrow,
+.campaign-subrow {
+  transition: all 0.3s ease;
+}
+
+.channel-type-subrow:hover {
+  background-color: #d4e6ff !important;
+}
+
+.campaign-subrow:hover {
+  background-color: #ffe8cc !important;
 }
     `;
     document.head.appendChild(style);
