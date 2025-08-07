@@ -1668,19 +1668,21 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         const prevCTR = prevImpressions > 0 ? (prevClicks / prevImpressions * 100) : 0;
         const ctrChange = prevCTR > 0 ? ((metrics.ctr - prevCTR) / prevCTR * 100) : 0;
         
-        return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
-          <div style="
-            background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            margin-top: 2px;
-          ">
-            ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
-          </div>
-        ` : '';
+return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
+  <div style="
+    background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 2px;
+    min-width: 32px;
+    text-align: center;
+  ">
+    ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
+  </div>
+` : '';
       })()}
     </div>
   </div>
@@ -1705,19 +1707,21 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         const prevCVR = prevClicks > 0 ? (prevConversions / prevClicks * 100) : 0;
         const cvrChange = prevCVR > 0 ? ((metrics.cvr - prevCVR) / prevCVR * 100) : 0;
         
-        return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
-          <div style="
-            background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            margin-top: 2px;
-          ">
-            ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
-          </div>
-        ` : '';
+return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
+  <div style="
+    background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 2px;
+    min-width: 32px;
+    text-align: center;
+  ">
+    ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
+  </div>
+` : '';
       })()}
     </div>
   </div>
