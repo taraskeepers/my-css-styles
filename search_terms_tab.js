@@ -372,7 +372,7 @@ await Promise.all(summaryPromises);
     .map(item => item.Query);
 
   // Render stats container
-  const statsResult = renderSearchTermsStats(allData);
+  const statsResult = await renderSearchTermsStats(allData);
   
 // Add toggle controls at the top
 let html = `
