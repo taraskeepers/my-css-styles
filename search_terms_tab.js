@@ -1445,7 +1445,7 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
     ` : '<div style="width: 32px;"></div>'}
   </div>
   
-  <!-- % of Value Bar -->
+<!-- % of Value Bar -->
   <div style="display: flex; align-items: center; gap: 6px;">
     <div style="
       flex: 1;
@@ -1474,24 +1474,30 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         color: ${valuePercent > 10 ? 'white' : '#374151'};
         z-index: 1;
       ">
-        ${valuePercent.toFixed(1)}%
+        $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
       </div>
     </div>
-    ${Math.abs(valuePercentChange) >= 0.1 ? `
-      <div style="
-        background: ${valuePercentChange > 0 ? '#10b981' : '#ef4444'};
-        color: white;
-        padding: 1px 4px;
-        border-radius: 3px;
-        font-size: 9px;
-        font-weight: 500;
-        white-space: nowrap;
-        min-width: 32px;
-        text-align: center;
-      ">
-        ${valuePercentChange > 0 ? '↑' : '↓'} ${Math.abs(valuePercentChange).toFixed(0)}%
-      </div>
-    ` : '<div style="width: 32px;"></div>'}
+    ${(() => {
+      // Calculate absolute dollar change
+      const prevValue = metrics.valueTrend ? (metrics.value / (1 + metrics.valueTrend / 100)) : metrics.value;
+      const valueAbsoluteChange = metrics.value - prevValue;
+      
+      return Math.abs(valueAbsoluteChange) >= 1 ? `
+        <div style="
+          background: ${valueAbsoluteChange > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: 500;
+          white-space: nowrap;
+          min-width: 32px;
+          text-align: center;
+        ">
+          ${valueAbsoluteChange > 0 ? '↑' : '↓'} $${Math.abs(valueAbsoluteChange).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+        </div>
+      ` : '<div style="width: 32px;"></div>';
+    })()}
   </div>
 </div>
         
@@ -1642,7 +1648,7 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
     </div>
   </div>
   
-  <!-- CTR -->
+<!-- CTR -->
   <div style="flex: 0.8; text-align: center;">
     <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
     <div>
@@ -1664,7 +1670,6 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         
         return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
           <div style="
-            display: inline-block;
             background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
             padding: 2px 6px;
@@ -1680,7 +1685,7 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
     </div>
   </div>
   
-  <!-- CVR -->
+<!-- CVR -->
   <div style="flex: 0.8; text-align: center;">
     <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
     <div>
@@ -1702,7 +1707,6 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
         
         return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
           <div style="
-            display: inline-block;
             background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
             color: white;
             padding: 2px 6px;
