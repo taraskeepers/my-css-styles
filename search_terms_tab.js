@@ -325,7 +325,7 @@ function renderSummaryRow(summary) {
 /**
  * Render the search terms table (internal function)
  */
-function renderSearchTermsTableInternal(container) {
+async function renderSearchTermsTableInternal(container) {
   const allData = window.searchTermsData;
   const data = getFilteredSearchTermsData();
   const currentPage = window.searchTermsCurrentPage;
@@ -335,6 +335,14 @@ function renderSearchTermsTableInternal(container) {
   const startIndex = (currentPage - 1) * perPage;
   const endIndex = Math.min(startIndex + perPage, data.length);
   const pageData = data.slice(startIndex, endIndex);
+
+  // Pre-load all product ranking summaries for current page
+const productRankingSummaries = {};
+const summaryPromises = pageData.map(async (row) => {
+  const summary = await getCompactProductRankingSummary(row.Query);
+  productRankingSummaries[row.Query] = summary;
+});
+await Promise.all(summaryPromises);
   
   // Find max values for bar scaling
   const maxImpressions = Math.max(...data.map(d => d.Impressions || 0));
@@ -507,12 +515,15 @@ if (window.searchTermsFilter !== 'all' || window.selectedSearchTermsBucket) {
         <td style="padding: 8px; text-align: center;">
           ${getIndexWithTopBucket(globalIndex, topBucket)}
         </td>
-        <td style="padding: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
-            ${topBucket ? getTopBucketBadge(topBucket) : ''}
-          </div>
-        </td>
+<td style="padding: 8px;">
+  <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+      <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
+      ${topBucket ? getTopBucketBadge(topBucket) : ''}
+    </div>
+    ${renderCompactProductRankingBadge(productRankingSummaries[row.Query])}
+  </div>
+</td>
         <td style="padding: 8px; text-align: center;">
           ${getMetricWithTrend(row.Impressions, trendData?.Impressions, 'impressions', impressionBarWidth)}
         </td>
@@ -670,6 +681,112 @@ async function calculateProductRankingMetrics(searchTerm) {
   }
   
   return results;
+}
+
+/**
+ * Get compact product ranking summary for a search term
+ */
+async function getCompactProductRankingSummary(searchTerm) {
+  const metrics = await calculateProductRankingMetrics(searchTerm);
+  
+  if (!metrics || metrics.length === 0) {
+    return null;
+  }
+  
+  // Aggregate by device type
+  const deviceSummary = {
+    desktop: { active: 0, trend: 0 },
+    mobile: { active: 0, trend: 0 }
+  };
+  
+  metrics.forEach(metric => {
+    if (metric.device.toLowerCase().includes('mobile')) {
+      deviceSummary.mobile.active += metric.activeProducts;
+      deviceSummary.mobile.trend += metric.productsTrend;
+    } else {
+      deviceSummary.desktop.active += metric.activeProducts;
+      deviceSummary.desktop.trend += metric.productsTrend;
+    }
+  });
+  
+  return deviceSummary;
+}
+
+/**
+ * Render compact product ranking badge
+ */
+function renderCompactProductRankingBadge(deviceSummary) {
+  if (!deviceSummary) return '';
+  
+  const hasDesktop = deviceSummary.desktop.active > 0;
+  const hasMobile = deviceSummary.mobile.active > 0;
+  
+  if (!hasDesktop && !hasMobile) return '';
+  
+  let badgeContent = '';
+  
+  // Desktop section
+  if (hasDesktop) {
+    const trendColor = deviceSummary.desktop.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.desktop.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.desktop.trend > 0 ? '↑' : 
+                      deviceSummary.desktop.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">💻</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.desktop.active}</span>
+        ${deviceSummary.desktop.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.desktop.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  // Add separator if both exist
+  if (hasDesktop && hasMobile) {
+    badgeContent += `
+      <div style="width: 1px; height: 16px; background: #e0e0e0;"></div>
+    `;
+  }
+  
+  // Mobile section
+  if (hasMobile) {
+    const trendColor = deviceSummary.mobile.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.mobile.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.mobile.trend > 0 ? '↑' : 
+                      deviceSummary.mobile.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">📱</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.mobile.active}</span>
+        ${deviceSummary.mobile.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.mobile.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="small-product-ranking" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf0 100%);
+      border: 1px solid #d1d9e0;
+      border-radius: 16px;
+      margin-left: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    ">
+      ${badgeContent}
+    </div>
+  `;
 }
 
 /**
@@ -2167,6 +2284,16 @@ function addSearchTermsStyles() {
       .bucket-stat-card:active {
         transform: translateX(2px);
       }
+      .small-product-ranking {
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.small-product-ranking:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  background: linear-gradient(135deg, #e8f4ff 0%, #d6e7f7 100%) !important;
+}
     `;
     document.head.appendChild(style);
   }
