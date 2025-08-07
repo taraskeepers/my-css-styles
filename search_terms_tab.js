@@ -1653,7 +1653,6 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
     <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
     <div>
       <div style="
-        display: inline-block;
         padding: 4px 10px;
         background: #f3f4f6;
         border-radius: 6px;
@@ -1691,7 +1690,6 @@ const getTrendIndicator = (value, trend, isPercentage = false) => {
     <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
     <div>
       <div style="
-        display: inline-block;
         padding: 4px 10px;
         background: #f3f4f6;
         border-radius: 6px;
