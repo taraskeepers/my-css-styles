@@ -6110,6 +6110,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6126,6 +6127,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (table) {
     table.style.display = 'none';
   }
+
+    // Hide campaigns overview container
+  const campaignsContainer = document.getElementById('campaigns_overview_container');
+  if (campaignsContainer) campaignsContainer.style.display = 'none';
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
