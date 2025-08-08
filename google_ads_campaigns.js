@@ -21,26 +21,66 @@ function addCampaignsStyles() {
   if (!document.getElementById('campaigns-section-styles')) {
     const style = document.createElement('style');
     style.id = 'campaigns-section-styles';
-    style.textContent = `
+style.textContent = `
       /* Main campaigns container */
       .campaigns-main-container {
         display: flex;
         gap: 20px;
-        padding: 20px;
         height: calc(100vh - 200px);
-        background-color: #f5f5f5;
+        margin-left: 320px;
+        transition: margin-left 0.3s ease-in-out;
       }
       
-      /* Left navigation panel */
+      .campaigns-main-container.nav-collapsed {
+        margin-left: 12px;
+      }
+      
+      /* Left navigation panel - styled like googleAdsNavPanel */
       #campaignsNavPanel {
-        width: 400px;
-        min-width: 400px;
+        position: fixed;
+        left: 20px;
+        top: 130px;
+        width: 320px;
+        min-width: 320px;
+        height: calc(100vh - 150px);
         background-color: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         overflow-y: auto;
         display: flex;
         flex-direction: column;
+        transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out;
+        z-index: 100;
+      }
+      
+      #campaignsNavPanel.collapsed {
+        width: 12px !important;
+        min-width: 12px !important;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      
+      #campaignsNavPanel.collapsed > * {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+      }
+      
+      #campaignsNavPanel.collapsed::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 4px;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, #007aff, #0056b3);
+        border-radius: 2px;
+        opacity: 0.6;
+        transition: opacity 0.3s ease-in-out;
+      }
+      
+      #campaignsNavPanel.collapsed:hover::before {
+        opacity: 1;
       }
       
       /* Campaign type filter */
@@ -222,9 +262,10 @@ function addCampaignsStyles() {
         gap: 4px;
       }
       
-      /* Right panel - Products container */
+/* Right panel - Products container */
       #campaignsProductsPanel {
-        flex: 1;
+        width: 1200px;
+        min-width: 1200px;
         background-color: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -429,7 +470,7 @@ async function loadAndRenderCampaigns() {
 
 // Render campaigns navigation panel
 function renderCampaignsNavPanel() {
-  const container = document.getElementById('campaigns_overview_content');
+  const container = document.getElementById('campaigns_overview_container');
   if (!container) return;
   
   // Clear existing content
@@ -781,7 +822,7 @@ function getProjectTablePrefix() {
 
 // Render empty state
 function renderEmptyCampaignsState() {
-  const container = document.getElementById('campaigns_overview_content');
+  const container = document.getElementById('campaigns_overview_container');
   if (!container) return;
   
   container.innerHTML = `
