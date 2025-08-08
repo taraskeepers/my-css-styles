@@ -7347,7 +7347,7 @@ if (window.googleAdsApexCharts) {
   border: none;
   background: transparent;
   border-radius: 17px;
-  font-size: 14px;  /* Slightly smaller font */
+  font-size: 12px;  /* Slightly smaller font */
   cursor: pointer;
   transition: all 0.2s ease;
   color: #666;
