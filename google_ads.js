@@ -6014,9 +6014,9 @@ container.innerHTML = `
           <div class="controls-left-group">
 <div class="first-row-controls">
 <div class="google-ads-view-switcher">
-  <button id="viewPerformanceOverviewGoogleAds" class="active">Performance Overview</button>
-  <button id="viewCampaignsOverviewGoogleAds">Campaigns Overview</button>
-  <button id="viewOverviewGoogleAds">Product Overview</button>
+  <button id="viewPerformanceOverviewGoogleAds" class="active">Performance</button>
+  <button id="viewCampaignsOverviewGoogleAds">Campaigns</button>
+  <button id="viewOverviewGoogleAds">Products</button>
   <button id="viewBucketsGoogleAds">Buckets & Funnels</button>
   <button id="viewChartsGoogleAds">Rank Map</button>
   <button id="viewMapGoogleAds">Map</button>
