@@ -6119,7 +6119,16 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     navPanel.classList.remove('collapsed');
   }
 
-
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
   
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
@@ -6260,6 +6269,18 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   if (navPanel) {
     navPanel.classList.remove('collapsed');
   }
+
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
+  
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
   }
@@ -6386,6 +6407,18 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   if (navPanel) {
     navPanel.classList.remove('collapsed');
   }
+
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
+  
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
   }
@@ -6692,6 +6725,18 @@ if (viewCampaignsOverviewGoogleAdsBtn) {
     if (navPanel) {
       navPanel.classList.add('collapsed');
     }
+
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
+    
     if (contentWrapper) {
       contentWrapper.classList.add('nav-collapsed');
     }
@@ -6803,6 +6848,18 @@ setTimeout(() => {
   if (navPanel) {
     navPanel.classList.add('collapsed');
   }
+
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
+  
   if (contentWrapper) {
     contentWrapper.classList.add('nav-collapsed');
   }
@@ -9085,6 +9142,18 @@ setTimeout(async () => {
   if (navPanel) {
     navPanel.classList.add('collapsed');
   }
+
+// Show products nav panel and hide campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (googleAdsNavPanel) {
+    googleAdsNavPanel.style.display = 'block';
+  }
+  if (campaignsNavPanel) {
+    campaignsNavPanel.style.display = 'none';
+  }
+  
   if (contentWrapper) {
     contentWrapper.classList.add('nav-collapsed');
   }
