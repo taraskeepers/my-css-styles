@@ -14,20 +14,6 @@ async function initializeCampaignsSection() {
   
   // Load and render campaigns
   await loadAndRenderCampaigns();
-  
-  // Add click handler for collapsed campaigns nav panel
-  document.addEventListener('click', function(e) {
-    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
-    
-    if (campaignsNavPanel && campaignsNavPanel.classList.contains('collapsed') && campaignsNavPanel.contains(e.target)) {
-      // Expand the panel
-      campaignsNavPanel.classList.remove('collapsed');
-      const contentWrapper = document.querySelector('.campaigns-content-wrapper');
-      if (contentWrapper) {
-        contentWrapper.classList.remove('nav-collapsed');
-      }
-    }
-  });
 }
 
 // Add campaigns-specific styles
@@ -37,68 +23,137 @@ function addCampaignsStyles() {
     style.id = 'campaigns-section-styles';
     style.textContent = `
       /* Main campaigns container */
-      #campaigns_overview_container {
-        margin-top: 100px;
-        width: 100%;
-        height: calc(100vh - 100px);
-        position: relative;
-        background-color: transparent;
+      .campaigns-main-container {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+        height: calc(100vh - 200px);
+        background-color: #f5f5f5;
       }
       
-      /* Campaigns nav panel collapsed state */
-      #campaignsNavPanel.collapsed {
-        width: 12px !important;
-        min-width: 12px !important;
+      /* Left navigation panel */
+      #campaignsNavPanel {
+        width: 400px;
+        min-width: 400px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
       }
       
-      #campaignsNavPanel.collapsed > * {
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
-      }
-      
-      /* Vertical indicator for collapsed state */
-      #campaignsNavPanel.collapsed::before {
-        content: '';
-        position: absolute;
+      /* Campaign type filter */
+      .campaigns-filter-container {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+        position: sticky;
         top: 0;
-        left: 4px;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(to bottom, #007aff, #0056b3);
-        border-radius: 2px;
-        opacity: 0.6;
-        transition: opacity 0.3s ease-in-out;
+        z-index: 10;
       }
       
-      #campaignsNavPanel.collapsed:hover::before {
-        opacity: 1;
+      .campaigns-type-filter {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+      
+      .campaign-filter-btn {
+        padding: 6px 16px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
         cursor: pointer;
+        transition: all 0.2s ease;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
       
-      /* Content wrapper adjustment for collapsed nav */
-      .campaigns-content-wrapper.nav-collapsed {
-        margin-left: -308px !important;
+      .campaign-filter-btn.active {
+        background-color: #007aff;
+        color: white;
+        border-color: #007aff;
+        box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
       }
       
-      /* Campaign item card - similar to product cards */
+      .campaign-filter-btn:hover:not(.active) {
+        background-color: #f0f0f0;
+        border-color: #007aff;
+      }
+      
+      /* Campaigns list container */
+      .campaigns-list-container {
+        padding: 10px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      
+      /* Campaign group section */
+      .campaign-group-section {
+        margin-bottom: 20px;
+      }
+      
+      .campaign-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+      
+      .campaign-type-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      .campaign-group-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex: 1;
+      }
+      
+      .campaign-group-count {
+        background: #007aff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      
+      /* Campaign item card */
       .campaign-nav-item {
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         cursor: pointer;
       }
       
       .campaign-card-details {
-        width: 290px;
-        height: 60px;
         background-color: white;
         border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         display: flex;
         align-items: center;
-        padding: 5px;
+        padding: 12px;
         transition: all 0.2s;
-        gap: 10px;
+        gap: 12px;
+        min-height: 70px;
       }
       
       .campaign-nav-item:hover .campaign-card-details {
@@ -113,23 +168,26 @@ function addCampaignsStyles() {
       
       /* Campaign type badge */
       .campaign-type-badge {
-        width: 45px;
-        height: 45px;
-        border-radius: 6px;
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 18px;
-        margin-left: 5px;
+        font-size: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       }
       
       .campaign-type-badge.pmax {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
       }
       
       .campaign-type-badge.shopping {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
       }
       
       /* Campaign info */
@@ -137,11 +195,11 @@ function addCampaignsStyles() {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 4px;
       }
       
       .campaign-name {
-        font-size: 12px;
+        font-size: 14px;
         font-weight: 600;
         color: #333;
         line-height: 1.3;
@@ -153,42 +211,86 @@ function addCampaignsStyles() {
       
       .campaign-meta {
         display: flex;
-        gap: 8px;
-        font-size: 10px;
+        gap: 12px;
+        font-size: 11px;
         color: #999;
       }
       
-      /* Campaign group section */
-      .campaign-group-section {
-        margin-bottom: 15px;
-      }
-      
-      .campaign-group-header {
+      .campaign-products-count {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 8px;
-        background: #f8f9fa;
-        border-radius: 6px;
+        gap: 4px;
+      }
+      
+      /* Right panel - Products container */
+      #campaignsProductsPanel {
+        flex: 1;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      
+      /* Products panel header */
+      .campaigns-products-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #dee2e6;
+        background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+      }
+      
+      .campaigns-products-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+      }
+      
+      .selected-campaign-info {
+        font-size: 13px;
+        color: #666;
+        margin-top: 4px;
+      }
+      
+      /* Products grid */
+      .campaigns-products-grid {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-content: start;
+      }
+      
+      /* Empty state */
+      .campaigns-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #999;
+        text-align: center;
+        padding: 40px;
+      }
+      
+      .campaigns-empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      
+      .campaigns-empty-title {
+        font-size: 18px;
+        font-weight: 600;
         margin-bottom: 8px;
       }
       
-      .campaign-group-title {
-        font-size: 11px;
-        font-weight: 600;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        flex: 1;
-      }
-      
-      .campaign-group-count {
-        background: #007aff;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 10px;
-        font-weight: 600;
+      .campaigns-empty-text {
+        font-size: 14px;
+        line-height: 1.5;
       }
       
       /* Campaign product item */
@@ -209,6 +311,23 @@ function addCampaignsStyles() {
       .campaign-product-item:hover {
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         transform: translateY(-1px);
+      }
+      
+      /* Loading spinner */
+      .campaigns-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+      }
+      
+      .campaigns-spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: #007aff;
+        animation: spin 1s ease infinite;
       }
     `;
     document.head.appendChild(style);
@@ -310,72 +429,41 @@ async function loadAndRenderCampaigns() {
 
 // Render campaigns navigation panel
 function renderCampaignsNavPanel() {
-  const container = document.getElementById('campaigns_overview_container');
+  const container = document.getElementById('campaigns_overview_content');
   if (!container) return;
   
-  // Clear existing content - we'll use campaigns_overview_container directly
+  // Clear existing content
   container.innerHTML = '';
   
-  // Hide the products nav panel
-  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
-  if (googleAdsNavPanel) {
-    googleAdsNavPanel.style.display = 'none';
-  }
+  // Create main container
+  const mainContainer = document.createElement('div');
+  mainContainer.className = 'campaigns-main-container';
   
-  // Create campaigns navigation panel (similar to googleAdsNavPanel)
+  // Create left navigation panel
   const navPanel = document.createElement('div');
   navPanel.id = 'campaignsNavPanel';
-  navPanel.style.cssText = `
-    width: 320px;
-    min-width: 320px;
-    background-color: white;
-    border-right: 1px solid #dee2e6;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 180px);
-    position: fixed;
-    left: 0;
-    top: 100px;
-    z-index: 99;
-    transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out;
-  `;
   
-  // Add header with filter
-  const navHeader = document.createElement('div');
-  navHeader.style.cssText = `
-    padding: 15px;
-    margin: 0;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  `;
-  
-  navHeader.innerHTML = `
-    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Campaigns</h3>
-    <div class="campaigns-type-filter" style="display: flex; gap: 6px; justify-content: center;">
-      <button class="campaign-filter-btn active" data-filter="all" style="padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 15px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #666; display: flex; align-items: center; gap: 4px;">
-        <span style="font-size: 12px;">📊</span> All
+  // Add filter container
+  const filterContainer = document.createElement('div');
+  filterContainer.className = 'campaigns-filter-container';
+  filterContainer.innerHTML = `
+    <div class="campaigns-type-filter">
+      <button class="campaign-filter-btn active" data-filter="all">
+        <span>📊</span> All Campaigns
       </button>
-      <button class="campaign-filter-btn" data-filter="PERFORMANCE_MAX" style="padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 15px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #666; display: flex; align-items: center; gap: 4px;">
-        <span style="font-size: 12px;">🚀</span> PMax
+      <button class="campaign-filter-btn" data-filter="PERFORMANCE_MAX">
+        <span>🚀</span> Performance Max
       </button>
-      <button class="campaign-filter-btn" data-filter="SHOPPING" style="padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 15px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #666; display: flex; align-items: center; gap: 4px;">
-        <span style="font-size: 12px;">🛍️</span> Shopping
+      <button class="campaign-filter-btn" data-filter="SHOPPING">
+        <span>🛍️</span> Shopping
       </button>
     </div>
   `;
-  navPanel.appendChild(navHeader);
+  navPanel.appendChild(filterContainer);
   
   // Add campaigns list container
   const listContainer = document.createElement('div');
   listContainer.className = 'campaigns-list-container';
-  listContainer.style.cssText = 'padding: 10px; overflow-y: auto; flex: 1;';
   navPanel.appendChild(listContainer);
   
   // Group campaigns by type
@@ -387,19 +475,11 @@ function renderCampaignsNavPanel() {
   renderCampaignGroup(listContainer, 'SHOPPING', shoppingCampaigns, '🛍️');
   
   // Add click handlers for filters
-  navHeader.querySelectorAll('.campaign-filter-btn').forEach(btn => {
+  filterContainer.querySelectorAll('.campaign-filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       // Update active state
-      navHeader.querySelectorAll('.campaign-filter-btn').forEach(b => {
-        b.classList.remove('active');
-        b.style.backgroundColor = 'white';
-        b.style.color = '#666';
-        b.style.borderColor = '#ddd';
-      });
+      filterContainer.querySelectorAll('.campaign-filter-btn').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
-      this.style.backgroundColor = '#007aff';
-      this.style.color = 'white';
-      this.style.borderColor = '#007aff';
       
       // Filter campaigns
       const filterType = this.getAttribute('data-filter');
@@ -407,56 +487,29 @@ function renderCampaignsNavPanel() {
     });
   });
   
-  // Set initial active button style
-  const activeBtn = navHeader.querySelector('.campaign-filter-btn.active');
-  if (activeBtn) {
-    activeBtn.style.backgroundColor = '#007aff';
-    activeBtn.style.color = 'white';
-    activeBtn.style.borderColor = '#007aff';
-  }
-  
-  // Create right products panel with content wrapper styling
-  const contentWrapper = document.createElement('div');
-  contentWrapper.className = 'campaigns-content-wrapper';
-  contentWrapper.style.cssText = `
-    margin-left: 320px;
-    transition: margin-left 0.3s ease-in-out;
-    width: calc(100% - 320px);
-    padding: 20px;
-  `;
-  
+  // Create right products panel
   const productsPanel = document.createElement('div');
   productsPanel.id = 'campaignsProductsPanel';
-  productsPanel.style.cssText = `
-    width: 1200px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 600px;
-  `;
-  
   productsPanel.innerHTML = `
-    <div class="campaigns-products-header" style="padding: 15px 20px; border-bottom: 1px solid #dee2e6; background: linear-gradient(to bottom, #ffffff, #f9f9f9);">
-      <h3 class="campaigns-products-title" style="font-size: 16px; font-weight: 600; color: #333; margin: 0;">Campaign Products</h3>
-      <div class="selected-campaign-info" style="font-size: 13px; color: #666; margin-top: 4px;">Select a campaign to view its products</div>
+    <div class="campaigns-products-header">
+      <h3 class="campaigns-products-title">Campaign Products</h3>
+      <div class="selected-campaign-info">Select a campaign to view its products</div>
     </div>
-    <div class="campaigns-products-grid" style="flex: 1; padding: 20px; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 10px; align-content: start;">
-      <div class="campaigns-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; color: #999; text-align: center; padding: 40px;">
-        <div class="campaigns-empty-icon" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">📦</div>
-        <div class="campaigns-empty-title" style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">No Campaign Selected</div>
-        <div class="campaigns-empty-text" style="font-size: 14px; line-height: 1.5;">Select a campaign from the left panel to view its products</div>
+    <div class="campaigns-products-grid">
+      <div class="campaigns-empty-state">
+        <div class="campaigns-empty-icon">📦</div>
+        <div class="campaigns-empty-title">No Campaign Selected</div>
+        <div class="campaigns-empty-text">Select a campaign from the left panel to view its products</div>
       </div>
     </div>
   `;
   
-  contentWrapper.appendChild(productsPanel);
+  // Add panels to main container
+  mainContainer.appendChild(navPanel);
+  mainContainer.appendChild(productsPanel);
   
-  // Add panels to container
-  container.appendChild(navPanel);
-  container.appendChild(contentWrapper);
+  // Add main container to page
+  container.appendChild(mainContainer);
   
   // Add click handlers for campaign items
   addCampaignClickHandlers();
