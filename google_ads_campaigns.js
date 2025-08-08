@@ -482,10 +482,10 @@ function renderCampaignsNavPanel() {
   filterContainer.innerHTML = `
     <div class="campaigns-type-filter">
       <button class="campaign-filter-btn active" data-filter="all">
-        <span>📊</span> All Campaigns
+        <span>📊</span> All
       </button>
       <button class="campaign-filter-btn" data-filter="PERFORMANCE_MAX">
-        <span>🚀</span> Performance Max
+        <span>🚀</span> PMax
       </button>
       <button class="campaign-filter-btn" data-filter="SHOPPING">
         <span>🛍️</span> Shopping
