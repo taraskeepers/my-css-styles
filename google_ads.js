@@ -7347,7 +7347,7 @@ if (window.googleAdsApexCharts) {
   border: none;
   background: transparent;
   border-radius: 17px;
-  font-size: 12px;  /* Slightly smaller font */
+  font-size: 14px;  /* Slightly smaller font */
   cursor: pointer;
   transition: all 0.2s ease;
   color: #666;
@@ -8854,17 +8854,6 @@ if (window.googleAdsApexCharts) {
   gap: 20px;
   margin-top: 10px;
   align-items: center;
-}
-
-.google-ads-view-switcher button {
-  padding: 6px 10px;  /* Reduced padding to fit 6 buttons */
-  border: none;
-  background: transparent;
-  border-radius: 17px;
-  font-size: 11px;  /* Slightly smaller font */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #666;
 }
     `;
     document.head.appendChild(style);
