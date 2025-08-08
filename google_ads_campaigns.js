@@ -31,7 +31,7 @@ function addCampaignsStyles() {
         margin-top: 60px;
       }
       
-      /* Left navigation panel */
+      /* Left navigation panel - keep existing styles */
       #campaignsNavPanel {
         width: 320px;
         min-width: 320px;
@@ -45,7 +45,7 @@ function addCampaignsStyles() {
         position: relative;
       }
       
-      /* Campaign type filter */
+      /* Campaign filter and list styles - keep existing */
       .campaigns-filter-container {
         padding: 15px;
         border-bottom: 1px solid #dee2e6;
@@ -83,19 +83,12 @@ function addCampaignsStyles() {
         box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
       }
       
-      .campaign-filter-btn:hover:not(.active) {
-        background-color: #f0f0f0;
-        border-color: #007aff;
-      }
-      
-      /* Campaigns list container */
       .campaigns-list-container {
         padding: 10px;
         overflow-y: auto;
         flex: 1;
       }
       
-      /* Campaign group section */
       .campaign-group-section {
         margin-bottom: 20px;
       }
@@ -139,7 +132,6 @@ function addCampaignsStyles() {
         font-weight: 600;
       }
       
-      /* Campaign item card */
       .campaign-nav-item {
         margin-bottom: 8px;
         cursor: pointer;
@@ -168,7 +160,6 @@ function addCampaignsStyles() {
         box-shadow: 0 2px 6px rgba(0,122,255,0.3);
       }
       
-      /* Campaign type badge */
       .campaign-type-badge {
         width: 50px;
         height: 50px;
@@ -192,7 +183,6 @@ function addCampaignsStyles() {
         color: white;
       }
       
-      /* Campaign info */
       .campaign-info {
         flex: 1;
         display: flex;
@@ -258,7 +248,6 @@ function addCampaignsStyles() {
         margin-top: 4px;
       }
       
-      /* Column selector button */
       .column-selector-btn {
         padding: 6px 12px;
         background: white;
@@ -282,14 +271,15 @@ function addCampaignsStyles() {
         flex: 1;
         overflow: auto;
         padding: 0;
+        background: white;
       }
       
-      /* Modern table styles */
+      /* Table styles - FIXED */
       .campaigns-products-table {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
+        border-collapse: collapse;
         font-size: 13px;
+        background: white;
       }
       
       .campaigns-products-table thead {
@@ -297,6 +287,7 @@ function addCampaignsStyles() {
         position: sticky;
         top: 0;
         z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
       }
       
       .campaigns-products-table th {
@@ -307,19 +298,24 @@ function addCampaignsStyles() {
         border-bottom: 2px solid #dee2e6;
         white-space: nowrap;
         font-size: 12px;
+        background: #f8f9fa;
+      }
+      
+      .campaigns-products-table th.sortable {
         cursor: pointer;
         user-select: none;
         position: relative;
+        padding-right: 20px;
       }
       
-      .campaigns-products-table th:hover {
+      .campaigns-products-table th.sortable:hover {
         background: #e9ecef;
       }
       
       .campaigns-products-table th.sortable::after {
         content: '⇅';
         position: absolute;
-        right: 4px;
+        right: 8px;
         opacity: 0.3;
         font-size: 10px;
       }
@@ -327,17 +323,20 @@ function addCampaignsStyles() {
       .campaigns-products-table th.sorted-asc::after {
         content: '↑';
         opacity: 1;
+        color: #007aff;
       }
       
       .campaigns-products-table th.sorted-desc::after {
         content: '↓';
         opacity: 1;
+        color: #007aff;
       }
       
-      /* Table rows */
+      /* Table body rows */
       .campaigns-products-table tbody tr {
         border-bottom: 1px solid #f0f0f0;
         transition: background 0.2s;
+        background: white;
       }
       
       .campaigns-products-table tbody tr:hover {
@@ -346,6 +345,7 @@ function addCampaignsStyles() {
       
       .campaigns-products-table tbody tr.main-row {
         font-weight: 500;
+        background: white;
       }
       
       .campaigns-products-table tbody tr.device-row {
@@ -366,6 +366,8 @@ function addCampaignsStyles() {
         padding: 10px 8px;
         color: #495057;
         vertical-align: middle;
+        border: none;
+        background: inherit;
       }
       
       /* Expand toggle */
@@ -379,8 +381,9 @@ function addCampaignsStyles() {
         height: 20px;
         border-radius: 4px;
         background: #e9ecef;
-        margin-right: 8px;
         transition: all 0.2s;
+        font-size: 10px;
+        color: #666;
       }
       
       .expand-toggle:hover {
@@ -396,6 +399,7 @@ function addCampaignsStyles() {
         display: flex;
         align-items: center;
         gap: 10px;
+        min-width: 200px;
       }
       
       .product-image {
@@ -404,6 +408,8 @@ function addCampaignsStyles() {
         object-fit: contain;
         border-radius: 4px;
         border: 1px solid #e0e0e0;
+        background: white;
+        flex-shrink: 0;
       }
       
       .product-title {
@@ -414,6 +420,7 @@ function addCampaignsStyles() {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         line-height: 1.3;
+        font-size: 13px;
       }
       
       /* Device badge */
@@ -447,6 +454,8 @@ function addCampaignsStyles() {
       .metric-value {
         text-align: right;
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        font-size: 13px;
       }
       
       .metric-value.positive {
@@ -476,6 +485,7 @@ function addCampaignsStyles() {
       
       .position-badge.pos-4-8 {
         background: #FFC107;
+        color: #333;
       }
       
       .position-badge.pos-9-14 {
@@ -492,7 +502,7 @@ function addCampaignsStyles() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
+        height: 400px;
         color: #999;
         text-align: center;
         padding: 40px;
@@ -508,11 +518,13 @@ function addCampaignsStyles() {
         font-size: 18px;
         font-weight: 600;
         margin-bottom: 8px;
+        color: #666;
       }
       
       .campaigns-empty-text {
         font-size: 14px;
         line-height: 1.5;
+        color: #999;
       }
       
       /* Loading spinner */
@@ -521,6 +533,7 @@ function addCampaignsStyles() {
         align-items: center;
         justify-content: center;
         padding: 40px;
+        height: 400px;
       }
       
       .campaigns-spinner {
