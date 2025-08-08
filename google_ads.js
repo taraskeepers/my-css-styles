@@ -6560,7 +6560,8 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
       googleAdsNavPanel.style.display = 'none';
     }
     
-    // Initialize campaigns section if not already done (if not done above)
+// Initialize campaigns section if not already done (if not done above)
+    const campaignsContainer = document.getElementById('campaigns_overview_container');
     if (campaignsContainer && !window.campaignsInitialized) {
       if (window.initializeCampaignsSection) {
         window.initializeCampaignsSection();
