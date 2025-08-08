@@ -6524,15 +6524,30 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
 
-  // Collapse the navigation panel
-  const navPanel = document.getElementById('googleAdsNavPanel');
-  const contentWrapper = document.querySelector('.google-ads-content-wrapper');
-  if (navPanel) {
-    navPanel.classList.add('collapsed');
-  }
-  if (contentWrapper) {
-    contentWrapper.classList.add('nav-collapsed');
-  }
+// Hide products nav panel and show campaigns nav panel
+    const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+    
+    if (googleAdsNavPanel) {
+      googleAdsNavPanel.style.display = 'none';
+    }
+    
+    // Initialize campaigns section if not already done (if not done above)
+    if (campaignsContainer && !window.campaignsInitialized) {
+      if (window.initializeCampaignsSection) {
+        window.initializeCampaignsSection();
+        window.campaignsInitialized = true;
+      }
+    }
+    
+    // Expand campaigns nav panel if it exists
+    if (campaignsNavPanel) {
+      campaignsNavPanel.classList.remove('collapsed');
+      const campaignsContentWrapper = document.querySelector('.campaigns-content-wrapper');
+      if (campaignsContentWrapper) {
+        campaignsContentWrapper.classList.remove('nav-collapsed');
+      }
+    }
 
   // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
