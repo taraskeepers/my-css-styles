@@ -6601,48 +6601,81 @@ const viewCampaignsOverviewGoogleAdsBtn = document.getElementById("viewCampaigns
 if (viewCampaignsOverviewGoogleAdsBtn) {
   viewCampaignsOverviewGoogleAdsBtn.addEventListener("click", function() {
     // Clear all active states
+    viewCampaignsOverviewGoogleAdsBtn.classList.add("active");
     viewOverviewGoogleAdsBtn.classList.remove("active");
     viewChartsGoogleAdsBtn.classList.remove("active");
     viewMapGoogleAdsBtn.classList.remove("active");
-    if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
     if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
-    viewCampaignsOverviewGoogleAdsBtn.classList.add("active");
-
+    if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+    
     // Hide all containers
     const containersToHide = [
       'product_info', 'product_metrics', 'google_ads_ranking_map', 'product_tables',
       'googleAdsMapContainer', 'roas_charts', 'roas_metrics_table', 'roas_channels',
-      'buckets_products'
+      'buckets_products', 'bucketed_products_container'
     ];
     
     containersToHide.forEach(id => {
       const element = document.getElementById(id);
       if (element) element.style.display = 'none';
     });
-
+    
     // Hide table
     const table = document.querySelector('.google-ads-table');
     if (table) table.style.display = 'none';
-
+    
     // Hide toggle controls
     const secondRowControls = document.querySelector('.second-row-controls');
     if (secondRowControls) secondRowControls.style.display = 'none';
-
+    
     // Hide date range selectors
     const productInfoDateRange = document.getElementById('productInfoDateRange');
     const bucketDateRange = document.getElementById('bucketDateRange');
     if (productInfoDateRange) productInfoDateRange.style.display = 'none';
     if (bucketDateRange) bucketDateRange.style.display = 'none';
-
-    // Show campaigns overview container
+    
+    // Hide buckets switcher
+    const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+    if (switcherWrapper) switcherWrapper.style.display = 'none';
+    const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
+    if (bucketsSwitcher) bucketsSwitcher.style.display = 'none';
+    
+    // Show campaigns container
     const campaignsContainer = document.getElementById('campaigns_overview_container');
     if (campaignsContainer) {
       campaignsContainer.style.display = 'block';
       
-      // Load campaigns overview data if available
-      if (window.loadCampaignsOverview) {
-        window.loadCampaignsOverview();
+      // Initialize campaigns section if not already done
+      if (!window.campaignsInitialized) {
+        if (window.initializeCampaignsSection) {
+          window.initializeCampaignsSection();
+          window.campaignsInitialized = true;
+        } else {
+          console.log('[Campaigns] Waiting for campaigns script to load...');
+          // Try loading the script if not loaded
+          if (!document.querySelector('script[src*="google_ads_campaigns.js"]')) {
+            const campaignsScript = document.createElement('script');
+            campaignsScript.src = 'google_ads_campaigns.js';
+            campaignsScript.onload = function() {
+              if (window.initializeCampaignsSection) {
+                window.initializeCampaignsSection();
+                window.campaignsInitialized = true;
+              }
+            };
+            document.head.appendChild(campaignsScript);
+          }
+        }
       }
+    }
+    
+    // Collapse the navigation panel
+    const navPanel = document.getElementById('googleAdsNavPanel');
+    const contentWrapper = document.querySelector('.google-ads-content-wrapper');
+    if (navPanel) {
+      navPanel.classList.add('collapsed');
+    }
+    if (contentWrapper) {
+      contentWrapper.classList.add('nav-collapsed');
     }
   });
 }
