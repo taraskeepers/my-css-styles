@@ -4196,19 +4196,11 @@ const campaignsOverviewContainer = document.createElement('div');
 campaignsOverviewContainer.id = 'campaigns_overview_container';
 campaignsOverviewContainer.className = 'google-ads-campaigns-container';
 campaignsOverviewContainer.style.cssText = `
-  width: 1195px;
-  margin: 20px 0 20px 20px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 20px;
+  width: 100%;
+  margin-top: 20px;
   display: none;
 `;
-campaignsOverviewContainer.innerHTML = `
-  <div id="campaigns_overview_content">
-    <p>Campaigns Overview content loading...</p>
-  </div>
-`;
+// Remove the inner content div - content will be added directly
 
 contentWrapper.appendChild(campaignsOverviewContainer);
 
@@ -6719,26 +6711,28 @@ if (viewCampaignsOverviewGoogleAdsBtn) {
       }
     }
     
-    // Collapse the navigation panel
-    const navPanel = document.getElementById('googleAdsNavPanel');
-    const contentWrapper = document.querySelector('.google-ads-content-wrapper');
-    if (navPanel) {
-      navPanel.classList.add('collapsed');
-    }
-
-// Show products nav panel and hide campaigns nav panel
-  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
-  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
-  
-  if (googleAdsNavPanel) {
-    googleAdsNavPanel.style.display = 'block';
-  }
-  if (campaignsNavPanel) {
-    campaignsNavPanel.style.display = 'none';
-  }
+    // Hide googleAdsNavPanel and show campaignsNavPanel
+    const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
     
+    if (googleAdsNavPanel) {
+      googleAdsNavPanel.style.display = 'none';
+    }
+    if (campaignsNavPanel) {
+      campaignsNavPanel.style.display = 'block';
+      campaignsNavPanel.classList.remove('collapsed');
+    }
+    
+    // Update content wrapper for campaigns view
+    const contentWrapper = document.querySelector('.google-ads-content-wrapper');
     if (contentWrapper) {
       contentWrapper.classList.add('nav-collapsed');
+    }
+    
+    // Update campaigns main container margin
+    const mainContainer = document.querySelector('.campaigns-main-container');
+    if (mainContainer) {
+      mainContainer.classList.remove('nav-collapsed');
     }
   });
 }
@@ -6883,6 +6877,20 @@ document.addEventListener('click', function(e) {
     }
     // Switch to Overview view
     document.getElementById('viewOverviewGoogleAds')?.click();
+  }
+});
+
+// Add click handler for collapsed campaigns nav panel
+document.addEventListener('click', function(e) {
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  
+  if (campaignsNavPanel && campaignsNavPanel.classList.contains('collapsed') && campaignsNavPanel.contains(e.target)) {
+    // Expand the panel
+    campaignsNavPanel.classList.remove('collapsed');
+    const mainContainer = document.querySelector('.campaigns-main-container');
+    if (mainContainer) {
+      mainContainer.classList.remove('nav-collapsed');
+    }
   }
 });
 
