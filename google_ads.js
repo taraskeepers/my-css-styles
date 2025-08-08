@@ -4191,6 +4191,27 @@ roasChannelsContainer.style.cssText = `
 
 contentWrapper.appendChild(roasChannelsContainer);
 
+// Create Campaigns Overview container
+const campaignsOverviewContainer = document.createElement('div');
+campaignsOverviewContainer.id = 'campaigns_overview_container';
+campaignsOverviewContainer.className = 'google-ads-campaigns-container';
+campaignsOverviewContainer.style.cssText = `
+  width: 1195px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+`;
+campaignsOverviewContainer.innerHTML = `
+  <div id="campaigns_overview_content">
+    <p>Campaigns Overview content loading...</p>
+  </div>
+`;
+
+contentWrapper.appendChild(campaignsOverviewContainer);
+
 // Replace the original append - table should be INSIDE contentWrapper
 contentWrapper.insertBefore(table, contentWrapper.firstChild); // Insert table at the beginning
 container.appendChild(contentWrapper);
@@ -5991,14 +6012,17 @@ container.innerHTML = `
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
         <div class="google-ads-top-controls">
           <div class="controls-left-group">
-            <div class="first-row-controls">
+<div class="first-row-controls">
 <div class="google-ads-view-switcher">
   <button id="viewPerformanceOverviewGoogleAds" class="active">Performance Overview</button>
+  <button id="viewCampaignsOverviewGoogleAds">Campaigns Overview</button>
   <button id="viewOverviewGoogleAds">Product Overview</button>
   <button id="viewBucketsGoogleAds">Buckets & Funnels</button>
   <button id="viewChartsGoogleAds">Rank Map</button>
   <button id="viewMapGoogleAds">Map</button>
 </div>
+            </div>
+            <div class="second-row-controls" style="display: none;">
               <div class="chart-mode-toggle-top">
                 <label>Channel Type</label>
                 <label class="chart-mode-switch">
@@ -6150,6 +6174,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (roasChannels) roasChannels.style.display = 'none';
   if (roasCharts) roasCharts.style.display = 'none';
   if (roasMetricsTable) roasMetricsTable.style.display = 'none';
+
+    // Show toggle controls for Product Overview
+  const secondRowControls = document.querySelector('.second-row-controls');
+  if (secondRowControls) secondRowControls.style.display = 'flex';
   
   // Show and enable toggle controls
   const chartModeToggle = document.querySelector('.chart-mode-toggle-top');
@@ -6559,6 +6587,57 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   // Load and render ROAS data
   loadAndRenderROASBuckets();
 });
+
+// Add click handler for Campaigns Overview
+const viewCampaignsOverviewGoogleAdsBtn = document.getElementById("viewCampaignsOverviewGoogleAds");
+if (viewCampaignsOverviewGoogleAdsBtn) {
+  viewCampaignsOverviewGoogleAdsBtn.addEventListener("click", function() {
+    // Clear all active states
+    viewOverviewGoogleAdsBtn.classList.remove("active");
+    viewChartsGoogleAdsBtn.classList.remove("active");
+    viewMapGoogleAdsBtn.classList.remove("active");
+    if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+    if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+    viewCampaignsOverviewGoogleAdsBtn.classList.add("active");
+
+    // Hide all containers
+    const containersToHide = [
+      'product_info', 'product_metrics', 'google_ads_ranking_map', 'product_tables',
+      'googleAdsMapContainer', 'roas_charts', 'roas_metrics_table', 'roas_channels',
+      'buckets_products'
+    ];
+    
+    containersToHide.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.style.display = 'none';
+    });
+
+    // Hide table
+    const table = document.querySelector('.google-ads-table');
+    if (table) table.style.display = 'none';
+
+    // Hide toggle controls
+    const secondRowControls = document.querySelector('.second-row-controls');
+    if (secondRowControls) secondRowControls.style.display = 'none';
+
+    // Hide date range selectors
+    const productInfoDateRange = document.getElementById('productInfoDateRange');
+    const bucketDateRange = document.getElementById('bucketDateRange');
+    if (productInfoDateRange) productInfoDateRange.style.display = 'none';
+    if (bucketDateRange) bucketDateRange.style.display = 'none';
+
+    // Show campaigns overview container
+    const campaignsContainer = document.getElementById('campaigns_overview_container');
+    if (campaignsContainer) {
+      campaignsContainer.style.display = 'block';
+      
+      // Load campaigns overview data if available
+      if (window.loadCampaignsOverview) {
+        window.loadCampaignsOverview();
+      }
+    }
+  });
+}
 
 const viewBucketsGoogleAdsBtn = document.getElementById("viewBucketsGoogleAds");
 
@@ -8769,6 +8848,23 @@ if (window.googleAdsApexCharts) {
 
 .device-icon-small {
   font-size: 14px;
+}
+.second-row-controls {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.google-ads-view-switcher button {
+  padding: 6px 10px;  /* Reduced padding to fit 6 buttons */
+  border: none;
+  background: transparent;
+  border-radius: 17px;
+  font-size: 11px;  /* Slightly smaller font */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
 }
     `;
     document.head.appendChild(style);
