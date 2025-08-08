@@ -6118,6 +6118,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (navPanel) {
     navPanel.classList.remove('collapsed');
   }
+
+
+  
   if (contentWrapper) {
     contentWrapper.classList.remove('nav-collapsed');
   }
