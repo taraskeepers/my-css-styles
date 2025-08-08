@@ -6552,9 +6552,13 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
 
-// Hide products nav panel and show campaigns nav panel
-    const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
-    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+  // Hide campaigns overview container FIRST
+  const campaignsContainer = document.getElementById('campaigns_overview_container');
+  if (campaignsContainer) campaignsContainer.style.display = 'none';
+
+  // Hide products nav panel and show campaigns nav panel
+  const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+  const campaignsNavPanel = document.getElementById('campaignsNavPanel');
     
     if (googleAdsNavPanel) {
       googleAdsNavPanel.style.display = 'none';
