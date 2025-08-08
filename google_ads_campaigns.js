@@ -28,7 +28,7 @@ function addCampaignsStyles() {
         gap: 20px;
         height: calc(100vh - 200px);
         width: 100%;
-        margin-top: 20px;
+        margin-top: 60px;
       }
       
       /* Left navigation panel - positioned relative inside container */
