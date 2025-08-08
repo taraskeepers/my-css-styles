@@ -266,235 +266,313 @@ function addCampaignsStyles() {
         border-color: #007aff;
       }
       
-      /* Products table container */
-      .campaigns-products-table-container {
-        flex: 1;
-        overflow: auto;
-        padding: 0;
-        background: white;
-      }
-      
-      /* Table styles - FIXED */
-      .campaigns-products-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        background: white;
-      }
-      
-      .campaigns-products-table thead {
-        background: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      }
-      
-      .campaigns-products-table th {
-        padding: 12px 8px;
-        text-align: left;
-        font-weight: 600;
-        color: #495057;
-        border-bottom: 2px solid #dee2e6;
-        white-space: nowrap;
-        font-size: 12px;
-        background: #f8f9fa;
-      }
-      
-      .campaigns-products-table th.sortable {
-        cursor: pointer;
-        user-select: none;
-        position: relative;
-        padding-right: 20px;
-      }
-      
-      .campaigns-products-table th.sortable:hover {
-        background: #e9ecef;
-      }
-      
-      .campaigns-products-table th.sortable::after {
-        content: '⇅';
-        position: absolute;
-        right: 8px;
-        opacity: 0.3;
-        font-size: 10px;
-      }
-      
-      .campaigns-products-table th.sorted-asc::after {
-        content: '↑';
-        opacity: 1;
-        color: #007aff;
-      }
-      
-      .campaigns-products-table th.sorted-desc::after {
-        content: '↓';
-        opacity: 1;
-        color: #007aff;
-      }
-      
-      /* Table body rows */
-      .campaigns-products-table tbody tr {
-        border-bottom: 1px solid #f0f0f0;
-        transition: background 0.2s;
-        background: white;
-      }
-      
-      .campaigns-products-table tbody tr:hover {
-        background: #f8f9fa;
-      }
-      
-      .campaigns-products-table tbody tr.main-row {
-        font-weight: 500;
-        background: white;
-      }
-      
-      .campaigns-products-table tbody tr.device-row {
-        background: #fafbfc;
-        font-size: 12px;
-        display: none;
-      }
-      
-      .campaigns-products-table tbody tr.device-row.expanded {
-        display: table-row;
-      }
-      
-      .campaigns-products-table tbody tr.device-row td:first-child {
-        padding-left: 40px;
-      }
-      
-      .campaigns-products-table td {
-        padding: 10px 8px;
-        color: #495057;
-        vertical-align: middle;
-        border: none;
-        background: inherit;
-      }
-      
-      /* Expand toggle */
-      .expand-toggle {
-        cursor: pointer;
-        user-select: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        background: #e9ecef;
-        transition: all 0.2s;
-        font-size: 10px;
-        color: #666;
-      }
-      
-      .expand-toggle:hover {
-        background: #dee2e6;
-      }
-      
-      .expand-toggle.expanded {
-        transform: rotate(90deg);
-      }
-      
-      /* Product cell with image */
-      .product-cell {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 200px;
-      }
-      
-      .product-image {
-        width: 40px;
-        height: 40px;
-        object-fit: contain;
-        border-radius: 4px;
-        border: 1px solid #e0e0e0;
-        background: white;
-        flex-shrink: 0;
-      }
-      
-      .product-title {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        line-height: 1.3;
-        font-size: 13px;
-      }
-      
-      /* Device badge */
-      .device-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        background: #e9ecef;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-      }
-      
-      .device-badge.mobile {
-        background: #d4edda;
-        color: #155724;
-      }
-      
-      .device-badge.tablet {
-        background: #d1ecf1;
-        color: #0c5460;
-      }
-      
-      .device-badge.desktop {
-        background: #fff3cd;
-        color: #856404;
-      }
-      
-      /* Metric values */
-      .metric-value {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        font-size: 13px;
-      }
-      
-      .metric-value.positive {
-        color: #28a745;
-      }
-      
-      .metric-value.negative {
-        color: #dc3545;
-      }
-      
-      /* Position badge */
-      .position-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 14px;
-        color: white;
-      }
-      
-      .position-badge.pos-1-3 {
-        background: #4CAF50;
-      }
-      
-      .position-badge.pos-4-8 {
-        background: #FFC107;
-        color: #333;
-      }
-      
-      .position-badge.pos-9-14 {
-        background: #FF9800;
-      }
-      
-      .position-badge.pos-15-plus {
-        background: #F44336;
-      }
+/* Products table container */
+.campaigns-products-table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  background: white;
+}
+
+/* Table styles - COMPLETELY REDONE */
+.campaigns-products-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  background: white;
+  table-layout: fixed;
+}
+
+.campaigns-products-table thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.campaigns-products-table thead tr {
+  height: 40px;
+}
+
+.campaigns-products-table th {
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+  font-size: 12px;
+  background: #f8f9fa;
+  position: relative;
+  vertical-align: middle;
+}
+
+.campaigns-products-table th:first-child {
+  width: 30px;
+  padding: 8px;
+}
+
+.campaigns-products-table th:nth-child(2) {
+  width: 60px;
+  text-align: center;
+}
+
+.campaigns-products-table th:nth-child(3) {
+  width: 70px;
+  text-align: center;
+}
+
+.campaigns-products-table th:nth-child(4) {
+  width: 300px;
+  min-width: 250px;
+}
+
+.campaigns-products-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.campaigns-products-table th.sortable:hover {
+  background: #e9ecef;
+}
+
+.campaigns-products-table th.sortable::after {
+  content: '⇅';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.3;
+  font-size: 10px;
+}
+
+.campaigns-products-table th.sorted-asc::after {
+  content: '↑';
+  opacity: 1;
+  color: #007aff;
+}
+
+.campaigns-products-table th.sorted-desc::after {
+  content: '↓';
+  opacity: 1;
+  color: #007aff;
+}
+
+/* Table body */
+.campaigns-products-table tbody {
+  background: white;
+}
+
+.campaigns-products-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+  background: white;
+  height: 60px;
+}
+
+.campaigns-products-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.campaigns-products-table tbody tr.main-row {
+  font-weight: 500;
+  background: white;
+}
+
+.campaigns-products-table tbody tr.device-row {
+  background: #fafbfc;
+  font-size: 12px;
+  display: none;
+  height: 40px;
+}
+
+.campaigns-products-table tbody tr.device-row.expanded {
+  display: table-row;
+}
+
+.campaigns-products-table tbody tr.device-row td:first-child {
+  padding-left: 40px;
+}
+
+.campaigns-products-table td {
+  padding: 10px 8px;
+  color: #495057;
+  vertical-align: middle;
+  border: none;
+  background: inherit;
+  height: 60px;
+  overflow: hidden;
+}
+
+.campaigns-products-table tbody tr.device-row td {
+  height: 40px;
+}
+
+/* First column - expand toggle */
+.campaigns-products-table td:first-child {
+  width: 30px;
+  padding: 8px;
+  text-align: center;
+}
+
+/* Position column */
+.campaigns-products-table td:nth-child(2) {
+  width: 60px;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Share column */
+.campaigns-products-table td:nth-child(3) {
+  width: 70px;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Product column */
+.campaigns-products-table td:nth-child(4) {
+  width: 300px;
+  min-width: 250px;
+  padding: 8px;
+}
+
+/* Numeric columns */
+.campaigns-products-table td:nth-child(n+5) {
+  text-align: right;
+  padding: 8px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expand toggle */
+.expand-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #e9ecef;
+  transition: all 0.2s;
+  font-size: 10px;
+  color: #666;
+  margin: 0 auto;
+}
+
+.expand-toggle:hover {
+  background: #dee2e6;
+}
+
+.expand-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+/* Product cell with image */
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+}
+
+.product-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  flex-shrink: 0;
+}
+
+.product-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  font-size: 13px;
+  max-height: 36px;
+}
+
+/* Device badge */
+.device-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #e9ecef;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 50px;
+}
+
+.device-badge.mobile {
+  background: #d4edda;
+  color: #155724;
+}
+
+.device-badge.tablet {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.device-badge.desktop {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Metric values */
+.metric-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.metric-value.positive {
+  color: #28a745;
+}
+
+.metric-value.negative {
+  color: #dc3545;
+}
+
+/* Position badge */
+.position-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  margin: 0 auto;
+}
+
+.position-badge.pos-1-3 {
+  background: #4CAF50;
+}
+
+.position-badge.pos-4-8 {
+  background: #FFC107;
+  color: #333;
+}
+
+.position-badge.pos-9-14 {
+  background: #FF9800;
+}
+
+.position-badge.pos-15-plus {
+  background: #F44336;
+}
       
       /* Empty state */
       .campaigns-empty-state {
@@ -1026,36 +1104,36 @@ function calculateMarketShare(matchedProduct) {
 
 // Render products table
 function renderProductsTable(container, tableData, campaignName) {
-  // Default visible columns (can be customized later)
+  // Default visible columns
   const visibleColumns = [
     'expand', 'adPosition', 'marketShare', 'product', 'impressions', 
     'clicks', 'ctr', 'cost', 'conversions', 'roas', 'convValue'
   ];
   
-  // Column definitions
+  // Column definitions with proper widths
   const columns = {
     expand: { label: '', width: '30px', sortable: false },
-    adPosition: { label: 'Pos', width: '50px', sortable: true },
-    marketShare: { label: 'Share', width: '60px', sortable: true },
-    product: { label: 'Product', width: '250px', sortable: true },
-    impressions: { label: 'Impr.', width: '80px', sortable: true, format: 'number' },
-    clicks: { label: 'Clicks', width: '70px', sortable: true, format: 'number' },
-    ctr: { label: 'CTR %', width: '70px', sortable: true, format: 'percent' },
-    avgCpc: { label: 'Avg CPC', width: '80px', sortable: true, format: 'currency' },
-    cost: { label: 'Cost', width: '80px', sortable: true, format: 'currency' },
-    conversions: { label: 'Conv.', width: '70px', sortable: true, format: 'number' },
-    cpa: { label: 'CPA', width: '80px', sortable: true, format: 'currency' },
-    convValue: { label: 'Revenue', width: '90px', sortable: true, format: 'currency' },
-    cvr: { label: 'CVR %', width: '70px', sortable: true, format: 'percent' },
-    aov: { label: 'AOV', width: '80px', sortable: true, format: 'currency' },
-    cpm: { label: 'CPM', width: '70px', sortable: true, format: 'currency' },
-    roas: { label: 'ROAS', width: '70px', sortable: true, format: 'roas' },
-    cartRate: { label: 'Cart %', width: '70px', sortable: true, format: 'percent' },
-    checkoutRate: { label: 'Checkout %', width: '85px', sortable: true, format: 'percent' },
-    purchaseRate: { label: 'Purchase %', width: '85px', sortable: true, format: 'percent' }
+    adPosition: { label: 'Pos', width: '60px', sortable: true },
+    marketShare: { label: 'Share', width: '70px', sortable: true },
+    product: { label: 'Product', width: '300px', sortable: true },
+    impressions: { label: 'Impr.', width: '100px', sortable: true, format: 'number' },
+    clicks: { label: 'Clicks', width: '80px', sortable: true, format: 'number' },
+    ctr: { label: 'CTR %', width: '80px', sortable: true, format: 'percent' },
+    avgCpc: { label: 'Avg CPC', width: '90px', sortable: true, format: 'currency' },
+    cost: { label: 'Cost', width: '100px', sortable: true, format: 'currency' },
+    conversions: { label: 'Conv.', width: '80px', sortable: true, format: 'number' },
+    cpa: { label: 'CPA', width: '90px', sortable: true, format: 'currency' },
+    convValue: { label: 'Revenue', width: '110px', sortable: true, format: 'currency' },
+    cvr: { label: 'CVR %', width: '80px', sortable: true, format: 'percent' },
+    aov: { label: 'AOV', width: '90px', sortable: true, format: 'currency' },
+    cpm: { label: 'CPM', width: '80px', sortable: true, format: 'currency' },
+    roas: { label: 'ROAS', width: '80px', sortable: true, format: 'roas' },
+    cartRate: { label: 'Cart %', width: '80px', sortable: true, format: 'percent' },
+    checkoutRate: { label: 'Checkout %', width: '95px', sortable: true, format: 'percent' },
+    purchaseRate: { label: 'Purchase %', width: '95px', sortable: true, format: 'percent' }
   };
   
-  // Create table HTML
+  // Create table HTML with proper structure
   let tableHTML = '<table class="campaigns-products-table">';
   
   // Create header
@@ -1063,7 +1141,7 @@ function renderProductsTable(container, tableData, campaignName) {
   visibleColumns.forEach(col => {
     const colDef = columns[col];
     const sortClass = colDef.sortable ? 'sortable' : '';
-    tableHTML += `<th class="${sortClass}" data-column="${col}" style="width: ${colDef.width};">${colDef.label}</th>`;
+    tableHTML += `<th class="${sortClass}" data-column="${col}">${colDef.label}</th>`;
   });
   tableHTML += '</tr></thead>';
   
