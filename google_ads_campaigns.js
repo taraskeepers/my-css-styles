@@ -14,6 +14,20 @@ async function initializeCampaignsSection() {
   
   // Load and render campaigns
   await loadAndRenderCampaigns();
+  
+  // Add click handler for collapsed campaigns nav panel
+  document.addEventListener('click', function(e) {
+    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+    
+    if (campaignsNavPanel && campaignsNavPanel.classList.contains('collapsed') && campaignsNavPanel.contains(e.target)) {
+      // Expand the panel
+      campaignsNavPanel.classList.remove('collapsed');
+      const contentWrapper = document.querySelector('.campaigns-content-wrapper');
+      if (contentWrapper) {
+        contentWrapper.classList.remove('nav-collapsed');
+      }
+    }
+  });
 }
 
 // Add campaigns-specific styles
