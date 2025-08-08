@@ -8163,7 +8163,7 @@ if (window.googleAdsApexCharts) {
 
 /* Adjust product_info container top margin */
 #product_info {
-  margin-top: 60px !important;
+  margin-top: 115px !important;
 }
 /* Product Tables Container */
 #product_tables {
