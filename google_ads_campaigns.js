@@ -21,28 +21,19 @@ function addCampaignsStyles() {
   if (!document.getElementById('campaigns-section-styles')) {
     const style = document.createElement('style');
     style.id = 'campaigns-section-styles';
-style.textContent = `
+    style.textContent = `
       /* Main campaigns container */
       .campaigns-main-container {
         display: flex;
         gap: 20px;
         height: calc(100vh - 200px);
-        margin-left: 320px;
-        transition: margin-left 0.3s ease-in-out;
+        width: 100%;
       }
       
-      .campaigns-main-container.nav-collapsed {
-        margin-left: 12px;
-      }
-      
-      /* Left navigation panel - styled like googleAdsNavPanel */
+      /* Left navigation panel - positioned relative inside container */
       #campaignsNavPanel {
-        position: fixed;
-        left: 20px;
-        top: 130px;
         width: 320px;
         min-width: 320px;
-        height: calc(100vh - 150px);
         background-color: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -50,7 +41,7 @@ style.textContent = `
         display: flex;
         flex-direction: column;
         transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out;
-        z-index: 100;
+        position: relative;
       }
       
       #campaignsNavPanel.collapsed {
