@@ -31,7 +31,7 @@ function addCampaignsStyles() {
         margin-top: 60px;
       }
       
-      /* Left navigation panel - positioned relative inside container */
+      /* Left navigation panel */
       #campaignsNavPanel {
         width: 320px;
         min-width: 320px;
@@ -43,36 +43,6 @@ function addCampaignsStyles() {
         flex-direction: column;
         transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out;
         position: relative;
-      }
-      
-      #campaignsNavPanel.collapsed {
-        width: 12px !important;
-        min-width: 12px !important;
-        overflow: hidden;
-        cursor: pointer;
-      }
-      
-      #campaignsNavPanel.collapsed > * {
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
-      }
-      
-      #campaignsNavPanel.collapsed::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 4px;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(to bottom, #007aff, #0056b3);
-        border-radius: 2px;
-        opacity: 0.6;
-        transition: opacity 0.3s ease-in-out;
-      }
-      
-      #campaignsNavPanel.collapsed:hover::before {
-        opacity: 1;
       }
       
       /* Campaign type filter */
@@ -254,10 +224,9 @@ function addCampaignsStyles() {
         gap: 4px;
       }
       
-/* Right panel - Products container */
+      /* Right panel - Products container */
       #campaignsProductsPanel {
-        width: 1200px;
-        min-width: 1200px;
+        flex: 1;
         background-color: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -271,6 +240,9 @@ function addCampaignsStyles() {
         padding: 15px 20px;
         border-bottom: 1px solid #dee2e6;
         background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
       
       .campaigns-products-title {
@@ -286,15 +258,232 @@ function addCampaignsStyles() {
         margin-top: 4px;
       }
       
-      /* Products grid */
-      .campaigns-products-grid {
+      /* Column selector button */
+      .column-selector-btn {
+        padding: 6px 12px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      
+      .column-selector-btn:hover {
+        background: #f0f0f0;
+        border-color: #007aff;
+      }
+      
+      /* Products table container */
+      .campaigns-products-table-container {
         flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: grid;
-        grid-template-columns: 1fr;
+        overflow: auto;
+        padding: 0;
+      }
+      
+      /* Modern table styles */
+      .campaigns-products-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+      }
+      
+      .campaigns-products-table thead {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      
+      .campaigns-products-table th {
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+      }
+      
+      .campaigns-products-table th:hover {
+        background: #e9ecef;
+      }
+      
+      .campaigns-products-table th.sortable::after {
+        content: '⇅';
+        position: absolute;
+        right: 4px;
+        opacity: 0.3;
+        font-size: 10px;
+      }
+      
+      .campaigns-products-table th.sorted-asc::after {
+        content: '↑';
+        opacity: 1;
+      }
+      
+      .campaigns-products-table th.sorted-desc::after {
+        content: '↓';
+        opacity: 1;
+      }
+      
+      /* Table rows */
+      .campaigns-products-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+      }
+      
+      .campaigns-products-table tbody tr:hover {
+        background: #f8f9fa;
+      }
+      
+      .campaigns-products-table tbody tr.main-row {
+        font-weight: 500;
+      }
+      
+      .campaigns-products-table tbody tr.device-row {
+        background: #fafbfc;
+        font-size: 12px;
+        display: none;
+      }
+      
+      .campaigns-products-table tbody tr.device-row.expanded {
+        display: table-row;
+      }
+      
+      .campaigns-products-table tbody tr.device-row td:first-child {
+        padding-left: 40px;
+      }
+      
+      .campaigns-products-table td {
+        padding: 10px 8px;
+        color: #495057;
+        vertical-align: middle;
+      }
+      
+      /* Expand toggle */
+      .expand-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: #e9ecef;
+        margin-right: 8px;
+        transition: all 0.2s;
+      }
+      
+      .expand-toggle:hover {
+        background: #dee2e6;
+      }
+      
+      .expand-toggle.expanded {
+        transform: rotate(90deg);
+      }
+      
+      /* Product cell with image */
+      .product-cell {
+        display: flex;
+        align-items: center;
         gap: 10px;
-        align-content: start;
+      }
+      
+      .product-image {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+      }
+      
+      .product-title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.3;
+      }
+      
+      /* Device badge */
+      .device-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        background: #e9ecef;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      
+      .device-badge.mobile {
+        background: #d4edda;
+        color: #155724;
+      }
+      
+      .device-badge.tablet {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      
+      .device-badge.desktop {
+        background: #fff3cd;
+        color: #856404;
+      }
+      
+      /* Metric values */
+      .metric-value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      
+      .metric-value.positive {
+        color: #28a745;
+      }
+      
+      .metric-value.negative {
+        color: #dc3545;
+      }
+      
+      /* Position badge */
+      .position-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+        color: white;
+      }
+      
+      .position-badge.pos-1-3 {
+        background: #4CAF50;
+      }
+      
+      .position-badge.pos-4-8 {
+        background: #FFC107;
+      }
+      
+      .position-badge.pos-9-14 {
+        background: #FF9800;
+      }
+      
+      .position-badge.pos-15-plus {
+        background: #F44336;
       }
       
       /* Empty state */
@@ -326,26 +515,6 @@ function addCampaignsStyles() {
         line-height: 1.5;
       }
       
-      /* Campaign product item */
-      .campaign-product-item {
-        width: 100%;
-        background-color: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        display: flex;
-        align-items: center;
-        padding: 10px 15px;
-        cursor: pointer;
-        transition: all 0.2s;
-        gap: 10px;
-      }
-      
-      .campaign-product-item:hover {
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        transform: translateY(-1px);
-      }
-      
       /* Loading spinner */
       .campaigns-loading {
         display: flex;
@@ -361,6 +530,10 @@ function addCampaignsStyles() {
         border-radius: 50%;
         border-left-color: #007aff;
         animation: spin 1s ease infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     `;
     document.head.appendChild(style);
@@ -521,21 +694,26 @@ function renderCampaignsNavPanel() {
   });
   
   // Create right products panel
-  const productsPanel = document.createElement('div');
-  productsPanel.id = 'campaignsProductsPanel';
-  productsPanel.innerHTML = `
-    <div class="campaigns-products-header">
+const productsPanel = document.createElement('div');
+productsPanel.id = 'campaignsProductsPanel';
+productsPanel.innerHTML = `
+  <div class="campaigns-products-header">
+    <div>
       <h3 class="campaigns-products-title">Campaign Products</h3>
       <div class="selected-campaign-info">Select a campaign to view its products</div>
     </div>
-    <div class="campaigns-products-grid">
-      <div class="campaigns-empty-state">
-        <div class="campaigns-empty-icon">📦</div>
-        <div class="campaigns-empty-title">No Campaign Selected</div>
-        <div class="campaigns-empty-text">Select a campaign from the left panel to view its products</div>
-      </div>
+    <button class="column-selector-btn" onclick="toggleColumnSelector()">
+      <span>⚙️</span> Columns
+    </button>
+  </div>
+  <div class="campaigns-products-table-container">
+    <div class="campaigns-empty-state">
+      <div class="campaigns-empty-icon">📦</div>
+      <div class="campaigns-empty-title">No Campaign Selected</div>
+      <div class="campaigns-empty-text">Select a campaign from the left panel to view its products</div>
     </div>
-  `;
+  </div>
+`;
   
   // Add panels to main container
   mainContainer.appendChild(navPanel);
@@ -650,23 +828,31 @@ function addCampaignClickHandlers() {
 async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   console.log('[loadCampaignProducts] Loading products for campaign:', campaignName);
   
-  const productsGrid = document.querySelector('.campaigns-products-grid');
+  const productsPanel = document.getElementById('campaignsProductsPanel');
   const headerInfo = document.querySelector('.selected-campaign-info');
   
-  if (!productsGrid) return;
+  if (!productsPanel) return;
   
   // Show loading state
-  productsGrid.innerHTML = '<div class="campaigns-loading"><div class="campaigns-spinner"></div></div>';
+  const tableContainer = productsPanel.querySelector('.campaigns-products-table-container') || 
+                         document.createElement('div');
+  tableContainer.className = 'campaigns-products-table-container';
+  tableContainer.innerHTML = '<div class="campaigns-loading"><div class="campaigns-spinner"></div></div>';
+  
+  if (!productsPanel.querySelector('.campaigns-products-table-container')) {
+    productsPanel.appendChild(tableContainer);
+  }
+  
   headerInfo.textContent = `Loading products for ${campaignName}...`;
   
   try {
-    // Get product titles for this campaign
+    // Get product titles for this campaign from campaign mapping
     const productTitles = window.campaignProducts.get(campaignKey) || [];
     
     console.log('[loadCampaignProducts] Found products:', productTitles.length);
     
     if (productTitles.length === 0) {
-      productsGrid.innerHTML = `
+      tableContainer.innerHTML = `
         <div class="campaigns-empty-state">
           <div class="campaigns-empty-icon">📦</div>
           <div class="campaigns-empty-title">No Products Found</div>
@@ -677,51 +863,360 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
       return;
     }
     
-    // Get all company products
-    const allCompanyProducts = [];
-    const productMap = new Map();
+    // Get bucket data for these products
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
     
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[loadCampaignProducts] No bucket data found');
+      return;
+    }
+    
+    // Filter data for this campaign and organize by product and device
+    const productsData = new Map();
+    
+    result.data.forEach(row => {
+      if (row['Campaign Name'] === campaignName && 
+          row['Channel Type'] === channelType &&
+          productTitles.includes(row['Product Title'])) {
+        
+        const productTitle = row['Product Title'];
+        const device = row['Device'] || 'Unknown';
+        
+        if (!productsData.has(productTitle)) {
+          productsData.set(productTitle, {
+            title: productTitle,
+            devices: new Map(),
+            aggregated: {}
+          });
+        }
+        
+        productsData.get(productTitle).devices.set(device, row);
+      }
+    });
+    
+    // Match with company products for additional data
+    const matchedProducts = new Map();
     if (window.allRows && Array.isArray(window.allRows)) {
       window.allRows.forEach(product => {
         if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
           const productKey = product.title || '';
-          
-          if (!productMap.has(productKey) && productTitles.includes(productKey)) {
-            productMap.set(productKey, product);
-            allCompanyProducts.push(product);
+          if (productsData.has(productKey)) {
+            matchedProducts.set(productKey, product);
           }
         }
       });
     }
     
-    console.log('[loadCampaignProducts] Matched products:', allCompanyProducts.length);
+    console.log('[loadCampaignProducts] Matched products:', matchedProducts.size);
     
-    // Clear grid and render products
-    productsGrid.innerHTML = '';
+    // Calculate aggregated metrics for each product
+    const tableData = [];
     
-    // Sort products by title
-    allCompanyProducts.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-    
-    // Render each product
-    for (const product of allCompanyProducts) {
-      const productItem = await createCampaignProductItem(product);
-      productsGrid.appendChild(productItem);
+    for (const [productTitle, productData] of productsData) {
+      const devices = Array.from(productData.devices.values());
+      const matchedProduct = matchedProducts.get(productTitle);
+      
+      // Aggregate metrics across all devices
+      const aggregated = {
+        title: productTitle,
+        image: matchedProduct?.thumbnail || '',
+        adPosition: calculateAdPosition(matchedProduct),
+        marketShare: calculateMarketShare(matchedProduct),
+        devices: productData.devices,
+        // Aggregate numeric metrics
+        impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
+        clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
+        cost: devices.reduce((sum, d) => sum + (parseFloat(d.Cost) || 0), 0),
+        conversions: devices.reduce((sum, d) => sum + (parseFloat(d.Conversions) || 0), 0),
+        convValue: devices.reduce((sum, d) => sum + (parseFloat(d.ConvValue) || 0), 0),
+        cartCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Cart Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
+        checkoutCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Checkout Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
+      };
+      
+      // Calculate derived metrics
+      aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
+      aggregated.avgCpc = aggregated.clicks > 0 ? (aggregated.cost / aggregated.clicks) : 0;
+      aggregated.cpa = aggregated.conversions > 0 ? (aggregated.cost / aggregated.conversions) : 0;
+      aggregated.cvr = aggregated.clicks > 0 ? (aggregated.conversions / aggregated.clicks * 100) : 0;
+      aggregated.aov = aggregated.conversions > 0 ? (aggregated.convValue / aggregated.conversions) : 0;
+      aggregated.cpm = aggregated.impressions > 0 ? (aggregated.cost / aggregated.impressions * 1000) : 0;
+      aggregated.roas = aggregated.cost > 0 ? (aggregated.convValue / aggregated.cost) : 0;
+      aggregated.cartRate = aggregated.clicks > 0 ? (aggregated.cartCount / aggregated.clicks * 100) : 0;
+      aggregated.checkoutRate = aggregated.cartCount > 0 ? (aggregated.checkoutCount / aggregated.cartCount * 100) : 0;
+      aggregated.purchaseRate = aggregated.checkoutCount > 0 ? (aggregated.conversions / aggregated.checkoutCount * 100) : 0;
+      
+      tableData.push(aggregated);
     }
     
+    // Sort by impressions by default
+    tableData.sort((a, b) => b.impressions - a.impressions);
+    
+    // Render the table
+    renderProductsTable(tableContainer, tableData, campaignName);
+    
     // Update header info
-    headerInfo.textContent = `${campaignName} - ${allCompanyProducts.length} products`;
+    headerInfo.textContent = `${campaignName} - ${tableData.length} products`;
     
   } catch (error) {
     console.error('[loadCampaignProducts] Error loading products:', error);
-    productsGrid.innerHTML = `
-      <div class="campaigns-empty-state">
-        <div class="campaigns-empty-icon">⚠️</div>
-        <div class="campaigns-empty-title">Error Loading Products</div>
-        <div class="campaigns-empty-text">Failed to load products for this campaign</div>
-      </div>
-    `;
+    const tableContainer = productsPanel.querySelector('.campaigns-products-table-container');
+    if (tableContainer) {
+      tableContainer.innerHTML = `
+        <div class="campaigns-empty-state">
+          <div class="campaigns-empty-icon">⚠️</div>
+          <div class="campaigns-empty-title">Error Loading Products</div>
+          <div class="campaigns-empty-text">Failed to load products for this campaign</div>
+        </div>
+      `;
+    }
     headerInfo.textContent = `${campaignName} - Error loading products`;
   }
+}
+
+// Calculate ad position from matched product
+function calculateAdPosition(matchedProduct) {
+  if (!matchedProduct) return null;
+  
+  // Calculate average rating from market data
+  const metrics = calculateGoogleAdsProductMetrics(matchedProduct);
+  return metrics?.avgRating || null;
+}
+
+// Calculate market share from matched product
+function calculateMarketShare(matchedProduct) {
+  if (!matchedProduct) return null;
+  
+  // Calculate visibility/market share
+  const metrics = calculateGoogleAdsProductMetrics(matchedProduct);
+  return metrics?.avgVisibility || null;
+}
+
+// Render products table
+function renderProductsTable(container, tableData, campaignName) {
+  // Default visible columns (can be customized later)
+  const visibleColumns = [
+    'expand', 'adPosition', 'marketShare', 'product', 'impressions', 
+    'clicks', 'ctr', 'cost', 'conversions', 'roas', 'convValue'
+  ];
+  
+  // Column definitions
+  const columns = {
+    expand: { label: '', width: '30px', sortable: false },
+    adPosition: { label: 'Pos', width: '50px', sortable: true },
+    marketShare: { label: 'Share', width: '60px', sortable: true },
+    product: { label: 'Product', width: '250px', sortable: true },
+    impressions: { label: 'Impr.', width: '80px', sortable: true, format: 'number' },
+    clicks: { label: 'Clicks', width: '70px', sortable: true, format: 'number' },
+    ctr: { label: 'CTR %', width: '70px', sortable: true, format: 'percent' },
+    avgCpc: { label: 'Avg CPC', width: '80px', sortable: true, format: 'currency' },
+    cost: { label: 'Cost', width: '80px', sortable: true, format: 'currency' },
+    conversions: { label: 'Conv.', width: '70px', sortable: true, format: 'number' },
+    cpa: { label: 'CPA', width: '80px', sortable: true, format: 'currency' },
+    convValue: { label: 'Revenue', width: '90px', sortable: true, format: 'currency' },
+    cvr: { label: 'CVR %', width: '70px', sortable: true, format: 'percent' },
+    aov: { label: 'AOV', width: '80px', sortable: true, format: 'currency' },
+    cpm: { label: 'CPM', width: '70px', sortable: true, format: 'currency' },
+    roas: { label: 'ROAS', width: '70px', sortable: true, format: 'roas' },
+    cartRate: { label: 'Cart %', width: '70px', sortable: true, format: 'percent' },
+    checkoutRate: { label: 'Checkout %', width: '85px', sortable: true, format: 'percent' },
+    purchaseRate: { label: 'Purchase %', width: '85px', sortable: true, format: 'percent' }
+  };
+  
+  // Create table HTML
+  let tableHTML = '<table class="campaigns-products-table">';
+  
+  // Create header
+  tableHTML += '<thead><tr>';
+  visibleColumns.forEach(col => {
+    const colDef = columns[col];
+    const sortClass = colDef.sortable ? 'sortable' : '';
+    tableHTML += `<th class="${sortClass}" data-column="${col}" style="width: ${colDef.width};">${colDef.label}</th>`;
+  });
+  tableHTML += '</tr></thead>';
+  
+  // Create body
+  tableHTML += '<tbody>';
+  
+  tableData.forEach((product, index) => {
+    // Main aggregated row
+    tableHTML += `<tr class="main-row" data-product-index="${index}">`;
+    
+    visibleColumns.forEach(col => {
+      if (col === 'expand') {
+        const hasDevices = product.devices && product.devices.size > 1;
+        tableHTML += `<td>${hasDevices ? '<span class="expand-toggle">▶</span>' : ''}</td>`;
+      } else if (col === 'adPosition') {
+        const pos = product.adPosition;
+        if (pos) {
+          const badgeClass = pos <= 3 ? 'pos-1-3' : pos <= 8 ? 'pos-4-8' : pos <= 14 ? 'pos-9-14' : 'pos-15-plus';
+          tableHTML += `<td><div class="position-badge ${badgeClass}">${pos}</div></td>`;
+        } else {
+          tableHTML += '<td>-</td>';
+        }
+      } else if (col === 'marketShare') {
+        tableHTML += `<td class="metric-value">${product.marketShare ? product.marketShare.toFixed(1) + '%' : '-'}</td>`;
+      } else if (col === 'product') {
+        tableHTML += '<td><div class="product-cell">';
+        if (product.image) {
+          tableHTML += `<img class="product-image" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">`;
+        }
+        tableHTML += `<div class="product-title">${product.title}</div>`;
+        tableHTML += '</div></td>';
+      } else {
+        tableHTML += `<td class="metric-value">${formatMetricValue(product[col], columns[col].format)}</td>`;
+      }
+    });
+    
+    tableHTML += '</tr>';
+    
+    // Device-specific rows
+    if (product.devices && product.devices.size > 1) {
+      product.devices.forEach((deviceData, deviceType) => {
+        tableHTML += `<tr class="device-row" data-parent-index="${index}">`;
+        
+        visibleColumns.forEach(col => {
+          if (col === 'expand') {
+            tableHTML += '<td></td>';
+          } else if (col === 'adPosition' || col === 'marketShare') {
+            tableHTML += '<td></td>';
+          } else if (col === 'product') {
+            const deviceIcon = deviceType === 'MOBILE' ? '📱' : deviceType === 'TABLET' ? '📱' : '💻';
+            const deviceClass = deviceType.toLowerCase();
+            tableHTML += `<td><div class="device-badge ${deviceClass}">${deviceIcon} ${deviceType}</div></td>`;
+          } else {
+            const value = getDeviceMetricValue(deviceData, col);
+            tableHTML += `<td class="metric-value">${formatMetricValue(value, columns[col].format)}</td>`;
+          }
+        });
+        
+        tableHTML += '</tr>';
+      });
+    }
+  });
+  
+  tableHTML += '</tbody></table>';
+  
+  // Set the HTML
+  container.innerHTML = tableHTML;
+  
+  // Add event listeners
+  addTableEventListeners(container, tableData, columns, visibleColumns);
+}
+
+// Format metric value based on type
+function formatMetricValue(value, format) {
+  if (value === null || value === undefined || value === '') return '-';
+  
+  switch (format) {
+    case 'number':
+      return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    case 'currency':
+      return '$' + value.toFixed(2);
+    case 'percent':
+      return value.toFixed(1) + '%';
+    case 'roas':
+      return value.toFixed(2) + 'x';
+    default:
+      return value;
+  }
+}
+
+// Get device-specific metric value
+function getDeviceMetricValue(deviceData, metric) {
+  const metricMap = {
+    impressions: 'Impressions',
+    clicks: 'Clicks',
+    ctr: 'CTR',
+    avgCpc: 'Avg CPC',
+    cost: 'Cost',
+    conversions: 'Conversions',
+    cpa: 'CPA',
+    convValue: 'ConvValue',
+    cvr: 'CVR',
+    aov: 'AOV',
+    cpm: 'CPM',
+    roas: 'ROAS',
+    cartRate: 'Cart Rate',
+    checkoutRate: 'Checkout Rate',
+    purchaseRate: 'Purchase Rate'
+  };
+  
+  return parseFloat(deviceData[metricMap[metric]] || 0);
+}
+
+// Add table event listeners
+function addTableEventListeners(container, tableData, columns, visibleColumns) {
+  // Expand/collapse device rows
+  container.querySelectorAll('.expand-toggle').forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const row = this.closest('tr');
+      const productIndex = row.getAttribute('data-product-index');
+      const deviceRows = container.querySelectorAll(`tr.device-row[data-parent-index="${productIndex}"]`);
+      
+      this.classList.toggle('expanded');
+      deviceRows.forEach(deviceRow => {
+        deviceRow.classList.toggle('expanded');
+      });
+    });
+  });
+  
+  // Sorting
+  container.querySelectorAll('th.sortable').forEach(header => {
+    header.addEventListener('click', function() {
+      const column = this.getAttribute('data-column');
+      const currentSort = this.classList.contains('sorted-asc') ? 'asc' : 
+                         this.classList.contains('sorted-desc') ? 'desc' : null;
+      
+      // Clear all sort classes
+      container.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      // Apply new sort
+      let newSort = currentSort === 'asc' ? 'desc' : 'asc';
+      this.classList.add(`sorted-${newSort}`);
+      
+      // Sort data
+      const sortedData = [...tableData].sort((a, b) => {
+        let aVal = column === 'product' ? a.title : a[column];
+        let bVal = column === 'product' ? b.title : b[column];
+        
+        if (typeof aVal === 'string') {
+          return newSort === 'asc' ? 
+            aVal.localeCompare(bVal) : 
+            bVal.localeCompare(aVal);
+        } else {
+          return newSort === 'asc' ? 
+            (aVal || 0) - (bVal || 0) : 
+            (bVal || 0) - (aVal || 0);
+        }
+      });
+      
+      // Re-render table
+      renderProductsTable(container, sortedData, window.selectedCampaign?.campaignName || '');
+    });
+  });
 }
 
 // Create a campaign product item (similar to google-ads-small-ad-details)
