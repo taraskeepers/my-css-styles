@@ -5823,7 +5823,12 @@ record.historical_data.forEach(item => {
 }
 
 function calculateGoogleAdsProductMetricsByDevice(product) {
-  if (!product || !product.groupedData) return null;
+  console.log('calculateGoogleAdsProductMetricsByDevice called for:', product.title);
+  
+  if (!product || !product.groupedData) {
+    console.log('No product or groupedData found');
+    return null;
+  }
   
   const deviceMetrics = new Map();
   const deviceTypes = ['DESKTOP', 'MOBILE', 'TABLET'];
@@ -11519,4 +11524,5 @@ window.renderGoogleAdsTable = renderGoogleAdsTable;
 window.renderAvgPositionChartGoogleAds = renderAvgPositionChartGoogleAds;
 window.updateChartLineVisibilityGoogleAds = updateChartLineVisibilityGoogleAds;
 window.renderGoogleAdsPositionChart = renderGoogleAdsPositionChart;
+window.calculateGoogleAdsProductMetricsByDevice = calculateGoogleAdsProductMetricsByDevice;
 }
