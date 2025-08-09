@@ -5822,6 +5822,69 @@ record.historical_data.forEach(item => {
   };
 }
 
+function calculateGoogleAdsProductMetricsByDevice(product) {
+  if (!product || !product.groupedData) return null;
+  
+  const deviceMetrics = new Map();
+  const deviceTypes = ['DESKTOP', 'MOBILE', 'TABLET'];
+  
+  // Initialize metrics for each device type
+  deviceTypes.forEach(device => {
+    deviceMetrics.set(device, {
+      avgPosition: 0,
+      marketShare: 0,
+      impressions: 0,
+      clicks: 0,
+      dataPoints: 0
+    });
+  });
+  
+  // Process each location's data
+  product.groupedData.forEach((locationData, location) => {
+    if (!locationData || !(locationData instanceof Map)) return;
+    
+    // Process each device type
+    locationData.forEach((deviceData, deviceType) => {
+      if (!deviceData || !deviceData.shoppingAds) return;
+      
+      const metrics = deviceMetrics.get(deviceType);
+      if (!metrics) return;
+      
+      // Calculate average position for this device
+      const positions = deviceData.shoppingAds
+        .filter(ad => ad.position > 0)
+        .map(ad => ad.position);
+      
+      if (positions.length > 0) {
+        const avgPos = positions.reduce((sum, pos) => sum + pos, 0) / positions.length;
+        metrics.avgPosition += avgPos;
+        metrics.dataPoints++;
+      }
+      
+      // Calculate market share (visibility) for this device
+      deviceData.shoppingAds.forEach(ad => {
+        if (ad.impressions && ad.totalImpressions) {
+          const visibility = (ad.impressions / ad.totalImpressions) * 100;
+          metrics.marketShare += visibility;
+        }
+        metrics.impressions += (ad.impressions || 0);
+        metrics.clicks += (ad.clicks || 0);
+      });
+    });
+  });
+  
+  // Calculate final averages for each device
+  deviceTypes.forEach(device => {
+    const metrics = deviceMetrics.get(device);
+    if (metrics.dataPoints > 0) {
+      metrics.avgPosition = Math.round(metrics.avgPosition / metrics.dataPoints);
+      metrics.marketShare = metrics.marketShare / metrics.dataPoints;
+    }
+  });
+  
+  return deviceMetrics;
+}
+
 async function renderFilteredGoogleAdsProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
   // Clear container
   productsNavContainer.innerHTML = '';
