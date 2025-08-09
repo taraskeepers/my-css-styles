@@ -1406,6 +1406,10 @@ for (const [productTitle, productData] of productsData) {
   const devices = Array.from(productData.devices.values());
   const matchedProduct = matchedProducts.get(productTitle);
   
+  // Get device-specific metrics if available
+  const deviceMetrics = matchedProduct && typeof calculateGoogleAdsProductMetricsByDevice === 'function' ? 
+    calculateGoogleAdsProductMetricsByDevice(matchedProduct) : null;
+  
   // Aggregate metrics across all devices
   const aggregated = {
     title: productTitle,
@@ -1413,6 +1417,7 @@ for (const [productTitle, productData] of productsData) {
     adPosition: calculateAdPosition(matchedProduct),
     marketShare: calculateMarketShare(matchedProduct),
     devices: productData.devices,
+    deviceMetrics: deviceMetrics,  // Add device-specific POS and Market Share
     // Aggregate numeric metrics
     impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
     clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
@@ -1710,42 +1715,76 @@ tbody.appendChild(summaryRow);
     
     tbody.appendChild(mainRow);
     
-    // Device rows (initially hidden)
-    if (hasDevices) {
-      product.devices.forEach((deviceData, deviceType) => {
-        const deviceRow = document.createElement('tr');
-        deviceRow.className = 'device-row';
-        deviceRow.dataset.parentIndex = index;
-        
-        const deviceClass = deviceType.toLowerCase();
-        const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
-                          deviceType === 'TABLET' ? '📱' : '💻';
-        
-        // Device row with empty cells for fixed columns
-        let deviceRowHTML = `
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td style="padding-left: 20px;">
-            <div class="camp-device-tag ${deviceClass}">
-              ${deviceIcon} ${deviceType}
-            </div>
-          </td>
-        `;
-        
-        // Add device metric columns
-        visibleColumns.forEach(col => {
-          const value = getDeviceMetricValue(deviceData, col.id);
-          deviceRowHTML += `<td class="metric-col" style="text-align: right;">
-            <span class="camp-metric">${formatMetricValue(value, getMetricFormat(col.id))}</span>
-          </td>`;
-        });
-        
-        deviceRow.innerHTML = deviceRowHTML;
-        tbody.appendChild(deviceRow);
-      });
+// Device rows (initially hidden)
+if (hasDevices) {
+  product.devices.forEach((deviceData, deviceType) => {
+    const deviceRow = document.createElement('tr');
+    deviceRow.className = 'device-row';
+    deviceRow.dataset.parentIndex = index;
+    
+    const deviceClass = deviceType.toLowerCase();
+    const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
+                      deviceType === 'TABLET' ? '📱' : '💻';
+    
+    // Get device-specific POS and Market Share
+    const devicePOS = product.deviceMetrics?.get(deviceType)?.avgPosition || null;
+    const deviceMarketShare = product.deviceMetrics?.get(deviceType)?.marketShare || null;
+    
+    // Position badge class for device
+    let posClass = 'bottom';
+    if (devicePOS) {
+      if (devicePOS <= 3) posClass = 'top';
+      else if (devicePOS <= 8) posClass = 'mid';
+      else if (devicePOS <= 14) posClass = 'low';
     }
+    
+    // ROAS calculation for device (if needed)
+    const deviceROAS = deviceData.Cost > 0 ? (deviceData.ConvValue / deviceData.Cost) : 0;
+    let roasClass = 'poor';
+    if (deviceROAS >= 4) roasClass = 'excellent';
+    else if (deviceROAS >= 2) roasClass = 'good';
+    else if (deviceROAS >= 1) roasClass = 'fair';
+    
+    // Device row with POS, SHARE, and ROAS columns populated
+    let deviceRowHTML = `
+      <td style="text-align: center;">
+        ${devicePOS ? 
+          `<div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS}</div>` : 
+          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
+      </td>
+      <td style="text-align: center;">
+        ${deviceMarketShare ? 
+          `<div class="camp-share-bar" style="height: 24px; width: 50px;">
+            <div class="camp-share-fill" style="width: ${Math.min(deviceMarketShare, 100)}%"></div>
+            <div class="camp-share-text" style="font-size: 10px;">${deviceMarketShare.toFixed(1)}%</div>
+          </div>` : 
+          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
+      </td>
+      <td style="text-align: center;">
+        ${deviceROAS ? 
+          `<div class="camp-roas-badge ${roasClass}" style="width: 50px; height: 28px; font-size: 11px;">${deviceROAS.toFixed(1)}x</div>` : 
+          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
+      </td>
+      <td></td>
+      <td style="padding-left: 20px;">
+        <div class="camp-device-tag ${deviceClass}">
+          ${deviceIcon} ${deviceType}
+        </div>
+      </td>
+    `;
+    
+    // Add device metric columns
+    visibleColumns.forEach(col => {
+      const value = getDeviceMetricValue(deviceData, col.id);
+      deviceRowHTML += `<td class="metric-col" style="text-align: right;">
+        <span class="camp-metric" style="font-size: 11px;">${formatMetricValue(value, getMetricFormat(col.id))}</span>
+      </td>`;
+    });
+    
+    deviceRow.innerHTML = deviceRowHTML;
+    tbody.appendChild(deviceRow);
+  });
+}
   });
   
   table.appendChild(tbody);
