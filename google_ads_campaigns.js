@@ -265,589 +265,387 @@ function addCampaignsStyles() {
         border-color: #007aff;
       }
       
-/* IMPROVED TABLE STYLES - COMPLETE VERSION */
-.camp-products-wrapper {
-  flex: 1;
-  padding: 0;
-  overflow: auto;
-  background: #ffffff;
-}
-
-.camp-table-modern {
-  width: 100%;
-  background: white;
-  min-width: 100%;
-}
-
-/* Table Header */
-.camp-table-header {
-  display: flex;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-  border-bottom: 2px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  min-width: fit-content;
-}
-
-.camp-th-cell {
-  padding: 12px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  border-right: 1px solid #e5e7eb;
-}
-
-.camp-th-cell:last-child {
-  border-right: none;
-}
-
-.camp-th-cell.sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
-  gap: 4px;
-}
-
-.camp-th-cell.sortable:hover {
-  background: rgba(59, 130, 246, 0.05);
-  color: #2563eb;
-}
-
-.camp-sort-icon {
-  font-size: 10px;
-  color: #9ca3af;
-  opacity: 0.6;
-}
-
-.camp-th-cell.sorted-asc .camp-sort-icon,
-.camp-th-cell.sorted-desc .camp-sort-icon {
-  color: #2563eb;
-  opacity: 1;
-}
-
-/* Column widths - ADJUSTED */
-.expand-col { 
-  width: 36px; 
-  min-width: 36px; 
-  justify-content: center; 
-}
-
-.pos-col { 
-  width: 60px; 
-  min-width: 60px; 
-  justify-content: center; 
-}
-
-.share-col { 
-  width: 120px; 
-  min-width: 120px; 
-}
-
-.product-col { 
-  width: 280px; 
-  min-width: 200px; 
-  max-width: 320px; 
-}
-
-.metric-col { 
-  width: 100px; 
-  min-width: 100px; 
-  justify-content: flex-end; 
-}
-
-.revenue-col { 
-  width: 110px; 
-  min-width: 110px; 
-  justify-content: flex-end; 
-}
-
-/* Table Body */
-.camp-table-body {
-  background: white;
-  min-width: fit-content;
-}
-
-/* Main Row - INCREASED HEIGHT */
-.camp-row-main {
-  display: flex;
-  border-bottom: 1px solid #f3f4f6;
-  transition: all 0.15s ease;
-  min-height: 52px;
-  align-items: center;
-}
-
-.camp-row-main:hover {
-  background-color: #f8fafb;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-
-.camp-row-main.has-children {
-  cursor: pointer;
-}
-
-/* Table Cells - ADJUSTED HEIGHT */
-.camp-td-cell {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  border-right: 1px solid #f9fafb;
-  min-height: 52px;
-}
-
-.camp-td-cell:last-child {
-  border-right: none;
-}
-
-/* Expand Button - IMPROVED */
-.camp-expand-btn {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #6b7280;
-  transition: all 0.15s ease;
-  padding: 0;
-}
-
-.camp-expand-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-  transform: scale(1.05);
-}
-
-.camp-expand-btn.expanded {
-  transform: rotate(90deg);
-  background: #dbeafe;
-  color: #2563eb;
-  border-color: #60a5fa;
-}
-
-/* Position Value - COLORED */
-.camp-pos-value {
-  font-size: 14px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.camp-pos-value.top {
-  color: #14532d;
-  background: #dcfce7;
-}
-
-.camp-pos-value.mid {
-  color: #713f12;
-  background: #fef3c7;
-}
-
-.camp-pos-value.low {
-  color: #7c2d12;
-  background: #fed7aa;
-}
-
-.camp-pos-value.bottom {
-  color: #7f1d1d;
-  background: #fee2e2;
-}
-
-.camp-pos-value.none {
-  color: #9ca3af;
-  background: transparent;
-}
-
-/* Market Share - IMPROVED */
-.camp-share-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.camp-share-bar-bg {
-  flex: 1;
-  height: 20px;
-  background: #f3f4f6;
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  min-width: 60px;
-}
-
-.camp-share-bar-fill {
-  height: 100%;
-  transition: width 0.3s ease;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #60a5fa, #3b82f6);
-}
-
-.camp-share-value {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  min-width: 40px;
-  text-align: right;
-}
-
-/* Product Info - IMPROVED WITH WRAPPING */
-.camp-product-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-width: 0;
-}
-
-.camp-product-thumb {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  object-fit: cover;
-  border: 1px solid #e5e7eb;
-  flex-shrink: 0;
-  background: white;
-}
-
-.camp-product-title {
-  font-size: 13px;
-  color: #111827;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-}
-
-/* Metrics - IMPROVED */
-.camp-metric-value {
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  color: #374151;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.camp-metric-value.positive {
-  color: #059669;
-  font-weight: 600;
-}
-
-.camp-metric-value.negative {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.camp-metric-value.highlight {
-  color: #2563eb;
-  font-weight: 700;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.camp-metric-value.revenue {
-  font-weight: 700;
-  color: #111827;
-  font-size: 14px;
-}
-
-.camp-metric-value.sub {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 400;
-}
-
-.camp-null-value {
-  color: #d1d5db;
-  font-size: 12px;
-}
-
-/* Device Rows - IMPROVED */
-.camp-row-device {
-  display: none;
-  border-bottom: 1px solid #f3f4f6;
-  background: linear-gradient(90deg, #fafbfc 0%, #f9fafb 100%);
-  min-height: 44px;
-  align-items: center;
-}
-
-.camp-row-device.visible {
-  display: flex;
-  animation: slideIn 0.2s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.camp-device-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 32px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.camp-device-icon {
-  font-size: 16px;
-}
-
-.camp-device-name {
-  font-weight: 500;
-  text-transform: capitalize;
-  color: #4b5563;
-}
-
-/* Column selector button and dropdown */
-.column-selector-btn {
-  position: relative;
-}
-
-.column-selector-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  z-index: 1000;
-  min-width: 200px;
-  max-height: 400px;
-  overflow-y: auto;
-  display: none;
-}
-
-.column-selector-dropdown.active {
-  display: block;
-}
-
-.column-selector-item {
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: background 0.15s;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.column-selector-item:last-child {
-  border-bottom: none;
-}
-
-.column-selector-item:hover {
-  background: #f9fafb;
-}
-
-.column-selector-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #2563eb;
-}
-
-.column-selector-item label {
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  flex: 1;
-  user-select: none;
-}
-
-.column-selector-item input[type="checkbox"]:disabled + label {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Empty state improvements */
-.campaigns-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  color: #999;
-  text-align: center;
-  padding: 40px;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  border-radius: 12px;
-  margin: 20px;
-}
-
-.campaigns-empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.campaigns-empty-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #666;
-}
-
-.campaigns-empty-text {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #999;
-  max-width: 400px;
-}
-
-/* Loading state improvements */
-.campaigns-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  height: 400px;
-}
-
-.campaigns-spinner {
-  border: 3px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #2563eb;
-  animation: spin 1s ease infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Scrollbar styling */
-.camp-products-wrapper::-webkit-scrollbar {
-  height: 10px;
-  width: 10px;
-}
-
-.camp-products-wrapper::-webkit-scrollbar-track {
-  background: #f9fafb;
-  border-radius: 5px;
-}
-
-.camp-products-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 5px;
-  border: 2px solid #f9fafb;
-}
-
-.camp-products-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Performance optimizations */
-.camp-table-modern * {
-  box-sizing: border-box;
-}
-
-.camp-row-main,
-.camp-row-device {
-  will-change: background-color;
-}
-
-.camp-expand-btn {
-  will-change: transform;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1400px) {
-  .metric-col {
-    width: 85px;
-    min-width: 85px;
-  }
-  
-  .revenue-col {
-    width: 95px;
-    min-width: 95px;
-  }
-  
-  .product-col {
-    width: 240px;
-    min-width: 180px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .camp-th-cell,
-  .camp-td-cell {
-    padding: 8px 10px;
-  }
-  
-  .metric-col {
-    width: 75px;
-    min-width: 75px;
-  }
-  
-  .share-col {
-    width: 100px;
-    min-width: 100px;
-  }
-  
-  .camp-row-main,
-  .camp-td-cell {
-    min-height: 48px;
-  }
-}
-
-/* Dark mode support (if needed) */
-@media (prefers-color-scheme: dark) {
-  .camp-table-modern {
-    background: #1f2937;
-  }
-  
-  .camp-table-header {
-    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-  }
-  
-  .camp-th-cell {
-    color: #9ca3af;
-    border-right-color: #374151;
-  }
-  
-  .camp-row-main {
-    border-bottom-color: #374151;
-  }
-  
-  .camp-td-cell {
-    color: #e5e7eb;
-    border-right-color: #374151;
-  }
-  
-  .camp-product-title {
-    color: #f3f4f6;
-  }
-  
-  .camp-metric-value {
-    color: #e5e7eb;
-  }
-}
+      /* NEW MODERN TABLE DESIGN */
+      .camp-products-wrapper {
+        flex: 1;
+        padding: 20px;
+        overflow: auto;
+        background: #f8f9fa;
+      }
+      
+      .camp-table-modern {
+        width: 100%;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      
+      .camp-table-header {
+        display: grid;
+        grid-template-columns: 40px 60px 80px minmax(280px, 1fr) repeat(7, minmax(90px, 120px));
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 2px solid #e9ecef;
+        padding: 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      
+      .camp-th-cell {
+        padding: 14px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        border-right: 1px solid #e9ecef;
+        background: inherit;
+      }
+      
+      .camp-th-cell:last-child {
+        border-right: none;
+      }
+      
+      .camp-th-cell.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 24px;
+      }
+      
+      .camp-th-cell.sortable:hover {
+        background: rgba(0, 122, 255, 0.04);
+        color: #495057;
+      }
+      
+      .camp-sort-icon {
+        position: absolute;
+        right: 8px;
+        font-size: 10px;
+        color: #adb5bd;
+      }
+      
+      .camp-th-cell.sorted-asc .camp-sort-icon,
+      .camp-th-cell.sorted-desc .camp-sort-icon {
+        color: #007aff;
+      }
+      
+      .camp-th-cell.center {
+        justify-content: center;
+      }
+      
+      .camp-th-cell.right {
+        justify-content: flex-end;
+      }
+      
+      /* Table body */
+      .camp-table-body {
+        background: white;
+      }
+      
+      .camp-row-main {
+        display: grid;
+        grid-template-columns: 40px 60px 80px minmax(280px, 1fr) repeat(7, minmax(90px, 120px));
+        border-bottom: 1px solid #f0f2f5;
+        transition: all 0.2s ease;
+        background: white;
+        position: relative;
+      }
+      
+      .camp-row-main:hover {
+        background: linear-gradient(90deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 122, 255, 0.04) 100%);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      }
+      
+      .camp-row-main.has-children {
+        cursor: pointer;
+      }
+      
+      .camp-td-cell {
+        padding: 12px;
+        font-size: 13px;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        border-right: 1px solid #f0f2f5;
+        min-height: 64px;
+      }
+      
+      .camp-td-cell:last-child {
+        border-right: none;
+      }
+      
+      /* Expand arrow */
+      .camp-expand-arrow {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+        color: #6c757d;
+        margin: 0 auto;
+      }
+      
+      .camp-expand-arrow:hover {
+        background: #dee2e6;
+        transform: scale(1.1);
+      }
+      
+      .camp-expand-arrow.expanded {
+        transform: rotate(90deg);
+        background: #007aff;
+        color: white;
+      }
+      
+      /* Position indicator */
+      .camp-position-indicator {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .camp-position-indicator.top {
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+      }
+      
+      .camp-position-indicator.mid {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+      }
+      
+      .camp-position-indicator.low {
+        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+      }
+      
+      .camp-position-indicator.bottom {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+      }
+      
+      /* Market share */
+      .camp-share-bar {
+        width: 56px;
+        height: 40px;
+        background: #f0f2f5;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto;
+      }
+      
+      .camp-share-fill {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+        transition: height 0.3s ease;
+      }
+      
+      .camp-share-text {
+        position: relative;
+        z-index: 2;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1e40af;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* Product info */
+      .camp-product-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+      }
+      
+      .camp-product-img {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #e9ecef;
+        flex-shrink: 0;
+        background: white;
+      }
+      
+      .camp-product-name {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        color: #212529;
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      
+      /* Metrics */
+      .camp-metric {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+        font-weight: 500;
+        color: #495057;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      
+      .camp-metric.large {
+        font-size: 14px;
+        font-weight: 600;
+        color: #212529;
+      }
+      
+      .camp-metric.positive {
+        color: #22c55e;
+      }
+      
+      .camp-metric.negative {
+        color: #ef4444;
+      }
+      
+      .camp-metric.highlight {
+        padding: 4px 8px;
+        background: rgba(0, 122, 255, 0.08);
+        border-radius: 6px;
+        color: #007aff;
+        font-weight: 600;
+      }
+      
+      /* Device rows */
+      .camp-row-device {
+        display: none;
+        grid-template-columns: 40px 60px 80px minmax(280px, 1fr) repeat(7, minmax(90px, 120px));
+        background: #fafbfc;
+        border-bottom: 1px solid #f0f2f5;
+        opacity: 0;
+        animation: slideDown 0.2s ease forwards;
+      }
+      
+      .camp-row-device.visible {
+        display: grid;
+        opacity: 1;
+      }
+      
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .camp-device-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 56px;
+      }
+      
+      .camp-device-tag.mobile {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+        color: #14532d;
+      }
+      
+      .camp-device-tag.tablet {
+        background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
+        color: #1e3a8a;
+      }
+      
+      .camp-device-tag.desktop {
+        background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+        color: #713f12;
+      }
+      
+      /* Empty state */
+      .campaigns-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #999;
+        text-align: center;
+        padding: 40px;
+      }
+      
+      .campaigns-empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      
+      .campaigns-empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #666;
+      }
+      
+      .campaigns-empty-text {
+        font-size: 14px;
+        line-height: 1.5;
+        color: #999;
+      }
+      
+      /* Loading spinner */
+      .campaigns-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        height: 400px;
+      }
+      
+      .campaigns-spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: #007aff;
+        animation: spin 1s ease infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -1324,6 +1122,7 @@ function calculateMarketShare(matchedProduct) {
   return metrics?.avgVisibility || null;
 }
 
+// Render products table with modern design
 function renderProductsTable(container, tableData, campaignName) {
   // Create wrapper
   const wrapper = document.createElement('div');
@@ -1333,37 +1132,52 @@ function renderProductsTable(container, tableData, campaignName) {
   const tableContainer = document.createElement('div');
   tableContainer.className = 'camp-table-modern';
   
-  // Get visible columns from localStorage or use defaults
-  const defaultColumns = ['expand', 'pos', 'share', 'product', 'impressions', 'clicks', 'ctr', 'cost', 'conversions', 'roas', 'revenue'];
-  const visibleColumns = JSON.parse(localStorage.getItem('campaignTableColumns') || JSON.stringify(defaultColumns));
-  
   // Create header
   const header = document.createElement('div');
   header.className = 'camp-table-header';
-  
-  // Build header HTML based on visible columns
-  let headerHTML = '';
-  const columnDefinitions = {
-    expand: '<div class="camp-th-cell expand-col"></div>',
-    pos: '<div class="camp-th-cell pos-col sortable" data-sort="adPosition">POS <span class="camp-sort-icon">↕</span></div>',
-    share: '<div class="camp-th-cell share-col sortable" data-sort="marketShare">SHARE <span class="camp-sort-icon">↕</span></div>',
-    product: '<div class="camp-th-cell product-col sortable" data-sort="title">PRODUCT <span class="camp-sort-icon">↕</span></div>',
-    impressions: '<div class="camp-th-cell metric-col sortable" data-sort="impressions">IMPRESSIONS <span class="camp-sort-icon">↕</span></div>',
-    clicks: '<div class="camp-th-cell metric-col sortable" data-sort="clicks">CLICKS <span class="camp-sort-icon">↕</span></div>',
-    ctr: '<div class="camp-th-cell metric-col sortable" data-sort="ctr">CTR % <span class="camp-sort-icon">↕</span></div>',
-    cost: '<div class="camp-th-cell metric-col sortable" data-sort="cost">COST <span class="camp-sort-icon">↕</span></div>',
-    conversions: '<div class="camp-th-cell metric-col sortable" data-sort="conversions">CONV. <span class="camp-sort-icon">↕</span></div>',
-    roas: '<div class="camp-th-cell metric-col sortable" data-sort="roas">ROAS <span class="camp-sort-icon">↕</span></div>',
-    revenue: '<div class="camp-th-cell revenue-col sortable" data-sort="convValue">REVENUE <span class="camp-sort-icon">↕</span></div>'
-  };
-  
-  visibleColumns.forEach(col => {
-    if (columnDefinitions[col]) {
-      headerHTML += columnDefinitions[col];
-    }
-  });
-  
-  header.innerHTML = headerHTML;
+  header.innerHTML = `
+    <div class="camp-th-cell center"></div>
+    <div class="camp-th-cell center sortable" data-sort="adPosition">
+      Pos
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell center sortable" data-sort="marketShare">
+      Share
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell sortable" data-sort="title">
+      Product
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="impressions">
+      Impressions
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="clicks">
+      Clicks
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="ctr">
+      CTR %
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="cost">
+      Cost
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="conversions">
+      Conv.
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="roas">
+      ROAS
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+    <div class="camp-th-cell right sortable" data-sort="convValue">
+      Revenue
+      <span class="camp-sort-icon">⇅</span>
+    </div>
+  `;
   
   // Create body
   const body = document.createElement('div');
@@ -1381,77 +1195,63 @@ function renderProductsTable(container, tableData, campaignName) {
       mainRow.classList.add('has-children');
     }
     
-    // Position value and class
-    let posValue = product.adPosition || '-';
-    let posClass = 'none';
+    // Position badge class
+    let posClass = 'bottom';
     if (product.adPosition) {
       if (product.adPosition <= 3) posClass = 'top';
       else if (product.adPosition <= 8) posClass = 'mid';
       else if (product.adPosition <= 14) posClass = 'low';
-      else posClass = 'bottom';
     }
     
-    // Market share bar
-    const sharePercent = product.marketShare || 0;
-    
-    // Build row HTML based on visible columns
-    let rowHTML = '';
-    const cellDefinitions = {
-      expand: `<div class="camp-td-cell expand-col">
-        ${hasDevices ? `<button class="camp-expand-btn" data-index="${index}">▶</button>` : ''}
-      </div>`,
-      pos: `<div class="camp-td-cell pos-col">
-        <span class="camp-pos-value ${posClass}">${posValue}</span>
-      </div>`,
-      share: `<div class="camp-td-cell share-col">
+    mainRow.innerHTML = `
+      <div class="camp-td-cell">
+        ${hasDevices ? `<div class="camp-expand-arrow" data-index="${index}">▶</div>` : ''}
+      </div>
+      <div class="camp-td-cell">
+        ${product.adPosition ? 
+          `<div class="camp-position-indicator ${posClass}">${product.adPosition}</div>` : 
+          '<div style="text-align: center; width: 100%; color: #adb5bd;">-</div>'}
+      </div>
+      <div class="camp-td-cell">
         ${product.marketShare ? 
-          `<div class="camp-share-container">
-            <div class="camp-share-bar-bg">
-              <div class="camp-share-bar-fill" style="width: ${sharePercent}%;"></div>
-            </div>
-            <span class="camp-share-value">${sharePercent.toFixed(1)}%</span>
+          `<div class="camp-share-bar">
+            <div class="camp-share-fill" style="height: ${product.marketShare}%"></div>
+            <div class="camp-share-text">${product.marketShare.toFixed(1)}%</div>
           </div>` : 
-          '<span class="camp-null-value">-</span>'}
-      </div>`,
-      product: `<div class="camp-td-cell product-col">
-        <div class="camp-product-wrapper">
+          '<div style="text-align: center; width: 100%; color: #adb5bd;">-</div>'}
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-product-info">
           ${product.image ? 
-            `<img class="camp-product-thumb" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">` : ''}
-          <span class="camp-product-title">${product.title}</span>
+            `<img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">` : ''}
+          <div class="camp-product-name">${product.title}</div>
         </div>
-      </div>`,
-      impressions: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value">${formatCompactNumber(product.impressions)}</span>
-      </div>`,
-      clicks: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value">${formatCompactNumber(product.clicks)}</span>
-      </div>`,
-      ctr: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value ${product.ctr > 2 ? 'positive' : product.ctr < 0.5 ? 'negative' : ''}">
-          ${product.ctr.toFixed(1)}%
-        </span>
-      </div>`,
-      cost: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value">$${formatCompactNumber(product.cost)}</span>
-      </div>`,
-      conversions: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value">${formatCompactNumber(product.conversions)}</span>
-      </div>`,
-      roas: `<div class="camp-td-cell metric-col">
-        <span class="camp-metric-value highlight">${product.roas.toFixed(2)}x</span>
-      </div>`,
-      revenue: `<div class="camp-td-cell revenue-col">
-        <span class="camp-metric-value revenue">$${formatCompactNumber(product.convValue)}</span>
-      </div>`
-    };
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric large">${formatMetricValue(product.impressions, 'number')}</div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric">${formatMetricValue(product.clicks, 'number')}</div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric ${product.ctr > 2 ? 'positive' : product.ctr < 0.5 ? 'negative' : ''}">
+          ${formatMetricValue(product.ctr, 'percent')}
+        </div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric">${formatMetricValue(product.cost, 'currency')}</div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric">${formatMetricValue(product.conversions, 'number')}</div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric highlight">${formatMetricValue(product.roas, 'roas')}</div>
+      </div>
+      <div class="camp-td-cell">
+        <div class="camp-metric large">${formatMetricValue(product.convValue, 'currency')}</div>
+      </div>
+    `;
     
-    visibleColumns.forEach(col => {
-      if (cellDefinitions[col]) {
-        rowHTML += cellDefinitions[col];
-      }
-    });
-    
-    mainRow.innerHTML = rowHTML;
     body.appendChild(mainRow);
     
     // Device rows (initially hidden)
@@ -1461,56 +1261,42 @@ function renderProductsTable(container, tableData, campaignName) {
         deviceRow.className = 'camp-row-device';
         deviceRow.dataset.parentIndex = index;
         
+        const deviceClass = deviceType.toLowerCase();
         const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
                           deviceType === 'TABLET' ? '📱' : '💻';
         
-        const deviceCtr = parseFloat(deviceData.CTR) || 0;
-        const deviceRoas = parseFloat(deviceData.ROAS) || 0;
-        
-        // Build device row HTML based on visible columns
-        let deviceRowHTML = '';
-        const deviceCellDefinitions = {
-          expand: '<div class="camp-td-cell expand-col"></div>',
-          pos: '<div class="camp-td-cell pos-col"></div>',
-          share: '<div class="camp-td-cell share-col"></div>',
-          product: `<div class="camp-td-cell product-col">
-            <div class="camp-device-label">
-              <span class="camp-device-icon">${deviceIcon}</span>
-              <span class="camp-device-name">${deviceType}</span>
+        deviceRow.innerHTML = `
+          <div class="camp-td-cell"></div>
+          <div class="camp-td-cell"></div>
+          <div class="camp-td-cell"></div>
+          <div class="camp-td-cell">
+            <div class="camp-device-tag ${deviceClass}">
+              ${deviceIcon} ${deviceType}
             </div>
-          </div>`,
-          impressions: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub">${formatCompactNumber(parseFloat(deviceData.Impressions))}</span>
-          </div>`,
-          clicks: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub">${formatCompactNumber(parseFloat(deviceData.Clicks))}</span>
-          </div>`,
-          ctr: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub ${deviceCtr > 2 ? 'positive' : deviceCtr < 0.5 ? 'negative' : ''}">
-              ${deviceCtr.toFixed(1)}%
-            </span>
-          </div>`,
-          cost: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub">$${formatCompactNumber(parseFloat(deviceData.Cost))}</span>
-          </div>`,
-          conversions: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub">${formatCompactNumber(parseFloat(deviceData.Conversions))}</span>
-          </div>`,
-          roas: `<div class="camp-td-cell metric-col">
-            <span class="camp-metric-value sub">${deviceRoas.toFixed(2)}x</span>
-          </div>`,
-          revenue: `<div class="camp-td-cell revenue-col">
-            <span class="camp-metric-value sub">$${formatCompactNumber(parseFloat(deviceData.ConvValue))}</span>
-          </div>`
-        };
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.Impressions), 'number')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.Clicks), 'number')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.CTR), 'percent')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.Cost), 'currency')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.Conversions), 'number')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.ROAS), 'roas')}</div>
+          </div>
+          <div class="camp-td-cell">
+            <div class="camp-metric">${formatMetricValue(parseFloat(deviceData.ConvValue), 'currency')}</div>
+          </div>
+        `;
         
-        visibleColumns.forEach(col => {
-          if (deviceCellDefinitions[col]) {
-            deviceRowHTML += deviceCellDefinitions[col];
-          }
-        });
-        
-        deviceRow.innerHTML = deviceRowHTML;
         body.appendChild(deviceRow);
       });
     }
@@ -1529,149 +1315,19 @@ function renderProductsTable(container, tableData, campaignName) {
   addModernTableEventListeners(wrapper, tableData);
 }
 
-// Toggle column selector dropdown
-function toggleColumnSelector() {
-  const btn = document.querySelector('.column-selector-btn');
-  if (!btn) return;
-  
-  // Check if dropdown exists
-  let dropdown = document.querySelector('.column-selector-dropdown');
-  
-  if (!dropdown) {
-    // Create dropdown
-    dropdown = document.createElement('div');
-    dropdown.className = 'column-selector-dropdown';
-    
-    const columns = [
-      { id: 'pos', label: 'Position', default: true },
-      { id: 'share', label: 'Market Share', default: true },
-      { id: 'product', label: 'Product', default: true, disabled: true },
-      { id: 'impressions', label: 'Impressions', default: true },
-      { id: 'clicks', label: 'Clicks', default: true },
-      { id: 'ctr', label: 'CTR %', default: true },
-      { id: 'cost', label: 'Cost', default: true },
-      { id: 'conversions', label: 'Conversions', default: true },
-      { id: 'roas', label: 'ROAS', default: true },
-      { id: 'revenue', label: 'Revenue', default: true }
-    ];
-    
-    // Get current visible columns
-    const defaultColumns = ['expand', 'pos', 'share', 'product', 'impressions', 'clicks', 'ctr', 'cost', 'conversions', 'roas', 'revenue'];
-    const visibleColumns = JSON.parse(localStorage.getItem('campaignTableColumns') || JSON.stringify(defaultColumns));
-    
-    columns.forEach(col => {
-      const item = document.createElement('div');
-      item.className = 'column-selector-item';
-      
-      const isChecked = visibleColumns.includes(col.id);
-      const isDisabled = col.disabled || false;
-      
-      item.innerHTML = `
-        <input type="checkbox" 
-               id="col-${col.id}" 
-               value="${col.id}" 
-               ${isChecked ? 'checked' : ''} 
-               ${isDisabled ? 'disabled' : ''}>
-        <label for="col-${col.id}">${col.label}</label>
-      `;
-      
-      if (!isDisabled) {
-        item.addEventListener('change', function(e) {
-          updateVisibleColumns();
-        });
-      }
-      
-      dropdown.appendChild(item);
-    });
-    
-    // Add dropdown to button's parent
-    btn.parentElement.style.position = 'relative';
-    btn.parentElement.appendChild(dropdown);
-  }
-  
-  // Toggle visibility
-  dropdown.classList.toggle('active');
-  
-  // Close on outside click
-  setTimeout(() => {
-    document.addEventListener('click', function closeDropdown(e) {
-      if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('active');
-        document.removeEventListener('click', closeDropdown);
-      }
-    });
-  }, 100);
-}
-
-// Update visible columns
-function updateVisibleColumns() {
-  const checkboxes = document.querySelectorAll('.column-selector-dropdown input[type="checkbox"]:not([disabled])');
-  const visibleColumns = ['expand']; // Always include expand column
-  
-  checkboxes.forEach(cb => {
-    if (cb.checked) {
-      visibleColumns.push(cb.value);
-    }
-  });
-  
-  // Always include product column
-  if (!visibleColumns.includes('product')) {
-    visibleColumns.splice(1, 0, 'product');
-  }
-  
-  // Save to localStorage
-  localStorage.setItem('campaignTableColumns', JSON.stringify(visibleColumns));
-  
-  // Reload the table
-  if (window.selectedCampaign) {
-    loadCampaignProducts(
-      window.selectedCampaign.key,
-      window.selectedCampaign.channelType,
-      window.selectedCampaign.campaignName
-    );
-  }
-}
-
-// Export the function to window
-window.toggleColumnSelector = toggleColumnSelector;
-
-// Add new helper function for compact number formatting
-function formatCompactNumber(value) {
-  if (value === null || value === undefined || value === '') return '-';
-  
-  const num = parseFloat(value);
-  if (isNaN(num)) return '-';
-  
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  } else if (num < 1 && num > 0) {
-    return num.toFixed(2);
-  } else {
-    return num.toFixed(0);
-  }
-}
-
 // Add event listeners for modern table
 function addModernTableEventListeners(wrapper, tableData) {
-  // Expand/collapse functionality - FIXED
-  wrapper.querySelectorAll('.camp-expand-btn').forEach(arrow => {
+  // Expand/collapse functionality
+  wrapper.querySelectorAll('.camp-expand-arrow').forEach(arrow => {
     arrow.addEventListener('click', function(e) {
       e.stopPropagation();
       const index = this.dataset.index;
       const deviceRows = wrapper.querySelectorAll(`.camp-row-device[data-parent-index="${index}"]`);
       
-      // Toggle expanded class on button
       this.classList.toggle('expanded');
-      
-      // Toggle visibility of device rows
       deviceRows.forEach(row => {
         row.classList.toggle('visible');
       });
-      
-      // Update button text
-      this.textContent = this.classList.contains('expanded') ? '▼' : '▶';
     });
   });
   
