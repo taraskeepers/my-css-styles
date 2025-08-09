@@ -398,15 +398,15 @@ function addCampaignsStyles() {
         text-align: right;
       }
       
-      /* Column widths */
-      .camp-table-modern th:nth-child(1),
-      .camp-table-modern td:nth-child(1) { width: 40px; } /* Expand */
-      
-      .camp-table-modern th:nth-child(2),
-      .camp-table-modern td:nth-child(2) { width: 60px; } /* Pos */
-      
-      .camp-table-modern th:nth-child(3),
-      .camp-table-modern td:nth-child(3) { width: 90px; } /* Share */
+/* Column widths - removed expand column, added ROAS */
+.camp-table-modern th:nth-child(1),
+.camp-table-modern td:nth-child(1) { width: 60px; } /* Pos */
+
+.camp-table-modern th:nth-child(2),
+.camp-table-modern td:nth-child(2) { width: 70px; } /* ROAS */
+
+.camp-table-modern th:nth-child(3),
+.camp-table-modern td:nth-child(3) { width: 90px; } /* Share */
       
       .camp-table-modern th:nth-child(4),
       .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
@@ -706,6 +706,96 @@ function addCampaignsStyles() {
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      /* Image zoom on hover */
+.camp-product-img-container {
+  position: relative;
+  display: inline-block;
+}
+
+.camp-product-img-zoom {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border: 2px solid #007aff;
+  z-index: 1000;
+  transition: transform 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.camp-product-img-container:hover .camp-product-img-zoom {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Metric progress bars */
+.camp-metric-with-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.camp-metric-bar {
+  width: 100%;
+  height: 3px;
+  background: #e9ecef;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.camp-metric-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  transition: width 0.3s ease;
+}
+
+/* ROAS badge styling */
+.camp-roas-badge {
+  width: 60px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: white;
+}
+
+.camp-roas-badge.excellent {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+}
+
+.camp-roas-badge.good {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.camp-roas-badge.fair {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+}
+
+.camp-roas-badge.poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+/* Clickable row styling */
+.camp-table-modern tbody tr.main-row {
+  cursor: pointer;
+}
+
+.camp-table-modern tbody tr.main-row:hover {
+  background: rgba(0, 122, 255, 0.04);
+}
     `;
     document.head.appendChild(style);
   }
@@ -955,23 +1045,23 @@ function createColumnSelectorDropdown() {
   dropdown.className = 'column-selector-dropdown';
   
   // Define all available columns
-  const columns = [
-    { id: 'impressions', label: 'Impressions', visible: true },
-    { id: 'clicks', label: 'Clicks', visible: true },
-    { id: 'ctr', label: 'CTR %', visible: true },
-    { id: 'avgCpc', label: 'Avg CPC', visible: false },
-    { id: 'cost', label: 'Cost', visible: true },
-    { id: 'conversions', label: 'Conversions', visible: true },
-    { id: 'cpa', label: 'CPA', visible: false },
-    { id: 'convValue', label: 'Revenue', visible: true },
-    { id: 'cvr', label: 'CVR %', visible: false },
-    { id: 'aov', label: 'AOV', visible: false },
-    { id: 'cpm', label: 'CPM', visible: false },
-    { id: 'roas', label: 'ROAS', visible: true },
-    { id: 'cartRate', label: 'Cart Rate', visible: false },
-    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
-    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
-  ];
+const columns = [
+  { id: 'impressions', label: 'Impressions', visible: true },
+  { id: 'clicks', label: 'Clicks', visible: true },
+  { id: 'ctr', label: 'CTR %', visible: true },
+  { id: 'avgCpc', label: 'Avg CPC', visible: true },  // Now visible by default
+  { id: 'cost', label: 'Cost', visible: true },
+  { id: 'conversions', label: 'Conv', visible: true },  // Renamed to Conv
+  { id: 'cpa', label: 'CPA', visible: true },  // Now visible by default
+  { id: 'convValue', label: 'Revenue', visible: true },
+  { id: 'cvr', label: 'CVR %', visible: true },  // Now visible by default
+  { id: 'aov', label: 'AOV', visible: false },
+  { id: 'cpm', label: 'CPM', visible: false },
+  { id: 'roas', label: 'ROAS', visible: false },  // Will be moved to fixed column
+  { id: 'cartRate', label: 'Cart Rate', visible: false },
+  { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
+  { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
+];
   
   // Store columns config globally
   window.campaignTableColumns = columns;
@@ -1281,18 +1371,29 @@ function calculateMarketShare(matchedProduct) {
 
 // Render products table with improved design
 function renderProductsTable(container, tableData, campaignName) {
-  // Get visible columns
+  // Get visible columns (excluding ROAS which is now fixed)
   const visibleColumns = window.campaignTableColumns ? 
-    window.campaignTableColumns.filter(c => c.visible) : 
+    window.campaignTableColumns.filter(c => c.visible && c.id !== 'roas') : 
     [
       { id: 'impressions', label: 'Impr' },
       { id: 'clicks', label: 'Clicks' },
       { id: 'ctr', label: 'CTR %' },
+      { id: 'avgCpc', label: 'Avg CPC' },
       { id: 'cost', label: 'Cost' },
       { id: 'conversions', label: 'Conv' },
-      { id: 'roas', label: 'ROAS' },
+      { id: 'cpa', label: 'CPA' },
+      { id: 'cvr', label: 'CVR %' },
       { id: 'convValue', label: 'Revenue' }
     ];
+  
+  // Calculate max values for progress bars
+  const maxValues = {
+    impressions: Math.max(...tableData.map(p => p.impressions || 0)),
+    clicks: Math.max(...tableData.map(p => p.clicks || 0)),
+    cost: Math.max(...tableData.map(p => p.cost || 0)),
+    conversions: Math.max(...tableData.map(p => p.conversions || 0)),
+    convValue: Math.max(...tableData.map(p => p.convValue || 0))
+  };
   
   // Create wrapper
   const wrapper = document.createElement('div');
@@ -1306,11 +1407,14 @@ function renderProductsTable(container, tableData, campaignName) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   
-  // Fixed columns headers
+  // Fixed columns headers (removed expand, added ROAS after POS)
   let headerHTML = `
-    <th class="center" style="width: 40px;"></th>
     <th class="center sortable" data-sort="adPosition" style="width: 60px;">
       Pos
+      <span class="camp-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="roas" style="width: 70px;">
+      ROAS
       <span class="camp-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="marketShare" style="width: 90px;">
@@ -1326,11 +1430,12 @@ function renderProductsTable(container, tableData, campaignName) {
   
   // Dynamic metric columns headers
   visibleColumns.forEach(col => {
-    const label = col.label || col.id;
-    const displayLabel = col.id === 'impressions' ? 'Impr' : label;
+    const label = col.id === 'impressions' ? 'Impr' : 
+                  col.id === 'conversions' ? 'Conv' : 
+                  col.label;
     headerHTML += `
       <th class="right sortable metric-col" data-sort="${col.id}">
-        ${displayLabel}
+        ${label}
         <span class="camp-sort-icon">⇅</span>
       </th>
     `;
@@ -1347,6 +1452,7 @@ function renderProductsTable(container, tableData, campaignName) {
   tableData.forEach((product, index) => {
     // Main product row
     const mainRow = document.createElement('tr');
+    mainRow.className = 'main-row';
     mainRow.dataset.index = index;
     
     const hasDevices = product.devices && product.devices.size > 1;
@@ -1359,14 +1465,22 @@ function renderProductsTable(container, tableData, campaignName) {
       else if (product.adPosition <= 14) posClass = 'low';
     }
     
-    // Build row HTML
+    // ROAS badge class
+    let roasClass = 'poor';
+    if (product.roas >= 4) roasClass = 'excellent';
+    else if (product.roas >= 2) roasClass = 'good';
+    else if (product.roas >= 1) roasClass = 'fair';
+    
+    // Build row HTML (removed expand column, added ROAS after POS)
     let rowHTML = `
-      <td style="text-align: center; width: 40px;">
-        ${hasDevices ? `<div class="camp-expand-arrow" data-index="${index}">▶</div>` : ''}
-      </td>
       <td style="text-align: center; width: 60px;">
         ${product.adPosition ? 
           `<div class="camp-position-indicator ${posClass}">${product.adPosition}</div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td style="text-align: center; width: 70px;">
+        ${product.roas !== null && product.roas !== undefined ? 
+          `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td style="text-align: center; width: 90px;">
@@ -1379,21 +1493,24 @@ function renderProductsTable(container, tableData, campaignName) {
       </td>
       <td style="text-align: center; width: 80px;">
         ${product.image ? 
-          `<img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">` : 
+          `<div class="camp-product-img-container">
+            <img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">
+            <img class="camp-product-img-zoom" src="${product.image}" alt="${product.title}">
+          </div>` : 
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
       <td style="width: 300px;">
-        <div class="camp-product-title">${product.title}</div>
+        <div class="camp-product-title">${product.title}${hasDevices ? ' <span style="color: #007aff; font-size: 11px;">(▼)</span>' : ''}</div>
       </td>
     `;
     
-    // Add metric columns
+    // Add metric columns with progress bars for specific metrics
     visibleColumns.forEach(col => {
       const value = product[col.id];
       let metricClass = 'camp-metric';
       let formattedValue = formatMetricValue(value, getMetricFormat(col.id));
       
-      // Special styling for certain metrics
+      // Special styling
       if (col.id === 'impressions' || col.id === 'convValue') {
         metricClass += ' large';
       }
@@ -1402,14 +1519,50 @@ function renderProductsTable(container, tableData, campaignName) {
       } else if (col.id === 'ctr' && value < 0.5) {
         metricClass += ' negative';
       }
-      if (col.id === 'roas') {
-        metricClass += ' highlight';
-      }
       
-      rowHTML += `<td class="metric-col" style="text-align: right;"><span class="${metricClass}">${formattedValue}</span></td>`;
+      // Add progress bars for specific metrics
+      if (['impressions', 'clicks', 'cost', 'conversions', 'convValue'].includes(col.id)) {
+        const percentage = maxValues[col.id] > 0 ? (value / maxValues[col.id] * 100) : 0;
+        rowHTML += `
+          <td class="metric-col" style="text-align: right;">
+            <div class="camp-metric-with-bar">
+              <span class="${metricClass}">${formattedValue}</span>
+              <div class="camp-metric-bar">
+                <div class="camp-metric-bar-fill" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+          </td>`;
+      } else {
+        rowHTML += `<td class="metric-col" style="text-align: right;"><span class="${metricClass}">${formattedValue}</span></td>`;
+      }
     });
     
     mainRow.innerHTML = rowHTML;
+    
+    // Add click handler for row expansion
+    if (hasDevices) {
+      mainRow.addEventListener('click', function(e) {
+        // Don't trigger on image hover
+        if (e.target.classList.contains('camp-product-img')) return;
+        
+        const deviceRows = tbody.querySelectorAll(`.device-row[data-parent-index="${index}"]`);
+        const isExpanded = deviceRows[0]?.classList.contains('visible');
+        
+        deviceRows.forEach(row => {
+          row.classList.toggle('visible');
+        });
+        
+        // Update visual indicator
+        const titleDiv = this.querySelector('.camp-product-title');
+        if (titleDiv) {
+          const indicator = titleDiv.querySelector('span');
+          if (indicator) {
+            indicator.textContent = isExpanded ? '(▼)' : '(▲)';
+          }
+        }
+      });
+    }
+    
     tbody.appendChild(mainRow);
     
     // Device rows (initially hidden)
@@ -1423,6 +1576,7 @@ function renderProductsTable(container, tableData, campaignName) {
         const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
                           deviceType === 'TABLET' ? '📱' : '💻';
         
+        // Device row with empty cells for fixed columns
         let deviceRowHTML = `
           <td></td>
           <td></td>
@@ -1456,7 +1610,7 @@ function renderProductsTable(container, tableData, campaignName) {
   container.innerHTML = '';
   container.appendChild(wrapper);
   
-  // Add event listeners
+  // Add event listeners for sorting
   addImprovedTableEventListeners(wrapper, tableData);
 }
 
@@ -1484,21 +1638,7 @@ function getMetricFormat(metricId) {
 
 // Add improved event listeners for the table
 function addImprovedTableEventListeners(wrapper, tableData) {
-  // Expand/collapse functionality
-  wrapper.querySelectorAll('.camp-expand-arrow').forEach(arrow => {
-    arrow.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const index = this.dataset.index;
-      const deviceRows = wrapper.querySelectorAll(`.device-row[data-parent-index="${index}"]`);
-      
-      this.classList.toggle('expanded');
-      deviceRows.forEach(row => {
-        row.classList.toggle('visible');
-      });
-    });
-  });
-  
-  // Sorting functionality
+  // Sorting functionality only (expansion is handled in row click)
   let currentSort = { column: null, direction: null };
   
   wrapper.querySelectorAll('th.sortable').forEach(header => {
