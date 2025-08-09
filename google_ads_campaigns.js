@@ -16,7 +16,7 @@ async function initializeCampaignsSection() {
   await loadAndRenderCampaigns();
 }
 
-// Add campaigns-specific styles (REPLACE the existing addCampaignsStyles function)
+// Add campaigns-specific styles (REPLACE the entire addCampaignsStyles function)
 function addCampaignsStyles() {
   if (!document.getElementById('campaigns-section-styles')) {
     const style = document.createElement('style');
@@ -259,6 +259,7 @@ function addCampaignsStyles() {
         align-items: center;
         gap: 6px;
         transition: all 0.2s;
+        position: relative;
       }
       
       .column-selector-btn:hover {
@@ -266,7 +267,68 @@ function addCampaignsStyles() {
         border-color: #007aff;
       }
       
-      /* NEW IMPROVED TABLE DESIGN */
+      /* Column selector dropdown */
+      .column-selector-dropdown {
+        position: absolute;
+        top: calc(100% + 5px);
+        right: 0;
+        width: 250px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: none;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      
+      .column-selector-dropdown.active {
+        display: block;
+      }
+      
+      .column-selector-header {
+        padding: 10px 15px;
+        border-bottom: 1px solid #eee;
+        font-weight: 600;
+        font-size: 13px;
+        color: #333;
+        background: #f8f9fa;
+        border-radius: 8px 8px 0 0;
+      }
+      
+      .column-selector-list {
+        padding: 8px;
+      }
+      
+      .column-selector-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      
+      .column-selector-item:hover {
+        background: #f0f2f5;
+      }
+      
+      .column-selector-checkbox {
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+        cursor: pointer;
+      }
+      
+      .column-selector-label {
+        font-size: 13px;
+        color: #495057;
+        cursor: pointer;
+        flex: 1;
+      }
+      
+      /* TABLE STYLES */
       .campaigns-products-table-container {
         flex: 1;
         overflow: auto;
@@ -338,40 +400,26 @@ function addCampaignsStyles() {
       
       /* Column widths */
       .camp-table-modern th:nth-child(1),
-      .camp-table-modern td:nth-child(1) { width: 30px; } /* Expand */
+      .camp-table-modern td:nth-child(1) { width: 40px; } /* Expand */
       
       .camp-table-modern th:nth-child(2),
-      .camp-table-modern td:nth-child(2) { width: 50px; } /* Pos */
+      .camp-table-modern td:nth-child(2) { width: 60px; } /* Pos */
       
       .camp-table-modern th:nth-child(3),
-      .camp-table-modern td:nth-child(3) { width: 65px; } /* Share */
+      .camp-table-modern td:nth-child(3) { width: 90px; } /* Share */
       
       .camp-table-modern th:nth-child(4),
-      .camp-table-modern td:nth-child(4) { 
-        width: 30%; 
-        min-width: 200px;
-      } /* Product */
+      .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
       
       .camp-table-modern th:nth-child(5),
-      .camp-table-modern td:nth-child(5) { width: 90px; } /* Impressions */
+      .camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
       
-      .camp-table-modern th:nth-child(6),
-      .camp-table-modern td:nth-child(6) { width: 70px; } /* Clicks */
-      
-      .camp-table-modern th:nth-child(7),
-      .camp-table-modern td:nth-child(7) { width: 65px; } /* CTR */
-      
-      .camp-table-modern th:nth-child(8),
-      .camp-table-modern td:nth-child(8) { width: 80px; } /* Cost */
-      
-      .camp-table-modern th:nth-child(9),
-      .camp-table-modern td:nth-child(9) { width: 60px; } /* Conv */
-      
-      .camp-table-modern th:nth-child(10),
-      .camp-table-modern td:nth-child(10) { width: 70px; } /* ROAS */
-      
-      .camp-table-modern th:nth-child(11),
-      .camp-table-modern td:nth-child(11) { width: 90px; } /* Revenue */
+      /* All metric columns - max 90px */
+      .camp-table-modern th.metric-col,
+      .camp-table-modern td.metric-col { 
+        width: 90px;
+        max-width: 90px;
+      }
       
       /* Sort icon */
       .camp-sort-icon {
@@ -392,6 +440,7 @@ function addCampaignsStyles() {
       .camp-table-modern tbody tr {
         border-bottom: 1px solid #f0f2f5;
         transition: background 0.15s ease;
+        height: 70px;
       }
       
       .camp-table-modern tbody tr:hover {
@@ -401,6 +450,7 @@ function addCampaignsStyles() {
       .camp-table-modern tbody tr.device-row {
         background: #fafbfc;
         display: none;
+        height: 40px;
       }
       
       .camp-table-modern tbody tr.device-row.visible {
@@ -416,6 +466,12 @@ function addCampaignsStyles() {
         font-size: 13px;
         color: #495057;
         vertical-align: middle;
+        height: 70px;
+      }
+      
+      .camp-table-modern tr.device-row td {
+        height: 40px;
+        padding: 6px 8px;
       }
       
       /* Expand arrow */
@@ -445,9 +501,9 @@ function addCampaignsStyles() {
       
       /* Position indicator */
       .camp-position-indicator {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -477,10 +533,10 @@ function addCampaignsStyles() {
       
       /* Market share bar */
       .camp-share-bar {
-        width: 48px;
-        height: 28px;
+        width: 60px;
+        height: 32px;
         background: #e9ecef;
-        border-radius: 14px;
+        border-radius: 16px;
         position: relative;
         overflow: hidden;
         display: inline-block;
@@ -498,7 +554,7 @@ function addCampaignsStyles() {
       .camp-share-text {
         position: relative;
         z-index: 2;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
         color: #1e40af;
         height: 100%;
@@ -508,31 +564,31 @@ function addCampaignsStyles() {
         text-shadow: 0 0 2px rgba(255,255,255,0.8);
       }
       
-      /* Product info cell */
-      .camp-product-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
+      /* Product image */
       .camp-product-img {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
         object-fit: cover;
         border: 1px solid #e9ecef;
-        flex-shrink: 0;
         background: white;
+        display: block;
+        margin: 0 auto;
       }
       
-      .camp-product-name {
-        flex: 1;
+      /* Product title */
+      .camp-product-title {
         font-size: 13px;
         font-weight: 500;
         color: #212529;
-        line-height: 1.3;
+        line-height: 1.4;
         word-break: break-word;
         overflow-wrap: break-word;
+        max-height: 56px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
       }
       
       /* Device tag */
@@ -567,9 +623,12 @@ function addCampaignsStyles() {
       .camp-metric {
         text-align: right;
         font-variant-numeric: tabular-nums;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
         color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       
       .camp-metric.large {
@@ -865,6 +924,103 @@ function renderCampaignGroup(container, type, campaigns, icon) {
   container.appendChild(groupSection);
 }
 
+// Toggle column selector dropdown
+function toggleColumnSelector() {
+  const btn = document.querySelector('.column-selector-btn');
+  let dropdown = document.querySelector('.column-selector-dropdown');
+  
+  if (!dropdown) {
+    dropdown = createColumnSelectorDropdown();
+    btn.appendChild(dropdown);
+  }
+  
+  dropdown.classList.toggle('active');
+  
+  // Close on click outside
+  if (dropdown.classList.contains('active')) {
+    setTimeout(() => {
+      document.addEventListener('click', function closeDropdown(e) {
+        if (!btn.contains(e.target)) {
+          dropdown.classList.remove('active');
+          document.removeEventListener('click', closeDropdown);
+        }
+      });
+    }, 100);
+  }
+}
+
+// Create column selector dropdown
+function createColumnSelectorDropdown() {
+  const dropdown = document.createElement('div');
+  dropdown.className = 'column-selector-dropdown';
+  
+  // Define all available columns
+  const columns = [
+    { id: 'impressions', label: 'Impressions', visible: true },
+    { id: 'clicks', label: 'Clicks', visible: true },
+    { id: 'ctr', label: 'CTR %', visible: true },
+    { id: 'avgCpc', label: 'Avg CPC', visible: false },
+    { id: 'cost', label: 'Cost', visible: true },
+    { id: 'conversions', label: 'Conversions', visible: true },
+    { id: 'cpa', label: 'CPA', visible: false },
+    { id: 'convValue', label: 'Revenue', visible: true },
+    { id: 'cvr', label: 'CVR %', visible: false },
+    { id: 'aov', label: 'AOV', visible: false },
+    { id: 'cpm', label: 'CPM', visible: false },
+    { id: 'roas', label: 'ROAS', visible: true },
+    { id: 'cartRate', label: 'Cart Rate', visible: false },
+    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
+    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
+  ];
+  
+  // Store columns config globally
+  window.campaignTableColumns = columns;
+  
+  dropdown.innerHTML = `
+    <div class="column-selector-header">Select Columns</div>
+    <div class="column-selector-list">
+      ${columns.map(col => `
+        <div class="column-selector-item" data-column="${col.id}">
+          <input type="checkbox" class="column-selector-checkbox" 
+                 ${col.visible ? 'checked' : ''} 
+                 data-column="${col.id}">
+          <label class="column-selector-label">${col.label}</label>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  
+  // Add event listeners
+  dropdown.querySelectorAll('.column-selector-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      if (e.target.type !== 'checkbox') {
+        const checkbox = this.querySelector('.column-selector-checkbox');
+        checkbox.checked = !checkbox.checked;
+      }
+      
+      // Update columns config
+      const columnId = this.dataset.column;
+      const column = window.campaignTableColumns.find(c => c.id === columnId);
+      if (column) {
+        column.visible = this.querySelector('.column-selector-checkbox').checked;
+      }
+      
+      // Refresh table if campaign is selected
+      if (window.selectedCampaign) {
+        const campaignKey = window.selectedCampaign.key;
+        const channelType = window.selectedCampaign.channelType;
+        const campaignName = window.selectedCampaign.campaignName;
+        loadCampaignProducts(campaignKey, channelType, campaignName);
+      }
+    });
+  });
+  
+  return dropdown;
+}
+
+// Make toggleColumnSelector globally available
+window.toggleColumnSelector = toggleColumnSelector;
+
 // Create a campaign item
 function createCampaignItem(campaign, icon) {
   const item = document.createElement('div');
@@ -1041,44 +1197,44 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
     
     console.log('[loadCampaignProducts] Matched products:', matchedProducts.size);
     
-    // Calculate aggregated metrics for each product
-    const tableData = [];
-    
-    for (const [productTitle, productData] of productsData) {
-      const devices = Array.from(productData.devices.values());
-      const matchedProduct = matchedProducts.get(productTitle);
-      
-      // Aggregate metrics across all devices
-      const aggregated = {
-        title: productTitle,
-        image: matchedProduct?.thumbnail || '',
-        adPosition: calculateAdPosition(matchedProduct),
-        marketShare: calculateMarketShare(matchedProduct),
-        devices: productData.devices,
-        // Aggregate numeric metrics
-        impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
-        clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
-        cost: devices.reduce((sum, d) => sum + (parseFloat(d.Cost) || 0), 0),
-        conversions: devices.reduce((sum, d) => sum + (parseFloat(d.Conversions) || 0), 0),
-        convValue: devices.reduce((sum, d) => sum + (parseFloat(d.ConvValue) || 0), 0),
-        cartCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Cart Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
-        checkoutCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Checkout Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
-      };
-      
-      // Calculate derived metrics
-      aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
-      aggregated.avgCpc = aggregated.clicks > 0 ? (aggregated.cost / aggregated.clicks) : 0;
-      aggregated.cpa = aggregated.conversions > 0 ? (aggregated.cost / aggregated.conversions) : 0;
-      aggregated.cvr = aggregated.clicks > 0 ? (aggregated.conversions / aggregated.clicks * 100) : 0;
-      aggregated.aov = aggregated.conversions > 0 ? (aggregated.convValue / aggregated.conversions) : 0;
-      aggregated.cpm = aggregated.impressions > 0 ? (aggregated.cost / aggregated.impressions * 1000) : 0;
-      aggregated.roas = aggregated.cost > 0 ? (aggregated.convValue / aggregated.cost) : 0;
-      aggregated.cartRate = aggregated.clicks > 0 ? (aggregated.cartCount / aggregated.clicks * 100) : 0;
-      aggregated.checkoutRate = aggregated.cartCount > 0 ? (aggregated.checkoutCount / aggregated.cartCount * 100) : 0;
-      aggregated.purchaseRate = aggregated.checkoutCount > 0 ? (aggregated.conversions / aggregated.checkoutCount * 100) : 0;
-      
-      tableData.push(aggregated);
-    }
+// Calculate aggregated metrics for each product
+const tableData = [];
+
+for (const [productTitle, productData] of productsData) {
+  const devices = Array.from(productData.devices.values());
+  const matchedProduct = matchedProducts.get(productTitle);
+  
+  // Aggregate metrics across all devices
+  const aggregated = {
+    title: productTitle,
+    image: matchedProduct?.thumbnail || '',
+    adPosition: calculateAdPosition(matchedProduct),
+    marketShare: calculateMarketShare(matchedProduct),
+    devices: productData.devices,
+    // Aggregate numeric metrics
+    impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
+    clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
+    cost: devices.reduce((sum, d) => sum + (parseFloat(d.Cost) || 0), 0),
+    conversions: devices.reduce((sum, d) => sum + (parseFloat(d.Conversions) || 0), 0),
+    convValue: devices.reduce((sum, d) => sum + (parseFloat(d.ConvValue) || 0), 0),
+    cartCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Cart Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
+    checkoutCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Checkout Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
+  };
+  
+  // Calculate derived metrics
+  aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
+  aggregated.avgCpc = aggregated.clicks > 0 ? (aggregated.cost / aggregated.clicks) : 0;
+  aggregated.cpa = aggregated.conversions > 0 ? (aggregated.cost / aggregated.conversions) : 0;
+  aggregated.cvr = aggregated.clicks > 0 ? (aggregated.conversions / aggregated.clicks * 100) : 0;
+  aggregated.aov = aggregated.conversions > 0 ? (aggregated.convValue / aggregated.conversions) : 0;
+  aggregated.cpm = aggregated.impressions > 0 ? (aggregated.cost / aggregated.impressions * 1000) : 0;
+  aggregated.roas = aggregated.cost > 0 ? (aggregated.convValue / aggregated.cost) : 0;
+  aggregated.cartRate = aggregated.clicks > 0 ? (aggregated.cartCount / aggregated.clicks * 100) : 0;
+  aggregated.checkoutRate = aggregated.cartCount > 0 ? (aggregated.checkoutCount / aggregated.cartCount * 100) : 0;
+  aggregated.purchaseRate = aggregated.checkoutCount > 0 ? (aggregated.conversions / aggregated.checkoutCount * 100) : 0;
+  
+  tableData.push(aggregated);
+}
     
     // Sort by impressions by default
     tableData.sort((a, b) => b.impressions - a.impressions);
@@ -1125,6 +1281,19 @@ function calculateMarketShare(matchedProduct) {
 
 // Render products table with improved design
 function renderProductsTable(container, tableData, campaignName) {
+  // Get visible columns
+  const visibleColumns = window.campaignTableColumns ? 
+    window.campaignTableColumns.filter(c => c.visible) : 
+    [
+      { id: 'impressions', label: 'Impr' },
+      { id: 'clicks', label: 'Clicks' },
+      { id: 'ctr', label: 'CTR %' },
+      { id: 'cost', label: 'Cost' },
+      { id: 'conversions', label: 'Conv' },
+      { id: 'roas', label: 'ROAS' },
+      { id: 'convValue', label: 'Revenue' }
+    ];
+  
   // Create wrapper
   const wrapper = document.createElement('div');
   wrapper.className = 'camp-products-wrapper';
@@ -1136,49 +1305,38 @@ function renderProductsTable(container, tableData, campaignName) {
   // Create header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `
-    <th class="center"></th>
-    <th class="center sortable" data-sort="adPosition">
+  
+  // Fixed columns headers
+  let headerHTML = `
+    <th class="center" style="width: 40px;"></th>
+    <th class="center sortable" data-sort="adPosition" style="width: 60px;">
       Pos
       <span class="camp-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="marketShare">
+    <th class="center sortable" data-sort="marketShare" style="width: 90px;">
       Share
       <span class="camp-sort-icon">⇅</span>
     </th>
-    <th class="sortable" data-sort="title">
+    <th class="center" style="width: 80px;">Image</th>
+    <th class="sortable" data-sort="title" style="width: 300px;">
       Product
       <span class="camp-sort-icon">⇅</span>
     </th>
-    <th class="right sortable" data-sort="impressions">
-      Impressions
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="clicks">
-      Clicks
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="ctr">
-      CTR %
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="cost">
-      Cost
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="conversions">
-      Conv.
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="roas">
-      ROAS
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable" data-sort="convValue">
-      Revenue
-      <span class="camp-sort-icon">⇅</span>
-    </th>
   `;
+  
+  // Dynamic metric columns headers
+  visibleColumns.forEach(col => {
+    const label = col.label || col.id;
+    const displayLabel = col.id === 'impressions' ? 'Impr' : label;
+    headerHTML += `
+      <th class="right sortable metric-col" data-sort="${col.id}">
+        ${displayLabel}
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+    `;
+  });
+  
+  headerRow.innerHTML = headerHTML;
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
@@ -1201,28 +1359,17 @@ function renderProductsTable(container, tableData, campaignName) {
       else if (product.adPosition <= 14) posClass = 'low';
     }
     
-    // Create row cells
-    const cells = [];
-    
-    // Expand cell
-    cells.push(`
-      <td style="text-align: center;">
+    // Build row HTML
+    let rowHTML = `
+      <td style="text-align: center; width: 40px;">
         ${hasDevices ? `<div class="camp-expand-arrow" data-index="${index}">▶</div>` : ''}
       </td>
-    `);
-    
-    // Position cell
-    cells.push(`
-      <td style="text-align: center;">
+      <td style="text-align: center; width: 60px;">
         ${product.adPosition ? 
           `<div class="camp-position-indicator ${posClass}">${product.adPosition}</div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
-    `);
-    
-    // Share cell
-    cells.push(`
-      <td style="text-align: center;">
+      <td style="text-align: center; width: 90px;">
         ${product.marketShare ? 
           `<div class="camp-share-bar">
             <div class="camp-share-fill" style="width: ${product.marketShare}%"></div>
@@ -1230,29 +1377,39 @@ function renderProductsTable(container, tableData, campaignName) {
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
-    `);
-    
-    // Product cell
-    cells.push(`
-      <td>
-        <div class="camp-product-info">
-          ${product.image ? 
-            `<img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">` : ''}
-          <div class="camp-product-name">${product.title}</div>
-        </div>
+      <td style="text-align: center; width: 80px;">
+        ${product.image ? 
+          `<img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">` : 
+          '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
-    `);
+      <td style="width: 300px;">
+        <div class="camp-product-title">${product.title}</div>
+      </td>
+    `;
     
-    // Metric cells
-    cells.push(`<td style="text-align: right;"><span class="camp-metric large">${formatMetricValue(product.impressions, 'number')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric">${formatMetricValue(product.clicks, 'number')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric ${product.ctr > 2 ? 'positive' : product.ctr < 0.5 ? 'negative' : ''}">${formatMetricValue(product.ctr, 'percent')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric">${formatMetricValue(product.cost, 'currency')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric">${formatMetricValue(product.conversions, 'number')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric highlight">${formatMetricValue(product.roas, 'roas')}</span></td>`);
-    cells.push(`<td style="text-align: right;"><span class="camp-metric large">${formatMetricValue(product.convValue, 'currency')}</span></td>`);
+    // Add metric columns
+    visibleColumns.forEach(col => {
+      const value = product[col.id];
+      let metricClass = 'camp-metric';
+      let formattedValue = formatMetricValue(value, getMetricFormat(col.id));
+      
+      // Special styling for certain metrics
+      if (col.id === 'impressions' || col.id === 'convValue') {
+        metricClass += ' large';
+      }
+      if (col.id === 'ctr' && value > 2) {
+        metricClass += ' positive';
+      } else if (col.id === 'ctr' && value < 0.5) {
+        metricClass += ' negative';
+      }
+      if (col.id === 'roas') {
+        metricClass += ' highlight';
+      }
+      
+      rowHTML += `<td class="metric-col" style="text-align: right;"><span class="${metricClass}">${formattedValue}</span></td>`;
+    });
     
-    mainRow.innerHTML = cells.join('');
+    mainRow.innerHTML = rowHTML;
     tbody.appendChild(mainRow);
     
     // Device rows (initially hidden)
@@ -1266,24 +1423,27 @@ function renderProductsTable(container, tableData, campaignName) {
         const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
                           deviceType === 'TABLET' ? '📱' : '💻';
         
-        deviceRow.innerHTML = `
+        let deviceRowHTML = `
           <td></td>
           <td></td>
           <td></td>
-          <td style="padding-left: 40px;">
+          <td></td>
+          <td style="padding-left: 20px;">
             <div class="camp-device-tag ${deviceClass}">
               ${deviceIcon} ${deviceType}
             </div>
           </td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.Impressions), 'number')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.Clicks), 'number')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.CTR), 'percent')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.Cost), 'currency')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.Conversions), 'number')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.ROAS), 'roas')}</span></td>
-          <td style="text-align: right;"><span class="camp-metric">${formatMetricValue(parseFloat(deviceData.ConvValue), 'currency')}</span></td>
         `;
         
+        // Add device metric columns
+        visibleColumns.forEach(col => {
+          const value = getDeviceMetricValue(deviceData, col.id);
+          deviceRowHTML += `<td class="metric-col" style="text-align: right;">
+            <span class="camp-metric">${formatMetricValue(value, getMetricFormat(col.id))}</span>
+          </td>`;
+        });
+        
+        deviceRow.innerHTML = deviceRowHTML;
         tbody.appendChild(deviceRow);
       });
     }
@@ -1298,6 +1458,28 @@ function renderProductsTable(container, tableData, campaignName) {
   
   // Add event listeners
   addImprovedTableEventListeners(wrapper, tableData);
+}
+
+// Get metric format type
+function getMetricFormat(metricId) {
+  const formats = {
+    impressions: 'number',
+    clicks: 'number',
+    ctr: 'percent',
+    avgCpc: 'currency',
+    cost: 'currency',
+    conversions: 'number',
+    cpa: 'currency',
+    convValue: 'currency',
+    cvr: 'percent',
+    aov: 'currency',
+    cpm: 'currency',
+    roas: 'roas',
+    cartRate: 'percent',
+    checkoutRate: 'percent',
+    purchaseRate: 'percent'
+  };
+  return formats[metricId] || 'number';
 }
 
 // Add improved event listeners for the table
