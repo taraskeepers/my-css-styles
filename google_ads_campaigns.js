@@ -1409,6 +1409,8 @@ for (const [productTitle, productData] of productsData) {
   // Get device-specific metrics if available
   const deviceMetrics = matchedProduct && typeof calculateGoogleAdsProductMetricsByDevice === 'function' ? 
     calculateGoogleAdsProductMetricsByDevice(matchedProduct) : null;
+
+  console.log('Device metrics for', productTitle, ':', deviceMetrics);
   
   // Aggregate metrics across all devices
   const aggregated = {
@@ -1729,6 +1731,8 @@ if (hasDevices) {
     // Get device-specific POS and Market Share
     const devicePOS = product.deviceMetrics?.get(deviceType)?.avgPosition || null;
     const deviceMarketShare = product.deviceMetrics?.get(deviceType)?.marketShare || null;
+
+    console.log(`Device: ${deviceType}, POS: ${devicePOS}, Share: ${deviceMarketShare}%`);
     
     // Position badge class for device
     let posClass = 'bottom';
