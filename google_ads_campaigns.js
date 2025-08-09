@@ -878,32 +878,6 @@ function addCampaignsStyles() {
   background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
 }
 
-/* Metric progress bars */
-.camp-metric-with-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.camp-metric-bar {
-  width: 100%;
-  height: 3px;
-  background: #e9ecef;
-  border-radius: 2px;
-  position: relative;
-  overflow: hidden;
-}
-
-.camp-metric-bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
-  transition: width 0.3s ease;
-}
-
 /* ROAS badge styling */
 .camp-roas-badge {
   width: 60px;
