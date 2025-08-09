@@ -713,25 +713,22 @@ function addCampaignsStyles() {
 }
 
 .camp-product-img-zoom {
-  position: absolute;
-  top: 50%;
-  left: 100%;
-  margin-left: 10px;
-  transform: translateY(-50%) scale(0);
-  width: 250px;
-  height: 250px;
-  border-radius: 8px;
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 12px;
   object-fit: contain;
   background: white;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   border: 2px solid #007aff;
-  z-index: 1000;
-  transition: transform 0.2s ease-in-out;
+  z-index: 10000;
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
 }
 
 .camp-product-img-container:hover .camp-product-img-zoom {
-  transform: translateY(-50%) scale(1);
+  opacity: 1;
 }
 
 /* Summary row styling */
@@ -774,9 +771,9 @@ function addCampaignsStyles() {
 
 .camp-metric-bar {
   flex: 1;
-  height: 4px;
+  height: 8px;
   background: #e9ecef;
-  border-radius: 2px;
+  border-radius: 4px;
   position: relative;
   overflow: hidden;
 }
@@ -788,15 +785,46 @@ function addCampaignsStyles() {
   bottom: 0;
   background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
   transition: width 0.3s ease;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .camp-metric-percent {
   font-size: 10px;
   color: #6c757d;
   font-weight: 500;
-  min-width: 30px;
+  min-width: 32px;
   text-align: right;
+}
+
+/* Alternating column backgrounds */
+.camp-table-modern td:nth-child(6),  /* IMPR - 1st metric column */
+.camp-table-modern th:nth-child(6) {
+  background-color: #f8f9fa !important;
+}
+
+.camp-table-modern td:nth-child(8),  /* CTR - 3rd metric column */
+.camp-table-modern th:nth-child(8) {
+  background-color: #f8f9fa !important;
+}
+
+.camp-table-modern td:nth-child(10), /* COST - 5th metric column */
+.camp-table-modern th:nth-child(10) {
+  background-color: #f8f9fa !important;
+}
+
+.camp-table-modern td:nth-child(12), /* CPA - 7th metric column */
+.camp-table-modern th:nth-child(12) {
+  background-color: #f8f9fa !important;
+}
+
+.camp-table-modern td:nth-child(14), /* CVR - 9th metric column */
+.camp-table-modern th:nth-child(14) {
+  background-color: #f8f9fa !important;
+}
+
+/* Keep summary row background consistent */
+.camp-summary-row td {
+  background: linear-gradient(to bottom, #f0f2f5, #e9ecef) !important;
 }
 
 /* Toggle switch styles */
@@ -899,10 +927,6 @@ function addCampaignsStyles() {
 
 .camp-roas-badge.fair {
   background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-}
-
-.camp-roas-badge.poor {
-  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
 }
 
 /* Clickable row styling */
@@ -1571,28 +1595,45 @@ function renderProductsTable(container, tableData, campaignName) {
   // Create body
   const tbody = document.createElement('tbody');
   
-  // Add summary row first
-  const summaryRow = document.createElement('tr');
-  summaryRow.className = 'camp-summary-row';
+// Add summary row first
+const summaryRow = document.createElement('tr');
+summaryRow.className = 'camp-summary-row';
+
+let summaryHTML = `
+  <td colspan="4" style="text-align: center; font-weight: 600; background: linear-gradient(to bottom, #f0f2f5, #e9ecef);">
+    Campaign Totals
+  </td>
+  <td style="font-weight: 600; background: linear-gradient(to bottom, #f0f2f5, #e9ecef);">
+    ${tableData.length} Products
+  </td>
+`;
+
+// Add summary metrics with bars for specific columns
+visibleColumns.forEach(col => {
+  const value = totals[col.id] || 0;
+  const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
   
-  let summaryHTML = `
-    <td colspan="4" style="text-align: center; font-weight: 600;">
-      Campaign Totals
-    </td>
-    <td style="font-weight: 600;">
-      ${tableData.length} Products
-    </td>
-  `;
-  
-  // Add summary metrics
-  visibleColumns.forEach(col => {
-    const value = totals[col.id] || 0;
-    const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
-    summaryHTML += `<td class="metric-col" style="text-align: right; font-weight: 600;">${formattedValue}</td>`;
-  });
-  
-  summaryRow.innerHTML = summaryHTML;
-  tbody.appendChild(summaryRow);
+  // Add progress bars for specific metrics in summary row
+  if (['impressions', 'clicks', 'cost', 'conversions', 'convValue'].includes(col.id)) {
+    summaryHTML += `
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">${formattedValue}</div>
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+            </div>
+            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+          </div>
+        </div>
+      </td>`;
+  } else {
+    summaryHTML += `<td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">${formattedValue}</td>`;
+  }
+});
+
+summaryRow.innerHTML = summaryHTML;
+tbody.appendChild(summaryRow);
   
   // Render product rows
   tableData.forEach((product, index) => {
@@ -1735,6 +1776,41 @@ function renderProductsTable(container, tableData, campaignName) {
   
   table.appendChild(tbody);
   wrapper.appendChild(table);
+
+  // Add event listeners for image hover positioning
+wrapper.querySelectorAll('.camp-product-img-container').forEach(container => {
+  const img = container.querySelector('.camp-product-img');
+  const zoomImg = container.querySelector('.camp-product-img-zoom');
+  
+  if (img && zoomImg) {
+    container.addEventListener('mouseenter', function(e) {
+      const rect = this.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let left = rect.right + 10;
+      let top = rect.top - 100;
+      
+      // Adjust if would go off right edge
+      if (left + 300 > viewportWidth) {
+        left = rect.left - 310;
+      }
+      
+      // Adjust if would go off top
+      if (top < 10) {
+        top = 10;
+      }
+      
+      // Adjust if would go off bottom
+      if (top + 300 > viewportHeight - 10) {
+        top = viewportHeight - 310;
+      }
+      
+      zoomImg.style.left = `${left}px`;
+      zoomImg.style.top = `${top}px`;
+    });
+  }
+});
   
   // Clear container and add new table
   container.innerHTML = '';
