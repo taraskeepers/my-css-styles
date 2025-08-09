@@ -398,21 +398,21 @@ function addCampaignsStyles() {
         text-align: right;
       }
       
-/* Column widths - removed expand column, added ROAS */
+/* Column widths - POS, SHARE, ROAS, IMAGE, TITLE */
 .camp-table-modern th:nth-child(1),
 .camp-table-modern td:nth-child(1) { width: 60px; } /* Pos */
 
 .camp-table-modern th:nth-child(2),
-.camp-table-modern td:nth-child(2) { width: 70px; } /* ROAS */
+.camp-table-modern td:nth-child(2) { width: 90px; } /* Share */
 
 .camp-table-modern th:nth-child(3),
-.camp-table-modern td:nth-child(3) { width: 90px; } /* Share */
-      
-      .camp-table-modern th:nth-child(4),
-      .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
-      
-      .camp-table-modern th:nth-child(5),
-      .camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
+.camp-table-modern td:nth-child(3) { width: 70px; } /* ROAS */
+
+.camp-table-modern th:nth-child(4),
+.camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
+
+.camp-table-modern th:nth-child(5),
+.camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
       
       /* All metric columns - max 90px */
       .camp-table-modern th.metric-col,
@@ -706,7 +706,7 @@ function addCampaignsStyles() {
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
-      /* Image zoom on hover */
+/* Image zoom on hover */
 .camp-product-img-container {
   position: relative;
   display: inline-block;
@@ -715,10 +715,11 @@ function addCampaignsStyles() {
 .camp-product-img-zoom {
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  width: 200px;
-  height: 200px;
+  left: 100%;
+  margin-left: 10px;
+  transform: translateY(-50%) scale(0);
+  width: 250px;
+  height: 250px;
   border-radius: 8px;
   object-fit: contain;
   background: white;
@@ -730,7 +731,123 @@ function addCampaignsStyles() {
 }
 
 .camp-product-img-container:hover .camp-product-img-zoom {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateY(-50%) scale(1);
+}
+
+/* Summary row styling */
+.camp-summary-row {
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  font-weight: 600;
+  border-bottom: 2px solid #007aff;
+}
+
+.camp-summary-row td {
+  padding: 12px 8px;
+  font-size: 13px;
+  color: #212529;
+  border-bottom: 2px solid #007aff;
+}
+
+/* Improved metric bars */
+.camp-metric-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+}
+
+.camp-metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212529;
+  text-align: center;
+  width: 100%;
+}
+
+.camp-metric-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.camp-metric-bar {
+  flex: 1;
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.camp-metric-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.camp-metric-percent {
+  font-size: 10px;
+  color: #6c757d;
+  font-weight: 500;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Toggle switch styles */
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #007aff;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* ROAS light red for values < 1 */
+.camp-roas-badge.poor {
+  background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
 }
 
 /* Metric progress bars */
@@ -1044,24 +1161,23 @@ function createColumnSelectorDropdown() {
   const dropdown = document.createElement('div');
   dropdown.className = 'column-selector-dropdown';
   
-  // Define all available columns
-const columns = [
-  { id: 'impressions', label: 'Impressions', visible: true },
-  { id: 'clicks', label: 'Clicks', visible: true },
-  { id: 'ctr', label: 'CTR %', visible: true },
-  { id: 'avgCpc', label: 'Avg CPC', visible: true },  // Now visible by default
-  { id: 'cost', label: 'Cost', visible: true },
-  { id: 'conversions', label: 'Conv', visible: true },  // Renamed to Conv
-  { id: 'cpa', label: 'CPA', visible: true },  // Now visible by default
-  { id: 'convValue', label: 'Revenue', visible: true },
-  { id: 'cvr', label: 'CVR %', visible: true },  // Now visible by default
-  { id: 'aov', label: 'AOV', visible: false },
-  { id: 'cpm', label: 'CPM', visible: false },
-  { id: 'roas', label: 'ROAS', visible: false },  // Will be moved to fixed column
-  { id: 'cartRate', label: 'Cart Rate', visible: false },
-  { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
-  { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
-];
+  // Define all available columns (excluding ROAS which is fixed)
+  const columns = [
+    { id: 'impressions', label: 'Impressions', visible: true },
+    { id: 'clicks', label: 'Clicks', visible: true },
+    { id: 'ctr', label: 'CTR %', visible: true },
+    { id: 'avgCpc', label: 'Avg CPC', visible: true },
+    { id: 'cost', label: 'Cost', visible: true },
+    { id: 'conversions', label: 'Conv', visible: true },
+    { id: 'cpa', label: 'CPA', visible: true },
+    { id: 'convValue', label: 'Revenue', visible: true },
+    { id: 'cvr', label: 'CVR %', visible: true },
+    { id: 'aov', label: 'AOV', visible: false },
+    { id: 'cpm', label: 'CPM', visible: false },
+    { id: 'cartRate', label: 'Cart Rate', visible: false },
+    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
+    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
+  ];
   
   // Store columns config globally
   window.campaignTableColumns = columns;
@@ -1071,9 +1187,10 @@ const columns = [
     <div class="column-selector-list">
       ${columns.map(col => `
         <div class="column-selector-item" data-column="${col.id}">
-          <input type="checkbox" class="column-selector-checkbox" 
-                 ${col.visible ? 'checked' : ''} 
-                 data-column="${col.id}">
+          <label class="toggle-switch">
+            <input type="checkbox" ${col.visible ? 'checked' : ''} data-column="${col.id}">
+            <span class="toggle-slider"></span>
+          </label>
           <label class="column-selector-label">${col.label}</label>
         </div>
       `).join('')}
@@ -1082,17 +1199,14 @@ const columns = [
   
   // Add event listeners
   dropdown.querySelectorAll('.column-selector-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-      if (e.target.type !== 'checkbox') {
-        const checkbox = this.querySelector('.column-selector-checkbox');
-        checkbox.checked = !checkbox.checked;
-      }
-      
+    const toggle = item.querySelector('input[type="checkbox"]');
+    
+    toggle.addEventListener('change', function() {
       // Update columns config
       const columnId = this.dataset.column;
       const column = window.campaignTableColumns.find(c => c.id === columnId);
       if (column) {
-        column.visible = this.querySelector('.column-selector-checkbox').checked;
+        column.visible = this.checked;
       }
       
       // Refresh table if campaign is selected
@@ -1386,14 +1500,23 @@ function renderProductsTable(container, tableData, campaignName) {
       { id: 'convValue', label: 'Revenue' }
     ];
   
-  // Calculate max values for progress bars
-  const maxValues = {
-    impressions: Math.max(...tableData.map(p => p.impressions || 0)),
-    clicks: Math.max(...tableData.map(p => p.clicks || 0)),
-    cost: Math.max(...tableData.map(p => p.cost || 0)),
-    conversions: Math.max(...tableData.map(p => p.conversions || 0)),
-    convValue: Math.max(...tableData.map(p => p.convValue || 0))
+  // Calculate totals for summary row and percentages
+  const totals = {
+    impressions: tableData.reduce((sum, p) => sum + (p.impressions || 0), 0),
+    clicks: tableData.reduce((sum, p) => sum + (p.clicks || 0), 0),
+    cost: tableData.reduce((sum, p) => sum + (p.cost || 0), 0),
+    conversions: tableData.reduce((sum, p) => sum + (p.conversions || 0), 0),
+    convValue: tableData.reduce((sum, p) => sum + (p.convValue || 0), 0)
   };
+  
+  // Calculate derived totals
+  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
+  totals.avgCpc = totals.clicks > 0 ? (totals.cost / totals.clicks) : 0;
+  totals.cpa = totals.conversions > 0 ? (totals.cost / totals.conversions) : 0;
+  totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+  totals.aov = totals.conversions > 0 ? (totals.convValue / totals.conversions) : 0;
+  totals.cpm = totals.impressions > 0 ? (totals.cost / totals.impressions * 1000) : 0;
+  totals.roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
   
   // Create wrapper
   const wrapper = document.createElement('div');
@@ -1407,18 +1530,18 @@ function renderProductsTable(container, tableData, campaignName) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   
-  // Fixed columns headers (removed expand, added ROAS after POS)
+  // Fixed columns headers (POS, SHARE, ROAS, IMAGE, PRODUCT)
   let headerHTML = `
     <th class="center sortable" data-sort="adPosition" style="width: 60px;">
       Pos
       <span class="camp-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas" style="width: 70px;">
-      ROAS
-      <span class="camp-sort-icon">⇅</span>
-    </th>
     <th class="center sortable" data-sort="marketShare" style="width: 90px;">
       Share
+      <span class="camp-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="roas" style="width: 70px;">
+      ROAS
       <span class="camp-sort-icon">⇅</span>
     </th>
     <th class="center" style="width: 80px;">Image</th>
@@ -1448,7 +1571,30 @@ function renderProductsTable(container, tableData, campaignName) {
   // Create body
   const tbody = document.createElement('tbody');
   
-  // Render rows
+  // Add summary row first
+  const summaryRow = document.createElement('tr');
+  summaryRow.className = 'camp-summary-row';
+  
+  let summaryHTML = `
+    <td colspan="4" style="text-align: center; font-weight: 600;">
+      Campaign Totals
+    </td>
+    <td style="font-weight: 600;">
+      ${tableData.length} Products
+    </td>
+  `;
+  
+  // Add summary metrics
+  visibleColumns.forEach(col => {
+    const value = totals[col.id] || 0;
+    const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
+    summaryHTML += `<td class="metric-col" style="text-align: right; font-weight: 600;">${formattedValue}</td>`;
+  });
+  
+  summaryRow.innerHTML = summaryHTML;
+  tbody.appendChild(summaryRow);
+  
+  // Render product rows
   tableData.forEach((product, index) => {
     // Main product row
     const mainRow = document.createElement('tr');
@@ -1471,16 +1617,11 @@ function renderProductsTable(container, tableData, campaignName) {
     else if (product.roas >= 2) roasClass = 'good';
     else if (product.roas >= 1) roasClass = 'fair';
     
-    // Build row HTML (removed expand column, added ROAS after POS)
+    // Build row HTML (POS, SHARE, ROAS, IMAGE, PRODUCT)
     let rowHTML = `
       <td style="text-align: center; width: 60px;">
         ${product.adPosition ? 
           `<div class="camp-position-indicator ${posClass}">${product.adPosition}</div>` : 
-          '<span style="color: #adb5bd;">-</span>'}
-      </td>
-      <td style="text-align: center; width: 70px;">
-        ${product.roas !== null && product.roas !== undefined ? 
-          `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td style="text-align: center; width: 90px;">
@@ -1489,6 +1630,11 @@ function renderProductsTable(container, tableData, campaignName) {
             <div class="camp-share-fill" style="width: ${product.marketShare}%"></div>
             <div class="camp-share-text">${product.marketShare.toFixed(1)}%</div>
           </div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td style="text-align: center; width: 70px;">
+        ${product.roas !== null && product.roas !== undefined ? 
+          `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td style="text-align: center; width: 80px;">
@@ -1500,40 +1646,34 @@ function renderProductsTable(container, tableData, campaignName) {
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
       <td style="width: 300px;">
-        <div class="camp-product-title">${product.title}${hasDevices ? ' <span style="color: #007aff; font-size: 11px;">(▼)</span>' : ''}</div>
+        <div class="camp-product-title">${product.title}</div>
       </td>
     `;
     
-    // Add metric columns with progress bars for specific metrics
+    // Add metric columns with improved progress bars
     visibleColumns.forEach(col => {
-      const value = product[col.id];
-      let metricClass = 'camp-metric';
-      let formattedValue = formatMetricValue(value, getMetricFormat(col.id));
-      
-      // Special styling
-      if (col.id === 'impressions' || col.id === 'convValue') {
-        metricClass += ' large';
-      }
-      if (col.id === 'ctr' && value > 2) {
-        metricClass += ' positive';
-      } else if (col.id === 'ctr' && value < 0.5) {
-        metricClass += ' negative';
-      }
+      const value = product[col.id] || 0;
+      const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
       
       // Add progress bars for specific metrics
       if (['impressions', 'clicks', 'cost', 'conversions', 'convValue'].includes(col.id)) {
-        const percentage = maxValues[col.id] > 0 ? (value / maxValues[col.id] * 100) : 0;
+        const percentage = totals[col.id] > 0 ? (value / totals[col.id] * 100) : 0;
         rowHTML += `
-          <td class="metric-col" style="text-align: right;">
-            <div class="camp-metric-with-bar">
-              <span class="${metricClass}">${formattedValue}</span>
-              <div class="camp-metric-bar">
-                <div class="camp-metric-bar-fill" style="width: ${percentage}%"></div>
+          <td class="metric-col">
+            <div class="camp-metric-cell">
+              <div class="camp-metric-value">${formattedValue}</div>
+              <div class="camp-metric-bar-container">
+                <div class="camp-metric-bar">
+                  <div class="camp-metric-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+                <span class="camp-metric-percent">${percentage.toFixed(1)}%</span>
               </div>
             </div>
           </td>`;
       } else {
-        rowHTML += `<td class="metric-col" style="text-align: right;"><span class="${metricClass}">${formattedValue}</span></td>`;
+        rowHTML += `<td class="metric-col" style="text-align: right;">
+          <span class="camp-metric" style="font-size: 14px; font-weight: 500;">${formattedValue}</span>
+        </td>`;
       }
     });
     
@@ -1542,24 +1682,14 @@ function renderProductsTable(container, tableData, campaignName) {
     // Add click handler for row expansion
     if (hasDevices) {
       mainRow.addEventListener('click', function(e) {
-        // Don't trigger on image hover
-        if (e.target.classList.contains('camp-product-img')) return;
+        // Don't trigger on image elements
+        if (e.target.classList.contains('camp-product-img') || 
+            e.target.classList.contains('camp-product-img-zoom')) return;
         
         const deviceRows = tbody.querySelectorAll(`.device-row[data-parent-index="${index}"]`);
-        const isExpanded = deviceRows[0]?.classList.contains('visible');
-        
         deviceRows.forEach(row => {
           row.classList.toggle('visible');
         });
-        
-        // Update visual indicator
-        const titleDiv = this.querySelector('.camp-product-title');
-        if (titleDiv) {
-          const indicator = titleDiv.querySelector('span');
-          if (indicator) {
-            indicator.textContent = isExpanded ? '(▼)' : '(▲)';
-          }
-        }
       });
     }
     
@@ -1638,23 +1768,30 @@ function getMetricFormat(metricId) {
 
 // Add improved event listeners for the table
 function addImprovedTableEventListeners(wrapper, tableData) {
-  // Sorting functionality only (expansion is handled in row click)
-  let currentSort = { column: null, direction: null };
+  // Store sort state
+  if (!window.campaignSortState) {
+    window.campaignSortState = {};
+  }
   
   wrapper.querySelectorAll('th.sortable').forEach(header => {
     header.addEventListener('click', function() {
       const column = this.dataset.sort;
       
-      // Remove previous sort classes
+      // Remove previous sort classes from all headers
       wrapper.querySelectorAll('th').forEach(th => {
         th.classList.remove('sorted-asc', 'sorted-desc');
       });
       
-      // Determine sort direction
-      let direction = 'asc';
-      if (currentSort.column === column && currentSort.direction === 'asc') {
+      // Toggle sort direction
+      let direction = 'desc'; // Default first click is desc
+      if (window.campaignSortState[column] === 'desc') {
+        direction = 'asc';
+      } else if (window.campaignSortState[column] === 'asc') {
         direction = 'desc';
       }
+      
+      // Update sort state
+      window.campaignSortState = { [column]: direction };
       
       // Apply sort class
       this.classList.add(`sorted-${direction}`);
@@ -1668,8 +1805,8 @@ function addImprovedTableEventListeners(wrapper, tableData) {
         let bVal = column === 'title' ? b.title : b[column];
         
         // Handle null/undefined values
-        if (aVal == null) aVal = 0;
-        if (bVal == null) bVal = 0;
+        if (aVal == null) aVal = column === 'title' ? '' : 0;
+        if (bVal == null) bVal = column === 'title' ? '' : 0;
         
         if (typeof aVal === 'string') {
           return direction === 'asc' ? 
@@ -1681,9 +1818,6 @@ function addImprovedTableEventListeners(wrapper, tableData) {
             (bVal - aVal);
         }
       });
-      
-      // Update current sort
-      currentSort = { column, direction };
       
       // Re-render table with sorted data
       const container = wrapper.parentElement;
