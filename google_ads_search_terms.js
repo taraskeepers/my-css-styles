@@ -100,6 +100,8 @@ async function loadAndRenderSearchTerms() {
     window.searchTermsCurrentPage = 1;
     window.searchTermsPerPage = 50; // Changed from 100 to 50
     window.searchTermsData = filteredData;
+    // Calculate and store buckets for all search terms
+calculateAndStoreSearchTermBuckets();
     window.searchTermsSortColumn = 'Clicks';
     window.searchTermsSortAscending = false;
     // Store 365d data for missing terms analysis
@@ -117,6 +119,95 @@ window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
     console.error('[loadAndRenderSearchTerms] Error:', error);
     container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading search terms data</div>';
   }
+}
+
+// Add this function after the loadAndRenderSearchTerms function
+function calculateAndStoreSearchTermBuckets() {
+  const tablePrefix = getProjectTablePrefix();
+  const cacheKey = `${tablePrefix}_searchTermBuckets`;
+  
+  // Check if we already have cached buckets
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+  
+  // Calculate buckets for all search terms
+  const bucketMap = {};
+  
+  if (window.searchTermsData && window.searchTermsData.length > 0) {
+    window.searchTermsData.forEach(term => {
+      const query = term.Query.toLowerCase();
+      const bucket = getSearchTermBucket(term);
+      bucketMap[query] = bucket;
+    });
+    
+    // Store in sessionStorage
+    sessionStorage.setItem(cacheKey, JSON.stringify(bucketMap));
+  }
+  
+  return bucketMap;
+}
+
+// Add this helper function to determine bucket for a single term
+function getSearchTermBucket(term) {
+  const impressions = term.Impressions || 0;
+  const clicks = term.Clicks || 0;
+  const conversions = term.Conversions || 0;
+  const value = term.Value || 0;
+  const ctr = impressions > 0 ? (clicks / impressions * 100) : 0;
+  
+  // Priority order for bucket assignment
+  if (term.Top_Bucket && term.Top_Bucket !== '') {
+    return 'top-search';
+  }
+  if (clicks >= 50 && conversions === 0) {
+    return 'zero-converting';
+  }
+  if (value >= 1000) {
+    return 'high-revenue';
+  }
+  if (conversions > 0 && ctr < 2 && impressions > 1000) {
+    return 'hidden-gems';
+  }
+  if (impressions > 500 && ctr < 1) {
+    return 'low-performance';
+  }
+  return 'mid-performance';
+}
+
+// Add bucket badge HTML generator
+function getPerformanceBucketBadge(bucket) {
+  const bucketConfig = {
+    'top-search': { color: '#FFD700', bg: '#FFF9E6', label: 'Top Search', icon: '🏆' },
+    'zero-converting': { color: '#F44336', bg: '#FFEBEE', label: 'Zero Converting', icon: '⚠️' },
+    'high-revenue': { color: '#4CAF50', bg: '#E8F5E9', label: 'High Revenue', icon: '💰' },
+    'hidden-gems': { color: '#2196F3', bg: '#E3F2FD', label: 'Hidden Gem', icon: '💎' },
+    'low-performance': { color: '#9E9E9E', bg: '#F5F5F5', label: 'Low Performance', icon: '📉' },
+    'mid-performance': { color: '#FF9800', bg: '#FFF3E0', label: 'Mid-Performance', icon: '📊' }
+  };
+  
+  const config = bucketConfig[bucket];
+  if (!config) return '';
+  
+  return `
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}40;
+      gap: 4px;
+    ">
+      <span>${config.icon}</span>
+      ${config.label}
+    </span>
+  `;
 }
 
 // Function to get total unique products count
