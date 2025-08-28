@@ -43,6 +43,87 @@ function addCampaignsStyles() {
         flex-direction: column;
         transition: width 0.3s ease-in-out;
       }
+
+      /* View switcher styles */
+.campaigns-view-switcher {
+  padding: 12px 15px;
+  border-bottom: 1px solid #dee2e6;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 11;
+}
+
+.campaigns-view-tabs {
+  display: flex;
+  gap: 0;
+  background: #f0f2f5;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.campaigns-view-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.campaigns-view-tab:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.campaigns-view-tab.active {
+  background: white;
+  color: #007aff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Search terms panel - same style as products panel */
+#campaignsSearchTermsPanel {
+  flex: 1;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#campaignsSearchTermsPanel.active {
+  display: flex;
+}
+
+#campaignsProductsPanel.hidden {
+  display: none;
+}
+
+/* Search terms specific styles */
+.campaigns-search-terms-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.campaigns-search-terms-table-container {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+}
       
       /* Campaign filter and list styles */
       .campaigns-filter-container {
@@ -1080,9 +1161,24 @@ async function renderCampaignsNavPanel() {
   const navPanel = document.createElement('div');
   navPanel.id = 'campaignsNavPanel';
   
-  // Add filter container
-  const filterContainer = document.createElement('div');
-  filterContainer.className = 'campaigns-filter-container';
+// Add view switcher
+const viewSwitcher = document.createElement('div');
+viewSwitcher.className = 'campaigns-view-switcher';
+viewSwitcher.innerHTML = `
+  <div class="campaigns-view-tabs">
+    <button class="campaigns-view-tab active" data-view="products">
+      <span>📦</span> Products
+    </button>
+    <button class="campaigns-view-tab" data-view="search-terms">
+      <span>🔍</span> Search Terms
+    </button>
+  </div>
+`;
+navPanel.appendChild(viewSwitcher);
+
+// Add filter container
+const filterContainer = document.createElement('div');
+filterContainer.className = 'campaigns-filter-container';
   filterContainer.innerHTML = `
     <div class="campaigns-type-filter">
       <button class="campaign-filter-btn active" data-filter="all">
@@ -1132,10 +1228,42 @@ async function renderCampaignsNavPanel() {
       filterCampaigns(filterType);
     });
   });
+
+  // Add view switcher event handlers <--- ADD THIS ENTIRE BLOCK
+  viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Update active state
+      viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      
+      const view = this.getAttribute('data-view');
+      
+      if (view === 'products') {
+        productsPanel.style.display = 'flex';
+        searchTermsPanel.style.display = 'none';
+      } else if (view === 'search-terms') {
+        productsPanel.style.display = 'none';
+        searchTermsPanel.style.display = 'flex';
+        
+        // Load search terms if campaign is selected
+        if (window.selectedCampaign) {
+          loadCampaignSearchTerms(
+            window.selectedCampaign.channelType,
+            window.selectedCampaign.campaignName
+          );
+        }
+      }
+    });
+  });
   
-// Create right products panel
+// Create container for both panels
+const panelsContainer = document.createElement('div');
+panelsContainer.style.cssText = 'flex: 1; display: flex; position: relative;';
+
+// Create products panel
 const productsPanel = document.createElement('div');
 productsPanel.id = 'campaignsProductsPanel';
+productsPanel.style.cssText = 'flex: 1; display: flex;'; // Make it visible by default
 
 // Calculate date range (30 days back from today)
 const endDate = new Date();
@@ -1167,10 +1295,39 @@ productsPanel.innerHTML = `
     </div>
   </div>
 `;
+
+// Create search terms panel <--- ADD THIS AND EVERYTHING BELOW
+const searchTermsPanel = document.createElement('div');
+searchTermsPanel.id = 'campaignsSearchTermsPanel';
+searchTermsPanel.innerHTML = `
+  <div class="campaigns-search-terms-header">
+    <div>
+      <h3 class="campaigns-products-title">Campaign Search Terms</h3>
+      <div class="selected-campaign-info">Select a campaign to view its search terms</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+        <span>📅</span>
+        <span>${dateRangeText}</span>
+      </div>
+    </div>
+  </div>
+  <div class="campaigns-search-terms-table-container">
+    <div class="campaigns-empty-state">
+      <div class="campaigns-empty-icon">🔍</div>
+      <div class="campaigns-empty-title">No Campaign Selected</div>
+      <div class="campaigns-empty-text">Select a campaign from the left panel to view its search terms</div>
+    </div>
+  </div>
+`;
+
+// Add both panels to container <--- ALSO ADD THIS
+panelsContainer.appendChild(productsPanel);
+panelsContainer.appendChild(searchTermsPanel);
   
-  // Add panels to main container
-  mainContainer.appendChild(navPanel);
-  mainContainer.appendChild(productsPanel);
+// Add panels to main container
+mainContainer.appendChild(navPanel);
+mainContainer.appendChild(panelsContainer);
   
   // Add main container to page
   container.appendChild(mainContainer);
@@ -1379,8 +1536,20 @@ function addCampaignClickHandlers() {
         key: campaignKey
       };
       
-      // Load and display products for this campaign
-      await loadCampaignProducts(campaignKey, channelType, campaignName);
+      // Update selected campaign
+      window.selectedCampaign = {
+        channelType: channelType,
+        campaignName: campaignName,
+        key: campaignKey
+      };
+      
+      // Check current view and load appropriate data <--- ADD THIS
+      const currentView = document.querySelector('.campaigns-view-tab.active')?.getAttribute('data-view');
+      if (currentView === 'search-terms') {
+        await loadCampaignSearchTerms(channelType, campaignName);
+      } else {
+        await loadCampaignProducts(campaignKey, channelType, campaignName);
+      }
     });
   });
 }
@@ -1867,6 +2036,219 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     }
     headerInfo.textContent = `${campaignName} - Error loading products`;
   }
+}
+
+// Load search terms for selected campaign
+async function loadCampaignSearchTerms(channelType, campaignName) {
+  console.log('[loadCampaignSearchTerms] Loading search terms for campaign:', campaignName);
+  
+  const searchTermsPanel = document.getElementById('campaignsSearchTermsPanel');
+  const headerInfo = searchTermsPanel?.querySelector('.selected-campaign-info');
+  
+  if (!searchTermsPanel) return;
+  
+  // Show loading state
+  const tableContainer = searchTermsPanel.querySelector('.campaigns-search-terms-table-container');
+  if (!tableContainer) return;
+  
+  tableContainer.innerHTML = '<div class="campaigns-loading"><div class="campaigns-spinner"></div></div>';
+  headerInfo.textContent = `Loading search terms for ${campaignName}...`;
+  
+  try {
+    // Get table prefix and load search terms data
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_searchTerms_30d`; // Use 30d by default
+    
+    // Load data from IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      tableContainer.innerHTML = `
+        <div class="campaigns-empty-state">
+          <div class="campaigns-empty-icon">🔍</div>
+          <div class="campaigns-empty-title">No Search Terms Data</div>
+          <div class="campaigns-empty-text">Search terms data is not available for this campaign</div>
+        </div>
+      `;
+      headerInfo.textContent = `${campaignName} - No search terms data`;
+      return;
+    }
+    
+    // Filter search terms for this campaign
+    // Note: You'll need to verify the exact field names in your data
+    const campaignSearchTerms = result.data.filter(item => {
+      // Adjust these field names based on your actual data structure
+      return item['Campaign Name'] === campaignName || 
+             item['Campaign'] === campaignName ||
+             // If search terms are not directly linked to campaigns,
+             // we might need to use a different filtering approach
+             true; // For now, show all search terms as a fallback
+    });
+    
+    // Remove blank search terms
+    const filteredData = campaignSearchTerms.filter(item => 
+      item.Query && item.Query.toLowerCase() !== 'blank'
+    );
+    
+    if (filteredData.length === 0) {
+      tableContainer.innerHTML = `
+        <div class="campaigns-empty-state">
+          <div class="campaigns-empty-icon">🔍</div>
+          <div class="campaigns-empty-title">No Search Terms Found</div>
+          <div class="campaigns-empty-text">No search terms found for this campaign</div>
+        </div>
+      `;
+      headerInfo.textContent = `${campaignName} - No search terms`;
+      return;
+    }
+    
+    // Sort by clicks by default
+    filteredData.sort((a, b) => (b.Clicks || 0) - (a.Clicks || 0));
+    
+    // Render the search terms table
+    renderCampaignSearchTermsTable(tableContainer, filteredData, campaignName);
+    
+    // Update header info
+    headerInfo.textContent = `${campaignName} - ${filteredData.length} search terms`;
+    
+  } catch (error) {
+    console.error('[loadCampaignSearchTerms] Error:', error);
+    tableContainer.innerHTML = `
+      <div class="campaigns-empty-state">
+        <div class="campaigns-empty-icon">⚠️</div>
+        <div class="campaigns-empty-title">Error Loading Search Terms</div>
+        <div class="campaigns-empty-text">Failed to load search terms for this campaign</div>
+      </div>
+    `;
+    headerInfo.textContent = `${campaignName} - Error loading search terms`;
+  }
+}
+
+// Render search terms table for campaigns
+function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
+  // Calculate max values for scaling bars
+  const maxImpressions = Math.max(...searchTerms.map(d => d.Impressions || 0));
+  const maxClicks = Math.max(...searchTerms.map(d => d.Clicks || 0));
+  
+  // Calculate totals
+  const totals = {
+    impressions: searchTerms.reduce((sum, d) => sum + (d.Impressions || 0), 0),
+    clicks: searchTerms.reduce((sum, d) => sum + (d.Clicks || 0), 0),
+    conversions: searchTerms.reduce((sum, d) => sum + (d.Conversions || 0), 0),
+    value: searchTerms.reduce((sum, d) => sum + (d.Value || 0), 0)
+  };
+  
+  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
+  totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'camp-products-wrapper';
+  
+  const table = document.createElement('table');
+  table.className = 'camp-table-modern';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th style="width: 50px; text-align: center;">#</th>
+      <th style="width: 350px;">Search Term</th>
+      <th class="right sortable metric-col" data-sort="impressions">Impressions</th>
+      <th class="right sortable metric-col" data-sort="clicks">Clicks</th>
+      <th class="right sortable metric-col" data-sort="ctr">CTR %</th>
+      <th class="right sortable metric-col" data-sort="conversions">Conv</th>
+      <th class="right sortable metric-col" data-sort="cvr">CVR %</th>
+      <th class="right sortable metric-col" data-sort="value">Revenue</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  // Add summary row
+  tbody.innerHTML = `
+    <tr class="camp-summary-row">
+      <td style="text-align: center; font-weight: 600;">#</td>
+      <td style="font-weight: 600;">Total (${searchTerms.length} terms)</td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${totals.impressions.toLocaleString()}
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${totals.clicks.toLocaleString()}
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${totals.ctr.toFixed(2)}%
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${totals.conversions.toLocaleString()}
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${totals.cvr.toFixed(2)}%
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        $${totals.value.toFixed(2)}
+      </td>
+    </tr>
+  `;
+  
+  // Add search term rows
+  searchTerms.forEach((term, index) => {
+    const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100) : 0;
+    const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100) : 0;
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="text-align: center; font-weight: 600; color: #666;">${index + 1}</td>
+      <td style="font-weight: 500;">${term.Query || '-'}</td>
+      <td class="metric-col" style="text-align: right;">
+        <div>${(term.Impressions || 0).toLocaleString()}</div>
+        <div style="width: 60px; height: 3px; background: #e9ecef; border-radius: 2px; margin-top: 4px;">
+          <div style="width: ${maxImpressions > 0 ? (term.Impressions / maxImpressions * 100) : 0}%; height: 100%; background: #4285f4; border-radius: 2px;"></div>
+        </div>
+      </td>
+      <td class="metric-col" style="text-align: right;">
+        <div>${(term.Clicks || 0).toLocaleString()}</div>
+        <div style="width: 60px; height: 3px; background: #e9ecef; border-radius: 2px; margin-top: 4px;">
+          <div style="width: ${maxClicks > 0 ? (term.Clicks / maxClicks * 100) : 0}%; height: 100%; background: #34a853; border-radius: 2px;"></div>
+        </div>
+      </td>
+      <td class="metric-col" style="text-align: right; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-weight: 600;">
+        ${ctr.toFixed(2)}%
+      </td>
+      <td class="metric-col" style="text-align: right;">${(term.Conversions || 0).toFixed(1)}</td>
+      <td class="metric-col" style="text-align: right; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'}; font-weight: 600;">
+        ${cvr.toFixed(2)}%
+      </td>
+      <td class="metric-col" style="text-align: right; font-weight: 600;">
+        $${(term.Value || 0).toFixed(2)}
+      </td>
+    </tr>
+    `;
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  
+  // Clear and add table
+  container.innerHTML = '';
+  container.appendChild(wrapper);
 }
 
 // Render products table with improved design
