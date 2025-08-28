@@ -1069,18 +1069,31 @@ function renderCampaignsNavPanel() {
     });
   });
   
-  // Create right products panel
+// Create right products panel
 const productsPanel = document.createElement('div');
 productsPanel.id = 'campaignsProductsPanel';
+
+// Calculate date range (30 days back from today)
+const endDate = new Date();
+const startDate = new Date();
+startDate.setDate(startDate.getDate() - 30);
+const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
 productsPanel.innerHTML = `
   <div class="campaigns-products-header">
     <div>
       <h3 class="campaigns-products-title">Campaign Products</h3>
       <div class="selected-campaign-info">Select a campaign to view its products</div>
     </div>
-    <button class="column-selector-btn" onclick="toggleColumnSelector()">
-      <span>⚙️</span> Columns
-    </button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+        <span>📅</span>
+        <span>${dateRangeText}</span>
+      </div>
+      <button class="column-selector-btn" onclick="toggleColumnSelector()">
+        <span>⚙️</span> Columns
+      </button>
+    </div>
   </div>
   <div class="campaigns-products-table-container">
     <div class="campaigns-empty-state">
@@ -1294,6 +1307,145 @@ function addCampaignClickHandlers() {
   });
 }
 
+// Load and process POS and SHARE data from processed table
+async function loadProcessedProductData(productTitles) {
+  console.log('[loadProcessedProductData] Loading processed data for products:', productTitles.length);
+  
+  try {
+    // Get the processed table name
+    const tablePrefix = getProjectTablePrefix();
+    const processedTableName = `${tablePrefix}processed`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(processedTableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[loadProcessedProductData] No processed data found');
+      return new Map();
+    }
+    
+    // Process data: aggregate by product title and device
+    const productMetrics = new Map();
+    
+    result.data.forEach(row => {
+      // Filter by company source
+      if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
+        return;
+      }
+      
+      const title = row.title;
+      const device = row.device || 'unknown';
+      const position = parseFloat(row.avg_week_position);
+      const visibility = parseFloat(row.avg_visibility);
+      
+      // Skip if title doesn't match any of our products
+      if (!productTitles.includes(title)) {
+        return;
+      }
+      
+      if (!productMetrics.has(title)) {
+        productMetrics.set(title, {
+          allDevices: { positions: [], visibilities: [] },
+          byDevice: new Map()
+        });
+      }
+      
+      const metrics = productMetrics.get(title);
+      
+      // Add to all devices aggregation
+      if (!isNaN(position) && position > 0) {
+        metrics.allDevices.positions.push(position);
+      }
+      if (!isNaN(visibility)) {
+        metrics.allDevices.visibilities.push(visibility);
+      }
+      
+      // Add to device-specific aggregation
+      const deviceKey = device.toLowerCase();
+      if (!metrics.byDevice.has(deviceKey)) {
+        metrics.byDevice.set(deviceKey, { positions: [], visibilities: [] });
+      }
+      
+      const deviceMetrics = metrics.byDevice.get(deviceKey);
+      if (!isNaN(position) && position > 0) {
+        deviceMetrics.positions.push(position);
+      }
+      if (!isNaN(visibility)) {
+        deviceMetrics.visibilities.push(visibility);
+      }
+    });
+    
+    // Calculate averages
+    const processedMetrics = new Map();
+    
+    for (const [title, metrics] of productMetrics) {
+      const processed = {
+        allDevices: {
+          avgPosition: null,
+          avgVisibility: null
+        },
+        byDevice: new Map()
+      };
+      
+      // Calculate all devices average
+      if (metrics.allDevices.positions.length > 0) {
+        const avgPos = metrics.allDevices.positions.reduce((a, b) => a + b, 0) / metrics.allDevices.positions.length;
+        processed.allDevices.avgPosition = Math.round(avgPos * 100) / 100; // Round to 2 decimals
+      }
+      
+      if (metrics.allDevices.visibilities.length > 0) {
+        const avgVis = metrics.allDevices.visibilities.reduce((a, b) => a + b, 0) / metrics.allDevices.visibilities.length;
+        processed.allDevices.avgVisibility = avgVis * 100; // Convert to percentage
+      }
+      
+      // Calculate device-specific averages
+      for (const [device, deviceMetrics] of metrics.byDevice) {
+        const deviceProcessed = {
+          avgPosition: null,
+          avgVisibility: null
+        };
+        
+        if (deviceMetrics.positions.length > 0) {
+          const avgPos = deviceMetrics.positions.reduce((a, b) => a + b, 0) / deviceMetrics.positions.length;
+          deviceProcessed.avgPosition = Math.round(avgPos * 100) / 100;
+        }
+        
+        if (deviceMetrics.visibilities.length > 0) {
+          const avgVis = deviceMetrics.visibilities.reduce((a, b) => a + b, 0) / deviceMetrics.visibilities.length;
+          deviceProcessed.avgVisibility = avgVis * 100;
+        }
+        
+        processed.byDevice.set(device, deviceProcessed);
+      }
+      
+      processedMetrics.set(title, processed);
+    }
+    
+    console.log('[loadProcessedProductData] Processed metrics for products:', processedMetrics.size);
+    return processedMetrics;
+    
+  } catch (error) {
+    console.error('[loadProcessedProductData] Error loading processed data:', error);
+    return new Map();
+  }
+}
+
 // Load products for selected campaign
 async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   console.log('[loadCampaignProducts] Loading products for campaign:', campaignName);
@@ -1399,6 +1551,9 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
     
     console.log('[loadCampaignProducts] Matched products:', matchedProducts.size);
     
+// Load processed data for POS and SHARE
+const processedMetrics = await loadProcessedProductData(productTitles);
+
 // Calculate aggregated metrics for each product
 const tableData = [];
 
@@ -1406,20 +1561,19 @@ for (const [productTitle, productData] of productsData) {
   const devices = Array.from(productData.devices.values());
   const matchedProduct = matchedProducts.get(productTitle);
   
-  // Get device-specific metrics if available
-  const deviceMetrics = matchedProduct && typeof calculateGoogleAdsProductMetricsByDevice === 'function' ? 
-    calculateGoogleAdsProductMetricsByDevice(matchedProduct) : null;
-
-  console.log('Device metrics for', productTitle, ':', deviceMetrics);
+  // Get processed metrics for this product
+  const productProcessedMetrics = processedMetrics.get(productTitle);
   
   // Aggregate metrics across all devices
   const aggregated = {
     title: productTitle,
     image: matchedProduct?.thumbnail || '',
-    adPosition: calculateAdPosition(matchedProduct),
-    marketShare: calculateMarketShare(matchedProduct),
+    // Use processed data for POS and SHARE
+    adPosition: productProcessedMetrics?.allDevices?.avgPosition || null,
+    marketShare: productProcessedMetrics?.allDevices?.avgVisibility || null,
     devices: productData.devices,
-    deviceMetrics: deviceMetrics,  // Add device-specific POS and Market Share
+    // Store device-specific metrics
+    deviceMetrics: productProcessedMetrics?.byDevice || new Map(),
     // Aggregate numeric metrics
     impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
     clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
@@ -1468,24 +1622,6 @@ for (const [productTitle, productData] of productsData) {
     }
     headerInfo.textContent = `${campaignName} - Error loading products`;
   }
-}
-
-// Calculate ad position from matched product
-function calculateAdPosition(matchedProduct) {
-  if (!matchedProduct) return null;
-  
-  // Calculate average rating from market data
-  const metrics = calculateGoogleAdsProductMetrics(matchedProduct);
-  return metrics?.avgRating || null;
-}
-
-// Calculate market share from matched product
-function calculateMarketShare(matchedProduct) {
-  if (!matchedProduct) return null;
-  
-  // Calculate visibility/market share
-  const metrics = calculateGoogleAdsProductMetrics(matchedProduct);
-  return metrics?.avgVisibility || null;
 }
 
 // Render products table with improved design
@@ -1641,11 +1777,11 @@ tbody.appendChild(summaryRow);
     
     // Build row HTML (POS, SHARE, ROAS, IMAGE, PRODUCT)
     let rowHTML = `
-      <td style="text-align: center; width: 60px;">
-        ${product.adPosition ? 
-          `<div class="camp-position-indicator ${posClass}">${product.adPosition}</div>` : 
-          '<span style="color: #adb5bd;">-</span>'}
-      </td>
+<td style="text-align: center; width: 60px;">
+  ${product.adPosition !== null && product.adPosition !== undefined ? 
+    `<div class="camp-position-indicator ${posClass}">${product.adPosition.toFixed(2)}</div>` : 
+    '<span style="color: #adb5bd;">-</span>'}
+</td>
       <td style="text-align: center; width: 90px;">
         ${product.marketShare ? 
           `<div class="camp-share-bar">
@@ -1728,10 +1864,12 @@ if (hasDevices) {
     const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
                       deviceType === 'TABLET' ? '📱' : '💻';
     
-    // Get device-specific POS and Market Share
-    const devicePOS = product.deviceMetrics?.get(deviceType)?.avgPosition || null;
-    const deviceMarketShare = product.deviceMetrics?.get(deviceType)?.marketShare || null;
-
+    // Get device-specific POS and Market Share from processed metrics
+    const deviceKey = deviceType.toLowerCase();
+    const deviceMetrics = product.deviceMetrics?.get(deviceKey);
+    const devicePOS = deviceMetrics?.avgPosition || null;
+    const deviceMarketShare = deviceMetrics?.avgVisibility || null;
+    
     console.log(`Device: ${deviceType}, POS: ${devicePOS}, Share: ${deviceMarketShare}%`);
     
     // Position badge class for device
@@ -1742,7 +1880,7 @@ if (hasDevices) {
       else if (devicePOS <= 14) posClass = 'low';
     }
     
-    // ROAS calculation for device (if needed)
+    // ROAS calculation for device
     const deviceROAS = deviceData.Cost > 0 ? (deviceData.ConvValue / deviceData.Cost) : 0;
     let roasClass = 'poor';
     if (deviceROAS >= 4) roasClass = 'excellent';
@@ -1752,12 +1890,12 @@ if (hasDevices) {
     // Device row with POS, SHARE, and ROAS columns populated
     let deviceRowHTML = `
       <td style="text-align: center;">
-        ${devicePOS ? 
-          `<div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS}</div>` : 
+        ${devicePOS !== null && devicePOS !== undefined ? 
+          `<div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS.toFixed(2)}</div>` : 
           '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
       </td>
       <td style="text-align: center;">
-        ${deviceMarketShare ? 
+        ${deviceMarketShare !== null && deviceMarketShare !== undefined ? 
           `<div class="camp-share-bar" style="height: 24px; width: 50px;">
             <div class="camp-share-fill" style="width: ${Math.min(deviceMarketShare, 100)}%"></div>
             <div class="camp-share-text" style="font-size: 10px;">${deviceMarketShare.toFixed(1)}%</div>
