@@ -911,6 +911,61 @@ function addCampaignsStyles() {
 .camp-table-modern tbody tr.main-row:hover {
   background: rgba(0, 122, 255, 0.04);
 }
+/* Special product status styling */
+.camp-table-modern tbody tr.revenue-stars {
+  background: linear-gradient(to right, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
+  border-left: 4px solid #FFD700;
+}
+
+.camp-table-modern tbody tr.revenue-stars:hover {
+  background: linear-gradient(to right, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+}
+
+.camp-table-modern tbody tr.best-sellers {
+  background: linear-gradient(to right, rgba(147, 51, 234, 0.06), rgba(147, 51, 234, 0.02));
+  border-left: 4px solid #9333ea;
+}
+
+.camp-table-modern tbody tr.best-sellers:hover {
+  background: linear-gradient(to right, rgba(147, 51, 234, 0.12), rgba(147, 51, 234, 0.04));
+}
+
+.camp-table-modern tbody tr.volume-leaders {
+  background: linear-gradient(to right, rgba(34, 197, 94, 0.06), rgba(34, 197, 94, 0.02));
+  border-left: 4px solid #22c55e;
+}
+
+.camp-table-modern tbody tr.volume-leaders:hover {
+  background: linear-gradient(to right, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04));
+}
+
+/* Product status badge */
+.product-status-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.product-status-badge.revenue-stars {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #6B4423;
+}
+
+.product-status-badge.best-sellers {
+  background: linear-gradient(135deg, #9333ea, #a855f7);
+  color: white;
+}
+
+.product-status-badge.volume-leaders {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1010,7 +1065,7 @@ async function loadAndRenderCampaigns() {
 }
 
 // Render campaigns navigation panel
-function renderCampaignsNavPanel() {
+async function renderCampaignsNavPanel() {
   const container = document.getElementById('campaigns_overview_container');
   if (!container) return;
   
@@ -1043,14 +1098,23 @@ function renderCampaignsNavPanel() {
   `;
   navPanel.appendChild(filterContainer);
   
-  // Add campaigns list container
+// Add campaigns list container
   const listContainer = document.createElement('div');
   listContainer.className = 'campaigns-list-container';
   navPanel.appendChild(listContainer);
   
-  // Group campaigns by type
-  const pmaxCampaigns = window.campaignsData.filter(c => c.channelType === 'PERFORMANCE_MAX');
-  const shoppingCampaigns = window.campaignsData.filter(c => c.channelType === 'SHOPPING');
+  // Load ROAS for all campaigns first
+  const campaignsWithROAS = await Promise.all(window.campaignsData.map(async (campaign) => {
+    const roas = await calculateCampaignROAS(campaign.channelType, campaign.campaignName);
+    return { ...campaign, roas };
+  }));
+
+  // Update global data with ROAS
+  window.campaignsData = campaignsWithROAS;
+
+  // Group campaigns by type with ROAS
+  const pmaxCampaigns = campaignsWithROAS.filter(c => c.channelType === 'PERFORMANCE_MAX');
+  const shoppingCampaigns = campaignsWithROAS.filter(c => c.channelType === 'SHOPPING');
   
   // Render campaign groups
   renderCampaignGroup(listContainer, 'PERFORMANCE_MAX', pmaxCampaigns, '🚀');
@@ -1242,13 +1306,27 @@ function createCampaignItem(campaign, icon) {
   item.className = 'campaign-nav-item';
   item.setAttribute('data-campaign-key', `${campaign.channelType}::${campaign.campaignName}`);
   
-  const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
-  
-  item.innerHTML = `
-    <div class="campaign-card-details">
-      <div class="campaign-type-badge ${badgeClass}">
-        ${icon}
-      </div>
+const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
+const roas = campaign.roas || 0;
+
+// Determine ROAS badge color
+let roasColorClass = '';
+let roasBackground = '';
+if (roas >= 4) {
+  roasBackground = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
+} else if (roas >= 2) {
+  roasBackground = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+} else if (roas >= 1) {
+  roasBackground = 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)';
+} else {
+  roasBackground = 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)';
+}
+
+item.innerHTML = `
+  <div class="campaign-card-details">
+    <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
+      ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
+    </div>
       <div class="campaign-info">
         <div class="campaign-name">${campaign.campaignName}</div>
         <div class="campaign-meta">
@@ -1498,6 +1576,114 @@ deviceProcessed.trend = calculateAverageTrend(deviceMetrics.trends);
   }
 }
 
+// Load product seller status from 90d bucket table
+async function loadProductSellerStatus(productTitles) {
+  console.log('[loadProductSellerStatus] Loading seller status for products:', productTitles.length);
+  
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_90d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[loadProductSellerStatus] No 90d bucket data found');
+      return new Map();
+    }
+    
+    // Process data: find seller status for each product
+    const sellerStatusMap = new Map();
+    
+    result.data.forEach(row => {
+      const title = row['Product Title'];
+      const campaignName = row['Campaign Name'];
+      const device = row['Device'];
+      const sellerStatus = row['SELLERS'];
+      
+      // Check if this matches our criteria
+      if (productTitles.includes(title) && 
+          campaignName === 'All' && 
+          device === 'All' && 
+          sellerStatus) {
+        sellerStatusMap.set(title, sellerStatus);
+        console.log(`[loadProductSellerStatus] Found status for ${title}: ${sellerStatus}`);
+      }
+    });
+    
+    return sellerStatusMap;
+    
+  } catch (error) {
+    console.error('[loadProductSellerStatus] Error loading seller status:', error);
+    return new Map();
+  }
+}
+
+// Calculate campaign ROAS from bucket data
+async function calculateCampaignROAS(channelType, campaignName) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      return 0;
+    }
+    
+    // Calculate total cost and revenue for this campaign
+    let totalCost = 0;
+    let totalRevenue = 0;
+    
+    result.data.forEach(row => {
+      if (row['Campaign Name'] === campaignName && 
+          row['Channel Type'] === channelType) {
+        totalCost += parseFloat(row['Cost']) || 0;
+        totalRevenue += parseFloat(row['ConvValue']) || 0;
+      }
+    });
+    
+    return totalCost > 0 ? (totalRevenue / totalCost) : 0;
+    
+  } catch (error) {
+    console.error('[calculateCampaignROAS] Error:', error);
+    return 0;
+  }
+}
+
 // Load products for selected campaign
 async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   console.log('[loadCampaignProducts] Loading products for campaign:', campaignName);
@@ -1606,6 +1792,9 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
 // Load processed data for POS and SHARE
 const processedMetrics = await loadProcessedProductData(productTitles);
 
+// Load seller status for products
+const sellerStatusMap = await loadProductSellerStatus(productTitles);
+
 // Calculate aggregated metrics for each product
 const tableData = [];
 
@@ -1635,7 +1824,10 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     convValue: devices.reduce((sum, d) => sum + (parseFloat(d.ConvValue) || 0), 0),
     cartCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Cart Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
     checkoutCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Checkout Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
-  };
+};
+  
+  // Add seller status to aggregated data
+  aggregated.sellerStatus = sellerStatusMap.get(productTitle) || 'Standard';
   
   // Calculate derived metrics
   aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
@@ -1807,9 +1999,17 @@ tbody.appendChild(summaryRow);
   
   // Render product rows
   tableData.forEach((product, index) => {
-    // Main product row
-    const mainRow = document.createElement('tr');
-    mainRow.className = 'main-row';
+// Main product row
+const mainRow = document.createElement('tr');
+let rowClasses = ['main-row'];
+
+// Add seller status class
+if (product.sellerStatus && product.sellerStatus !== 'Standard') {
+  const statusClass = product.sellerStatus.toLowerCase().replace(/\s+/g, '-');
+  rowClasses.push(statusClass);
+}
+
+mainRow.className = rowClasses.join(' ');
     mainRow.dataset.index = index;
     
     const hasDevices = product.devices && product.devices.size > 1;
@@ -1868,9 +2068,14 @@ tbody.appendChild(summaryRow);
           </div>` : 
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
-      <td style="width: 300px;">
-        <div class="camp-product-title">${product.title}</div>
-      </td>
+<td style="width: 300px;">
+  <div style="display: flex; align-items: center;">
+    <div class="camp-product-title">${product.title}</div>
+    ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
+      `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus === 'Revenue Stars' ? '⭐' : product.sellerStatus === 'Best Sellers' ? '🏆' : '📈'} ${product.sellerStatus}</span>` : 
+      ''}
+  </div>
+</td>
     `;
     
     // Add metric columns with improved progress bars
