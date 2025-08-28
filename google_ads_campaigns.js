@@ -1306,6 +1306,15 @@ searchTermsPanel.innerHTML = `
       <div class="selected-campaign-info">Select a campaign to view its search terms</div>
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
+      <select id="campaignBucketFilter" style="padding: 6px 12px; background: white; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; cursor: pointer; display: none;">
+        <option value="all">All Buckets</option>
+        <option value="Top Search Terms">⭐ Top Search Terms</option>
+        <option value="Zero Converting Terms">⚠️ Zero Converting Terms</option>
+        <option value="High Revenue Terms">💰 High Revenue Terms</option>
+        <option value="Hidden Gems">💎 Hidden Gems</option>
+        <option value="Low Performance">📉 Low Performance</option>
+        <option value="Mid-Performance">📊 Mid-Performance</option>
+      </select>
       <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
         <span>📅</span>
         <span>${dateRangeText}</span>
@@ -2131,18 +2140,24 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
       });
     }
     
+// Ensure performance buckets are loaded
+    await ensureSearchTermPerformanceBuckets();
+    
     // Filter search terms for this specific campaign
     const filteredData = searchTermsResult.data.filter(item => 
       item.Campaign_Name === campaignName && 
       item.Query && 
       item.Query.toLowerCase() !== 'blank'
     ).map(item => {
-      // Add Top_Bucket and trend data
+      // Add Top_Bucket, performance bucket and trend data
       const queryLower = item.Query.toLowerCase();
       return {
         ...item,
         Top_Bucket: topBucketMap[queryLower] || '',
-        Trend_Data: trend90dMap[queryLower] || null
+        Trend_Data: trend90dMap[queryLower] || null,
+        Performance_Bucket: window.searchTermPerformanceBuckets ? 
+          window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
+          'Mid-Performance'
       };
     });
     
@@ -2166,6 +2181,40 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     
     // Update header info
     headerInfo.textContent = `${campaignName} - ${filteredData.length} search terms`;
+
+    // Store original data for filtering
+    window.campaignSearchTermsOriginalData = filteredData;
+    window.campaignSearchTermsCurrentFilter = 'all';
+    
+    // Show and setup bucket filter
+    const bucketFilter = document.getElementById('campaignBucketFilter');
+    if (bucketFilter) {
+      bucketFilter.style.display = 'block';
+      bucketFilter.value = 'all';
+      
+      // Remove old listener if exists
+      const newBucketFilter = bucketFilter.cloneNode(true);
+      bucketFilter.parentNode.replaceChild(newBucketFilter, bucketFilter);
+      
+      newBucketFilter.addEventListener('change', function() {
+        const selectedBucket = this.value;
+        
+        if (selectedBucket === 'all') {
+          // Reset to original data
+          renderCampaignSearchTermsTable(tableContainer, window.campaignSearchTermsOriginalData, campaignName);
+          headerInfo.textContent = `${campaignName} - ${window.campaignSearchTermsOriginalData.length} search terms`;
+        } else {
+          // Filter by bucket
+          const filtered = window.campaignSearchTermsOriginalData.filter(term => 
+            term.Performance_Bucket === selectedBucket
+          );
+          renderCampaignSearchTermsTable(tableContainer, filtered, campaignName);
+          headerInfo.textContent = `${campaignName} - ${filtered.length} search terms (${selectedBucket})`;
+        }
+        
+        window.campaignSearchTermsCurrentFilter = selectedBucket;
+      });
+    }
     
   } catch (error) {
     console.error('[loadCampaignSearchTerms] Error:', error);
@@ -2385,10 +2434,11 @@ thead.innerHTML = `
       <td style="text-align: center;">
         ${getIndexWithTopBucket(index + 1, term.Top_Bucket)}
       </td>
-      <td style="font-weight: 500;">
-        <div style="display: flex; align-items: center; gap: 8px;">
+<td style="font-weight: 500;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <span>${term.Query || '-'}</span>
           ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
+          ${term.Performance_Bucket ? getPerformanceBucketBadge(term.Performance_Bucket) : ''}
         </div>
       </td>
       <td class="metric-col">
@@ -2663,6 +2713,98 @@ function getTopBucketBadge(topBucket) {
       ${config.label}
     </span>
   `;
+}
+
+// Get performance bucket badge HTML
+function getPerformanceBucketBadge(bucketType) {
+  if (!bucketType) return '';
+  
+  const bucketConfig = {
+    'Top Search Terms': { color: '#FFD700', bg: '#FFF9E6', icon: '⭐' },
+    'Zero Converting Terms': { color: '#F44336', bg: '#FFEBEE', icon: '⚠️' },
+    'High Revenue Terms': { color: '#4CAF50', bg: '#E8F5E9', icon: '💰' },
+    'Hidden Gems': { color: '#2196F3', bg: '#E3F2FD', icon: '💎' },
+    'Low Performance': { color: '#9E9E9E', bg: '#F5F5F5', icon: '📉' },
+    'Mid-Performance': { color: '#FF9800', bg: '#FFF3E0', icon: '📊' }
+  };
+  
+  const config = bucketConfig[bucketType];
+  if (!config) return '';
+  
+  return `
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}40;
+      margin-left: 6px;
+    ">
+      ${config.icon} ${bucketType}
+    </span>
+  `;
+}
+
+// Initialize search term performance buckets if not already loaded
+async function ensureSearchTermPerformanceBuckets() {
+  // Check if buckets are already loaded
+  if (window.searchTermPerformanceBuckets && Object.keys(window.searchTermPerformanceBuckets).length > 0) {
+    return window.searchTermPerformanceBuckets;
+  }
+  
+  // Try to get from localStorage first
+  if (typeof getSearchTermPerformanceBuckets === 'function') {
+    const stored = getSearchTermPerformanceBuckets();
+    if (stored && Object.keys(stored).length > 0) {
+      window.searchTermPerformanceBuckets = stored;
+      return stored;
+    }
+  }
+  
+  // Need to load search terms data to calculate buckets
+  console.log('[Campaigns] Loading search terms data for bucket calculation...');
+  
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (result && result.data) {
+      const filteredData = result.data.filter(item => item.Query && item.Query.toLowerCase() !== 'blank');
+      // Use the function from google_ads_search_terms.js
+      if (typeof calculateSearchTermPerformanceBuckets === 'function') {
+        window.searchTermPerformanceBuckets = calculateSearchTermPerformanceBuckets(filteredData);
+        return window.searchTermPerformanceBuckets;
+      }
+    }
+  } catch (error) {
+    console.error('[Campaigns] Error loading search terms for buckets:', error);
+  }
+  
+  return {};
 }
 
 // Render products table with improved design
