@@ -2181,33 +2181,6 @@ function calculateAndStoreSearchTermBuckets() {
   return bucketMap;
 }
 
-// Add this helper function to determine bucket for a single term
-function getSearchTermBucket(term) {
-  const impressions = term.Impressions || 0;
-  const clicks = term.Clicks || 0;
-  const conversions = term.Conversions || 0;
-  const value = term.Value || 0;
-  const ctr = impressions > 0 ? (clicks / impressions * 100) : 0;
-  
-  // Priority order for bucket assignment
-  if (term.Top_Bucket && term.Top_Bucket !== '') {
-    return 'top-search';
-  }
-  if (clicks >= 50 && conversions === 0) {
-    return 'zero-converting';
-  }
-  if (value >= 1000) {
-    return 'high-revenue';
-  }
-  if (conversions > 0 && ctr < 2 && impressions > 1000) {
-    return 'hidden-gems';
-  }
-  if (impressions > 500 && ctr < 1) {
-    return 'low-performance';
-  }
-  return 'mid-performance';
-}
-
 // Add bucket badge HTML generator
 function getPerformanceBucketBadge(bucket) {
   const bucketConfig = {
