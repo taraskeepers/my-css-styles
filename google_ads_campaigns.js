@@ -2057,7 +2057,7 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
   try {
     // Get table prefix and load search terms data
     const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_searchTerms_30d`; // Use 30d by default
+    const searchTermsTableName = `${tablePrefix}googleSheets_searchTerms_30d`;
     
     // Load data from IndexedDB
     const db = await new Promise((resolve, reject) => {
@@ -2068,41 +2068,33 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
     
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
+    // Get search terms data
+    const searchTermsRequest = objectStore.get(searchTermsTableName);
+    const searchTermsResult = await new Promise((resolve, reject) => {
+      searchTermsRequest.onsuccess = () => resolve(searchTermsRequest.result);
+      searchTermsRequest.onerror = () => reject(searchTermsRequest.error);
     });
     
     db.close();
     
-    if (!result || !result.data) {
+    if (!searchTermsResult || !searchTermsResult.data) {
       tableContainer.innerHTML = `
         <div class="campaigns-empty-state">
           <div class="campaigns-empty-icon">🔍</div>
           <div class="campaigns-empty-title">No Search Terms Data</div>
-          <div class="campaigns-empty-text">Search terms data is not available for this campaign</div>
+          <div class="campaigns-empty-text">Search terms data is not available</div>
         </div>
       `;
       headerInfo.textContent = `${campaignName} - No search terms data`;
       return;
     }
     
-    // Filter search terms for this campaign
-    // Note: You'll need to verify the exact field names in your data
-    const campaignSearchTerms = result.data.filter(item => {
-      // Adjust these field names based on your actual data structure
-      return item['Campaign Name'] === campaignName || 
-             item['Campaign'] === campaignName ||
-             // If search terms are not directly linked to campaigns,
-             // we might need to use a different filtering approach
-             true; // For now, show all search terms as a fallback
-    });
-    
-    // Remove blank search terms
-    const filteredData = campaignSearchTerms.filter(item => 
-      item.Query && item.Query.toLowerCase() !== 'blank'
+    // Filter search terms for this specific campaign (exact match on Campaign_Name)
+    const filteredData = searchTermsResult.data.filter(item => 
+      item.Campaign_Name === campaignName && 
+      item.Query && 
+      item.Query.toLowerCase() !== 'blank'
     );
     
     if (filteredData.length === 0) {
@@ -2110,14 +2102,14 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
         <div class="campaigns-empty-state">
           <div class="campaigns-empty-icon">🔍</div>
           <div class="campaigns-empty-title">No Search Terms Found</div>
-          <div class="campaigns-empty-text">No search terms found for this campaign</div>
+          <div class="campaigns-empty-text">No search terms found for campaign: ${campaignName}</div>
         </div>
       `;
       headerInfo.textContent = `${campaignName} - No search terms`;
       return;
     }
     
-    // Sort by clicks by default
+    // Sort by clicks (highest first) by default
     filteredData.sort((a, b) => (b.Clicks || 0) - (a.Clicks || 0));
     
     // Render the search terms table
