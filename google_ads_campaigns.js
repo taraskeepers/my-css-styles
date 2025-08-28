@@ -1307,6 +1307,44 @@ function addCampaignClickHandlers() {
   });
 }
 
+// Helper function to parse and average trend values
+function calculateAverageTrend(trends) {
+  if (!trends || trends.length === 0) return null;
+  
+  const validTrends = [];
+  trends.forEach(trend => {
+    if (trend && trend !== 'N/A') {
+      // Parse trend like "⬇ +6.13" or "⬆ -3.5"
+      const match = trend.match(/([⬆⬇])\s*([+-]?\d+\.?\d*)/);
+      if (match) {
+        const arrow = match[1];
+        const value = parseFloat(match[2]);
+        validTrends.push({ arrow, value });
+      }
+    }
+  });
+  
+  if (validTrends.length === 0) return null;
+  
+  // Calculate average change
+  const avgValue = validTrends.reduce((sum, t) => sum + Math.abs(t.value), 0) / validTrends.length;
+  
+  // Determine overall direction (majority wins)
+  const upCount = validTrends.filter(t => t.arrow === '⬆').length;
+  const downCount = validTrends.filter(t => t.arrow === '⬇').length;
+  const arrow = upCount >= downCount ? '⬆' : '⬇';
+  
+  // Format the trend
+  const formattedValue = avgValue.toFixed(2);
+  const isPositive = arrow === '⬆';
+  
+  return {
+    text: `${arrow} ${formattedValue}`,
+    color: isPositive ? '#22c55e' : '#ef4444',
+    isPositive
+  };
+}
+
 // Load and process POS and SHARE data from processed table
 async function loadProcessedProductData(productTitles) {
   console.log('[loadProcessedProductData] Loading processed data for products:', productTitles.length);
@@ -1343,52 +1381,59 @@ async function loadProcessedProductData(productTitles) {
     // Process data: aggregate by product title and device
     const productMetrics = new Map();
     
-    result.data.forEach(row => {
-      // Filter by company source
-      if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
-        return;
-      }
+result.data.forEach(row => {
+  // Filter by company source
+  if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
+    return;
+  }
+  
+  const title = row.title;
+  const device = row.device || 'unknown';
+  const position = parseFloat(row.avg_week_position);
+  const visibility = parseFloat(row.avg_visibility);
+  const weekTrend = row.week_trend || null;
+  
+  // Skip if title doesn't match any of our products
+  if (!productTitles.includes(title)) {
+    return;
+  }
       
-      const title = row.title;
-      const device = row.device || 'unknown';
-      const position = parseFloat(row.avg_week_position);
-      const visibility = parseFloat(row.avg_visibility);
+if (!productMetrics.has(title)) {
+  productMetrics.set(title, {
+    allDevices: { positions: [], visibilities: [], trends: [] },
+    byDevice: new Map()
+  });
+}
+
+const metrics = productMetrics.get(title);
+
+// Add to all devices aggregation
+if (!isNaN(position) && position > 0) {
+  metrics.allDevices.positions.push(position);
+}
+if (!isNaN(visibility)) {
+  metrics.allDevices.visibilities.push(visibility);
+}
+if (weekTrend && weekTrend !== 'N/A') {
+  metrics.allDevices.trends.push(weekTrend);
+}
       
-      // Skip if title doesn't match any of our products
-      if (!productTitles.includes(title)) {
-        return;
-      }
-      
-      if (!productMetrics.has(title)) {
-        productMetrics.set(title, {
-          allDevices: { positions: [], visibilities: [] },
-          byDevice: new Map()
-        });
-      }
-      
-      const metrics = productMetrics.get(title);
-      
-      // Add to all devices aggregation
-      if (!isNaN(position) && position > 0) {
-        metrics.allDevices.positions.push(position);
-      }
-      if (!isNaN(visibility)) {
-        metrics.allDevices.visibilities.push(visibility);
-      }
-      
-      // Add to device-specific aggregation
-      const deviceKey = device.toLowerCase();
-      if (!metrics.byDevice.has(deviceKey)) {
-        metrics.byDevice.set(deviceKey, { positions: [], visibilities: [] });
-      }
-      
-      const deviceMetrics = metrics.byDevice.get(deviceKey);
-      if (!isNaN(position) && position > 0) {
-        deviceMetrics.positions.push(position);
-      }
-      if (!isNaN(visibility)) {
-        deviceMetrics.visibilities.push(visibility);
-      }
+// Add to device-specific aggregation
+const deviceKey = device.toLowerCase();
+if (!metrics.byDevice.has(deviceKey)) {
+  metrics.byDevice.set(deviceKey, { positions: [], visibilities: [], trends: [] });
+}
+
+const deviceMetrics = metrics.byDevice.get(deviceKey);
+if (!isNaN(position) && position > 0) {
+  deviceMetrics.positions.push(position);
+}
+if (!isNaN(visibility)) {
+  deviceMetrics.visibilities.push(visibility);
+}
+if (weekTrend && weekTrend !== 'N/A') {
+  deviceMetrics.trends.push(weekTrend);
+}
     });
     
     // Calculate averages
@@ -1403,36 +1448,43 @@ async function loadProcessedProductData(productTitles) {
         byDevice: new Map()
       };
       
-      // Calculate all devices average
-      if (metrics.allDevices.positions.length > 0) {
-        const avgPos = metrics.allDevices.positions.reduce((a, b) => a + b, 0) / metrics.allDevices.positions.length;
-        processed.allDevices.avgPosition = Math.round(avgPos * 100) / 100; // Round to 2 decimals
-      }
+// Calculate all devices average
+if (metrics.allDevices.positions.length > 0) {
+  const avgPos = metrics.allDevices.positions.reduce((a, b) => a + b, 0) / metrics.allDevices.positions.length;
+  processed.allDevices.avgPosition = Math.round(avgPos); // Round to 0 decimals
+}
+
+if (metrics.allDevices.visibilities.length > 0) {
+  const avgVis = metrics.allDevices.visibilities.reduce((a, b) => a + b, 0) / metrics.allDevices.visibilities.length;
+  processed.allDevices.avgVisibility = avgVis * 100; // Convert to percentage
+}
+
+// Calculate average trend
+processed.allDevices.trend = calculateAverageTrend(metrics.allDevices.trends);
       
-      if (metrics.allDevices.visibilities.length > 0) {
-        const avgVis = metrics.allDevices.visibilities.reduce((a, b) => a + b, 0) / metrics.allDevices.visibilities.length;
-        processed.allDevices.avgVisibility = avgVis * 100; // Convert to percentage
-      }
-      
-      // Calculate device-specific averages
-      for (const [device, deviceMetrics] of metrics.byDevice) {
-        const deviceProcessed = {
-          avgPosition: null,
-          avgVisibility: null
-        };
-        
-        if (deviceMetrics.positions.length > 0) {
-          const avgPos = deviceMetrics.positions.reduce((a, b) => a + b, 0) / deviceMetrics.positions.length;
-          deviceProcessed.avgPosition = Math.round(avgPos * 100) / 100;
-        }
-        
-        if (deviceMetrics.visibilities.length > 0) {
-          const avgVis = deviceMetrics.visibilities.reduce((a, b) => a + b, 0) / deviceMetrics.visibilities.length;
-          deviceProcessed.avgVisibility = avgVis * 100;
-        }
-        
-        processed.byDevice.set(device, deviceProcessed);
-      }
+// Calculate device-specific averages
+for (const [device, deviceMetrics] of metrics.byDevice) {
+  const deviceProcessed = {
+    avgPosition: null,
+    avgVisibility: null,
+    trend: null
+  };
+  
+  if (deviceMetrics.positions.length > 0) {
+    const avgPos = deviceMetrics.positions.reduce((a, b) => a + b, 0) / deviceMetrics.positions.length;
+    deviceProcessed.avgPosition = Math.round(avgPos); // Round to 0 decimals
+  }
+  
+  if (deviceMetrics.visibilities.length > 0) {
+    const avgVis = deviceMetrics.visibilities.reduce((a, b) => a + b, 0) / deviceMetrics.visibilities.length;
+    deviceProcessed.avgVisibility = avgVis * 100;
+  }
+  
+// Calculate average trend for device
+deviceProcessed.trend = calculateAverageTrend(deviceMetrics.trends);
+  
+  processed.byDevice.set(device, deviceProcessed);
+}
       
       processedMetrics.set(title, processed);
     }
@@ -1568,9 +1620,10 @@ for (const [productTitle, productData] of productsData) {
   const aggregated = {
     title: productTitle,
     image: matchedProduct?.thumbnail || '',
-    // Use processed data for POS and SHARE
-    adPosition: productProcessedMetrics?.allDevices?.avgPosition || null,
-    marketShare: productProcessedMetrics?.allDevices?.avgVisibility || null,
+// Use processed data for POS and SHARE
+adPosition: productProcessedMetrics?.allDevices?.avgPosition || null,
+marketShare: productProcessedMetrics?.allDevices?.avgVisibility || null,
+trend: productProcessedMetrics?.allDevices?.trend || null,
     devices: productData.devices,
     // Store device-specific metrics
     deviceMetrics: productProcessedMetrics?.byDevice || new Map(),
@@ -1779,7 +1832,12 @@ tbody.appendChild(summaryRow);
     let rowHTML = `
 <td style="text-align: center; width: 60px;">
   ${product.adPosition !== null && product.adPosition !== undefined ? 
-    `<div class="camp-position-indicator ${posClass}">${product.adPosition.toFixed(2)}</div>` : 
+    `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="camp-position-indicator ${posClass}">${product.adPosition}</div>
+      ${product.trend ? 
+        `<div style="font-size: 9px; color: ${product.trend.color}; font-weight: 600; background: ${product.trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 4px; border-radius: 4px;">${product.trend.text}</div>` : 
+        ''}
+    </div>` : 
     '<span style="color: #adb5bd;">-</span>'}
 </td>
       <td style="text-align: center; width: 90px;">
@@ -1790,11 +1848,18 @@ tbody.appendChild(summaryRow);
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
-      <td style="text-align: center; width: 70px;">
-        ${product.roas !== null && product.roas !== undefined ? 
-          `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` : 
-          '<span style="color: #adb5bd;">-</span>'}
-      </td>
+<td style="text-align: center; width: 70px;">
+  ${product.roas !== null && product.roas !== undefined ? 
+    (product.convValue > 0 ? 
+      `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` :
+      `<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #9e9e9e;">
+        <span style="display: flex; align-items: center; gap: 3px;">
+          <span style="font-size: 14px;">💤</span>
+          <span>No Sales</span>
+        </span>
+      </div>`)
+    : '<span style="color: #adb5bd;">-</span>'}
+</td>
       <td style="text-align: center; width: 80px;">
         ${product.image ? 
           `<div class="camp-product-img-container">
@@ -1889,11 +1954,16 @@ if (hasDevices) {
     
     // Device row with POS, SHARE, and ROAS columns populated
     let deviceRowHTML = `
-      <td style="text-align: center;">
-        ${devicePOS !== null && devicePOS !== undefined ? 
-          `<div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS.toFixed(2)}</div>` : 
-          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
-      </td>
+<td style="text-align: center;">
+  ${devicePOS !== null && devicePOS !== undefined ? 
+    `<div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
+      <div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS}</div>
+      ${deviceMetrics?.trend ? 
+        `<div style="font-size: 8px; color: ${deviceMetrics.trend.color}; font-weight: 600; background: ${deviceMetrics.trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 3px; border-radius: 3px;">${deviceMetrics.trend.text}</div>` : 
+        ''}
+    </div>` : 
+    '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
+</td>
       <td style="text-align: center;">
         ${deviceMarketShare !== null && deviceMarketShare !== undefined ? 
           `<div class="camp-share-bar" style="height: 24px; width: 50px;">
@@ -1902,11 +1972,16 @@ if (hasDevices) {
           </div>` : 
           '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
       </td>
-      <td style="text-align: center;">
-        ${deviceROAS ? 
-          `<div class="camp-roas-badge ${roasClass}" style="width: 50px; height: 28px; font-size: 11px;">${deviceROAS.toFixed(1)}x</div>` : 
-          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
-      </td>
+<td style="text-align: center;">
+  ${deviceData.ConvValue > 0 ? 
+    `<div class="camp-roas-badge ${roasClass}" style="width: 50px; height: 28px; font-size: 11px;">${deviceROAS.toFixed(1)}x</div>` :
+    `<div style="width: 50px; height: 28px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: #9e9e9e;">
+      <span style="display: flex; align-items: center; gap: 2px;">
+        <span style="font-size: 11px;">💤</span>
+        <span>No Sales</span>
+      </span>
+    </div>`}
+</td>
       <td></td>
       <td style="padding-left: 20px;">
         <div class="camp-device-tag ${deviceClass}">
