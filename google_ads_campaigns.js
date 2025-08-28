@@ -2055,9 +2055,11 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
   headerInfo.textContent = `Loading search terms for ${campaignName}...`;
   
   try {
-    // Get table prefix and load search terms data
+    // Get table prefix and load multiple tables
     const tablePrefix = getProjectTablePrefix();
     const searchTermsTableName = `${tablePrefix}googleSheets_searchTerms_30d`;
+    const searchTerms365dTableName = `${tablePrefix}googleSheets_searchTerms_365d`;
+    const searchTerms90dTableName = `${tablePrefix}googleSheets_searchTerms_90d`;
     
     // Load data from IndexedDB
     const db = await new Promise((resolve, reject) => {
@@ -2069,11 +2071,25 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
     
-    // Get search terms data
+    // Get 30d search terms data
     const searchTermsRequest = objectStore.get(searchTermsTableName);
     const searchTermsResult = await new Promise((resolve, reject) => {
       searchTermsRequest.onsuccess = () => resolve(searchTermsRequest.result);
       searchTermsRequest.onerror = () => reject(searchTermsRequest.error);
+    });
+    
+    // Get 365d data for Top_Bucket
+    const searchTerms365dRequest = objectStore.get(searchTerms365dTableName);
+    const searchTerms365dResult = await new Promise((resolve, reject) => {
+      searchTerms365dRequest.onsuccess = () => resolve(searchTerms365dRequest.result);
+      searchTerms365dRequest.onerror = () => reject(searchTerms365dRequest.error);
+    });
+    
+    // Get 90d data for trends
+    const searchTerms90dRequest = objectStore.get(searchTerms90dTableName);
+    const searchTerms90dResult = await new Promise((resolve, reject) => {
+      searchTerms90dRequest.onsuccess = () => resolve(searchTerms90dRequest.result);
+      searchTerms90dRequest.onerror = () => reject(searchTerms90dRequest.error);
     });
     
     db.close();
@@ -2090,12 +2106,45 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
       return;
     }
     
-    // Filter search terms for this specific campaign (exact match on Campaign_Name)
+    // Create map of Top_Bucket values from 365d data
+    const topBucketMap = {};
+    if (searchTerms365dResult && searchTerms365dResult.data) {
+      searchTerms365dResult.data.forEach(item => {
+        if (item.Query && item.Top_Bucket && item.Campaign_Name === campaignName) {
+          topBucketMap[item.Query.toLowerCase()] = item.Top_Bucket;
+        }
+      });
+    }
+    
+    // Create map of 90d data for trends (monthly average)
+    const trend90dMap = {};
+    if (searchTerms90dResult && searchTerms90dResult.data) {
+      searchTerms90dResult.data.forEach(item => {
+        if (item.Query && item.Campaign_Name === campaignName) {
+          trend90dMap[item.Query.toLowerCase()] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        }
+      });
+    }
+    
+    // Filter search terms for this specific campaign
     const filteredData = searchTermsResult.data.filter(item => 
       item.Campaign_Name === campaignName && 
       item.Query && 
       item.Query.toLowerCase() !== 'blank'
-    );
+    ).map(item => {
+      // Add Top_Bucket and trend data
+      const queryLower = item.Query.toLowerCase();
+      return {
+        ...item,
+        Top_Bucket: topBucketMap[queryLower] || '',
+        Trend_Data: trend90dMap[queryLower] || null
+      };
+    });
     
     if (filteredData.length === 0) {
       tableContainer.innerHTML = `
@@ -2136,17 +2185,43 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   // Calculate max values for scaling bars
   const maxImpressions = Math.max(...searchTerms.map(d => d.Impressions || 0));
   const maxClicks = Math.max(...searchTerms.map(d => d.Clicks || 0));
+  const maxConversions = Math.max(...searchTerms.map(d => d.Conversions || 0));
+  const maxValue = Math.max(...searchTerms.map(d => d.Value || 0));
   
   // Calculate totals
   const totals = {
     impressions: searchTerms.reduce((sum, d) => sum + (d.Impressions || 0), 0),
     clicks: searchTerms.reduce((sum, d) => sum + (d.Clicks || 0), 0),
     conversions: searchTerms.reduce((sum, d) => sum + (d.Conversions || 0), 0),
-    value: searchTerms.reduce((sum, d) => sum + (d.Value || 0), 0)
+    value: searchTerms.reduce((sum, d) => sum + (d.Value || 0), 0),
+    revenuePercent: searchTerms.reduce((sum, d) => sum + ((d['% of all revenue'] || 0) * 100), 0)
   };
   
   totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
   totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+  
+  // Calculate trend totals
+  const trendTotals = {
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    value: 0
+  };
+  
+  searchTerms.forEach(term => {
+    if (term.Trend_Data) {
+      trendTotals.impressions += term.Trend_Data.Impressions || 0;
+      trendTotals.clicks += term.Trend_Data.Clicks || 0;
+      trendTotals.conversions += term.Trend_Data.Conversions || 0;
+      trendTotals.value += term.Trend_Data.Value || 0;
+    }
+  });
+  
+  // Find top 10 by value for special highlighting
+  const top10ByValue = [...searchTerms]
+    .sort((a, b) => (b.Value || 0) - (a.Value || 0))
+    .slice(0, 10)
+    .map(item => item.Query);
   
   const wrapper = document.createElement('div');
   wrapper.className = 'camp-products-wrapper';
@@ -2159,13 +2234,14 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   thead.innerHTML = `
     <tr>
       <th style="width: 50px; text-align: center;">#</th>
-      <th style="width: 350px;">Search Term</th>
+      <th style="width: 300px;">Search Term</th>
       <th class="right sortable metric-col" data-sort="impressions">Impressions</th>
       <th class="right sortable metric-col" data-sort="clicks">Clicks</th>
       <th class="right sortable metric-col" data-sort="ctr">CTR %</th>
       <th class="right sortable metric-col" data-sort="conversions">Conv</th>
       <th class="right sortable metric-col" data-sort="cvr">CVR %</th>
       <th class="right sortable metric-col" data-sort="value">Revenue</th>
+      <th class="right sortable metric-col" data-sort="revenuePercent">% of Revenue</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -2178,23 +2254,70 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
     <tr class="camp-summary-row">
       <td style="text-align: center; font-weight: 600;">#</td>
       <td style="font-weight: 600;">Total (${searchTerms.length} terms)</td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.impressions.toLocaleString()}
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+            ${totals.impressions.toLocaleString()}
+          </div>
+          ${getCampaignMetricTrend(trendTotals.impressions, totals.impressions, 'impressions')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+            </div>
+            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+          </div>
+        </div>
       </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.clicks.toLocaleString()}
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+            ${totals.clicks.toLocaleString()}
+          </div>
+          ${getCampaignMetricTrend(trendTotals.clicks, totals.clicks, 'clicks')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+            </div>
+            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+          </div>
+        </div>
       </td>
       <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
         ${totals.ctr.toFixed(2)}%
       </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.conversions.toLocaleString()}
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+            ${totals.conversions.toFixed(1)}
+          </div>
+          ${getCampaignMetricTrend(trendTotals.conversions, totals.conversions, 'conversions')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+            </div>
+            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+          </div>
+        </div>
       </td>
       <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
         ${totals.cvr.toFixed(2)}%
       </td>
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+            $${totals.value.toFixed(2)}
+          </div>
+          ${getCampaignMetricTrend(trendTotals.value, totals.value, 'value')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+            </div>
+            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+          </div>
+        </div>
+      </td>
       <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        $${totals.value.toFixed(2)}
+        ${totals.revenuePercent.toFixed(2)}%
       </td>
     </tr>
   `;
@@ -2203,32 +2326,110 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   searchTerms.forEach((term, index) => {
     const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100) : 0;
     const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100) : 0;
+    const revenuePercent = (term['% of all revenue'] || 0) * 100;
+    
+    // Calculate percentages for bars
+    const impressionsPercent = totals.impressions > 0 ? (term.Impressions / totals.impressions * 100) : 0;
+    const clicksPercent = totals.clicks > 0 ? (term.Clicks / totals.clicks * 100) : 0;
+    const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
+    const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
+    
+    // Determine row background based on Top_Bucket or performance
+    let rowBg = index % 2 === 1 ? '#f9f9f9' : 'white';
+    if (term.Clicks >= 50 && term.Conversions === 0) {
+      rowBg = '#ffebee'; // Light red for potential negatives
+    } else if (top10ByValue.includes(term.Query)) {
+      rowBg = '#e8f5e9'; // Light green for top revenue
+    } else if (term.Top_Bucket) {
+      // Style based on Top_Bucket
+      const bucketStyles = {
+        'Top1': '#fff9e6',
+        'Top2': '#f5f5f5',
+        'Top3': '#fff5f0',
+        'Top4': '#e8f5e9',
+        'Top5': '#e3f2fd',
+        'Top10': '#f3e5f5'
+      };
+      rowBg = bucketStyles[term.Top_Bucket] || rowBg;
+    }
     
     const row = document.createElement('tr');
+    row.style.backgroundColor = rowBg;
+    
     row.innerHTML = `
-      <td style="text-align: center; font-weight: 600; color: #666;">${index + 1}</td>
-      <td style="font-weight: 500;">${term.Query || '-'}</td>
-      <td class="metric-col" style="text-align: right;">
-        <div>${(term.Impressions || 0).toLocaleString()}</div>
-        <div style="width: 60px; height: 3px; background: #e9ecef; border-radius: 2px; margin-top: 4px;">
-          <div style="width: ${maxImpressions > 0 ? (term.Impressions / maxImpressions * 100) : 0}%; height: 100%; background: #4285f4; border-radius: 2px;"></div>
+      <td style="text-align: center;">
+        ${getIndexWithTopBucket(index + 1, term.Top_Bucket)}
+      </td>
+      <td style="font-weight: 500;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>${term.Query || '-'}</span>
+          ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
+        </div>
+      </td>
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value">${(term.Impressions || 0).toLocaleString()}</div>
+          ${getCampaignMetricTrend(term.Trend_Data?.Impressions, term.Impressions, 'impressions')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: ${impressionsPercent}%; background: linear-gradient(90deg, #4285f4 0%, #1a73e8 100%);"></div>
+            </div>
+            <span class="camp-metric-percent">${impressionsPercent.toFixed(1)}%</span>
+          </div>
+        </div>
+      </td>
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value">${(term.Clicks || 0).toLocaleString()}</div>
+          ${getCampaignMetricTrend(term.Trend_Data?.Clicks, term.Clicks, 'clicks')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: ${clicksPercent}%; background: linear-gradient(90deg, #34a853 0%, #1e8e3e 100%);"></div>
+            </div>
+            <span class="camp-metric-percent">${clicksPercent.toFixed(1)}%</span>
+          </div>
         </div>
       </td>
       <td class="metric-col" style="text-align: right;">
-        <div>${(term.Clicks || 0).toLocaleString()}</div>
-        <div style="width: 60px; height: 3px; background: #e9ecef; border-radius: 2px; margin-top: 4px;">
-          <div style="width: ${maxClicks > 0 ? (term.Clicks / maxClicks * 100) : 0}%; height: 100%; background: #34a853; border-radius: 2px;"></div>
+        <div style="font-weight: 600; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">
+          ${ctr.toFixed(2)}%
         </div>
       </td>
-      <td class="metric-col" style="text-align: right; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-weight: 600;">
-        ${ctr.toFixed(2)}%
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value">${(term.Conversions || 0).toFixed(1)}</div>
+          ${getCampaignMetricTrend(term.Trend_Data?.Conversions, term.Conversions, 'conversions')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: ${conversionsPercent}%; background: linear-gradient(90deg, #fbbc04 0%, #ea8600 100%);"></div>
+            </div>
+            <span class="camp-metric-percent">${conversionsPercent.toFixed(1)}%</span>
+          </div>
+        </div>
       </td>
-      <td class="metric-col" style="text-align: right;">${(term.Conversions || 0).toFixed(1)}</td>
-      <td class="metric-col" style="text-align: right; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'}; font-weight: 600;">
-        ${cvr.toFixed(2)}%
+      <td class="metric-col" style="text-align: right;">
+        <div style="font-weight: 600; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'};">
+          ${cvr.toFixed(2)}%
+        </div>
       </td>
-      <td class="metric-col" style="text-align: right; font-weight: 600;">
-        $${(term.Value || 0).toFixed(2)}
+      <td class="metric-col">
+        <div class="camp-metric-cell">
+          <div class="camp-metric-value" style="font-weight: 600;">
+            $${(term.Value || 0).toFixed(2)}
+          </div>
+          ${getCampaignMetricTrend(term.Trend_Data?.Value, term.Value, 'value')}
+          <div class="camp-metric-bar-container">
+            <div class="camp-metric-bar">
+              <div class="camp-metric-bar-fill" style="width: ${valuePercent}%; background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);"></div>
+            </div>
+            <span class="camp-metric-percent">${valuePercent.toFixed(1)}%</span>
+          </div>
+        </div>
+      </td>
+      <td class="metric-col" style="text-align: right;">
+        <div style="font-weight: 600; color: ${revenuePercent > 5 ? '#4CAF50' : '#666'};">
+          ${revenuePercent.toFixed(2)}%
+        </div>
       </td>
     </tr>
     `;
@@ -2241,6 +2442,95 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   // Clear and add table
   container.innerHTML = '';
   container.appendChild(wrapper);
+}
+
+// Helper function to format trend for campaign metrics
+function getCampaignMetricTrend(previousValue, currentValue, type) {
+  if (!previousValue || previousValue === 0) return '';
+  
+  const current = parseFloat(currentValue) || 0;
+  const previous = parseFloat(previousValue) || 0;
+  
+  const change = current - previous;
+  const changePercent = previous > 0 ? ((change / previous) * 100).toFixed(1) : 0;
+  const isPositive = change >= 0;
+  const arrow = isPositive ? '↑' : '↓';
+  const color = isPositive ? '#4CAF50' : '#F44336';
+  
+  return `
+    <div style="font-size: 11px; color: ${color}; margin-top: 2px;">
+      ${arrow} ${Math.abs(changePercent)}%
+    </div>
+  `;
+}
+
+// Get index with Top Bucket styling
+function getIndexWithTopBucket(index, topBucket) {
+  const bucketStyles = {
+    'Top1': { bg: '#FFD700', color: '#000' },
+    'Top2': { bg: '#C0C0C0', color: '#000' },
+    'Top3': { bg: '#CD7F32', color: '#fff' },
+    'Top4': { bg: '#4CAF50', color: '#fff' },
+    'Top5': { bg: '#2196F3', color: '#fff' },
+    'Top10': { bg: '#9C27B0', color: '#fff' }
+  };
+  
+  const style = bucketStyles[topBucket];
+  
+  if (style) {
+    return `
+      <div style="
+        background: ${style.bg};
+        color: ${style.color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        margin: 0 auto;
+      ">
+        ${index}
+      </div>
+    `;
+  }
+  
+  return `<div style="font-weight: 600; color: #666; font-size: 13px;">${index}</div>`;
+}
+
+// Get Top Bucket badge HTML
+function getTopBucketBadge(topBucket) {
+  if (!topBucket || topBucket === '') return '';
+  
+  const bucketConfig = {
+    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: 'Top 1' },
+    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: 'Top 2' },
+    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: 'Top 3' },
+    'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
+    'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
+    'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
+  };
+  
+  const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
+  
+  return `
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}40;
+    ">
+      ${config.label}
+    </span>
+  `;
 }
 
 // Render products table with improved design
