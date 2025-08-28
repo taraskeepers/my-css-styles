@@ -104,6 +104,10 @@ async function loadAndRenderSearchTerms() {
     window.searchTermsSortAscending = false;
     // Store 365d data for missing terms analysis
 window.searchTerms365dData = result365d && result365d.data ? result365d.data : [];
+
+    // Calculate and store performance bucket assignments
+    window.searchTermPerformanceBuckets = calculateSearchTermPerformanceBuckets(filteredData);
+    
     // Initialize filter state
 window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
     
@@ -1529,3 +1533,93 @@ window.initializeSearchTermsButton = initializeSearchTermsButton;
 
 // Add styles immediately
 addSearchTermsStyles();
+
+// Performance bucket calculation functions
+function calculateSearchTermPerformanceBuckets(searchTermsData) {
+  if (!searchTermsData || searchTermsData.length === 0) return {};
+  
+  const bucketAssignments = {};
+  
+  // Calculate metrics for bucketing
+  const termsWithMetrics = searchTermsData.map(term => {
+    const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100) : 0;
+    const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100) : 0;
+    const revenuePerClick = term.Clicks > 0 ? (term.Value / term.Clicks) : 0;
+    
+    return {
+      ...term,
+      ctr,
+      cvr,
+      revenuePerClick,
+      score: (ctr * 0.3) + (cvr * 0.4) + ((term.Value / Math.max(term.Cost || 1, 1)) * 0.3)
+    };
+  });
+  
+  // Sort by different metrics for bucketing
+  const sortedByRevenue = [...termsWithMetrics].sort((a, b) => (b.Value || 0) - (a.Value || 0));
+  const sortedByScore = [...termsWithMetrics].sort((a, b) => b.score - a.score);
+  
+  // Calculate thresholds
+  const avgCTR = termsWithMetrics.reduce((sum, t) => sum + t.ctr, 0) / termsWithMetrics.length;
+  const avgCVR = termsWithMetrics.filter(t => t.Clicks > 0).reduce((sum, t) => sum + t.cvr, 0) / termsWithMetrics.filter(t => t.Clicks > 0).length;
+  const topRevenueThreshold = sortedByRevenue[Math.min(10, Math.floor(sortedByRevenue.length * 0.1))]?.Value || 0;
+  
+  // Assign buckets
+  termsWithMetrics.forEach(term => {
+    const queryLower = term.Query.toLowerCase();
+    
+    // Priority order for bucket assignment
+    if (term.Clicks >= 50 && term.Conversions === 0) {
+      bucketAssignments[queryLower] = 'Zero Converting Terms';
+    } else if (term.Value >= topRevenueThreshold && term.Value > 0) {
+      bucketAssignments[queryLower] = 'High Revenue Terms';
+    } else if (term.Impressions < 100 && term.cvr > avgCVR * 2 && term.Conversions > 0) {
+      bucketAssignments[queryLower] = 'Hidden Gems';
+    } else if (sortedByScore.indexOf(term) < 8) {
+      bucketAssignments[queryLower] = 'Top Search Terms';
+    } else if (term.ctr < avgCTR * 0.5 || term.cvr < avgCVR * 0.5) {
+      bucketAssignments[queryLower] = 'Low Performance';
+    } else {
+      bucketAssignments[queryLower] = 'Mid-Performance';
+    }
+  });
+  
+  // Store in localStorage with timestamp
+  const bucketData = {
+    assignments: bucketAssignments,
+    timestamp: Date.now(),
+    dateRange: window.selectedDateRangeDays || 30
+  };
+  
+  const tablePrefix = getProjectTablePrefix();
+  localStorage.setItem(`searchTermPerformanceBuckets_${tablePrefix}`, JSON.stringify(bucketData));
+  
+  return bucketAssignments;
+}
+
+// Get stored performance bucket assignments
+function getSearchTermPerformanceBuckets() {
+  const tablePrefix = getProjectTablePrefix();
+  const storageKey = `searchTermPerformanceBuckets_${tablePrefix}`;
+  const stored = localStorage.getItem(storageKey);
+  
+  if (stored) {
+    try {
+      const bucketData = JSON.parse(stored);
+      // Check if data is less than 1 hour old and same date range
+      if (bucketData.timestamp && 
+          Date.now() - bucketData.timestamp < 3600000 &&
+          bucketData.dateRange === (window.selectedDateRangeDays || 30)) {
+        return bucketData.assignments;
+      }
+    } catch (e) {
+      console.error('Error parsing stored bucket data:', e);
+    }
+  }
+  
+  return {};
+}
+
+// Export functions
+window.calculateSearchTermPerformanceBuckets = calculateSearchTermPerformanceBuckets;
+window.getSearchTermPerformanceBuckets = getSearchTermPerformanceBuckets;
