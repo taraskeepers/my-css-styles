@@ -1306,17 +1306,6 @@ searchTermsPanel.innerHTML = `
       <div class="selected-campaign-info">Select a campaign to view its search terms</div>
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <div class="bucket-filter-container" style="display: none;">
-        <select id="campaignBucketFilter" style="padding: 6px 12px; background: white; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; cursor: pointer;">
-          <option value="all">All Buckets</option>
-          <option value="top-search">🏆 Top Search</option>
-          <option value="zero-converting">⚠️ Zero Converting</option>
-          <option value="high-revenue">💰 High Revenue</option>
-          <option value="hidden-gems">💎 Hidden Gems</option>
-          <option value="low-performance">📉 Low Performance</option>
-          <option value="mid-performance">📊 Mid-Performance</option>
-        </select>
-      </div>
       <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
         <span>📅</span>
         <span>${dateRangeText}</span>
@@ -2049,172 +2038,6 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
   }
 }
 
-// Add this function before loadCampaignSearchTerms
-async function ensureSearchTermBucketsCalculated() {
-  const tablePrefix = getProjectTablePrefix();
-  const cacheKey = `${tablePrefix}_searchTermBuckets`;
-  
-  // Check if buckets already calculated
-  if (sessionStorage.getItem(cacheKey)) {
-    return JSON.parse(sessionStorage.getItem(cacheKey));
-  }
-  
-  // Load search terms data if not already loaded
-  try {
-    const tableName = `${tablePrefix}googleSheets_searchTerms_30d`;
-    const tableName365d = `${tablePrefix}googleSheets_searchTerms_365d`;
-    
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open database'));
-    });
-    
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    
-    // Get 30d data
-    const getRequest = objectStore.get(tableName);
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    // Get 365d data for Top_Bucket
-    const getRequest365d = objectStore.get(tableName365d);
-    const result365d = await new Promise((resolve, reject) => {
-      getRequest365d.onsuccess = () => resolve(getRequest365d.result);
-      getRequest365d.onerror = () => reject(getRequest365d.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) return {};
-    
-    // Create Top_Bucket map
-    const topBucketMap = {};
-    if (result365d && result365d.data) {
-      result365d.data.forEach(item => {
-        if (item.Query && item.Top_Bucket) {
-          topBucketMap[item.Query.toLowerCase()] = item.Top_Bucket;
-        }
-      });
-    }
-    
-    // Calculate buckets for all terms
-    const bucketMap = {};
-    result.data.forEach(term => {
-      if (term.Query && term.Query.toLowerCase() !== 'blank') {
-        // Add Top_Bucket if exists
-        const queryLower = term.Query.toLowerCase();
-        if (topBucketMap[queryLower]) {
-          term.Top_Bucket = topBucketMap[queryLower];
-        }
-        
-        const bucket = getSearchTermBucket(term);
-        bucketMap[queryLower] = bucket;
-      }
-    });
-    
-    // Store in sessionStorage
-    sessionStorage.setItem(cacheKey, JSON.stringify(bucketMap));
-    return bucketMap;
-    
-  } catch (error) {
-    console.error('[ensureSearchTermBucketsCalculated] Error:', error);
-    return {};
-  }
-}
-
-// Copy the getSearchTermBucket function from above
-function getSearchTermBucket(term) {
-  const impressions = term.Impressions || 0;
-  const clicks = term.Clicks || 0;
-  const conversions = term.Conversions || 0;
-  const value = term.Value || 0;
-  const ctr = impressions > 0 ? (clicks / impressions * 100) : 0;
-  
-  if (term.Top_Bucket && term.Top_Bucket !== '') {
-    return 'top-search';
-  }
-  if (clicks >= 50 && conversions === 0) {
-    return 'zero-converting';
-  }
-  if (value >= 1000) {
-    return 'high-revenue';
-  }
-  if (conversions > 0 && ctr < 2 && impressions > 1000) {
-    return 'hidden-gems';
-  }
-  if (impressions > 500 && ctr < 1) {
-    return 'low-performance';
-  }
-  return 'mid-performance';
-}
-
-// Copy the getPerformanceBucketBadge function from above
-// Add this function after the loadAndRenderSearchTerms function
-function calculateAndStoreSearchTermBuckets() {
-  const tablePrefix = getProjectTablePrefix();
-  const cacheKey = `${tablePrefix}_searchTermBuckets`;
-  
-  // Check if we already have cached buckets
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) {
-    return JSON.parse(cached);
-  }
-  
-  // Calculate buckets for all search terms
-  const bucketMap = {};
-  
-  if (window.searchTermsData && window.searchTermsData.length > 0) {
-    window.searchTermsData.forEach(term => {
-      const query = term.Query.toLowerCase();
-      const bucket = getSearchTermBucket(term);
-      bucketMap[query] = bucket;
-    });
-    
-    // Store in sessionStorage
-    sessionStorage.setItem(cacheKey, JSON.stringify(bucketMap));
-  }
-  
-  return bucketMap;
-}
-
-// Add bucket badge HTML generator
-function getPerformanceBucketBadge(bucket) {
-  const bucketConfig = {
-    'top-search': { color: '#FFD700', bg: '#FFF9E6', label: 'Top Search', icon: '🏆' },
-    'zero-converting': { color: '#F44336', bg: '#FFEBEE', label: 'Zero Converting', icon: '⚠️' },
-    'high-revenue': { color: '#4CAF50', bg: '#E8F5E9', label: 'High Revenue', icon: '💰' },
-    'hidden-gems': { color: '#2196F3', bg: '#E3F2FD', label: 'Hidden Gem', icon: '💎' },
-    'low-performance': { color: '#9E9E9E', bg: '#F5F5F5', label: 'Low Performance', icon: '📉' },
-    'mid-performance': { color: '#FF9800', bg: '#FFF3E0', label: 'Mid-Performance', icon: '📊' }
-  };
-  
-  const config = bucketConfig[bucket];
-  if (!config) return '';
-  
-  return `
-    <span style="
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: 12px;
-      background: ${config.bg};
-      color: ${config.color};
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      border: 1px solid ${config.color}40;
-      gap: 4px;
-    ">
-      <span>${config.icon}</span>
-      ${config.label}
-    </span>
-  `;
-}
-
 // Load search terms for selected campaign
 async function loadCampaignSearchTerms(channelType, campaignName) {
   console.log('[loadCampaignSearchTerms] Loading search terms for campaign:', campaignName);
@@ -2223,9 +2046,6 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
   const headerInfo = searchTermsPanel?.querySelector('.selected-campaign-info');
   
   if (!searchTermsPanel) return;
-  
-  // Ensure we have bucket data calculated
-  await ensureSearchTermBucketsCalculated();
   
   // Show loading state
   const tableContainer = searchTermsPanel.querySelector('.campaigns-search-terms-table-container');
@@ -2311,29 +2131,20 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
       });
     }
     
-// Get bucket map from storage
-const tablePrefix = getProjectTablePrefix();
-const bucketMap = JSON.parse(sessionStorage.getItem(`${tablePrefix}_searchTermBuckets`) || '{}');
-
-// Filter search terms for this specific campaign
-const filteredData = searchTermsResult.data.filter(item => 
-  item.Campaign_Name === campaignName && 
-  item.Query && 
-  item.Query.toLowerCase() !== 'blank'
-).map(item => {
-  // Add Top_Bucket, trend data, and performance bucket
-  const queryLower = item.Query.toLowerCase();
-  return {
-    ...item,
-    Top_Bucket: topBucketMap[queryLower] || '',
-    Trend_Data: trend90dMap[queryLower] || null,
-    Performance_Bucket: bucketMap[queryLower] || 'mid-performance'
-  };
-});
-
-// Store unfiltered data for bucket filtering
-window.campaignSearchTermsUnfiltered = filteredData;
-window.currentBucketFilter = 'all';
+    // Filter search terms for this specific campaign
+    const filteredData = searchTermsResult.data.filter(item => 
+      item.Campaign_Name === campaignName && 
+      item.Query && 
+      item.Query.toLowerCase() !== 'blank'
+    ).map(item => {
+      // Add Top_Bucket and trend data
+      const queryLower = item.Query.toLowerCase();
+      return {
+        ...item,
+        Top_Bucket: topBucketMap[queryLower] || '',
+        Trend_Data: trend90dMap[queryLower] || null
+      };
+    });
     
     if (filteredData.length === 0) {
       tableContainer.innerHTML = `
@@ -2355,44 +2166,6 @@ window.currentBucketFilter = 'all';
     
     // Update header info
     headerInfo.textContent = `${campaignName} - ${filteredData.length} search terms`;
-
-    // Show bucket filter and add event listener
-const bucketFilterContainer = searchTermsPanel.querySelector('.bucket-filter-container');
-if (bucketFilterContainer) {
-  bucketFilterContainer.style.display = 'block';
-  
-  const bucketFilter = document.getElementById('campaignBucketFilter');
-  if (bucketFilter) {
-    bucketFilter.value = 'all';
-    bucketFilter.removeEventListener('change', window.bucketFilterHandler); // Remove old listener if exists
-    
-    window.bucketFilterHandler = function() {
-      const selectedBucket = this.value;
-      window.currentBucketFilter = selectedBucket;
-      
-      let dataToRender = [...window.campaignSearchTermsUnfiltered];
-      if (selectedBucket !== 'all') {
-        dataToRender = dataToRender.filter(term => term.Performance_Bucket === selectedBucket);
-      }
-      
-      // Sort by clicks by default
-      dataToRender.sort((a, b) => (b.Clicks || 0) - (a.Clicks || 0));
-      
-      // Re-render table
-      renderCampaignSearchTermsTable(tableContainer, dataToRender, campaignName);
-      
-      // Update header info
-      const headerInfo = searchTermsPanel.querySelector('.selected-campaign-info');
-      if (headerInfo) {
-        headerInfo.textContent = selectedBucket === 'all' ? 
-          `${campaignName} - ${dataToRender.length} search terms` :
-          `${campaignName} - ${dataToRender.length} search terms (filtered)`;
-      }
-    };
-    
-    bucketFilter.addEventListener('change', window.bucketFilterHandler);
-  }
-}
     
   } catch (error) {
     console.error('[loadCampaignSearchTerms] Error:', error);
@@ -2612,13 +2385,12 @@ thead.innerHTML = `
       <td style="text-align: center;">
         ${getIndexWithTopBucket(index + 1, term.Top_Bucket)}
       </td>
-<td style="font-weight: 500;">
-  <div style="display: flex; align-items: center; gap: 8px;">
-    <span>${term.Query || '-'}</span>
-    ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
-    ${term.Performance_Bucket ? getPerformanceBucketBadge(term.Performance_Bucket) : ''}
-  </div>
-</td>
+      <td style="font-weight: 500;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>${term.Query || '-'}</span>
+          ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
+        </div>
+      </td>
       <td class="metric-col">
         <div class="camp-metric-cell">
           <div class="camp-metric-value">${(term.Impressions || 0).toLocaleString()}</div>
