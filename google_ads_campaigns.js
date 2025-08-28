@@ -2188,13 +2188,13 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   const maxConversions = Math.max(...searchTerms.map(d => d.Conversions || 0));
   const maxValue = Math.max(...searchTerms.map(d => d.Value || 0));
   
-  // Calculate totals
+// Calculate totals
   const totals = {
     impressions: searchTerms.reduce((sum, d) => sum + (d.Impressions || 0), 0),
     clicks: searchTerms.reduce((sum, d) => sum + (d.Clicks || 0), 0),
     conversions: searchTerms.reduce((sum, d) => sum + (d.Conversions || 0), 0),
     value: searchTerms.reduce((sum, d) => sum + (d.Value || 0), 0),
-    revenuePercent: searchTerms.reduce((sum, d) => sum + ((d['% of all revenue'] || 0) * 100), 0)
+    revenuePercent: searchTerms.reduce((sum, d) => sum + (d['% of all revenue'] || 0), 0) // Already in decimal format
   };
   
   totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
@@ -2217,11 +2217,7 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
     }
   });
   
-  // Find top 10 by value for special highlighting
-  const top10ByValue = [...searchTerms]
-    .sort((a, b) => (b.Value || 0) - (a.Value || 0))
-    .slice(0, 10)
-    .map(item => item.Query);
+// Removed top 10 by value highlighting - only using Top_Bucket
   
   const wrapper = document.createElement('div');
   wrapper.className = 'camp-products-wrapper';
@@ -2231,17 +2227,41 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   
   // Create header
   const thead = document.createElement('thead');
-  thead.innerHTML = `
+thead.innerHTML = `
     <tr>
       <th style="width: 50px; text-align: center;">#</th>
-      <th style="width: 300px;">Search Term</th>
-      <th class="right sortable metric-col" data-sort="impressions">Impressions</th>
-      <th class="right sortable metric-col" data-sort="clicks">Clicks</th>
-      <th class="right sortable metric-col" data-sort="ctr">CTR %</th>
-      <th class="right sortable metric-col" data-sort="conversions">Conv</th>
-      <th class="right sortable metric-col" data-sort="cvr">CVR %</th>
-      <th class="right sortable metric-col" data-sort="value">Revenue</th>
-      <th class="right sortable metric-col" data-sort="revenuePercent">% of Revenue</th>
+      <th class="sortable" style="width: 300px;" data-sort="query">
+        Search Term
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="impressions">
+        Impressions
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="clicks">
+        Clicks
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="ctr">
+        CTR %
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="conversions">
+        Conv
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="cvr">
+        CVR %
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="value">
+        Revenue
+        <span class="camp-sort-icon">⇅</span>
+      </th>
+      <th class="right sortable metric-col" data-sort="revenuePercent">
+        % of Revenue
+        <span class="camp-sort-icon">⇅</span>
+      </th>
     </tr>
   `;
   table.appendChild(thead);
@@ -2316,8 +2336,8 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
           </div>
         </div>
       </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.revenuePercent.toFixed(2)}%
+<td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+        ${(totals.revenuePercent * 100).toFixed(2)}%
       </td>
     </tr>
   `;
@@ -2334,23 +2354,28 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
     const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
     const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
     
-    // Determine row background based on Top_Bucket or performance
-    let rowBg = index % 2 === 1 ? '#f9f9f9' : 'white';
-    if (term.Clicks >= 50 && term.Conversions === 0) {
-      rowBg = '#ffebee'; // Light red for potential negatives
-    } else if (top10ByValue.includes(term.Query)) {
-      rowBg = '#e8f5e9'; // Light green for top revenue
-    } else if (term.Top_Bucket) {
-      // Style based on Top_Bucket
+// Determine row background based on Top_Bucket or performance
+    let rowBg = 'white'; // Start with white
+    
+    // Apply Top_Bucket styling first (highest priority)
+    if (term.Top_Bucket) {
       const bucketStyles = {
         'Top1': '#fff9e6',
-        'Top2': '#f5f5f5',
+        'Top2': '#f5f5f5', 
         'Top3': '#fff5f0',
         'Top4': '#e8f5e9',
         'Top5': '#e3f2fd',
         'Top10': '#f3e5f5'
       };
       rowBg = bucketStyles[term.Top_Bucket] || rowBg;
+    }
+    // Apply potential negatives styling if no Top_Bucket
+    else if (term.Clicks >= 50 && term.Conversions === 0) {
+      rowBg = '#ffebee'; // Light red for potential negatives
+    }
+    // Apply alternating row color only if no other styling applied
+    else if (index % 2 === 1) {
+      rowBg = '#f9f9f9';
     }
     
     const row = document.createElement('tr');
@@ -2439,9 +2464,116 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   table.appendChild(tbody);
   wrapper.appendChild(table);
   
-  // Clear and add table
+// Clear and add table
   container.innerHTML = '';
   container.appendChild(wrapper);
+  
+  // Add sorting event listeners
+  addSearchTermsTableEventListeners(wrapper, searchTerms, campaignName);
+}
+
+// Add event listeners for search terms table
+function addSearchTermsTableEventListeners(wrapper, searchTerms, campaignName) {
+  // Store sort state
+  if (!window.campaignSearchTermsSortState) {
+    window.campaignSearchTermsSortState = {};
+  }
+  
+  wrapper.querySelectorAll('th.sortable').forEach(header => {
+    header.style.cursor = 'pointer';
+    
+    // Add sort icons if not present
+    if (!header.querySelector('.camp-sort-icon')) {
+      const sortIcon = document.createElement('span');
+      sortIcon.className = 'camp-sort-icon';
+      sortIcon.textContent = '⇅';
+      header.appendChild(sortIcon);
+    }
+    
+    header.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      
+      // Remove previous sort classes from all headers
+      wrapper.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      // Toggle sort direction
+      let direction = 'desc'; // Default first click is desc
+      if (window.campaignSearchTermsSortState[column] === 'desc') {
+        direction = 'asc';
+      } else if (window.campaignSearchTermsSortState[column] === 'asc') {
+        direction = 'desc';
+      }
+      
+      // Update sort state
+      window.campaignSearchTermsSortState = { [column]: direction };
+      
+      // Apply sort class
+      this.classList.add(`sorted-${direction}`);
+      
+      // Update sort icon
+      this.querySelector('.camp-sort-icon').textContent = direction === 'asc' ? '↑' : '↓';
+      
+      // Sort data
+      const sortedData = [...searchTerms].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'query':
+            aVal = a.Query || '';
+            bVal = b.Query || '';
+            break;
+          case 'impressions':
+            aVal = a.Impressions || 0;
+            bVal = b.Impressions || 0;
+            break;
+          case 'clicks':
+            aVal = a.Clicks || 0;
+            bVal = b.Clicks || 0;
+            break;
+          case 'ctr':
+            aVal = a.Impressions > 0 ? (a.Clicks / a.Impressions * 100) : 0;
+            bVal = b.Impressions > 0 ? (b.Clicks / b.Impressions * 100) : 0;
+            break;
+          case 'conversions':
+            aVal = a.Conversions || 0;
+            bVal = b.Conversions || 0;
+            break;
+          case 'cvr':
+            aVal = a.Clicks > 0 ? (a.Conversions / a.Clicks * 100) : 0;
+            bVal = b.Clicks > 0 ? (b.Conversions / b.Clicks * 100) : 0;
+            break;
+          case 'value':
+            aVal = a.Value || 0;
+            bVal = b.Value || 0;
+            break;
+          case 'revenuePercent':
+            aVal = a['% of all revenue'] || 0;
+            bVal = b['% of all revenue'] || 0;
+            break;
+          default:
+            aVal = 0;
+            bVal = 0;
+        }
+        
+        // Handle string vs number comparison
+        if (typeof aVal === 'string') {
+          return direction === 'asc' ? 
+            aVal.localeCompare(bVal) : 
+            bVal.localeCompare(aVal);
+        } else {
+          return direction === 'asc' ? 
+            (aVal - bVal) : 
+            (bVal - aVal);
+        }
+      });
+      
+      // Re-render table with sorted data
+      const container = wrapper.parentElement;
+      renderCampaignSearchTermsTable(container, sortedData, campaignName);
+    });
+  });
 }
 
 // Helper function to format trend for campaign metrics
