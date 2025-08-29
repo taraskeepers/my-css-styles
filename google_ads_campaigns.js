@@ -2679,7 +2679,7 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   wrapper.style.width = '100%';
   
 const table = document.createElement('table');
-table.className = 'camp-table-search-terms';
+table.className = 'camp-table-modern';
   
   // Create header
   const thead = document.createElement('thead');
