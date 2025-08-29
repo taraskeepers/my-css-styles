@@ -1312,7 +1312,7 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
     
-<div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 20px; box-sizing: border-box;">
+<div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <!-- All Terms -->
         <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
@@ -2814,7 +2814,6 @@ thead.innerHTML = `
   
 // Clear and add table with padding
   container.innerHTML = '';
-  container.style.padding = '0 20px 20px 20px';
   container.appendChild(wrapper);
   
   // Add sorting event listeners
