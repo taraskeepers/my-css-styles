@@ -123,6 +123,7 @@ function addCampaignsStyles() {
   flex: 1;
   overflow: auto;
   background: #f5f7fa;
+  padding: 0;
 }
       
       /* Campaign filter and list styles */
@@ -420,6 +421,8 @@ function addCampaignsStyles() {
         width: 100%;
         height: 100%;
         overflow: auto;
+        padding: 0;  /* Ensure no padding */
+        margin: 0;   /* Ensure no margin */
       }
       
       .camp-table-modern {
@@ -1054,6 +1057,7 @@ function addCampaignsStyles() {
   width: 100%;
   background: white;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .camp-table-search-terms thead {
@@ -1118,15 +1122,16 @@ function addCampaignsStyles() {
 /* Search term column - flexible width */
 .camp-table-search-terms th:nth-child(2),
 .camp-table-search-terms td:nth-child(2) { 
-  min-width: 200px;
-  /* No fixed width - will expand to fill space */
+  width: auto;  /* Changed from min-width to auto */
+  white-space: normal;  /* Allow text wrapping if needed */
 }
 
-/* Metric columns */
+/* Make metric columns more flexible */
 .camp-table-search-terms th.metric-col,
 .camp-table-search-terms td.metric-col { 
   width: auto;
-  min-width: 100px;
+  min-width: 80px;  /* Reduced from 100px */
+  max-width: 120px;  /* Add max to prevent too much expansion */
   text-align: right;
 }
 
@@ -2671,6 +2676,7 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   
   const wrapper = document.createElement('div');
   wrapper.className = 'camp-products-wrapper';
+  wrapper.style.width = '100%';
   
 const table = document.createElement('table');
 table.className = 'camp-table-search-terms';
