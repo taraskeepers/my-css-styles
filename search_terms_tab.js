@@ -196,6 +196,9 @@ async function renderSearchTermsTable() {
  * Load and render search terms data (moved from google_ads_search_terms.js)
  */
 async function loadAndRenderSearchTerms() {
+  // Ensure buckets are calculated and cached
+await calculateAndCacheSearchTermBuckets();
+  
   const container = document.getElementById('searchTermsContainer');
   if (!container) return;
   
@@ -1412,19 +1415,9 @@ function renderMissingTopBucketTerms() {
   return html;
 }
 
-/**
- * Classify search terms into buckets based on the framework
- */
 function classifySearchTermsIntoBuckets(data) {
-  // Calculate dynamic thresholds
-  const totalConversions = data.reduce((sum, term) => sum + (term.Conversions || 0), 0);
-  const totalClicks = data.reduce((sum, term) => sum + (term.Clicks || 0), 0);
-  const totalValue = data.reduce((sum, term) => sum + (term.Value || 0), 0);
-  const totalRevenue = data.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0);
-  
-  const avgCVR = totalClicks > 0 ? (totalConversions / totalClicks) : 0;
-  const avgValuePerClick = totalClicks > 0 ? (totalValue / totalClicks) : 0;
-  const revenueThreshold = data.length > 0 ? (totalRevenue / data.length) * 2 : 0;
+  // Get cached bucket assignments
+  const cachedBuckets = JSON.parse(localStorage.getItem('searchTermBuckets') || '{}').buckets || {};
   
   const buckets = {
     'Top Search Terms': { terms: [], color: '#FFD700', description: 'Historical top performers' },
@@ -1436,37 +1429,11 @@ function classifySearchTermsIntoBuckets(data) {
   };
   
   data.forEach(term => {
-    const clicks = term.Clicks || 0;
-    const conversions = term.Conversions || 0;
-    const value = term.Value || 0;
-    const cvr = clicks > 0 ? (conversions / clicks) : 0;
-    const valuePerClick = clicks > 0 ? (value / clicks) : 0;
-    const revenueShare = term['% of all revenue'] || 0;
-    const topBucket = term['Top Bucket'];
+    const queryLower = term.Query.toLowerCase();
+    const bucketName = cachedBuckets[queryLower] || 'Mid-Performance';
     
-    // Bucket 1: Top Search Terms
-    if (topBucket && topBucket !== '') {
-      buckets['Top Search Terms'].terms.push(term);
-    }
-    // Bucket 2: Zero Converting Terms
-    else if (conversions === 0 && clicks >= 50) {
-      buckets['Zero Converting Terms'].terms.push(term);
-    }
-    // Bucket 3: High Revenue Terms
-    else if (conversions > 0 && (cvr >= avgCVR || valuePerClick >= avgValuePerClick || revenueShare >= revenueThreshold)) {
-      buckets['High Revenue Terms'].terms.push(term);
-    }
-    // Bucket 4: Hidden Gems
-    else if (clicks < 10 && (conversions > 0 || value > 0)) {
-      buckets['Hidden Gems'].terms.push(term);
-    }
-    // Bucket 5: Low Performance
-    else if (clicks < 10 && conversions === 0 && value === 0) {
-      buckets['Low Performance'].terms.push(term);
-    }
-    // Bucket 6: Mid-Performance
-    else {
-      buckets['Mid-Performance'].terms.push(term);
+    if (buckets[bucketName]) {
+      buckets[bucketName].terms.push(term);
     }
   });
   
