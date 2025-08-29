@@ -1300,24 +1300,40 @@ productsPanel.innerHTML = `
 const searchTermsPanel = document.createElement('div');
 searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
-  <div class="campaigns-search-terms-header">
-    <div>
-      <h3 class="campaigns-products-title">Campaign Search Terms</h3>
-      <div class="selected-campaign-info">Select a campaign to view its search terms</div>
-    </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <select id="campaignBucketFilter" style="padding: 6px 12px; background: white; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; cursor: pointer; display: none;">
-        <option value="all">All Buckets</option>
-        <option value="Top Search Terms">⭐ Top Search Terms</option>
-        <option value="Zero Converting Terms">⚠️ Zero Converting Terms</option>
-        <option value="High Revenue Terms">💰 High Revenue Terms</option>
-        <option value="Hidden Gems">💎 Hidden Gems</option>
-        <option value="Low Performance">📉 Low Performance</option>
-        <option value="Mid-Performance">📊 Mid-Performance</option>
-      </select>
+  <div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div>
+        <h3 class="campaigns-products-title">Campaign Search Terms</h3>
+        <div class="selected-campaign-info">Select a campaign to view its search terms</div>
+      </div>
       <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
         <span>📅</span>
         <span>${dateRangeText}</span>
+      </div>
+    </div>
+    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; max-width: 1000px; height: 50px;">
+      <div style="display: flex; gap: 8px; height: 100%; padding: 8px; background: #f8f9fa; border-radius: 8px; align-items: center;">
+        <button class="campaign-bucket-btn" data-bucket="all" style="flex: 1; height: 34px; border: 2px solid #007aff; background: #007aff; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          All Terms
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="Top Search Terms" style="flex: 1; height: 34px; border: 1px solid #FFD700; background: white; color: #FFD700; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          ⭐ Top Search
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="High Revenue Terms" style="flex: 1; height: 34px; border: 1px solid #4CAF50; background: white; color: #4CAF50; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          💰 High Revenue
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="Hidden Gems" style="flex: 1; height: 34px; border: 1px solid #2196F3; background: white; color: #2196F3; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          💎 Hidden Gems
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="Mid-Performance" style="flex: 1; height: 34px; border: 1px solid #FF9800; background: white; color: #FF9800; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          📊 Mid-Perf
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="Low Performance" style="flex: 1; height: 34px; border: 1px solid #9E9E9E; background: white; color: #9E9E9E; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          📉 Low Perf
+        </button>
+        <button class="campaign-bucket-btn" data-bucket="Zero Converting Terms" style="flex: 1; height: 34px; border: 1px solid #F44336; background: white; color: #F44336; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          ⚠️ Zero Conv
+        </button>
       </div>
     </div>
   </div>
@@ -2182,37 +2198,103 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     // Update header info
     headerInfo.textContent = `${campaignName} - ${filteredData.length} search terms`;
 
-    // Store original data for filtering
+// Store original data for filtering
     window.campaignSearchTermsOriginalData = filteredData;
     window.campaignSearchTermsCurrentFilter = 'all';
     
-    // Show and setup bucket filter
-    const bucketFilter = document.getElementById('campaignBucketFilter');
-    if (bucketFilter) {
-      bucketFilter.style.display = 'block';
-      bucketFilter.value = 'all';
+    // Show and setup bucket filter buttons
+    const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
+    if (bucketFilterContainer) {
+      bucketFilterContainer.style.display = 'block';
       
-      // Remove old listener if exists
-      const newBucketFilter = bucketFilter.cloneNode(true);
-      bucketFilter.parentNode.replaceChild(newBucketFilter, bucketFilter);
+      // Get all bucket buttons
+      const bucketButtons = bucketFilterContainer.querySelectorAll('.campaign-bucket-btn');
       
-      newBucketFilter.addEventListener('change', function() {
-        const selectedBucket = this.value;
+      // Remove old listeners and add new ones
+      bucketButtons.forEach(btn => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
         
-        if (selectedBucket === 'all') {
-          // Reset to original data
-          renderCampaignSearchTermsTable(tableContainer, window.campaignSearchTermsOriginalData, campaignName);
-          headerInfo.textContent = `${campaignName} - ${window.campaignSearchTermsOriginalData.length} search terms`;
-        } else {
-          // Filter by bucket
-          const filtered = window.campaignSearchTermsOriginalData.filter(term => 
-            term.Performance_Bucket === selectedBucket
-          );
-          renderCampaignSearchTermsTable(tableContainer, filtered, campaignName);
-          headerInfo.textContent = `${campaignName} - ${filtered.length} search terms (${selectedBucket})`;
-        }
-        
-        window.campaignSearchTermsCurrentFilter = selectedBucket;
+        newBtn.addEventListener('click', function() {
+          const selectedBucket = this.getAttribute('data-bucket');
+          
+          // Update button styles
+          bucketFilterContainer.querySelectorAll('.campaign-bucket-btn').forEach(b => {
+            if (b.getAttribute('data-bucket') === selectedBucket) {
+              // Active state
+              if (selectedBucket === 'all') {
+                b.style.background = '#007aff';
+                b.style.borderColor = '#007aff';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'Top Search Terms') {
+                b.style.background = '#FFD700';
+                b.style.borderColor = '#FFD700';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'High Revenue Terms') {
+                b.style.background = '#4CAF50';
+                b.style.borderColor = '#4CAF50';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'Hidden Gems') {
+                b.style.background = '#2196F3';
+                b.style.borderColor = '#2196F3';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'Mid-Performance') {
+                b.style.background = '#FF9800';
+                b.style.borderColor = '#FF9800';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'Low Performance') {
+                b.style.background = '#9E9E9E';
+                b.style.borderColor = '#9E9E9E';
+                b.style.color = 'white';
+              } else if (selectedBucket === 'Zero Converting Terms') {
+                b.style.background = '#F44336';
+                b.style.borderColor = '#F44336';
+                b.style.color = 'white';
+              }
+            } else {
+              // Inactive state
+              const bucketType = b.getAttribute('data-bucket');
+              b.style.background = 'white';
+              if (bucketType === 'all') {
+                b.style.borderColor = '#007aff';
+                b.style.color = '#007aff';
+              } else if (bucketType === 'Top Search Terms') {
+                b.style.borderColor = '#FFD700';
+                b.style.color = '#FFD700';
+              } else if (bucketType === 'High Revenue Terms') {
+                b.style.borderColor = '#4CAF50';
+                b.style.color = '#4CAF50';
+              } else if (bucketType === 'Hidden Gems') {
+                b.style.borderColor = '#2196F3';
+                b.style.color = '#2196F3';
+              } else if (bucketType === 'Mid-Performance') {
+                b.style.borderColor = '#FF9800';
+                b.style.color = '#FF9800';
+              } else if (bucketType === 'Low Performance') {
+                b.style.borderColor = '#9E9E9E';
+                b.style.color = '#9E9E9E';
+              } else if (bucketType === 'Zero Converting Terms') {
+                b.style.borderColor = '#F44336';
+                b.style.color = '#F44336';
+              }
+            }
+          });
+          
+          if (selectedBucket === 'all') {
+            // Reset to original data
+            renderCampaignSearchTermsTable(tableContainer, window.campaignSearchTermsOriginalData, campaignName);
+            headerInfo.textContent = `${campaignName} - ${window.campaignSearchTermsOriginalData.length} search terms`;
+          } else {
+            // Filter by Performance_Bucket (not Top_Bucket)
+            const filtered = window.campaignSearchTermsOriginalData.filter(term => 
+              term.Performance_Bucket === selectedBucket
+            );
+            renderCampaignSearchTermsTable(tableContainer, filtered, campaignName);
+            headerInfo.textContent = `${campaignName} - ${filtered.length} search terms (${selectedBucket})`;
+          }
+          
+          window.campaignSearchTermsCurrentFilter = selectedBucket;
+        });
       });
     }
     
@@ -2404,27 +2486,20 @@ thead.innerHTML = `
     const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
     
 // Determine row background based on Top_Bucket or performance
+// Determine row background based on Performance_Bucket only
     let rowBg = 'white'; // Start with white
     
-    // Apply Top_Bucket styling first (highest priority)
-    if (term.Top_Bucket) {
+    // Apply Performance_Bucket styling
+    if (term.Performance_Bucket) {
       const bucketStyles = {
-        'Top1': '#fff9e6',
-        'Top2': '#f5f5f5', 
-        'Top3': '#fff5f0',
-        'Top4': '#e8f5e9',
-        'Top5': '#e3f2fd',
-        'Top10': '#f3e5f5'
+        'High Revenue Terms': '#e8f5e9',      // Light green
+        'Low Performance': '#f5f5f5',         // Light grey
+        'Mid-Performance': '#fff9c4',         // Light yellow
+        'Hidden Gems': '#e3f2fd',             // Light blue
+        'Zero Converting Terms': '#ffebee',    // Light red
+        'Top Search Terms': '#fff3e0'         // Light orange
       };
-      rowBg = bucketStyles[term.Top_Bucket] || rowBg;
-    }
-    // Apply potential negatives styling if no Top_Bucket
-    else if (term.Clicks >= 50 && term.Conversions === 0) {
-      rowBg = '#ffebee'; // Light red for potential negatives
-    }
-    // Apply alternating row color only if no other styling applied
-    else if (index % 2 === 1) {
-      rowBg = '#f9f9f9';
+      rowBg = bucketStyles[term.Performance_Bucket] || 'white';
     }
     
     const row = document.createElement('tr');
@@ -2687,12 +2762,12 @@ function getTopBucketBadge(topBucket) {
   if (!topBucket || topBucket === '') return '';
   
   const bucketConfig = {
-    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: 'Top 1' },
-    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: 'Top 2' },
-    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: 'Top 3' },
-    'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
-    'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
-    'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
+    'Top1': { color: '#fff', bg: '#FFD700', label: '🥇 TOP 1' },
+    'Top2': { color: '#fff', bg: '#C0C0C0', label: '🥈 TOP 2' },
+    'Top3': { color: '#fff', bg: '#CD7F32', label: '🥉 TOP 3' },
+    'Top4': { color: '#fff', bg: '#4CAF50', label: '🏆 TOP 4' },
+    'Top5': { color: '#fff', bg: '#2196F3', label: '⭐ TOP 5' },
+    'Top10': { color: '#fff', bg: '#9C27B0', label: '✨ TOP 10' }
   };
   
   const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
@@ -2701,14 +2776,17 @@ function getTopBucketBadge(topBucket) {
     <span style="
       display: inline-flex;
       align-items: center;
-      padding: 3px 10px;
-      border-radius: 12px;
+      padding: 4px 12px;
+      border-radius: 14px;
       background: ${config.bg};
       color: ${config.color};
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      text-transform: uppercase;
       white-space: nowrap;
-      border: 1px solid ${config.color}40;
+      border: 2px solid ${config.bg};
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      letter-spacing: 0.5px;
     ">
       ${config.label}
     </span>
