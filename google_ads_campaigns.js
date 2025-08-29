@@ -1316,9 +1316,42 @@ searchTermsPanel.innerHTML = `
         <!-- All Terms -->
         <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">All Search</div>
@@ -1436,9 +1469,42 @@ searchTermsPanel.innerHTML = `
         <!-- Top Search Terms -->
         <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #FFC107; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">Top Search</div>
@@ -1556,9 +1622,42 @@ searchTermsPanel.innerHTML = `
         <!-- Zero Converting Terms -->
         <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #F44336; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">Zero Converting</div>
@@ -1676,9 +1775,42 @@ searchTermsPanel.innerHTML = `
         <!-- High Revenue Terms -->
         <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #4CAF50; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">High Revenue</div>
@@ -1796,9 +1928,42 @@ searchTermsPanel.innerHTML = `
         <!-- Hidden Gems -->
         <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #2196F3; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">Hidden</div>
@@ -1916,9 +2081,42 @@ searchTermsPanel.innerHTML = `
         <!-- Low Performance -->
         <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">Low</div>
@@ -2036,9 +2234,42 @@ searchTermsPanel.innerHTML = `
         <!-- Mid-Performance -->
         <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #FF9800; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
                 <div style="font-size: 13px; font-weight: 600; color: #333;">Mid</div>
@@ -2157,13 +2388,14 @@ searchTermsPanel.innerHTML = `
     </div>
   </div>
 
-  <!-- ADD THIS LEGEND SECTION -->
+<!-- REPLACE THE LEGEND SECTION WITH THIS -->
 <div style="
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
   margin-top: 16px;
-  padding: 12px 15px;
+  padding: 8px 15px;
   background: #f9fafb;
   border-radius: 6px;
 ">
@@ -2177,7 +2409,6 @@ searchTermsPanel.innerHTML = `
   ">
     <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
     % of Clicks
-    <span style="font-weight: 400; color: #6b7280;" class="legend-clicks-total">(0 total)</span>
   </div>
   <div style="
     font-size: 12px;
@@ -2189,7 +2420,6 @@ searchTermsPanel.innerHTML = `
   ">
     <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
     % of Revenue
-    <span style="font-weight: 400; color: #6b7280;" class="legend-revenue-total">(0% total)</span>
   </div>
   <div style="
     font-size: 12px;
@@ -2201,7 +2431,6 @@ searchTermsPanel.innerHTML = `
   ">
     <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
     Value
-    <span style="font-weight: 400; color: #6b7280;" class="legend-value-total">($0 total)</span>
   </div>
 </div>
 <!-- END OF LEGEND SECTION -->
@@ -3751,25 +3980,42 @@ function calculateBucketStatistics(data) {
   return stats;
 }
 
+// Calculate global bucket totals from 365d data
+async function calculateGlobalBucketTotals() {
+  try {
+    // Get cached bucket assignments
+    const cachedBuckets = await window.calculateAndCacheSearchTermBuckets();
+    
+    // Count terms in each bucket
+    const bucketTotals = {
+      'Top Search Terms': 0,
+      'Zero Converting Terms': 0,
+      'High Revenue Terms': 0,
+      'Hidden Gems': 0,
+      'Low Performance': 0,
+      'Mid-Performance': 0
+    };
+    
+    Object.values(cachedBuckets).forEach(bucketName => {
+      if (bucketTotals.hasOwnProperty(bucketName)) {
+        bucketTotals[bucketName]++;
+      }
+    });
+    
+    return bucketTotals;
+  } catch (error) {
+    console.error('[Campaigns] Error calculating global bucket totals:', error);
+    return {};
+  }
+}
+
 // Update bucket UI with statistics
-function updateBucketUI(stats) {
+async function updateBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
   if (!bucketFilterContainer) return;
   
-  // Update legend totals
-  const legendClicksTotal = document.querySelector('.legend-clicks-total');
-  const legendRevenueTotal = document.querySelector('.legend-revenue-total');
-  const legendValueTotal = document.querySelector('.legend-value-total');
-  
-  if (legendClicksTotal) {
-    legendClicksTotal.textContent = `(${stats['all'].clicks.toLocaleString()} total)`;
-  }
-  if (legendRevenueTotal) {
-    legendRevenueTotal.textContent = `(${(stats['all'].revenuePercent || 100).toFixed(1)}% total)`;
-  }
-  if (legendValueTotal) {
-    legendValueTotal.textContent = `($${stats['all'].value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total)`;
-  }
+  // Get global bucket totals
+  const globalTotals = await calculateGlobalBucketTotals();
   
   // Calculate totals
   const totalClicks = stats['all'].clicks || 0;
@@ -3780,6 +4026,9 @@ function updateBucketUI(stats) {
   bucketCards.forEach(card => {
     const bucketType = card.getAttribute('data-bucket');
     const countElement = card.querySelector('.bucket-count');
+    const coverageContainer = card.querySelector('.bucket-coverage-container');
+    const coverageBar = card.querySelector('.bucket-coverage-bar');
+    const coverageText = card.querySelector('.bucket-coverage-text');
     
     // Get bar elements
     const clicksBarFill = card.querySelector('.clicks-bar-fill');
@@ -3800,6 +4049,31 @@ function updateBucketUI(stats) {
       // Update count
       if (countElement) {
         countElement.textContent = bucketData.count;
+      }
+      
+      // Update coverage bar (percentage of global bucket total)
+      if (bucketType !== 'all' && coverageContainer && globalTotals[bucketType]) {
+        const globalTotal = globalTotals[bucketType];
+        const coveragePercent = globalTotal > 0 ? (bucketData.count / globalTotal * 100) : 0;
+        
+        coverageContainer.style.display = 'block';
+        if (coverageBar) {
+          coverageBar.style.width = Math.min(coveragePercent, 100) + '%';
+        }
+        if (coverageText) {
+          coverageText.textContent = coveragePercent.toFixed(0) + '%';
+        }
+      } else if (bucketType === 'all') {
+        // For "all", show 100% coverage
+        if (coverageContainer) {
+          coverageContainer.style.display = 'block';
+          if (coverageBar) {
+            coverageBar.style.width = '100%';
+          }
+          if (coverageText) {
+            coverageText.textContent = '100%';
+          }
+        }
       }
       
       // Calculate percentages
@@ -3833,7 +4107,7 @@ function updateBucketUI(stats) {
         `;
       }
       
-      // Update revenue bar (with percentage)
+      // Update revenue bar
       if (revenueBarFill && revenueBarText) {
         revenueBarFill.style.width = Math.min(revenuePct, 100) + '%';
         revenueBarText.textContent = revenuePct.toFixed(1) + '%';
@@ -3859,7 +4133,7 @@ function updateBucketUI(stats) {
         `;
       }
       
-      // Update value bar (with amount and percentage)
+      // Update value bar with amount and percentage
       if (valueBarFill && valueBarText) {
         const valuePercent = totalRevenue > 0 ? (valueAmt / totalRevenue * 100) : 0;
         valueBarFill.style.width = Math.min(valuePercent, 100) + '%';
@@ -3877,10 +4151,10 @@ function updateBucketUI(stats) {
         
         valueBarText.textContent = valueTextContent;
         valueBarText.style.color = valuePercent > 10 ? 'white' : '#374151';
-        valueBarText.style.fontSize = '9px'; // Make slightly smaller to fit both values
+        valueBarText.style.fontSize = '9px';
       }
       
-      // Add value trend (absolute dollar change)
+      // Add value trend
       if (valueTrend && Math.abs(bucketData.valueChange) >= 1) {
         valueTrend.innerHTML = `
           <div style="
