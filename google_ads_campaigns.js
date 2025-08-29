@@ -431,7 +431,7 @@ function addCampaignsStyles() {
       .camp-table-modern table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed;
+        table-layout: auto;
       }
       
       /* Table header */
@@ -2584,7 +2584,7 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
 thead.innerHTML = `
     <tr>
       <th style="width: 50px; text-align: center;">#</th>
-      <th class="sortable" style="width: 300px;" data-sort="query">
+      <th class="sortable" data-sort="query">
         Search Term
         <span class="camp-sort-icon">⇅</span>
       </th>
