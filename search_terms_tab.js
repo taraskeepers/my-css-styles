@@ -20,6 +20,147 @@ window.searchTermsCampaignToggleState = false;
 window.searchTermsChannelData = {};  // Cache for channel data
 window.searchTermsCampaignData = {};  // Cache for campaign data
 
+// Global function to calculate and cache search term buckets
+window.calculateAndCacheSearchTermBuckets = async function() {
+  const cacheKey = 'searchTermBuckets';
+  const now = new Date();
+  
+  // Check if we have cached data from today
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    const cachedData = JSON.parse(cached);
+    const cachedDate = new Date(cachedData.timestamp);
+    
+    // If cached data is from today, return it
+    if (cachedDate.toDateString() === now.toDateString()) {
+      console.log('[Buckets] Using cached bucket data from today');
+      return cachedData.buckets;
+    }
+  }
+  
+  console.log('[Buckets] Calculating fresh bucket assignments...');
+  
+  try {
+    // Load 365d data
+    const tablePrefix = getProjectTablePrefix();
+    const tableName365d = `${tablePrefix}googleSheets_searchTerms_365d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName365d);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[Buckets] No 365d data available');
+      return {};
+    }
+    
+    // Filter for all/all records only
+    const allData = result.data.filter(item => 
+      item.Query && 
+      item.Query.toLowerCase() !== 'blank' &&
+      item.Campaign_Name === 'all' &&
+      item.Channel_Type === 'all'
+    );
+    
+    // Calculate dynamic thresholds
+    const totalConversions = allData.reduce((sum, term) => sum + (term.Conversions || 0), 0);
+    const totalClicks = allData.reduce((sum, term) => sum + (term.Clicks || 0), 0);
+    const totalValue = allData.reduce((sum, term) => sum + (term.Value || 0), 0);
+    const totalRevenue = allData.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0);
+    
+    const avgCVR = totalClicks > 0 ? (totalConversions / totalClicks) : 0;
+    const avgValuePerClick = totalClicks > 0 ? (totalValue / totalClicks) : 0;
+    const revenueThreshold = allData.length > 0 ? (totalRevenue / allData.length) * 2 : 0;
+    
+    // Create bucket mapping
+    const bucketMap = {};
+    
+    allData.forEach(term => {
+      const query = term.Query.toLowerCase();
+      const clicks = term.Clicks || 0;
+      const conversions = term.Conversions || 0;
+      const value = term.Value || 0;
+      const cvr = clicks > 0 ? (conversions / clicks) : 0;
+      const valuePerClick = clicks > 0 ? (value / clicks) : 0;
+      const revenueShare = term['% of all revenue'] || 0;
+      const topBucket = term['Top_Bucket'];
+      
+      let bucket;
+      
+      // Bucket 1: Top Search Terms
+      if (topBucket && topBucket !== '') {
+        bucket = 'Top Search Terms';
+      }
+      // Bucket 2: Zero Converting Terms
+      else if (conversions === 0 && clicks >= 50) {
+        bucket = 'Zero Converting Terms';
+      }
+      // Bucket 3: High Revenue Terms
+      else if (conversions > 0 && (cvr >= avgCVR || valuePerClick >= avgValuePerClick || revenueShare >= revenueThreshold)) {
+        bucket = 'High Revenue Terms';
+      }
+      // Bucket 4: Hidden Gems
+      else if (clicks < 10 && (conversions > 0 || value > 0)) {
+        bucket = 'Hidden Gems';
+      }
+      // Bucket 5: Low Performance
+      else if (clicks < 10 && conversions === 0 && value === 0) {
+        bucket = 'Low Performance';
+      }
+      // Bucket 6: Mid-Performance
+      else {
+        bucket = 'Mid-Performance';
+      }
+      
+      bucketMap[query] = bucket;
+    });
+    
+    // Cache the results
+    const cacheData = {
+      timestamp: now.toISOString(),
+      buckets: bucketMap
+    };
+    
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log(`[Buckets] Cached ${Object.keys(bucketMap).length} bucket assignments`);
+    
+    return bucketMap;
+    
+  } catch (error) {
+    console.error('[Buckets] Error calculating buckets:', error);
+    return {};
+  }
+};
+
+// Helper function to get bucket for a search term
+window.getSearchTermBucket = async function(searchTerm) {
+  const buckets = await window.calculateAndCacheSearchTermBuckets();
+  return buckets[searchTerm.toLowerCase()] || 'Mid-Performance';
+};
+
+// Also make getProjectTablePrefix global if it isn't already
+if (typeof window.getProjectTablePrefix === 'undefined') {
+  window.getProjectTablePrefix = function() {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const currentProjectNum = window.dataPrefix ? 
+      parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+    return `${accountPrefix}_pr${currentProjectNum}_`;
+  };
+}
+
 /**
  * Main function to render the Search Terms table
  */
