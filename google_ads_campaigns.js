@@ -2156,6 +2156,56 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- ADD THIS LEGEND SECTION -->
+<div style="
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 12px 15px;
+  background: #f9fafb;
+  border-radius: 6px;
+">
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
+    % of Clicks
+    <span style="font-weight: 400; color: #6b7280;" class="legend-clicks-total">(0 total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
+    % of Revenue
+    <span style="font-weight: 400; color: #6b7280;" class="legend-revenue-total">(0% total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
+    Value
+    <span style="font-weight: 400; color: #6b7280;" class="legend-value-total">($0 total)</span>
+  </div>
+</div>
+<!-- END OF LEGEND SECTION -->
+</div>
   
   <div class="campaigns-search-terms-table-container">
     <div class="campaigns-empty-state">
@@ -3626,34 +3676,48 @@ async function ensureSearchTermPerformanceBuckets() {
 // Calculate statistics for each bucket
 function calculateBucketStatistics(data) {
   const stats = {
-    'all': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Top Search Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'High Revenue Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Hidden Gems': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Mid-Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Low Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Zero Converting Terms': { count: 0, clicks: 0, revenue: 0, value: 0 }
+    'all': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'Top Search Terms': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'High Revenue Terms': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'Hidden Gems': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'Mid-Performance': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'Low Performance': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 },
+    'Zero Converting Terms': { count: 0, clicks: 0, revenue: 0, value: 0, prevClicks: 0, prevValue: 0 }
   };
   
   let totalClicks = 0;
   let totalRevenue = 0;
   let totalValue = 0;
+  let totalPrevClicks = 0;
+  let totalPrevValue = 0;
   
   data.forEach(term => {
     const bucket = term.Performance_Bucket || 'Mid-Performance';
     
+    // Current period values
+    const clicks = term.Clicks || 0;
+    const value = term.Value || 0;
+    
+    // Previous period values from Trend_Data (90d monthly average)
+    const prevClicks = term.Trend_Data?.Clicks || 0;
+    const prevValue = term.Trend_Data?.Value || 0;
+    
     // Update bucket stats
     if (stats[bucket]) {
       stats[bucket].count++;
-      stats[bucket].clicks += term.Clicks || 0;
-      stats[bucket].revenue += term.Value || 0;
-      stats[bucket].value += term.Value || 0; // Using same as revenue for now
+      stats[bucket].clicks += clicks;
+      stats[bucket].revenue += value;
+      stats[bucket].value += value;
+      stats[bucket].prevClicks += prevClicks;
+      stats[bucket].prevValue += prevValue;
     }
     
     // Update totals
-    totalClicks += term.Clicks || 0;
-    totalRevenue += term.Value || 0;
-    totalValue += term.Value || 0;
+    totalClicks += clicks;
+    totalRevenue += value;
+    totalValue += value;
+    totalPrevClicks += prevClicks;
+    totalPrevValue += prevValue;
   });
   
   // Set 'all' stats
@@ -3661,12 +3725,27 @@ function calculateBucketStatistics(data) {
   stats['all'].clicks = totalClicks;
   stats['all'].revenue = totalRevenue;
   stats['all'].value = totalValue;
+  stats['all'].prevClicks = totalPrevClicks;
+  stats['all'].prevValue = totalPrevValue;
   
-  // Calculate percentages
+  // Calculate percentages and trends for each bucket
   for (let bucket in stats) {
-    stats[bucket].clicksPercent = totalClicks > 0 ? (stats[bucket].clicks / totalClicks * 100) : 0;
-    stats[bucket].revenuePercent = totalRevenue > 0 ? (stats[bucket].revenue / totalRevenue * 100) : 0;
-    stats[bucket].valuePercent = totalValue > 0 ? (stats[bucket].value / totalValue * 100) : 0;
+    const bucketStats = stats[bucket];
+    
+    // Calculate percentages
+    bucketStats.clicksPercent = totalClicks > 0 ? (bucketStats.clicks / totalClicks * 100) : 0;
+    bucketStats.revenuePercent = totalRevenue > 0 ? (bucketStats.revenue / totalRevenue * 100) : 0;
+    bucketStats.valuePercent = totalValue > 0 ? (bucketStats.value / totalValue * 100) : 0;
+    
+    // Calculate trends (percentage change from previous period)
+    bucketStats.clicksTrend = bucketStats.prevClicks > 0 ? 
+      ((bucketStats.clicks - bucketStats.prevClicks) / bucketStats.prevClicks * 100) : 0;
+    bucketStats.valueTrend = bucketStats.prevValue > 0 ? 
+      ((bucketStats.value - bucketStats.prevValue) / bucketStats.prevValue * 100) : 0;
+    
+    // Calculate absolute changes
+    bucketStats.clicksChange = bucketStats.clicks - bucketStats.prevClicks;
+    bucketStats.valueChange = bucketStats.value - bucketStats.prevValue;
   }
   
   return stats;
@@ -3676,6 +3755,21 @@ function calculateBucketStatistics(data) {
 function updateBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
   if (!bucketFilterContainer) return;
+  
+  // Update legend totals
+  const legendClicksTotal = document.querySelector('.legend-clicks-total');
+  const legendRevenueTotal = document.querySelector('.legend-revenue-total');
+  const legendValueTotal = document.querySelector('.legend-value-total');
+  
+  if (legendClicksTotal) {
+    legendClicksTotal.textContent = `(${stats['all'].clicks.toLocaleString()} total)`;
+  }
+  if (legendRevenueTotal) {
+    legendRevenueTotal.textContent = `(${(stats['all'].revenuePercent || 100).toFixed(1)}% total)`;
+  }
+  if (legendValueTotal) {
+    legendValueTotal.textContent = `($${stats['all'].value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total)`;
+  }
   
   // Calculate totals
   const totalClicks = stats['all'].clicks || 0;
@@ -3687,7 +3781,7 @@ function updateBucketUI(stats) {
     const bucketType = card.getAttribute('data-bucket');
     const countElement = card.querySelector('.bucket-count');
     
-    // Update bars
+    // Get bar elements
     const clicksBarFill = card.querySelector('.clicks-bar-fill');
     const clicksBarText = card.querySelector('.clicks-bar-text');
     const clicksTrend = card.querySelector('.clicks-trend');
@@ -3709,9 +3803,9 @@ function updateBucketUI(stats) {
       }
       
       // Calculate percentages
-      const clicksPct = totalClicks > 0 ? (bucketData.clicks / totalClicks * 100) : 0;
-      const revenuePct = totalRevenue > 0 ? (bucketData.value / totalRevenue * 100) : 0;
-      const valueAmt = bucketData.value;
+      const clicksPct = bucketData.clicksPercent || 0;
+      const revenuePct = bucketData.revenuePercent || 0;
+      const valueAmt = bucketData.value || 0;
       
       // Update clicks bar
       if (clicksBarFill && clicksBarText) {
@@ -3720,29 +3814,90 @@ function updateBucketUI(stats) {
         clicksBarText.style.color = clicksPct > 10 ? 'white' : '#374151';
       }
       
-      // Update revenue bar
+      // Add clicks trend
+      if (clicksTrend && Math.abs(bucketData.clicksTrend) >= 0.1) {
+        clicksTrend.innerHTML = `
+          <div style="
+            background: ${bucketData.clicksTrend > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+          ">
+            ${bucketData.clicksTrend > 0 ? '↑' : '↓'} ${Math.abs(bucketData.clicksTrend).toFixed(0)}%
+          </div>
+        `;
+      }
+      
+      // Update revenue bar (with percentage)
       if (revenueBarFill && revenueBarText) {
         revenueBarFill.style.width = Math.min(revenuePct, 100) + '%';
         revenueBarText.textContent = revenuePct.toFixed(1) + '%';
         revenueBarText.style.color = revenuePct > 10 ? 'white' : '#374151';
       }
       
-      // Update value bar
+      // Add revenue trend
+      if (revenueTrend && Math.abs(bucketData.valueTrend) >= 0.1) {
+        revenueTrend.innerHTML = `
+          <div style="
+            background: ${bucketData.valueTrend > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+          ">
+            ${bucketData.valueTrend > 0 ? '↑' : '↓'} ${Math.abs(bucketData.valueTrend).toFixed(0)}%
+          </div>
+        `;
+      }
+      
+      // Update value bar (with amount and percentage)
       if (valueBarFill && valueBarText) {
         const valuePercent = totalRevenue > 0 ? (valueAmt / totalRevenue * 100) : 0;
         valueBarFill.style.width = Math.min(valuePercent, 100) + '%';
         
-        // Format value text
+        // Format value text with both amount and percentage
+        let valueTextContent = '';
         if (valueAmt >= 1000) {
-          valueBarText.textContent = '$' + (valueAmt / 1000).toFixed(1) + 'k';
+          valueTextContent = `$${(valueAmt / 1000).toFixed(1)}k`;
         } else {
-          valueBarText.textContent = '$' + valueAmt.toFixed(0);
+          valueTextContent = `$${valueAmt.toFixed(0)}`;
         }
+        
+        // Add percentage in parentheses
+        valueTextContent += ` (${valuePercent.toFixed(1)}%)`;
+        
+        valueBarText.textContent = valueTextContent;
         valueBarText.style.color = valuePercent > 10 ? 'white' : '#374151';
+        valueBarText.style.fontSize = '9px'; // Make slightly smaller to fit both values
       }
       
-      // Add trend indicators if significant change
-      // (You can add trend calculation logic here if needed)
+      // Add value trend (absolute dollar change)
+      if (valueTrend && Math.abs(bucketData.valueChange) >= 1) {
+        valueTrend.innerHTML = `
+          <div style="
+            background: ${bucketData.valueChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+          ">
+            ${bucketData.valueChange > 0 ? '↑' : '↓'} $${Math.abs(bucketData.valueChange).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+          </div>
+        `;
+      }
     }
   });
 }
