@@ -1326,20 +1326,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">100%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">100%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- Top Search Terms -->
         <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
@@ -1354,20 +1446,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- Zero Converting Terms -->
         <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
@@ -1382,20 +1566,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- High Revenue Terms -->
         <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
@@ -1410,20 +1686,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- Hidden Gems -->
         <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
@@ -1438,20 +1806,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- Low Performance -->
         <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
@@ -1466,20 +1926,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
         <!-- Mid-Performance -->
         <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
@@ -1494,20 +2046,112 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Clicks</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
-              <span style="font-size: 11px; color: #666;">Revenue</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
-              <span style="font-size: 11px; color: #666;">Value</span>
-            </div>
-          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
         </div>
       </div>
     </div>
@@ -3033,44 +3677,72 @@ function updateBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
   if (!bucketFilterContainer) return;
   
+  // Calculate totals
+  const totalClicks = stats['all'].clicks || 0;
+  const totalRevenue = stats['all'].value || 0;
+  
   const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
   
   bucketCards.forEach(card => {
     const bucketType = card.getAttribute('data-bucket');
     const countElement = card.querySelector('.bucket-count');
-    const clicksValue = card.querySelector('.clicks-value');
-    const revenueValue = card.querySelector('.revenue-value');
-    const valueAmount = card.querySelector('.value-amount');
+    
+    // Update bars
+    const clicksBarFill = card.querySelector('.clicks-bar-fill');
+    const clicksBarText = card.querySelector('.clicks-bar-text');
+    const clicksTrend = card.querySelector('.clicks-trend');
+    
+    const revenueBarFill = card.querySelector('.revenue-bar-fill');
+    const revenueBarText = card.querySelector('.revenue-bar-text');
+    const revenueTrend = card.querySelector('.revenue-trend');
+    
+    const valueBarFill = card.querySelector('.value-bar-fill');
+    const valueBarText = card.querySelector('.value-bar-text');
+    const valueTrend = card.querySelector('.value-trend');
     
     if (stats[bucketType]) {
+      const bucketData = stats[bucketType];
+      
       // Update count
-      countElement.textContent = stats[bucketType].count;
-      
-      // Update metrics - format exactly like in the screenshot
-      const clicksPct = stats[bucketType].clicksPercent.toFixed(1);
-      const revenuePct = stats[bucketType].revenuePercent.toFixed(1);
-      const valueAmt = stats[bucketType].value;
-      
-      // For Clicks - always use blue
-      clicksValue.textContent = clicksPct + '%';
-      clicksValue.style.background = '#2196F3';
-      
-      // For Revenue - use orange except for zero converting terms
-      if (bucketType === 'Zero Converting Terms' && stats[bucketType].revenue === 0) {
-        revenueValue.textContent = '$0';
-        revenueValue.style.background = '#F44336';
-      } else {
-        revenueValue.textContent = revenuePct + '%';
-        revenueValue.style.background = '#FF9800';
+      if (countElement) {
+        countElement.textContent = bucketData.count;
       }
       
-      // For Value - format as currency
-      if (valueAmt >= 1000) {
-        valueAmount.textContent = '$' + (valueAmt / 1000).toFixed(1) + 'k';
-      } else {
-        valueAmount.textContent = '$' + valueAmt.toFixed(0);
+      // Calculate percentages
+      const clicksPct = totalClicks > 0 ? (bucketData.clicks / totalClicks * 100) : 0;
+      const revenuePct = totalRevenue > 0 ? (bucketData.value / totalRevenue * 100) : 0;
+      const valueAmt = bucketData.value;
+      
+      // Update clicks bar
+      if (clicksBarFill && clicksBarText) {
+        clicksBarFill.style.width = Math.min(clicksPct, 100) + '%';
+        clicksBarText.textContent = clicksPct.toFixed(1) + '%';
+        clicksBarText.style.color = clicksPct > 10 ? 'white' : '#374151';
       }
-      valueAmount.style.background = '#4CAF50';
+      
+      // Update revenue bar
+      if (revenueBarFill && revenueBarText) {
+        revenueBarFill.style.width = Math.min(revenuePct, 100) + '%';
+        revenueBarText.textContent = revenuePct.toFixed(1) + '%';
+        revenueBarText.style.color = revenuePct > 10 ? 'white' : '#374151';
+      }
+      
+      // Update value bar
+      if (valueBarFill && valueBarText) {
+        const valuePercent = totalRevenue > 0 ? (valueAmt / totalRevenue * 100) : 0;
+        valueBarFill.style.width = Math.min(valuePercent, 100) + '%';
+        
+        // Format value text
+        if (valueAmt >= 1000) {
+          valueBarText.textContent = '$' + (valueAmt / 1000).toFixed(1) + 'k';
+        } else {
+          valueBarText.textContent = '$' + valueAmt.toFixed(0);
+        }
+        valueBarText.style.color = valuePercent > 10 ? 'white' : '#374151';
+      }
+      
+      // Add trend indicators if significant change
+      // (You can add trend calculation logic here if needed)
     }
   });
 }
