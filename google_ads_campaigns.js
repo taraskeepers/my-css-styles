@@ -1311,13 +1311,7 @@ searchTermsPanel.innerHTML = `
         <span>${dateRangeText}</span>
       </div>
     </div>
-    
-<div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
-      <!-- Metrics Header Section -->
-      <div class="bucket-metrics-header" style="padding: 0 15px; margin-bottom: 15px;">
-        <!-- Will be populated by updateBucketUI -->
-      </div>
-      
+    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <!-- All Terms -->
         <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
@@ -1335,12 +1329,15 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">100%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">100%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1360,12 +1357,15 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1384,13 +1384,16 @@ searchTermsPanel.innerHTML = `
           </div>
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1410,12 +1413,15 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1435,12 +1441,15 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1460,12 +1469,15 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -1485,17 +1497,21 @@ searchTermsPanel.innerHTML = `
           <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
   
   <div class="campaigns-search-terms-table-container">
     <div class="campaigns-empty-state">
@@ -2976,7 +2992,7 @@ function calculateBucketStatistics(data) {
   };
   
   let totalClicks = 0;
-  let totalRevenue = 0;  // This is sum of % of all revenue (already in decimal format)
+  let totalRevenue = 0;
   let totalValue = 0;
   
   data.forEach(term => {
@@ -2986,13 +3002,13 @@ function calculateBucketStatistics(data) {
     if (stats[bucket]) {
       stats[bucket].count++;
       stats[bucket].clicks += term.Clicks || 0;
-      stats[bucket].revenue += (term['% of all revenue'] || 0);  // Already in decimal format
-      stats[bucket].value += term.Value || 0;
+      stats[bucket].revenue += term.Value || 0;
+      stats[bucket].value += term.Value || 0; // Using same as revenue for now
     }
     
     // Update totals
     totalClicks += term.Clicks || 0;
-    totalRevenue += (term['% of all revenue'] || 0);  // Sum of percentages in decimal
+    totalRevenue += term.Value || 0;
     totalValue += term.Value || 0;
   });
   
@@ -3009,11 +3025,6 @@ function calculateBucketStatistics(data) {
     stats[bucket].valuePercent = totalValue > 0 ? (stats[bucket].value / totalValue * 100) : 0;
   }
   
-  // Store totals for display
-  stats.totalClicks = totalClicks;
-  stats.totalRevenue = totalRevenue;
-  stats.totalValue = totalValue;
-  
   return stats;
 }
 
@@ -3021,30 +3032,6 @@ function calculateBucketStatistics(data) {
 function updateBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
   if (!bucketFilterContainer) return;
-  
-  // Update the section header with totals
-  const headerSection = bucketFilterContainer.querySelector('.bucket-metrics-header');
-  if (headerSection) {
-    headerSection.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
-        <div style="font-size: 12px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 8px;">
-          <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
-          % of Clicks
-          <span style="font-weight: 400; color: #6b7280;">(${stats.totalClicks.toLocaleString()} total)</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 8px;">
-          <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
-          % of Revenue
-          <span style="font-weight: 400; color: #6b7280;">(${(stats.totalRevenue * 100).toFixed(1)}% total)</span>
-        </div>
-        <div style="font-size: 12px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 8px;">
-          <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
-          % of Value
-          <span style="font-weight: 400; color: #6b7280;">($${stats.totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total)</span>
-        </div>
-      </div>
-    `;
-  }
   
   const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
   
@@ -3059,15 +3046,25 @@ function updateBucketUI(stats) {
       // Update count
       countElement.textContent = stats[bucketType].count;
       
-      // Update metrics with consistent formatting
-      clicksValue.textContent = stats[bucketType].clicksPercent.toFixed(1) + '%';
+      // Update metrics - format exactly like in the screenshot
+      const clicksPct = stats[bucketType].clicksPercent.toFixed(1);
+      const revenuePct = stats[bucketType].revenuePercent.toFixed(1);
+      const valueAmt = stats[bucketType].value;
+      
+      // For Clicks - always use blue
+      clicksValue.textContent = clicksPct + '%';
       clicksValue.style.background = '#2196F3';
       
-      revenueValue.textContent = stats[bucketType].revenuePercent.toFixed(1) + '%';
-      revenueValue.style.background = '#FF9800';
+      // For Revenue - use orange except for zero converting terms
+      if (bucketType === 'Zero Converting Terms' && stats[bucketType].revenue === 0) {
+        revenueValue.textContent = '$0';
+        revenueValue.style.background = '#F44336';
+      } else {
+        revenueValue.textContent = revenuePct + '%';
+        revenueValue.style.background = '#FF9800';
+      }
       
-      // Format value amount
-      const valueAmt = stats[bucketType].value;
+      // For Value - format as currency
       if (valueAmt >= 1000) {
         valueAmount.textContent = '$' + (valueAmt / 1000).toFixed(1) + 'k';
       } else {
