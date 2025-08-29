@@ -1311,76 +1311,261 @@ searchTermsPanel.innerHTML = `
         <span>${dateRangeText}</span>
       </div>
     </div>
-    <div id="campaignBucketFilterContainer" style="display: none; width: 100%;">
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-        <!-- All Terms Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="all" style="width: 100%; height: 45px; border: 2px solid #007aff; background: #007aff; color: white; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>All Terms</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+        <!-- All Terms -->
+        <div class="bucket-card" data-bucket="all" style="cursor: pointer; position: relative;">
+          <div class="bucket-box" style="background: #007aff; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #007aff;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">All Terms</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="width: 10px; height: 10px; background: #2196F3; border-radius: 2px;"></span>
+                <span style="font-size: 10px; color: #666;">% of Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">100%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 100%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="width: 10px; height: 10px; background: #FF9800; border-radius: 2px;"></span>
+                <span style="font-size: 10px; color: #666;">% of Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">100%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 100%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="width: 10px; height: 10px; background: #4CAF50; border-radius: 2px;"></span>
+                <span style="font-size: 10px; color: #666;">% of Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 100%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Top Search Terms Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="Top Search Terms" style="width: 100%; height: 45px; border: 1px solid #FFD700; background: white; color: #FFD700; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>⭐ Top Search</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- Top Search Terms -->
+        <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #FFC107; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">Top Search</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- High Revenue Terms Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="High Revenue Terms" style="width: 100%; height: 45px; border: 1px solid #4CAF50; background: white; color: #4CAF50; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>💰 High Revenue</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- Zero Converting Terms -->
+        <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #F44336; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">Zero Conv</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #F44336; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #ffebee; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #F44336;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #999; background: #f5f5f5; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #f5f5f5; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #ccc;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #999; background: #f5f5f5; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #f5f5f5; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #ccc;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Hidden Gems Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="Hidden Gems" style="width: 100%; height: 45px; border: 1px solid #2196F3; background: white; color: #2196F3; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>💎 Hidden Gems</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- High Revenue Terms -->
+        <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #4CAF50; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">High Revenue</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Mid-Performance Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="Mid-Performance" style="width: 100%; height: 45px; border: 1px solid #FF9800; background: white; color: #FF9800; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>📊 Mid-Perf</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- Hidden Gems -->
+        <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #2196F3; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">Hidden Gems</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Low Performance Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="Low Performance" style="width: 100%; height: 45px; border: 1px solid #9E9E9E; background: white; color: #9E9E9E; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>📉 Low Perf</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- Low Performance -->
+        <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #9E9E9E; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">Low Perf</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Zero Converting Terms Button -->
-        <div class="bucket-btn-wrapper">
-          <button class="campaign-bucket-btn" data-bucket="Zero Converting Terms" style="width: 100%; height: 45px; border: 1px solid #F44336; background: white; color: #F44336; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div>⚠️ Zero Conv</div>
-            <div class="bucket-count" style="font-size: 14px; font-weight: 700;">0</div>
-          </button>
-          <div class="bucket-stats" style="margin-top: 4px; padding: 4px; background: white; border-radius: 4px; font-size: 10px;">
-            <div class="bucket-stat-bars"></div>
+        <!-- Mid-Performance -->
+        <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
+          <div class="bucket-box" style="background: #FF9800; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
+            <div style="font-size: 12px; margin-top: 4px;">Mid-Perf</div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Clicks</span>
+                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
+                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Revenue</span>
+                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
+              </div>
+              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
+                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                <span style="font-size: 10px; color: #666;">Value</span>
+                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
+              </div>
+              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
+                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2255,7 +2440,7 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     // Calculate and display bucket statistics
     const bucketStats = calculateBucketStatistics(filteredData);
     
-    // Show and setup bucket filter buttons
+    // Show and setup bucket filter
     const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
     if (bucketFilterContainer) {
       bucketFilterContainer.style.display = 'block';
@@ -2263,87 +2448,27 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
       // Update UI with statistics
       updateBucketUI(bucketStats);
       
-      // Get all bucket buttons
-      const bucketButtons = bucketFilterContainer.querySelectorAll('.campaign-bucket-btn');
+      // Get all bucket cards
+      const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
       
-      // Remove old listeners and add new ones
-      bucketButtons.forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        
-        newBtn.addEventListener('click', function() {
+      // Add click handlers
+      bucketCards.forEach(card => {
+        card.addEventListener('click', function() {
           const selectedBucket = this.getAttribute('data-bucket');
           
-          // Update button styles
-          bucketFilterContainer.querySelectorAll('.campaign-bucket-btn').forEach(b => {
-            const wrapper = b.closest('.bucket-btn-wrapper');
-            if (b.getAttribute('data-bucket') === selectedBucket) {
-              // Active state
-              if (selectedBucket === 'all') {
-                b.style.background = '#007aff';
-                b.style.borderColor = '#007aff';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'Top Search Terms') {
-                b.style.background = '#FFD700';
-                b.style.borderColor = '#FFD700';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'High Revenue Terms') {
-                b.style.background = '#4CAF50';
-                b.style.borderColor = '#4CAF50';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'Hidden Gems') {
-                b.style.background = '#2196F3';
-                b.style.borderColor = '#2196F3';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'Mid-Performance') {
-                b.style.background = '#FF9800';
-                b.style.borderColor = '#FF9800';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'Low Performance') {
-                b.style.background = '#9E9E9E';
-                b.style.borderColor = '#9E9E9E';
-                b.style.borderWidth = '2px';
-              } else if (selectedBucket === 'Zero Converting Terms') {
-                b.style.background = '#F44336';
-                b.style.borderColor = '#F44336';
-                b.style.borderWidth = '2px';
-              }
-              b.style.color = 'white';
-              // Highlight stats box
-              if (wrapper) {
-                wrapper.querySelector('.bucket-stats').style.border = '2px solid ' + b.style.borderColor;
-              }
+          // Update visual state of cards
+          bucketCards.forEach(c => {
+            const box = c.querySelector('.bucket-box');
+            if (c === this) {
+              // Active state - add border
+              box.style.borderColor = box.style.backgroundColor;
+              box.style.borderWidth = '2px';
+              box.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
             } else {
               // Inactive state
-              const bucketType = b.getAttribute('data-bucket');
-              b.style.background = 'white';
-              b.style.borderWidth = '1px';
-              if (bucketType === 'all') {
-                b.style.borderColor = '#007aff';
-                b.style.color = '#007aff';
-              } else if (bucketType === 'Top Search Terms') {
-                b.style.borderColor = '#FFD700';
-                b.style.color = '#FFD700';
-              } else if (bucketType === 'High Revenue Terms') {
-                b.style.borderColor = '#4CAF50';
-                b.style.color = '#4CAF50';
-              } else if (bucketType === 'Hidden Gems') {
-                b.style.borderColor = '#2196F3';
-                b.style.color = '#2196F3';
-              } else if (bucketType === 'Mid-Performance') {
-                b.style.borderColor = '#FF9800';
-                b.style.color = '#FF9800';
-              } else if (bucketType === 'Low Performance') {
-                b.style.borderColor = '#9E9E9E';
-                b.style.color = '#9E9E9E';
-              } else if (bucketType === 'Zero Converting Terms') {
-                b.style.borderColor = '#F44336';
-                b.style.color = '#F44336';
-              }
-              // Remove stats box highlight
-              if (wrapper) {
-                wrapper.querySelector('.bucket-stats').style.border = 'none';
-              }
+              box.style.borderColor = 'transparent';
+              box.style.borderWidth = '2px';
+              box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             }
           });
           
@@ -2352,7 +2477,7 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
             renderCampaignSearchTermsTable(tableContainer, window.campaignSearchTermsOriginalData, campaignName);
             headerInfo.textContent = `${campaignName} - ${window.campaignSearchTermsOriginalData.length} search terms`;
           } else {
-            // Filter by Performance_Bucket (not Top_Bucket)
+            // Filter by Performance_Bucket
             const filtered = window.campaignSearchTermsOriginalData.filter(term => 
               term.Performance_Bucket === selectedBucket
             );
@@ -2363,6 +2488,12 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
           window.campaignSearchTermsCurrentFilter = selectedBucket;
         });
       });
+      
+      // Click the "all" card by default to show selected state
+      const allCard = bucketFilterContainer.querySelector('[data-bucket="all"]');
+      if (allCard) {
+        allCard.click();
+      }
     }
     
   } catch (error) {
@@ -3006,56 +3137,44 @@ function updateBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
   if (!bucketFilterContainer) return;
   
-  const bucketWrappers = bucketFilterContainer.querySelectorAll('.bucket-btn-wrapper');
+  const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
   
-  bucketWrappers.forEach(wrapper => {
-    const btn = wrapper.querySelector('.campaign-bucket-btn');
-    const bucketType = btn.getAttribute('data-bucket');
-    const countElement = btn.querySelector('.bucket-count');
-    const statsElement = wrapper.querySelector('.bucket-stat-bars');
+  bucketCards.forEach(card => {
+    const bucketType = card.getAttribute('data-bucket');
+    const countElement = card.querySelector('.bucket-count');
+    const clicksValue = card.querySelector('.clicks-value');
+    const clicksBar = card.querySelector('.clicks-bar');
+    const revenueValue = card.querySelector('.revenue-value');
+    const revenueBar = card.querySelector('.revenue-bar');
+    const valueAmount = card.querySelector('.value-amount');
+    const valueBar = card.querySelector('.value-bar');
     
     if (stats[bucketType]) {
       // Update count
       countElement.textContent = stats[bucketType].count;
       
-      // Create stat bars HTML
-      const clicksBar = `
-        <div style="margin-bottom: 3px;">
-          <div style="display: flex; justify-content: space-between; font-size: 9px; color: #666; margin-bottom: 1px;">
-            <span>Clicks</span>
-            <span style="font-weight: 600;">${stats[bucketType].clicksPercent.toFixed(1)}%</span>
-          </div>
-          <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
-            <div style="width: ${stats[bucketType].clicksPercent}%; height: 100%; background: #2196F3;"></div>
-          </div>
-        </div>
-      `;
+      // Update clicks
+      const clicksPct = stats[bucketType].clicksPercent.toFixed(1);
+      clicksValue.textContent = clicksPct + '%';
+      clicksBar.style.width = clicksPct + '%';
       
-      const revenueBar = `
-        <div style="margin-bottom: 3px;">
-          <div style="display: flex; justify-content: space-between; font-size: 9px; color: #666; margin-bottom: 1px;">
-            <span>Revenue</span>
-            <span style="font-weight: 600;">${stats[bucketType].revenuePercent.toFixed(1)}%</span>
-          </div>
-          <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
-            <div style="width: ${stats[bucketType].revenuePercent}%; height: 100%; background: #4CAF50;"></div>
-          </div>
-        </div>
-      `;
+      // Update revenue
+      const revenuePct = stats[bucketType].revenuePercent.toFixed(1);
+      revenueValue.textContent = revenuePct + '%';
+      revenueBar.style.width = revenuePct + '%';
       
-      const valueBar = `
-        <div>
-          <div style="display: flex; justify-content: space-between; font-size: 9px; color: #666; margin-bottom: 1px;">
-            <span>Value</span>
-            <span style="font-weight: 600;">$${(stats[bucketType].value).toFixed(0)}</span>
-          </div>
-          <div style="height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
-            <div style="width: ${stats[bucketType].valuePercent}%; height: 100%; background: #FF9800;"></div>
-          </div>
-        </div>
-      `;
+      // Update value (show dollar amount)
+      const valueAmt = stats[bucketType].value;
+      valueAmount.textContent = '$' + valueAmt.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      valueBar.style.width = stats[bucketType].valuePercent.toFixed(1) + '%';
       
-      statsElement.innerHTML = clicksBar + revenueBar + valueBar;
+      // Special handling for zero converting terms
+      if (bucketType === 'Zero Converting Terms') {
+        revenueValue.style.background = '#f5f5f5';
+        revenueValue.style.color = '#999';
+        valueAmount.style.background = '#f5f5f5';
+        valueAmount.style.color = '#999';
+      }
     }
   });
 }
