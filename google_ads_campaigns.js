@@ -2333,25 +2333,25 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     }
     
 // Ensure performance buckets are loaded
-    await ensureSearchTermPerformanceBuckets();
-    
-    // Filter search terms for this specific campaign
-    const filteredData = searchTermsResult.data.filter(item => 
-      item.Campaign_Name === campaignName && 
-      item.Query && 
-      item.Query.toLowerCase() !== 'blank'
-    ).map(item => {
-      // Add Top_Bucket, performance bucket and trend data
-      const queryLower = item.Query.toLowerCase();
-      return {
-        ...item,
-        Top_Bucket: topBucketMap[queryLower] || '',
-        Trend_Data: trend90dMap[queryLower] || null,
-        Performance_Bucket: window.searchTermPerformanceBuckets ? 
-          window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
-          'Mid-Performance'
-      };
-    });
+await ensureSearchTermPerformanceBuckets();
+
+// Filter search terms for this specific campaign
+const filteredData = searchTermsResult.data.filter(item => 
+  item.Campaign_Name === campaignName && 
+  item.Query && 
+  item.Query.toLowerCase() !== 'blank'
+).map(item => {
+  // Add Top_Bucket, performance bucket and trend data
+  const queryLower = item.Query.toLowerCase();
+  return {
+    ...item,
+    Top_Bucket: topBucketMap[queryLower] || '',
+    Trend_Data: trend90dMap[queryLower] || null,
+    Performance_Bucket: window.searchTermPerformanceBuckets ? 
+      window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
+      'Mid-Performance'
+  };
+});
     
     if (filteredData.length === 0) {
       tableContainer.innerHTML = `
@@ -2967,61 +2967,16 @@ function getPerformanceBucketBadge(bucketType) {
   `;
 }
 
-// Initialize search term performance buckets if not already loaded
+// Replace the ensureSearchTermPerformanceBuckets function with:
 async function ensureSearchTermPerformanceBuckets() {
-  // Check if buckets are already loaded
-  if (window.searchTermPerformanceBuckets && Object.keys(window.searchTermPerformanceBuckets).length > 0) {
+  // Check if the global function exists
+  if (typeof window.calculateAndCacheSearchTermBuckets === 'function') {
+    window.searchTermPerformanceBuckets = await window.calculateAndCacheSearchTermBuckets();
     return window.searchTermPerformanceBuckets;
+  } else {
+    console.warn('[Campaigns] calculateAndCacheSearchTermBuckets function not available');
+    return {};
   }
-  
-  // Try to get from localStorage first
-  if (typeof getSearchTermPerformanceBuckets === 'function') {
-    const stored = getSearchTermPerformanceBuckets();
-    if (stored && Object.keys(stored).length > 0) {
-      window.searchTermPerformanceBuckets = stored;
-      return stored;
-    }
-  }
-  
-  // Need to load search terms data to calculate buckets
-  console.log('[Campaigns] Loading search terms data for bucket calculation...');
-  
-  try {
-    const tablePrefix = getProjectTablePrefix();
-    const days = window.selectedDateRangeDays || 30;
-    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
-    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
-    
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open database'));
-    });
-    
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (result && result.data) {
-      const filteredData = result.data.filter(item => item.Query && item.Query.toLowerCase() !== 'blank');
-      // Use the function from google_ads_search_terms.js
-      if (typeof calculateSearchTermPerformanceBuckets === 'function') {
-        window.searchTermPerformanceBuckets = calculateSearchTermPerformanceBuckets(filteredData);
-        return window.searchTermPerformanceBuckets;
-      }
-    }
-  } catch (error) {
-    console.error('[Campaigns] Error loading search terms for buckets:', error);
-  }
-  
-  return {};
 }
 
 // Calculate statistics for each bucket
