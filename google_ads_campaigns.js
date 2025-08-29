@@ -1047,6 +1047,102 @@ function addCampaignsStyles() {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
 }
+
+
+/* Search Terms Table Specific Styles */
+.camp-table-search-terms {
+  width: 100%;
+  background: white;
+  border-collapse: collapse;
+}
+
+.camp-table-search-terms thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.camp-table-search-terms thead tr {
+  border-bottom: 2px solid #e9ecef;
+}
+
+.camp-table-search-terms th {
+  padding: 10px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  text-align: left;
+  background: white;
+  position: relative;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.camp-table-search-terms th.sortable {
+  cursor: pointer;
+  padding-right: 20px;
+}
+
+.camp-table-search-terms th.sortable:hover {
+  background: rgba(0, 122, 255, 0.04);
+  color: #495057;
+}
+
+.camp-table-search-terms tbody tr {
+  border-bottom: 1px solid #f0f2f5;
+  transition: background 0.15s ease;
+}
+
+.camp-table-search-terms tbody tr:hover {
+  background: rgba(0, 122, 255, 0.02);
+}
+
+.camp-table-search-terms td {
+  padding: 8px;
+  font-size: 13px;
+  color: #495057;
+  vertical-align: middle;
+}
+
+/* Column widths for search terms table */
+.camp-table-search-terms th:nth-child(1),
+.camp-table-search-terms td:nth-child(1) { 
+  width: 50px; 
+  text-align: center;
+}
+
+/* Search term column - flexible width */
+.camp-table-search-terms th:nth-child(2),
+.camp-table-search-terms td:nth-child(2) { 
+  min-width: 200px;
+  /* No fixed width - will expand to fill space */
+}
+
+/* Metric columns */
+.camp-table-search-terms th.metric-col,
+.camp-table-search-terms td.metric-col { 
+  width: auto;
+  min-width: 100px;
+  text-align: right;
+}
+
+/* Summary row */
+.camp-table-search-terms .camp-summary-row {
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  font-weight: 600;
+  border-bottom: 2px solid #007aff;
+}
+
+.camp-table-search-terms .camp-summary-row td {
+  padding: 12px 8px;
+  font-size: 13px;
+  color: #212529;
+  border-bottom: 2px solid #007aff;
+}
     `;
     document.head.appendChild(style);
   }
@@ -2576,8 +2672,8 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   const wrapper = document.createElement('div');
   wrapper.className = 'camp-products-wrapper';
   
-  const table = document.createElement('table');
-  table.className = 'camp-table-modern';
+const table = document.createElement('table');
+table.className = 'camp-table-search-terms';
   
   // Create header
   const thead = document.createElement('thead');
