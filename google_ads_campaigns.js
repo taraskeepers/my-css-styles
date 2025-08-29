@@ -1,2451 +1,80 @@
-// google_ads_campaigns.js - Campaigns Section Implementation
-
-// Global variables for campaigns section
-window.selectedCampaign = null;
-window.campaignsData = [];
-window.campaignProducts = new Map();
-
-// Initialize campaigns section
-async function initializeCampaignsSection() {
-  console.log('[initializeCampaignsSection] Starting campaigns initialization...');
-  
-  // Add campaigns-specific styles
-  addCampaignsStyles();
-  
-  // Load and render campaigns
-  await loadAndRenderCampaigns();
-}
-
-// Add campaigns-specific styles (REPLACE the entire addCampaignsStyles function)
-function addCampaignsStyles() {
-  if (!document.getElementById('campaigns-section-styles')) {
-    const style = document.createElement('style');
-    style.id = 'campaigns-section-styles';
-    style.textContent = `
-      /* Main campaigns container */
-      .campaigns-main-container {
-        display: flex;
-        gap: 20px;
-        height: calc(100vh - 200px);
-        width: 100%;
-        margin-top: 60px;
-      }
-      
-      /* Left navigation panel */
-      #campaignsNavPanel {
-        width: 280px;
-        min-width: 280px;
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        transition: width 0.3s ease-in-out;
-      }
-
-      /* View switcher styles */
-.campaigns-view-switcher {
-  padding: 12px 15px;
-  border-bottom: 1px solid #dee2e6;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 11;
-}
-
-.campaigns-view-tabs {
-  display: flex;
-  gap: 0;
-  background: #f0f2f5;
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.campaigns-view-tab {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.campaigns-view-tab:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.campaigns-view-tab.active {
-  background: white;
-  color: #007aff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Search terms panel - same style as products panel */
-#campaignsSearchTermsPanel {
-  flex: 1;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#campaignsSearchTermsPanel.active {
-  display: flex;
-}
-
-#campaignsProductsPanel.hidden {
-  display: none;
-}
-
-/* Search terms specific styles */
-.campaigns-search-terms-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #dee2e6;
-  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.campaigns-search-terms-table-container {
-  flex: 1;
-  overflow: auto;
-  background: #f5f7fa;
-  padding: 0;
-}
-      
-      /* Campaign filter and list styles */
-      .campaigns-filter-container {
-        padding: 15px;
-        border-bottom: 1px solid #dee2e6;
-        background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-      }
-      
-      .campaigns-type-filter {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-      }
-      
-      .campaign-filter-btn {
-        padding: 6px 16px;
-        border: 1px solid #ddd;
-        background: white;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      
-      .campaign-filter-btn.active {
-        background-color: #007aff;
-        color: white;
-        border-color: #007aff;
-        box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
-      }
-      
-      .campaigns-list-container {
-        padding: 10px;
-        overflow-y: auto;
-        flex: 1;
-      }
-      
-      .campaign-group-section {
-        margin-bottom: 20px;
-      }
-      
-      .campaign-group-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        margin-bottom: 10px;
-      }
-      
-      .campaign-type-icon {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: white;
-        border-radius: 6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      }
-      
-      .campaign-group-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        flex: 1;
-      }
-      
-      .campaign-group-count {
-        background: #007aff;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-      }
-      
-      .campaign-nav-item {
-        margin-bottom: 8px;
-        cursor: pointer;
-      }
-      
-      .campaign-card-details {
-        background-color: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        display: flex;
-        align-items: center;
-        padding: 12px;
-        transition: all 0.2s;
-        gap: 12px;
-        min-height: 70px;
-      }
-      
-      .campaign-nav-item:hover .campaign-card-details {
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        transform: translateY(-1px);
-      }
-      
-      .campaign-nav-item.selected .campaign-card-details {
-        border: 2px solid #007aff;
-        box-shadow: 0 2px 6px rgba(0,122,255,0.3);
-      }
-      
-      .campaign-type-badge {
-        width: 50px;
-        height: 50px;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      }
-      
-      .campaign-type-badge.pmax {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-      
-      .campaign-type-badge.shopping {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-      }
-      
-      .campaign-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .campaign-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: #333;
-        line-height: 1.3;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-      
-      .campaign-meta {
-        display: flex;
-        gap: 12px;
-        font-size: 11px;
-        color: #999;
-      }
-      
-      .campaign-products-count {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      
-      /* Right panel - Products container */
-      #campaignsProductsPanel {
-        flex: 1;
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      
-      /* Products panel header */
-      .campaigns-products-header {
-        padding: 15px 20px;
-        border-bottom: 1px solid #dee2e6;
-        background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-shrink: 0;
-      }
-      
-      .campaigns-products-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #333;
-        margin: 0;
-      }
-      
-      .selected-campaign-info {
-        font-size: 13px;
-        color: #666;
-        margin-top: 4px;
-      }
-      
-      .column-selector-btn {
-        padding: 6px 12px;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.2s;
-        position: relative;
-      }
-      
-      .column-selector-btn:hover {
-        background: #f0f0f0;
-        border-color: #007aff;
-      }
-      
-      /* Column selector dropdown */
-      .column-selector-dropdown {
-        position: absolute;
-        top: calc(100% + 5px);
-        right: 0;
-        width: 250px;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
-        display: none;
-        max-height: 400px;
-        overflow-y: auto;
-      }
-      
-      .column-selector-dropdown.active {
-        display: block;
-      }
-      
-      .column-selector-header {
-        padding: 10px 15px;
-        border-bottom: 1px solid #eee;
-        font-weight: 600;
-        font-size: 13px;
-        color: #333;
-        background: #f8f9fa;
-        border-radius: 8px 8px 0 0;
-      }
-      
-      .column-selector-list {
-        padding: 8px;
-      }
-      
-      .column-selector-item {
-        display: flex;
-        align-items: center;
-        padding: 8px 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      
-      .column-selector-item:hover {
-        background: #f0f2f5;
-      }
-      
-      .column-selector-checkbox {
-        width: 16px;
-        height: 16px;
-        margin-right: 10px;
-        cursor: pointer;
-      }
-      
-      .column-selector-label {
-        font-size: 13px;
-        color: #495057;
-        cursor: pointer;
-        flex: 1;
-      }
-      
-      /* TABLE STYLES */
-      .campaigns-products-table-container {
-        flex: 1;
-        overflow: auto;
-        background: #f5f7fa;
-      }
-      
-      .camp-products-wrapper {
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        padding: 0;  /* Ensure no padding */
-        margin: 0;   /* Ensure no margin */
-      }
-      
-      .camp-table-modern {
-        width: 100%;
-        background: white;
-        border-collapse: collapse;
-      }
-      
-      .camp-table-modern table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: auto;
-      }
-      
-      /* Table header */
-      .camp-table-modern thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      }
-      
-      .camp-table-modern thead tr {
-        border-bottom: 2px solid #e9ecef;
-      }
-      
-      .camp-table-modern th {
-        padding: 10px 8px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #6c757d;
-        text-align: left;
-        background: white;
-        position: relative;
-        white-space: nowrap;
-        user-select: none;
-      }
-      
-      .camp-table-modern th.sortable {
-        cursor: pointer;
-        padding-right: 20px;
-      }
-      
-      .camp-table-modern th.sortable:hover {
-        background: rgba(0, 122, 255, 0.04);
-        color: #495057;
-      }
-      
-      .camp-table-modern th.center {
-        text-align: center;
-      }
-      
-      .camp-table-modern th.right {
-        text-align: right;
-      }
-      
-/* Column widths - POS, SHARE, ROAS, IMAGE, TITLE */
-.camp-table-modern th:nth-child(1),
-.camp-table-modern td:nth-child(1) { width: 60px; } /* Pos */
-
-.camp-table-modern th:nth-child(2),
-.camp-table-modern td:nth-child(2) { width: 90px; } /* Share */
-
-.camp-table-modern th:nth-child(3),
-.camp-table-modern td:nth-child(3) { width: 70px; } /* ROAS */
-
-.camp-table-modern th:nth-child(4),
-.camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
-
-.camp-table-modern th:nth-child(5),
-.camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
-      
-      /* All metric columns - max 90px */
-      .camp-table-modern th.metric-col,
-      .camp-table-modern td.metric-col { 
-        width: 90px;
-        max-width: 90px;
-      }
-      
-      /* Sort icon */
-      .camp-sort-icon {
-        position: absolute;
-        right: 4px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 10px;
-        color: #adb5bd;
-      }
-      
-      .camp-table-modern th.sorted-asc .camp-sort-icon,
-      .camp-table-modern th.sorted-desc .camp-sort-icon {
-        color: #007aff;
-      }
-      
-      /* Table body */
-      .camp-table-modern tbody tr {
-        border-bottom: 1px solid #f0f2f5;
-        transition: background 0.15s ease;
-        height: 70px;
-      }
-      
-      .camp-table-modern tbody tr:hover {
-        background: rgba(0, 122, 255, 0.02);
-      }
-      
-      .camp-table-modern tbody tr.device-row {
-        background: #fafbfc;
-        display: none;
-        height: 40px;
-      }
-      
-      .camp-table-modern tbody tr.device-row.visible {
-        display: table-row;
-      }
-      
-      .camp-table-modern tbody tr.device-row:hover {
-        background: #f5f7fa;
-      }
-      
-      .camp-table-modern td {
-        padding: 8px;
-        font-size: 13px;
-        color: #495057;
-        vertical-align: middle;
-        height: 70px;
-      }
-      
-      .camp-table-modern tr.device-row td {
-        height: 40px;
-        padding: 6px 8px;
-      }
-      
-      /* Expand arrow */
-      .camp-expand-arrow {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        background: #e9ecef;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 10px;
-        color: #6c757d;
-      }
-      
-      .camp-expand-arrow:hover {
-        background: #dee2e6;
-      }
-      
-      .camp-expand-arrow.expanded {
-        transform: rotate(90deg);
-        background: #007aff;
-        color: white;
-      }
-      
-      /* Position indicator */
-      .camp-position-indicator {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-      }
-      
-      .camp-position-indicator.top {
-        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-        color: white;
-      }
-      
-      .camp-position-indicator.mid {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        color: white;
-      }
-      
-      .camp-position-indicator.low {
-        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-        color: white;
-      }
-      
-      .camp-position-indicator.bottom {
-        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-        color: white;
-      }
-      
-      /* Market share bar */
-      .camp-share-bar {
-        width: 60px;
-        height: 32px;
-        background: #e9ecef;
-        border-radius: 16px;
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-      }
-      
-      .camp-share-fill {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
-        transition: width 0.3s ease;
-      }
-      
-      .camp-share-text {
-        position: relative;
-        z-index: 2;
-        font-size: 11px;
-        font-weight: 600;
-        color: #1e40af;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-shadow: 0 0 2px rgba(255,255,255,0.8);
-      }
-      
-      /* Product image */
-      .camp-product-img {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 1px solid #e9ecef;
-        background: white;
-        display: block;
-        margin: 0 auto;
-      }
-      
-      /* Product title */
-      .camp-product-title {
-        font-size: 13px;
-        font-weight: 500;
-        color: #212529;
-        line-height: 1.4;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        max-height: 56px;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-      }
-      
-      /* Device tag */
-      .camp-device-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-      }
-      
-      .camp-device-tag.mobile {
-        background: rgba(134, 239, 172, 0.2);
-        color: #15803d;
-      }
-      
-      .camp-device-tag.tablet {
-        background: rgba(147, 197, 253, 0.2);
-        color: #1e40af;
-      }
-      
-      .camp-device-tag.desktop {
-        background: rgba(253, 230, 138, 0.2);
-        color: #a16207;
-      }
-      
-      /* Metrics styling */
-      .camp-metric {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        font-size: 12px;
-        font-weight: 500;
-        color: #495057;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      
-      .camp-metric.large {
-        font-size: 13px;
-        font-weight: 600;
-        color: #212529;
-      }
-      
-      .camp-metric.positive {
-        color: #22c55e;
-      }
-      
-      .camp-metric.negative {
-        color: #ef4444;
-      }
-      
-      .camp-metric.highlight {
-        display: inline-block;
-        padding: 2px 6px;
-        background: rgba(0, 122, 255, 0.08);
-        border-radius: 4px;
-        color: #007aff;
-        font-weight: 600;
-      }
-      
-      /* Empty state */
-      .campaigns-empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 400px;
-        color: #999;
-        text-align: center;
-        padding: 40px;
-      }
-      
-      .campaigns-empty-icon {
-        font-size: 48px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-      }
-      
-      .campaigns-empty-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #666;
-      }
-      
-      .campaigns-empty-text {
-        font-size: 14px;
-        line-height: 1.5;
-        color: #999;
-      }
-      
-      /* Loading spinner */
-      .campaigns-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 40px;
-        height: 400px;
-      }
-      
-      .campaigns-spinner {
-        border: 3px solid rgba(0, 0, 0, 0.1);
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border-left-color: #007aff;
-        animation: spin 1s ease infinite;
-      }
-      
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-/* Image zoom on hover */
-.camp-product-img-container {
-  position: relative;
-  display: inline-block;
-}
-
-.camp-product-img-zoom {
-  position: fixed;
-  width: 300px;
-  height: 300px;
-  border-radius: 12px;
-  object-fit: contain;
-  background: white;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  border: 2px solid #007aff;
-  z-index: 10000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.camp-product-img-container:hover .camp-product-img-zoom {
-  opacity: 1;
-}
-
-/* Summary row styling */
-.camp-summary-row {
-  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-  font-weight: 600;
-  border-bottom: 2px solid #007aff;
-}
-
-.camp-summary-row td {
-  padding: 12px 8px;
-  font-size: 13px;
-  color: #212529;
-  border-bottom: 2px solid #007aff;
-}
-
-/* Improved metric bars */
-.camp-metric-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-}
-
-.camp-metric-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #212529;
-  text-align: center;
-  width: 100%;
-}
-
-.camp-metric-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-
-.camp-metric-bar {
-  flex: 1;
-  height: 8px;
-  background: #e9ecef;
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-}
-
-.camp-metric-bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
-  transition: width 0.3s ease;
-  border-radius: 4px;
-}
-
-.camp-metric-percent {
-  font-size: 10px;
-  color: #6c757d;
-  font-weight: 500;
-  min-width: 32px;
-  text-align: right;
-}
-
-/* Alternating column backgrounds */
-.camp-table-modern td:nth-child(6),  /* IMPR - 1st metric column */
-.camp-table-modern th:nth-child(6) {
-  background-color: #f8f9fa !important;
-}
-
-.camp-table-modern td:nth-child(8),  /* CTR - 3rd metric column */
-.camp-table-modern th:nth-child(8) {
-  background-color: #f8f9fa !important;
-}
-
-.camp-table-modern td:nth-child(10), /* COST - 5th metric column */
-.camp-table-modern th:nth-child(10) {
-  background-color: #f8f9fa !important;
-}
-
-.camp-table-modern td:nth-child(12), /* CPA - 7th metric column */
-.camp-table-modern th:nth-child(12) {
-  background-color: #f8f9fa !important;
-}
-
-.camp-table-modern td:nth-child(14), /* CVR - 9th metric column */
-.camp-table-modern th:nth-child(14) {
-  background-color: #f8f9fa !important;
-}
-
-/* Keep summary row background consistent */
-.camp-summary-row td {
-  background: linear-gradient(to bottom, #f0f2f5, #e9ecef) !important;
-}
-
-/* Toggle switch styles */
-.toggle-switch {
-  position: relative;
-  width: 40px;
-  height: 20px;
-  margin-right: 10px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .3s;
-  border-radius: 20px;
-}
-
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .3s;
-  border-radius: 50%;
-}
-
-.toggle-switch input:checked + .toggle-slider {
-  background-color: #007aff;
-}
-
-.toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(20px);
-}
-
-/* ROAS light red for values < 1 */
-.camp-roas-badge.poor {
-  background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
-}
-
-/* ROAS badge styling */
-.camp-roas-badge {
-  width: 60px;
-  height: 36px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
-  color: white;
-}
-
-.camp-roas-badge.excellent {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-}
-
-.camp-roas-badge.good {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-}
-
-.camp-roas-badge.fair {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-}
-
-/* Clickable row styling */
-.camp-table-modern tbody tr.main-row {
-  cursor: pointer;
-}
-
-.camp-table-modern tbody tr.main-row:hover {
-  background: rgba(0, 122, 255, 0.04);
-}
-/* Special product status styling */
-.camp-table-modern tbody tr.revenue-stars {
-  background: linear-gradient(to right, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
-  border-left: 4px solid #FFD700;
-}
-
-.camp-table-modern tbody tr.revenue-stars:hover {
-  background: linear-gradient(to right, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
-}
-
-.camp-table-modern tbody tr.best-sellers {
-  background: linear-gradient(to right, rgba(147, 51, 234, 0.06), rgba(147, 51, 234, 0.02));
-  border-left: 4px solid #9333ea;
-}
-
-.camp-table-modern tbody tr.best-sellers:hover {
-  background: linear-gradient(to right, rgba(147, 51, 234, 0.12), rgba(147, 51, 234, 0.04));
-}
-
-.camp-table-modern tbody tr.volume-leaders {
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.06), rgba(34, 197, 94, 0.02));
-  border-left: 4px solid #22c55e;
-}
-
-.camp-table-modern tbody tr.volume-leaders:hover {
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04));
-}
-
-/* Product status badge */
-.product-status-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-left: 8px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.product-status-badge.revenue-stars {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #6B4423;
-}
-
-.product-status-badge.best-sellers {
-  background: linear-gradient(135deg, #9333ea, #a855f7);
-  color: white;
-}
-
-.product-status-badge.volume-leaders {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
-}
-
-
-/* Search Terms Table Specific Styles */
-.camp-table-search-terms {
-  width: 100%;
-  background: white;
-  border-collapse: collapse;
-  table-layout: auto;
-}
-
-.camp-table-search-terms thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-}
-
-.camp-table-search-terms thead tr {
-  border-bottom: 2px solid #e9ecef;
-}
-
-.camp-table-search-terms th {
-  padding: 10px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6c757d;
-  text-align: left;
-  background: white;
-  position: relative;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.camp-table-search-terms th.sortable {
-  cursor: pointer;
-  padding-right: 20px;
-}
-
-.camp-table-search-terms th.sortable:hover {
-  background: rgba(0, 122, 255, 0.04);
-  color: #495057;
-}
-
-.camp-table-search-terms tbody tr {
-  border-bottom: 1px solid #f0f2f5;
-  transition: background 0.15s ease;
-}
-
-.camp-table-search-terms tbody tr:hover {
-  background: rgba(0, 122, 255, 0.02);
-}
-
-.camp-table-search-terms td {
-  padding: 8px;
-  font-size: 13px;
-  color: #495057;
-  vertical-align: middle;
-}
-
-/* Column widths for search terms table */
-.camp-table-search-terms th:nth-child(1),
-.camp-table-search-terms td:nth-child(1) { 
-  width: 50px; 
-  text-align: center;
-}
-
-/* Search term column - flexible width */
-.camp-table-search-terms th:nth-child(2),
-.camp-table-search-terms td:nth-child(2) { 
-  width: auto;  /* Changed from min-width to auto */
-  white-space: normal;  /* Allow text wrapping if needed */
-}
-
-/* Make metric columns more flexible */
-.camp-table-search-terms th.metric-col,
-.camp-table-search-terms td.metric-col { 
-  width: auto;
-  min-width: 80px;  /* Reduced from 100px */
-  max-width: 120px;  /* Add max to prevent too much expansion */
-  text-align: right;
-}
-
-/* Summary row */
-.camp-table-search-terms .camp-summary-row {
-  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-  font-weight: 600;
-  border-bottom: 2px solid #007aff;
-}
-
-.camp-table-search-terms .camp-summary-row td {
-  padding: 12px 8px;
-  font-size: 13px;
-  color: #212529;
-  border-bottom: 2px solid #007aff;
-}
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-// Load and render campaigns
-async function loadAndRenderCampaigns() {
-  console.log('[loadAndRenderCampaigns] Loading campaigns data...');
+/**
+ * Search Terms Tab - Moved from Google Ads functionality
+ * This file contains all logic related to the Search Terms page
+ */
+
+// Global variables for Search Terms functionality
+window.searchTermsData = [];
+window.searchTermsDataWithRankings = [];
+window.searchTermsData365d = [];
+window.searchTermsData90d = [];
+window.searchTermsCurrentPage = 1;
+window.searchTermsPerPage = 50;
+window.searchTermsSortColumn = 'Impressions';
+window.searchTermsSortAscending = false;
+window.searchTermsFilter = 'all'; // 'all', 'topbucket', 'negatives'
+window.productRankingToggleState = false;
+window.selectedSearchTermsBucket = null;
+window.searchTermsChannelToggleState = false;
+window.searchTermsCampaignToggleState = false;
+window.searchTermsChannelData = {};  // Cache for channel data
+window.searchTermsCampaignData = {};  // Cache for campaign data
+
+/**
+ * Main function to render the Search Terms table
+ */
+async function renderSearchTermsTable() {
+  console.log("[Search Terms] Starting to render Search Terms table");
   
   try {
-    // Get the table prefix for the current project
-    const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
-    
-    console.log('[loadAndRenderCampaigns] Loading from table:', tableName);
-    
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
-    
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      console.warn('[loadAndRenderCampaigns] No bucket data found');
-      renderEmptyCampaignsState();
+    // Get the container
+    const container = document.getElementById("searchTermsContainer");
+    if (!container) {
+      console.error("[Search Terms] Container not found");
       return;
     }
     
-    // Extract unique campaigns from the data
-    const campaignsMap = new Map();
-    
-    result.data.forEach(row => {
-      const channelType = row['Channel Type'];
-      const campaignName = row['Campaign Name'];
-      const productTitle = row['Product Title'];
-      
-      // Skip rows without proper campaign data
-      if (!channelType || !campaignName || channelType === 'All' || campaignName === 'All') {
-        return;
-      }
-      
-      const campaignKey = `${channelType}::${campaignName}`;
-      
-      if (!campaignsMap.has(campaignKey)) {
-        campaignsMap.set(campaignKey, {
-          channelType: channelType,
-          campaignName: campaignName,
-          products: new Set()
-        });
-      }
-      
-      // Add product to campaign
-      if (productTitle) {
-        campaignsMap.get(campaignKey).products.add(productTitle);
-      }
-    });
-    
-    // Convert map to array and sort
-    window.campaignsData = Array.from(campaignsMap.values()).sort((a, b) => {
-      // First sort by channel type
-      if (a.channelType !== b.channelType) {
-        return a.channelType.localeCompare(b.channelType);
-      }
-      // Then by campaign name
-      return a.campaignName.localeCompare(b.campaignName);
-    });
-    
-    console.log('[loadAndRenderCampaigns] Found campaigns:', window.campaignsData.length);
-    
-    // Store products mapping for quick access
-    window.campaignProducts.clear();
-    window.campaignsData.forEach(campaign => {
-      const key = `${campaign.channelType}::${campaign.campaignName}`;
-      window.campaignProducts.set(key, Array.from(campaign.products));
-    });
-    
-    // Render campaigns in the navigation panel
-    renderCampaignsNavPanel();
+    // Load and render search terms data
+    await loadAndRenderSearchTerms();
     
   } catch (error) {
-    console.error('[loadAndRenderCampaigns] Error loading campaigns:', error);
-    renderEmptyCampaignsState();
+    console.error("[Search Terms] Error in renderSearchTermsTable:", error);
+    const container = document.getElementById("searchTermsContainer");
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #ff3b30;">
+          <div style="font-size: 18px; margin-bottom: 10px;">Error Loading Search Terms</div>
+          <div>${error.message}</div>
+        </div>
+      `;
+    }
   }
 }
 
-// Render campaigns navigation panel
-async function renderCampaignsNavPanel() {
-  const container = document.getElementById('campaigns_overview_container');
+/**
+ * Load and render search terms data (moved from google_ads_search_terms.js)
+ */
+async function loadAndRenderSearchTerms() {
+  const container = document.getElementById('searchTermsContainer');
   if (!container) return;
   
-  // Clear existing content
-  container.innerHTML = '';
-  
-  // Create main container
-  const mainContainer = document.createElement('div');
-  mainContainer.className = 'campaigns-main-container';
-  
-  // Create left navigation panel
-  const navPanel = document.createElement('div');
-  navPanel.id = 'campaignsNavPanel';
-  
-// Add view switcher
-const viewSwitcher = document.createElement('div');
-viewSwitcher.className = 'campaigns-view-switcher';
-viewSwitcher.innerHTML = `
-  <div class="campaigns-view-tabs">
-    <button class="campaigns-view-tab active" data-view="products">
-      <span>📦</span> Products
-    </button>
-    <button class="campaigns-view-tab" data-view="search-terms">
-      <span>🔍</span> Search Terms
-    </button>
-  </div>
-`;
-navPanel.appendChild(viewSwitcher);
-
-// Add filter container
-const filterContainer = document.createElement('div');
-filterContainer.className = 'campaigns-filter-container';
-  filterContainer.innerHTML = `
-    <div class="campaigns-type-filter">
-      <button class="campaign-filter-btn active" data-filter="all">
-        <span>📊</span> All
-      </button>
-      <button class="campaign-filter-btn" data-filter="PERFORMANCE_MAX">
-        <span>🚀</span> PMax
-      </button>
-      <button class="campaign-filter-btn" data-filter="SHOPPING">
-        <span>🛍️</span> Shopping
-      </button>
-    </div>
-  `;
-  navPanel.appendChild(filterContainer);
-  
-// Add campaigns list container
-  const listContainer = document.createElement('div');
-  listContainer.className = 'campaigns-list-container';
-  navPanel.appendChild(listContainer);
-  
-  // Load ROAS for all campaigns first
-  const campaignsWithROAS = await Promise.all(window.campaignsData.map(async (campaign) => {
-    const roas = await calculateCampaignROAS(campaign.channelType, campaign.campaignName);
-    return { ...campaign, roas };
-  }));
-
-  // Update global data with ROAS
-  window.campaignsData = campaignsWithROAS;
-
-  // Group campaigns by type with ROAS
-  const pmaxCampaigns = campaignsWithROAS.filter(c => c.channelType === 'PERFORMANCE_MAX');
-  const shoppingCampaigns = campaignsWithROAS.filter(c => c.channelType === 'SHOPPING');
-  
-  // Render campaign groups
-  renderCampaignGroup(listContainer, 'PERFORMANCE_MAX', pmaxCampaigns, '🚀');
-  renderCampaignGroup(listContainer, 'SHOPPING', shoppingCampaigns, '🛍️');
-  
-  // Add click handlers for filters
-  filterContainer.querySelectorAll('.campaign-filter-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      // Update active state
-      filterContainer.querySelectorAll('.campaign-filter-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Filter campaigns
-      const filterType = this.getAttribute('data-filter');
-      filterCampaigns(filterType);
-    });
-  });
-
-  // Add view switcher event handlers <--- ADD THIS ENTIRE BLOCK
-  viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      // Update active state
-      viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      
-      const view = this.getAttribute('data-view');
-      
-      if (view === 'products') {
-        productsPanel.style.display = 'flex';
-        searchTermsPanel.style.display = 'none';
-      } else if (view === 'search-terms') {
-        productsPanel.style.display = 'none';
-        searchTermsPanel.style.display = 'flex';
-        
-        // Load search terms if campaign is selected
-        if (window.selectedCampaign) {
-          loadCampaignSearchTerms(
-            window.selectedCampaign.channelType,
-            window.selectedCampaign.campaignName
-          );
-        }
-      }
-    });
-  });
-  
-// Create container for both panels
-const panelsContainer = document.createElement('div');
-panelsContainer.style.cssText = 'flex: 1; display: flex; position: relative;';
-
-// Create products panel
-const productsPanel = document.createElement('div');
-productsPanel.id = 'campaignsProductsPanel';
-productsPanel.style.cssText = 'flex: 1; display: flex;'; // Make it visible by default
-
-// Calculate date range (30 days back from today)
-const endDate = new Date();
-const startDate = new Date();
-startDate.setDate(startDate.getDate() - 30);
-const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-
-productsPanel.innerHTML = `
-  <div class="campaigns-products-header">
-    <div>
-      <h3 class="campaigns-products-title">Campaign Products</h3>
-      <div class="selected-campaign-info">Select a campaign to view its products</div>
-    </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-        <span>📅</span>
-        <span>${dateRangeText}</span>
-      </div>
-      <button class="column-selector-btn" onclick="toggleColumnSelector()">
-        <span>⚙️</span> Columns
-      </button>
-    </div>
-  </div>
-  <div class="campaigns-products-table-container">
-    <div class="campaigns-empty-state">
-      <div class="campaigns-empty-icon">📦</div>
-      <div class="campaigns-empty-title">No Campaign Selected</div>
-      <div class="campaigns-empty-text">Select a campaign from the left panel to view its products</div>
-    </div>
-  </div>
-`;
-
-// Create search terms panel <--- ADD THIS AND EVERYTHING BELOW
-const searchTermsPanel = document.createElement('div');
-searchTermsPanel.id = 'campaignsSearchTermsPanel';
-searchTermsPanel.innerHTML = `
-  <div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div>
-        <h3 class="campaigns-products-title">Campaign Search Terms</h3>
-        <div class="selected-campaign-info">Select a campaign to view its search terms</div>
-      </div>
-      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-        <span>📅</span>
-        <span>${dateRangeText}</span>
-      </div>
-    </div>
-    
-<div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-        <!-- All Terms -->
-        <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">All Search</div>
-                <div style="font-size: 13px; color: #333;">Terms</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 100%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: white; z-index: 1;">
-                  <span class="clicks-value">100.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 100%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: white; z-index: 1;">
-                  <span class="revenue-value">100.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 100%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: white; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Top Search Terms -->
-        <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #FFC107; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Top Search</div>
-                <div style="font-size: 13px; color: #333;">Terms</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="revenue-value">0.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Zero Converting Terms -->
-        <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #F44336; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Zero Converting</div>
-                <div style="font-size: 13px; color: #333;">Terms</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="revenue-value">0</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- High Revenue Terms -->
-        <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #4CAF50; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">High Revenue</div>
-                <div style="font-size: 13px; color: #333;">Terms</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="revenue-value">0.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Hidden Gems -->
-        <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #2196F3; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Hidden</div>
-                <div style="font-size: 13px; color: #333;">Gems</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="revenue-value">0.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Low Performance -->
-        <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Low</div>
-                <div style="font-size: 13px; color: #333;">Performance</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="revenue-value">0.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Mid-Performance -->
-        <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
-          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #FF9800; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
-            </div>
-            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Mid</div>
-                <div style="font-size: 13px; color: #333;">Performance</div>
-              </div>
-            </div>
-          </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="clicks-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #1e40af; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="clicks-value">0.0%</span> Clicks
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  <span class="revenue-value">0.0%</span> Revenue
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-                <div class="value-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
-                <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                  $<span class="value-amount">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  
-  <div class="campaigns-search-terms-table-container">
-    <div class="campaigns-empty-state">
-      <div class="campaigns-empty-icon">🔍</div>
-      <div class="campaigns-empty-title">No Campaign Selected</div>
-      <div class="campaigns-empty-text">Select a campaign from the left panel to view its search terms</div>
-    </div>
-  </div>
-`;
-
-// Add both panels to container <--- ALSO ADD THIS
-panelsContainer.appendChild(productsPanel);
-panelsContainer.appendChild(searchTermsPanel);
-  
-// Add panels to main container
-mainContainer.appendChild(navPanel);
-mainContainer.appendChild(panelsContainer);
-  
-  // Add main container to page
-  container.appendChild(mainContainer);
-  
-  // Add click handlers for campaign items
-  addCampaignClickHandlers();
-}
-
-// Render a campaign group
-function renderCampaignGroup(container, type, campaigns, icon) {
-  if (campaigns.length === 0) return;
-  
-  const groupSection = document.createElement('div');
-  groupSection.className = 'campaign-group-section';
-  groupSection.setAttribute('data-channel-type', type);
-  
-  // Add group header
-  const groupHeader = document.createElement('div');
-  groupHeader.className = 'campaign-group-header';
-  groupHeader.innerHTML = `
-    <div class="campaign-type-icon">${icon}</div>
-    <div class="campaign-group-title">${type.replace('_', ' ')}</div>
-    <div class="campaign-group-count">${campaigns.length}</div>
-  `;
-  groupSection.appendChild(groupHeader);
-  
-  // Add campaign items
-  campaigns.forEach(campaign => {
-    const campaignItem = createCampaignItem(campaign, icon);
-    groupSection.appendChild(campaignItem);
-  });
-  
-  container.appendChild(groupSection);
-}
-
-// Toggle column selector dropdown
-function toggleColumnSelector() {
-  const btn = document.querySelector('.column-selector-btn');
-  let dropdown = document.querySelector('.column-selector-dropdown');
-  
-  if (!dropdown) {
-    dropdown = createColumnSelectorDropdown();
-    btn.appendChild(dropdown);
-  }
-  
-  dropdown.classList.toggle('active');
-  
-  // Close on click outside
-  if (dropdown.classList.contains('active')) {
-    setTimeout(() => {
-      document.addEventListener('click', function closeDropdown(e) {
-        if (!btn.contains(e.target)) {
-          dropdown.classList.remove('active');
-          document.removeEventListener('click', closeDropdown);
-        }
-      });
-    }, 100);
-  }
-}
-
-// Create column selector dropdown
-function createColumnSelectorDropdown() {
-  const dropdown = document.createElement('div');
-  dropdown.className = 'column-selector-dropdown';
-  
-  // Define all available columns (excluding ROAS which is fixed)
-  const columns = [
-    { id: 'impressions', label: 'Impressions', visible: true },
-    { id: 'clicks', label: 'Clicks', visible: true },
-    { id: 'ctr', label: 'CTR %', visible: true },
-    { id: 'avgCpc', label: 'Avg CPC', visible: true },
-    { id: 'cost', label: 'Cost', visible: true },
-    { id: 'conversions', label: 'Conv', visible: true },
-    { id: 'cpa', label: 'CPA', visible: true },
-    { id: 'convValue', label: 'Revenue', visible: true },
-    { id: 'cvr', label: 'CVR %', visible: true },
-    { id: 'aov', label: 'AOV', visible: false },
-    { id: 'cpm', label: 'CPM', visible: false },
-    { id: 'cartRate', label: 'Cart Rate', visible: false },
-    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
-    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
-  ];
-  
-  // Store columns config globally
-  window.campaignTableColumns = columns;
-  
-  dropdown.innerHTML = `
-    <div class="column-selector-header">Select Columns</div>
-    <div class="column-selector-list">
-      ${columns.map(col => `
-        <div class="column-selector-item" data-column="${col.id}">
-          <label class="toggle-switch">
-            <input type="checkbox" ${col.visible ? 'checked' : ''} data-column="${col.id}">
-            <span class="toggle-slider"></span>
-          </label>
-          <label class="column-selector-label">${col.label}</label>
-        </div>
-      `).join('')}
-    </div>
-  `;
-  
-  // Add event listeners
-  dropdown.querySelectorAll('.column-selector-item').forEach(item => {
-    const toggle = item.querySelector('input[type="checkbox"]');
-    
-    toggle.addEventListener('change', function() {
-      // Update columns config
-      const columnId = this.dataset.column;
-      const column = window.campaignTableColumns.find(c => c.id === columnId);
-      if (column) {
-        column.visible = this.checked;
-      }
-      
-      // Refresh table if campaign is selected
-      if (window.selectedCampaign) {
-        const campaignKey = window.selectedCampaign.key;
-        const channelType = window.selectedCampaign.channelType;
-        const campaignName = window.selectedCampaign.campaignName;
-        loadCampaignProducts(campaignKey, channelType, campaignName);
-      }
-    });
-  });
-  
-  return dropdown;
-}
-
-// Make toggleColumnSelector globally available
-window.toggleColumnSelector = toggleColumnSelector;
-
-// Create a campaign item
-function createCampaignItem(campaign, icon) {
-  const item = document.createElement('div');
-  item.className = 'campaign-nav-item';
-  item.setAttribute('data-campaign-key', `${campaign.channelType}::${campaign.campaignName}`);
-  
-const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
-const roas = campaign.roas || 0;
-
-// Determine ROAS badge color
-let roasColorClass = '';
-let roasBackground = '';
-if (roas >= 4) {
-  roasBackground = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
-} else if (roas >= 2) {
-  roasBackground = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
-} else if (roas >= 1) {
-  roasBackground = 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)';
-} else {
-  roasBackground = 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)';
-}
-
-item.innerHTML = `
-  <div class="campaign-card-details">
-    <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
-      ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
-    </div>
-      <div class="campaign-info">
-        <div class="campaign-name">${campaign.campaignName}</div>
-        <div class="campaign-meta">
-          <div class="campaign-products-count">
-            <span>📦</span>
-            <span>${campaign.products.size} products</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  return item;
-}
-
-// Filter campaigns by type
-function filterCampaigns(filterType) {
-  const groups = document.querySelectorAll('.campaign-group-section');
-  
-  groups.forEach(group => {
-    const channelType = group.getAttribute('data-channel-type');
-    
-    if (filterType === 'all') {
-      group.style.display = 'block';
-    } else if (channelType === filterType) {
-      group.style.display = 'block';
-    } else {
-      group.style.display = 'none';
-    }
-  });
-}
-
-// Add click handlers for campaign items
-function addCampaignClickHandlers() {
-  document.querySelectorAll('.campaign-nav-item').forEach(item => {
-    item.addEventListener('click', async function() {
-      // Update selection state
-      document.querySelectorAll('.campaign-nav-item').forEach(i => i.classList.remove('selected'));
-      this.classList.add('selected');
-      
-      // Get campaign data
-      const campaignKey = this.getAttribute('data-campaign-key');
-      const [channelType, ...campaignNameParts] = campaignKey.split('::');
-      const campaignName = campaignNameParts.join('::'); // Handle campaign names with ::
-      
-      // Update selected campaign
-      window.selectedCampaign = {
-        channelType: channelType,
-        campaignName: campaignName,
-        key: campaignKey
-      };
-      
-      // Update selected campaign
-      window.selectedCampaign = {
-        channelType: channelType,
-        campaignName: campaignName,
-        key: campaignKey
-      };
-      
-      // Check current view and load appropriate data <--- ADD THIS
-      const currentView = document.querySelector('.campaigns-view-tab.active')?.getAttribute('data-view');
-      if (currentView === 'search-terms') {
-        await loadCampaignSearchTerms(channelType, campaignName);
-      } else {
-        await loadCampaignProducts(campaignKey, channelType, campaignName);
-      }
-    });
-  });
-}
-
-// Helper function to parse and average trend values
-function calculateAverageTrend(trends) {
-  if (!trends || trends.length === 0) return null;
-  
-  const validTrends = [];
-  trends.forEach(trend => {
-    if (trend && trend !== 'N/A') {
-      // Parse trend like "⬇ +6.13" or "⬆ -3.5"
-      const match = trend.match(/([⬆⬇])\s*([+-]?\d+\.?\d*)/);
-      if (match) {
-        const arrow = match[1];
-        const value = parseFloat(match[2]);
-        validTrends.push({ arrow, value });
-      }
-    }
-  });
-  
-  if (validTrends.length === 0) return null;
-  
-  // Calculate average change
-  const avgValue = validTrends.reduce((sum, t) => sum + Math.abs(t.value), 0) / validTrends.length;
-  
-  // Determine overall direction (majority wins)
-  const upCount = validTrends.filter(t => t.arrow === '⬆').length;
-  const downCount = validTrends.filter(t => t.arrow === '⬇').length;
-  const arrow = upCount >= downCount ? '⬆' : '⬇';
-  
-  // Format the trend
-  const formattedValue = avgValue.toFixed(2);
-  const isPositive = arrow === '⬆';
-  
-  return {
-    text: `${arrow} ${formattedValue}`,
-    color: isPositive ? '#22c55e' : '#ef4444',
-    isPositive
-  };
-}
-
-// Load and process POS and SHARE data from processed table
-async function loadProcessedProductData(productTitles) {
-  console.log('[loadProcessedProductData] Loading processed data for products:', productTitles.length);
-  
-  try {
-    // Get the processed table name
-    const tablePrefix = getProjectTablePrefix();
-    const processedTableName = `${tablePrefix}processed`;
-    
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
-    
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(processedTableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      console.warn('[loadProcessedProductData] No processed data found');
-      return new Map();
-    }
-    
-    // Process data: aggregate by product title and device
-    const productMetrics = new Map();
-    
-result.data.forEach(row => {
-  // Filter by company source
-  if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
-    return;
-  }
-  
-  const title = row.title;
-  const device = row.device || 'unknown';
-  const position = parseFloat(row.avg_week_position);
-  const visibility = parseFloat(row.avg_visibility);
-  const weekTrend = row.week_trend || null;
-  
-  // Skip if title doesn't match any of our products
-  if (!productTitles.includes(title)) {
-    return;
-  }
-      
-if (!productMetrics.has(title)) {
-  productMetrics.set(title, {
-    allDevices: { positions: [], visibilities: [], trends: [] },
-    byDevice: new Map()
-  });
-}
-
-const metrics = productMetrics.get(title);
-
-// Add to all devices aggregation
-if (!isNaN(position) && position > 0) {
-  metrics.allDevices.positions.push(position);
-}
-if (!isNaN(visibility)) {
-  metrics.allDevices.visibilities.push(visibility);
-}
-if (weekTrend && weekTrend !== 'N/A') {
-  metrics.allDevices.trends.push(weekTrend);
-}
-      
-// Add to device-specific aggregation
-const deviceKey = device.toLowerCase();
-if (!metrics.byDevice.has(deviceKey)) {
-  metrics.byDevice.set(deviceKey, { positions: [], visibilities: [], trends: [] });
-}
-
-const deviceMetrics = metrics.byDevice.get(deviceKey);
-if (!isNaN(position) && position > 0) {
-  deviceMetrics.positions.push(position);
-}
-if (!isNaN(visibility)) {
-  deviceMetrics.visibilities.push(visibility);
-}
-if (weekTrend && weekTrend !== 'N/A') {
-  deviceMetrics.trends.push(weekTrend);
-}
-    });
-    
-    // Calculate averages
-    const processedMetrics = new Map();
-    
-    for (const [title, metrics] of productMetrics) {
-      const processed = {
-        allDevices: {
-          avgPosition: null,
-          avgVisibility: null
-        },
-        byDevice: new Map()
-      };
-      
-// Calculate all devices average
-if (metrics.allDevices.positions.length > 0) {
-  const avgPos = metrics.allDevices.positions.reduce((a, b) => a + b, 0) / metrics.allDevices.positions.length;
-  processed.allDevices.avgPosition = Math.round(avgPos); // Round to 0 decimals
-}
-
-if (metrics.allDevices.visibilities.length > 0) {
-  const avgVis = metrics.allDevices.visibilities.reduce((a, b) => a + b, 0) / metrics.allDevices.visibilities.length;
-  processed.allDevices.avgVisibility = avgVis * 100; // Convert to percentage
-}
-
-// Calculate average trend
-processed.allDevices.trend = calculateAverageTrend(metrics.allDevices.trends);
-      
-// Calculate device-specific averages
-for (const [device, deviceMetrics] of metrics.byDevice) {
-  const deviceProcessed = {
-    avgPosition: null,
-    avgVisibility: null,
-    trend: null
-  };
-  
-  if (deviceMetrics.positions.length > 0) {
-    const avgPos = deviceMetrics.positions.reduce((a, b) => a + b, 0) / deviceMetrics.positions.length;
-    deviceProcessed.avgPosition = Math.round(avgPos); // Round to 0 decimals
-  }
-  
-  if (deviceMetrics.visibilities.length > 0) {
-    const avgVis = deviceMetrics.visibilities.reduce((a, b) => a + b, 0) / deviceMetrics.visibilities.length;
-    deviceProcessed.avgVisibility = avgVis * 100;
-  }
-  
-// Calculate average trend for device
-deviceProcessed.trend = calculateAverageTrend(deviceMetrics.trends);
-  
-  processed.byDevice.set(device, deviceProcessed);
-}
-      
-      processedMetrics.set(title, processed);
-    }
-    
-    console.log('[loadProcessedProductData] Processed metrics for products:', processedMetrics.size);
-    return processedMetrics;
-    
-  } catch (error) {
-    console.error('[loadProcessedProductData] Error loading processed data:', error);
-    return new Map();
-  }
-}
-
-// Load product seller status from 90d bucket table
-async function loadProductSellerStatus(productTitles) {
-  console.log('[loadProductSellerStatus] Loading seller status for products:', productTitles.length);
-  
-  try {
-    const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_productBuckets_90d`;
-    
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
-    
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      console.warn('[loadProductSellerStatus] No 90d bucket data found');
-      return new Map();
-    }
-    
-    // Process data: find seller status for each product
-    const sellerStatusMap = new Map();
-    
-    result.data.forEach(row => {
-      const title = row['Product Title'];
-      const campaignName = row['Campaign Name'];
-      const device = row['Device'];
-      const sellerStatus = row['SELLERS'];
-      
-      // Check if this matches our criteria
-      if (productTitles.includes(title) && 
-          campaignName === 'All' && 
-          device === 'All' && 
-          sellerStatus) {
-        sellerStatusMap.set(title, sellerStatus);
-        console.log(`[loadProductSellerStatus] Found status for ${title}: ${sellerStatus}`);
-      }
-    });
-    
-    return sellerStatusMap;
-    
-  } catch (error) {
-    console.error('[loadProductSellerStatus] Error loading seller status:', error);
-    return new Map();
-  }
-}
-
-// Calculate campaign ROAS from bucket data
-async function calculateCampaignROAS(channelType, campaignName) {
-  try {
-    const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
-    
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
-    
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      return 0;
-    }
-    
-    // Calculate total cost and revenue for this campaign
-    let totalCost = 0;
-    let totalRevenue = 0;
-    
-    result.data.forEach(row => {
-      if (row['Campaign Name'] === campaignName && 
-          row['Channel Type'] === channelType) {
-        totalCost += parseFloat(row['Cost']) || 0;
-        totalRevenue += parseFloat(row['ConvValue']) || 0;
-      }
-    });
-    
-    return totalCost > 0 ? (totalRevenue / totalCost) : 0;
-    
-  } catch (error) {
-    console.error('[calculateCampaignROAS] Error:', error);
-    return 0;
-  }
-}
-
-// Load products for selected campaign
-async function loadCampaignProducts(campaignKey, channelType, campaignName) {
-  console.log('[loadCampaignProducts] Loading products for campaign:', campaignName);
-  
-  const productsPanel = document.getElementById('campaignsProductsPanel');
-  const headerInfo = document.querySelector('.selected-campaign-info');
-  
-  if (!productsPanel) return;
-  
   // Show loading state
-  const tableContainer = productsPanel.querySelector('.campaigns-products-table-container') || 
-                         document.createElement('div');
-  tableContainer.className = 'campaigns-products-table-container';
-  tableContainer.innerHTML = '<div class="campaigns-loading"><div class="campaigns-spinner"></div></div>';
-  
-  if (!productsPanel.querySelector('.campaigns-products-table-container')) {
-    productsPanel.appendChild(tableContainer);
-  }
-  
-  headerInfo.textContent = `Loading products for ${campaignName}...`;
+  container.innerHTML = '<div style="text-align: center; padding: 50px;"><div class="spinner"></div></div>';
   
   try {
-    // Get product titles for this campaign from campaign mapping
-    const productTitles = window.campaignProducts.get(campaignKey) || [];
-    
-    console.log('[loadCampaignProducts] Found products:', productTitles.length);
-    
-    if (productTitles.length === 0) {
-      tableContainer.innerHTML = `
-        <div class="campaigns-empty-state">
-          <div class="campaigns-empty-icon">📦</div>
-          <div class="campaigns-empty-title">No Products Found</div>
-          <div class="campaigns-empty-text">This campaign doesn't have any products</div>
-        </div>
-      `;
-      headerInfo.textContent = `${campaignName} - No products`;
-      return;
-    }
-    
-    // Get bucket data for these products
+    // Get table name with current project prefix
     const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
     
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
+    // Also get 365d table for Top_Bucket data
+    const tableName365d = `${tablePrefix}googleSheets_searchTerms_365d`;
     
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
+    // And get 90d table for trend comparison
+    const tableName90d = `${tablePrefix}googleSheets_searchTerms_90d`;
     
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      console.warn('[loadCampaignProducts] No bucket data found');
-      return;
-    }
-    
-    // Filter data for this campaign and organize by product and device
-    const productsData = new Map();
-    
-    result.data.forEach(row => {
-      if (row['Campaign Name'] === campaignName && 
-          row['Channel Type'] === channelType &&
-          productTitles.includes(row['Product Title'])) {
-        
-        const productTitle = row['Product Title'];
-        const device = row['Device'] || 'Unknown';
-        
-        if (!productsData.has(productTitle)) {
-          productsData.set(productTitle, {
-            title: productTitle,
-            devices: new Map(),
-            aggregated: {}
-          });
-        }
-        
-        productsData.get(productTitle).devices.set(device, row);
-      }
-    });
-    
-    // Match with company products for additional data
-    const matchedProducts = new Map();
-    if (window.allRows && Array.isArray(window.allRows)) {
-      window.allRows.forEach(product => {
-        if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
-          const productKey = product.title || '';
-          if (productsData.has(productKey)) {
-            matchedProducts.set(productKey, product);
-          }
-        }
-      });
-    }
-    
-    console.log('[loadCampaignProducts] Matched products:', matchedProducts.size);
-    
-// Load processed data for POS and SHARE
-const processedMetrics = await loadProcessedProductData(productTitles);
-
-// Load seller status for products
-const sellerStatusMap = await loadProductSellerStatus(productTitles);
-
-// Calculate aggregated metrics for each product
-const tableData = [];
-
-for (const [productTitle, productData] of productsData) {
-  const devices = Array.from(productData.devices.values());
-  const matchedProduct = matchedProducts.get(productTitle);
-  
-  // Get processed metrics for this product
-  const productProcessedMetrics = processedMetrics.get(productTitle);
-  
-  // Aggregate metrics across all devices
-  const aggregated = {
-    title: productTitle,
-    image: matchedProduct?.thumbnail || '',
-// Use processed data for POS and SHARE
-adPosition: productProcessedMetrics?.allDevices?.avgPosition || null,
-marketShare: productProcessedMetrics?.allDevices?.avgVisibility || null,
-trend: productProcessedMetrics?.allDevices?.trend || null,
-    devices: productData.devices,
-    // Store device-specific metrics
-    deviceMetrics: productProcessedMetrics?.byDevice || new Map(),
-    // Aggregate numeric metrics
-    impressions: devices.reduce((sum, d) => sum + (parseFloat(d.Impressions) || 0), 0),
-    clicks: devices.reduce((sum, d) => sum + (parseFloat(d.Clicks) || 0), 0),
-    cost: devices.reduce((sum, d) => sum + (parseFloat(d.Cost) || 0), 0),
-    conversions: devices.reduce((sum, d) => sum + (parseFloat(d.Conversions) || 0), 0),
-    convValue: devices.reduce((sum, d) => sum + (parseFloat(d.ConvValue) || 0), 0),
-    cartCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Cart Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
-    checkoutCount: devices.reduce((sum, d) => sum + ((parseFloat(d['Checkout Rate']) || 0) * (parseFloat(d.Clicks) || 0) / 100), 0),
-};
-  
-  // Add seller status to aggregated data
-  aggregated.sellerStatus = sellerStatusMap.get(productTitle) || 'Standard';
-  
-  // Calculate derived metrics
-  aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
-  aggregated.avgCpc = aggregated.clicks > 0 ? (aggregated.cost / aggregated.clicks) : 0;
-  aggregated.cpa = aggregated.conversions > 0 ? (aggregated.cost / aggregated.conversions) : 0;
-  aggregated.cvr = aggregated.clicks > 0 ? (aggregated.conversions / aggregated.clicks * 100) : 0;
-  aggregated.aov = aggregated.conversions > 0 ? (aggregated.convValue / aggregated.conversions) : 0;
-  aggregated.cpm = aggregated.impressions > 0 ? (aggregated.cost / aggregated.impressions * 1000) : 0;
-  aggregated.roas = aggregated.cost > 0 ? (aggregated.convValue / aggregated.cost) : 0;
-  aggregated.cartRate = aggregated.clicks > 0 ? (aggregated.cartCount / aggregated.clicks * 100) : 0;
-  aggregated.checkoutRate = aggregated.cartCount > 0 ? (aggregated.checkoutCount / aggregated.cartCount * 100) : 0;
-  aggregated.purchaseRate = aggregated.checkoutCount > 0 ? (aggregated.conversions / aggregated.checkoutCount * 100) : 0;
-  
-  tableData.push(aggregated);
-}
-    
-    // Sort by impressions by default
-    tableData.sort((a, b) => b.impressions - a.impressions);
-    
-    // Render the table
-    renderProductsTable(tableContainer, tableData, campaignName);
-    
-    // Update header info
-    headerInfo.textContent = `${campaignName} - ${tableData.length} products`;
-    
-  } catch (error) {
-    console.error('[loadCampaignProducts] Error loading products:', error);
-    const tableContainer = productsPanel.querySelector('.campaigns-products-table-container');
-    if (tableContainer) {
-      tableContainer.innerHTML = `
-        <div class="campaigns-empty-state">
-          <div class="campaigns-empty-icon">⚠️</div>
-          <div class="campaigns-empty-title">Error Loading Products</div>
-          <div class="campaigns-empty-text">Failed to load products for this campaign</div>
-        </div>
-      `;
-    }
-    headerInfo.textContent = `${campaignName} - Error loading products`;
-  }
-}
-
-// Load search terms for selected campaign
-async function loadCampaignSearchTerms(channelType, campaignName) {
-  console.log('[loadCampaignSearchTerms] Loading search terms for campaign:', campaignName);
-  
-  const searchTermsPanel = document.getElementById('campaignsSearchTermsPanel');
-  const headerInfo = searchTermsPanel?.querySelector('.selected-campaign-info');
-  
-  if (!searchTermsPanel) return;
-  
-  // Show loading state
-  const tableContainer = searchTermsPanel.querySelector('.campaigns-search-terms-table-container');
-  if (!tableContainer) return;
-  
-  tableContainer.innerHTML = '<div class="campaigns-loading"><div class="campaigns-spinner"></div></div>';
-  headerInfo.textContent = `Loading search terms for ${campaignName}...`;
-  
-  try {
-    // Get table prefix and load multiple tables
-    const tablePrefix = getProjectTablePrefix();
-    const searchTermsTableName = `${tablePrefix}googleSheets_searchTerms_30d`;
-    const searchTerms365dTableName = `${tablePrefix}googleSheets_searchTerms_365d`;
-    const searchTerms90dTableName = `${tablePrefix}googleSheets_searchTerms_90d`;
+    console.log('[loadAndRenderSearchTerms] Loading from tables:', tableName, tableName365d, tableName90d);
     
     // Load data from IndexedDB
     const db = await new Promise((resolve, reject) => {
@@ -2457,596 +86,1060 @@ async function loadCampaignSearchTerms(channelType, campaignName) {
     const transaction = db.transaction(['projectData'], 'readonly');
     const objectStore = transaction.objectStore('projectData');
     
-    // Get 30d search terms data
-    const searchTermsRequest = objectStore.get(searchTermsTableName);
-    const searchTermsResult = await new Promise((resolve, reject) => {
-      searchTermsRequest.onsuccess = () => resolve(searchTermsRequest.result);
-      searchTermsRequest.onerror = () => reject(searchTermsRequest.error);
+    // Load current data
+    const getRequest = objectStore.get(tableName);
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
     });
     
-    // Get 365d data for Top_Bucket
-    const searchTerms365dRequest = objectStore.get(searchTerms365dTableName);
-    const searchTerms365dResult = await new Promise((resolve, reject) => {
-      searchTerms365dRequest.onsuccess = () => resolve(searchTerms365dRequest.result);
-      searchTerms365dRequest.onerror = () => reject(searchTerms365dRequest.error);
+    // Load 365d data for Top_Bucket
+    const getRequest365d = objectStore.get(tableName365d);
+    const result365d = await new Promise((resolve, reject) => {
+      getRequest365d.onsuccess = () => resolve(getRequest365d.result);
+      getRequest365d.onerror = () => reject(getRequest365d.error);
     });
     
-    // Get 90d data for trends
-    const searchTerms90dRequest = objectStore.get(searchTerms90dTableName);
-    const searchTerms90dResult = await new Promise((resolve, reject) => {
-      searchTerms90dRequest.onsuccess = () => resolve(searchTerms90dRequest.result);
-      searchTerms90dRequest.onerror = () => reject(searchTerms90dRequest.error);
+    // Load 90d data for trends
+    const getRequest90d = objectStore.get(tableName90d);
+    const result90d = await new Promise((resolve, reject) => {
+      getRequest90d.onsuccess = () => resolve(getRequest90d.result);
+      getRequest90d.onerror = () => reject(getRequest90d.error);
     });
     
     db.close();
     
-    if (!searchTermsResult || !searchTermsResult.data) {
-      tableContainer.innerHTML = `
-        <div class="campaigns-empty-state">
-          <div class="campaigns-empty-icon">🔍</div>
-          <div class="campaigns-empty-title">No Search Terms Data</div>
-          <div class="campaigns-empty-text">Search terms data is not available</div>
-        </div>
-      `;
-      headerInfo.textContent = `${campaignName} - No search terms data`;
-      return;
-    }
-    
-    // Create map of Top_Bucket values from 365d data
-    const topBucketMap = {};
-    if (searchTerms365dResult && searchTerms365dResult.data) {
-      searchTerms365dResult.data.forEach(item => {
-        if (item.Query && item.Top_Bucket && item.Campaign_Name === campaignName) {
-          topBucketMap[item.Query.toLowerCase()] = item.Top_Bucket;
-        }
-      });
-    }
-    
-    // Create map of 90d data for trends (monthly average)
-    const trend90dMap = {};
-    if (searchTerms90dResult && searchTerms90dResult.data) {
-      searchTerms90dResult.data.forEach(item => {
-        if (item.Query && item.Campaign_Name === campaignName) {
-          trend90dMap[item.Query.toLowerCase()] = {
-            Impressions: (item.Impressions || 0) / 3,
-            Clicks: (item.Clicks || 0) / 3,
-            Conversions: (item.Conversions || 0) / 3,
-            Value: (item.Value || 0) / 3
-          };
-        }
-      });
-    }
-    
-// Ensure performance buckets are loaded
-await ensureSearchTermPerformanceBuckets();
+if (!result || !result.data || result.data.length === 0) {
+  container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
+  return;
+}
 
-// Filter search terms for this specific campaign
-const filteredData = searchTermsResult.data.filter(item => 
-  item.Campaign_Name === campaignName && 
+// Filter for only "all/all" records and exclude "blank" search terms
+const filteredData = result.data.filter(item => 
   item.Query && 
-  item.Query.toLowerCase() !== 'blank'
-).map(item => {
-  // Add Top_Bucket, performance bucket and trend data
-  const queryLower = item.Query.toLowerCase();
-  return {
-    ...item,
-    Top_Bucket: topBucketMap[queryLower] || '',
-    Trend_Data: trend90dMap[queryLower] || null,
-    Performance_Bucket: window.searchTermPerformanceBuckets ? 
-      window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
-      'Mid-Performance'
-  };
+  item.Query.toLowerCase() !== 'blank' &&
+  item.Campaign_Name === 'all' &&
+  item.Channel_Type === 'all'
+);
+
+console.log(`[Search Terms] Filtered to ${filteredData.length} all/all records from ${result.data.length} total records`);
+    
+// Create a map of Top_Bucket values from 365d data (only from all/all records)
+const topBucketMap = {};
+if (result365d && result365d.data) {
+  result365d.data
+    .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
+    .forEach(item => {
+      if (item.Query && item['Top_Bucket']) {
+        topBucketMap[item.Query.toLowerCase()] = item['Top_Bucket'];
+      }
+    });
+}
+
+// Create a map of 90d data for trends (only from all/all records)
+const trend90dMap = {};
+if (result90d && result90d.data) {
+  result90d.data
+    .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
+    .forEach(item => {
+      if (item.Query) {
+        trend90dMap[item.Query.toLowerCase()] = {
+          Impressions: (item.Impressions || 0) / 3,
+          Clicks: (item.Clicks || 0) / 3,
+          Conversions: (item.Conversions || 0) / 3,
+          Value: (item.Value || 0) / 3
+        };
+      }
+    });
+}
+    
+    // Add Top_Bucket and trend data to current data
+    filteredData.forEach(item => {
+      const queryLower = item.Query.toLowerCase();
+      item['Top Bucket'] = topBucketMap[queryLower] || '';
+      item['Trend Data'] = trend90dMap[queryLower] || null;
+    });
+
+    // Calculate total revenue from all/all records only for correct percentage
+const totalRevenue = filteredData.reduce((sum, item) => sum + (item.Value || 0), 0);
+filteredData.forEach(item => {
+  // Recalculate percentage based on all/all total
+  item['% of all revenue'] = totalRevenue > 0 ? (item.Value / totalRevenue) : 0;
 });
     
-    if (filteredData.length === 0) {
-      tableContainer.innerHTML = `
-        <div class="campaigns-empty-state">
-          <div class="campaigns-empty-icon">🔍</div>
-          <div class="campaigns-empty-title">No Search Terms Found</div>
-          <div class="campaigns-empty-text">No search terms found for campaign: ${campaignName}</div>
-        </div>
-      `;
-      headerInfo.textContent = `${campaignName} - No search terms`;
-      return;
-    }
+    // Debug logging for Top Bucket assignment
+    console.log('[Search Terms] 365d data entries:', result365d?.data?.length || 0);
+    console.log('[Search Terms] Top bucket map entries:', Object.keys(topBucketMap).length);
+    console.log('[Search Terms] Sample top bucket entries:', Object.entries(topBucketMap).slice(0, 5));
     
-    // Sort by clicks (highest first) by default
-    filteredData.sort((a, b) => (b.Clicks || 0) - (a.Clicks || 0));
+    const itemsWithTopBucket = filteredData.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
+    console.log('[Search Terms] Items with Top Bucket assigned:', itemsWithTopBucket.length);
+    console.log('[Search Terms] Sample items with buckets:', itemsWithTopBucket.slice(0, 3).map(item => ({query: item.Query, bucket: item['Top Bucket']})));
+    
+// Process the data
+window.searchTermsData = filteredData;
+// Store filtered 365d and 90d data (only all/all records)
+window.searchTermsData365d = result365d?.data?.filter(item => 
+  item.Campaign_Name === 'all' && item.Channel_Type === 'all'
+) || [];
+window.searchTermsData90d = result90d?.data?.filter(item => 
+  item.Campaign_Name === 'all' && item.Channel_Type === 'all'
+) || [];
+    
+    // Initialize pagination and sorting
+    window.searchTermsCurrentPage = 1;
+    window.searchTermsPerPage = 50;
+    window.searchTermsSortColumn = 'Clicks';
+    window.searchTermsSortAscending = false;
+    window.searchTermsFilter = 'all';
+    
+    // Apply initial sort
+    sortSearchTermsData();
     
     // Render the search terms table
-    renderCampaignSearchTermsTable(tableContainer, filteredData, campaignName);
-    
-    // Update header info
-    headerInfo.textContent = `${campaignName} - ${filteredData.length} search terms`;
-
-// Store original data for filtering
-    window.campaignSearchTermsOriginalData = filteredData;
-    window.campaignSearchTermsCurrentFilter = 'all';
-    
-    // Calculate and display bucket statistics
-    const bucketStats = calculateBucketStatistics(filteredData);
-    
-    // Show and setup bucket filter
-    const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
-    if (bucketFilterContainer) {
-      bucketFilterContainer.style.display = 'block';
-      
-      // Update UI with statistics
-      updateBucketUI(bucketStats);
-      
-      // Get all bucket cards
-      const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
-      
-      // Add click handlers
-      bucketCards.forEach(card => {
-        card.addEventListener('click', function() {
-          const selectedBucket = this.getAttribute('data-bucket');
-          
-          // Update visual state of cards
-          bucketCards.forEach(c => {
-            const box = c.querySelector('.bucket-box');
-            if (c === this) {
-              // Active state - add border
-              box.style.borderColor = box.style.backgroundColor;
-              box.style.borderWidth = '2px';
-              box.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-            } else {
-              // Inactive state
-              box.style.borderColor = 'transparent';
-              box.style.borderWidth = '2px';
-              box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            }
-          });
-          
-          if (selectedBucket === 'all') {
-            // Reset to original data
-            renderCampaignSearchTermsTable(tableContainer, window.campaignSearchTermsOriginalData, campaignName);
-            headerInfo.textContent = `${campaignName} - ${window.campaignSearchTermsOriginalData.length} search terms`;
-          } else {
-            // Filter by Performance_Bucket
-            const filtered = window.campaignSearchTermsOriginalData.filter(term => 
-              term.Performance_Bucket === selectedBucket
-            );
-            renderCampaignSearchTermsTable(tableContainer, filtered, campaignName);
-            headerInfo.textContent = `${campaignName} - ${filtered.length} search terms (${selectedBucket})`;
-          }
-          
-          window.campaignSearchTermsCurrentFilter = selectedBucket;
-        });
-      });
-      
-      // Click the "all" card by default to show selected state
-      const allCard = bucketFilterContainer.querySelector('[data-bucket="all"]');
-      if (allCard) {
-        allCard.click();
-      }
-    }
+    renderSearchTermsTableInternal(container);
     
   } catch (error) {
-    console.error('[loadCampaignSearchTerms] Error:', error);
-    tableContainer.innerHTML = `
-      <div class="campaigns-empty-state">
-        <div class="campaigns-empty-icon">⚠️</div>
-        <div class="campaigns-empty-title">Error Loading Search Terms</div>
-        <div class="campaigns-empty-text">Failed to load search terms for this campaign</div>
-      </div>
-    `;
-    headerInfo.textContent = `${campaignName} - Error loading search terms`;
+    console.error('[loadAndRenderSearchTerms] Error:', error);
+    container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading search terms data</div>';
   }
 }
 
-// Render search terms table for campaigns
-function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
-  // Calculate max values for scaling bars
-  const maxImpressions = Math.max(...searchTerms.map(d => d.Impressions || 0));
-  const maxClicks = Math.max(...searchTerms.map(d => d.Clicks || 0));
-  const maxConversions = Math.max(...searchTerms.map(d => d.Conversions || 0));
-  const maxValue = Math.max(...searchTerms.map(d => d.Value || 0));
+/**
+ * Function to get total unique products count
+ */
+async function getTotalProductsCount() {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const uniqueProducts = new Set();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data) {
+          result.data.forEach(item => {
+            if (item['Product Title']) {
+              uniqueProducts.add(item['Product Title']);
+            }
+          });
+        }
+        resolve();
+      };
+      getRequest.onerror = () => resolve();
+    });
+    
+    db.close();
+    return uniqueProducts.size;
+  } catch (error) {
+    console.error('[Search Terms] Error getting total products:', error);
+    return 0;
+  }
+}
+
+/**
+ * Calculate summary data for filtered results
+ */
+function calculateSummaryData(filteredData) {
+  if (filteredData.length === 0) return null;
   
-// Calculate totals
-  const totals = {
-    impressions: searchTerms.reduce((sum, d) => sum + (d.Impressions || 0), 0),
-    clicks: searchTerms.reduce((sum, d) => sum + (d.Clicks || 0), 0),
-    conversions: searchTerms.reduce((sum, d) => sum + (d.Conversions || 0), 0),
-    value: searchTerms.reduce((sum, d) => sum + (d.Value || 0), 0),
-    revenuePercent: searchTerms.reduce((sum, d) => sum + (d['% of all revenue'] || 0), 0) // Already in decimal format
+  const summary = {
+    count: filteredData.length,
+    impressions: filteredData.reduce((sum, d) => sum + (d.Impressions || 0), 0),
+    clicks: filteredData.reduce((sum, d) => sum + (d.Clicks || 0), 0),
+    conversions: filteredData.reduce((sum, d) => sum + (d.Conversions || 0), 0),
+    value: filteredData.reduce((sum, d) => sum + (d.Value || 0), 0),
+    revenue_pct: filteredData.reduce((sum, d) => sum + (d['% of all revenue'] || 0), 0)
   };
   
-  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
-  totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+  // Calculate averages
+  summary.ctr = summary.impressions > 0 ? (summary.clicks / summary.impressions * 100) : 0;
+  summary.cvr = summary.clicks > 0 ? (summary.conversions / summary.clicks * 100) : 0;
   
-  // Calculate trend totals
-  const trendTotals = {
+  // Calculate trend data (sum of all trend data)
+  const trendData = {
     impressions: 0,
     clicks: 0,
     conversions: 0,
     value: 0
   };
   
-  searchTerms.forEach(term => {
-    if (term.Trend_Data) {
-      trendTotals.impressions += term.Trend_Data.Impressions || 0;
-      trendTotals.clicks += term.Trend_Data.Clicks || 0;
-      trendTotals.conversions += term.Trend_Data.Conversions || 0;
-      trendTotals.value += term.Trend_Data.Value || 0;
+  filteredData.forEach(item => {
+    if (item['Trend Data']) {
+      trendData.impressions += item['Trend Data'].Impressions || 0;
+      trendData.clicks += item['Trend Data'].Clicks || 0;
+      trendData.conversions += item['Trend Data'].Conversions || 0;
+      trendData.value += item['Trend Data'].Value || 0;
     }
   });
   
-// Removed top 10 by value highlighting - only using Top_Bucket
+  summary.trendData = trendData;
   
-  const wrapper = document.createElement('div');
-  wrapper.className = 'camp-products-wrapper';
-  wrapper.style.width = '100%';
-  
-const table = document.createElement('table');
-table.className = 'camp-table-modern';
-  
-  // Create header
-  const thead = document.createElement('thead');
-thead.innerHTML = `
-    <tr>
-      <th style="width: 50px; text-align: center;">#</th>
-      <th class="sortable" data-sort="query">
-        Search Term
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="impressions">
-        Impressions
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="clicks">
-        Clicks
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="ctr">
-        CTR %
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="conversions">
-        Conv
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="cvr">
-        CVR %
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="value">
-        Revenue
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="revenuePercent">
-        % of Revenue
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-    </tr>
-  `;
-  table.appendChild(thead);
-  
-  // Create body
-  const tbody = document.createElement('tbody');
-  
-  // Add summary row
-  tbody.innerHTML = `
-    <tr class="camp-summary-row">
-      <td style="text-align: center; font-weight: 600;">#</td>
-      <td style="font-weight: 600;">Total (${searchTerms.length} terms)</td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.impressions.toLocaleString()}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.impressions, totals.impressions, 'impressions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.clicks.toLocaleString()}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.clicks, totals.clicks, 'clicks')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.ctr.toFixed(2)}%
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.conversions.toFixed(1)}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.conversions, totals.conversions, 'conversions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.cvr.toFixed(2)}%
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            $${totals.value.toFixed(2)}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.value, totals.value, 'value')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
-        </div>
-      </td>
-<td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${(totals.revenuePercent * 100).toFixed(2)}%
-      </td>
-    </tr>
-  `;
-  
-  // Add search term rows
-  searchTerms.forEach((term, index) => {
-    const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100) : 0;
-    const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100) : 0;
-    const revenuePercent = (term['% of all revenue'] || 0) * 100;
-    
-    // Calculate percentages for bars
-    const impressionsPercent = totals.impressions > 0 ? (term.Impressions / totals.impressions * 100) : 0;
-    const clicksPercent = totals.clicks > 0 ? (term.Clicks / totals.clicks * 100) : 0;
-    const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
-    const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
-    
-// Determine row background based on Top_Bucket or performance
-// Determine row background based on Performance_Bucket only
-    let rowBg = 'white'; // Start with white
-    
-    // Apply Performance_Bucket styling
-    if (term.Performance_Bucket) {
-      const bucketStyles = {
-        'High Revenue Terms': '#e8f5e9',      // Light green
-        'Low Performance': '#f5f5f5',         // Light grey
-        'Mid-Performance': '#fff9c4',         // Light yellow
-        'Hidden Gems': '#e3f2fd',             // Light blue
-        'Zero Converting Terms': '#ffebee',    // Light red
-        'Top Search Terms': '#fff3e0'         // Light orange
-      };
-      rowBg = bucketStyles[term.Performance_Bucket] || 'white';
-    }
-    
-    const row = document.createElement('tr');
-    row.style.backgroundColor = rowBg;
-    
-    row.innerHTML = `
-      <td style="text-align: center;">
-        ${getIndexWithTopBucket(index + 1, term.Top_Bucket)}
-      </td>
-<td style="font-weight: 500;">
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <span>${term.Query || '-'}</span>
-          ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
-          ${term.Performance_Bucket ? getPerformanceBucketBadge(term.Performance_Bucket) : ''}
-        </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value">${(term.Impressions || 0).toLocaleString()}</div>
-          ${getCampaignMetricTrend(term.Trend_Data?.Impressions, term.Impressions, 'impressions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: ${impressionsPercent}%; background: linear-gradient(90deg, #4285f4 0%, #1a73e8 100%);"></div>
-            </div>
-            <span class="camp-metric-percent">${impressionsPercent.toFixed(1)}%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value">${(term.Clicks || 0).toLocaleString()}</div>
-          ${getCampaignMetricTrend(term.Trend_Data?.Clicks, term.Clicks, 'clicks')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: ${clicksPercent}%; background: linear-gradient(90deg, #34a853 0%, #1e8e3e 100%);"></div>
-            </div>
-            <span class="camp-metric-percent">${clicksPercent.toFixed(1)}%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col" style="text-align: right;">
-        <div style="font-weight: 600; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">
-          ${ctr.toFixed(2)}%
-        </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value">${(term.Conversions || 0).toFixed(1)}</div>
-          ${getCampaignMetricTrend(term.Trend_Data?.Conversions, term.Conversions, 'conversions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: ${conversionsPercent}%; background: linear-gradient(90deg, #fbbc04 0%, #ea8600 100%);"></div>
-            </div>
-            <span class="camp-metric-percent">${conversionsPercent.toFixed(1)}%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col" style="text-align: right;">
-        <div style="font-weight: 600; color: ${cvr > 5 ? '#4CAF50' : cvr > 2 ? '#FF9800' : '#F44336'};">
-          ${cvr.toFixed(2)}%
-        </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="font-weight: 600;">
-            $${(term.Value || 0).toFixed(2)}
-          </div>
-          ${getCampaignMetricTrend(term.Trend_Data?.Value, term.Value, 'value')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: ${valuePercent}%; background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);"></div>
-            </div>
-            <span class="camp-metric-percent">${valuePercent.toFixed(1)}%</span>
-          </div>
-        </div>
-      </td>
-      <td class="metric-col" style="text-align: right;">
-        <div style="font-weight: 600; color: ${revenuePercent > 5 ? '#4CAF50' : '#666'};">
-          ${revenuePercent.toFixed(2)}%
-        </div>
-      </td>
-    </tr>
-    `;
-    tbody.appendChild(row);
-  });
-  
-  table.appendChild(tbody);
-  wrapper.appendChild(table);
-  
-// Clear and add table with padding
-  container.innerHTML = '';
-  container.appendChild(wrapper);
-  
-  // Add sorting event listeners
-  addSearchTermsTableEventListeners(wrapper, searchTerms, campaignName);
+  return summary;
 }
 
-// Add event listeners for search terms table
-function addSearchTermsTableEventListeners(wrapper, searchTerms, campaignName) {
-  // Store sort state
-  if (!window.campaignSearchTermsSortState) {
-    window.campaignSearchTermsSortState = {};
-  }
-  
-  wrapper.querySelectorAll('th.sortable').forEach(header => {
-    header.style.cursor = 'pointer';
-    
-    // Add sort icons if not present
-    if (!header.querySelector('.camp-sort-icon')) {
-      const sortIcon = document.createElement('span');
-      sortIcon.className = 'camp-sort-icon';
-      sortIcon.textContent = '⇅';
-      header.appendChild(sortIcon);
-    }
-    
-    header.addEventListener('click', function() {
-      const column = this.dataset.sort;
-      
-      // Remove previous sort classes from all headers
-      wrapper.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-      });
-      
-      // Toggle sort direction
-      let direction = 'desc'; // Default first click is desc
-      if (window.campaignSearchTermsSortState[column] === 'desc') {
-        direction = 'asc';
-      } else if (window.campaignSearchTermsSortState[column] === 'asc') {
-        direction = 'desc';
-      }
-      
-      // Update sort state
-      window.campaignSearchTermsSortState = { [column]: direction };
-      
-      // Apply sort class
-      this.classList.add(`sorted-${direction}`);
-      
-      // Update sort icon
-      this.querySelector('.camp-sort-icon').textContent = direction === 'asc' ? '↑' : '↓';
-      
-      // Sort data
-      const sortedData = [...searchTerms].sort((a, b) => {
-        let aVal, bVal;
-        
-        switch(column) {
-          case 'query':
-            aVal = a.Query || '';
-            bVal = b.Query || '';
-            break;
-          case 'impressions':
-            aVal = a.Impressions || 0;
-            bVal = b.Impressions || 0;
-            break;
-          case 'clicks':
-            aVal = a.Clicks || 0;
-            bVal = b.Clicks || 0;
-            break;
-          case 'ctr':
-            aVal = a.Impressions > 0 ? (a.Clicks / a.Impressions * 100) : 0;
-            bVal = b.Impressions > 0 ? (b.Clicks / b.Impressions * 100) : 0;
-            break;
-          case 'conversions':
-            aVal = a.Conversions || 0;
-            bVal = b.Conversions || 0;
-            break;
-          case 'cvr':
-            aVal = a.Clicks > 0 ? (a.Conversions / a.Clicks * 100) : 0;
-            bVal = b.Clicks > 0 ? (b.Conversions / b.Clicks * 100) : 0;
-            break;
-          case 'value':
-            aVal = a.Value || 0;
-            bVal = b.Value || 0;
-            break;
-          case 'revenuePercent':
-            aVal = a['% of all revenue'] || 0;
-            bVal = b['% of all revenue'] || 0;
-            break;
-          default:
-            aVal = 0;
-            bVal = 0;
-        }
-        
-        // Handle string vs number comparison
-        if (typeof aVal === 'string') {
-          return direction === 'asc' ? 
-            aVal.localeCompare(bVal) : 
-            bVal.localeCompare(aVal);
-        } else {
-          return direction === 'asc' ? 
-            (aVal - bVal) : 
-            (bVal - aVal);
-        }
-      });
-      
-      // Re-render table with sorted data
-      const container = wrapper.parentElement;
-      renderCampaignSearchTermsTable(container, sortedData, campaignName);
-    });
-  });
-}
-
-// Helper function to format trend for campaign metrics
-function getCampaignMetricTrend(previousValue, currentValue, type) {
-  if (!previousValue || previousValue === 0) return '';
-  
-  const current = parseFloat(currentValue) || 0;
-  const previous = parseFloat(previousValue) || 0;
-  
-  const change = current - previous;
-  const changePercent = previous > 0 ? ((change / previous) * 100).toFixed(1) : 0;
-  const isPositive = change >= 0;
-  const arrow = isPositive ? '↑' : '↓';
-  const color = isPositive ? '#4CAF50' : '#F44336';
+/**
+ * Render summary row
+ */
+function renderSummaryRow(summary) {
+  if (!summary) return '';
   
   return `
-    <div style="font-size: 11px; color: ${color}; margin-top: 2px;">
-      ${arrow} ${Math.abs(changePercent)}%
+    <tr style="background: linear-gradient(to bottom, #e3f2fd, #bbdefb); border-top: 2px solid #1976d2; border-bottom: 2px solid #1976d2; height: 60px;">
+      <td style="padding: 12px; text-align: center; font-weight: 700;">
+        <div style="font-size: 16px; color: #1976d2;">Σ</div>
+      </td>
+      <td style="padding: 12px;">
+<div style="font-weight: 700; color: #1976d2; font-size: 15px;">
+  ${window.selectedSearchTermsBucket ? `${window.selectedSearchTermsBucket} Summary` : 'Summary'} (${summary.count} terms)
+</div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.impressions, summary.trendData.impressions, 'impressions', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.clicks, summary.trendData.clicks, 'clicks', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${summary.ctr.toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Average</div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.conversions, summary.trendData.conversions, 'conversions', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${summary.cvr.toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Average</div>
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        ${getMetricWithTrend(summary.value, summary.trendData.value, 'value', null, true)}
+      </td>
+      <td style="padding: 12px; text-align: center;">
+        <div style="font-weight: 700; font-size: 15px; color: #1976d2;">${(summary.revenue_pct * 100).toFixed(2)}%</div>
+        <div style="font-size: 11px; color: #666; margin-top: 2px;">Total</div>
+      </td>
+    </tr>
+  `;
+}
+
+/**
+ * Render the search terms table (internal function)
+ */
+async function renderSearchTermsTableInternal(container) {
+  const allData = window.searchTermsData;
+  const data = getFilteredSearchTermsData();
+  const currentPage = window.searchTermsCurrentPage;
+  const perPage = window.searchTermsPerPage;
+  
+  const totalPages = Math.ceil(data.length / perPage);
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, data.length);
+  const pageData = data.slice(startIndex, endIndex);
+
+  // Pre-load all product ranking summaries for current page
+const productRankingSummaries = {};
+const summaryPromises = pageData.map(async (row) => {
+  const summary = await getCompactProductRankingSummary(row.Query);
+  productRankingSummaries[row.Query] = summary;
+});
+await Promise.all(summaryPromises);
+  
+  // Find max values for bar scaling
+  const maxImpressions = Math.max(...data.map(d => d.Impressions || 0));
+  const maxClicks = Math.max(...data.map(d => d.Clicks || 0));
+  
+  // Calculate average CVR for items with conversions > 0
+  const itemsWithConversions = allData.filter(d => d.Conversions > 0);
+  const avgCVR = itemsWithConversions.length > 0
+    ? itemsWithConversions.reduce((sum, d) => sum + (d.Clicks > 0 ? (d.Conversions / d.Clicks * 100) : 0), 0) / itemsWithConversions.length
+    : 0;
+  
+  // Find top 10 by value
+  const top10ByValue = [...allData]
+    .sort((a, b) => (b.Value || 0) - (a.Value || 0))
+    .slice(0, 10)
+    .map(item => item.Query);
+
+  // Render stats container
+  const statsResult = renderSearchTermsStats(allData);
+  
+// Add toggle controls at the top
+let html = `
+<!-- Top Controls Section -->
+<div style="
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+">
+  <div style="display: flex; align-items: center; gap: 24px;">
+    <!-- Product Ranking Toggle -->
+    <div class="product-ranking-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="product-ranking-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Product Ranking</label>
+      <label class="product-ranking-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="productRankingToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="product-ranking-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
+    </div>
+    
+    <!-- Channel Types Toggle -->
+    <div class="channel-types-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="channel-types-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Channel Types</label>
+      <label class="channel-types-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="channelTypesToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="channel-types-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
+    </div>
+    
+    <!-- Campaigns Toggle -->
+    <div class="campaigns-toggle-container" style="display: flex; align-items: center; gap: 8px;">
+      <label class="campaigns-toggle-label" style="font-size: 13px; font-weight: 500; color: #333;">Campaigns</label>
+      <label class="campaigns-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="campaignsToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="campaigns-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;">
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+        </span>
+      </label>
+    </div>
+  </div>
+  <div style="font-size: 13px; color: #6b7280;">
+    ${window.selectedSearchTermsBucket ? `Filtering: ${window.selectedSearchTermsBucket}` : 'All search terms displayed'}
+  </div>
+</div>
+  `;
+
+  // Add stats container
+  html += statsResult.html;
+  
+  // Add main table section
+  html += `
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600;">Search Terms Performance</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #666; font-size: 14px;">
+          Showing ${data.length > 0 ? startIndex + 1 : 0}-${endIndex} of ${data.length} search terms
+          ${window.selectedSearchTermsBucket ? ` (filtered by ${window.selectedSearchTermsBucket})` : ''}
+        </div>
+          <div class="search-terms-filter-switcher" style="display: flex; gap: 0; background: #f0f0f0; border-radius: 8px; padding: 2px;">
+            <button class="filter-btn ${window.searchTermsFilter === 'all' ? 'active' : ''}" data-filter="all" 
+                    style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'all' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+              All Search Terms
+            </button>
+            <button class="filter-btn ${window.searchTermsFilter === 'topbucket' ? 'active' : ''}" data-filter="topbucket" 
+                    style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'topbucket' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+              Top Bucket
+            </button>
+            <button class="filter-btn ${window.searchTermsFilter === 'negatives' ? 'active' : ''}" data-filter="negatives" 
+                    style="padding: 8px 16px; border: none; background: ${window.searchTermsFilter === 'negatives' ? 'white' : 'transparent'}; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+              Potential Negatives
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+        
+    <table class="search-terms-table" style="width: 100%; border-collapse: collapse; background: white;">
+      <thead>
+        <tr style="background: linear-gradient(to bottom, #ffffff, #f9f9f9); border-bottom: 2px solid #ddd;">
+          <th style="padding: 12px 8px; text-align: center; font-weight: 600; width: 60px; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">#</th>
+          <th class="sortable" data-column="Query" style="padding: 12px 8px; text-align: left; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            Search Term ${getSortIndicator('Query')}
+          </th>
+          <th class="sortable" data-column="Impressions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            Impressions ${getSortIndicator('Impressions')}
+          </th>
+          <th class="sortable" data-column="Clicks" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            Clicks ${getSortIndicator('Clicks')}
+          </th>
+          <th class="sortable" data-column="CTR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            CTR ${getSortIndicator('CTR')}
+          </th>
+          <th class="sortable" data-column="Conversions" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            Conversions ${getSortIndicator('Conversions')}
+          </th>
+          <th class="sortable" data-column="CVR" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            CVR ${getSortIndicator('CVR')}
+          </th>
+          <th class="sortable" data-column="Value" style="padding: 12px 8px; text-align: center; font-weight: 600; cursor: pointer; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            Value ${getSortIndicator('Value')}
+          </th>
+          <th style="padding: 12px 8px; text-align: center; font-weight: 600; position: sticky; top: 0; background: linear-gradient(to bottom, #ffffff, #f9f9f9); font-size: 14px;">
+            % Revenue
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+// Add summary row if filter is active or bucket is selected
+if (window.searchTermsFilter !== 'all' || window.selectedSearchTermsBucket) {
+  const summaryData = calculateSummaryData(data);
+  html += renderSummaryRow(summaryData);
+}
+  
+  // Render table rows
+  pageData.forEach((row, index) => {
+    const globalIndex = startIndex + index + 1;
+    const ctr = row.Impressions > 0 ? (row.Clicks / row.Impressions * 100).toFixed(2) : 0;
+    const cvr = row.Clicks > 0 ? (row.Conversions / row.Clicks * 100).toFixed(2) : 0;
+    
+    // Calculate bar widths (max 100px)
+    const impressionBarWidth = maxImpressions > 0 ? (row.Impressions / maxImpressions * 100) : 0;
+    const clickBarWidth = maxClicks > 0 ? (row.Clicks / maxClicks * 100) : 0;
+    
+    // Get top bucket for this search term
+    const topBucket = row['Top Bucket'] || '';
+    
+    // Get trend data
+    const trendData = row['Trend Data'];
+    
+    // Determine row background
+    let rowBg = index % 2 === 1 ? '#f9f9f9' : 'white';
+    if (row.Clicks >= 50 && row.Conversions === 0) {
+      rowBg = '#ffebee'; // Light red
+    } else if (top10ByValue.includes(row.Query)) {
+      rowBg = '#e8f5e9'; // Light green
+    }
+    
+    // Determine CVR color
+    let cvrColor = '#666';
+    if (parseFloat(cvr) === 0) {
+      cvrColor = '#F44336'; // Red for 0%
+    } else if (parseFloat(cvr) >= avgCVR) {
+      cvrColor = '#4CAF50'; // Green for >= average
+    } else {
+      cvrColor = '#FF9800'; // Orange for < average
+    }
+    
+    html += `
+      <tr style="background-color: ${rowBg};" class="search-term-row" data-search-term="${row.Query}">
+        <td style="padding: 8px; text-align: center;">
+          ${getIndexWithTopBucket(globalIndex, topBucket)}
+        </td>
+<td style="padding: 8px;">
+  <div style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+      <div style="font-weight: 500; color: #333; font-size: 14px;">${row.Query}</div>
+      ${topBucket ? getTopBucketBadge(topBucket) : ''}
+    </div>
+    ${renderCompactProductRankingBadge(productRankingSummaries[row.Query])}
+  </div>
+</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(row.Impressions, trendData?.Impressions, 'impressions', impressionBarWidth)}
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(row.Clicks, trendData?.Clicks, 'clicks', clickBarWidth)}
+        </td>
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'}; font-size: 14px;">${ctr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(row.Conversions, trendData?.Conversions, 'conversions')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${cvrColor}; font-size: 14px;">${cvr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(row.Value, trendData?.Value, 'value')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-weight: 500; color: ${row['% of all revenue'] > 0.05 ? '#4CAF50' : '#666'}; font-size: 14px;">
+          ${(row['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
+
+// Add sub-rows container (will remain empty if no data)
+html += `<tbody class="product-ranking-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+html += `<tbody class="channel-type-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+html += `<tbody class="campaign-rows" data-search-term="${row.Query}" style="display: none;"></tbody>`;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+
+      ${window.searchTermsFilter === 'topbucket' ? renderMissingTopBucketTerms() : ''}
+      
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <div class="pagination-controls" style="display: flex; gap: 10px; align-items: center;">
+          <button id="searchTermsPrevBtn" ${currentPage === 1 ? 'disabled' : ''} 
+                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
+            Previous
+          </button>
+          <select id="searchTermsPageSelect" style="padding: 6px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px;">
+            ${Array.from({length: totalPages}, (_, i) => i + 1).map(page => 
+              `<option value="${page}" ${page === currentPage ? 'selected' : ''}>Page ${page}</option>`
+            ).join('')}
+          </select>
+          <span style="font-size: 14px; color: #333;">of ${totalPages}</span>
+          <button id="searchTermsNextBtn" ${currentPage === totalPages ? 'disabled' : ''} 
+                  style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
+            Next
+          </button>
+        </div>
+      </div>
+    `;
+  
+  container.innerHTML = html;
+  
+  // Add event listeners
+  setTimeout(() => {
+    attachSearchTermsEventListeners();
+  }, 100);
+}
+
+/**
+ * Function to calculate product ranking metrics for a search term
+ */
+async function calculateProductRankingMetrics(searchTerm) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    return [];
+  }
+  
+  const normalizedTerm = searchTerm.toLowerCase().trim();
+  
+  // Get total products count
+  const totalProducts = await getTotalProductsCount();
+  
+  // Get company to filter
+  const companyToFilter = window.myCompany || '';
+  
+  const results = [];
+  
+  // Check if projectTableData exists and has data
+  if (window.projectTableData && Array.isArray(window.projectTableData)) {
+    // Group by location/device from projectTableData
+    const projectDataMap = {};
+    
+    window.projectTableData.forEach(item => {
+      if (item.searchTerm && item.searchTerm.toLowerCase().trim() === normalizedTerm) {
+        const key = `${item.location}|${item.device}`;
+        projectDataMap[key] = item;
+      }
+    });
+    
+    // For each location/device combination found in projectTableData
+    for (const [key, projectData] of Object.entries(projectDataMap)) {
+      const [location, device] = key.split('|');
+      
+      // Count active/inactive products from allRows
+      let activeCount = 0;
+      let inactiveCount = 0;
+      let prevActiveCount = 0;
+      
+      // Get products for this location/device
+      const products = window.allRows.filter(product => 
+        product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase() &&
+        product.location_requested === location &&
+        product.device === device
+      );
+      
+      // Count active/inactive
+      products.forEach(product => {
+        if (product.product_status === 'inactive') {
+          inactiveCount++;
+        } else {
+          activeCount++;
+        }
+        
+        // Track previous period active products
+        if (product.product_status !== 'inactive') {
+          // For previous period, check if product had data
+          if (product.historical_data && Array.isArray(product.historical_data)) {
+            const days = 7;
+            const endDate = moment().subtract(1, 'days');
+            const startDate = endDate.clone().subtract(days - 1, 'days');
+            const prevEndDate = startDate.clone().subtract(1, 'days');
+            const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
+            
+            const hasPrevData = product.historical_data.some(item => {
+              if (!item.date || !item.date.value) return false;
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            });
+            if (hasPrevData) {
+              prevActiveCount++;
+            }
+          }
+        }
+      });
+      
+      // Calculate percentage of all products
+      const percentOfAllProducts = totalProducts > 0 ? ((activeCount / totalProducts) * 100) : 0;
+      
+      // Use pre-calculated values from projectTableData
+      results.push({
+        location: location,
+        device: device,
+        avgRank: projectData.avgRank || 0,
+        rankTrend: projectData.rankChange || 0, // Note: rankChange is the trend
+        marketShare: projectData.avgShare || 0,
+        shareTrend: projectData.trendVal || 0,
+        activeProducts: activeCount,
+        inactiveProducts: inactiveCount,
+        prevActiveProducts: prevActiveCount,
+        productsTrend: activeCount - prevActiveCount,
+        percentOfAllProducts: percentOfAllProducts,
+        totalProducts: totalProducts
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Get compact product ranking summary for a search term
+ */
+async function getCompactProductRankingSummary(searchTerm) {
+  const metrics = await calculateProductRankingMetrics(searchTerm);
+  
+  if (!metrics || metrics.length === 0) {
+    return null;
+  }
+  
+  // Aggregate by device type
+  const deviceSummary = {
+    desktop: { active: 0, trend: 0 },
+    mobile: { active: 0, trend: 0 }
+  };
+  
+  metrics.forEach(metric => {
+    if (metric.device.toLowerCase().includes('mobile')) {
+      deviceSummary.mobile.active += metric.activeProducts;
+      deviceSummary.mobile.trend += metric.productsTrend;
+    } else {
+      deviceSummary.desktop.active += metric.activeProducts;
+      deviceSummary.desktop.trend += metric.productsTrend;
+    }
+  });
+  
+  return deviceSummary;
+}
+
+/**
+ * Render compact product ranking badge
+ */
+function renderCompactProductRankingBadge(deviceSummary) {
+  if (!deviceSummary) return '';
+  
+  const hasDesktop = deviceSummary.desktop.active > 0;
+  const hasMobile = deviceSummary.mobile.active > 0;
+  
+  if (!hasDesktop && !hasMobile) return '';
+  
+  let badgeContent = '';
+  
+  // Desktop section
+  if (hasDesktop) {
+    const trendColor = deviceSummary.desktop.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.desktop.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.desktop.trend > 0 ? '↑' : 
+                      deviceSummary.desktop.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">💻</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.desktop.active}</span>
+        ${deviceSummary.desktop.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.desktop.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  // Add separator if both exist
+  if (hasDesktop && hasMobile) {
+    badgeContent += `
+      <div style="width: 1px; height: 16px; background: #e0e0e0;"></div>
+    `;
+  }
+  
+  // Mobile section
+  if (hasMobile) {
+    const trendColor = deviceSummary.mobile.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.mobile.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.mobile.trend > 0 ? '↑' : 
+                      deviceSummary.mobile.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">📱</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.mobile.active}</span>
+        ${deviceSummary.mobile.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.mobile.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="small-product-ranking" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf0 100%);
+      border: 1px solid #d1d9e0;
+      border-radius: 16px;
+      margin-left: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    ">
+      ${badgeContent}
     </div>
   `;
 }
 
-// Get index with Top Bucket styling
+/**
+ * Function to render product ranking sub-rows
+ */
+async function renderProductRankingSubRows(searchTerm) {
+  const metrics = await calculateProductRankingMetrics(searchTerm);
+  
+  if (!metrics || metrics.length === 0) {
+    return ''; // Don't add sub-row if no data
+  }
+  
+  let html = '';
+  
+  metrics.forEach((metric, index) => {
+    // Format location (shorter)
+    const locationParts = metric.location.split(',');
+    const city = locationParts[0] || metric.location;
+    
+    // Device icon - using Unicode symbols instead of images
+    const deviceIcon = metric.device.toLowerCase().includes('mobile') ? '📱' : '💻';
+    
+    // Format trends
+    const rankArrow = metric.rankTrend < 0 ? '↑' : metric.rankTrend > 0 ? '↓' : '';
+    const rankColor = metric.rankTrend < 0 ? '#4CAF50' : metric.rankTrend > 0 ? '#F44336' : '#999';
+    
+    const shareArrow = metric.shareTrend > 0 ? '↑' : metric.shareTrend < 0 ? '↓' : '';
+    const shareColor = metric.shareTrend > 0 ? '#4CAF50' : metric.shareTrend < 0 ? '#F44336' : '#999';
+    
+    html += `
+      <tr class="product-ranking-subrow" style="background: ${index % 2 === 0 ? '#f9f9f9' : '#f5f5f5'};">
+        <td colspan="9" style="padding: 0;">
+          <div style="display: flex; align-items: center; padding: 10px 16px; gap: 20px;">
+            <!-- Device (moved to first position) -->
+            <div style="flex: 0 0 40px; font-size: 24px; text-align: center;">
+              ${deviceIcon}
+            </div>
+            
+            <!-- Active Products (Main metric) -->
+            <div style="flex: 0 0 auto; text-align: center; background: #333; border-radius: 8px; padding: 8px 16px; min-width: 80px;">
+              <div style="font-size: 20px; font-weight: 700; color: white; line-height: 1;">
+                ${metric.activeProducts}
+              </div>
+              <div style="font-size: 10px; color: #ccc; margin-top: 2px; font-weight: 600;">
+                PRODUCTS
+              </div>
+              ${metric.productsTrend !== 0 ? `
+                <div style="font-size: 11px; color: ${metric.productsTrend > 0 ? '#4CAF50' : '#F44336'}; margin-top: 2px;">
+                  ${metric.productsTrend > 0 ? '↑' : '↓'} ${Math.abs(metric.productsTrend)}
+                </div>
+              ` : ''}
+            </div>
+            
+            <!-- % of All Products with pie chart -->
+            <div style="flex: 0 0 140px; display: flex; align-items: center; gap: 8px;">
+              <canvas id="pie-${searchTerm.replace(/\s+/g, '-')}-${index}" width="30" height="30" style="width: 30px; height: 30px;"></canvas>
+              <div>
+                <span style="font-size: 12px; color: #666; font-weight: 500;">% of catalog:</span>
+                <span style="font-size: 14px; font-weight: 700; color: #1976d2; margin-left: 4px;">
+                  ${metric.percentOfAllProducts.toFixed(1)}%
+                </span>
+                <div style="font-size: 11px; color: #999;">
+                  (${metric.totalProducts} total)
+                </div>
+              </div>
+            </div>
+            
+            <!-- Location -->
+            <div style="flex: 0 0 140px;">
+              <span style="font-size: 13px; font-weight: 600; color: #333;">${city}</span>
+            </div>
+            
+            <!-- Avg Rank (square box) -->
+            <div style="flex: 0 0 auto; text-align: center;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Avg Rank</div>
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 50px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0; position: relative;">
+                <span style="font-size: 18px; font-weight: 700; color: #333; line-height: 1;">
+                  ${metric.avgRank > 0 ? metric.avgRank.toFixed(1) : '-'}
+                </span>
+                ${rankArrow ? `<span style="font-size: 11px; color: ${rankColor}; line-height: 1; margin-top: 2px;">
+                  ${rankArrow} ${Math.abs(metric.rankTrend).toFixed(1)}
+                </span>` : ''}
+              </div>
+            </div>
+            
+            <!-- Market Share (progress bar) -->
+            <div style="flex: 1;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Market Share</div>
+              <div style="position: relative; background: #e0e0e0; height: 24px; border-radius: 12px; overflow: hidden;">
+                <div style="position: absolute; left: 0; top: 0; height: 100%; background: #1976d2; width: ${Math.min(metric.marketShare, 100)}%; transition: width 0.3s ease;"></div>
+                <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; padding: 0 12px; justify-content: space-between;">
+                  <span style="font-size: 14px; font-weight: 700; color: ${metric.marketShare > 50 ? 'white' : '#333'}; z-index: 1;">
+                    ${metric.marketShare.toFixed(1)}%
+                  </span>
+                  ${shareArrow ? `<span style="font-size: 12px; color: ${metric.marketShare > 50 ? 'white' : shareColor}; z-index: 1;">
+                    ${shareArrow} ${Math.abs(metric.shareTrend).toFixed(1)}%
+                  </span>` : ''}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Inactive count -->
+            ${metric.inactiveProducts > 0 ? `
+              <div style="flex: 0 0 auto; text-align: center; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 8px;">
+                <span style="font-size: 11px; color: #999;">Inactive:</span>
+                <span style="font-size: 13px; font-weight: 600; color: #757575; margin-left: 4px;">
+                  ${metric.inactiveProducts}
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  
+  // Store pie chart data for later rendering
+  window.searchTermsPieChartData = window.searchTermsPieChartData || {};
+  window.searchTermsPieChartData[searchTerm] = metrics;
+  
+  return html;
+}
+
+/**
+ * Function to render pie charts for a specific search term
+ */
+function renderSearchTermPieCharts(searchTerm) {
+  const metrics = window.searchTermsPieChartData[searchTerm];
+  if (!metrics) return;
+  
+  metrics.forEach((metric, idx) => {
+    const canvasId = `pie-${searchTerm.replace(/\s+/g, '-')}-${idx}`;
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const percentage = metric.percentOfAllProducts;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, 30, 30);
+      
+      // Draw filled portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, -Math.PI/2, (-Math.PI/2) + (2 * Math.PI * percentage / 100));
+      ctx.closePath();
+      ctx.fillStyle = '#1976d2';
+      ctx.fill();
+      
+      // Draw remaining portion
+      ctx.beginPath();
+      ctx.moveTo(15, 15);
+      ctx.arc(15, 15, 12, (-Math.PI/2) + (2 * Math.PI * percentage / 100), Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(15, 15, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+}
+
+/**
+ * Helper functions for data filtering, sorting, and display
+ */
+function getFilteredSearchTermsData() {
+  let data = [...window.searchTermsData];
+  
+  // First apply bucket filter if a bucket is selected
+  if (window.selectedSearchTermsBucket) {
+    const buckets = classifySearchTermsIntoBuckets(window.searchTermsData);
+    const selectedBucketData = buckets[window.selectedSearchTermsBucket];
+    if (selectedBucketData && selectedBucketData.terms) {
+      // Get the queries from the selected bucket
+      const selectedQueries = new Set(selectedBucketData.terms.map(t => t.Query));
+      data = data.filter(item => selectedQueries.has(item.Query));
+    }
+  }
+  
+  // Then apply the existing filter
+  switch(window.searchTermsFilter) {
+    case 'topbucket':
+      // Filter for items that have Top Bucket data
+      data = data.filter(item => item['Top Bucket'] && item['Top Bucket'] !== '');
+      break;
+    case 'negatives':
+      // Filter for potential negative terms (no conversions, sufficient clicks)
+      data = data.filter(item => {
+        return item.Conversions === 0 && item.Clicks >= 50;
+      });
+      break;
+    default:
+      // 'all' - no additional filtering
+      break;
+  }
+  
+  return data;
+}
+
+function sortSearchTermsData() {
+  const column = window.searchTermsSortColumn;
+  const ascending = window.searchTermsSortAscending;
+  
+  window.searchTermsData.sort((a, b) => {
+    let aVal, bVal;
+    
+    switch(column) {
+      case 'Query':
+        aVal = a.Query || '';
+        bVal = b.Query || '';
+        break;
+      case 'Impressions':
+        aVal = a.Impressions || 0;
+        bVal = b.Impressions || 0;
+        break;
+      case 'Clicks':
+        aVal = a.Clicks || 0;
+        bVal = b.Clicks || 0;
+        break;
+      case 'CTR':
+        aVal = a.Impressions > 0 ? (a.Clicks / a.Impressions) : 0;
+        bVal = b.Impressions > 0 ? (b.Clicks / b.Impressions) : 0;
+        break;
+      case 'Conversions':
+        aVal = a.Conversions || 0;
+        bVal = b.Conversions || 0;
+        break;
+      case 'CVR':
+        aVal = a.Clicks > 0 ? (a.Conversions / a.Clicks) : 0;
+        bVal = b.Clicks > 0 ? (b.Conversions / b.Clicks) : 0;
+        break;
+      case 'Value':
+        aVal = a.Value || 0;
+        bVal = b.Value || 0;
+        break;
+      default:
+        aVal = a[column] || 0;
+        bVal = b[column] || 0;
+    }
+    
+    if (typeof aVal === 'string') {
+      return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    } else {
+      return ascending ? (aVal - bVal) : (bVal - aVal);
+    }
+  });
+}
+
+function getSortIndicator(column) {
+  if (window.searchTermsSortColumn !== column) return '';
+  return window.searchTermsSortAscending ? ' ↑' : ' ↓';
+}
+
+function getMetricWithTrend(current, previous, type, barWidth = null, isSummary = false) {
+  const formattedCurrent = type === 'value' 
+    ? `$${current.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+    : current.toLocaleString();
+    
+  let trendHtml = '';
+  if (previous && previous !== current) {
+    const change = ((current - previous) / previous * 100);
+    const changeText = change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+    const changeColor = change > 0 ? '#4CAF50' : '#F44336';
+    const arrow = change > 0 ? '↗' : '↘';
+    
+    trendHtml = `
+      <div style="font-size: ${isSummary ? '12px' : '11px'}; color: ${changeColor}; margin-top: 2px;">
+        ${arrow} ${changeText}
+      </div>
+    `;
+  }
+  
+  let barHtml = '';
+  if (barWidth !== null && barWidth > 0) {
+    const barColor = type === 'impressions' ? '#4285f4' : '#34a853';
+    barHtml = `
+      <div style="width: 80px; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; margin: 4px auto 0;">
+        <div style="width: ${barWidth}%; height: 100%; background: ${barColor};"></div>
+      </div>
+    `;
+  }
+  
+  const fontSize = isSummary ? '15px' : '14px';
+  const fontWeight = isSummary ? '700' : '600';
+  const color = isSummary ? '#1976d2' : 'inherit';
+  
+  return `
+    <div>
+      <div style="font-weight: ${fontWeight}; font-size: ${fontSize}; color: ${color};">${formattedCurrent}</div>
+      ${trendHtml}
+      ${barHtml}
+    </div>
+  `;
+}
+
+function getTopBucketBadge(topBucket) {
+  if (!topBucket) return '';
+  
+  const bucketConfig = {
+    'Top1': { color: '#FFD700', bg: '#FFF9E6', label: 'Top 1' },
+    'Top2': { color: '#C0C0C0', bg: '#F5F5F5', label: 'Top 2' },
+    'Top3': { color: '#CD7F32', bg: '#FFF5F0', label: 'Top 3' },
+    'Top4': { color: '#4CAF50', bg: '#E8F5E9', label: 'Top 4' },
+    'Top5': { color: '#2196F3', bg: '#E3F2FD', label: 'Top 5' },
+    'Top10': { color: '#9C27B0', bg: '#F3E5F5', label: 'Top 10' }
+  };
+  
+  const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
+  
+  return `
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}40;
+    ">
+      ${config.label}
+    </span>
+  `;
+}
+
 function getIndexWithTopBucket(index, topBucket) {
   const bucketStyles = {
     'Top1': { bg: '#FFD700', color: '#000' },
@@ -3082,860 +1175,1625 @@ function getIndexWithTopBucket(index, topBucket) {
   return `<div style="font-weight: 600; color: #666; font-size: 13px;">${index}</div>`;
 }
 
-// Get Top Bucket badge HTML
-function getTopBucketBadge(topBucket) {
-  if (!topBucket || topBucket === '') return '';
+/**
+ * Find missing top bucket terms from 365d data
+ */
+function findMissingTopBucketTerms() {
+  if (!window.searchTermsData365d || window.searchTermsData365d.length === 0) return [];
   
-  const bucketConfig = {
-    'Top1': { color: '#fff', bg: '#FFD700', label: '🥇 TOP 1' },
-    'Top2': { color: '#fff', bg: '#C0C0C0', label: '🥈 TOP 2' },
-    'Top3': { color: '#fff', bg: '#CD7F32', label: '🥉 TOP 3' },
-    'Top4': { color: '#fff', bg: '#4CAF50', label: '🏆 TOP 4' },
-    'Top5': { color: '#fff', bg: '#2196F3', label: '⭐ TOP 5' },
-    'Top10': { color: '#fff', bg: '#9C27B0', label: '✨ TOP 10' }
-  };
+  // Get current search term queries
+  const currentQueries = new Set(window.searchTermsData.map(d => d.Query.toLowerCase()));
   
-  const config = bucketConfig[topBucket] || { color: '#666', bg: '#F5F5F5', label: topBucket };
+  // Find terms with Top_Bucket in 365d that are not in current data (only all/all records)
+  const missingTerms = window.searchTermsData365d
+    .filter(item => {
+      return item.Campaign_Name === 'all' && 
+             item.Channel_Type === 'all' &&
+             item['Top_Bucket'] && 
+             item['Top_Bucket'] !== '' && 
+             !currentQueries.has(item.Query.toLowerCase());
+    })
+    .map(item => ({
+      Query: item.Query,
+      'Top Bucket': item['Top_Bucket'],
+      Impressions: Math.round(item.Impressions / 12), // Average monthly
+      Clicks: Math.round(item.Clicks / 12),
+      Conversions: (item.Conversions / 12).toFixed(2),
+      Value: item.Value / 12,
+      '% of all revenue': item['% of all revenue']
+    }));
   
-  return `
-    <span style="
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border-radius: 14px;
-      background: ${config.bg};
-      color: ${config.color};
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      white-space: nowrap;
-      border: 2px solid ${config.bg};
-      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-      letter-spacing: 0.5px;
-    ">
-      ${config.label}
-    </span>
+  return missingTerms;
+}
+
+/**
+ * Render missing top bucket terms section
+ */
+function renderMissingTopBucketTerms() {
+  const missingTerms = findMissingTopBucketTerms();
+  
+  if (missingTerms.length === 0) return '';
+  
+  let html = `
+    <div style="margin-top: 30px; padding: 20px; background: #fff3e0; border-radius: 8px; border: 1px solid #ffb74d;">
+      <h4 style="margin: 0 0 15px 0; color: #e65100; font-size: 16px;">
+        📊 Historical Top Performers (Not Active in Current Period)
+      </h4>
+      <p style="margin: 0 0 15px 0; color: #666; font-size: 13px;">
+        These search terms were top performers historically but show no activity in the current period. Values shown are monthly averages from the past year.
+      </p>
+      <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 4px; overflow: hidden;">
+        <thead>
+          <tr style="background: #ffecb3;">
+            <th style="padding: 10px; text-align: left; font-size: 13px; color: #e65100;">Search Term</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Bucket</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Impressions</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Clicks</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Conversions</th>
+            <th style="padding: 10px; text-align: center; font-size: 13px; color: #e65100;">Avg. Monthly Value</th>
+          </tr>
+        </thead>
+        <tbody>
   `;
-}
-
-// Get performance bucket badge HTML
-function getPerformanceBucketBadge(bucketType) {
-  if (!bucketType) return '';
   
-  const bucketConfig = {
-    'Top Search Terms': { color: '#FFD700', bg: '#FFF9E6', icon: '⭐' },
-    'Zero Converting Terms': { color: '#F44336', bg: '#FFEBEE', icon: '⚠️' },
-    'High Revenue Terms': { color: '#4CAF50', bg: '#E8F5E9', icon: '💰' },
-    'Hidden Gems': { color: '#2196F3', bg: '#E3F2FD', icon: '💎' },
-    'Low Performance': { color: '#9E9E9E', bg: '#F5F5F5', icon: '📉' },
-    'Mid-Performance': { color: '#FF9800', bg: '#FFF3E0', icon: '📊' }
-  };
+  missingTerms.forEach((term, index) => {
+    const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100).toFixed(2) : 0;
+    const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100).toFixed(2) : 0;
+    
+    html += `
+      <tr style="background: ${index % 2 === 0 ? 'white' : '#fff8e1'}; border-bottom: 1px solid #ffe0b2;">
+        <td style="padding: 10px; font-weight: 500; font-size: 13px;">${term.Query}</td>
+        <td style="padding: 10px; text-align: center;">
+          ${getTopBucketBadge(term['Top Bucket'])}
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">
+          ${term.Impressions.toLocaleString()}
+          <div style="font-size: 11px; color: #666;">CTR: ${ctr}%</div>
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">${term.Clicks.toLocaleString()}</td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">
+          ${term.Conversions}
+          <div style="font-size: 11px; color: #666;">CVR: ${cvr}%</div>
+        </td>
+        <td style="padding: 10px; text-align: center; font-size: 13px; font-weight: 600;">
+          $${term.Value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        </td>
+      </tr>
+    `;
+  });
   
-  const config = bucketConfig[bucketType];
-  if (!config) return '';
-  
-  return `
-    <span style="
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: 12px;
-      background: ${config.bg};
-      color: ${config.color};
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      border: 1px solid ${config.color}40;
-      margin-left: 6px;
-    ">
-      ${config.icon} ${bucketType}
-    </span>
+  html += `
+        </tbody>
+      </table>
+    </div>
   `;
-}
-
-// Replace the ensureSearchTermPerformanceBuckets function with:
-async function ensureSearchTermPerformanceBuckets() {
-  // Check if the global function exists
-  if (typeof window.calculateAndCacheSearchTermBuckets === 'function') {
-    window.searchTermPerformanceBuckets = await window.calculateAndCacheSearchTermBuckets();
-    return window.searchTermPerformanceBuckets;
-  } else {
-    console.warn('[Campaigns] calculateAndCacheSearchTermBuckets function not available');
-    return {};
-  }
-}
-
-// Calculate statistics for each bucket
-function calculateBucketStatistics(data) {
-  const stats = {
-    'all': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Top Search Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'High Revenue Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Hidden Gems': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Mid-Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Low Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
-    'Zero Converting Terms': { count: 0, clicks: 0, revenue: 0, value: 0 }
-  };
   
-  let totalClicks = 0;
-  let totalRevenue = 0;
-  let totalValue = 0;
+  return html;
+}
+
+/**
+ * Classify search terms into buckets based on the framework
+ */
+function classifySearchTermsIntoBuckets(data) {
+  // Calculate dynamic thresholds
+  const totalConversions = data.reduce((sum, term) => sum + (term.Conversions || 0), 0);
+  const totalClicks = data.reduce((sum, term) => sum + (term.Clicks || 0), 0);
+  const totalValue = data.reduce((sum, term) => sum + (term.Value || 0), 0);
+  const totalRevenue = data.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0);
+  
+  const avgCVR = totalClicks > 0 ? (totalConversions / totalClicks) : 0;
+  const avgValuePerClick = totalClicks > 0 ? (totalValue / totalClicks) : 0;
+  const revenueThreshold = data.length > 0 ? (totalRevenue / data.length) * 2 : 0;
+  
+  const buckets = {
+    'Top Search Terms': { terms: [], color: '#FFD700', description: 'Historical top performers' },
+    'Zero Converting Terms': { terms: [], color: '#FF4444', description: 'High clicks, no conversions' },
+    'High Revenue Terms': { terms: [], color: '#00C851', description: 'Strong current performers' },
+    'Hidden Gems': { terms: [], color: '#33B5E5', description: 'Low volume, converting' },
+    'Low Performance': { terms: [], color: '#CCCCCC', description: 'Cleanup candidates' },
+    'Mid-Performance': { terms: [], color: '#FF8800', description: 'Monitor and test' }
+  };
   
   data.forEach(term => {
-    const bucket = term.Performance_Bucket || 'Mid-Performance';
+    const clicks = term.Clicks || 0;
+    const conversions = term.Conversions || 0;
+    const value = term.Value || 0;
+    const cvr = clicks > 0 ? (conversions / clicks) : 0;
+    const valuePerClick = clicks > 0 ? (value / clicks) : 0;
+    const revenueShare = term['% of all revenue'] || 0;
+    const topBucket = term['Top Bucket'];
     
-    // Update bucket stats
-    if (stats[bucket]) {
-      stats[bucket].count++;
-      stats[bucket].clicks += term.Clicks || 0;
-      stats[bucket].revenue += term.Value || 0;
-      stats[bucket].value += term.Value || 0; // Using same as revenue for now
+    // Bucket 1: Top Search Terms
+    if (topBucket && topBucket !== '') {
+      buckets['Top Search Terms'].terms.push(term);
     }
-    
-    // Update totals
-    totalClicks += term.Clicks || 0;
-    totalRevenue += term.Value || 0;
-    totalValue += term.Value || 0;
-  });
-  
-  // Set 'all' stats
-  stats['all'].count = data.length;
-  stats['all'].clicks = totalClicks;
-  stats['all'].revenue = totalRevenue;
-  stats['all'].value = totalValue;
-  
-  // Calculate percentages
-  for (let bucket in stats) {
-    stats[bucket].clicksPercent = totalClicks > 0 ? (stats[bucket].clicks / totalClicks * 100) : 0;
-    stats[bucket].revenuePercent = totalRevenue > 0 ? (stats[bucket].revenue / totalRevenue * 100) : 0;
-    stats[bucket].valuePercent = totalValue > 0 ? (stats[bucket].value / totalValue * 100) : 0;
-  }
-  
-  return stats;
-}
-
-// Update bucket UI with statistics
-function updateBucketUI(stats) {
-  const bucketFilterContainer = document.getElementById('campaignBucketFilterContainer');
-  if (!bucketFilterContainer) return;
-  
-  const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
-  
-  bucketCards.forEach(card => {
-    const bucketType = card.getAttribute('data-bucket');
-    const countElement = card.querySelector('.bucket-count');
-    const clicksValue = card.querySelector('.clicks-value');
-    const clicksBar = card.querySelector('.clicks-bar-fill');
-    const revenueValue = card.querySelector('.revenue-value');
-    const revenueBar = card.querySelector('.revenue-bar-fill');
-    const valueAmount = card.querySelector('.value-amount');
-    const valueBar = card.querySelector('.value-bar-fill');
-    
-    if (stats[bucketType]) {
-      // Update count
-      countElement.textContent = stats[bucketType].count;
-      
-      // Update Clicks
-      const clicksPct = stats[bucketType].clicksPercent;
-      clicksValue.textContent = clicksPct.toFixed(1) + '%';
-      if (clicksBar) {
-        clicksBar.style.width = Math.min(clicksPct, 100) + '%';
-      }
-      
-      // Update Revenue
-      const revenuePct = stats[bucketType].revenuePercent;
-      if (bucketType === 'Zero Converting Terms' && stats[bucketType].revenue === 0) {
-        revenueValue.textContent = '$0';
-      } else {
-        revenueValue.textContent = revenuePct.toFixed(1) + '%';
-      }
-      if (revenueBar) {
-        revenueBar.style.width = Math.min(revenuePct, 100) + '%';
-      }
-      
-      // Update Value
-      const valueAmt = stats[bucketType].value;
-      if (valueAmt >= 1000) {
-        valueAmount.textContent = (valueAmt / 1000).toFixed(1) + 'k';
-      } else {
-        valueAmount.textContent = valueAmt.toFixed(0);
-      }
-      
-      const valuePct = stats[bucketType].valuePercent;
-      if (valueBar) {
-        valueBar.style.width = Math.min(valuePct, 100) + '%';
-      }
+    // Bucket 2: Zero Converting Terms
+    else if (conversions === 0 && clicks >= 50) {
+      buckets['Zero Converting Terms'].terms.push(term);
+    }
+    // Bucket 3: High Revenue Terms
+    else if (conversions > 0 && (cvr >= avgCVR || valuePerClick >= avgValuePerClick || revenueShare >= revenueThreshold)) {
+      buckets['High Revenue Terms'].terms.push(term);
+    }
+    // Bucket 4: Hidden Gems
+    else if (clicks < 10 && (conversions > 0 || value > 0)) {
+      buckets['Hidden Gems'].terms.push(term);
+    }
+    // Bucket 5: Low Performance
+    else if (clicks < 10 && conversions === 0 && value === 0) {
+      buckets['Low Performance'].terms.push(term);
+    }
+    // Bucket 6: Mid-Performance
+    else {
+      buckets['Mid-Performance'].terms.push(term);
     }
   });
+  
+  return buckets;
 }
 
-// Render products table with improved design
-function renderProductsTable(container, tableData, campaignName) {
-  // Get visible columns (excluding ROAS which is now fixed)
-  const visibleColumns = window.campaignTableColumns ? 
-    window.campaignTableColumns.filter(c => c.visible && c.id !== 'roas') : 
-    [
-      { id: 'impressions', label: 'Impr' },
-      { id: 'clicks', label: 'Clicks' },
-      { id: 'ctr', label: 'CTR %' },
-      { id: 'avgCpc', label: 'Avg CPC' },
-      { id: 'cost', label: 'Cost' },
-      { id: 'conversions', label: 'Conv' },
-      { id: 'cpa', label: 'CPA' },
-      { id: 'cvr', label: 'CVR %' },
-      { id: 'convValue', label: 'Revenue' }
-    ];
+/**
+ * Calculate aggregated metrics for each bucket
+ */
+function calculateBucketMetrics(buckets) {
+  const bucketMetrics = {};
   
-  // Calculate totals for summary row and percentages
-  const totals = {
-    impressions: tableData.reduce((sum, p) => sum + (p.impressions || 0), 0),
-    clicks: tableData.reduce((sum, p) => sum + (p.clicks || 0), 0),
-    cost: tableData.reduce((sum, p) => sum + (p.cost || 0), 0),
-    conversions: tableData.reduce((sum, p) => sum + (p.conversions || 0), 0),
-    convValue: tableData.reduce((sum, p) => sum + (p.convValue || 0), 0)
-  };
+  Object.entries(buckets).forEach(([bucketName, bucketData]) => {
+    const terms = bucketData.terms;
+    const metrics = {
+      count: terms.length,
+      clicks: terms.reduce((sum, term) => sum + (term.Clicks || 0), 0),
+      impressions: terms.reduce((sum, term) => sum + (term.Impressions || 0), 0),
+      conversions: terms.reduce((sum, term) => sum + (term.Conversions || 0), 0),
+      value: terms.reduce((sum, term) => sum + (term.Value || 0), 0),
+      revenue: terms.reduce((sum, term) => sum + (term['% of all revenue'] || 0), 0)
+    };
+    
+    // Calculate trend data
+    const trendMetrics = {
+      clicks: 0,
+      impressions: 0,
+      conversions: 0,
+      value: 0
+    };
+    
+    terms.forEach(term => {
+      if (term['Trend Data']) {
+        trendMetrics.clicks += term['Trend Data'].Clicks || 0;
+        trendMetrics.impressions += term['Trend Data'].Impressions || 0;
+        trendMetrics.conversions += term['Trend Data'].Conversions || 0;
+        trendMetrics.value += term['Trend Data'].Value || 0;
+      }
+    });
+    
+    // Calculate percentage changes
+    metrics.clicksTrend = trendMetrics.clicks > 0 ? ((metrics.clicks - trendMetrics.clicks) / trendMetrics.clicks * 100) : 0;
+    metrics.conversionsTrend = trendMetrics.conversions > 0 ? ((metrics.conversions - trendMetrics.conversions) / trendMetrics.conversions * 100) : 0;
+    metrics.valueTrend = trendMetrics.value > 0 ? ((metrics.value - trendMetrics.value) / trendMetrics.value * 100) : 0;
+    
+    // Calculate rates
+    metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions * 100) : 0;
+    metrics.cvr = metrics.clicks > 0 ? (metrics.conversions / metrics.clicks * 100) : 0;
+    
+    bucketMetrics[bucketName] = {
+      ...metrics,
+      color: bucketData.color,
+      description: bucketData.description
+    };
+  });
   
-  // Calculate derived totals
-  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
-  totals.avgCpc = totals.clicks > 0 ? (totals.cost / totals.clicks) : 0;
-  totals.cpa = totals.conversions > 0 ? (totals.cost / totals.conversions) : 0;
-  totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
-  totals.aov = totals.conversions > 0 ? (totals.convValue / totals.conversions) : 0;
-  totals.cpm = totals.impressions > 0 ? (totals.cost / totals.impressions * 1000) : 0;
-  totals.roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
+  return bucketMetrics;
+}
+
+/**
+ * Render the search terms stats container with proper modern design
+ */
+function renderSearchTermsStats(data) {
+  const buckets = classifySearchTermsIntoBuckets(data);
+  const bucketMetrics = calculateBucketMetrics(buckets);
   
-  // Create wrapper
-  const wrapper = document.createElement('div');
-  wrapper.className = 'camp-products-wrapper';
+  // Calculate total clicks and revenue for percentages
+  const totalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => sum + bucket.clicks, 0);
+  const totalRevenue = Object.values(bucketMetrics).reduce((sum, bucket) => sum + (bucket.revenue || 0), 0);
   
-  // Create table
-  const table = document.createElement('table');
-  table.className = 'camp-table-modern';
+  // Calculate previous period totals for percentage trends
+  const prevTotalClicks = Object.values(bucketMetrics).reduce((sum, bucket) => {
+    const trendClicks = bucket.clicksTrend ? (bucket.clicks / (1 + bucket.clicksTrend / 100)) : bucket.clicks;
+    return sum + trendClicks;
+  }, 0);
   
-  // Create header
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  
-  // Fixed columns headers (POS, SHARE, ROAS, IMAGE, PRODUCT)
-  let headerHTML = `
-    <th class="center sortable" data-sort="adPosition" style="width: 60px;">
-      Pos
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="center sortable" data-sort="marketShare" style="width: 90px;">
-      Share
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="center sortable" data-sort="roas" style="width: 70px;">
-      ROAS
-      <span class="camp-sort-icon">⇅</span>
-    </th>
-    <th class="center" style="width: 80px;">Image</th>
-    <th class="sortable" data-sort="title" style="width: 300px;">
-      Product
-      <span class="camp-sort-icon">⇅</span>
-    </th>
+  const prevTotalRevenue = Object.values(bucketMetrics).reduce((sum, bucket) => {
+    const trendValue = bucket.valueTrend ? (bucket.value / (1 + bucket.valueTrend / 100)) : bucket.value;
+    const trendRevenue = bucket.revenue * (trendValue / bucket.value);
+    return sum + (trendRevenue || 0);
+  }, 0);
+
+  let html = `
+    <div style="
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    ">
+      <!-- Header Section -->
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f3f4f6;
+      ">
+        <h3 style="
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #1f2937;
+        ">Search Terms Analysis by Performance Bucket</h3>
+        <div style="
+          font-size: 13px;
+          color: #6b7280;
+        ">
+          ${data.length} total search terms analyzed
+        </div>
+      </div>
+      
+<!-- Distribution Labels -->
+<div style="
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+">
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
+    % of Clicks
+    <span style="font-weight: 400; color: #6b7280;">(${totalClicks.toLocaleString()} total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
+    % of Revenue
+    <span style="font-weight: 400; color: #6b7280;">(${(totalRevenue * 100).toFixed(1)}% total)</span>
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
+    % of Value
+    <span style="font-weight: 400; color: #6b7280;">($${data.reduce((sum, d) => sum + (d.Value || 0), 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total)</span>
+  </div>
+</div>
+      
+      <!-- Buckets Container -->
+      <div style="
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      ">
   `;
   
-  // Dynamic metric columns headers
-  visibleColumns.forEach(col => {
-    const label = col.id === 'impressions' ? 'Impr' : 
-                  col.id === 'conversions' ? 'Conv' : 
-                  col.label;
-    headerHTML += `
-      <th class="right sortable metric-col" data-sort="${col.id}">
-        ${label}
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-    `;
-  });
-  
-  headerRow.innerHTML = headerHTML;
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-  
-  // Create body
-  const tbody = document.createElement('tbody');
-  
-// Add summary row first
-const summaryRow = document.createElement('tr');
-summaryRow.className = 'camp-summary-row';
+  // Create stat cards for each bucket
+  Object.entries(bucketMetrics).forEach(([bucketName, metrics]) => {
+    const clicksPercent = totalClicks > 0 ? (metrics.clicks / totalClicks * 100) : 0;
+    const revenuePercent = totalRevenue > 0 ? ((metrics.revenue || 0) / totalRevenue * 100) : 0;
+    
+    // Calculate previous percentages
+    const prevClicksPercent = prevTotalClicks > 0 ? 
+      ((metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100)) / prevTotalClicks * 100) : 0;
+    const prevRevenuePercent = prevTotalRevenue > 0 ? 
+      ((metrics.value / (1 + (metrics.valueTrend || 0) / 100) * (metrics.revenue / metrics.value)) / prevTotalRevenue * 100) : 0;
+    
+    // Calculate percentage point changes
+    const clicksPercentChange = clicksPercent - prevClicksPercent;
+    const revenuePercentChange = revenuePercent - prevRevenuePercent;
 
-let summaryHTML = `
-  <td colspan="4" style="text-align: center; font-weight: 600; background: linear-gradient(to bottom, #f0f2f5, #e9ecef);">
-    Campaign Totals
-  </td>
-  <td style="font-weight: 600; background: linear-gradient(to bottom, #f0f2f5, #e9ecef);">
-    ${tableData.length} Products
-  </td>
-`;
-
-// Add summary metrics with bars for specific columns
-visibleColumns.forEach(col => {
-  const value = totals[col.id] || 0;
-  const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
-  
-  // Add progress bars for specific metrics in summary row
-  if (['impressions', 'clicks', 'cost', 'conversions', 'convValue'].includes(col.id)) {
-    summaryHTML += `
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">${formattedValue}</div>
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
-        </div>
-      </td>`;
-  } else {
-    summaryHTML += `<td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">${formattedValue}</td>`;
+    // Calculate value percentage
+const totalValue = data.reduce((sum, d) => sum + (d.Value || 0), 0);
+const valuePercent = totalValue > 0 ? (metrics.value / totalValue * 100) : 0;
+const prevTotalValue = Object.values(bucketMetrics).reduce((sum, bucket) => {
+  const trendValue = bucket.valueTrend ? (bucket.value / (1 + bucket.valueTrend / 100)) : bucket.value;
+  return sum + trendValue;
+}, 0);
+const prevValuePercent = prevTotalValue > 0 ? 
+  ((metrics.value / (1 + (metrics.valueTrend || 0) / 100)) / prevTotalValue * 100) : 0;
+const valuePercentChange = valuePercent - prevValuePercent;
+    
+// Format trend indicators
+const getTrendIndicator = (value, trend, isPercentage = false) => {
+  const formattedValue = isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString();
+  if (!trend || Math.abs(trend) < 0.1) {
+    return `<div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>`;
   }
-});
-
-summaryRow.innerHTML = summaryHTML;
-tbody.appendChild(summaryRow);
-  
-  // Render product rows
-  tableData.forEach((product, index) => {
-// Main product row
-const mainRow = document.createElement('tr');
-let rowClasses = ['main-row'];
-
-// Add seller status class
-if (product.sellerStatus && product.sellerStatus !== 'Standard') {
-  const statusClass = product.sellerStatus.toLowerCase().replace(/\s+/g, '-');
-  rowClasses.push(statusClass);
-}
-
-mainRow.className = rowClasses.join(' ');
-    mainRow.dataset.index = index;
+  const arrow = trend > 0 ? '↑' : '↓';
+  const bgColor = trend > 0 ? '#10b981' : '#ef4444';
+  return `
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">${formattedValue}</div>
+      <div style="
+        display: inline-block;
+        background: ${bgColor};
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-top: 2px;
+      ">
+        ${arrow} ${Math.abs(trend).toFixed(0)}%
+      </div>
+    </div>
+  `;
+};
     
-    const hasDevices = product.devices && product.devices.size > 1;
-    
-    // Position badge class
-    let posClass = 'bottom';
-    if (product.adPosition) {
-      if (product.adPosition <= 3) posClass = 'top';
-      else if (product.adPosition <= 8) posClass = 'mid';
-      else if (product.adPosition <= 14) posClass = 'low';
-    }
-    
-    // ROAS badge class
-    let roasClass = 'poor';
-    if (product.roas >= 4) roasClass = 'excellent';
-    else if (product.roas >= 2) roasClass = 'good';
-    else if (product.roas >= 1) roasClass = 'fair';
-    
-    // Build row HTML (POS, SHARE, ROAS, IMAGE, PRODUCT)
-    let rowHTML = `
-<td style="text-align: center; width: 60px;">
-  ${product.adPosition !== null && product.adPosition !== undefined ? 
-    `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-      <div class="camp-position-indicator ${posClass}">${product.adPosition}</div>
-      ${product.trend ? 
-        `<div style="font-size: 9px; color: ${product.trend.color}; font-weight: 600; background: ${product.trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 4px; border-radius: 4px;">${product.trend.text}</div>` : 
-        ''}
-    </div>` : 
-    '<span style="color: #adb5bd;">-</span>'}
-</td>
-      <td style="text-align: center; width: 90px;">
-        ${product.marketShare ? 
-          `<div class="camp-share-bar">
-            <div class="camp-share-fill" style="width: ${product.marketShare}%"></div>
-            <div class="camp-share-text">${product.marketShare.toFixed(1)}%</div>
-          </div>` : 
-          '<span style="color: #adb5bd;">-</span>'}
-      </td>
-<td style="text-align: center; width: 70px;">
-  ${product.roas !== null && product.roas !== undefined ? 
-    (product.convValue > 0 ? 
-      `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` :
-      `<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #9e9e9e;">
-        <span style="display: flex; align-items: center; gap: 3px;">
-          <span style="font-size: 14px;">💤</span>
-          <span>No Sales</span>
-        </span>
-      </div>`)
-    : '<span style="color: #adb5bd;">-</span>'}
-</td>
-      <td style="text-align: center; width: 80px;">
-        ${product.image ? 
-          `<div class="camp-product-img-container">
-            <img class="camp-product-img" src="${product.image}" alt="${product.title}" onerror="this.style.display='none'">
-            <img class="camp-product-img-zoom" src="${product.image}" alt="${product.title}">
-          </div>` : 
-          '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
-      </td>
-<td style="width: 300px;">
-  <div style="display: flex; align-items: center;">
-    <div class="camp-product-title">${product.title}</div>
-    ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
-      `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus === 'Revenue Stars' ? '⭐' : product.sellerStatus === 'Best Sellers' ? '🏆' : '📈'} ${product.sellerStatus}</span>` : 
-      ''}
+    html += `
+      <div style="display: flex; gap: 20px; align-items: center;">
+<!-- Distribution Bars for this bucket -->
+<div style="
+  flex: 0 0 140px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(clicksPercent, 100)}%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${clicksPercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        ${clicksPercent.toFixed(1)}%
+      </div>
+    </div>
+    ${Math.abs(clicksPercentChange) >= 0.1 ? `
+      <div style="
+        background: ${clicksPercentChange > 0 ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 32px;
+        text-align: center;
+      ">
+        ${clicksPercentChange > 0 ? '↑' : '↓'} ${Math.abs(clicksPercentChange).toFixed(0)}%
+      </div>
+    ` : '<div style="width: 32px;"></div>'}
   </div>
-</td>
-    `;
-    
-    // Add metric columns with improved progress bars
-    visibleColumns.forEach(col => {
-      const value = product[col.id] || 0;
-      const formattedValue = formatMetricValue(value, getMetricFormat(col.id));
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(revenuePercent, 100)}%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${revenuePercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        ${revenuePercent.toFixed(1)}%
+      </div>
+    </div>
+    ${Math.abs(revenuePercentChange) >= 0.1 ? `
+      <div style="
+        background: ${revenuePercentChange > 0 ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 32px;
+        text-align: center;
+      ">
+        ${revenuePercentChange > 0 ? '↑' : '↓'} ${Math.abs(revenuePercentChange).toFixed(0)}%
+      </div>
+    ` : '<div style="width: 32px;"></div>'}
+  </div>
+  
+<!-- % of Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${Math.min(valuePercent, 100)}%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: ${valuePercent > 10 ? 'white' : '#374151'};
+        z-index: 1;
+      ">
+        $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
+      </div>
+    </div>
+    ${(() => {
+      // Calculate absolute dollar change
+      const prevValue = metrics.valueTrend ? (metrics.value / (1 + metrics.valueTrend / 100)) : metrics.value;
+      const valueAbsoluteChange = metrics.value - prevValue;
       
-      // Add progress bars for specific metrics
-      if (['impressions', 'clicks', 'cost', 'conversions', 'convValue'].includes(col.id)) {
-        const percentage = totals[col.id] > 0 ? (value / totals[col.id] * 100) : 0;
-        rowHTML += `
-          <td class="metric-col">
-            <div class="camp-metric-cell">
-              <div class="camp-metric-value">${formattedValue}</div>
-              <div class="camp-metric-bar-container">
-                <div class="camp-metric-bar">
-                  <div class="camp-metric-bar-fill" style="width: ${percentage}%"></div>
-                </div>
-                <span class="camp-metric-percent">${percentage.toFixed(1)}%</span>
-              </div>
-            </div>
-          </td>`;
-      } else {
-        rowHTML += `<td class="metric-col" style="text-align: right;">
-          <span class="camp-metric" style="font-size: 14px; font-weight: 500;">${formattedValue}</span>
-        </td>`;
-      }
-    });
-    
-    mainRow.innerHTML = rowHTML;
-    
-    // Add click handler for row expansion
-    if (hasDevices) {
-      mainRow.addEventListener('click', function(e) {
-        // Don't trigger on image elements
-        if (e.target.classList.contains('camp-product-img') || 
-            e.target.classList.contains('camp-product-img-zoom')) return;
-        
-        const deviceRows = tbody.querySelectorAll(`.device-row[data-parent-index="${index}"]`);
-        deviceRows.forEach(row => {
-          row.classList.toggle('visible');
-        });
-      });
-    }
-    
-    tbody.appendChild(mainRow);
-    
-// Device rows (initially hidden)
-if (hasDevices) {
-  product.devices.forEach((deviceData, deviceType) => {
-    const deviceRow = document.createElement('tr');
-    deviceRow.className = 'device-row';
-    deviceRow.dataset.parentIndex = index;
-    
-    const deviceClass = deviceType.toLowerCase();
-    const deviceIcon = deviceType === 'MOBILE' ? '📱' : 
-                      deviceType === 'TABLET' ? '📱' : '💻';
-    
-    // Get device-specific POS and Market Share from processed metrics
-    const deviceKey = deviceType.toLowerCase();
-    const deviceMetrics = product.deviceMetrics?.get(deviceKey);
-    const devicePOS = deviceMetrics?.avgPosition || null;
-    const deviceMarketShare = deviceMetrics?.avgVisibility || null;
-    
-    console.log(`Device: ${deviceType}, POS: ${devicePOS}, Share: ${deviceMarketShare}%`);
-    
-    // Position badge class for device
-    let posClass = 'bottom';
-    if (devicePOS) {
-      if (devicePOS <= 3) posClass = 'top';
-      else if (devicePOS <= 8) posClass = 'mid';
-      else if (devicePOS <= 14) posClass = 'low';
-    }
-    
-    // ROAS calculation for device
-    const deviceROAS = deviceData.Cost > 0 ? (deviceData.ConvValue / deviceData.Cost) : 0;
-    let roasClass = 'poor';
-    if (deviceROAS >= 4) roasClass = 'excellent';
-    else if (deviceROAS >= 2) roasClass = 'good';
-    else if (deviceROAS >= 1) roasClass = 'fair';
-    
-    // Device row with POS, SHARE, and ROAS columns populated
-    let deviceRowHTML = `
-<td style="text-align: center;">
-  ${devicePOS !== null && devicePOS !== undefined ? 
-    `<div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
-      <div class="camp-position-indicator ${posClass}" style="width: 28px; height: 28px; font-size: 11px;">${devicePOS}</div>
-      ${deviceMetrics?.trend ? 
-        `<div style="font-size: 8px; color: ${deviceMetrics.trend.color}; font-weight: 600; background: ${deviceMetrics.trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 3px; border-radius: 3px;">${deviceMetrics.trend.text}</div>` : 
-        ''}
-    </div>` : 
-    '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
-</td>
-      <td style="text-align: center;">
-        ${deviceMarketShare !== null && deviceMarketShare !== undefined ? 
-          `<div class="camp-share-bar" style="height: 24px; width: 50px;">
-            <div class="camp-share-fill" style="width: ${Math.min(deviceMarketShare, 100)}%"></div>
-            <div class="camp-share-text" style="font-size: 10px;">${deviceMarketShare.toFixed(1)}%</div>
-          </div>` : 
-          '<span style="color: #adb5bd; font-size: 11px;">-</span>'}
-      </td>
-<td style="text-align: center;">
-  ${deviceData.ConvValue > 0 ? 
-    `<div class="camp-roas-badge ${roasClass}" style="width: 50px; height: 28px; font-size: 11px;">${deviceROAS.toFixed(1)}x</div>` :
-    `<div style="width: 50px; height: 28px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: #9e9e9e;">
-      <span style="display: flex; align-items: center; gap: 2px;">
-        <span style="font-size: 11px;">💤</span>
-        <span>No Sales</span>
-      </span>
-    </div>`}
-</td>
-      <td></td>
-      <td style="padding-left: 20px;">
-        <div class="camp-device-tag ${deviceClass}">
-          ${deviceIcon} ${deviceType}
+      return Math.abs(valueAbsoluteChange) >= 1 ? `
+        <div style="
+          background: ${valueAbsoluteChange > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: 500;
+          white-space: nowrap;
+          min-width: 32px;
+          text-align: center;
+        ">
+          ${valueAbsoluteChange > 0 ? '↑' : '↓'} $${Math.abs(valueAbsoluteChange).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
         </div>
-      </td>
-    `;
-    
-    // Add device metric columns
-    visibleColumns.forEach(col => {
-      const value = getDeviceMetricValue(deviceData, col.id);
-      deviceRowHTML += `<td class="metric-col" style="text-align: right;">
-        <span class="camp-metric" style="font-size: 11px;">${formatMetricValue(value, getMetricFormat(col.id))}</span>
-      </td>`;
-    });
-    
-    deviceRow.innerHTML = deviceRowHTML;
-    tbody.appendChild(deviceRow);
-  });
-}
-  });
-  
-  table.appendChild(tbody);
-  wrapper.appendChild(table);
-
-  // Add event listeners for image hover positioning
-wrapper.querySelectorAll('.camp-product-img-container').forEach(container => {
-  const img = container.querySelector('.camp-product-img');
-  const zoomImg = container.querySelector('.camp-product-img-zoom');
-  
-  if (img && zoomImg) {
-    container.addEventListener('mouseenter', function(e) {
-      const rect = this.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      let left = rect.right + 10;
-      let top = rect.top - 100;
-      
-      // Adjust if would go off right edge
-      if (left + 300 > viewportWidth) {
-        left = rect.left - 310;
-      }
-      
-      // Adjust if would go off top
-      if (top < 10) {
-        top = 10;
-      }
-      
-      // Adjust if would go off bottom
-      if (top + 300 > viewportHeight - 10) {
-        top = viewportHeight - 310;
-      }
-      
-      zoomImg.style.left = `${left}px`;
-      zoomImg.style.top = `${top}px`;
-    });
-  }
-});
-  
-  // Clear container and add new table
-  container.innerHTML = '';
-  container.appendChild(wrapper);
-  
-  // Add event listeners for sorting
-  addImprovedTableEventListeners(wrapper, tableData);
-}
-
-// Get metric format type
-function getMetricFormat(metricId) {
-  const formats = {
-    impressions: 'number',
-    clicks: 'number',
-    ctr: 'percent',
-    avgCpc: 'currency',
-    cost: 'currency',
-    conversions: 'number',
-    cpa: 'currency',
-    convValue: 'currency',
-    cvr: 'percent',
-    aov: 'currency',
-    cpm: 'currency',
-    roas: 'roas',
-    cartRate: 'percent',
-    checkoutRate: 'percent',
-    purchaseRate: 'percent'
-  };
-  return formats[metricId] || 'number';
-}
-
-// Add improved event listeners for the table
-function addImprovedTableEventListeners(wrapper, tableData) {
-  // Store sort state
-  if (!window.campaignSortState) {
-    window.campaignSortState = {};
-  }
-  
-  wrapper.querySelectorAll('th.sortable').forEach(header => {
-    header.addEventListener('click', function() {
-      const column = this.dataset.sort;
-      
-      // Remove previous sort classes from all headers
-      wrapper.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-      });
-      
-      // Toggle sort direction
-      let direction = 'desc'; // Default first click is desc
-      if (window.campaignSortState[column] === 'desc') {
-        direction = 'asc';
-      } else if (window.campaignSortState[column] === 'asc') {
-        direction = 'desc';
-      }
-      
-      // Update sort state
-      window.campaignSortState = { [column]: direction };
-      
-      // Apply sort class
-      this.classList.add(`sorted-${direction}`);
-      
-      // Update sort icon
-      this.querySelector('.camp-sort-icon').textContent = direction === 'asc' ? '↑' : '↓';
-      
-      // Sort data
-      const sortedData = [...tableData].sort((a, b) => {
-        let aVal = column === 'title' ? a.title : a[column];
-        let bVal = column === 'title' ? b.title : b[column];
+      ` : '<div style="width: 32px;"></div>';
+    })()}
+  </div>
+</div>
         
-        // Handle null/undefined values
-        if (aVal == null) aVal = column === 'title' ? '' : 0;
-        if (bVal == null) bVal = column === 'title' ? '' : 0;
-        
-        if (typeof aVal === 'string') {
-          return direction === 'asc' ? 
-            aVal.localeCompare(bVal) : 
-            bVal.localeCompare(aVal);
-        } else {
-          return direction === 'asc' ? 
-            (aVal - bVal) : 
-            (bVal - aVal);
-        }
-      });
-      
-      // Re-render table with sorted data
-      const container = wrapper.parentElement;
-      renderProductsTable(container, sortedData, window.selectedCampaign?.campaignName || '');
-    });
-  });
-}
-
-// Format metric value based on type
-function formatMetricValue(value, format) {
-  if (value === null || value === undefined || value === '') return '-';
-  
-  switch (format) {
-    case 'number':
-      return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    case 'currency':
-      return '$' + value.toFixed(2);
-    case 'percent':
-      return value.toFixed(1) + '%';
-    case 'roas':
-      return value.toFixed(2) + 'x';
-    default:
-      return value;
-  }
-}
-
-// Get device-specific metric value
-function getDeviceMetricValue(deviceData, metric) {
-  const metricMap = {
-    impressions: 'Impressions',
-    clicks: 'Clicks',
-    ctr: 'CTR',
-    avgCpc: 'Avg CPC',
-    cost: 'Cost',
-    conversions: 'Conversions',
-    cpa: 'CPA',
-    convValue: 'ConvValue',
-    cvr: 'CVR',
-    aov: 'AOV',
-    cpm: 'CPM',
-    roas: 'ROAS',
-    cartRate: 'Cart Rate',
-    checkoutRate: 'Checkout Rate',
-    purchaseRate: 'Purchase Rate'
-  };
-  
-  return parseFloat(deviceData[metricMap[metric]] || 0);
-}
-
-// Add table event listeners
-function addTableEventListeners(container, tableData, columns, visibleColumns) {
-  // Expand/collapse device rows
-  container.querySelectorAll('.expand-toggle').forEach(toggle => {
-    toggle.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const row = this.closest('tr');
-      const productIndex = row.getAttribute('data-product-index');
-      const deviceRows = container.querySelectorAll(`tr.device-row[data-parent-index="${productIndex}"]`);
-      
-      this.classList.toggle('expanded');
-      deviceRows.forEach(deviceRow => {
-        deviceRow.classList.toggle('expanded');
-      });
-    });
-  });
-  
-  // Sorting
-  container.querySelectorAll('th.sortable').forEach(header => {
-    header.addEventListener('click', function() {
-      const column = this.getAttribute('data-column');
-      const currentSort = this.classList.contains('sorted-asc') ? 'asc' : 
-                         this.classList.contains('sorted-desc') ? 'desc' : null;
-      
-      // Clear all sort classes
-      container.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-      });
-      
-      // Apply new sort
-      let newSort = currentSort === 'asc' ? 'desc' : 'asc';
-      this.classList.add(`sorted-${newSort}`);
-      
-      // Sort data
-      const sortedData = [...tableData].sort((a, b) => {
-        let aVal = column === 'product' ? a.title : a[column];
-        let bVal = column === 'product' ? b.title : b[column];
-        
-        if (typeof aVal === 'string') {
-          return newSort === 'asc' ? 
-            aVal.localeCompare(bVal) : 
-            bVal.localeCompare(aVal);
-        } else {
-          return newSort === 'asc' ? 
-            (aVal || 0) - (bVal || 0) : 
-            (bVal || 0) - (aVal || 0);
-        }
-      });
-      
-      // Re-render table
-      renderProductsTable(container, sortedData, window.selectedCampaign?.campaignName || '');
-    });
-  });
-}
-
-// Create a campaign product item (similar to google-ads-small-ad-details)
-async function createCampaignProductItem(product) {
-  const productDiv = document.createElement('div');
-  productDiv.className = 'campaign-product-item';
-  
-  // Calculate metrics (reuse existing function if available)
-  const metrics = typeof calculateGoogleAdsProductMetrics === 'function' 
-    ? calculateGoogleAdsProductMetrics(product) 
-    : { avgRating: 0, avgVisibility: 0, activeLocations: 0, inactiveLocations: 0, rankTrend: {}, visibilityTrend: {} };
-  
-  const badgeColor = getGoogleAdsRatingBadgeColor(metrics.avgRating);
-  const imageUrl = product.thumbnail || 'https://via.placeholder.com/60?text=No+Image';
-  const title = product.title || 'No title';
-  
-  productDiv.innerHTML = `
-    <!-- Position Badge -->
-    <div class="small-ad-pos-badge" style="background-color: ${badgeColor}; width: 60px; height: 60px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
-      <div style="font-size: 22px; line-height: 1; color: white; font-weight: 700;">${metrics.avgRating}</div>
-      ${metrics.rankTrend && metrics.rankTrend.arrow ? `
-        <div style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);">
-          <span style="background-color: ${metrics.rankTrend.color}; font-size: 9px; padding: 2px 6px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
-            ${metrics.rankTrend.arrow} ${Math.abs(metrics.rankTrend.change)}
-          </span>
+<!-- Bucket Card -->
+<div class="bucket-stat-card" data-bucket="${bucketName}" style="
+  background: ${window.selectedSearchTermsBucket === bucketName ? '#f8fafc' : '#ffffff'};
+  border: ${window.selectedSearchTermsBucket === bucketName ? `3px solid ${metrics.color}` : '1px solid #e5e7eb'};
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: 70px;
+  flex: 1;
+  ${window.selectedSearchTermsBucket === bucketName ? 'box-shadow: 0 4px 12px rgba(0,0,0,0.15);' : ''}
+">
+  ${window.selectedSearchTermsBucket === bucketName ? `
+    <!-- Selected Indicator -->
+    <div style="
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: ${metrics.color};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    ">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+  ` : ''}
+          <!-- Colored left section -->
+          <div style="
+            flex: 0 0 100px;
+            height: 100%;
+            background: ${metrics.color};
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          ">
+            <div style="
+              font-size: 32px;
+              font-weight: 700;
+              color: white;
+              line-height: 1;
+            ">${metrics.count}</div>
+            <div style="
+              font-size: 11px;
+              color: white;
+              margin-top: 4px;
+              opacity: 0.9;
+            ">terms</div>
+          </div>
+          
+          <!-- Bucket Name Section -->
+          <div style="
+            flex: 0 0 180px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            height: 100%;
+            border-right: 1px solid #e5e7eb;
+          ">
+            <div style="
+              font-size: 14px;
+              font-weight: 600;
+              color: #1f2937;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            ">
+              <div style="
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: ${metrics.color};
+              "></div>
+              ${bucketName}
+            </div>
+          </div>
+          
+        <!-- Metrics Section -->
+<div style="
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+">
+  <!-- Clicks -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Clicks</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.clicks.toLocaleString()}
+      </div>
+      ${metrics.clicksTrend && Math.abs(metrics.clicksTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.clicksTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.clicksTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.clicksTrend).toFixed(0)}%
         </div>
       ` : ''}
     </div>
-    
-    <!-- Visibility Status -->
-    <div class="small-ad-vis-status" style="width: 60px; flex-shrink: 0;">
-      <div style="width: 60px; height: 60px; background: #e3f2fd; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${metrics.avgVisibility}%; background: linear-gradient(to top, #1e88e5, rgba(30, 136, 229, 0.3)); transition: height 0.3s;"></div>
-        <span style="position: relative; z-index: 2; font-size: 11px; font-weight: bold; color: #1565c0;">${metrics.avgVisibility.toFixed(1)}%</span>
-        ${metrics.visibilityTrend && metrics.visibilityTrend.arrow ? `
-          <div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">
-            <span style="background-color: ${metrics.visibilityTrend.color}; font-size: 9px; padding: 2px 6px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 2px; font-weight: 600;">
-              ${metrics.visibilityTrend.arrow} ${Math.abs(metrics.visibilityTrend.change).toFixed(0)}%
-            </span>
-          </div>
-        ` : ''}
+  </div>
+  
+  <!-- Value -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Value</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        $${metrics.value > 0 ? metrics.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '0'}
       </div>
+      ${metrics.valueTrend && Math.abs(metrics.valueTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.valueTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.valueTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.valueTrend).toFixed(0)}%
+        </div>
+      ` : ''}
     </div>
-    
-    <!-- ROAS Badge -->
-    <div class="roas-badge" style="width: 60px; height: 60px; background-color: #fff; border: 2px solid #ddd; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
-      <div style="font-size: 11px; color: #999;">-</div>
+  </div>
+  
+  <!-- Conversions -->
+  <div style="flex: 1; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Conversions</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
+        ${metrics.conversions.toLocaleString()}
+      </div>
+      ${metrics.conversionsTrend && Math.abs(metrics.conversionsTrend) >= 0.1 ? `
+        <div style="
+          display: inline-block;
+          background: ${metrics.conversionsTrend > 0 ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          margin-top: 2px;
+        ">
+          ${metrics.conversionsTrend > 0 ? '↑' : '↓'} ${Math.abs(metrics.conversionsTrend).toFixed(0)}%
+        </div>
+      ` : ''}
     </div>
-    
-    <!-- Product Image -->
-    <img class="small-ad-image" 
-         src="${imageUrl}" 
-         alt="${title}"
-         style="width: 60px; height: 60px; object-fit: contain; border-radius: 4px; flex-shrink: 0;"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=No+Image';">
-    
-    <!-- Product Title -->
-    <div class="small-ad-title" style="flex: 1; font-size: 14px; line-height: 1.4; word-wrap: break-word;">${title}</div>
-    
-    <!-- Metrics placeholder -->
-    <div style="width: 200px; display: flex; gap: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 8px; align-items: center; justify-content: center;">
-      <span style="font-size: 11px; color: #999;">Metrics loading...</span>
+  </div>
+  
+<!-- CTR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CTR</div>
+    <div>
+      <div style="
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.ctr > 3 ? '#059669' : metrics.ctr > 1 ? '#f59e0b' : '#6b7280'};
+      ">${(metrics.ctr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CTR
+        const prevImpressions = metrics.impressions / (1 + (metrics.impressionsTrend || 0) / 100);
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevCTR = prevImpressions > 0 ? (prevClicks / prevImpressions * 100) : 0;
+        const ctrChange = prevCTR > 0 ? ((metrics.ctr - prevCTR) / prevCTR * 100) : 0;
+        
+        return ctrChange && Math.abs(ctrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${ctrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${ctrChange > 0 ? '↑' : '↓'} ${Math.abs(ctrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+  
+  <!-- CVR -->
+  <div style="flex: 0.8; text-align: center;">
+    <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">CVR</div>
+    <div>
+      <div style="
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: ${metrics.cvr > 0 ? '#059669' : '#6b7280'};
+      ">${(metrics.cvr || 0).toFixed(1)}%</div>
+      ${(() => {
+        // Calculate previous CVR
+        const prevClicks = metrics.clicks / (1 + (metrics.clicksTrend || 0) / 100);
+        const prevConversions = metrics.conversions / (1 + (metrics.conversionsTrend || 0) / 100);
+        const prevCVR = prevClicks > 0 ? (prevConversions / prevClicks * 100) : 0;
+        const cvrChange = prevCVR > 0 ? ((metrics.cvr - prevCVR) / prevCVR * 100) : 0;
+        
+        return cvrChange && Math.abs(cvrChange) >= 0.1 ? `
+          <div style="
+            display: inline-block;
+            background: ${cvrChange > 0 ? '#10b981' : '#ef4444'};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+          ">
+            ${cvrChange > 0 ? '↑' : '↓'} ${Math.abs(cvrChange).toFixed(0)}%
+          </div>
+        ` : '';
+      })()}
+    </div>
+  </div>
+</div>
+</div>
+</div>
+`;
+});
+  
+  html += `
+      </div>
     </div>
   `;
   
-  // Add click handler (no functionality for now)
-  productDiv.addEventListener('click', function() {
-    console.log('[Campaign Product] Clicked:', product.title);
-    // Functionality to be added later
+  return { html, bucketMetrics, totalClicks };
+}
+
+/**
+ * Enhanced event listeners with better interactions
+ */
+function addBucketChartEventListeners() {
+  // Card hover and click interactions
+  document.querySelectorAll('.bucket-stat-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      const bucketName = card.getAttribute('data-bucket');
+      if (window.selectedSearchTermsBucket !== bucketName) {
+        card.style.transform = 'translateX(4px)';
+        card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+      }
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      const bucketName = card.getAttribute('data-bucket');
+      if (window.selectedSearchTermsBucket !== bucketName) {
+        card.style.transform = 'translateX(0)';
+        card.style.boxShadow = 'none';
+      }
+    });
+    
+    card.addEventListener('click', () => {
+      const bucketName = card.getAttribute('data-bucket');
+      
+      // Toggle selection
+      if (window.selectedSearchTermsBucket === bucketName) {
+        // Deselect
+        window.selectedSearchTermsBucket = null;
+      } else {
+        // Select new bucket
+        window.selectedSearchTermsBucket = bucketName;
+      }
+      
+      // Reset pagination when filtering changes
+      window.searchTermsCurrentPage = 1;
+      
+      // Re-render the entire table
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  });
+}
+
+/**
+ * Event handlers
+ */
+function handleSearchTermsFilter(filter) {
+  window.searchTermsFilter = filter;
+  window.searchTermsCurrentPage = 1; // Reset to first page
+  renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+}
+
+function handleSearchTermsSort(column) {
+  if (window.searchTermsSortColumn === column) {
+    window.searchTermsSortAscending = !window.searchTermsSortAscending;
+  } else {
+    window.searchTermsSortColumn = column;
+    window.searchTermsSortAscending = false;
+  }
+  
+  sortSearchTermsData();
+  window.searchTermsCurrentPage = 1; // Reset to first page
+  renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+}
+
+function changeSearchTermsPage(direction) {
+  const currentPage = window.searchTermsCurrentPage;
+  const totalPages = Math.ceil(getFilteredSearchTermsData().length / window.searchTermsPerPage);
+  
+  const newPage = currentPage + direction;
+  if (newPage >= 1 && newPage <= totalPages) {
+    window.searchTermsCurrentPage = newPage;
+    renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+  }
+}
+
+/**
+ * Load channel breakdown data for a search term
+ */
+async function loadChannelDataForSearchTerm(searchTerm) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    // Also get 90d table for trend comparison
+    const tableName90d = `${tablePrefix}googleSheets_searchTerms_90d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    
+    // Load current data
+    const getRequest = objectStore.get(tableName);
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    // Load 90d data for trends
+    const getRequest90d = objectStore.get(tableName90d);
+    const result90d = await new Promise((resolve, reject) => {
+      getRequest90d.onsuccess = () => resolve(getRequest90d.result);
+      getRequest90d.onerror = () => reject(getRequest90d.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return [];
+    
+    // Filter for this search term and channel-level aggregations
+    const currentData = result.data.filter(item => 
+      item.Query === searchTerm && 
+      item.Campaign_Name === 'all' && 
+      item.Channel_Type !== 'all'
+    );
+    
+    // Create trend map from 90d data
+    const trend90dMap = {};
+    if (result90d && result90d.data) {
+      result90d.data
+        .filter(item => 
+          item.Query === searchTerm && 
+          item.Campaign_Name === 'all' && 
+          item.Channel_Type !== 'all'
+        )
+        .forEach(item => {
+          trend90dMap[item.Channel_Type] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        });
+    }
+    
+    // Add trend data to current data
+    currentData.forEach(item => {
+      item['Trend Data'] = trend90dMap[item.Channel_Type] || null;
+    });
+    
+    return currentData;
+  } catch (error) {
+    console.error('[Channel Data] Error loading:', error);
+    return [];
+  }
+}
+
+/**
+ * Load campaign breakdown data for a search term
+ */
+async function loadCampaignDataForSearchTerm(searchTerm) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    // Also get 90d table for trend comparison
+    const tableName90d = `${tablePrefix}googleSheets_searchTerms_90d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    
+    // Load current data
+    const getRequest = objectStore.get(tableName);
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    // Load 90d data for trends
+    const getRequest90d = objectStore.get(tableName90d);
+    const result90d = await new Promise((resolve, reject) => {
+      getRequest90d.onsuccess = () => resolve(getRequest90d.result);
+      getRequest90d.onerror = () => reject(getRequest90d.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return [];
+    
+    // Filter for this search term and individual campaigns
+    const currentData = result.data.filter(item => 
+      item.Query === searchTerm && 
+      item.Campaign_Name !== 'all'
+    );
+    
+    // Create trend map from 90d data
+    const trend90dMap = {};
+    if (result90d && result90d.data) {
+      result90d.data
+        .filter(item => 
+          item.Query === searchTerm && 
+          item.Campaign_Name !== 'all'
+        )
+        .forEach(item => {
+          const key = `${item.Campaign_Name}|||${item.Channel_Type}`;
+          trend90dMap[key] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        });
+    }
+    
+    // Add trend data to current data
+    currentData.forEach(item => {
+      const key = `${item.Campaign_Name}|||${item.Channel_Type}`;
+      item['Trend Data'] = trend90dMap[key] || null;
+    });
+    
+    return currentData;
+  } catch (error) {
+    console.error('[Campaign Data] Error loading:', error);
+    return [];
+  }
+}
+
+/**
+ * Render channel type sub-rows
+ */
+function renderChannelTypeSubRows(channelData, searchTerm) {
+  if (!channelData || channelData.length === 0) return '';
+  
+  let html = '';
+  
+  channelData.forEach((data, index) => {
+    const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
+    const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
+    
+    // Get trend data
+    const trendData = data['Trend Data'];
+    
+    // Channel icon
+    const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
+    const channelColor = data.Channel_Type === 'PMax' ? '#8b5cf6' : '#3b82f6';
+    
+    html += `
+      <tr class="channel-type-subrow" style="background: ${index % 2 === 0 ? '#f0f7ff' : '#e8f3ff'};">
+        <td style="padding: 8px; text-align: center;">
+          <div style="width: 24px; height: 24px; margin: 0 auto; font-size: 16px;">
+            ${channelIcon}
+          </div>
+        </td>
+        <td style="padding: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="
+              background: ${channelColor};
+              color: white;
+              padding: 3px 10px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+            ">${data.Channel_Type}</span>
+          </div>
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Impressions, trendData?.Impressions, 'impressions')}
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Clicks, trendData?.Clicks, 'clicks')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Conversions, trendData?.Conversions, 'conversions')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Value, trendData?.Value, 'value')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">
+          ${(data['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
   });
   
-  return productDiv;
+  return html;
 }
 
-// Helper function to get rating badge color
-function getGoogleAdsRatingBadgeColor(rating) {
-  if (rating >= 1 && rating <= 3) return '#4CAF50'; // Green
-  if (rating >= 4 && rating <= 8) return '#FFC107'; // Yellow
-  if (rating >= 9 && rating <= 14) return '#FF9800'; // Orange
-  return '#F44336'; // Red
-}
-
-// Helper function to get project table prefix
-function getProjectTablePrefix() {
-  const accountPrefix = window.currentAccount || 'acc1';
-  const currentProjectNum = window.dataPrefix ? 
-    parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
-  return `${accountPrefix}_pr${currentProjectNum}_`;
-}
-
-// Render empty state
-function renderEmptyCampaignsState() {
-  const container = document.getElementById('campaigns_overview_container');
-  if (!container) return;
+/**
+ * Render campaign sub-rows
+ */
+function renderCampaignSubRows(campaignData, searchTerm) {
+  if (!campaignData || campaignData.length === 0) return '';
   
-  container.innerHTML = `
-    <div class="campaigns-empty-state" style="height: 100%; display: flex; align-items: center; justify-content: center;">
-      <div style="text-align: center;">
-        <div class="campaigns-empty-icon" style="font-size: 64px; margin-bottom: 20px;">📊</div>
-        <div class="campaigns-empty-title" style="font-size: 24px; font-weight: 600; margin-bottom: 10px;">No Campaigns Data Available</div>
-        <div class="campaigns-empty-text" style="font-size: 16px; color: #666;">Campaign data will appear here once it's available in the system</div>
-      </div>
-    </div>
-  `;
+  let html = '';
+  
+  // Sort by value descending
+  campaignData.sort((a, b) => (b.Value || 0) - (a.Value || 0));
+  
+  campaignData.forEach((data, index) => {
+    const ctr = data.Impressions > 0 ? (data.Clicks / data.Impressions * 100).toFixed(2) : 0;
+    const cvr = data.Clicks > 0 ? (data.Conversions / data.Clicks * 100).toFixed(2) : 0;
+    
+    // Get trend data
+    const trendData = data['Trend Data'];
+    
+    // Channel icon
+    const channelIcon = data.Channel_Type === 'PMax' ? '🎯' : '🛒';
+    
+    // Truncate long campaign names
+    const campaignName = data.Campaign_Name.length > 30 
+      ? data.Campaign_Name.substring(0, 27) + '...' 
+      : data.Campaign_Name;
+    
+    html += `
+      <tr class="campaign-subrow" style="background: ${index % 2 === 0 ? '#fff8f0' : '#fff4e6'};">
+        <td style="padding: 8px; text-align: center;">
+          <div style="width: 24px; height: 24px; margin: 0 auto; font-size: 16px;">
+            ${channelIcon}
+          </div>
+        </td>
+        <td style="padding: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 12px; font-weight: 600; color: #333;" title="${data.Campaign_Name}">
+              ${campaignName}
+            </span>
+            <span style="font-size: 10px; color: #666;">
+              ${data.Channel_Type}
+            </span>
+          </div>
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Impressions, trendData?.Impressions, 'impressions')}
+        </td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Clicks, trendData?.Clicks, 'clicks')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${ctr > 5 ? '#4CAF50' : ctr > 2 ? '#FF9800' : '#F44336'};">${ctr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Conversions, trendData?.Conversions, 'conversions')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px; color: ${parseFloat(cvr) > 0 ? '#4CAF50' : '#F44336'};">${cvr}%</td>
+        <td style="padding: 8px; text-align: center;">
+          ${getMetricWithTrend(data.Value, trendData?.Value, 'value')}
+        </td>
+        <td style="padding: 8px; text-align: center; font-size: 13px;">
+          ${(data['% of all revenue'] * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `;
+  });
+  
+  return html;
 }
 
-// Export initialization function
-window.initializeCampaignsSection = initializeCampaignsSection;
+/**
+ * Load product ranking data for all visible search terms
+ */
+async function loadProductRankingDataForAllTerms() {
+  console.log("[Search Terms] Loading product ranking data for all terms...");
+  
+  const subRows = document.querySelectorAll('.product-ranking-rows');
+  const promises = [];
+  
+  subRows.forEach(subRow => {
+    const searchTerm = subRow.getAttribute('data-search-term');
+    if (searchTerm) {
+      const promise = renderProductRankingSubRows(searchTerm).then(html => {
+        if (html) {
+          subRow.innerHTML = html;
+          // Render pie charts for this search term
+          setTimeout(() => {
+            renderSearchTermPieCharts(searchTerm);
+          }, 50);
+          subRow.style.display = 'table-row-group';
+        }
+      });
+      promises.push(promise);
+    }
+  });
+  
+  await Promise.all(promises);
+  console.log("[Search Terms] Product ranking data loaded for all terms");
+}
+
+/**
+ * Attach event listeners
+ */
+function attachSearchTermsEventListeners() {
+  console.log("[Search Terms] Attaching event listeners");
+  
+  // Pagination
+  const prevBtn = document.getElementById('searchTermsPrevBtn');
+  const nextBtn = document.getElementById('searchTermsNextBtn');
+  const pageSelect = document.getElementById('searchTermsPageSelect');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => changeSearchTermsPage(-1));
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => changeSearchTermsPage(1));
+  }
+  
+  if (pageSelect) {
+    pageSelect.addEventListener('change', (e) => {
+      window.searchTermsCurrentPage = parseInt(e.target.value);
+      renderSearchTermsTableInternal(document.getElementById('searchTermsContainer'));
+    });
+  }
+  
+  // Sorting
+  const sortableHeaders = document.querySelectorAll('.sortable');
+  sortableHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const column = this.getAttribute('data-column');
+      handleSearchTermsSort(column);
+    });
+  });
+  
+  // Filter buttons
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const filter = this.getAttribute('data-filter');
+      handleSearchTermsFilter(filter);
+    });
+  });
+
+  // Product Ranking toggle functionality
+  const productRankingToggle = document.getElementById('productRankingToggle');
+  if (productRankingToggle) {
+    // Restore saved state
+    productRankingToggle.checked = window.productRankingToggleState || false;
+    
+    // Style the toggle based on state
+    const toggleSlider = productRankingToggle.nextElementSibling;
+    if (toggleSlider) {
+      if (productRankingToggle.checked) {
+        toggleSlider.style.backgroundColor = '#007aff';
+      }
+    }
+    
+    // Apply initial state
+    if (productRankingToggle.checked) {
+      const allSubRows = document.querySelectorAll('.product-ranking-rows');
+      const promises = [];
+      
+      allSubRows.forEach(subRows => {
+        const searchTerm = subRows.getAttribute('data-search-term');
+        if (searchTerm) {
+          const promise = renderProductRankingSubRows(searchTerm).then(html => {
+            if (html) {
+              subRows.innerHTML = html;
+              // Render pie charts for this search term
+              setTimeout(() => {
+                renderSearchTermPieCharts(searchTerm);
+              }, 50);
+              subRows.style.display = 'table-row-group';
+            }
+          });
+          promises.push(promise);
+        }
+      });
+      
+      Promise.all(promises);
+    }
+    
+    productRankingToggle.addEventListener('change', function() {
+      window.productRankingToggleState = this.checked;
+      
+      // Update toggle styling
+      const toggleSlider = this.nextElementSibling;
+      if (toggleSlider) {
+        if (this.checked) {
+          toggleSlider.style.backgroundColor = '#007aff';
+        } else {
+          toggleSlider.style.backgroundColor = '#ccc';
+        }
+      }
+      
+      const allSubRows = document.querySelectorAll('.product-ranking-rows');
+      
+      if (this.checked) {
+        // Load and show product ranking data
+        loadProductRankingDataForAllTerms();
+      } else {
+        // Hide all sub-rows
+        allSubRows.forEach(subRows => {
+          if (subRows.innerHTML) {
+            const rows = subRows.querySelectorAll('.product-ranking-subrow');
+            rows.forEach((row, i) => {
+              row.style.transition = 'all 0.3s ease';
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+            });
+            setTimeout(() => {
+              subRows.style.display = 'none';
+              // Clear the HTML to force re-render next time
+              subRows.innerHTML = '';
+            }, 300);
+          }
+        });
+}
+    });
+  }
+
+  // Channel Types toggle functionality
+const channelTypesToggle = document.getElementById('channelTypesToggle');
+if (channelTypesToggle) {
+  // Restore saved state
+  channelTypesToggle.checked = window.searchTermsChannelToggleState || false;
+  
+  // Style the toggle based on state
+  const toggleSlider = channelTypesToggle.nextElementSibling;
+  if (toggleSlider && channelTypesToggle.checked) {
+    toggleSlider.style.backgroundColor = '#007aff';
+  }
+  
+  channelTypesToggle.addEventListener('change', async function() {
+    window.searchTermsChannelToggleState = this.checked;
+    
+    // Update toggle styling
+    const toggleSlider = this.nextElementSibling;
+    if (toggleSlider) {
+      toggleSlider.style.backgroundColor = this.checked ? '#007aff' : '#ccc';
+    }
+    
+    if (this.checked) {
+      // Turn off campaigns toggle if it's on
+      const campaignsToggle = document.getElementById('campaignsToggle');
+      if (campaignsToggle && campaignsToggle.checked) {
+        campaignsToggle.checked = false;
+        window.searchTermsCampaignToggleState = false;
+        const campaignsSlider = campaignsToggle.nextElementSibling;
+        if (campaignsSlider) campaignsSlider.style.backgroundColor = '#ccc';
+        
+        // Hide campaign rows
+        document.querySelectorAll('.campaign-rows').forEach(tbody => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        });
+      }
+      
+      // Load and show channel data
+      const allChannelRows = document.querySelectorAll('.channel-type-rows');
+      for (const tbody of allChannelRows) {
+        const searchTerm = tbody.getAttribute('data-search-term');
+        if (searchTerm) {
+          const channelData = await loadChannelDataForSearchTerm(searchTerm);
+          const html = renderChannelTypeSubRows(channelData, searchTerm);
+          if (html) {
+            tbody.innerHTML = html;
+            tbody.style.display = 'table-row-group';
+            
+            // Animate appearance
+            const rows = tbody.querySelectorAll('.channel-type-subrow');
+            rows.forEach((row, i) => {
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+              setTimeout(() => {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+              }, i * 50);
+            });
+          }
+        }
+      }
+    } else {
+      // Hide channel rows
+      document.querySelectorAll('.channel-type-rows').forEach(tbody => {
+        const rows = tbody.querySelectorAll('.channel-type-subrow');
+        rows.forEach((row, i) => {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+        });
+        setTimeout(() => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        }, 300);
+      });
+    }
+  });
+}
+
+// Campaigns toggle functionality
+const campaignsToggle = document.getElementById('campaignsToggle');
+if (campaignsToggle) {
+  // Restore saved state
+  campaignsToggle.checked = window.searchTermsCampaignToggleState || false;
+  
+  // Style the toggle based on state
+  const toggleSlider = campaignsToggle.nextElementSibling;
+  if (toggleSlider && campaignsToggle.checked) {
+    toggleSlider.style.backgroundColor = '#007aff';
+  }
+  
+  campaignsToggle.addEventListener('change', async function() {
+    window.searchTermsCampaignToggleState = this.checked;
+    
+    // Update toggle styling
+    const toggleSlider = this.nextElementSibling;
+    if (toggleSlider) {
+      toggleSlider.style.backgroundColor = this.checked ? '#007aff' : '#ccc';
+    }
+    
+    if (this.checked) {
+      // Turn off channel types toggle if it's on
+      const channelToggle = document.getElementById('channelTypesToggle');
+      if (channelToggle && channelToggle.checked) {
+        channelToggle.checked = false;
+        window.searchTermsChannelToggleState = false;
+        const channelSlider = channelToggle.nextElementSibling;
+        if (channelSlider) channelSlider.style.backgroundColor = '#ccc';
+        
+        // Hide channel rows
+        document.querySelectorAll('.channel-type-rows').forEach(tbody => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        });
+      }
+      
+      // Load and show campaign data
+      const allCampaignRows = document.querySelectorAll('.campaign-rows');
+      for (const tbody of allCampaignRows) {
+        const searchTerm = tbody.getAttribute('data-search-term');
+        if (searchTerm) {
+          const campaignData = await loadCampaignDataForSearchTerm(searchTerm);
+          const html = renderCampaignSubRows(campaignData, searchTerm);
+          if (html) {
+            tbody.innerHTML = html;
+            tbody.style.display = 'table-row-group';
+            
+            // Animate appearance
+            const rows = tbody.querySelectorAll('.campaign-subrow');
+            rows.forEach((row, i) => {
+              row.style.opacity = '0';
+              row.style.transform = 'translateY(-10px)';
+              setTimeout(() => {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+              }, i * 50);
+            });
+          }
+        }
+      }
+    } else {
+      // Hide campaign rows
+      document.querySelectorAll('.campaign-rows').forEach(tbody => {
+        const rows = tbody.querySelectorAll('.campaign-subrow');
+        rows.forEach((row, i) => {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(-10px)';
+        });
+        setTimeout(() => {
+          tbody.style.display = 'none';
+          tbody.innerHTML = '';
+        }, 300);
+      });
+    }
+  });
+}
+  
+  // Render bucket pie chart and add interactions
+  setTimeout(() => {
+    // Pie chart removed - now using horizontal bars
+    addBucketChartEventListeners();
+  }, 200);
+}
+
+/**
+ * Add search terms styles
+ */
+function addSearchTermsStyles() {
+  if (!document.getElementById("search-terms-styles")) {
+    const style = document.createElement("style");
+    style.id = "search-terms-styles";
+    style.textContent = `
+      .search-terms-table {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .search-terms-table tr:hover {
+        opacity: 0.95;
+      }
+
+      .pagination-controls button:not(:disabled):hover {
+        background-color: #f0f0f0 !important;
+        border-color: #999 !important;
+      }
+
+      .pagination-controls button:disabled {
+        opacity: 0.5;
+      }
+
+      .search-terms-table th.sortable:hover {
+        background: linear-gradient(to bottom, #f0f0f0, #e8e8e8) !important;
+      }
+
+      .search-terms-table tbody tr {
+        transition: all 0.2s ease;
+      }
+
+      .pagination-controls button:not(:disabled):hover {
+        transform: scale(1.05);
+      }
+      
+      .search-terms-table td {
+        vertical-align: middle;
+      }
+      
+      .filter-btn:not(.active):hover {
+        background: rgba(0, 0, 0, 0.05) !important;
+      }
+      
+      .filter-btn {
+        transition: all 0.2s ease;
+      }
+      
+      .filter-btn.active {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .product-ranking-toggle input:checked + .product-ranking-slider {
+        background-color: #007aff;
+      }
+
+      .product-ranking-toggle input:checked + .product-ranking-slider span {
+        transform: translateX(20px);
+      }
+
+      .product-ranking-toggle {
+        transition: box-shadow 0.3s ease;
+      }
+
+      .product-ranking-subrow {
+        transition: all 0.3s ease;
+      }
+
+      .product-ranking-subrow:hover {
+        background-color: #e8f0fe !important;
+      }
+      
+      .search-term-tag {
+        display: inline-block;
+        background-color: #e8f0fe;
+        color: #1a73e8;
+        border-radius: 16px;
+        padding: 6px 12px;
+        font-weight: 500;
+        font-size: 14px;
+        border-left: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        max-width: 90%;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        hyphens: auto;
+        white-space: normal;
+        line-height: 1.4;
+        text-align: center;
+      }
+.bucket-stat-card {
+        box-shadow: none;
+      }
+      
+      .bucket-stat-card:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db !important;
+      }
+      
+      .bucket-stat-card:active {
+        transform: translateX(2px);
+      }
+      .small-product-ranking {
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.small-product-ranking:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  background: linear-gradient(135deg, #e8f4ff 0%, #d6e7f7 100%) !important;
+}
+.channel-types-toggle input:checked + .channel-types-slider,
+.campaigns-toggle input:checked + .campaigns-slider {
+  background-color: #007aff;
+}
+
+.channel-types-toggle input:checked + .channel-types-slider span,
+.campaigns-toggle input:checked + .campaigns-slider span {
+  transform: translateX(20px);
+}
+
+.channel-type-subrow,
+.campaign-subrow {
+  transition: all 0.3s ease;
+}
+
+.channel-type-subrow:hover {
+  background-color: #d4e6ff !important;
+}
+
+.campaign-subrow:hover {
+  background-color: #ffe8cc !important;
+}
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+// Make functions globally available
+window.renderSearchTermsTable = renderSearchTermsTable;
+window.loadAndRenderSearchTerms = loadAndRenderSearchTerms;
+window.changeSearchTermsPage = changeSearchTermsPage;
+
+// Add styles immediately
+addSearchTermsStyles();
+
+console.log("[Search Terms] search_terms_tab.js loaded successfully");
