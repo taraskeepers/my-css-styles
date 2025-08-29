@@ -1047,6 +1047,31 @@ function addCampaignsStyles() {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
 }
+
+/* Search Terms Table - Override column widths to use full width */
+#campaignsSearchTermsPanel .camp-table-modern {
+  width: 100%;
+}
+
+#campaignsSearchTermsPanel .camp-table-modern table {
+  width: 100%;
+  table-layout: auto;
+}
+
+#campaignsSearchTermsPanel .camp-table-modern th:nth-child(1),
+#campaignsSearchTermsPanel .camp-table-modern td:nth-child(1) { 
+  width: 5% !important; 
+}
+
+#campaignsSearchTermsPanel .camp-table-modern th:nth-child(2),
+#campaignsSearchTermsPanel .camp-table-modern td:nth-child(2) { 
+  width: 30% !important; 
+}
+
+#campaignsSearchTermsPanel .camp-table-modern th:nth-child(n+3),
+#campaignsSearchTermsPanel .camp-table-modern td:nth-child(n+3) { 
+  width: 9.28% !important; 
+}
     `;
     document.head.appendChild(style);
   }
