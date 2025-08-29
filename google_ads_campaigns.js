@@ -1311,260 +1311,201 @@ searchTermsPanel.innerHTML = `
         <span>${dateRangeText}</span>
       </div>
     </div>
-    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <!-- All Terms -->
-        <div class="bucket-card" data-bucket="all" style="cursor: pointer; position: relative;">
-          <div class="bucket-box" style="background: #007aff; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #007aff;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">All Terms</div>
+        <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">All Search</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="width: 10px; height: 10px; background: #2196F3; border-radius: 2px;"></span>
-                <span style="font-size: 10px; color: #666;">% of Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">100%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 100%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">100%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="width: 10px; height: 10px; background: #FF9800; border-radius: 2px;"></span>
-                <span style="font-size: 10px; color: #666;">% of Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">100%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 100%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">100%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="width: 10px; height: 10px; background: #4CAF50; border-radius: 2px;"></span>
-                <span style="font-size: 10px; color: #666;">% of Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 100%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- Top Search Terms -->
         <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #FFC107; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">Top Search</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #FFC107; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Top Search</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- Zero Converting Terms -->
         <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #F44336; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">Zero Conv</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #F44336; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Zero Converting</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #F44336; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #ffebee; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #F44336;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #999; background: #f5f5f5; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #f5f5f5; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #ccc;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #999; background: #f5f5f5; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #f5f5f5; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #ccc;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #F44336; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- High Revenue Terms -->
         <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #4CAF50; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">High Revenue</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #4CAF50; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">High Revenue</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- Hidden Gems -->
         <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #2196F3; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">Hidden Gems</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #2196F3; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Hidden</div>
+                <div style="font-size: 13px; color: #333;">Gems</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- Low Performance -->
         <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #9E9E9E; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">Low Perf</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Low</div>
+                <div style="font-size: 13px; color: #333;">Performance</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
         <!-- Mid-Performance -->
         <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
-          <div class="bucket-box" style="background: #FF9800; color: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div class="bucket-count" style="font-size: 28px; font-weight: 700; line-height: 1;">0</div>
-            <div style="font-size: 12px; margin-top: 4px;">Mid-Perf</div>
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #FF9800; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Mid</div>
+                <div style="font-size: 13px; color: #333;">Performance</div>
+              </div>
+            </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; background: white; border-radius: 4px; padding: 6px; border: 1px solid #e0e0e0;">
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Clicks</span>
-                <span class="clicks-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #2196F3; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #e3f2fd; border-radius: 3px; overflow: hidden;">
-                <div class="clicks-bar" style="width: 0%; height: 100%; background: #2196F3;"></div>
-              </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="clicks-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #2196F3; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Clicks</span>
             </div>
-            <div class="metric-row" style="margin-bottom: 4px;">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Revenue</span>
-                <span class="revenue-value" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #FF9800; padding: 1px 4px; border-radius: 3px;">0%</span>
-              </div>
-              <div style="height: 6px; background: #fff3e0; border-radius: 3px; overflow: hidden;">
-                <div class="revenue-bar" style="width: 0%; height: 100%; background: #FF9800;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="revenue-value" style="font-size: 11px; font-weight: 600; color: #fff; background: #FF9800; padding: 2px 6px; border-radius: 3px;">0%</span>
+              <span style="font-size: 11px; color: #666;">Revenue</span>
             </div>
-            <div class="metric-row">
-              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
-                <span style="font-size: 10px; color: #666;">Value</span>
-                <span class="value-amount" style="margin-left: auto; font-size: 10px; font-weight: 600; color: #fff; background: #4CAF50; padding: 1px 4px; border-radius: 3px;">$0</span>
-              </div>
-              <div style="height: 6px; background: #e8f5e9; border-radius: 3px; overflow: hidden;">
-                <div class="value-bar" style="width: 0%; height: 100%; background: #4CAF50;"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="value-amount" style="font-size: 11px; font-weight: 600; color: #fff; background: #4CAF50; padding: 2px 6px; border-radius: 3px;">$0</span>
+              <span style="font-size: 11px; color: #666;">Value</span>
             </div>
           </div>
         </div>
@@ -3143,38 +3084,38 @@ function updateBucketUI(stats) {
     const bucketType = card.getAttribute('data-bucket');
     const countElement = card.querySelector('.bucket-count');
     const clicksValue = card.querySelector('.clicks-value');
-    const clicksBar = card.querySelector('.clicks-bar');
     const revenueValue = card.querySelector('.revenue-value');
-    const revenueBar = card.querySelector('.revenue-bar');
     const valueAmount = card.querySelector('.value-amount');
-    const valueBar = card.querySelector('.value-bar');
     
     if (stats[bucketType]) {
       // Update count
       countElement.textContent = stats[bucketType].count;
       
-      // Update clicks
+      // Update metrics - format exactly like in the screenshot
       const clicksPct = stats[bucketType].clicksPercent.toFixed(1);
-      clicksValue.textContent = clicksPct + '%';
-      clicksBar.style.width = clicksPct + '%';
-      
-      // Update revenue
       const revenuePct = stats[bucketType].revenuePercent.toFixed(1);
-      revenueValue.textContent = revenuePct + '%';
-      revenueBar.style.width = revenuePct + '%';
-      
-      // Update value (show dollar amount)
       const valueAmt = stats[bucketType].value;
-      valueAmount.textContent = '$' + valueAmt.toLocaleString('en-US', { maximumFractionDigits: 0 });
-      valueBar.style.width = stats[bucketType].valuePercent.toFixed(1) + '%';
       
-      // Special handling for zero converting terms
-      if (bucketType === 'Zero Converting Terms') {
-        revenueValue.style.background = '#f5f5f5';
-        revenueValue.style.color = '#999';
-        valueAmount.style.background = '#f5f5f5';
-        valueAmount.style.color = '#999';
+      // For Clicks - always use blue
+      clicksValue.textContent = clicksPct + '%';
+      clicksValue.style.background = '#2196F3';
+      
+      // For Revenue - use orange except for zero converting terms
+      if (bucketType === 'Zero Converting Terms' && stats[bucketType].revenue === 0) {
+        revenueValue.textContent = '$0';
+        revenueValue.style.background = '#F44336';
+      } else {
+        revenueValue.textContent = revenuePct + '%';
+        revenueValue.style.background = '#FF9800';
       }
+      
+      // For Value - format as currency
+      if (valueAmt >= 1000) {
+        valueAmount.textContent = '$' + (valueAmt / 1000).toFixed(1) + 'k';
+      } else {
+        valueAmount.textContent = '$' + valueAmt.toFixed(0);
+      }
+      valueAmount.style.background = '#4CAF50';
     }
   });
 }
