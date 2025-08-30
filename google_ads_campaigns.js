@@ -1047,6 +1047,111 @@ function addCampaignsStyles() {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
 }
+/* Campaign Analysis Container Styles */
+.campaign-analysis-container {
+  height: 250px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+  padding: 15px;
+  display: flex;
+  gap: 12px;
+}
+
+.campaign-analysis-section {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.campaign-analysis-section-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Searches section specific styles */
+.campaign-searches-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.campaign-search-bucket-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: white;
+  border-radius: 4px;
+  min-height: 28px;
+}
+
+.campaign-search-bucket-count {
+  width: 40px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.campaign-search-bucket-name {
+  width: 80px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.campaign-search-bucket-bar {
+  flex: 1;
+  height: 18px;
+  background: #e5e7eb;
+  border-radius: 9px;
+  position: relative;
+  overflow: hidden;
+}
+
+.campaign-search-bucket-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.campaign-search-bucket-bar-text {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #374151;
+  z-index: 1;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1238,12 +1343,22 @@ filterContainer.className = 'campaigns-filter-container';
       
       const view = this.getAttribute('data-view');
       
-      if (view === 'products') {
-        productsPanel.style.display = 'flex';
-        searchTermsPanel.style.display = 'none';
-      } else if (view === 'search-terms') {
-        productsPanel.style.display = 'none';
-        searchTermsPanel.style.display = 'flex';
+if (view === 'products') {
+  productsPanel.style.display = 'flex';
+  searchTermsPanel.style.display = 'none';
+  // Show products analysis container
+  const prodAnalysis = document.getElementById('campaignAnalysisContainer');
+  if (prodAnalysis) prodAnalysis.style.display = 'flex';
+  const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
+  if (searchAnalysis) searchAnalysis.style.display = 'none';
+} else if (view === 'search-terms') {
+  productsPanel.style.display = 'none';
+  searchTermsPanel.style.display = 'flex';
+  // Show search terms analysis container
+  const prodAnalysis = document.getElementById('campaignAnalysisContainer');
+  if (prodAnalysis) prodAnalysis.style.display = 'none';
+  const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
+  if (searchAnalysis) searchAnalysis.style.display = 'flex';
         
         // Load search terms if campaign is selected
         if (window.selectedCampaign) {
@@ -1272,6 +1387,32 @@ startDate.setDate(startDate.getDate() - 30);
 const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
 productsPanel.innerHTML = `
+  <div class="campaign-analysis-container" id="campaignAnalysisContainer">
+    <div class="campaign-analysis-section" id="campaignAnalysisEfficiency">
+      <div class="campaign-analysis-section-header">Efficiency</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisProducts">
+      <div class="campaign-analysis-section-header">Products</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisSearches">
+      <div class="campaign-analysis-section-header">Searches</div>
+      <div class="campaign-searches-content" id="campaignSearchesContent">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisDevices">
+      <div class="campaign-analysis-section-header">Devices</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+  </div>
   <div class="campaigns-products-header">
     <div>
       <h3 class="campaigns-products-title">Campaign Products</h3>
@@ -1300,6 +1441,33 @@ productsPanel.innerHTML = `
 const searchTermsPanel = document.createElement('div');
 searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
+  <div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
+    <!-- Same analysis container structure as products panel -->
+    <div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
+      <div class="campaign-analysis-section-header">Efficiency</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
+      <div class="campaign-analysis-section-header">Products</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisSearchesSearchTerms">
+      <div class="campaign-analysis-section-header">Searches</div>
+      <div class="campaign-searches-content" id="campaignSearchesContentSearchTerms">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisDevicesSearchTerms">
+      <div class="campaign-analysis-section-header">Devices</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+  </div>
   <div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
       <div>
@@ -2997,6 +3165,17 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   }
   
   headerInfo.textContent = `Loading products for ${campaignName}...`;
+
+  // Clear searches analysis when loading products
+const searchesContainers = [
+  document.getElementById('campaignSearchesContent'),
+  document.getElementById('campaignSearchesContentSearchTerms')
+];
+searchesContainers.forEach(container => {
+  if (container) {
+    container.innerHTML = '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">Select Search Terms view to see data</div>';
+  }
+});
   
   try {
     // Get product titles for this campaign from campaign mapping
@@ -3311,6 +3490,9 @@ const filteredData = searchTermsResult.data.filter(item =>
       
       // Update UI with statistics
       updateBucketUI(bucketStats);
+      
+      // Populate searches analysis section
+populateSearchesAnalysis(bucketStats);
       
       // Get all bucket cards
       const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
@@ -4173,6 +4355,64 @@ async function updateBucketUI(stats) {
         `;
       }
     }
+  });
+}
+
+// Populate the searches analysis section
+function populateSearchesAnalysis(bucketStats) {
+  // Define bucket order (most important to least)
+  const bucketOrder = [
+    { key: 'Top Search Terms', color: '#FFC107', shortName: 'Top Terms' },
+    { key: 'High Revenue Terms', color: '#4CAF50', shortName: 'High Revenue' },
+    { key: 'Hidden Gems', color: '#2196F3', shortName: 'Hidden Gems' },
+    { key: 'Mid-Performance', color: '#FF9800', shortName: 'Mid Perf' },
+    { key: 'Low Performance', color: '#9E9E9E', shortName: 'Low Perf' },
+    { key: 'Zero Converting Terms', color: '#F44336', shortName: 'Zero Conv' }
+  ];
+  
+  // Get both containers (for products and search terms views)
+  const containers = [
+    document.getElementById('campaignSearchesContent'),
+    document.getElementById('campaignSearchesContentSearchTerms')
+  ];
+  
+  containers.forEach(container => {
+    if (!container) return;
+    
+    let html = '';
+    
+    bucketOrder.forEach(bucket => {
+      const stats = bucketStats[bucket.key];
+      if (!stats) return;
+      
+      const clicksPercent = stats.clicksPercent || 0;
+      const revenuePercent = stats.revenuePercent || 0;
+      
+      html += `
+        <div class="campaign-search-bucket-row">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
+              ${clicksPercent.toFixed(1)}%
+            </div>
+          </div>
+          <div class="campaign-search-bucket-bar">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+              ${revenuePercent.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
 }
 
