@@ -1469,7 +1469,7 @@ searchTermsPanel.innerHTML = `
         <!-- Top Search Terms -->
         <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #FFC107; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
@@ -1622,7 +1622,7 @@ searchTermsPanel.innerHTML = `
         <!-- Zero Converting Terms -->
         <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #F44336; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
@@ -1775,7 +1775,7 @@ searchTermsPanel.innerHTML = `
         <!-- High Revenue Terms -->
         <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #4CAF50; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
@@ -1928,7 +1928,7 @@ searchTermsPanel.innerHTML = `
         <!-- Hidden Gems -->
         <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #2196F3; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
@@ -2081,7 +2081,7 @@ searchTermsPanel.innerHTML = `
         <!-- Low Performance -->
         <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
@@ -2234,7 +2234,7 @@ searchTermsPanel.innerHTML = `
         <!-- Mid-Performance -->
         <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+<div style="background: #FF9800; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
   <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
   <div class="bucket-coverage-container" style="width: 100%; display: none;">
     <div style="
