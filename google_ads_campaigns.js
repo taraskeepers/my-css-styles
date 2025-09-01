@@ -3401,7 +3401,7 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   
   headerInfo.textContent = `Loading products for ${campaignName}...`;
 
-  // Clear searches analysis when loading products
+// Clear searches analysis when loading products
 const searchesContainers = [
   document.getElementById('campaignSearchesContent'),
   document.getElementById('campaignSearchesContentSearchTerms')
@@ -3411,6 +3411,19 @@ searchesContainers.forEach(container => {
     container.innerHTML = '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">Select Search Terms view to see data</div>';
   }
 });
+
+// Clear products analysis initially (will be populated after data loads)
+const productsContainer = document.getElementById('campaignAnalysisProducts');
+if (productsContainer) {
+  const header = productsContainer.querySelector('.campaign-analysis-section-header');
+  if (header) {
+    header.textContent = 'Products';
+  }
+  const existingContent = productsContainer.querySelector('div:not(.campaign-analysis-section-header)');
+  if (existingContent) {
+    existingContent.innerHTML = '<div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">Loading...</div>';
+  }
+}
   
   try {
     // Get product titles for this campaign from campaign mapping
@@ -3570,11 +3583,15 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     window.campaignProductsOriginalData = tableData;
     window.campaignProductsCurrentFilter = 'all';
     
-    // Calculate and display product bucket statistics
+// Calculate and display product bucket statistics
     const productBucketStats = calculateProductBucketStatistics(tableData);
+    
+    // Populate the products analysis section
+    populateProductsAnalysis(productBucketStats);
     
     // Show and setup product bucket filter
     const productBucketFilterContainer = document.getElementById('campaignProductBucketFilterContainer');
+    
     if (productBucketFilterContainer) {
       productBucketFilterContainer.style.display = 'block';
       
@@ -4389,6 +4406,49 @@ function getPerformanceBucketBadge(bucketType) {
   `;
 }
 
+// Get profitability bucket badge HTML
+function getProfitabilityBucketBadge(bucketData) {
+  if (!bucketData) return '';
+  
+  let bucketValue = 'Insufficient Data';
+  try {
+    const data = typeof bucketData === 'string' ? JSON.parse(bucketData) : bucketData;
+    bucketValue = data.value || 'Insufficient Data';
+  } catch (e) {
+    return '';
+  }
+  
+  const bucketConfig = {
+    'Profit Stars': { color: '#FFD700', bg: '#FFFACD', icon: '⭐' },
+    'Strong Performers': { color: '#4CAF50', bg: '#E8F5E9', icon: '💪' },
+    'Steady Contributors': { color: '#2196F3', bg: '#E3F2FD', icon: '📊' },
+    'Break-Even Products': { color: '#FF9800', bg: '#FFF3E0', icon: '⚖️' },
+    'True Losses': { color: '#F44336', bg: '#FFEBEE', icon: '📉' },
+    'Insufficient Data': { color: '#9E9E9E', bg: '#F5F5F5', icon: '❓' }
+  };
+  
+  const config = bucketConfig[bucketValue];
+  if (!config) return '';
+  
+  return `
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: ${config.bg};
+      color: ${config.color};
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid ${config.color}40;
+      margin-left: 6px;
+    ">
+      ${config.icon} ${bucketValue}
+    </span>
+  `;
+}
+
 // Replace the ensureSearchTermPerformanceBuckets function with:
 async function ensureSearchTermPerformanceBuckets() {
   // Check if the global function exists
@@ -4954,6 +5014,79 @@ function populateSearchesAnalysis(bucketStats) {
   });
 }
 
+// Populate the products analysis section
+function populateProductsAnalysis(bucketStats) {
+  // Define bucket order (best to worst)
+  const bucketOrder = [
+    { key: 'Profit Stars', color: 'linear-gradient(135deg, #FFD700, #FFA500)', shortName: 'Profit Stars' },
+    { key: 'Strong Performers', color: 'linear-gradient(135deg, #4CAF50, #45a049)', shortName: 'Strong Perf' },
+    { key: 'Steady Contributors', color: 'linear-gradient(135deg, #2196F3, #1976D2)', shortName: 'Steady Contrib' },
+    { key: 'Break-Even Products', color: 'linear-gradient(135deg, #FF9800, #F57C00)', shortName: 'Break-Even' },
+    { key: 'True Losses', color: 'linear-gradient(135deg, #F44336, #D32F2F)', shortName: 'True Losses' },
+    { key: 'Insufficient Data', color: '#9E9E9E', shortName: 'Insufficient' }
+  ];
+  
+  // Get container for products view
+  const container = document.getElementById('campaignAnalysisProducts');
+  
+  if (!container) return;
+  
+  // Find the content div or create it
+  let contentDiv = container.querySelector('.campaign-products-content');
+  if (!contentDiv) {
+    // Update the header first
+    const header = container.querySelector('.campaign-analysis-section-header');
+    if (header) {
+      header.textContent = 'Products';
+    }
+    
+    // Create content div
+    contentDiv = document.createElement('div');
+    contentDiv.className = 'campaign-products-content';
+    contentDiv.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;';
+    
+    // Remove existing content and add new
+    const existingContent = container.querySelector('div:not(.campaign-analysis-section-header)');
+    if (existingContent) {
+      existingContent.remove();
+    }
+    container.appendChild(contentDiv);
+  }
+  
+  let html = '';
+  
+  bucketOrder.forEach(bucket => {
+    const stats = bucketStats[bucket.key];
+    if (!stats || stats.count === 0) return; // Skip empty buckets
+    
+    const costPercent = stats.costPercent || 0;
+    const revenuePercent = stats.revenuePercent || 0;
+    const roas = stats.roas || 0;
+    
+    html += `
+      <div class="campaign-search-bucket-row" style="min-height: 32px;">
+        <div class="campaign-search-bucket-count" style="background: ${bucket.color}; width: 36px; height: 26px; font-size: 12px; font-weight: 700;">
+          ${stats.count}
+        </div>
+        <div class="campaign-search-bucket-name" style="width: 90px; font-size: 10px;" title="${bucket.key}">
+          ${bucket.shortName}
+        </div>
+        <div class="campaign-search-bucket-bar" style="flex: 1;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}; font-size: 10px;">
+            ${revenuePercent.toFixed(1)}% Rev
+          </div>
+        </div>
+        <div style="width: 50px; text-align: right; font-size: 10px; font-weight: 600; color: ${roas >= 2.5 ? '#059669' : roas >= 1 ? '#f59e0b' : '#dc2626'};">
+          ${roas.toFixed(1)}x
+        </div>
+      </div>
+    `;
+  });
+  
+  contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+}
+
 // Render products table with improved design
 function renderProductsTable(container, tableData, campaignName) {
   // Get visible columns (excluding ROAS which is now fixed)
@@ -5154,11 +5287,12 @@ mainRow.className = rowClasses.join(' ');
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
 <td style="width: 300px;">
-  <div style="display: flex; align-items: center;">
-    <div class="camp-product-title">${product.title}</div>
+  <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+    <div class="camp-product-title" style="flex: 1 1 auto; min-width: 0;">${product.title}</div>
     ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
       `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus === 'Revenue Stars' ? '⭐' : product.sellerStatus === 'Best Sellers' ? '🏆' : '📈'} ${product.sellerStatus}</span>` : 
       ''}
+    ${getProfitabilityBucketBadge(product.profitabilityBucket)}
   </div>
 </td>
     `;
