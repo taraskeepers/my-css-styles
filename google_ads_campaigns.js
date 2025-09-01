@@ -1430,13 +1430,20 @@ productsPanel.innerHTML = `
         </button>
       </div>
     </div>
-    <div id="campaignProductBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
+    
+<div id="campaignProductBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <!-- All Products -->
         <div class="product-bucket-card" data-bucket="all" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
             <div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
               <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
@@ -1449,15 +1456,21 @@ productsPanel.innerHTML = `
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
-        <!-- Revenue Stars -->
-        <div class="product-bucket-card" data-bucket="revenue-stars" style="cursor: pointer;">
+        <!-- Profit Stars -->
+        <div class="product-bucket-card" data-bucket="Profit Stars" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #6B4423; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
               <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">⭐ Revenue</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">⭐ Profit</div>
                 <div style="font-size: 13px; color: #333;">Stars</div>
               </div>
             </div>
@@ -1466,16 +1479,22 @@ productsPanel.innerHTML = `
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
-        <!-- Best Sellers -->
-        <div class="product-bucket-card" data-bucket="best-sellers" style="cursor: pointer;">
+        <!-- Strong Performers -->
+        <div class="product-bucket-card" data-bucket="Strong Performers" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: linear-gradient(135deg, #9333ea, #a855f7); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+            <div style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
               <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">🏆 Best</div>
-                <div style="font-size: 13px; color: #333;">Sellers</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">💪 Strong</div>
+                <div style="font-size: 13px; color: #333;">Performers</div>
               </div>
             </div>
           </div>
@@ -1483,16 +1502,22 @@ productsPanel.innerHTML = `
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
-        <!-- Volume Leaders -->
-        <div class="product-bucket-card" data-bucket="volume-leaders" style="cursor: pointer;">
+        <!-- Steady Contributors -->
+        <div class="product-bucket-card" data-bucket="Steady Contributors" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+            <div style="background: linear-gradient(135deg, #2196F3, #1976D2); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
               <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">📈 Volume</div>
-                <div style="font-size: 13px; color: #333;">Leaders</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">📊 Steady</div>
+                <div style="font-size: 13px; color: #333;">Contributors</div>
               </div>
             </div>
           </div>
@@ -1500,16 +1525,68 @@ productsPanel.innerHTML = `
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
-        <!-- Standard Products -->
-        <div class="product-bucket-card" data-bucket="standard" style="cursor: pointer;">
+        <!-- Break-Even Products -->
+        <div class="product-bucket-card" data-bucket="Break-Even Products" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
-            <div style="background: #6c757d; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+            <div style="background: linear-gradient(135deg, #FF9800, #F57C00); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
               <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Standard</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">⚖️ Break-Even</div>
                 <div style="font-size: 13px; color: #333;">Products</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- True Losses -->
+        <div class="product-bucket-card" data-bucket="True Losses" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: linear-gradient(135deg, #F44336, #D32F2F); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">📉 True</div>
+                <div style="font-size: 13px; color: #333;">Losses</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- Insufficient Data -->
+        <div class="product-bucket-card" data-bucket="Insufficient Data" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+              <div class="bucket-coverage-container" style="width: 100%;">
+                <div style="width: 100%; height: 14px; background: rgba(255,255,255,0.3); border-radius: 7px; position: relative; overflow: hidden;">
+                  <div class="bucket-coverage-bar" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease;"></div>
+                  <div class="bucket-coverage-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1;">0%</div>
+                </div>
+              </div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">❓ Insufficient</div>
+                <div style="font-size: 13px; color: #333;">Data</div>
               </div>
             </div>
           </div>
@@ -1519,6 +1596,7 @@ productsPanel.innerHTML = `
         </div>
       </div>
     </div>
+    
   </div>
   <div class="campaigns-products-table-container">
     <div class="campaigns-empty-state">
@@ -3188,6 +3266,71 @@ async function loadProductSellerStatus(productTitles) {
   }
 }
 
+// Load product profitability bucket from 30d bucket table
+async function loadProductProfitabilityBuckets(productTitles) {
+  console.log('[loadProductProfitabilityBuckets] Loading profitability buckets for products:', productTitles.length);
+  
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[loadProductProfitabilityBuckets] No bucket data found');
+      return new Map();
+    }
+    
+    // Process data: find profitability bucket for each product
+    const profitabilityMap = new Map();
+    
+    result.data.forEach(row => {
+      const title = row['Product Title'];
+      const campaignName = row['Campaign Name'];
+      const device = row['Device'];
+      const profitabilityBucket = row['PROFITABILITY_BUCKET'];
+      
+      // Check if this matches our criteria (All+All records)
+      if (productTitles.includes(title) && 
+          campaignName === 'All' && 
+          device === 'All' && 
+          profitabilityBucket) {
+        try {
+          const bucketData = typeof profitabilityBucket === 'string' ? 
+            JSON.parse(profitabilityBucket) : profitabilityBucket;
+          profitabilityMap.set(title, bucketData);
+          console.log(`[loadProductProfitabilityBuckets] Found bucket for ${title}: ${bucketData.value}`);
+        } catch (e) {
+          console.warn(`[loadProductProfitabilityBuckets] Failed to parse bucket for ${title}:`, e);
+        }
+      }
+    });
+    
+    return profitabilityMap;
+    
+  } catch (error) {
+    console.error('[loadProductProfitabilityBuckets] Error loading profitability buckets:', error);
+    return new Map();
+  }
+}
+
 // Calculate campaign ROAS from bucket data
 async function calculateCampaignROAS(channelType, campaignName) {
   try {
@@ -3359,6 +3502,9 @@ const processedMetrics = await loadProcessedProductData(productTitles);
 // Load seller status for products
 const sellerStatusMap = await loadProductSellerStatus(productTitles);
 
+// Load profitability bucket data for products
+const profitabilityBucketMap = await loadProductProfitabilityBuckets(productTitles);
+
 // Calculate aggregated metrics for each product
 const tableData = [];
 
@@ -3392,6 +3538,9 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
   
   // Add seller status to aggregated data
   aggregated.sellerStatus = sellerStatusMap.get(productTitle) || 'Standard';
+
+  // Add profitability bucket to aggregated data
+  aggregated.profitabilityBucket = profitabilityBucketMap.get(productTitle) || { value: 'Insufficient Data' };
   
   // Calculate derived metrics
   aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions * 100) : 0;
@@ -3460,13 +3609,20 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
             // Reset to original data
             renderProductsTable(tableContainer, window.campaignProductsOriginalData, campaignName);
             headerInfo.textContent = `${campaignName} - ${window.campaignProductsOriginalData.length} products`;
-          } else {
-            // Filter by product status
+} else {
+            // Filter by profitability bucket
             const filtered = window.campaignProductsOriginalData.filter(product => {
-              const productBucket = product.sellerStatus ? 
-                product.sellerStatus.toLowerCase().replace(/\s+/g, '-') : 
-                'standard';
-              return productBucket === selectedBucket;
+              let bucketValue = 'Insufficient Data';
+              if (product.profitabilityBucket) {
+                try {
+                  const bucketData = typeof product.profitabilityBucket === 'string' ? 
+                    JSON.parse(product.profitabilityBucket) : product.profitabilityBucket;
+                  bucketValue = bucketData.value || 'Insufficient Data';
+                } catch (e) {
+                  // Silent fail
+                }
+              }
+              return bucketValue === selectedBucket;
             });
             renderProductsTable(tableContainer, filtered, campaignName);
             
@@ -4326,61 +4482,67 @@ function calculateBucketStatistics(data) {
 // Calculate statistics for product buckets
 function calculateProductBucketStatistics(data) {
   const stats = {
-    'all': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
-    'revenue-stars': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
-    'best-sellers': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
-    'volume-leaders': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
-    'standard': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 }
+    'all': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'Profit Stars': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'Strong Performers': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'Steady Contributors': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'Break-Even Products': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'True Losses': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+    'Insufficient Data': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 }
   };
   
   let totalImpressions = 0;
-  let totalClicks = 0;
+  let totalCost = 0;
   let totalConversions = 0;
   let totalRevenue = 0;
-  let totalCost = 0;
   
   data.forEach(product => {
-    const bucketKey = product.sellerStatus ? 
-      product.sellerStatus.toLowerCase().replace(/\s+/g, '-') : 
-      'standard';
+    // Get profitability bucket from product data
+    let bucketKey = 'Insufficient Data'; // Default
+    if (product.profitabilityBucket) {
+      try {
+        // Parse JSON if it's a string
+        const bucketData = typeof product.profitabilityBucket === 'string' ? 
+          JSON.parse(product.profitabilityBucket) : product.profitabilityBucket;
+        bucketKey = bucketData.value || 'Insufficient Data';
+      } catch (e) {
+        console.warn('Failed to parse profitability bucket:', e);
+      }
+    }
     
     const impressions = product.impressions || 0;
-    const clicks = product.clicks || 0;
+    const cost = product.cost || 0;
     const conversions = product.conversions || 0;
     const revenue = product.convValue || 0;
-    const cost = product.cost || 0;
     
     // Update bucket stats
     if (stats[bucketKey]) {
       stats[bucketKey].count++;
       stats[bucketKey].impressions += impressions;
-      stats[bucketKey].clicks += clicks;
+      stats[bucketKey].cost += cost;
       stats[bucketKey].conversions += conversions;
       stats[bucketKey].revenue += revenue;
-      stats[bucketKey].cost += cost;
     }
     
     // Update totals
     totalImpressions += impressions;
-    totalClicks += clicks;
+    totalCost += cost;
     totalConversions += conversions;
     totalRevenue += revenue;
-    totalCost += cost;
   });
   
   // Set 'all' stats
   stats['all'].count = data.length;
   stats['all'].impressions = totalImpressions;
-  stats['all'].clicks = totalClicks;
+  stats['all'].cost = totalCost;
   stats['all'].conversions = totalConversions;
   stats['all'].revenue = totalRevenue;
-  stats['all'].cost = totalCost;
   
   // Calculate percentages for each bucket
   for (let bucket in stats) {
     const bucketStats = stats[bucket];
     bucketStats.impressionsPercent = totalImpressions > 0 ? (bucketStats.impressions / totalImpressions * 100) : 0;
-    bucketStats.clicksPercent = totalClicks > 0 ? (bucketStats.clicks / totalClicks * 100) : 0;
+    bucketStats.costPercent = totalCost > 0 ? (bucketStats.cost / totalCost * 100) : 0;
     bucketStats.conversionsPercent = totalConversions > 0 ? (bucketStats.conversions / totalConversions * 100) : 0;
     bucketStats.revenuePercent = totalRevenue > 0 ? (bucketStats.revenue / totalRevenue * 100) : 0;
     bucketStats.roas = bucketStats.cost > 0 ? (bucketStats.revenue / bucketStats.cost) : 0;
@@ -4389,19 +4551,87 @@ function calculateProductBucketStatistics(data) {
   return stats;
 }
 
+// Calculate global product bucket totals from all campaigns
+async function calculateGlobalProductBucketTotals() {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      return {};
+    }
+    
+    // Count products in each bucket (only All+All records)
+    const bucketTotals = {
+      'Profit Stars': 0,
+      'Strong Performers': 0,
+      'Steady Contributors': 0,
+      'Break-Even Products': 0,
+      'True Losses': 0,
+      'Insufficient Data': 0
+    };
+    
+    result.data.forEach(row => {
+      // Only count All+All records
+      if (row['Campaign Name'] === 'All' && row['Device'] === 'All') {
+        try {
+          const bucketData = typeof row['PROFITABILITY_BUCKET'] === 'string' ? 
+            JSON.parse(row['PROFITABILITY_BUCKET']) : row['PROFITABILITY_BUCKET'];
+          const bucketValue = bucketData?.value || 'Insufficient Data';
+          
+          if (bucketTotals.hasOwnProperty(bucketValue)) {
+            bucketTotals[bucketValue]++;
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      }
+    });
+    
+    return bucketTotals;
+  } catch (error) {
+    console.error('[Campaigns] Error calculating global product bucket totals:', error);
+    return {};
+  }
+}
+
 // Update product bucket UI with statistics
-function updateProductBucketUI(stats) {
+async function updateProductBucketUI(stats) {
   const bucketFilterContainer = document.getElementById('campaignProductBucketFilterContainer');
   if (!bucketFilterContainer) return;
+  
+  // Get global bucket totals
+  const globalTotals = await calculateGlobalProductBucketTotals();
   
   const bucketCards = bucketFilterContainer.querySelectorAll('.product-bucket-card');
   
   bucketCards.forEach(card => {
     const bucketType = card.getAttribute('data-bucket');
     const countElement = card.querySelector('.bucket-count');
+    const coverageBar = card.querySelector('.bucket-coverage-bar');
+    const coverageText = card.querySelector('.bucket-coverage-text');
     const metricsContainer = card.querySelector('.bucket-metrics');
     
-    const bucketKey = bucketType === 'all' ? 'all' : bucketType;
+    const bucketKey = bucketType;
     
     if (stats[bucketKey]) {
       const bucketData = stats[bucketKey];
@@ -4411,15 +4641,36 @@ function updateProductBucketUI(stats) {
         countElement.textContent = bucketData.count;
       }
       
-      // Update metrics bars
+      // Update coverage bar (percentage of global bucket total)
+      if (bucketType !== 'all' && globalTotals[bucketType]) {
+        const globalTotal = globalTotals[bucketType];
+        const coveragePercent = globalTotal > 0 ? (bucketData.count / globalTotal * 100) : 0;
+        
+        if (coverageBar) {
+          coverageBar.style.width = Math.min(coveragePercent, 100) + '%';
+        }
+        if (coverageText) {
+          coverageText.textContent = coveragePercent.toFixed(0) + '%';
+        }
+      } else if (bucketType === 'all') {
+        // For "all", show 100% coverage
+        if (coverageBar) {
+          coverageBar.style.width = '100%';
+        }
+        if (coverageText) {
+          coverageText.textContent = '100%';
+        }
+      }
+      
+      // Update metrics bars (Cost instead of Clicks)
       if (metricsContainer) {
         metricsContainer.innerHTML = `
-          <!-- Clicks Bar -->
+          <!-- Cost Bar -->
           <div style="display: flex; align-items: center; gap: 6px;">
             <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
-              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.clicksPercent > 15 ? 'white' : '#374151'}; z-index: 1;">
-                ${bucketData.clicks.toLocaleString()} clicks (${bucketData.clicksPercent.toFixed(1)}%)
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
+              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.costPercent > 15 ? 'white' : '#374151'}; z-index: 1;">
+                $${bucketData.cost.toFixed(0)} (${bucketData.costPercent.toFixed(1)}%)
               </div>
             </div>
           </div>
