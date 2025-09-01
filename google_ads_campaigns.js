@@ -1413,19 +1413,111 @@ productsPanel.innerHTML = `
       </div>
     </div>
   </div>
-  <div class="campaigns-products-header">
-    <div>
-      <h3 class="campaigns-products-title">Campaign Products</h3>
-      <div class="selected-campaign-info">Select a campaign to view its products</div>
-    </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-        <span>📅</span>
-        <span>${dateRangeText}</span>
+  
+  <div class="campaigns-products-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div>
+        <h3 class="campaigns-products-title">Campaign Products</h3>
+        <div class="selected-campaign-info">Select a campaign to view its products</div>
       </div>
-      <button class="column-selector-btn" onclick="toggleColumnSelector()">
-        <span>⚙️</span> Columns
-      </button>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+          <span>📅</span>
+          <span>${dateRangeText}</span>
+        </div>
+        <button class="column-selector-btn" onclick="toggleColumnSelector()">
+          <span>⚙️</span> Columns
+        </button>
+      </div>
+    </div>
+    <div id="campaignProductBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <!-- All Products -->
+        <div class="product-bucket-card" data-bucket="all" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">All</div>
+                <div style="font-size: 13px; color: #333;">Products</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- Revenue Stars -->
+        <div class="product-bucket-card" data-bucket="revenue-stars" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #6B4423; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">⭐ Revenue</div>
+                <div style="font-size: 13px; color: #333;">Stars</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- Best Sellers -->
+        <div class="product-bucket-card" data-bucket="best-sellers" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: linear-gradient(135deg, #9333ea, #a855f7); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">🏆 Best</div>
+                <div style="font-size: 13px; color: #333;">Sellers</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- Volume Leaders -->
+        <div class="product-bucket-card" data-bucket="volume-leaders" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">📈 Volume</div>
+                <div style="font-size: 13px; color: #333;">Leaders</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+        <!-- Standard Products -->
+        <div class="product-bucket-card" data-bucket="standard" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+            <div style="background: #6c757d; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+              <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+            </div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Standard</div>
+                <div style="font-size: 13px; color: #333;">Products</div>
+              </div>
+            </div>
+          </div>
+          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+            <!-- Metrics bars will be populated dynamically -->
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="campaigns-products-table-container">
@@ -3324,6 +3416,75 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     
     // Update header info
     headerInfo.textContent = `${campaignName} - ${tableData.length} products`;
+
+    // Store original data for filtering
+    window.campaignProductsOriginalData = tableData;
+    window.campaignProductsCurrentFilter = 'all';
+    
+    // Calculate and display product bucket statistics
+    const productBucketStats = calculateProductBucketStatistics(tableData);
+    
+    // Show and setup product bucket filter
+    const productBucketFilterContainer = document.getElementById('campaignProductBucketFilterContainer');
+    if (productBucketFilterContainer) {
+      productBucketFilterContainer.style.display = 'block';
+      
+      // Update UI with statistics
+      updateProductBucketUI(productBucketStats);
+      
+      // Get all bucket cards
+      const bucketCards = productBucketFilterContainer.querySelectorAll('.product-bucket-card');
+      
+      // Add click handlers
+      bucketCards.forEach(card => {
+        card.addEventListener('click', function() {
+          const selectedBucket = this.getAttribute('data-bucket');
+          
+          // Update visual state of cards
+          bucketCards.forEach(c => {
+            const box = c.querySelector('.bucket-box');
+            if (c === this) {
+              // Active state - add border
+              box.style.borderColor = '#007aff';
+              box.style.borderWidth = '2px';
+              box.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+            } else {
+              // Inactive state
+              box.style.borderColor = 'transparent';
+              box.style.borderWidth = '2px';
+              box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            }
+          });
+          
+          if (selectedBucket === 'all') {
+            // Reset to original data
+            renderProductsTable(tableContainer, window.campaignProductsOriginalData, campaignName);
+            headerInfo.textContent = `${campaignName} - ${window.campaignProductsOriginalData.length} products`;
+          } else {
+            // Filter by product status
+            const filtered = window.campaignProductsOriginalData.filter(product => {
+              const productBucket = product.sellerStatus ? 
+                product.sellerStatus.toLowerCase().replace(/\s+/g, '-') : 
+                'standard';
+              return productBucket === selectedBucket;
+            });
+            renderProductsTable(tableContainer, filtered, campaignName);
+            
+            // Update header with filter info
+            const bucketName = selectedBucket.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            headerInfo.textContent = `${campaignName} - ${filtered.length} products (${bucketName})`;
+          }
+          
+          window.campaignProductsCurrentFilter = selectedBucket;
+        });
+      });
+      
+      // Click the "all" card by default to show selected state
+      const allCard = productBucketFilterContainer.querySelector('[data-bucket="all"]');
+      if (allCard) {
+        allCard.click();
+      }
+    }
     
   } catch (error) {
     console.error('[loadCampaignProducts] Error loading products:', error);
@@ -4160,6 +4321,132 @@ function calculateBucketStatistics(data) {
   }
   
   return stats;
+}
+
+// Calculate statistics for product buckets
+function calculateProductBucketStatistics(data) {
+  const stats = {
+    'all': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
+    'revenue-stars': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
+    'best-sellers': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
+    'volume-leaders': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 },
+    'standard': { count: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0, cost: 0 }
+  };
+  
+  let totalImpressions = 0;
+  let totalClicks = 0;
+  let totalConversions = 0;
+  let totalRevenue = 0;
+  let totalCost = 0;
+  
+  data.forEach(product => {
+    const bucketKey = product.sellerStatus ? 
+      product.sellerStatus.toLowerCase().replace(/\s+/g, '-') : 
+      'standard';
+    
+    const impressions = product.impressions || 0;
+    const clicks = product.clicks || 0;
+    const conversions = product.conversions || 0;
+    const revenue = product.convValue || 0;
+    const cost = product.cost || 0;
+    
+    // Update bucket stats
+    if (stats[bucketKey]) {
+      stats[bucketKey].count++;
+      stats[bucketKey].impressions += impressions;
+      stats[bucketKey].clicks += clicks;
+      stats[bucketKey].conversions += conversions;
+      stats[bucketKey].revenue += revenue;
+      stats[bucketKey].cost += cost;
+    }
+    
+    // Update totals
+    totalImpressions += impressions;
+    totalClicks += clicks;
+    totalConversions += conversions;
+    totalRevenue += revenue;
+    totalCost += cost;
+  });
+  
+  // Set 'all' stats
+  stats['all'].count = data.length;
+  stats['all'].impressions = totalImpressions;
+  stats['all'].clicks = totalClicks;
+  stats['all'].conversions = totalConversions;
+  stats['all'].revenue = totalRevenue;
+  stats['all'].cost = totalCost;
+  
+  // Calculate percentages for each bucket
+  for (let bucket in stats) {
+    const bucketStats = stats[bucket];
+    bucketStats.impressionsPercent = totalImpressions > 0 ? (bucketStats.impressions / totalImpressions * 100) : 0;
+    bucketStats.clicksPercent = totalClicks > 0 ? (bucketStats.clicks / totalClicks * 100) : 0;
+    bucketStats.conversionsPercent = totalConversions > 0 ? (bucketStats.conversions / totalConversions * 100) : 0;
+    bucketStats.revenuePercent = totalRevenue > 0 ? (bucketStats.revenue / totalRevenue * 100) : 0;
+    bucketStats.roas = bucketStats.cost > 0 ? (bucketStats.revenue / bucketStats.cost) : 0;
+  }
+  
+  return stats;
+}
+
+// Update product bucket UI with statistics
+function updateProductBucketUI(stats) {
+  const bucketFilterContainer = document.getElementById('campaignProductBucketFilterContainer');
+  if (!bucketFilterContainer) return;
+  
+  const bucketCards = bucketFilterContainer.querySelectorAll('.product-bucket-card');
+  
+  bucketCards.forEach(card => {
+    const bucketType = card.getAttribute('data-bucket');
+    const countElement = card.querySelector('.bucket-count');
+    const metricsContainer = card.querySelector('.bucket-metrics');
+    
+    const bucketKey = bucketType === 'all' ? 'all' : bucketType;
+    
+    if (stats[bucketKey]) {
+      const bucketData = stats[bucketKey];
+      
+      // Update count
+      if (countElement) {
+        countElement.textContent = bucketData.count;
+      }
+      
+      // Update metrics bars
+      if (metricsContainer) {
+        metricsContainer.innerHTML = `
+          <!-- Clicks Bar -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.clicksPercent > 15 ? 'white' : '#374151'}; z-index: 1;">
+                ${bucketData.clicks.toLocaleString()} clicks (${bucketData.clicksPercent.toFixed(1)}%)
+              </div>
+            </div>
+          </div>
+          
+          <!-- Revenue Bar -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.revenuePercent > 15 ? 'white' : '#374151'}; z-index: 1;">
+                $${bucketData.revenue.toFixed(0)} (${bucketData.revenuePercent.toFixed(1)}%)
+              </div>
+            </div>
+          </div>
+          
+          <!-- ROAS Bar -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min((bucketData.roas / 5) * 100, 100)}%; background: #f59e0b; transition: width 0.3s ease;"></div>
+              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
+                ROAS: ${bucketData.roas.toFixed(2)}x
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+  });
 }
 
 // Calculate global bucket totals from 365d data
