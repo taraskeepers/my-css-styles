@@ -1049,7 +1049,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 250px;
+  height: 280px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -3873,6 +3873,9 @@ const filteredData = searchTermsResult.data.filter(item =>
       
       // Populate searches analysis section
 populateSearchesAnalysis(bucketStats);
+
+      // Also load products data for the Products analysis container
+      loadCampaignProductsForAnalysis(channelType, campaignName);
       
       // Get all bucket cards
       const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
@@ -4033,6 +4036,84 @@ async function loadCampaignSearchTermsForAnalysis(channelType, campaignName) {
     
   } catch (error) {
     console.error('[loadCampaignSearchTermsForAnalysis] Error:', error);
+  }
+}
+
+// Load products data just for analysis container (background load)
+async function loadCampaignProductsForAnalysis(channelType, campaignName) {
+  try {
+    // Get product titles for this campaign from campaign mapping
+    const campaignKey = `${channelType}::${campaignName}`;
+    const productTitles = window.campaignProducts.get(campaignKey) || [];
+    
+    if (productTitles.length === 0) {
+      const productsContainer = document.getElementById('campaignAnalysisProducts');
+      if (productsContainer) {
+        const contentDiv = productsContainer.querySelector('.campaign-searches-content');
+        if (contentDiv) {
+          contentDiv.innerHTML = '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No products in this campaign</div>';
+        }
+      }
+      return;
+    }
+    
+    // Get bucket data for these products
+    const tablePrefix = getProjectTablePrefix();
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      return;
+    }
+    
+    // Filter data for this campaign and organize by product
+    const productsData = [];
+    
+    result.data.forEach(row => {
+      if (row['Campaign Name'] === campaignName && 
+          row['Channel Type'] === channelType &&
+          row['Device'] === 'All' &&
+          productTitles.includes(row['Product Title'])) {
+        
+        const profitabilityBucket = row['PROFITABILITY_BUCKET'];
+        
+        productsData.push({
+          title: row['Product Title'],
+          impressions: parseFloat(row['Impressions']) || 0,
+          cost: parseFloat(row['Cost']) || 0,
+          conversions: parseFloat(row['Conversions']) || 0,
+          convValue: parseFloat(row['ConvValue']) || 0,
+          profitabilityBucket: profitabilityBucket
+        });
+      }
+    });
+    
+    // Calculate product bucket statistics
+    const productBucketStats = calculateProductBucketStatistics(productsData);
+    
+    // Populate the products analysis section
+    populateProductsAnalysis(productBucketStats);
+    
+  } catch (error) {
+    console.error('[loadCampaignProductsForAnalysis] Error:', error);
   }
 }
 
@@ -5133,28 +5214,38 @@ function populateSearchesAnalysis(bucketStats) {
       const clicksPercent = stats.clicksPercent || 0;
       const revenuePercent = stats.revenuePercent || 0;
       
-      html += `
-        <div class="campaign-search-bucket-row">
-          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-            ${stats.count}
-          </div>
-          <div class="campaign-search-bucket-name" title="${bucket.key}">
-            ${bucket.shortName}
-          </div>
-          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
-              ${clicksPercent.toFixed(1)}%
-            </div>
-          </div>
-          <div class="campaign-search-bucket-bar">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
-              ${revenuePercent.toFixed(1)}%
-            </div>
+html += `
+      <div class="campaign-search-bucket-row">
+        <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+          ${stats.count}
+        </div>
+        <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
+          ${bucket.shortName}
+        </div>
+        <div class="campaign-search-bucket-bar" style="margin-right: 3px;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${costPercent > 20 ? 'color: white;' : ''}">
+            ${costPercent.toFixed(1)}%
           </div>
         </div>
-      `;
+        <div class="campaign-search-bucket-bar" style="margin-right: 3px;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+            ${revenuePercent.toFixed(1)}%
+          </div>
+        </div>
+        <div style="
+          width: 40px;
+          text-align: center;
+          font-size: 10px;
+          font-weight: 700;
+          color: ${roas >= 4 ? '#059669' : roas >= 2 ? '#f59e0b' : roas >= 1 ? '#dc2626' : '#9e9e9e'};
+          flex-shrink: 0;
+        ">
+          ${roas.toFixed(1)}x
+        </div>
+      </div>
+    `;
     });
     
     container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
@@ -5206,7 +5297,7 @@ function populateProductsAnalysis(bucketStats) {
   bucketOrder.forEach(bucket => {
     const stats = bucketStats[bucket.key];
     if (!stats || stats.count === 0) return; // Skip empty buckets
-    if (rowCount >= 5) return; // Limit to 5 rows
+    if (rowCount >= 6) return; // Limit to 6 rows
     
     const costPercent = stats.costPercent || 0;
     const revenuePercent = stats.revenuePercent || 0;
