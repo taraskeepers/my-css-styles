@@ -5206,46 +5206,39 @@ function populateSearchesAnalysis(bucketStats) {
     if (!container) return;
     
     let html = '';
+    let rowCount = 0;
     
     bucketOrder.forEach(bucket => {
       const stats = bucketStats[bucket.key];
-      if (!stats) return;
+      if (!stats || stats.count === 0) return;
+      if (rowCount >= 6) return; // Limit to 6 rows
       
       const clicksPercent = stats.clicksPercent || 0;
       const revenuePercent = stats.revenuePercent || 0;
       
-html += `
-      <div class="campaign-search-bucket-row">
-        <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-          ${stats.count}
-        </div>
-        <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
-          ${bucket.shortName}
-        </div>
-        <div class="campaign-search-bucket-bar" style="margin-right: 3px;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${costPercent > 20 ? 'color: white;' : ''}">
-            ${costPercent.toFixed(1)}%
+      html += `
+        <div class="campaign-search-bucket-row">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
+              ${clicksPercent.toFixed(1)}%
+            </div>
+          </div>
+          <div class="campaign-search-bucket-bar">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+              ${revenuePercent.toFixed(1)}%
+            </div>
           </div>
         </div>
-        <div class="campaign-search-bucket-bar" style="margin-right: 3px;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
-            ${revenuePercent.toFixed(1)}%
-          </div>
-        </div>
-        <div style="
-          width: 40px;
-          text-align: center;
-          font-size: 10px;
-          font-weight: 700;
-          color: ${roas >= 4 ? '#059669' : roas >= 2 ? '#f59e0b' : roas >= 1 ? '#dc2626' : '#9e9e9e'};
-          flex-shrink: 0;
-        ">
-          ${roas.toFixed(1)}x
-        </div>
-      </div>
-    `;
+      `;
+      rowCount++;
     });
     
     container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
