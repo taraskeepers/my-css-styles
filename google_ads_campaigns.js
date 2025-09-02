@@ -1049,7 +1049,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 280px;
+  height: 250px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -3873,9 +3873,6 @@ const filteredData = searchTermsResult.data.filter(item =>
       
       // Populate searches analysis section
 populateSearchesAnalysis(bucketStats);
-
-      // Also load products data for the Products analysis container
-      loadCampaignProductsForAnalysis(channelType, campaignName);
       
       // Get all bucket cards
       const bucketCards = bucketFilterContainer.querySelectorAll('.bucket-card');
@@ -4036,84 +4033,6 @@ async function loadCampaignSearchTermsForAnalysis(channelType, campaignName) {
     
   } catch (error) {
     console.error('[loadCampaignSearchTermsForAnalysis] Error:', error);
-  }
-}
-
-// Load products data just for analysis container (background load)
-async function loadCampaignProductsForAnalysis(channelType, campaignName) {
-  try {
-    // Get product titles for this campaign from campaign mapping
-    const campaignKey = `${channelType}::${campaignName}`;
-    const productTitles = window.campaignProducts.get(campaignKey) || [];
-    
-    if (productTitles.length === 0) {
-      const productsContainer = document.getElementById('campaignAnalysisProducts');
-      if (productsContainer) {
-        const contentDiv = productsContainer.querySelector('.campaign-searches-content');
-        if (contentDiv) {
-          contentDiv.innerHTML = '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No products in this campaign</div>';
-        }
-      }
-      return;
-    }
-    
-    // Get bucket data for these products
-    const tablePrefix = getProjectTablePrefix();
-    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
-    
-    // Open IndexedDB
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('myAppDB');
-      request.onsuccess = (event) => resolve(event.target.result);
-      request.onerror = () => reject(new Error('Failed to open myAppDB'));
-    });
-    
-    // Get data from IndexedDB
-    const transaction = db.transaction(['projectData'], 'readonly');
-    const objectStore = transaction.objectStore('projectData');
-    const getRequest = objectStore.get(tableName);
-    
-    const result = await new Promise((resolve, reject) => {
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-    
-    db.close();
-    
-    if (!result || !result.data) {
-      return;
-    }
-    
-    // Filter data for this campaign and organize by product
-    const productsData = [];
-    
-    result.data.forEach(row => {
-      if (row['Campaign Name'] === campaignName && 
-          row['Channel Type'] === channelType &&
-          row['Device'] === 'All' &&
-          productTitles.includes(row['Product Title'])) {
-        
-        const profitabilityBucket = row['PROFITABILITY_BUCKET'];
-        
-        productsData.push({
-          title: row['Product Title'],
-          impressions: parseFloat(row['Impressions']) || 0,
-          cost: parseFloat(row['Cost']) || 0,
-          conversions: parseFloat(row['Conversions']) || 0,
-          convValue: parseFloat(row['ConvValue']) || 0,
-          profitabilityBucket: profitabilityBucket
-        });
-      }
-    });
-    
-    // Calculate product bucket statistics
-    const productBucketStats = calculateProductBucketStatistics(productsData);
-    
-    // Populate the products analysis section
-    populateProductsAnalysis(productBucketStats);
-    
-  } catch (error) {
-    console.error('[loadCampaignProductsForAnalysis] Error:', error);
   }
 }
 
@@ -5206,12 +5125,10 @@ function populateSearchesAnalysis(bucketStats) {
     if (!container) return;
     
     let html = '';
-    let rowCount = 0;
     
     bucketOrder.forEach(bucket => {
       const stats = bucketStats[bucket.key];
-      if (!stats || stats.count === 0) return;
-      if (rowCount >= 6) return; // Limit to 6 rows
+      if (!stats) return;
       
       const clicksPercent = stats.clicksPercent || 0;
       const revenuePercent = stats.revenuePercent || 0;
@@ -5238,7 +5155,6 @@ function populateSearchesAnalysis(bucketStats) {
           </div>
         </div>
       `;
-      rowCount++;
     });
     
     container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
@@ -5290,7 +5206,7 @@ function populateProductsAnalysis(bucketStats) {
   bucketOrder.forEach(bucket => {
     const stats = bucketStats[bucket.key];
     if (!stats || stats.count === 0) return; // Skip empty buckets
-    if (rowCount >= 6) return; // Limit to 6 rows
+    if (rowCount >= 5) return; // Limit to 5 rows
     
     const costPercent = stats.costPercent || 0;
     const revenuePercent = stats.revenuePercent || 0;
