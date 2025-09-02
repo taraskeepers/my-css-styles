@@ -1305,21 +1305,21 @@ filterContainer.className = 'campaigns-filter-container';
   navPanel.appendChild(listContainer);
   
 // Load ROAS and cost for all campaigns first
-  const campaignsWithMetrics = await Promise.all(window.campaignsData.map(async (campaign) => {
+  const campaignsWithROAS = await Promise.all(window.campaignsData.map(async (campaign) => {
     const metrics = await calculateCampaignMetrics(campaign.channelType, campaign.campaignName);
     return { ...campaign, roas: metrics.roas, cost: metrics.cost };
   }));
 
   // Calculate total cost for percentage calculation
-  const totalCost = campaignsWithMetrics.reduce((sum, c) => sum + (c.cost || 0), 0);
+  const totalCost = campaignsWithROAS.reduce((sum, c) => sum + (c.cost || 0), 0);
   
   // Add cost percentage to each campaign
-  campaignsWithMetrics.forEach(campaign => {
+  campaignsWithROAS.forEach(campaign => {
     campaign.costPercent = totalCost > 0 ? (campaign.cost / totalCost * 100) : 0;
   });
 
   // Update global data with metrics
-  window.campaignsData = campaignsWithMetrics;
+  window.campaignsData = campaignsWithROAS;
 
   // Group campaigns by type with ROAS
   const pmaxCampaigns = campaignsWithROAS.filter(c => c.channelType === 'PERFORMANCE_MAX');
