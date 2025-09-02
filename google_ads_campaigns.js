@@ -1049,7 +1049,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 250px;
+  height: 320px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1368,16 +1368,28 @@ if (view === 'products') {
   const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
   if (searchAnalysis) searchAnalysis.style.display = 'flex';
         
-        // Load search terms if campaign is selected
+// Load search terms if campaign is selected
         if (window.selectedCampaign) {
           loadCampaignSearchTerms(
             window.selectedCampaign.channelType,
             window.selectedCampaign.campaignName
           );
+          
+          // Also ensure products analysis stays populated
+          if (window.campaignProductsOriginalData) {
+            const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
+            populateProductsAnalysis(productBucketStats);
+          }
         }
       }
     });
   });
+
+  // Initialize both analyses if campaign is already selected  <--- ADD THIS NEW CODE HERE
+  if (window.selectedCampaign && window.campaignProductsOriginalData) {
+    const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
+    populateProductsAnalysis(productBucketStats);
+  }
   
 // Create container for both panels
 const panelsContainer = document.createElement('div');
@@ -5206,31 +5218,50 @@ function populateProductsAnalysis(bucketStats) {
   bucketOrder.forEach(bucket => {
     const stats = bucketStats[bucket.key];
     if (!stats || stats.count === 0) return; // Skip empty buckets
-    if (rowCount >= 5) return; // Limit to 5 rows
+    if (rowCount >= 6) return; // Allow up to 6 rows
     
     const costPercent = stats.costPercent || 0;
     const revenuePercent = stats.revenuePercent || 0;
     const roas = stats.roas || 0;
+    
+    // Determine ROAS color
+    let roasColor = '#F44336'; // Red for < 1
+    if (roas >= 4) roasColor = '#4CAF50'; // Green
+    else if (roas >= 2) roasColor = '#FFC107'; // Yellow
+    else if (roas >= 1) roasColor = '#FF9800'; // Orange
     
     html += `
       <div class="campaign-search-bucket-row">
         <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
           ${stats.count}
         </div>
-        <div class="campaign-search-bucket-name" title="${bucket.key}">
+        <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
           ${bucket.shortName}
         </div>
-        <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+        <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
           <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${costPercent > 20 ? 'color: white;' : ''}">
-            ${costPercent.toFixed(1)}%
+          <div class="campaign-search-bucket-bar-text" style="${costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+            ${costPercent.toFixed(0)}%
           </div>
         </div>
-        <div class="campaign-search-bucket-bar">
+        <div class="campaign-search-bucket-bar" style="flex: 0.8;">
           <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
-            ${revenuePercent.toFixed(1)}%
+          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+            ${revenuePercent.toFixed(0)}%
           </div>
+        </div>
+        <div style="
+          width: 45px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: ${roasColor};
+          background: ${roasColor}15;
+          padding: 2px 4px;
+          border-radius: 4px;
+          border: 1px solid ${roasColor}30;
+        ">
+          ${roas.toFixed(1)}x
         </div>
       </div>
     `;
