@@ -1304,14 +1304,22 @@ filterContainer.className = 'campaigns-filter-container';
   listContainer.className = 'campaigns-list-container';
   navPanel.appendChild(listContainer);
   
-  // Load ROAS for all campaigns first
-  const campaignsWithROAS = await Promise.all(window.campaignsData.map(async (campaign) => {
-    const roas = await calculateCampaignROAS(campaign.channelType, campaign.campaignName);
-    return { ...campaign, roas };
+// Load ROAS and cost for all campaigns first
+  const campaignsWithMetrics = await Promise.all(window.campaignsData.map(async (campaign) => {
+    const metrics = await calculateCampaignMetrics(campaign.channelType, campaign.campaignName);
+    return { ...campaign, roas: metrics.roas, cost: metrics.cost };
   }));
 
-  // Update global data with ROAS
-  window.campaignsData = campaignsWithROAS;
+  // Calculate total cost for percentage calculation
+  const totalCost = campaignsWithMetrics.reduce((sum, c) => sum + (c.cost || 0), 0);
+  
+  // Add cost percentage to each campaign
+  campaignsWithMetrics.forEach(campaign => {
+    campaign.costPercent = totalCost > 0 ? (campaign.cost / totalCost * 100) : 0;
+  });
+
+  // Update global data with metrics
+  window.campaignsData = campaignsWithMetrics;
 
   // Group campaigns by type with ROAS
   const pmaxCampaigns = campaignsWithROAS.filter(c => c.channelType === 'PERFORMANCE_MAX');
@@ -2925,27 +2933,28 @@ function createCampaignItem(campaign, icon) {
   item.className = 'campaign-nav-item';
   item.setAttribute('data-campaign-key', `${campaign.channelType}::${campaign.campaignName}`);
   
-const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
-const roas = campaign.roas || 0;
+  const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
+  const roas = campaign.roas || 0;
+  const costPercent = campaign.costPercent || 0;
 
-// Determine ROAS badge color
-let roasColorClass = '';
-let roasBackground = '';
-if (roas >= 4) {
-  roasBackground = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
-} else if (roas >= 2) {
-  roasBackground = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
-} else if (roas >= 1) {
-  roasBackground = 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)';
-} else {
-  roasBackground = 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)';
-}
+  // Determine ROAS badge color
+  let roasColorClass = '';
+  let roasBackground = '';
+  if (roas >= 4) {
+    roasBackground = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
+  } else if (roas >= 2) {
+    roasBackground = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+  } else if (roas >= 1) {
+    roasBackground = 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)';
+  } else {
+    roasBackground = 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)';
+  }
 
-item.innerHTML = `
-  <div class="campaign-card-details">
-    <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
-      ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
-    </div>
+  item.innerHTML = `
+    <div class="campaign-card-details" style="position: relative;">
+      <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
+        ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
+      </div>
       <div class="campaign-info">
         <div class="campaign-name">${campaign.campaignName}</div>
         <div class="campaign-meta">
@@ -2953,6 +2962,42 @@ item.innerHTML = `
             <span>📦</span>
             <span>${campaign.products.size} products</span>
           </div>
+        </div>
+      </div>
+      <!-- Cost percentage bar -->
+      <div style="
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        width: 80px;
+        height: 14px;
+        background: rgba(229, 231, 235, 0.8);
+        border-radius: 7px;
+        overflow: hidden;
+      ">
+        <div style="
+          position: absolute;
+          left: 0;
+          top: 0;
+          height: 100%;
+          width: ${Math.min(costPercent, 100)}%;
+          background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+          transition: width 0.3s ease;
+        "></div>
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${costPercent > 50 ? 'white' : '#374151'};
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+          z-index: 1;
+        ">
+          ${costPercent.toFixed(1)}% cost
         </div>
       </div>
     </div>
@@ -3331,8 +3376,8 @@ async function loadProductProfitabilityBuckets(productTitles) {
   }
 }
 
-// Calculate campaign ROAS from bucket data
-async function calculateCampaignROAS(channelType, campaignName) {
+// Calculate campaign metrics from bucket data
+async function calculateCampaignMetrics(channelType, campaignName) {
   try {
     const tablePrefix = getProjectTablePrefix();
     const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
@@ -3357,7 +3402,7 @@ async function calculateCampaignROAS(channelType, campaignName) {
     db.close();
     
     if (!result || !result.data) {
-      return 0;
+      return { roas: 0, cost: 0 };
     }
     
     // Calculate total cost and revenue for this campaign
@@ -3372,12 +3417,21 @@ async function calculateCampaignROAS(channelType, campaignName) {
       }
     });
     
-    return totalCost > 0 ? (totalRevenue / totalCost) : 0;
+    return {
+      roas: totalCost > 0 ? (totalRevenue / totalCost) : 0,
+      cost: totalCost
+    };
     
   } catch (error) {
-    console.error('[calculateCampaignROAS] Error:', error);
-    return 0;
+    console.error('[calculateCampaignMetrics] Error:', error);
+    return { roas: 0, cost: 0 };
   }
+}
+
+// Keep the old function for backward compatibility
+async function calculateCampaignROAS(channelType, campaignName) {
+  const metrics = await calculateCampaignMetrics(channelType, campaignName);
+  return metrics.roas;
 }
 
 // Load products for selected campaign
@@ -3401,29 +3455,21 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   
   headerInfo.textContent = `Loading products for ${campaignName}...`;
 
-// Clear searches analysis when loading products
-const searchesContainers = [
-  document.getElementById('campaignSearchesContent'),
-  document.getElementById('campaignSearchesContentSearchTerms')
-];
-searchesContainers.forEach(container => {
-  if (container) {
-    container.innerHTML = '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">Select Search Terms view to see data</div>';
+// Show loading state for products analysis
+  const productsContainer = document.getElementById('campaignAnalysisProducts');
+  if (productsContainer) {
+    const header = productsContainer.querySelector('.campaign-analysis-section-header');
+    if (header) {
+      header.textContent = 'Products';
+    }
+    const existingContent = productsContainer.querySelector('div:not(.campaign-analysis-section-header)');
+    if (existingContent) {
+      existingContent.innerHTML = '<div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">Loading...</div>';
+    }
   }
-});
 
-// Clear products analysis initially (will be populated after data loads)
-const productsContainer = document.getElementById('campaignAnalysisProducts');
-if (productsContainer) {
-  const header = productsContainer.querySelector('.campaign-analysis-section-header');
-  if (header) {
-    header.textContent = 'Products';
-  }
-  const existingContent = productsContainer.querySelector('div:not(.campaign-analysis-section-header)');
-  if (existingContent) {
-    existingContent.innerHTML = '<div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">Loading...</div>';
-  }
-}
+  // Load search terms data in the background for analysis containers
+  loadCampaignSearchTermsForAnalysis(channelType, campaignName);
   
   try {
     // Get product titles for this campaign from campaign mapping
@@ -3886,6 +3932,107 @@ populateSearchesAnalysis(bucketStats);
       </div>
     `;
     headerInfo.textContent = `${campaignName} - Error loading search terms`;
+  }
+}
+
+// Load search terms data just for analysis containers (background load)
+async function loadCampaignSearchTermsForAnalysis(channelType, campaignName) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const searchTermsTableName = `${tablePrefix}googleSheets_searchTerms_30d`;
+    const searchTerms365dTableName = `${tablePrefix}googleSheets_searchTerms_365d`;
+    const searchTerms90dTableName = `${tablePrefix}googleSheets_searchTerms_90d`;
+    
+    // Load data from IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    
+    // Get 30d search terms data
+    const searchTermsRequest = objectStore.get(searchTermsTableName);
+    const searchTermsResult = await new Promise((resolve, reject) => {
+      searchTermsRequest.onsuccess = () => resolve(searchTermsRequest.result);
+      searchTermsRequest.onerror = () => reject(searchTermsRequest.error);
+    });
+    
+    // Get 365d data for Top_Bucket
+    const searchTerms365dRequest = objectStore.get(searchTerms365dTableName);
+    const searchTerms365dResult = await new Promise((resolve, reject) => {
+      searchTerms365dRequest.onsuccess = () => resolve(searchTerms365dRequest.result);
+      searchTerms365dRequest.onerror = () => reject(searchTerms365dRequest.error);
+    });
+    
+    // Get 90d data for trends
+    const searchTerms90dRequest = objectStore.get(searchTerms90dTableName);
+    const searchTerms90dResult = await new Promise((resolve, reject) => {
+      searchTerms90dRequest.onsuccess = () => resolve(searchTerms90dRequest.result);
+      searchTerms90dRequest.onerror = () => reject(searchTerms90dRequest.error);
+    });
+    
+    db.close();
+    
+    if (!searchTermsResult || !searchTermsResult.data) {
+      return;
+    }
+    
+    // Create map of Top_Bucket values from 365d data
+    const topBucketMap = {};
+    if (searchTerms365dResult && searchTerms365dResult.data) {
+      searchTerms365dResult.data.forEach(item => {
+        if (item.Query && item.Top_Bucket && item.Campaign_Name === campaignName) {
+          topBucketMap[item.Query.toLowerCase()] = item.Top_Bucket;
+        }
+      });
+    }
+    
+    // Create map of 90d data for trends
+    const trend90dMap = {};
+    if (searchTerms90dResult && searchTerms90dResult.data) {
+      searchTerms90dResult.data.forEach(item => {
+        if (item.Query && item.Campaign_Name === campaignName) {
+          trend90dMap[item.Query.toLowerCase()] = {
+            Impressions: (item.Impressions || 0) / 3,
+            Clicks: (item.Clicks || 0) / 3,
+            Conversions: (item.Conversions || 0) / 3,
+            Value: (item.Value || 0) / 3
+          };
+        }
+      });
+    }
+    
+    // Ensure performance buckets are loaded
+    await ensureSearchTermPerformanceBuckets();
+    
+    // Filter search terms for this specific campaign
+    const filteredData = searchTermsResult.data.filter(item => 
+      item.Campaign_Name === campaignName && 
+      item.Query && 
+      item.Query.toLowerCase() !== 'blank'
+    ).map(item => {
+      const queryLower = item.Query.toLowerCase();
+      return {
+        ...item,
+        Top_Bucket: topBucketMap[queryLower] || '',
+        Trend_Data: trend90dMap[queryLower] || null,
+        Performance_Bucket: window.searchTermPerformanceBuckets ? 
+          window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
+          'Mid-Performance'
+      };
+    });
+    
+    // Calculate bucket statistics
+    const bucketStats = calculateBucketStatistics(filteredData);
+    
+    // Populate both searches analysis containers
+    populateSearchesAnalysis(bucketStats);
+    
+  } catch (error) {
+    console.error('[loadCampaignSearchTermsForAnalysis] Error:', error);
   }
 }
 
@@ -5018,11 +5165,11 @@ function populateSearchesAnalysis(bucketStats) {
 function populateProductsAnalysis(bucketStats) {
   // Define bucket order (best to worst)
   const bucketOrder = [
-    { key: 'Profit Stars', color: 'linear-gradient(135deg, #FFD700, #FFA500)', shortName: 'Profit Stars' },
-    { key: 'Strong Performers', color: 'linear-gradient(135deg, #4CAF50, #45a049)', shortName: 'Strong Perf' },
-    { key: 'Steady Contributors', color: 'linear-gradient(135deg, #2196F3, #1976D2)', shortName: 'Steady Contrib' },
-    { key: 'Break-Even Products', color: 'linear-gradient(135deg, #FF9800, #F57C00)', shortName: 'Break-Even' },
-    { key: 'True Losses', color: 'linear-gradient(135deg, #F44336, #D32F2F)', shortName: 'True Losses' },
+    { key: 'Profit Stars', color: '#FFD700', shortName: 'Profit Stars' },
+    { key: 'Strong Performers', color: '#4CAF50', shortName: 'Strong Perf' },
+    { key: 'Steady Contributors', color: '#2196F3', shortName: 'Steady' },
+    { key: 'Break-Even Products', color: '#FF9800', shortName: 'Break-Even' },
+    { key: 'True Losses', color: '#F44336', shortName: 'Losses' },
     { key: 'Insufficient Data', color: '#9E9E9E', shortName: 'Insufficient' }
   ];
   
@@ -5032,7 +5179,7 @@ function populateProductsAnalysis(bucketStats) {
   if (!container) return;
   
   // Find the content div or create it
-  let contentDiv = container.querySelector('.campaign-products-content');
+  let contentDiv = container.querySelector('.campaign-searches-content');
   if (!contentDiv) {
     // Update the header first
     const header = container.querySelector('.campaign-analysis-section-header');
@@ -5040,10 +5187,10 @@ function populateProductsAnalysis(bucketStats) {
       header.textContent = 'Products';
     }
     
-    // Create content div
+    // Create content div with same class as searches
     contentDiv = document.createElement('div');
-    contentDiv.className = 'campaign-products-content';
-    contentDiv.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;';
+    contentDiv.className = 'campaign-searches-content';
+    contentDiv.id = 'campaignProductsContent';
     
     // Remove existing content and add new
     const existingContent = container.querySelector('div:not(.campaign-analysis-section-header)');
@@ -5054,34 +5201,40 @@ function populateProductsAnalysis(bucketStats) {
   }
   
   let html = '';
+  let rowCount = 0;
   
   bucketOrder.forEach(bucket => {
     const stats = bucketStats[bucket.key];
     if (!stats || stats.count === 0) return; // Skip empty buckets
+    if (rowCount >= 5) return; // Limit to 5 rows
     
     const costPercent = stats.costPercent || 0;
     const revenuePercent = stats.revenuePercent || 0;
     const roas = stats.roas || 0;
     
     html += `
-      <div class="campaign-search-bucket-row" style="min-height: 32px;">
-        <div class="campaign-search-bucket-count" style="background: ${bucket.color}; width: 36px; height: 26px; font-size: 12px; font-weight: 700;">
+      <div class="campaign-search-bucket-row">
+        <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
           ${stats.count}
         </div>
-        <div class="campaign-search-bucket-name" style="width: 90px; font-size: 10px;" title="${bucket.key}">
+        <div class="campaign-search-bucket-name" title="${bucket.key}">
           ${bucket.shortName}
         </div>
-        <div class="campaign-search-bucket-bar" style="flex: 1;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}; font-size: 10px;">
-            ${revenuePercent.toFixed(1)}% Rev
+        <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${costPercent > 20 ? 'color: white;' : ''}">
+            ${costPercent.toFixed(1)}%
           </div>
         </div>
-        <div style="width: 50px; text-align: right; font-size: 10px; font-weight: 600; color: ${roas >= 2.5 ? '#059669' : roas >= 1 ? '#f59e0b' : '#dc2626'};">
-          ${roas.toFixed(1)}x
+        <div class="campaign-search-bucket-bar">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+            ${revenuePercent.toFixed(1)}%
+          </div>
         </div>
       </div>
     `;
+    rowCount++;
   });
   
   contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
