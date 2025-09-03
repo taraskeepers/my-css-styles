@@ -1479,7 +1479,9 @@ productsPanel.innerHTML = `
       </div>
     </div>
     <div class="campaign-analysis-section" id="campaignAnalysisSearches">
-      <div class="campaign-analysis-section-header">Searches</div>
+      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+  <span>Searches</span>
+</div>
       <div class="campaign-searches-content" id="campaignSearchesContent">
         <!-- Will be populated dynamically -->
       </div>
@@ -5274,6 +5276,183 @@ function renderEfficiencyContainer() {
   });
 }
 
+// Function to update analysis headers with efficiency metrics
+function updateAnalysisHeaders() {
+  // Update Products header
+  const productsHeader = document.querySelector('#campaignAnalysisProducts .campaign-analysis-section-header');
+  const productsHeaderSearchTerms = document.querySelector('#campaignAnalysisProductsSearchTerms .campaign-analysis-section-header');
+  
+  if (productsHeader && window.productsEfficiencyMetrics) {
+    productsHeader.innerHTML = `
+      <span>Products</span>
+      <div style="display: flex; gap: 6px;">
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}22;
+          border: 1px solid ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)};
+        ">
+          AA:${window.productsEfficiencyMetrics.aa.toFixed(2)}
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}22;
+          border: 1px solid ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)};
+        ">
+          WR:${(window.productsEfficiencyMetrics.wr * 100).toFixed(0)}%
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}22;
+          border: 1px solid ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)};
+        ">
+          TM:${(window.productsEfficiencyMetrics.tm * 100).toFixed(0)}%
+        </div>
+      </div>
+    `;
+  }
+  
+  // Also update the search terms view products header
+  if (productsHeaderSearchTerms && window.productsEfficiencyMetrics) {
+    productsHeaderSearchTerms.innerHTML = `
+      <span>Products</span>
+      <div style="display: flex; gap: 6px;">
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}22;
+          border: 1px solid ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)};
+        ">
+          AA:${window.productsEfficiencyMetrics.aa.toFixed(2)}
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}22;
+          border: 1px solid ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)};
+        ">
+          WR:${(window.productsEfficiencyMetrics.wr * 100).toFixed(0)}%
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}22;
+          border: 1px solid ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)};
+        ">
+          TM:${(window.productsEfficiencyMetrics.tm * 100).toFixed(0)}%
+        </div>
+      </div>
+    `;
+  }
+  
+  // Update Searches header
+  const searchesHeader = document.querySelector('#campaignAnalysisSearches .campaign-analysis-section-header');
+  const searchesHeaderSearchTerms = document.querySelector('#campaignAnalysisSearchesSearchTerms .campaign-analysis-section-header');
+  
+  if (searchesHeader && window.searchesEfficiencyMetrics) {
+    searchesHeader.innerHTML = `
+      <span>Searches</span>
+      <div style="display: flex; gap: 6px;">
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}22;
+          border: 1px solid ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)};
+        ">
+          AA:${window.searchesEfficiencyMetrics.aa.toFixed(2)}
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}22;
+          border: 1px solid ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)};
+        ">
+          WR:${(window.searchesEfficiencyMetrics.wr * 100).toFixed(0)}%
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}22;
+          border: 1px solid ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)};
+        ">
+          TM:${(window.searchesEfficiencyMetrics.tm * 100).toFixed(0)}%
+        </div>
+      </div>
+    `;
+  }
+  
+  // Also update the search terms view searches header
+  if (searchesHeaderSearchTerms && window.searchesEfficiencyMetrics) {
+    searchesHeaderSearchTerms.innerHTML = `
+      <span>Searches</span>
+      <div style="display: flex; gap: 6px;">
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}22;
+          border: 1px solid ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)};
+        ">
+          AA:${window.searchesEfficiencyMetrics.aa.toFixed(2)}
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}22;
+          border: 1px solid ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)};
+        ">
+          WR:${(window.searchesEfficiencyMetrics.wr * 100).toFixed(0)}%
+        </div>
+        <div style="
+          padding: 2px 6px;
+          background: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}22;
+          border: 1px solid ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}44;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+          color: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)};
+        ">
+          TM:${(window.searchesEfficiencyMetrics.tm * 100).toFixed(0)}%
+        </div>
+      </div>
+    `;
+  }
+}
+
 // Helper function to render a metric pill
 function renderMetricPill(label, value, metricType, displayValue) {
   const color = getMetricStatusColor(metricType, value);
@@ -6022,6 +6201,9 @@ function populateSearchesAnalysis(bucketStats) {
     
     container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
+
+// Update analysis headers with metrics
+  updateAnalysisHeaders();  
   
 }
 
@@ -6434,6 +6616,9 @@ function populateProductsAnalysis(bucketStats) {
     
     contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
+
+  // Update analysis headers with metrics
+  updateAnalysisHeaders();
 
 }
 
