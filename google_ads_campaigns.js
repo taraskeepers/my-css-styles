@@ -5625,98 +5625,6 @@ function populateProductsAnalysis(bucketStats) {
   
 }
 
-// Update products performance indicator - Compact version
-function updateProductsPerformanceIndicator(bucketStats) {
-  // Calculate positive vs negative groups
-  const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
-  const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
-  
-  let positiveCost = 0, positiveRevenue = 0;
-  let negativeCost = 0, negativeRevenue = 0;
-  let totalCost = 0, totalRevenue = 0;
-  
-  // Sum up the metrics
-  positiveGroups.forEach(bucket => {
-    if (bucketStats[bucket]) {
-      positiveCost += bucketStats[bucket].cost || 0;
-      positiveRevenue += bucketStats[bucket].revenue || 0;
-    }
-  });
-  
-  negativeGroups.forEach(bucket => {
-    if (bucketStats[bucket]) {
-      negativeCost += bucketStats[bucket].cost || 0;
-      negativeRevenue += bucketStats[bucket].revenue || 0;
-    }
-  });
-  
-  totalCost = positiveCost + negativeCost;
-  totalRevenue = positiveRevenue + negativeRevenue;
-  
-  // Calculate percentages
-  const positiveCostPct = totalCost > 0 ? (positiveCost / totalCost * 100) : 0;
-  const positiveRevPct = totalRevenue > 0 ? (positiveRevenue / totalRevenue * 100) : 0;
-  const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
-  const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
-  
-  // Get indicator containers
-  const indicators = [
-    document.getElementById('productsPerformanceIndicator'),
-    document.getElementById('productsPerformanceIndicatorSearchTerms')
-  ];
-  
-  indicators.forEach(indicator => {
-    if (!indicator) return;
-    
-    if (totalCost > 0 || totalRevenue > 0) {
-      indicator.style.display = 'inline-flex';
-      indicator.innerHTML = `
-        <span class="performance-group">
-          <span class="performance-group-icon">💚</span>
-          <span class="performance-value performance-cost">${positiveCostPct.toFixed(0)}%</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveCostPct}%;"></span>
-          </span>
-          <span class="performance-arrow">→</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveRevPct}%;"></span>
-          </span>
-          <span class="performance-value performance-revenue">${positiveRevPct.toFixed(0)}%</span>
-        </span>
-        <span class="performance-group">
-          <span class="performance-group-icon">🔴</span>
-          <span class="performance-value performance-cost">${negativeCostPct.toFixed(0)}%</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeCostPct}%;"></span>
-          </span>
-          <span class="performance-arrow">→</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeRevPct}%;"></span>
-          </span>
-          <span class="performance-value performance-revenue">${negativeRevPct.toFixed(0)}%</span>
-        </span>
-      `;
-    } else {
-      indicator.style.display = 'none';
-    }
-  });
-  
-  // Return data for efficiency score calculation
-  return {
-    positiveCostPct,
-    positiveRevPct,
-    negativeCostPct,
-    negativeRevPct,
-    positiveROAS: positiveCost > 0 ? (positiveRevenue / positiveCost) : 0,
-    negativeROAS: negativeCost > 0 ? (negativeRevenue / negativeCost) : 0,
-    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0,
-    positiveCost,
-    positiveRevenue,
-    negativeCost,
-    negativeRevenue
-  };
-}
-
 // Update efficiency metrics
 function updateEfficiencyScore(performanceData) {
   if (!performanceData) return;
@@ -5802,6 +5710,98 @@ function updateEfficiencyScore(performanceData) {
   });
 }
 
+// Update products performance indicator - Compact version
+function updateProductsPerformanceIndicator(bucketStats) {
+  // Calculate positive vs negative groups
+  const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
+  const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
+  
+  let positiveCost = 0, positiveRevenue = 0;
+  let negativeCost = 0, negativeRevenue = 0;
+  let totalCost = 0, totalRevenue = 0;
+  
+  // Sum up the metrics
+  positiveGroups.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      positiveCost += bucketStats[bucket].cost || 0;
+      positiveRevenue += bucketStats[bucket].revenue || 0;
+    }
+  });
+  
+  negativeGroups.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      negativeCost += bucketStats[bucket].cost || 0;
+      negativeRevenue += bucketStats[bucket].revenue || 0;
+    }
+  });
+  
+  totalCost = positiveCost + negativeCost;
+  totalRevenue = positiveRevenue + negativeRevenue;
+  
+  // Calculate percentages
+  const positiveCostPct = totalCost > 0 ? (positiveCost / totalCost * 100) : 0;
+  const positiveRevPct = totalRevenue > 0 ? (positiveRevenue / totalRevenue * 100) : 0;
+  const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
+  const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
+  
+  // Get indicator containers
+  const indicators = [
+    document.getElementById('productsPerformanceIndicator'),
+    document.getElementById('productsPerformanceIndicatorSearchTerms')
+  ];
+  
+  indicators.forEach(indicator => {
+    if (!indicator) return;
+    
+    if (totalCost > 0 || totalRevenue > 0) {
+      indicator.style.display = 'inline-flex';
+      indicator.innerHTML = `
+        <span class="performance-group">
+          <span class="performance-group-icon">🟢</span>
+          <span class="performance-value performance-cost">${positiveCostPct.toFixed(0)}%</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveCostPct}%;"></span>
+          </span>
+          <span class="performance-arrow">→</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveRevPct}%;"></span>
+          </span>
+          <span class="performance-value performance-revenue">${positiveRevPct.toFixed(0)}%</span>
+        </span>
+        <span class="performance-group">
+          <span class="performance-group-icon">🔴</span>
+          <span class="performance-value performance-cost">${negativeCostPct.toFixed(0)}%</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeCostPct}%;"></span>
+          </span>
+          <span class="performance-arrow">→</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeRevPct}%;"></span>
+          </span>
+          <span class="performance-value performance-revenue">${negativeRevPct.toFixed(0)}%</span>
+        </span>
+      `;
+    } else {
+      indicator.style.display = 'none';
+    }
+  });
+  
+  // Return data for efficiency score calculation
+  return {
+    positiveCostPct,
+    positiveRevPct,
+    negativeCostPct,
+    negativeRevPct,
+    positiveROAS: positiveCost > 0 ? (positiveRevenue / positiveCost) : 0,
+    negativeROAS: negativeCost > 0 ? (negativeRevenue / negativeCost) : 0,
+    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0,
+    positiveCost,
+    positiveRevenue,
+    negativeCost,
+    negativeRevenue
+  };
+}
+
 // Check if table structure can be reused for animation
 function canReuseTableStructure(container, newDataLength) {
   const existingTable = container.querySelector('.camp-table-modern');
@@ -5837,6 +5837,25 @@ function updateTableBarsAnimated(container, tableData, totals) {
 
 // Render products table with improved design
 function renderProductsTable(container, tableData, campaignName) {
+
+  // Calculate totals first (needed for reuse check)
+const totals = {
+  impressions: tableData.reduce((sum, p) => sum + (p.impressions || 0), 0),
+  clicks: tableData.reduce((sum, p) => sum + (p.clicks || 0), 0),
+  cost: tableData.reduce((sum, p) => sum + (p.cost || 0), 0),
+  conversions: tableData.reduce((sum, p) => sum + (p.conversions || 0), 0),
+  convValue: tableData.reduce((sum, p) => sum + (p.convValue || 0), 0)
+};
+
+// Calculate derived totals
+totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
+totals.avgCpc = totals.clicks > 0 ? (totals.cost / totals.clicks) : 0;
+totals.cpa = totals.conversions > 0 ? (totals.cost / totals.conversions) : 0;
+totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+totals.aov = totals.conversions > 0 ? (totals.convValue / totals.conversions) : 0;
+totals.cpm = totals.impressions > 0 ? (totals.cost / totals.impressions * 1000) : 0;
+totals.roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
+
 // Try to reuse existing table structure for animation
 if (canReuseTableStructure(container, tableData.length)) {
   updateTableBarsAnimated(container, tableData, totals);
@@ -5857,24 +5876,6 @@ if (canReuseTableStructure(container, tableData.length)) {
       { id: 'cvr', label: 'CVR %' },
       { id: 'convValue', label: 'Revenue' }
     ];
-  
-  // Calculate totals for summary row and percentages
-  const totals = {
-    impressions: tableData.reduce((sum, p) => sum + (p.impressions || 0), 0),
-    clicks: tableData.reduce((sum, p) => sum + (p.clicks || 0), 0),
-    cost: tableData.reduce((sum, p) => sum + (p.cost || 0), 0),
-    conversions: tableData.reduce((sum, p) => sum + (p.conversions || 0), 0),
-    convValue: tableData.reduce((sum, p) => sum + (p.convValue || 0), 0)
-  };
-  
-  // Calculate derived totals
-  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
-  totals.avgCpc = totals.clicks > 0 ? (totals.cost / totals.clicks) : 0;
-  totals.cpa = totals.conversions > 0 ? (totals.cost / totals.conversions) : 0;
-  totals.cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
-  totals.aov = totals.conversions > 0 ? (totals.convValue / totals.conversions) : 0;
-  totals.cpm = totals.impressions > 0 ? (totals.cost / totals.impressions * 1000) : 0;
-  totals.roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
   
   // Create wrapper
   const wrapper = document.createElement('div');
