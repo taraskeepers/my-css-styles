@@ -3673,7 +3673,11 @@ const productsContainer = document.getElementById('campaignAnalysisProducts');
 if (productsContainer) {
   const header = productsContainer.querySelector('.campaign-analysis-section-header');
   if (header) {
-    header.textContent = 'Products';
+    // Only update the span text, not the entire header content
+    const textSpan = header.querySelector('span');
+    if (textSpan) {
+      textSpan.textContent = 'Products';
+    }
   }
   // Don't clear the content - keep existing structure for animation
 }
