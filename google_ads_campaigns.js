@@ -1198,72 +1198,146 @@ function addCampaignsStyles() {
 .campaign-search-bucket-row:hover {
   background: rgba(0, 122, 255, 0.05);
 }
-/* Products performance indicator styles */
-.products-performance-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 6px;
-  font-size: 11px;
-}
 
-.performance-group-bar {
-  display: flex;
+/* Products performance indicator styles - Compact version */
+.products-performance-indicator {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 6px;
-  background: #f0f2f5;
-  border-radius: 4px;
-  min-width: 140px;
+  margin-left: auto;
+  font-size: 10px;
+}
+
+.performance-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .performance-group-icon {
-  font-size: 12px;
-}
-
-.performance-metrics {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   font-size: 10px;
-  font-weight: 600;
 }
 
-.performance-arrow {
-  color: #6c757d;
-  font-size: 12px;
+.performance-value {
+  font-weight: 600;
+  font-size: 11px;
 }
 
 .performance-cost {
   color: #dc2626;
-  min-width: 28px;
-  text-align: right;
 }
 
 .performance-revenue {
   color: #059669;
-  min-width: 28px;
-  text-align: left;
 }
 
-.performance-mini-bar {
-  width: 40px;
-  height: 4px;
+.performance-arrow {
+  color: #9ca3af;
+  font-size: 10px;
+  margin: 0 2px;
+}
+
+.performance-bar-micro {
+  display: inline-block;
+  width: 24px;
+  height: 3px;
   background: #e5e7eb;
   border-radius: 2px;
   position: relative;
-  overflow: hidden;
+  vertical-align: middle;
+  margin: 0 2px;
 }
 
-.performance-mini-bar-fill {
+.performance-bar-micro-fill {
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
+  border-radius: 2px;
   transition: width 0.3s ease;
+}
+
+/* Efficiency metrics styles */
+.efficiency-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  height: 100%;
+}
+
+.efficiency-metric-card {
+  background: white;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.efficiency-metric-card:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.efficiency-metric-label {
+  font-size: 9px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.efficiency-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.efficiency-metric-subvalue {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.efficiency-score-ring {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.efficiency-score-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.efficiency-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.trend-positive {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.trend-negative {
+  background: #fee2e2;
+  color: #991b1b;
 }
     `;
     document.head.appendChild(style);
@@ -1525,20 +1599,20 @@ const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short',
 
 productsPanel.innerHTML = `
 <div class="campaign-analysis-container" id="campaignAnalysisContainer">
-    <div class="campaign-analysis-section" id="campaignAnalysisEfficiency">
+<div class="campaign-analysis-section" id="campaignAnalysisEfficiency">
       <div class="campaign-analysis-section-header">Efficiency</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
-        Coming soon
+      <div class="efficiency-metrics-grid" id="efficiencyMetricsContent">
+        <!-- Will be populated dynamically -->
       </div>
     </div>
 <div class="campaign-analysis-section" id="campaignAnalysisProducts">
-      <div style="display: flex; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #dee2e6;">
-        <div class="campaign-analysis-section-header" style="margin: 0;">Products</div>
+      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Products</span>
         <div class="products-performance-indicator" id="productsPerformanceIndicator" style="display: none;">
           <!-- Will be populated dynamically -->
         </div>
       </div>
-      <div class="campaign-searches-content" id="campaignProductsContent" style="margin-top: 10px;">
+      <div class="campaign-searches-content" id="campaignProductsContent">
         <!-- Will be populated dynamically -->
       </div>
     </div>
@@ -1755,20 +1829,20 @@ searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
 <div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
     <!-- Same analysis container structure as products panel -->
-    <div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
+<div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
       <div class="campaign-analysis-section-header">Efficiency</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
-        Coming soon
+      <div class="efficiency-metrics-grid" id="efficiencyMetricsContentSearchTerms">
+        <!-- Will be populated dynamically -->
       </div>
     </div>
 <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
-      <div style="display: flex; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #dee2e6;">
-        <div class="campaign-analysis-section-header" style="margin: 0;">Products</div>
+      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Products</span>
         <div class="products-performance-indicator" id="productsPerformanceIndicatorSearchTerms" style="display: none;">
           <!-- Will be populated dynamically -->
         </div>
       </div>
-      <div class="campaign-searches-content" id="campaignProductsContentSearchTerms" style="margin-top: 10px;">
+      <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
         <!-- Will be populated dynamically -->
       </div>
     </div>
@@ -5551,14 +5625,14 @@ function populateProductsAnalysis(bucketStats) {
   
 }
 
-// Update products performance indicator
+// Update products performance indicator - Compact version
 function updateProductsPerformanceIndicator(bucketStats) {
   // Calculate positive vs negative groups
   const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
   const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
   
-  let positiveCost = 0, positiveRevenue = 0, positiveCount = 0;
-  let negativeCost = 0, negativeRevenue = 0, negativeCount = 0;
+  let positiveCost = 0, positiveRevenue = 0;
+  let negativeCost = 0, negativeRevenue = 0;
   let totalCost = 0, totalRevenue = 0;
   
   // Sum up the metrics
@@ -5566,7 +5640,6 @@ function updateProductsPerformanceIndicator(bucketStats) {
     if (bucketStats[bucket]) {
       positiveCost += bucketStats[bucket].cost || 0;
       positiveRevenue += bucketStats[bucket].revenue || 0;
-      positiveCount += bucketStats[bucket].count || 0;
     }
   });
   
@@ -5574,7 +5647,6 @@ function updateProductsPerformanceIndicator(bucketStats) {
     if (bucketStats[bucket]) {
       negativeCost += bucketStats[bucket].cost || 0;
       negativeRevenue += bucketStats[bucket].revenue || 0;
-      negativeCount += bucketStats[bucket].count || 0;
     }
   });
   
@@ -5596,68 +5668,34 @@ function updateProductsPerformanceIndicator(bucketStats) {
   indicators.forEach(indicator => {
     if (!indicator) return;
     
-    // Only show if we have data
     if (totalCost > 0 || totalRevenue > 0) {
-      indicator.style.display = 'flex';
-      
-      // Check if structure exists
-      let positiveBar = indicator.querySelector('.positive-group-bar');
-      let negativeBar = indicator.querySelector('.negative-group-bar');
-      
-      if (!positiveBar) {
-        // Create structure
-        indicator.innerHTML = `
-          <div class="performance-group-bar positive-group-bar">
-            <span class="performance-group-icon">💚</span>
-            <div class="performance-metrics">
-              <span class="performance-cost">${positiveCostPct.toFixed(0)}%</span>
-              <div class="performance-mini-bar">
-                <div class="performance-mini-bar-fill positive-cost-bar" style="background: #22c55e; width: ${positiveCostPct}%;"></div>
-              </div>
-              <span class="performance-arrow">→</span>
-              <div class="performance-mini-bar">
-                <div class="performance-mini-bar-fill positive-rev-bar" style="background: #22c55e; width: ${positiveRevPct}%;"></div>
-              </div>
-              <span class="performance-revenue">${positiveRevPct.toFixed(0)}%</span>
-            </div>
-          </div>
-          <div class="performance-group-bar negative-group-bar">
-            <span class="performance-group-icon">🔴</span>
-            <div class="performance-metrics">
-              <span class="performance-cost">${negativeCostPct.toFixed(0)}%</span>
-              <div class="performance-mini-bar">
-                <div class="performance-mini-bar-fill negative-cost-bar" style="background: #ef4444; width: ${negativeCostPct}%;"></div>
-              </div>
-              <span class="performance-arrow">→</span>
-              <div class="performance-mini-bar">
-                <div class="performance-mini-bar-fill negative-rev-bar" style="background: #ef4444; width: ${negativeRevPct}%;"></div>
-              </div>
-              <span class="performance-revenue">${negativeRevPct.toFixed(0)}%</span>
-            </div>
-          </div>
-        `;
-      } else {
-        // Update existing values
-        const posCostText = indicator.querySelector('.positive-group-bar .performance-cost');
-        const posRevText = indicator.querySelector('.positive-group-bar .performance-revenue');
-        const negCostText = indicator.querySelector('.negative-group-bar .performance-cost');
-        const negRevText = indicator.querySelector('.negative-group-bar .performance-revenue');
-        
-        const posCostBar = indicator.querySelector('.positive-cost-bar');
-        const posRevBar = indicator.querySelector('.positive-rev-bar');
-        const negCostBar = indicator.querySelector('.negative-cost-bar');
-        const negRevBar = indicator.querySelector('.negative-rev-bar');
-        
-        if (posCostText) posCostText.textContent = positiveCostPct.toFixed(0) + '%';
-        if (posRevText) posRevText.textContent = positiveRevPct.toFixed(0) + '%';
-        if (negCostText) negCostText.textContent = negativeCostPct.toFixed(0) + '%';
-        if (negRevText) negRevText.textContent = negativeRevPct.toFixed(0) + '%';
-        
-        if (posCostBar) posCostBar.style.width = positiveCostPct + '%';
-        if (posRevBar) posRevBar.style.width = positiveRevPct + '%';
-        if (negCostBar) negCostBar.style.width = negativeCostPct + '%';
-        if (negRevBar) negRevBar.style.width = negativeRevPct + '%';
-      }
+      indicator.style.display = 'inline-flex';
+      indicator.innerHTML = `
+        <span class="performance-group">
+          <span class="performance-group-icon">💚</span>
+          <span class="performance-value performance-cost">${positiveCostPct.toFixed(0)}%</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveCostPct}%;"></span>
+          </span>
+          <span class="performance-arrow">→</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveRevPct}%;"></span>
+          </span>
+          <span class="performance-value performance-revenue">${positiveRevPct.toFixed(0)}%</span>
+        </span>
+        <span class="performance-group">
+          <span class="performance-group-icon">🔴</span>
+          <span class="performance-value performance-cost">${negativeCostPct.toFixed(0)}%</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeCostPct}%;"></span>
+          </span>
+          <span class="performance-arrow">→</span>
+          <span class="performance-bar-micro">
+            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeRevPct}%;"></span>
+          </span>
+          <span class="performance-value performance-revenue">${negativeRevPct.toFixed(0)}%</span>
+        </span>
+      `;
     } else {
       indicator.style.display = 'none';
     }
@@ -5671,8 +5709,97 @@ function updateProductsPerformanceIndicator(bucketStats) {
     negativeRevPct,
     positiveROAS: positiveCost > 0 ? (positiveRevenue / positiveCost) : 0,
     negativeROAS: negativeCost > 0 ? (negativeRevenue / negativeCost) : 0,
-    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0
+    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0,
+    positiveCost,
+    positiveRevenue,
+    negativeCost,
+    negativeRevenue
   };
+}
+
+// Update efficiency metrics
+function updateEfficiencyScore(performanceData) {
+  if (!performanceData) return;
+  
+  // Calculate all 4 metrics
+  // A. Budget Efficiency Score (0-100)
+  const budgetScore = performanceData.totalROAS > 0 ? 
+    Math.min(100, (performanceData.positiveCostPct * performanceData.positiveROAS) / performanceData.totalROAS) : 0;
+  
+  // B. Optimization Level (difference between revenue % and cost %)
+  const optimizationLevel = performanceData.positiveRevPct - performanceData.positiveCostPct;
+  
+  // C. Waste Indicator (% of budget wasted on negative products)
+  const wastePercent = performanceData.negativeROAS < 1 ? 
+    performanceData.negativeCostPct * (1 - performanceData.negativeROAS) : 0;
+  
+  // D. Efficiency Ratio (positive efficiency / negative efficiency)
+  const positiveEfficiency = performanceData.positiveCostPct > 0 ? 
+    performanceData.positiveRevPct / performanceData.positiveCostPct : 0;
+  const negativeEfficiency = performanceData.negativeCostPct > 0 ? 
+    performanceData.negativeRevPct / performanceData.negativeCostPct : 0;
+  const efficiencyRatio = negativeEfficiency > 0 ? positiveEfficiency / negativeEfficiency : positiveEfficiency;
+  
+  // Determine colors based on values
+  const scoreColor = budgetScore >= 80 ? '#22c55e' : 
+                     budgetScore >= 60 ? '#eab308' : 
+                     budgetScore >= 40 ? '#f97316' : '#ef4444';
+  
+  const optimizationColor = optimizationLevel > 20 ? '#22c55e' : 
+                           optimizationLevel > 0 ? '#eab308' : 
+                           optimizationLevel > -20 ? '#f97316' : '#ef4444';
+  
+  const wasteColor = wastePercent < 10 ? '#22c55e' : 
+                     wastePercent < 25 ? '#eab308' : 
+                     wastePercent < 40 ? '#f97316' : '#ef4444';
+  
+  const ratioColor = efficiencyRatio > 2 ? '#22c55e' : 
+                     efficiencyRatio > 1.5 ? '#eab308' : 
+                     efficiencyRatio > 1 ? '#f97316' : '#ef4444';
+  
+  // Get containers
+  const containers = [
+    document.getElementById('efficiencyMetricsContent'),
+    document.getElementById('efficiencyMetricsContentSearchTerms')
+  ];
+  
+  containers.forEach(container => {
+    if (!container) return;
+    
+    container.innerHTML = `
+      <div class="efficiency-metric-card">
+        <div class="efficiency-metric-label">Budget Score</div>
+        <div class="efficiency-score-ring" style="background: conic-gradient(${scoreColor} ${budgetScore * 3.6}deg, #e5e7eb 0deg);">
+          <div class="efficiency-score-text" style="color: ${scoreColor};">${Math.round(budgetScore)}</div>
+        </div>
+        <div class="efficiency-metric-subvalue">of 100</div>
+      </div>
+      
+      <div class="efficiency-metric-card">
+        <div class="efficiency-metric-label">Optimization</div>
+        <div class="efficiency-metric-value" style="color: ${optimizationColor};">
+          ${optimizationLevel > 0 ? '+' : ''}${optimizationLevel.toFixed(1)}%
+        </div>
+        <div class="efficiency-metric-subvalue">Rev% - Cost%</div>
+      </div>
+      
+      <div class="efficiency-metric-card">
+        <div class="efficiency-metric-label">Waste</div>
+        <div class="efficiency-metric-value" style="color: ${wasteColor};">
+          ${wastePercent.toFixed(1)}%
+        </div>
+        <div class="efficiency-metric-subvalue">of budget</div>
+      </div>
+      
+      <div class="efficiency-metric-card">
+        <div class="efficiency-metric-label">Efficiency Ratio</div>
+        <div class="efficiency-metric-value" style="color: ${ratioColor};">
+          ${efficiencyRatio.toFixed(2)}x
+        </div>
+        <div class="efficiency-metric-subvalue">Pos/Neg</div>
+      </div>
+    `;
+  });
 }
 
 // Check if table structure can be reused for animation
