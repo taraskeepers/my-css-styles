@@ -5438,42 +5438,45 @@ function calculateSearchesEfficiencyMetrics(bucketStats) {
   const highPerformingKeys = ['Top Search Terms', 'High Revenue Terms', 'Hidden Gems'];
   const lowPerformingKeys = ['Mid-Performance', 'Low Performance', 'Zero Converting Terms'];
   
-  let highPerfClicks = 0, highPerfRevenue = 0;
-  let lowPerfClicks = 0, lowPerfRevenue = 0;
+  let highClicks = 0, highRevenue = 0;
+  let lowClicks = 0, lowRevenue = 0;
+  let zeroConvertingClicks = 0;
   
   highPerformingKeys.forEach(key => {
     const stats = bucketStats[key];
     if (stats) {
-      highPerfClicks += stats.clicks || 0;
-      highPerfRevenue += stats.revenue || 0;
+      highClicks += stats.clicks || 0;
+      highRevenue += stats.revenue || 0;
     }
   });
   
   lowPerformingKeys.forEach(key => {
     const stats = bucketStats[key];
     if (stats) {
-      lowPerfClicks += stats.clicks || 0;
-      lowPerfRevenue += stats.revenue || 0;
+      lowClicks += stats.clicks || 0;
+      lowRevenue += stats.revenue || 0;
+      if (key === 'Zero Converting Terms') {
+        zeroConvertingClicks = stats.clicks || 0;
+      }
     }
   });
   
-  const totalClicks = highPerfClicks + lowPerfClicks;
-  const totalRevenue = highPerfRevenue + lowPerfRevenue;
-  
-  const highPerfClicksPct = totalClicks > 0 ? (highPerfClicks / totalClicks * 100) : 0;
-  const highPerfRevPct = totalRevenue > 0 ? (highPerfRevenue / totalRevenue * 100) : 0;
-  const lowPerfClicksPct = totalClicks > 0 ? (lowPerfClicks / totalClicks * 100) : 0;
-  const lowPerfRevPct = totalRevenue > 0 ? (lowPerfRevenue / totalRevenue * 100) : 0;
+  const totalClicks = highClicks + lowClicks;
+  const totalRevenue = highRevenue + lowRevenue;
   
   // Store searches efficiency data globally for the efficiency container
   window.searchesEfficiencyData = {
-    highPerfClicksPct,
-    highPerfRevPct,
-    lowPerfClicksPct,
-    lowPerfRevPct,
-    highPerfCPA: highPerfRevenue > 0 ? (highPerfClicks / highPerfRevenue) : 0,
-    lowPerfCPA: lowPerfRevenue > 0 ? (lowPerfClicks / lowPerfRevenue) : 0,
-    totalCPA: totalRevenue > 0 ? (totalClicks / totalRevenue) : 0
+    totalClicks,
+    totalRevenue,
+    highClicks,
+    highRevenue,
+    lowClicks,
+    lowRevenue,
+    zeroConvertingClicks,
+    highPerfClicksPct: totalClicks > 0 ? (highClicks / totalClicks * 100) : 0,
+    highPerfRevPct: totalRevenue > 0 ? (highRevenue / totalRevenue * 100) : 0,
+    lowPerfClicksPct: totalClicks > 0 ? (lowClicks / totalClicks * 100) : 0,
+    lowPerfRevPct: totalRevenue > 0 ? (lowRevenue / totalRevenue * 100) : 0
   };
   
   // Update efficiency display
@@ -5903,106 +5906,353 @@ function updateCombinedEfficiencyDisplay() {
   containers.forEach(container => {
     if (!container) return;
     
-    let html = '<div style="display: flex; flex-direction: column; height: 100%; gap: 8px;">';
+    let html = `
+      <div style="
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        height: 100%;
+        padding: 8px;
+      ">
+    `;
     
-    // Products Efficiency Row
+    // PRODUCTS Column
+    html += `
+      <div style="
+        background: linear-gradient(to bottom, #ffffff, #f9fafb);
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      ">
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e5e7eb;
+        ">
+          <span style="font-size: 14px;">📦</span>
+          <span style="
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          ">Products</span>
+        </div>
+    `;
+    
     if (window.productsEfficiencyData) {
       const data = window.productsEfficiencyData;
       
-      // Calculate metrics
-      const budgetScore = data.totalROAS > 0 ? 
-        Math.min(100, (data.positiveCostPct * data.positiveROAS) / data.totalROAS) : 0;
-      const optimization = data.positiveRevPct - data.positiveCostPct;
-      const waste = data.negativeROAS < 1 ? 
-        data.negativeCostPct * (1 - data.negativeROAS) : 0;
-      const ratio = data.negativeCostPct > 0 ? 
-        (data.positiveRevPct / data.positiveCostPct) / (data.negativeRevPct / data.negativeCostPct) : 
-        (data.positiveCostPct > 0 ? data.positiveRevPct / data.positiveCostPct : 0);
+      // Calculate meaningful metrics
+      const totalCost = data.positiveCost + data.negativeCost;
+      const totalRevenue = data.positiveRevenue + data.negativeRevenue;
+      const roas = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+      const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue * 100) : 0;
+      const efficiency = totalCost > 0 ? (data.positiveCost / totalCost * 100) : 0;
       
+      // Calculate opportunity (if negative performers had average ROAS)
+      const avgROAS = data.positiveCost > 0 ? (data.positiveRevenue / data.positiveCost) : 0;
+      const potentialRevenue = data.negativeCost * avgROAS;
+      const opportunity = potentialRevenue - data.negativeRevenue;
+      const opportunityPercent = totalRevenue > 0 ? (opportunity / totalRevenue * 100) : 0;
+      
+      // ROAS Metric
+      const roasColor = roas >= 3 ? '#10b981' : roas >= 1.5 ? '#f59e0b' : '#ef4444';
       html += `
-        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
-          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-            📦 Products
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">ROAS</span>
+            <span style="font-size: 8px; color: #9ca3af;">Return on spend</span>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
-                ${Math.round(budgetScore)}
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Budget</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
-                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
-                ${waste.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
-                ${ratio.toFixed(1)}x
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
-            </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${roasColor};
+          ">
+            ${roas.toFixed(2)}x
           </div>
         </div>
       `;
-    }
-    
-    // Searches Efficiency Row
-    if (window.searchesEfficiencyData) {
-      const data = window.searchesEfficiencyData;
       
-      // Calculate metrics (adapted for searches)
-      const budgetScore = Math.min(100, data.highPerfRevPct);
-      const optimization = data.highPerfRevPct - data.highPerfClicksPct;
-      const waste = data.lowPerfClicksPct > 0 ? 
-        Math.max(0, data.lowPerfClicksPct - data.lowPerfRevPct) : 0;
-      const ratio = data.lowPerfClicksPct > 0 ? 
-        (data.highPerfRevPct / data.highPerfClicksPct) / (data.lowPerfRevPct / data.lowPerfClicksPct) :
-        (data.highPerfClicksPct > 0 ? data.highPerfRevPct / data.highPerfClicksPct : 0);
-      
+      // Profit Margin
+      const marginColor = profitMargin > 50 ? '#10b981' : profitMargin > 0 ? '#f59e0b' : '#ef4444';
       html += `
-        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
-          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-            🔍 Searches
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Margin</span>
+            <span style="font-size: 8px; color: #9ca3af;">Profit margin</span>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
-                ${Math.round(budgetScore)}
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Score</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
-                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
-                ${waste.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
-                ${ratio.toFixed(1)}x
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
-            </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${marginColor};
+          ">
+            ${profitMargin > 0 ? '+' : ''}${profitMargin.toFixed(0)}%
           </div>
+        </div>
+      `;
+      
+      // Efficiency
+      const effColor = efficiency > 70 ? '#10b981' : efficiency > 50 ? '#f59e0b' : '#ef4444';
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Efficiency</span>
+            <span style="font-size: 8px; color: #9ca3af;">% to profitable</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${effColor};
+          ">
+            ${efficiency.toFixed(0)}%
+          </div>
+        </div>
+      `;
+      
+      // Opportunity
+      const oppColor = opportunityPercent < 10 ? '#10b981' : opportunityPercent < 30 ? '#f59e0b' : '#ef4444';
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Opportunity</span>
+            <span style="font-size: 8px; color: #9ca3af;">Potential gain</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${oppColor};
+          ">
+            ${opportunityPercent > 0 ? '+' : ''}${opportunityPercent.toFixed(0)}%
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
+          font-size: 11px;
+        ">
+          No data available
         </div>
       `;
     }
     
     html += '</div>';
+    
+    // SEARCHES Column
+    html += `
+      <div style="
+        background: linear-gradient(to bottom, #ffffff, #f9fafb);
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      ">
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e5e7eb;
+        ">
+          <span style="font-size: 14px;">🔍</span>
+          <span style="
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          ">Searches</span>
+        </div>
+    `;
+    
+    if (window.searchesEfficiencyData) {
+      const data = window.searchesEfficiencyData;
+      
+      // Note: For searches we have clicks and revenue, not cost
+      // So we'll adapt the metrics accordingly
+      const totalClicks = data.totalClicks || 1;
+      const totalRevenue = data.totalRevenue || 0;
+      const highRevenue = data.highRevenue || 0;
+      const lowRevenue = data.lowRevenue || 0;
+      const highClicks = data.highClicks || 0;
+      const lowClicks = data.lowClicks || 0;
+      
+      // Revenue per click (instead of ROAS)
+      const revenuePerClick = totalClicks > 0 ? (totalRevenue / totalClicks) : 0;
+      
+      // Conversion efficiency (high-performing revenue share)
+      const conversionEff = totalRevenue > 0 ? (highRevenue / totalRevenue * 100) : 0;
+      
+      // Click efficiency (% of clicks to high-performers)
+      const clickEff = totalClicks > 0 ? (highClicks / totalClicks * 100) : 0;
+      
+      // Wasted clicks (low-performers with no revenue)
+      const wastedClicks = data.zeroConvertingClicks || 0;
+      const wastedPercent = totalClicks > 0 ? (wastedClicks / totalClicks * 100) : 0;
+      
+      // Revenue per Click
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">RPC</span>
+            <span style="font-size: 8px; color: #9ca3af;">Revenue/Click</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${revenuePerClick > 1 ? '#10b981' : revenuePerClick > 0.5 ? '#f59e0b' : '#ef4444'};
+          ">
+            $${revenuePerClick.toFixed(2)}
+          </div>
+        </div>
+      `;
+      
+      // Conversion Efficiency
+      const convColor = conversionEff > 70 ? '#10b981' : conversionEff > 50 ? '#f59e0b' : '#ef4444';
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Conv Eff</span>
+            <span style="font-size: 8px; color: #9ca3af;">High-perf revenue</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${convColor};
+          ">
+            ${conversionEff.toFixed(0)}%
+          </div>
+        </div>
+      `;
+      
+      // Click Efficiency
+      const clickColor = clickEff > 60 ? '#10b981' : clickEff > 40 ? '#f59e0b' : '#ef4444';
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Click Eff</span>
+            <span style="font-size: 8px; color: #9ca3af;">Quality traffic</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${clickColor};
+          ">
+            ${clickEff.toFixed(0)}%
+          </div>
+        </div>
+      `;
+      
+      // Wasted Clicks
+      const wasteColor = wastedPercent < 20 ? '#10b981' : wastedPercent < 40 ? '#f59e0b' : '#ef4444';
+      html += `
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: #6b7280; font-weight: 600;">Zero Conv</span>
+            <span style="font-size: 8px; color: #9ca3af;">Wasted clicks</span>
+          </div>
+          <div style="
+            font-size: 20px;
+            font-weight: 700;
+            color: ${wasteColor};
+          ">
+            ${wastedPercent.toFixed(0)}%
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
+          font-size: 11px;
+        ">
+          No data available
+        </div>
+      `;
+    }
+    
+    html += '</div></div>';
     container.innerHTML = html;
   });
 }
