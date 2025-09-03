@@ -4829,6 +4829,598 @@ function calculateProductBucketStatistics(data) {
   return stats;
 }
 
+// ============= NEW EFFICIENCY FRAMEWORK IMPLEMENTATION =============
+
+// Define bucket mappings for the three intent categories
+const BUCKET_INTENT_MAPPING = {
+  products: {
+    winners: ['Profit Stars', 'Strong Performers', 'Steady Contributors'],
+    underperformers: ['True Losses'],  // Break-Even can be configured
+    test: ['Insufficient Data', 'Break-Even Products']  // Break-Even in test by default
+  },
+  searches: {
+    winners: ['Top Search Terms', 'High Revenue Terms'],
+    underperformers: ['Zero Converting Terms', 'Low Performance', 'Mid-Performance'],
+    test: ['Hidden Gems']  // Good signals but low volume
+  }
+};
+
+// Configuration for the efficiency framework
+const EFFICIENCY_CONFIG = {
+  // Target ROAS - can be made configurable
+  targetROAS: 3.0,
+  
+  // Thresholds for status indicators
+  allocationAlignment: {
+    green: 1.10,
+    amber: 0.95
+  },
+  wasteRate: {
+    green: 0.10,
+    amber: 0.20
+  },
+  testingMix: {
+    min: 0.05,
+    max: 0.15
+  },
+  
+  // Efficiency score weights
+  scoreWeights: {
+    roas: 40,
+    allocation: 40,
+    waste: 20
+  }
+};
+
+// Calculate efficiency metrics for products
+function calculateProductsEfficiencyMetrics(bucketStats) {
+  const mapping = BUCKET_INTENT_MAPPING.products;
+  
+  // Aggregate metrics by intent
+  let winnersMetrics = { cost: 0, revenue: 0, count: 0 };
+  let underperformersMetrics = { cost: 0, revenue: 0, count: 0 };
+  let testMetrics = { cost: 0, revenue: 0, count: 0 };
+  let totalMetrics = { cost: 0, revenue: 0, count: 0 };
+  
+  // Process each bucket
+  Object.entries(bucketStats).forEach(([bucket, stats]) => {
+    if (bucket === 'all') {
+      totalMetrics = {
+        cost: stats.cost || 0,
+        revenue: stats.revenue || 0,
+        count: stats.count || 0
+      };
+    } else if (mapping.winners.includes(bucket)) {
+      winnersMetrics.cost += stats.cost || 0;
+      winnersMetrics.revenue += stats.revenue || 0;
+      winnersMetrics.count += stats.count || 0;
+    } else if (mapping.underperformers.includes(bucket)) {
+      underperformersMetrics.cost += stats.cost || 0;
+      underperformersMetrics.revenue += stats.revenue || 0;
+      underperformersMetrics.count += stats.count || 0;
+    } else if (mapping.test.includes(bucket)) {
+      testMetrics.cost += stats.cost || 0;
+      testMetrics.revenue += stats.revenue || 0;
+      testMetrics.count += stats.count || 0;
+    }
+  });
+  
+  // Calculate the 5 core metrics
+  const wss = totalMetrics.cost > 0 ? winnersMetrics.cost / totalMetrics.cost : 0;
+  const wrs = totalMetrics.revenue > 0 ? winnersMetrics.revenue / totalMetrics.revenue : 0;
+  const aa = wss > 0 ? wrs / wss : 0;
+  const wr = totalMetrics.cost > 0 ? underperformersMetrics.cost / totalMetrics.cost : 0;
+  const tm = totalMetrics.cost > 0 ? testMetrics.cost / totalMetrics.cost : 0;
+  
+  // Calculate ROAS for each group
+  const winnersROAS = winnersMetrics.cost > 0 ? winnersMetrics.revenue / winnersMetrics.cost : 0;
+  const underperformersROAS = underperformersMetrics.cost > 0 ? underperformersMetrics.revenue / underperformersMetrics.cost : 0;
+  const totalROAS = totalMetrics.cost > 0 ? totalMetrics.revenue / totalMetrics.cost : 0;
+  
+  return {
+    wss,
+    wrs,
+    aa,
+    wr,
+    tm,
+    winnersROAS,
+    underperformersROAS,
+    totalROAS,
+    winnersMetrics,
+    underperformersMetrics,
+    testMetrics,
+    totalMetrics
+  };
+}
+
+// Calculate efficiency metrics for searches (using clicks instead of cost)
+function calculateSearchesEfficiencyMetrics(bucketStats) {
+  const mapping = BUCKET_INTENT_MAPPING.searches;
+  
+  // Aggregate metrics by intent
+  let winnersMetrics = { clicks: 0, revenue: 0, count: 0 };
+  let underperformersMetrics = { clicks: 0, revenue: 0, count: 0 };
+  let testMetrics = { clicks: 0, revenue: 0, count: 0 };
+  let totalMetrics = { clicks: 0, revenue: 0, count: 0 };
+  
+  // Process each bucket
+  Object.entries(bucketStats).forEach(([bucket, stats]) => {
+    if (bucket === 'all') {
+      totalMetrics = {
+        clicks: stats.clicks || 0,
+        revenue: stats.revenue || 0,
+        count: stats.count || 0
+      };
+    } else if (mapping.winners.includes(bucket)) {
+      winnersMetrics.clicks += stats.clicks || 0;
+      winnersMetrics.revenue += stats.revenue || 0;
+      winnersMetrics.count += stats.count || 0;
+    } else if (mapping.underperformers.includes(bucket)) {
+      underperformersMetrics.clicks += stats.clicks || 0;
+      underperformersMetrics.revenue += stats.revenue || 0;
+      underperformersMetrics.count += stats.count || 0;
+    } else if (mapping.test.includes(bucket)) {
+      testMetrics.clicks += stats.clicks || 0;
+      testMetrics.revenue += stats.revenue || 0;
+      testMetrics.count += stats.count || 0;
+    }
+  });
+  
+  // Calculate the 5 core metrics (using clicks as proxy for spend)
+  const wcs = totalMetrics.clicks > 0 ? winnersMetrics.clicks / totalMetrics.clicks : 0; // Winners Click Share
+  const wrs = totalMetrics.revenue > 0 ? winnersMetrics.revenue / totalMetrics.revenue : 0;
+  const aa = wcs > 0 ? wrs / wcs : 0;
+  const wr = totalMetrics.clicks > 0 ? underperformersMetrics.clicks / totalMetrics.clicks : 0;
+  const tm = totalMetrics.clicks > 0 ? testMetrics.clicks / totalMetrics.clicks : 0;
+  
+  // Calculate revenue per click (instead of ROAS)
+  const winnersRPC = winnersMetrics.clicks > 0 ? winnersMetrics.revenue / winnersMetrics.clicks : 0;
+  const underperformersRPC = underperformersMetrics.clicks > 0 ? underperformersMetrics.revenue / underperformersMetrics.clicks : 0;
+  const totalRPC = totalMetrics.clicks > 0 ? totalMetrics.revenue / totalMetrics.clicks : 0;
+  
+  return {
+    wcs, // Note: using clicks instead of spend
+    wrs,
+    aa,
+    wr,
+    tm,
+    winnersRPC,
+    underperformersRPC,
+    totalRPC,
+    winnersMetrics,
+    underperformersMetrics,
+    testMetrics,
+    totalMetrics
+  };
+}
+
+// Calculate combined efficiency score (0-100)
+function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
+  const config = EFFICIENCY_CONFIG;
+  
+  // ROAS component (40 points max)
+  const roasRatio = productsMetrics.totalROAS / config.targetROAS;
+  const scoreROAS = Math.min(1, roasRatio) * config.scoreWeights.roas;
+  
+  // Allocation Index component (40 points max)
+  const aiProducts = productsMetrics.aa;
+  const aiSearches = searchesMetrics.aa;
+  const ai = (aiProducts + aiSearches) / 2;
+  
+  // Score allocation from 0.8 to 1.2 range
+  const scoreAI = Math.min(1, Math.max(0, (ai - 0.8) / 0.4)) * config.scoreWeights.allocation;
+  
+  // Waste Rate component (20 points max)
+  const wrProducts = productsMetrics.wr;
+  const wrSearches = searchesMetrics.wr;
+  const wrAll = (wrProducts + wrSearches) / 2;
+  
+  // Score waste (less is better, 30% waste = 0 points)
+  const scoreWaste = Math.min(1, Math.max(0, 1 - wrAll / 0.30)) * config.scoreWeights.waste;
+  
+  const totalScore = Math.round(scoreROAS + scoreAI + scoreWaste);
+  
+  return {
+    score: totalScore,
+    components: {
+      roas: Math.round(scoreROAS),
+      allocation: Math.round(scoreAI),
+      waste: Math.round(scoreWaste)
+    },
+    status: getEfficiencyStatus(totalScore),
+    roasRatio,
+    ai,
+    wrAll
+  };
+}
+
+// Get efficiency status based on score
+function getEfficiencyStatus(score) {
+  if (score >= 80) return { text: 'Excellent', color: '#22c55e' };
+  if (score >= 60) return { text: 'Good', color: '#eab308' };
+  if (score >= 40) return { text: 'Needs Attention', color: '#f97316' };
+  return { text: 'At Risk', color: '#ef4444' };
+}
+
+// Get status color for metrics
+function getMetricStatusColor(metric, value) {
+  const config = EFFICIENCY_CONFIG;
+  
+  switch(metric) {
+    case 'aa':
+      if (value >= config.allocationAlignment.green) return '#22c55e';
+      if (value >= config.allocationAlignment.amber) return '#eab308';
+      return '#ef4444';
+      
+    case 'wr':
+      if (value < config.wasteRate.green) return '#22c55e';
+      if (value < config.wasteRate.amber) return '#eab308';
+      return '#ef4444';
+      
+    case 'tm':
+      if (value >= config.testingMix.min && value <= config.testingMix.max) return '#22c55e';
+      if (value < config.testingMix.min) return '#3b82f6'; // Blue for under-testing
+      return '#f97316'; // Orange for over-testing
+      
+    default:
+      return '#6b7280';
+  }
+}
+
+// Main function to render the efficiency container
+function renderEfficiencyContainer() {
+  const containers = [
+    document.getElementById('efficiencyMetricsContent'),
+    document.getElementById('efficiencyMetricsContentSearchTerms')
+  ];
+  
+  containers.forEach(container => {
+    if (!container) return;
+    
+    // Get current metrics if available
+    const productsMetrics = window.productsEfficiencyMetrics || calculateProductsEfficiencyMetrics(window.productBucketStats || {});
+    const searchesMetrics = window.searchesEfficiencyMetrics || calculateSearchesEfficiencyMetrics(window.searchBucketStats || {});
+    
+    // Calculate overall efficiency score
+    const efficiencyScore = calculateEfficiencyScore(productsMetrics, searchesMetrics);
+    
+    // Build the new UI
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; height: 100%; gap: 8px; padding: 4px;">
+        
+        <!-- Overall Score -->
+        <div style="
+          background: linear-gradient(135deg, ${efficiencyScore.status.color}22, ${efficiencyScore.status.color}11);
+          border: 2px solid ${efficiencyScore.status.color};
+          border-radius: 8px;
+          padding: 12px;
+          text-align: center;
+        ">
+          <div style="font-size: 36px; font-weight: 800; color: ${efficiencyScore.status.color};">
+            ${efficiencyScore.score}
+          </div>
+          <div style="font-size: 12px; font-weight: 600; color: ${efficiencyScore.status.color}; margin-top: 4px;">
+            ${efficiencyScore.status.text}
+          </div>
+          
+          <!-- Score Components -->
+          <div style="display: flex; gap: 6px; margin-top: 8px; justify-content: center;">
+            <div style="
+              background: white;
+              border-radius: 4px;
+              padding: 4px 8px;
+              font-size: 10px;
+            ">
+              <span style="color: #6b7280;">ROAS:</span>
+              <span style="font-weight: 700; color: ${efficiencyScore.roasRatio >= 1 ? '#22c55e' : '#ef4444'};">
+                ${efficiencyScore.components.roas}/40
+              </span>
+            </div>
+            <div style="
+              background: white;
+              border-radius: 4px;
+              padding: 4px 8px;
+              font-size: 10px;
+            ">
+              <span style="color: #6b7280;">Alloc:</span>
+              <span style="font-weight: 700; color: ${getMetricStatusColor('aa', efficiencyScore.ai)};">
+                ${efficiencyScore.components.allocation}/40
+              </span>
+            </div>
+            <div style="
+              background: white;
+              border-radius: 4px;
+              padding: 4px 8px;
+              font-size: 10px;
+            ">
+              <span style="color: #6b7280;">Waste:</span>
+              <span style="font-weight: 700; color: ${getMetricStatusColor('wr', efficiencyScore.wrAll)};">
+                ${efficiencyScore.components.waste}/20
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Products Metrics -->
+        <div style="
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          padding: 8px;
+        ">
+          <div style="
+            font-size: 10px;
+            font-weight: 700;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          ">
+            📦 Products
+          </div>
+          
+          <!-- Key Metrics Row -->
+          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+            ${renderMetricPill('AA', productsMetrics.aa, 'aa', productsMetrics.aa.toFixed(2))}
+            ${renderMetricPill('WR', productsMetrics.wr, 'wr', (productsMetrics.wr * 100).toFixed(0) + '%')}
+            ${renderMetricPill('TM', productsMetrics.tm, 'tm', (productsMetrics.tm * 100).toFixed(0) + '%')}
+          </div>
+          
+          <!-- WSS vs WRS Bar -->
+          ${renderComparisonBar('WSS', 'WRS', productsMetrics.wss, productsMetrics.wrs)}
+          
+          <!-- Winners vs Underperformers ROAS -->
+          <div style="
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 10px;
+          ">
+            <div style="
+              flex: 1;
+              background: #f0fdf4;
+              border: 1px solid #bbf7d0;
+              border-radius: 4px;
+              padding: 4px;
+              text-align: center;
+            ">
+              <div style="color: #15803d; font-weight: 600;">Winners</div>
+              <div style="color: #22c55e; font-weight: 700; font-size: 14px;">
+                ${productsMetrics.winnersROAS.toFixed(1)}×
+              </div>
+            </div>
+            <div style="
+              flex: 1;
+              background: #fef2f2;
+              border: 1px solid #fecaca;
+              border-radius: 4px;
+              padding: 4px;
+              text-align: center;
+            ">
+              <div style="color: #991b1b; font-weight: 600;">Underperf</div>
+              <div style="color: #ef4444; font-weight: 700; font-size: 14px;">
+                ${productsMetrics.underperformersROAS.toFixed(1)}×
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Searches Metrics -->
+        <div style="
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          padding: 8px;
+        ">
+          <div style="
+            font-size: 10px;
+            font-weight: 700;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          ">
+            🔍 Searches
+          </div>
+          
+          <!-- Key Metrics Row -->
+          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+            ${renderMetricPill('AA', searchesMetrics.aa, 'aa', searchesMetrics.aa.toFixed(2))}
+            ${renderMetricPill('WR', searchesMetrics.wr, 'wr', (searchesMetrics.wr * 100).toFixed(0) + '%')}
+            ${renderMetricPill('TM', searchesMetrics.tm, 'tm', (searchesMetrics.tm * 100).toFixed(0) + '%')}
+          </div>
+          
+          <!-- WCS vs WRS Bar -->
+          ${renderComparisonBar('WCS', 'WRS', searchesMetrics.wcs, searchesMetrics.wrs)}
+          
+          <!-- Winners vs Underperformers RPC -->
+          <div style="
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 10px;
+          ">
+            <div style="
+              flex: 1;
+              background: #f0fdf4;
+              border: 1px solid #bbf7d0;
+              border-radius: 4px;
+              padding: 4px;
+              text-align: center;
+            ">
+              <div style="color: #15803d; font-weight: 600;">Winners</div>
+              <div style="color: #22c55e; font-weight: 700; font-size: 14px;">
+                $${searchesMetrics.winnersRPC.toFixed(2)}
+              </div>
+            </div>
+            <div style="
+              flex: 1;
+              background: #fef2f2;
+              border: 1px solid #fecaca;
+              border-radius: 4px;
+              padding: 4px;
+              text-align: center;
+            ">
+              <div style="color: #991b1b; font-weight: 600;">Underperf</div>
+              <div style="color: #ef4444; font-weight: 700; font-size: 14px;">
+                $${searchesMetrics.underperformersRPC.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action Recommendations -->
+        ${renderActionRecommendations(productsMetrics, searchesMetrics)}
+        
+      </div>
+    `;
+  });
+  
+  // Store metrics globally
+  window.productsEfficiencyMetrics = productsMetrics;
+  window.searchesEfficiencyMetrics = searchesMetrics;
+  window.currentEfficiencyScore = efficiencyScore;
+}
+
+// Helper function to render a metric pill
+function renderMetricPill(label, value, metricType, displayValue) {
+  const color = getMetricStatusColor(metricType, value);
+  const bgOpacity = metricType === 'tm' && (value < 0.05 || value > 0.15) ? '44' : '22';
+  
+  return `
+    <div style="
+      flex: 1;
+      background: ${color}${bgOpacity};
+      border: 1px solid ${color}66;
+      border-radius: 4px;
+      padding: 6px;
+      text-align: center;
+    ">
+      <div style="font-size: 9px; color: #6b7280; font-weight: 600;">${label}</div>
+      <div style="font-size: 13px; color: ${color}; font-weight: 700;">
+        ${displayValue}
+      </div>
+    </div>
+  `;
+}
+
+// Helper function to render comparison bar
+function renderComparisonBar(leftLabel, rightLabel, leftValue, rightValue) {
+  const leftPercent = leftValue * 100;
+  const rightPercent = rightValue * 100;
+  
+  return `
+    <div style="margin-top: 4px;">
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #6b7280; margin-bottom: 2px;">
+        <span>${leftLabel}: ${leftPercent.toFixed(0)}%</span>
+        <span>${rightLabel}: ${rightPercent.toFixed(0)}%</span>
+      </div>
+      <div style="display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
+        <div style="
+          width: ${leftPercent}%;
+          background: #dc2626;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 600;
+          color: white;
+          transition: width 0.3s ease;
+        ">
+          ${leftPercent >= 20 ? leftPercent.toFixed(0) + '%' : ''}
+        </div>
+        <div style="
+          width: ${rightPercent}%;
+          background: #16a34a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 600;
+          color: white;
+          transition: width 0.3s ease;
+        ">
+          ${rightPercent >= 20 ? rightPercent.toFixed(0) + '%' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Helper function to render action recommendations
+function renderActionRecommendations(productsMetrics, searchesMetrics) {
+  const recommendations = [];
+  
+  // Calculate budget to shift
+  const targetWSS = Math.max(productsMetrics.wrs, 0.70);
+  const shiftShare = Math.max(0, targetWSS - productsMetrics.wss);
+  const shiftAmount = shiftShare * productsMetrics.totalMetrics.cost;
+  
+  if (shiftAmount > 100) {
+    recommendations.push({
+      type: 'shift',
+      value: `$${(shiftAmount / 1000).toFixed(1)}k`,
+      label: 'Shift to Winners'
+    });
+  }
+  
+  // Calculate wasted spend
+  const wastedAmount = productsMetrics.wr * productsMetrics.totalMetrics.cost;
+  if (wastedAmount > 100) {
+    recommendations.push({
+      type: 'waste',
+      value: `$${(wastedAmount / 1000).toFixed(1)}k`,
+      label: 'Wasted Spend'
+    });
+  }
+  
+  // Check testing mix
+  if (productsMetrics.tm < 0.05) {
+    recommendations.push({
+      type: 'test',
+      value: 'Low',
+      label: 'Under-testing'
+    });
+  } else if (productsMetrics.tm > 0.15) {
+    const excessTest = (productsMetrics.tm - 0.15) * productsMetrics.totalMetrics.cost;
+    recommendations.push({
+      type: 'test',
+      value: `$${(excessTest / 1000).toFixed(1)}k`,
+      label: 'Excess Testing'
+    });
+  }
+  
+  if (recommendations.length === 0) return '';
+  
+  return `
+    <div style="
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 8px;
+      margin-top: 8px;
+    ">
+      <div style="font-size: 10px; font-weight: 700; color: #92400e; margin-bottom: 6px;">
+        💡 ACTIONS NEEDED
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        ${recommendations.map(rec => `
+          <div style="
+            background: white;
+            border: 1px solid #fbbf24;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+          ">
+            <span style="font-weight: 700; color: #d97706;">${rec.value}</span>
+            <span style="color: #92400e; margin-left: 4px;">${rec.label}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 // Calculate global product bucket totals from all campaigns
 async function calculateGlobalProductBucketTotals() {
   try {
@@ -5213,6 +5805,16 @@ async function updateBucketUI(stats) {
 
 // Populate the searches analysis section with grouped buckets
 function populateSearchesAnalysis(bucketStats) {
+  // Store bucket stats globally FIRST
+  window.searchBucketStats = bucketStats;
+  
+  // Calculate and store efficiency metrics
+  window.searchesEfficiencyMetrics = calculateSearchesEfficiencyMetrics(bucketStats);
+  
+  // Render the new efficiency container
+  renderEfficiencyContainer();
+  
+  // Rest of the original function continues here...
   // Define high-performing and low-performing groups
   const highPerformingGroup = {
     title: 'High Performing',
@@ -5429,55 +6031,6 @@ function populateSearchesAnalysis(bucketStats) {
     container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
   
-  // Calculate and update efficiency metrics for searches
-  calculateSearchesEfficiencyMetrics(bucketStats);
-}
-
-// Calculate efficiency metrics for searches
-function calculateSearchesEfficiencyMetrics(bucketStats) {
-  const highPerformingKeys = ['Top Search Terms', 'High Revenue Terms', 'Hidden Gems'];
-  const lowPerformingKeys = ['Mid-Performance', 'Low Performance', 'Zero Converting Terms'];
-  
-  let highPerfClicks = 0, highPerfRevenue = 0;
-  let lowPerfClicks = 0, lowPerfRevenue = 0;
-  
-  highPerformingKeys.forEach(key => {
-    const stats = bucketStats[key];
-    if (stats) {
-      highPerfClicks += stats.clicks || 0;
-      highPerfRevenue += stats.revenue || 0;
-    }
-  });
-  
-  lowPerformingKeys.forEach(key => {
-    const stats = bucketStats[key];
-    if (stats) {
-      lowPerfClicks += stats.clicks || 0;
-      lowPerfRevenue += stats.revenue || 0;
-    }
-  });
-  
-  const totalClicks = highPerfClicks + lowPerfClicks;
-  const totalRevenue = highPerfRevenue + lowPerfRevenue;
-  
-  const highPerfClicksPct = totalClicks > 0 ? (highPerfClicks / totalClicks * 100) : 0;
-  const highPerfRevPct = totalRevenue > 0 ? (highPerfRevenue / totalRevenue * 100) : 0;
-  const lowPerfClicksPct = totalClicks > 0 ? (lowPerfClicks / totalClicks * 100) : 0;
-  const lowPerfRevPct = totalRevenue > 0 ? (lowPerfRevenue / totalRevenue * 100) : 0;
-  
-  // Store searches efficiency data globally for the efficiency container
-  window.searchesEfficiencyData = {
-    highPerfClicksPct,
-    highPerfRevPct,
-    lowPerfClicksPct,
-    lowPerfRevPct,
-    highPerfCPA: highPerfRevenue > 0 ? (highPerfClicks / highPerfRevenue) : 0,
-    lowPerfCPA: lowPerfRevenue > 0 ? (lowPerfClicks / lowPerfRevenue) : 0,
-    totalCPA: totalRevenue > 0 ? (totalClicks / totalRevenue) : 0
-  };
-  
-  // Update efficiency display
-  updateCombinedEfficiencyDisplay();
 }
 
 // Helper function to update analysis bars with animation
@@ -5507,6 +6060,16 @@ function updateAnalysisBarAnimated(container, value, maxValue, color, label) {
 
 // Populate the products analysis section with grouped buckets
 function populateProductsAnalysis(bucketStats) {
+  // Store bucket stats globally FIRST
+  window.productBucketStats = bucketStats;
+  
+  // Calculate and store efficiency metrics
+  window.productsEfficiencyMetrics = calculateProductsEfficiencyMetrics(bucketStats);
+  
+  // Render the new efficiency container
+  renderEfficiencyContainer();
+  
+  // Rest of the original function continues here...
   // Define positive and negative groups
   const positiveGroup = {
     title: 'Profitable Products',
@@ -5880,140 +6443,6 @@ function populateProductsAnalysis(bucketStats) {
     contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
 
-  // Update efficiency metrics (keep this part)
-  updateEfficiencyScore({
-    positiveCostPct: positiveTotals.costPercent,
-    positiveRevPct: positiveTotals.revenuePercent,
-    negativeCostPct: negativeTotals.costPercent,
-    negativeRevPct: negativeTotals.revenuePercent,
-    positiveROAS: positiveTotals.roas,
-    negativeROAS: negativeTotals.roas,
-    totalROAS: bucketStats['all']?.roas || 0
-  });
-}
-
-// Update combined efficiency display for both Products and Searches
-function updateCombinedEfficiencyDisplay() {
-  // Get containers
-  const containers = [
-    document.getElementById('efficiencyMetricsContent'),
-    document.getElementById('efficiencyMetricsContentSearchTerms')
-  ];
-  
-  containers.forEach(container => {
-    if (!container) return;
-    
-    let html = '<div style="display: flex; flex-direction: column; height: 100%; gap: 8px;">';
-    
-    // Products Efficiency Row
-    if (window.productsEfficiencyData) {
-      const data = window.productsEfficiencyData;
-      
-      // Calculate metrics
-      const budgetScore = data.totalROAS > 0 ? 
-        Math.min(100, (data.positiveCostPct * data.positiveROAS) / data.totalROAS) : 0;
-      const optimization = data.positiveRevPct - data.positiveCostPct;
-      const waste = data.negativeROAS < 1 ? 
-        data.negativeCostPct * (1 - data.negativeROAS) : 0;
-      const ratio = data.negativeCostPct > 0 ? 
-        (data.positiveRevPct / data.positiveCostPct) / (data.negativeRevPct / data.negativeCostPct) : 
-        (data.positiveCostPct > 0 ? data.positiveRevPct / data.positiveCostPct : 0);
-      
-      html += `
-        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
-          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-            📦 Products
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
-                ${Math.round(budgetScore)}
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Budget</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
-                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
-                ${waste.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
-                ${ratio.toFixed(1)}x
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    // Searches Efficiency Row
-    if (window.searchesEfficiencyData) {
-      const data = window.searchesEfficiencyData;
-      
-      // Calculate metrics (adapted for searches)
-      const budgetScore = Math.min(100, data.highPerfRevPct);
-      const optimization = data.highPerfRevPct - data.highPerfClicksPct;
-      const waste = data.lowPerfClicksPct > 0 ? 
-        Math.max(0, data.lowPerfClicksPct - data.lowPerfRevPct) : 0;
-      const ratio = data.lowPerfClicksPct > 0 ? 
-        (data.highPerfRevPct / data.highPerfClicksPct) / (data.lowPerfRevPct / data.lowPerfClicksPct) :
-        (data.highPerfClicksPct > 0 ? data.highPerfRevPct / data.highPerfClicksPct : 0);
-      
-      html += `
-        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
-          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-            🔍 Searches
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
-                ${Math.round(budgetScore)}
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Score</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
-                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
-                ${waste.toFixed(0)}%
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
-                ${ratio.toFixed(1)}x
-              </div>
-              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    html += '</div>';
-    container.innerHTML = html;
-  });
-}
-
-// Store products efficiency data when calculated
-function updateEfficiencyScore(performanceData) {
-  // Store data globally for the combined display
-  window.productsEfficiencyData = performanceData;
-  
-  // Update the combined display
-  updateCombinedEfficiencyDisplay();
 }
 
 // Check if table structure can be reused for animation
