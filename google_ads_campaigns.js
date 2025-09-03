@@ -1698,13 +1698,91 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
 <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
-<div class="campaign-analysis-section-header">Products</div>
+<div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+  <span>Products</span>
+  ${window.productsEfficiencyMetrics ? `
+    <div style="display: flex; gap: 6px;">
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}22;
+        border: 1px solid ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)};
+      ">
+        AA:${window.productsEfficiencyMetrics.aa.toFixed(2)}
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}22;
+        border: 1px solid ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)};
+      ">
+        WR:${(window.productsEfficiencyMetrics.wr * 100).toFixed(0)}%
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}22;
+        border: 1px solid ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)};
+      ">
+        TM:${(window.productsEfficiencyMetrics.tm * 100).toFixed(0)}%
+      </div>
+    </div>
+  ` : ''}
+</div>
       <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
         <!-- Will be populated dynamically -->
       </div>
     </div>
     <div class="campaign-analysis-section" id="campaignAnalysisSearchesSearchTerms">
-      <div class="campaign-analysis-section-header">Searches</div>
+      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+  <span>Searches</span>
+  ${window.searchesEfficiencyMetrics ? `
+    <div style="display: flex; gap: 6px;">
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}22;
+        border: 1px solid ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)};
+      ">
+        AA:${window.searchesEfficiencyMetrics.aa.toFixed(2)}
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}22;
+        border: 1px solid ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)};
+      ">
+        WR:${(window.searchesEfficiencyMetrics.wr * 100).toFixed(0)}%
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}22;
+        border: 1px solid ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)};
+      ">
+        TM:${(window.searchesEfficiencyMetrics.tm * 100).toFixed(0)}%
+      </div>
+    </div>
+  ` : ''}
+</div>
       <div class="campaign-searches-content" id="campaignSearchesContentSearchTerms">
         <!-- Will be populated dynamically -->
       </div>
@@ -5125,32 +5203,33 @@ function renderEfficiencyContainer() {
     // Calculate overall efficiency score
     const efficiencyScore = calculateEfficiencyScore(productsMetrics, searchesMetrics);
     
-    // Build the new UI
+    // Build the new UI - ONLY Overall Score and Actions
     container.innerHTML = `
-      <div style="display: flex; flex-direction: column; height: 100%; gap: 8px; padding: 4px;">
+      <div style="display: flex; flex-direction: column; height: 100%; gap: 10px; padding: 4px;">
         
         <!-- Overall Score -->
         <div style="
           background: linear-gradient(135deg, ${efficiencyScore.status.color}22, ${efficiencyScore.status.color}11);
           border: 2px solid ${efficiencyScore.status.color};
           border-radius: 8px;
-          padding: 12px;
+          padding: 16px;
           text-align: center;
+          flex-shrink: 0;
         ">
-          <div style="font-size: 36px; font-weight: 800; color: ${efficiencyScore.status.color};">
+          <div style="font-size: 48px; font-weight: 800; color: ${efficiencyScore.status.color};">
             ${efficiencyScore.score}
           </div>
-          <div style="font-size: 12px; font-weight: 600; color: ${efficiencyScore.status.color}; margin-top: 4px;">
+          <div style="font-size: 14px; font-weight: 600; color: ${efficiencyScore.status.color}; margin-top: 4px;">
             ${efficiencyScore.status.text}
           </div>
           
           <!-- Score Components -->
-          <div style="display: flex; gap: 6px; margin-top: 8px; justify-content: center;">
+          <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
             <div style="
               background: white;
               border-radius: 4px;
-              padding: 4px 8px;
-              font-size: 10px;
+              padding: 6px 12px;
+              font-size: 11px;
             ">
               <span style="color: #6b7280;">ROAS:</span>
               <span style="font-weight: 700; color: ${efficiencyScore.roasRatio >= 1 ? '#22c55e' : '#ef4444'};">
@@ -5160,8 +5239,8 @@ function renderEfficiencyContainer() {
             <div style="
               background: white;
               border-radius: 4px;
-              padding: 4px 8px;
-              font-size: 10px;
+              padding: 6px 12px;
+              font-size: 11px;
             ">
               <span style="color: #6b7280;">Alloc:</span>
               <span style="font-weight: 700; color: ${getMetricStatusColor('aa', efficiencyScore.ai)};">
@@ -5171,141 +5250,13 @@ function renderEfficiencyContainer() {
             <div style="
               background: white;
               border-radius: 4px;
-              padding: 4px 8px;
-              font-size: 10px;
+              padding: 6px 12px;
+              font-size: 11px;
             ">
               <span style="color: #6b7280;">Waste:</span>
               <span style="font-weight: 700; color: ${getMetricStatusColor('wr', efficiencyScore.wrAll)};">
                 ${efficiencyScore.components.waste}/20
               </span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Products Metrics -->
-        <div style="
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          padding: 8px;
-        ">
-          <div style="
-            font-size: 10px;
-            font-weight: 700;
-            color: #6b7280;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          ">
-            📦 Products
-          </div>
-          
-          <!-- Key Metrics Row -->
-          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-            ${renderMetricPill('AA', productsMetrics.aa, 'aa', productsMetrics.aa.toFixed(2))}
-            ${renderMetricPill('WR', productsMetrics.wr, 'wr', (productsMetrics.wr * 100).toFixed(0) + '%')}
-            ${renderMetricPill('TM', productsMetrics.tm, 'tm', (productsMetrics.tm * 100).toFixed(0) + '%')}
-          </div>
-          
-          <!-- WSS vs WRS Bar -->
-          ${renderComparisonBar('WSS', 'WRS', productsMetrics.wss, productsMetrics.wrs)}
-          
-          <!-- Winners vs Underperformers ROAS -->
-          <div style="
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            font-size: 10px;
-          ">
-            <div style="
-              flex: 1;
-              background: #f0fdf4;
-              border: 1px solid #bbf7d0;
-              border-radius: 4px;
-              padding: 4px;
-              text-align: center;
-            ">
-              <div style="color: #15803d; font-weight: 600;">Winners</div>
-              <div style="color: #22c55e; font-weight: 700; font-size: 14px;">
-                ${productsMetrics.winnersROAS.toFixed(1)}×
-              </div>
-            </div>
-            <div style="
-              flex: 1;
-              background: #fef2f2;
-              border: 1px solid #fecaca;
-              border-radius: 4px;
-              padding: 4px;
-              text-align: center;
-            ">
-              <div style="color: #991b1b; font-weight: 600;">Underperf</div>
-              <div style="color: #ef4444; font-weight: 700; font-size: 14px;">
-                ${productsMetrics.underperformersROAS.toFixed(1)}×
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Searches Metrics -->
-        <div style="
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          padding: 8px;
-        ">
-          <div style="
-            font-size: 10px;
-            font-weight: 700;
-            color: #6b7280;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          ">
-            🔍 Searches
-          </div>
-          
-          <!-- Key Metrics Row -->
-          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-            ${renderMetricPill('AA', searchesMetrics.aa, 'aa', searchesMetrics.aa.toFixed(2))}
-            ${renderMetricPill('WR', searchesMetrics.wr, 'wr', (searchesMetrics.wr * 100).toFixed(0) + '%')}
-            ${renderMetricPill('TM', searchesMetrics.tm, 'tm', (searchesMetrics.tm * 100).toFixed(0) + '%')}
-          </div>
-          
-          <!-- WCS vs WRS Bar -->
-          ${renderComparisonBar('WCS', 'WRS', searchesMetrics.wcs, searchesMetrics.wrs)}
-          
-          <!-- Winners vs Underperformers RPC -->
-          <div style="
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            font-size: 10px;
-          ">
-            <div style="
-              flex: 1;
-              background: #f0fdf4;
-              border: 1px solid #bbf7d0;
-              border-radius: 4px;
-              padding: 4px;
-              text-align: center;
-            ">
-              <div style="color: #15803d; font-weight: 600;">Winners</div>
-              <div style="color: #22c55e; font-weight: 700; font-size: 14px;">
-                $${searchesMetrics.winnersRPC.toFixed(2)}
-              </div>
-            </div>
-            <div style="
-              flex: 1;
-              background: #fef2f2;
-              border: 1px solid #fecaca;
-              border-radius: 4px;
-              padding: 4px;
-              text-align: center;
-            ">
-              <div style="color: #991b1b; font-weight: 600;">Underperf</div>
-              <div style="color: #ef4444; font-weight: 700; font-size: 14px;">
-                $${searchesMetrics.underperformersRPC.toFixed(2)}
-              </div>
             </div>
           </div>
         </div>
@@ -5316,7 +5267,7 @@ function renderEfficiencyContainer() {
       </div>
     `;
     
-    // Store metrics globally (MOVED INSIDE THE LOOP)
+    // Store metrics globally
     window.productsEfficiencyMetrics = productsMetrics;
     window.searchesEfficiencyMetrics = searchesMetrics;
     window.currentEfficiencyScore = efficiencyScore;
