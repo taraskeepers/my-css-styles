@@ -1199,64 +1199,6 @@ function addCampaignsStyles() {
   background: rgba(0, 122, 255, 0.05);
 }
 
-/* Products performance indicator styles - Compact version */
-.products-performance-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  font-size: 10px;
-}
-
-.performance-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.performance-group-icon {
-  font-size: 10px;
-}
-
-.performance-value {
-  font-weight: 600;
-  font-size: 11px;
-}
-
-.performance-cost {
-  color: #dc2626;
-}
-
-.performance-revenue {
-  color: #059669;
-}
-
-.performance-arrow {
-  color: #9ca3af;
-  font-size: 10px;
-  margin: 0 2px;
-}
-
-.performance-bar-micro {
-  display: inline-block;
-  width: 24px;
-  height: 3px;
-  background: #e5e7eb;
-  border-radius: 2px;
-  position: relative;
-  vertical-align: middle;
-  margin: 0 2px;
-}
-
-.performance-bar-micro-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
 /* Efficiency metrics styles */
 .efficiency-metrics-grid {
   display: grid;
@@ -1608,9 +1550,6 @@ productsPanel.innerHTML = `
 <div class="campaign-analysis-section" id="campaignAnalysisProducts">
       <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
         <span>Products</span>
-        <div class="products-performance-indicator" id="productsPerformanceIndicator" style="display: none;">
-          <!-- Will be populated dynamically -->
-        </div>
       </div>
       <div class="campaign-searches-content" id="campaignProductsContent">
         <!-- Will be populated dynamically -->
@@ -1836,12 +1775,7 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
 <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
-      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
-        <span>Products</span>
-        <div class="products-performance-indicator" id="productsPerformanceIndicatorSearchTerms" style="display: none;">
-          <!-- Will be populated dynamically -->
-        </div>
-      </div>
+<div class="campaign-analysis-section-header">Products</div>
       <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
         <!-- Will be populated dynamically -->
       </div>
@@ -5481,19 +5415,51 @@ function updateAnalysisBarAnimated(container, value, maxValue, color, label) {
   barText.style.color = percentage > 50 ? 'white' : '#374151';
 }
 
-// Populate the products analysis section
+// Populate the products analysis section with grouped buckets
 function populateProductsAnalysis(bucketStats) {
-  // Define bucket order (best to worst)
-  const bucketOrder = [
-    { key: 'Profit Stars', color: '#FFD700', shortName: 'Profit Stars' },
-    { key: 'Strong Performers', color: '#4CAF50', shortName: 'Strong Perf' },
-    { key: 'Steady Contributors', color: '#2196F3', shortName: 'Steady' },
-    { key: 'Break-Even Products', color: '#FF9800', shortName: 'Break-Even' },
-    { key: 'True Losses', color: '#F44336', shortName: 'Losses' },
-    { key: 'Insufficient Data', color: '#9E9E9E', shortName: 'Insufficient' }
-  ];
+  // Define positive and negative groups
+  const positiveGroup = {
+    title: 'Profitable Products',
+    buckets: [
+      { key: 'Profit Stars', color: '#FFD700', shortName: 'Profit Stars' },
+      { key: 'Strong Performers', color: '#4CAF50', shortName: 'Strong Perf' },
+      { key: 'Steady Contributors', color: '#2196F3', shortName: 'Steady' }
+    ]
+  };
   
-  // Get both containers (products and search terms views) - use the content divs directly
+  const negativeGroup = {
+    title: 'Underperforming Products',
+    buckets: [
+      { key: 'Break-Even Products', color: '#FF9800', shortName: 'Break-Even' },
+      { key: 'True Losses', color: '#F44336', shortName: 'Losses' },
+      { key: 'Insufficient Data', color: '#9E9E9E', shortName: 'Insufficient' }
+    ]
+  };
+  
+  // Calculate group totals
+  function calculateGroupTotals(group) {
+    let totalCount = 0, totalCost = 0, totalRevenue = 0;
+    
+    group.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key] || { count: 0, cost: 0, revenue: 0 };
+      totalCount += stats.count;
+      totalCost += stats.cost;
+      totalRevenue += stats.revenue;
+    });
+    
+    const roas = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+    const allTotalCost = bucketStats['all']?.cost || 1;
+    const allTotalRevenue = bucketStats['all']?.revenue || 1;
+    const costPercent = (totalCost / allTotalCost * 100);
+    const revenuePercent = (totalRevenue / allTotalRevenue * 100);
+    
+    return { totalCount, totalCost, totalRevenue, roas, costPercent, revenuePercent };
+  }
+  
+  const positiveTotals = calculateGroupTotals(positiveGroup);
+  const negativeTotals = calculateGroupTotals(negativeGroup);
+  
+  // Get both containers
   const containers = [
     document.getElementById('campaignProductsContent'),
     document.getElementById('campaignProductsContentSearchTerms')
@@ -5502,126 +5468,338 @@ function populateProductsAnalysis(bucketStats) {
   containers.forEach(contentDiv => {
     if (!contentDiv) return;
     
-    // Check if structure already exists
-    const existingRows = contentDiv.querySelectorAll('.campaign-search-bucket-row');
+    let html = '';
     
-    if (existingRows.length === bucketOrder.length) {
-      // Update existing rows - this will animate
-      bucketOrder.forEach((bucket, index) => {
-        const row = existingRows[index];
-        const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
-        
-        const costPercent = stats.costPercent || 0;
-        const revenuePercent = stats.revenuePercent || 0;
-        const roas = stats.roas || 0;
-        
-        // Determine ROAS color
-        let roasColor = '#F44336'; // Red for < 1
-        if (roas >= 4) roasColor = '#4CAF50'; // Green
-        else if (roas >= 2) roasColor = '#FFC107'; // Yellow
-        else if (roas >= 1) roasColor = '#FF9800'; // Orange
-        
-        // Update count
-        const countElement = row.querySelector('.campaign-search-bucket-count');
-        if (countElement) {
-          countElement.textContent = stats.count;
-          countElement.style.background = bucket.color;
-        }
-        
-        // Update cost bar (first bar)
-        const bars = row.querySelectorAll('.campaign-search-bucket-bar');
-        if (bars[0]) {
-          const costBarFill = bars[0].querySelector('.campaign-search-bucket-bar-fill');
-          const costBarText = bars[0].querySelector('.campaign-search-bucket-bar-text');
-          if (costBarFill && costBarText) {
-            costBarFill.style.width = Math.min(costPercent, 100) + '%';
-            costBarText.textContent = costPercent.toFixed(0) + '%';
-            costBarText.style.color = costPercent > 25 ? 'white' : '';
-          }
-        }
-        
-        // Update revenue bar (second bar)
-        if (bars[1]) {
-          const revenueBarFill = bars[1].querySelector('.campaign-search-bucket-bar-fill');
-          const revenueBarText = bars[1].querySelector('.campaign-search-bucket-bar-text');
-          if (revenueBarFill && revenueBarText) {
-            revenueBarFill.style.width = Math.min(revenuePercent, 100) + '%';
-            revenueBarText.textContent = revenuePercent.toFixed(0) + '%';
-            revenueBarText.style.color = revenuePercent > 25 ? 'white' : '';
-          }
-        }
-        
-        // Update ROAS element
-        const roasElement = row.querySelector('.campaign-roas-value');
-        if (roasElement) {
-          roasElement.textContent = stats.count > 0 ? roas.toFixed(1) + 'x' : '-';
-          roasElement.style.color = stats.count > 0 ? roasColor : '#9E9E9E';
-          roasElement.style.background = stats.count > 0 ? roasColor + '15' : '#F5F5F5';
-          roasElement.style.border = `1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'}`;
-        }
-      });
-    } else {
-      // Create structure for first time
-      let html = '';
+    // Positive Group
+    html += `
+      <!-- Positive Group Summary -->
+      <div class="campaign-search-bucket-row" style="
+        background: linear-gradient(to right, #dcfce7, #f0fdf4);
+        border-left: 3px solid #22c55e;
+        padding: 6px 8px;
+        margin-bottom: 2px;
+        font-weight: 600;
+      ">
+        <div style="
+          width: 40px;
+          height: 24px;
+          background: #22c55e;
+          color: white;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+        ">
+          ${positiveTotals.totalCount}
+        </div>
+        <div style="
+          width: 70px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #15803d;
+        ">
+          Profitable
+        </div>
+        <div style="
+          flex: 0.8;
+          height: 16px;
+          background: rgba(220, 38, 38, 0.2);
+          border-radius: 3px;
+          position: relative;
+          overflow: hidden;
+          margin-right: 4px;
+        ">
+          <div style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: ${Math.min(positiveTotals.costPercent, 100)}%;
+            background: #dc2626;
+            transition: width 0.3s ease;
+          "></div>
+          <div style="
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-weight: 600;
+            color: ${positiveTotals.costPercent > 25 ? 'white' : '#374151'};
+            z-index: 1;
+          ">
+            ${positiveTotals.costPercent.toFixed(0)}%
+          </div>
+        </div>
+        <div style="
+          flex: 0.8;
+          height: 16px;
+          background: rgba(5, 150, 105, 0.2);
+          border-radius: 3px;
+          position: relative;
+          overflow: hidden;
+        ">
+          <div style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: ${Math.min(positiveTotals.revenuePercent, 100)}%;
+            background: #059669;
+            transition: width 0.3s ease;
+          "></div>
+          <div style="
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-weight: 600;
+            color: ${positiveTotals.revenuePercent > 25 ? 'white' : '#374151'};
+            z-index: 1;
+          ">
+            ${positiveTotals.revenuePercent.toFixed(0)}%
+          </div>
+        </div>
+        <div style="
+          width: 45px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: #22c55e;
+          background: rgba(34, 197, 94, 0.15);
+          padding: 2px 4px;
+          border-radius: 4px;
+          border: 1px solid rgba(34, 197, 94, 0.3);
+        ">
+          ${positiveTotals.roas.toFixed(1)}x
+        </div>
+      </div>
+    `;
+    
+    // Positive bucket rows
+    positiveGroup.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
       
-      bucketOrder.forEach(bucket => {
-        const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
-        
-        const costPercent = stats.costPercent || 0;
-        const revenuePercent = stats.revenuePercent || 0;
-        const roas = stats.roas || 0;
-        
-        // Determine ROAS color
-        let roasColor = '#F44336'; // Red for < 1
-        if (roas >= 4) roasColor = '#4CAF50'; // Green
-        else if (roas >= 2) roasColor = '#FFC107'; // Yellow
-        else if (roas >= 1) roasColor = '#FF9800'; // Orange
-        
-        html += `
-          <div class="campaign-search-bucket-row">
-            <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-              ${stats.count}
-            </div>
-            <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
-              ${bucket.shortName}
-            </div>
-            <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
-              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-              <div class="campaign-search-bucket-bar-text" style="${costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-                ${costPercent.toFixed(0)}%
-              </div>
-            </div>
-            <div class="campaign-search-bucket-bar" style="flex: 0.8;">
-              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-              <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-                ${revenuePercent.toFixed(0)}%
-              </div>
-            </div>
-            <div class="campaign-roas-value" style="
-              width: 45px;
-              text-align: center;
-              font-size: 11px;
-              font-weight: 700;
-              color: ${stats.count > 0 ? roasColor : '#9E9E9E'};
-              background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'};
-              padding: 2px 4px;
-              border-radius: 4px;
-              border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};
-              transition: all 0.3s ease;
-            ">
-              ${stats.count > 0 ? roas.toFixed(1) + 'x' : '-'}
+      // Determine ROAS color
+      let roasColor = '#F44336';
+      if (stats.roas >= 4) roasColor = '#4CAF50';
+      else if (stats.roas >= 2) roasColor = '#FFC107';
+      else if (stats.roas >= 1) roasColor = '#FF9800';
+      
+      html += `
+        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${stats.costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+              ${stats.costPercent.toFixed(0)}%
             </div>
           </div>
-        `;
-      });
+          <div class="campaign-search-bucket-bar" style="flex: 0.8;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${stats.revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+              ${stats.revenuePercent.toFixed(0)}%
+            </div>
+          </div>
+          <div class="campaign-roas-value" style="
+            width: 45px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: ${stats.count > 0 ? roasColor : '#9E9E9E'};
+            background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'};
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};
+            transition: all 0.3s ease;
+          ">
+            ${stats.count > 0 ? stats.roas.toFixed(1) + 'x' : '-'}
+          </div>
+        </div>
+      `;
+    });
+    
+    // Add spacing between groups
+    html += '<div style="height: 8px;"></div>';
+    
+    // Negative Group Summary
+    html += `
+      <!-- Negative Group Summary -->
+      <div class="campaign-search-bucket-row" style="
+        background: linear-gradient(to right, #fee2e2, #fef2f2);
+        border-left: 3px solid #ef4444;
+        padding: 6px 8px;
+        margin-bottom: 2px;
+        font-weight: 600;
+      ">
+        <div style="
+          width: 40px;
+          height: 24px;
+          background: #ef4444;
+          color: white;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+        ">
+          ${negativeTotals.totalCount}
+        </div>
+        <div style="
+          width: 70px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #dc2626;
+        ">
+          Underperf.
+        </div>
+        <div style="
+          flex: 0.8;
+          height: 16px;
+          background: rgba(220, 38, 38, 0.2);
+          border-radius: 3px;
+          position: relative;
+          overflow: hidden;
+          margin-right: 4px;
+        ">
+          <div style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: ${Math.min(negativeTotals.costPercent, 100)}%;
+            background: #dc2626;
+            transition: width 0.3s ease;
+          "></div>
+          <div style="
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-weight: 600;
+            color: ${negativeTotals.costPercent > 25 ? 'white' : '#374151'};
+            z-index: 1;
+          ">
+            ${negativeTotals.costPercent.toFixed(0)}%
+          </div>
+        </div>
+        <div style="
+          flex: 0.8;
+          height: 16px;
+          background: rgba(5, 150, 105, 0.2);
+          border-radius: 3px;
+          position: relative;
+          overflow: hidden;
+        ">
+          <div style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: ${Math.min(negativeTotals.revenuePercent, 100)}%;
+            background: #059669;
+            transition: width 0.3s ease;
+          "></div>
+          <div style="
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-weight: 600;
+            color: ${negativeTotals.revenuePercent > 25 ? 'white' : '#374151'};
+            z-index: 1;
+          ">
+            ${negativeTotals.revenuePercent.toFixed(0)}%
+          </div>
+        </div>
+        <div style="
+          width: 45px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: ${negativeTotals.roas >= 1 ? '#FF9800' : '#ef4444'};
+          background: ${negativeTotals.roas >= 1 ? 'rgba(255, 152, 0, 0.15)' : 'rgba(239, 68, 68, 0.15)'};
+          padding: 2px 4px;
+          border-radius: 4px;
+          border: 1px solid ${negativeTotals.roas >= 1 ? 'rgba(255, 152, 0, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
+        ">
+          ${negativeTotals.roas.toFixed(1)}x
+        </div>
+      </div>
+    `;
+    
+    // Negative bucket rows
+    negativeGroup.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
       
-      contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
-    }
+      // Determine ROAS color
+      let roasColor = '#F44336';
+      if (stats.roas >= 4) roasColor = '#4CAF50';
+      else if (stats.roas >= 2) roasColor = '#FFC107';
+      else if (stats.roas >= 1) roasColor = '#FF9800';
+      
+      html += `
+        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${stats.costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+              ${stats.costPercent.toFixed(0)}%
+            </div>
+          </div>
+          <div class="campaign-search-bucket-bar" style="flex: 0.8;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${stats.revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+              ${stats.revenuePercent.toFixed(0)}%
+            </div>
+          </div>
+          <div class="campaign-roas-value" style="
+            width: 45px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: ${stats.count > 0 ? roasColor : '#9E9E9E'};
+            background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'};
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};
+            transition: all 0.3s ease;
+          ">
+            ${stats.count > 0 ? stats.roas.toFixed(1) + 'x' : '-'}
+          </div>
+        </div>
+      `;
+    });
+    
+    contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
 
-  // Update performance indicator and efficiency metrics
-  const performanceData = updateProductsPerformanceIndicator(bucketStats);
-  updateEfficiencyScore(performanceData);
+  // Update efficiency metrics (keep this part)
+  updateEfficiencyScore({
+    positiveCostPct: positiveTotals.costPercent,
+    positiveRevPct: positiveTotals.revenuePercent,
+    negativeCostPct: negativeTotals.costPercent,
+    negativeRevPct: negativeTotals.revenuePercent,
+    positiveROAS: positiveTotals.roas,
+    negativeROAS: negativeTotals.roas,
+    totalROAS: bucketStats['all']?.roas || 0
+  });
 }
 
 // Update efficiency metrics
@@ -5707,194 +5885,6 @@ function updateEfficiencyScore(performanceData) {
       </div>
     `;
   });
-}
-
-// Update products performance indicator - Compact version
-function updateProductsPerformanceIndicator(bucketStats) {
-  console.log('[updateProductsPerformanceIndicator] Called with bucketStats:', bucketStats);
-  
-  // Calculate positive vs negative groups
-  const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
-  const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
-  
-  let positiveCost = 0, positiveRevenue = 0;
-  let negativeCost = 0, negativeRevenue = 0;
-  let totalCost = 0, totalRevenue = 0;
-  
-  // Sum up the metrics
-  positiveGroups.forEach(bucket => {
-    if (bucketStats[bucket]) {
-      positiveCost += bucketStats[bucket].cost || 0;
-      positiveRevenue += bucketStats[bucket].revenue || 0;
-    }
-  });
-  
-  negativeGroups.forEach(bucket => {
-    if (bucketStats[bucket]) {
-      negativeCost += bucketStats[bucket].cost || 0;
-      negativeRevenue += bucketStats[bucket].revenue || 0;
-    }
-  });
-  
-  totalCost = positiveCost + negativeCost;
-  totalRevenue = positiveRevenue + negativeRevenue;
-  
-  console.log('[updateProductsPerformanceIndicator] Totals - Cost:', totalCost, 'Revenue:', totalRevenue);
-  
-  // Calculate percentages
-  const positiveCostPct = totalCost > 0 ? (positiveCost / totalCost * 100) : 0;
-  const positiveRevPct = totalRevenue > 0 ? (positiveRevenue / totalRevenue * 100) : 0;
-  const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
-  const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
-  
-  // Calculate efficiency boost/drain
-  const positiveBoost = positiveRevPct - positiveCostPct;
-  const negativeDrain = negativeRevPct - negativeCostPct;
-  
-  // Get indicator containers
-  const indicators = [
-    document.getElementById('productsPerformanceIndicator'),
-    document.getElementById('productsPerformanceIndicatorSearchTerms')
-  ];
-  
-  console.log('[updateProductsPerformanceIndicator] Found indicators:', indicators);
-  
-  indicators.forEach(indicator => {
-    if (!indicator) return;
-    
-    console.log('[updateProductsPerformanceIndicator] Updating indicator with values');
-    
-    if (totalCost > 0 || totalRevenue > 0) {
-      indicator.style.display = 'inline-flex';
-      indicator.innerHTML = `
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 3px 8px;
-          background: linear-gradient(to right, #f0fdf4, #fef2f2);
-          border-radius: 6px;
-          border: 1px solid #e5e7eb;
-        ">
-          <!-- Positive Group -->
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          ">
-            <div style="
-              width: 6px;
-              height: 6px;
-              background: #22c55e;
-              border-radius: 50%;
-            "></div>
-            <div style="
-              font-size: 11px;
-              font-weight: 700;
-              color: #16a34a;
-            ">
-              ${positiveCostPct.toFixed(0)}%
-            </div>
-            <div style="
-              font-size: 10px;
-              color: #16a34a;
-            ">
-              →
-            </div>
-            <div style="
-              font-size: 11px;
-              font-weight: 700;
-              color: #16a34a;
-            ">
-              ${positiveRevPct.toFixed(0)}%
-            </div>
-            ${positiveBoost !== 0 ? `
-              <div style="
-                font-size: 9px;
-                font-weight: 600;
-                color: ${positiveBoost > 0 ? '#16a34a' : '#dc2626'};
-                background: ${positiveBoost > 0 ? '#dcfce7' : '#fee2e2'};
-                padding: 1px 4px;
-                border-radius: 3px;
-              ">
-                ${positiveBoost > 0 ? '+' : ''}${positiveBoost.toFixed(0)}
-              </div>
-            ` : ''}
-          </div>
-          
-          <!-- Divider -->
-          <div style="
-            width: 1px;
-            height: 14px;
-            background: #d1d5db;
-          "></div>
-          
-          <!-- Negative Group -->
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          ">
-            <div style="
-              width: 6px;
-              height: 6px;
-              background: #ef4444;
-              border-radius: 50%;
-            "></div>
-            <div style="
-              font-size: 11px;
-              font-weight: 700;
-              color: #dc2626;
-            ">
-              ${negativeCostPct.toFixed(0)}%
-            </div>
-            <div style="
-              font-size: 10px;
-              color: #dc2626;
-            ">
-              →
-            </div>
-            <div style="
-              font-size: 11px;
-              font-weight: 700;
-              color: #dc2626;
-            ">
-              ${negativeRevPct.toFixed(0)}%
-            </div>
-            ${negativeDrain !== 0 ? `
-              <div style="
-                font-size: 9px;
-                font-weight: 600;
-                color: ${negativeDrain > 0 ? '#16a34a' : '#dc2626'};
-                background: ${negativeDrain > 0 ? '#dcfce7' : '#fee2e2'};
-                padding: 1px 4px;
-                border-radius: 3px;
-              ">
-                ${negativeDrain > 0 ? '+' : ''}${negativeDrain.toFixed(0)}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    } else {
-      indicator.style.display = 'none';
-    }
-  });
-  
-  // Return data for efficiency score calculation
-  return {
-    positiveCostPct,
-    positiveRevPct,
-    negativeCostPct,
-    negativeRevPct,
-    positiveROAS: positiveCost > 0 ? (positiveRevenue / positiveCost) : 0,
-    negativeROAS: negativeCost > 0 ? (negativeRevenue / negativeCost) : 0,
-    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0,
-    positiveCost,
-    positiveRevenue,
-    negativeCost,
-    negativeRevenue
-  };
 }
 
 // Check if table structure can be reused for animation
