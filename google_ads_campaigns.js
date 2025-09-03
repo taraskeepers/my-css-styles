@@ -5747,19 +5747,13 @@ function updateProductsPerformanceIndicator(bucketStats) {
   const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
   const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
   
-// Get indicator containers with retry for Products panel
-  let productsIndicator = document.getElementById('productsPerformanceIndicator');
+  // Calculate efficiency boost/drain
+  const positiveBoost = positiveRevPct - positiveCostPct;
+  const negativeDrain = negativeRevPct - negativeCostPct;
   
-  // If not found, try to find it within the products panel
-  if (!productsIndicator) {
-    const productsPanel = document.getElementById('campaignsProductsPanel');
-    if (productsPanel) {
-      productsIndicator = productsPanel.querySelector('#productsPerformanceIndicator');
-    }
-  }
-  
+  // Get indicator containers
   const indicators = [
-    productsIndicator,
+    document.getElementById('productsPerformanceIndicator'),
     document.getElementById('productsPerformanceIndicatorSearchTerms')
   ];
   
@@ -5773,30 +5767,114 @@ function updateProductsPerformanceIndicator(bucketStats) {
     if (totalCost > 0 || totalRevenue > 0) {
       indicator.style.display = 'inline-flex';
       indicator.innerHTML = `
-        <span class="performance-group">
-          <span class="performance-group-icon">🟢</span>
-          <span class="performance-value performance-cost">${positiveCostPct.toFixed(0)}%</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveCostPct}%;"></span>
-          </span>
-          <span class="performance-arrow">→</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #22c55e; width: ${positiveRevPct}%;"></span>
-          </span>
-          <span class="performance-value performance-revenue">${positiveRevPct.toFixed(0)}%</span>
-        </span>
-        <span class="performance-group">
-          <span class="performance-group-icon">🔴</span>
-          <span class="performance-value performance-cost">${negativeCostPct.toFixed(0)}%</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeCostPct}%;"></span>
-          </span>
-          <span class="performance-arrow">→</span>
-          <span class="performance-bar-micro">
-            <span class="performance-bar-micro-fill" style="background: #ef4444; width: ${negativeRevPct}%;"></span>
-          </span>
-          <span class="performance-value performance-revenue">${negativeRevPct.toFixed(0)}%</span>
-        </span>
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 3px 8px;
+          background: linear-gradient(to right, #f0fdf4, #fef2f2);
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        ">
+          <!-- Positive Group -->
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          ">
+            <div style="
+              width: 6px;
+              height: 6px;
+              background: #22c55e;
+              border-radius: 50%;
+            "></div>
+            <div style="
+              font-size: 11px;
+              font-weight: 700;
+              color: #16a34a;
+            ">
+              ${positiveCostPct.toFixed(0)}%
+            </div>
+            <div style="
+              font-size: 10px;
+              color: #16a34a;
+            ">
+              →
+            </div>
+            <div style="
+              font-size: 11px;
+              font-weight: 700;
+              color: #16a34a;
+            ">
+              ${positiveRevPct.toFixed(0)}%
+            </div>
+            ${positiveBoost !== 0 ? `
+              <div style="
+                font-size: 9px;
+                font-weight: 600;
+                color: ${positiveBoost > 0 ? '#16a34a' : '#dc2626'};
+                background: ${positiveBoost > 0 ? '#dcfce7' : '#fee2e2'};
+                padding: 1px 4px;
+                border-radius: 3px;
+              ">
+                ${positiveBoost > 0 ? '+' : ''}${positiveBoost.toFixed(0)}
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- Divider -->
+          <div style="
+            width: 1px;
+            height: 14px;
+            background: #d1d5db;
+          "></div>
+          
+          <!-- Negative Group -->
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          ">
+            <div style="
+              width: 6px;
+              height: 6px;
+              background: #ef4444;
+              border-radius: 50%;
+            "></div>
+            <div style="
+              font-size: 11px;
+              font-weight: 700;
+              color: #dc2626;
+            ">
+              ${negativeCostPct.toFixed(0)}%
+            </div>
+            <div style="
+              font-size: 10px;
+              color: #dc2626;
+            ">
+              →
+            </div>
+            <div style="
+              font-size: 11px;
+              font-weight: 700;
+              color: #dc2626;
+            ">
+              ${negativeRevPct.toFixed(0)}%
+            </div>
+            ${negativeDrain !== 0 ? `
+              <div style="
+                font-size: 9px;
+                font-weight: 600;
+                color: ${negativeDrain > 0 ? '#16a34a' : '#dc2626'};
+                background: ${negativeDrain > 0 ? '#dcfce7' : '#fee2e2'};
+                padding: 1px 4px;
+                border-radius: 3px;
+              ">
+                ${negativeDrain > 0 ? '+' : ''}${negativeDrain.toFixed(0)}
+              </div>
+            ` : ''}
+          </div>
+        </div>
       `;
     } else {
       indicator.style.display = 'none';
