@@ -5505,6 +5505,383 @@ function updateAnalysisBarAnimated(container, value, maxValue, color, label) {
   barText.style.color = percentage > 50 ? 'white' : '#374151';
 }
 
+// Add this new function to calculate efficiency metrics according to the strategy
+function calculateEfficiencyMetrics(bucketStats) {
+  // Define bucket mappings for Products
+  const productBucketMapping = {
+    winners: ['Profit Stars', 'Strong Performers', 'Steady Contributors'],
+    underperformers: ['Break-Even Products', 'True Losses'],
+    test: ['Insufficient Data']
+  };
+  
+  // Define bucket mappings for Searches (will be used when search data is available)
+  const searchBucketMapping = {
+    winners: ['Top Search Terms', 'High Revenue Terms'],
+    underperformers: ['Mid-Performance', 'Low Performance', 'Zero Converting Terms'],
+    test: ['Hidden Gems']
+  };
+  
+  // Calculate metrics for products
+  const productMetrics = calculateContainerMetrics(bucketStats, productBucketMapping);
+  
+  // For now, mock search metrics (since we're in products view)
+  // In real implementation, this would come from search terms bucket stats
+  const searchMetrics = {
+    WSS: 0.30,  // Mock data
+    WRS: 0.45,  // Mock data
+    AA: 1.50,   // Mock data
+    WR: 0.15,   // Mock data
+    TM: 0.10,   // Mock data
+    totalCost: 0,
+    totalRevenue: 0,
+    winnersROAS: 0,
+    underperformersROAS: 0
+  };
+  
+  // Calculate campaign-level metrics
+  const campaignMetrics = calculateCampaignMetrics(productMetrics, searchMetrics);
+  
+  return {
+    products: productMetrics,
+    searches: searchMetrics,
+    campaign: campaignMetrics
+  };
+}
+
+// Calculate metrics for a single container (products or searches)
+function calculateContainerMetrics(bucketStats, bucketMapping) {
+  let winnersCost = 0, winnersRevenue = 0;
+  let underperformersCost = 0, underperformersRevenue = 0;
+  let testCost = 0, testRevenue = 0;
+  let totalCost = 0, totalRevenue = 0;
+  
+  // Sum up metrics by category
+  bucketMapping.winners.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      winnersCost += bucketStats[bucket].cost || 0;
+      winnersRevenue += bucketStats[bucket].revenue || 0;
+    }
+  });
+  
+  bucketMapping.underperformers.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      underperformersCost += bucketStats[bucket].cost || 0;
+      underperformersRevenue += bucketStats[bucket].revenue || 0;
+    }
+  });
+  
+  bucketMapping.test.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      testCost += bucketStats[bucket].cost || 0;
+      testRevenue += bucketStats[bucket].revenue || 0;
+    }
+  });
+  
+  totalCost = winnersCost + underperformersCost + testCost;
+  totalRevenue = winnersRevenue + underperformersRevenue + testRevenue;
+  
+  // Calculate key metrics
+  const WSS = totalCost > 0 ? (winnersCost / totalCost) : 0;
+  const WRS = totalRevenue > 0 ? (winnersRevenue / totalRevenue) : 0;
+  const AA = WSS > 0 ? (WRS / WSS) : 0;
+  const WR = totalCost > 0 ? (underperformersCost / totalCost) : 0;
+  const TM = totalCost > 0 ? (testCost / totalCost) : 0;
+  
+  // Calculate ROAS
+  const winnersROAS = winnersCost > 0 ? (winnersRevenue / winnersCost) : 0;
+  const underperformersROAS = underperformersCost > 0 ? (underperformersRevenue / underperformersCost) : 0;
+  const totalROAS = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+  
+  return {
+    WSS: WSS * 100,  // Convert to percentage
+    WRS: WRS * 100,  // Convert to percentage
+    AA,
+    WR: WR * 100,    // Convert to percentage
+    TM: TM * 100,    // Convert to percentage
+    winnersROAS,
+    underperformersROAS,
+    totalROAS,
+    totalCost,
+    totalRevenue,
+    winnersCost,
+    winnersRevenue,
+    underperformersCost,
+    testCost
+  };
+}
+
+// Calculate campaign-level efficiency metrics
+function calculateCampaignMetrics(productMetrics, searchMetrics) {
+  const tROAS = 3.0; // Target ROAS - this should be configurable
+  
+  // Calculate overall ROAS
+  const totalCost = productMetrics.totalCost + searchMetrics.totalCost;
+  const totalRevenue = productMetrics.totalRevenue + searchMetrics.totalRevenue;
+  const overallROAS = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+  const roasVsTarget = overallROAS / tROAS;
+  
+  // Allocation Index (average of products and searches AA)
+  const allocationIndex = (productMetrics.AA + searchMetrics.AA) / 2;
+  
+  // Weighted average Waste Rate
+  const weightedWR = totalCost > 0 ? 
+    ((productMetrics.totalCost * productMetrics.WR + searchMetrics.totalCost * searchMetrics.WR) / totalCost) : 0;
+  
+  // Weighted average Testing Mix
+  const weightedTM = totalCost > 0 ?
+    ((productMetrics.totalCost * productMetrics.TM + searchMetrics.totalCost * searchMetrics.TM) / totalCost) : 0;
+  
+  // Calculate Efficiency Score (0-100)
+  const scoreROAS = Math.min(1, roasVsTarget) * 40;
+  const scoreAI = Math.min(1, Math.max(0, (allocationIndex - 0.8) / (1.2 - 0.8))) * 40;
+  const scoreWaste = Math.max(0, 1 - (weightedWR / 30)) * 20;
+  
+  const efficiencyScore = Math.round(scoreROAS + scoreAI + scoreWaste);
+  
+  // Calculate action metrics
+  const targetWSS = Math.max(productMetrics.WRS / 100, 0.70);
+  const shiftShare = Math.max(0, targetWSS - (productMetrics.WSS / 100));
+  const budgetToShift = shiftShare * productMetrics.totalCost;
+  
+  const excessTestSpend = weightedTM > 15 ? ((weightedTM - 15) / 100) * totalCost : 0;
+  const wastedSpend = (weightedWR / 100) * totalCost;
+  
+  return {
+    efficiencyScore,
+    roasVsTarget,
+    overallROAS,
+    allocationIndex,
+    weightedWR,
+    weightedTM,
+    budgetToShift,
+    excessTestSpend,
+    wastedSpend,
+    scoreBreakdown: {
+      scoreROAS,
+      scoreAI,
+      scoreWaste
+    }
+  };
+}
+
+// Replace the updateEfficiencyScore function with this new implementation
+function updateEfficiencyScore(bucketStats) {
+  if (!bucketStats) return;
+  
+  // Calculate all efficiency metrics
+  const metrics = calculateEfficiencyMetrics(bucketStats);
+  
+  // Get containers
+  const containers = [
+    document.getElementById('efficiencyMetricsContent'),
+    document.getElementById('efficiencyMetricsContentSearchTerms')
+  ];
+  
+  containers.forEach(container => {
+    if (!container) return;
+    
+    // Determine status colors
+    const getAAColor = (aa) => aa >= 1.10 ? '#22c55e' : aa >= 0.95 ? '#eab308' : '#ef4444';
+    const getWRColor = (wr) => wr < 10 ? '#22c55e' : wr < 20 ? '#eab308' : '#ef4444';
+    const getTMColor = (tm) => (tm >= 5 && tm <= 15) ? '#22c55e' : '#eab308';
+    const getScoreColor = (score) => score >= 80 ? '#22c55e' : score >= 60 ? '#3b82f6' : score >= 40 ? '#eab308' : '#ef4444';
+    const getScoreLabel = (score) => score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Needs Attention' : 'At Risk';
+    
+    container.innerHTML = `
+      <style>
+        .efficiency-main-score {
+          grid-column: 1 / -1;
+          background: white;
+          border-radius: 8px;
+          padding: 12px;
+          text-align: center;
+          border: 1px solid #e5e7eb;
+        }
+        .efficiency-score-ring {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 8px;
+          position: relative;
+          border-radius: 50%;
+        }
+        .efficiency-score-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 24px;
+          font-weight: 700;
+        }
+        .efficiency-metrics-row {
+          grid-column: 1 / -1;
+          display: flex;
+          gap: 4px;
+          justify-content: space-between;
+        }
+        .efficiency-mini-card {
+          flex: 1;
+          background: white;
+          border-radius: 6px;
+          padding: 6px;
+          text-align: center;
+          border: 1px solid #e5e7eb;
+        }
+        .efficiency-mini-label {
+          font-size: 8px;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.2px;
+          margin-bottom: 2px;
+        }
+        .efficiency-mini-value {
+          font-size: 14px;
+          font-weight: 700;
+        }
+        .efficiency-action-badges {
+          grid-column: 1 / -1;
+          display: flex;
+          gap: 4px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .efficiency-action-badge {
+          background: #f3f4f6;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+      </style>
+      
+      <!-- Main Efficiency Score -->
+      <div class="efficiency-main-score">
+        <div class="efficiency-score-ring" style="background: conic-gradient(${getScoreColor(metrics.campaign.efficiencyScore)} ${metrics.campaign.efficiencyScore * 3.6}deg, #e5e7eb 0deg);">
+          <div class="efficiency-score-text" style="color: ${getScoreColor(metrics.campaign.efficiencyScore)};">
+            ${metrics.campaign.efficiencyScore}
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 600; color: ${getScoreColor(metrics.campaign.efficiencyScore)};">
+          ${getScoreLabel(metrics.campaign.efficiencyScore)}
+        </div>
+      </div>
+      
+      <!-- Key Metrics Row -->
+      <div class="efficiency-metrics-row">
+        <div class="efficiency-mini-card">
+          <div class="efficiency-mini-label">ROAS</div>
+          <div class="efficiency-mini-value" style="color: ${metrics.campaign.roasVsTarget >= 1 ? '#22c55e' : metrics.campaign.roasVsTarget >= 0.9 ? '#eab308' : '#ef4444'};">
+            ${metrics.campaign.overallROAS.toFixed(1)}x
+          </div>
+        </div>
+        <div class="efficiency-mini-card">
+          <div class="efficiency-mini-label">Allocation</div>
+          <div class="efficiency-mini-value" style="color: ${getAAColor(metrics.campaign.allocationIndex)};">
+            ${metrics.campaign.allocationIndex.toFixed(2)}x
+          </div>
+        </div>
+        <div class="efficiency-mini-card">
+          <div class="efficiency-mini-label">Waste</div>
+          <div class="efficiency-mini-value" style="color: ${getWRColor(metrics.campaign.weightedWR)};">
+            ${metrics.campaign.weightedWR.toFixed(0)}%
+          </div>
+        </div>
+        <div class="efficiency-mini-card">
+          <div class="efficiency-mini-label">Testing</div>
+          <div class="efficiency-mini-value" style="color: ${getTMColor(metrics.campaign.weightedTM)};">
+            ${metrics.campaign.weightedTM.toFixed(0)}%
+          </div>
+        </div>
+      </div>
+      
+      <!-- Action Badges -->
+      <div class="efficiency-action-badges">
+        ${metrics.campaign.budgetToShift > 100 ? `
+          <div class="efficiency-action-badge" style="background: #dcfce7; color: #166534;">
+            <span>↗️</span>
+            <span>Shift $${(metrics.campaign.budgetToShift / 1000).toFixed(1)}k to Winners</span>
+          </div>
+        ` : ''}
+        ${metrics.campaign.excessTestSpend > 100 ? `
+          <div class="efficiency-action-badge" style="background: #fef3c7; color: #92400e;">
+            <span>⚠️</span>
+            <span>Reduce Test: $${(metrics.campaign.excessTestSpend / 1000).toFixed(1)}k</span>
+          </div>
+        ` : ''}
+        ${metrics.campaign.wastedSpend > 100 ? `
+          <div class="efficiency-action-badge" style="background: #fee2e2; color: #991b1b;">
+            <span>🔻</span>
+            <span>Waste: $${(metrics.campaign.wastedSpend / 1000).toFixed(1)}k</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+  
+  // Also update the products performance indicator with new metrics
+  updateProductsPerformanceIndicatorV2(metrics.products);
+}
+
+// New version of products performance indicator using the efficiency metrics
+function updateProductsPerformanceIndicatorV2(productMetrics) {
+  const indicators = [
+    document.getElementById('productsPerformanceIndicator'),
+    document.getElementById('productsPerformanceIndicatorSearchTerms')
+  ];
+  
+  indicators.forEach(indicator => {
+    if (!indicator) return;
+    
+    const getAAStatusColor = (aa) => aa >= 1.10 ? '#22c55e' : aa >= 0.95 ? '#eab308' : '#ef4444';
+    const getAAStatusText = (aa) => aa >= 1.10 ? '✓' : aa >= 0.95 ? '~' : '!';
+    
+    indicator.style.display = 'inline-flex';
+    indicator.innerHTML = `
+      <style>
+        .perf-metric {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 6px;
+          background: #f9fafb;
+          border-radius: 4px;
+          font-size: 10px;
+        }
+        .perf-metric-label {
+          color: #6b7280;
+          font-weight: 500;
+        }
+        .perf-metric-value {
+          font-weight: 700;
+        }
+      </style>
+      
+      <div class="perf-metric">
+        <span class="perf-metric-label">Winners:</span>
+        <span class="perf-metric-value" style="color: #dc2626;">${productMetrics.WSS.toFixed(0)}%</span>
+        <span style="color: #9ca3af;">→</span>
+        <span class="perf-metric-value" style="color: #059669;">${productMetrics.WRS.toFixed(0)}%</span>
+        <span style="
+          background: ${getAAStatusColor(productMetrics.AA)};
+          color: white;
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-weight: 700;
+        ">${getAAStatusText(productMetrics.AA)} ${productMetrics.AA.toFixed(1)}x</span>
+      </div>
+      
+      <div class="perf-metric">
+        <span class="perf-metric-label">Waste:</span>
+        <span class="perf-metric-value" style="color: ${productMetrics.WR < 10 ? '#22c55e' : productMetrics.WR < 20 ? '#eab308' : '#ef4444'};">
+          ${productMetrics.WR.toFixed(0)}%
+        </span>
+      </div>
+    `;
+  });
+}
+
 // Populate the products analysis section with grouped buckets
 function populateProductsAnalysis(bucketStats) {
   // Define positive and negative groups
@@ -5880,16 +6257,12 @@ function populateProductsAnalysis(bucketStats) {
     contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
   });
 
-  // Update efficiency metrics (keep this part)
-  updateEfficiencyScore({
-    positiveCostPct: positiveTotals.costPercent,
-    positiveRevPct: positiveTotals.revenuePercent,
-    negativeCostPct: negativeTotals.costPercent,
-    negativeRevPct: negativeTotals.revenuePercent,
-    positiveROAS: positiveTotals.roas,
-    negativeROAS: negativeTotals.roas,
-    totalROAS: bucketStats['all']?.roas || 0
-  });
+  // Call the new efficiency score update
+  updateEfficiencyScore(bucketStats);
+  
+  // Update performance indicator
+  const metrics = calculateEfficiencyMetrics(bucketStats);
+  updateProductsPerformanceIndicatorV2(metrics.products);
 }
 
 // Update combined efficiency display for both Products and Searches
