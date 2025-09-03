@@ -1178,6 +1178,26 @@ function addCampaignsStyles() {
 .camp-metric-percent {
   transition: opacity 0.2s ease;
 }
+/* Analysis container bar transitions */
+.campaign-search-bucket-bar-fill {
+  transition: width 0.3s ease !important;
+}
+
+.campaign-search-bucket-count,
+.campaign-search-bucket-bar-text,
+.campaign-roas-value {
+  transition: all 0.3s ease !important;
+}
+
+/* Prevent layout shifts during updates */
+.campaign-search-bucket-row {
+  min-height: 28px;
+  transition: background-color 0.2s ease;
+}
+
+.campaign-search-bucket-row:hover {
+  background: rgba(0, 122, 255, 0.05);
+}
     `;
     document.head.appendChild(style);
   }
@@ -1368,48 +1388,52 @@ filterContainer.className = 'campaigns-filter-container';
     });
   });
 
-// Add view switcher event handlers <--- ADD THIS ENTIRE BLOCK
-  viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      // Update active state
-      viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
+// Add view switcher event handlers
+viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    // Update active state
+    viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    
+    const view = this.getAttribute('data-view');
+    
+    if (view === 'products') {
+      productsPanel.style.display = 'flex';
+      searchTermsPanel.style.display = 'none';
+      const prodAnalysis = document.getElementById('campaignAnalysisContainer');
+      if (prodAnalysis) prodAnalysis.style.display = 'flex';
+      const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
+      if (searchAnalysis) searchAnalysis.style.display = 'none';
       
-      const view = this.getAttribute('data-view');
-      
-      if (view === 'products') {
-        productsPanel.style.display = 'flex';
-        searchTermsPanel.style.display = 'none';
-        // Both analysis containers stay visible
-        const prodAnalysis = document.getElementById('campaignAnalysisContainer');
-        if (prodAnalysis) prodAnalysis.style.display = 'flex';
-        const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
-        if (searchAnalysis) searchAnalysis.style.display = 'none';
-      } else if (view === 'search-terms') {
-        productsPanel.style.display = 'none';
-        searchTermsPanel.style.display = 'flex';
-        // Both analysis containers stay visible
-        const prodAnalysis = document.getElementById('campaignAnalysisContainer');
-        if (prodAnalysis) prodAnalysis.style.display = 'none';
-        const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
-        if (searchAnalysis) searchAnalysis.style.display = 'flex';
-        
-        // Load search terms if campaign is selected
-        if (window.selectedCampaign) {
-          loadCampaignSearchTerms(
-            window.selectedCampaign.channelType,
-            window.selectedCampaign.campaignName
-          );
-        }
-        
-        // Always keep products analysis populated
-        if (window.campaignProductsOriginalData) {
-          const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
-          populateProductsAnalysis(productBucketStats);
-        }
+      // Keep products analysis populated if data exists
+      if (window.campaignProductsOriginalData) {
+        const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
+        populateProductsAnalysis(productBucketStats);
       }
-    });
+    } else if (view === 'search-terms') {
+      productsPanel.style.display = 'none';
+      searchTermsPanel.style.display = 'flex';
+      const prodAnalysis = document.getElementById('campaignAnalysisContainer');
+      if (prodAnalysis) prodAnalysis.style.display = 'none';
+      const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
+      if (searchAnalysis) searchAnalysis.style.display = 'flex';
+      
+      // Load search terms if campaign is selected
+      if (window.selectedCampaign) {
+        loadCampaignSearchTerms(
+          window.selectedCampaign.channelType,
+          window.selectedCampaign.campaignName
+        );
+      }
+      
+      // Keep products analysis populated consistently
+      if (window.campaignProductsOriginalData) {
+        const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
+        populateProductsAnalysis(productBucketStats);
+      }
+    }
   });
+});
 
   // Initialize both analyses if campaign is already selected  <--- ADD THIS NEW CODE HERE
   if (window.selectedCampaign && window.campaignProductsOriginalData) {
@@ -5199,40 +5223,84 @@ function populateSearchesAnalysis(bucketStats) {
   containers.forEach(container => {
     if (!container) return;
     
-    let html = '';
+    // Check if structure already exists
+    const existingRows = container.querySelectorAll('.campaign-search-bucket-row');
     
-    bucketOrder.forEach(bucket => {
-      const stats = bucketStats[bucket.key];
-      if (!stats) return;
+    if (existingRows.length === bucketOrder.length) {
+      // Update existing rows - this will animate
+      bucketOrder.forEach((bucket, index) => {
+        const row = existingRows[index];
+        const stats = bucketStats[bucket.key];
+        if (!stats) return;
+        
+        const clicksPercent = stats.clicksPercent || 0;
+        const revenuePercent = stats.revenuePercent || 0;
+        
+        // Update count
+        const countElement = row.querySelector('.campaign-search-bucket-count');
+        if (countElement) {
+          countElement.textContent = stats.count;
+          countElement.style.background = bucket.color;
+        }
+        
+        // Update clicks bar
+        const clicksBarFill = row.querySelector('.campaign-search-bucket-bar-fill:first-of-type');
+        const clicksBarText = row.querySelector('.campaign-search-bucket-bar-text:first-of-type');
+        if (clicksBarFill && clicksBarText) {
+          clicksBarFill.style.width = Math.min(clicksPercent, 100) + '%';
+          clicksBarText.textContent = clicksPercent.toFixed(1) + '%';
+          clicksBarText.style.color = clicksPercent > 20 ? 'white' : '';
+        }
+        
+        // Update revenue bar
+        const revenueBars = row.querySelectorAll('.campaign-search-bucket-bar');
+        if (revenueBars[1]) {
+          const revenueBarFill = revenueBars[1].querySelector('.campaign-search-bucket-bar-fill');
+          const revenueBarText = revenueBars[1].querySelector('.campaign-search-bucket-bar-text');
+          if (revenueBarFill && revenueBarText) {
+            revenueBarFill.style.width = Math.min(revenuePercent, 100) + '%';
+            revenueBarText.textContent = revenuePercent.toFixed(1) + '%';
+            revenueBarText.style.color = revenuePercent > 20 ? 'white' : '';
+          }
+        }
+      });
+    } else {
+      // Create structure for first time
+      let html = '';
       
-      const clicksPercent = stats.clicksPercent || 0;
-      const revenuePercent = stats.revenuePercent || 0;
-      
-      html += `
-        <div class="campaign-search-bucket-row">
-          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-            ${stats.count}
-          </div>
-          <div class="campaign-search-bucket-name" title="${bucket.key}">
-            ${bucket.shortName}
-          </div>
-          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
-              ${clicksPercent.toFixed(1)}%
+      bucketOrder.forEach(bucket => {
+        const stats = bucketStats[bucket.key];
+        if (!stats) return;
+        
+        const clicksPercent = stats.clicksPercent || 0;
+        const revenuePercent = stats.revenuePercent || 0;
+        
+        html += `
+          <div class="campaign-search-bucket-row">
+            <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+              ${stats.count}
+            </div>
+            <div class="campaign-search-bucket-name" title="${bucket.key}">
+              ${bucket.shortName}
+            </div>
+            <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+              <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
+                ${clicksPercent.toFixed(1)}%
+              </div>
+            </div>
+            <div class="campaign-search-bucket-bar">
+              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+              <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+                ${revenuePercent.toFixed(1)}%
+              </div>
             </div>
           </div>
-          <div class="campaign-search-bucket-bar">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
-              ${revenuePercent.toFixed(1)}%
-            </div>
-          </div>
-        </div>
-      `;
-    });
-    
-    container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+        `;
+      });
+      
+      container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+    }
   });
 }
 
@@ -5276,13 +5344,13 @@ function populateProductsAnalysis(bucketStats) {
   // Get both containers (products and search terms views)
   const containers = [
     document.getElementById('campaignAnalysisProducts'),
-    document.getElementById('campaignAnalysisProductsSearchTerms')
+    document.getElementById('campaignProductsContentSearchTerms')
   ];
   
   containers.forEach(container => {
     if (!container) return;
     
-    // Find the content div or create it
+    // Find or create the content div
     let contentDiv = container.querySelector('.campaign-searches-content');
     if (!contentDiv) {
       // Update the header first
@@ -5303,59 +5371,121 @@ function populateProductsAnalysis(bucketStats) {
       container.appendChild(contentDiv);
     }
     
-    let html = '';
+    // Check if structure already exists
+    const existingRows = contentDiv.querySelectorAll('.campaign-search-bucket-row');
     
-    bucketOrder.forEach(bucket => {
-      const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
+    if (existingRows.length === bucketOrder.length) {
+      // Update existing rows - this will animate
+      bucketOrder.forEach((bucket, index) => {
+        const row = existingRows[index];
+        const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
+        
+        const costPercent = stats.costPercent || 0;
+        const revenuePercent = stats.revenuePercent || 0;
+        const roas = stats.roas || 0;
+        
+        // Determine ROAS color
+        let roasColor = '#F44336'; // Red for < 1
+        if (roas >= 4) roasColor = '#4CAF50'; // Green
+        else if (roas >= 2) roasColor = '#FFC107'; // Yellow
+        else if (roas >= 1) roasColor = '#FF9800'; // Orange
+        
+        // Update count
+        const countElement = row.querySelector('.campaign-search-bucket-count');
+        if (countElement) {
+          countElement.textContent = stats.count;
+          countElement.style.background = bucket.color;
+        }
+        
+        // Update cost bar (first bar)
+        const bars = row.querySelectorAll('.campaign-search-bucket-bar');
+        if (bars[0]) {
+          const costBarFill = bars[0].querySelector('.campaign-search-bucket-bar-fill');
+          const costBarText = bars[0].querySelector('.campaign-search-bucket-bar-text');
+          if (costBarFill && costBarText) {
+            costBarFill.style.width = Math.min(costPercent, 100) + '%';
+            costBarText.textContent = costPercent.toFixed(0) + '%';
+            costBarText.style.color = costPercent > 25 ? 'white' : '';
+          }
+        }
+        
+        // Update revenue bar (second bar)
+        if (bars[1]) {
+          const revenueBarFill = bars[1].querySelector('.campaign-search-bucket-bar-fill');
+          const revenueBarText = bars[1].querySelector('.campaign-search-bucket-bar-text');
+          if (revenueBarFill && revenueBarText) {
+            revenueBarFill.style.width = Math.min(revenuePercent, 100) + '%';
+            revenueBarText.textContent = revenuePercent.toFixed(0) + '%';
+            revenueBarText.style.color = revenuePercent > 25 ? 'white' : '';
+          }
+        }
+        
+        // Update ROAS element
+        const roasElement = row.querySelector('.campaign-roas-value');
+        if (roasElement) {
+          roasElement.textContent = stats.count > 0 ? roas.toFixed(1) + 'x' : '-';
+          roasElement.style.color = stats.count > 0 ? roasColor : '#9E9E9E';
+          roasElement.style.background = stats.count > 0 ? roasColor + '15' : '#F5F5F5';
+          roasElement.style.border = `1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'}`;
+        }
+      });
+    } else {
+      // Create structure for first time
+      let html = '';
       
-      const costPercent = stats.costPercent || 0;
-      const revenuePercent = stats.revenuePercent || 0;
-      const roas = stats.roas || 0;
-      
-      // Determine ROAS color
-      let roasColor = '#F44336'; // Red for < 1
-      if (roas >= 4) roasColor = '#4CAF50'; // Green
-      else if (roas >= 2) roasColor = '#FFC107'; // Yellow
-      else if (roas >= 1) roasColor = '#FF9800'; // Orange
-      
-      html += `
-        <div class="campaign-search-bucket-row">
-          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-            ${stats.count}
-          </div>
-          <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
-            ${bucket.shortName}
-          </div>
-          <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-              ${costPercent.toFixed(0)}%
+      bucketOrder.forEach(bucket => {
+        const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
+        
+        const costPercent = stats.costPercent || 0;
+        const revenuePercent = stats.revenuePercent || 0;
+        const roas = stats.roas || 0;
+        
+        // Determine ROAS color
+        let roasColor = '#F44336'; // Red for < 1
+        if (roas >= 4) roasColor = '#4CAF50'; // Green
+        else if (roas >= 2) roasColor = '#FFC107'; // Yellow
+        else if (roas >= 1) roasColor = '#FF9800'; // Orange
+        
+        html += `
+          <div class="campaign-search-bucket-row">
+            <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+              ${stats.count}
+            </div>
+            <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
+              ${bucket.shortName}
+            </div>
+            <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
+              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
+              <div class="campaign-search-bucket-bar-text" style="${costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+                ${costPercent.toFixed(0)}%
+              </div>
+            </div>
+            <div class="campaign-search-bucket-bar" style="flex: 0.8;">
+              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+              <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
+                ${revenuePercent.toFixed(0)}%
+              </div>
+            </div>
+            <div class="campaign-roas-value" style="
+              width: 45px;
+              text-align: center;
+              font-size: 11px;
+              font-weight: 700;
+              color: ${stats.count > 0 ? roasColor : '#9E9E9E'};
+              background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'};
+              padding: 2px 4px;
+              border-radius: 4px;
+              border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};
+              transition: all 0.3s ease;
+            ">
+              ${stats.count > 0 ? roas.toFixed(1) + 'x' : '-'}
             </div>
           </div>
-          <div class="campaign-search-bucket-bar" style="flex: 0.8;">
-            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669;"></div>
-            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-              ${revenuePercent.toFixed(0)}%
-            </div>
-          </div>
-          <div style="
-            width: 45px;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: ${stats.count > 0 ? roasColor : '#9E9E9E'};
-            background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'};
-            padding: 2px 4px;
-            border-radius: 4px;
-            border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};
-          ">
-            ${stats.count > 0 ? roas.toFixed(1) + 'x' : '-'}
-          </div>
-        </div>
-      `;
-    });
-    
-    contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+        `;
+      });
+      
+      contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+    }
   });
 }
 
