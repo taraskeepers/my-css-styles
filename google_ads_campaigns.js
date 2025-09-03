@@ -1458,27 +1458,27 @@ const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short',
 
 productsPanel.innerHTML = `
   <div class="campaign-analysis-container" id="campaignAnalysisContainer">
-    <div class="campaign-analysis-section" id="campaignAnalysisEfficiency">
-      <div class="campaign-analysis-section-header">Efficiency</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
-        Coming soon
-      </div>
-    </div>
-    <div class="campaign-analysis-section" id="campaignAnalysisProducts">
+<div class="campaign-analysis-section" id="campaignAnalysisProducts">
       <div class="campaign-analysis-section-header">Products</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
-        Coming soon
+      <div class="campaign-searches-content" id="campaignProductsContent">
+        <!-- Will be populated dynamically -->
       </div>
     </div>
+<div class="campaign-analysis-section" id="campaignAnalysisProducts">
+  <div class="campaign-analysis-section-header">Products</div>
+  <div class="campaign-searches-content" id="campaignProductsContent">
+    <!-- Will be populated dynamically -->
+  </div>
+</div>
     <div class="campaign-analysis-section" id="campaignAnalysisSearches">
       <div class="campaign-analysis-section-header">Searches</div>
       <div class="campaign-searches-content" id="campaignSearchesContent">
         <!-- Will be populated dynamically -->
       </div>
     </div>
-    <div class="campaign-analysis-section" id="campaignAnalysisDevices">
+<div class="campaign-analysis-section" id="campaignAnalysisDevices">
       <div class="campaign-analysis-section-header">Devices</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div class="campaign-devices-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
@@ -1683,9 +1683,9 @@ searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
   <div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
     <!-- Same analysis container structure as products panel -->
-    <div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
+<div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
       <div class="campaign-analysis-section-header">Efficiency</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div class="campaign-efficiency-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
@@ -1701,9 +1701,9 @@ searchTermsPanel.innerHTML = `
         <!-- Will be populated dynamically -->
       </div>
     </div>
-    <div class="campaign-analysis-section" id="campaignAnalysisDevicesSearchTerms">
+<div class="campaign-analysis-section" id="campaignAnalysisDevicesSearchTerms">
       <div class="campaign-analysis-section-header">Devices</div>
-      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div class="campaign-devices-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
@@ -3517,18 +3517,15 @@ async function loadCampaignProducts(campaignKey, channelType, campaignName) {
   
   headerInfo.textContent = `Loading products for ${campaignName}...`;
 
-// Show loading state for products analysis
-  const productsContainer = document.getElementById('campaignAnalysisProducts');
-  if (productsContainer) {
-    const header = productsContainer.querySelector('.campaign-analysis-section-header');
-    if (header) {
-      header.textContent = 'Products';
-    }
-    const existingContent = productsContainer.querySelector('div:not(.campaign-analysis-section-header)');
-    if (existingContent) {
-      existingContent.innerHTML = '<div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">Loading...</div>';
-    }
+// Don't destroy the products analysis content - just update the header
+const productsContainer = document.getElementById('campaignAnalysisProducts');
+if (productsContainer) {
+  const header = productsContainer.querySelector('.campaign-analysis-section-header');
+  if (header) {
+    header.textContent = 'Products';
   }
+  // Don't clear the content - keep existing structure for animation
+}
 
   // Load search terms data in the background for analysis containers
   loadCampaignSearchTermsForAnalysis(channelType, campaignName);
@@ -5341,35 +5338,14 @@ function populateProductsAnalysis(bucketStats) {
     { key: 'Insufficient Data', color: '#9E9E9E', shortName: 'Insufficient' }
   ];
   
-  // Get both containers (products and search terms views)
+  // Get both containers (products and search terms views) - use the content divs directly
   const containers = [
-    document.getElementById('campaignAnalysisProducts'),
+    document.getElementById('campaignProductsContent'),
     document.getElementById('campaignProductsContentSearchTerms')
   ];
   
-  containers.forEach(container => {
-    if (!container) return;
-    
-    // Find or create the content div
-    let contentDiv = container.querySelector('.campaign-searches-content');
-    if (!contentDiv) {
-      // Update the header first
-      const header = container.querySelector('.campaign-analysis-section-header');
-      if (header) {
-        header.textContent = 'Products';
-      }
-      
-      // Create content div with same class as searches
-      contentDiv = document.createElement('div');
-      contentDiv.className = 'campaign-searches-content';
-      
-      // Remove existing content and add new
-      const existingContent = container.querySelector('div:not(.campaign-analysis-section-header)');
-      if (existingContent) {
-        existingContent.remove();
-      }
-      container.appendChild(contentDiv);
-    }
+  containers.forEach(contentDiv => {
+    if (!contentDiv) return;
     
     // Check if structure already exists
     const existingRows = contentDiv.querySelectorAll('.campaign-search-bucket-row');
