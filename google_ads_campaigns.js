@@ -1198,6 +1198,73 @@ function addCampaignsStyles() {
 .campaign-search-bucket-row:hover {
   background: rgba(0, 122, 255, 0.05);
 }
+/* Products performance indicator styles */
+.products-performance-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.performance-group-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  min-width: 140px;
+}
+
+.performance-group-icon {
+  font-size: 12px;
+}
+
+.performance-metrics {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.performance-arrow {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.performance-cost {
+  color: #dc2626;
+  min-width: 28px;
+  text-align: right;
+}
+
+.performance-revenue {
+  color: #059669;
+  min-width: 28px;
+  text-align: left;
+}
+
+.performance-mini-bar {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.performance-mini-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  transition: width 0.3s ease;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1464,9 +1531,14 @@ productsPanel.innerHTML = `
         Coming soon
       </div>
     </div>
-    <div class="campaign-analysis-section" id="campaignAnalysisProducts">
-      <div class="campaign-analysis-section-header">Products</div>
-      <div class="campaign-searches-content" id="campaignProductsContent">
+<div class="campaign-analysis-section" id="campaignAnalysisProducts">
+      <div style="display: flex; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #dee2e6;">
+        <div class="campaign-analysis-section-header" style="margin: 0;">Products</div>
+        <div class="products-performance-indicator" id="productsPerformanceIndicator" style="display: none;">
+          <!-- Will be populated dynamically -->
+        </div>
+      </div>
+      <div class="campaign-searches-content" id="campaignProductsContent" style="margin-top: 10px;">
         <!-- Will be populated dynamically -->
       </div>
     </div>
@@ -1689,9 +1761,14 @@ searchTermsPanel.innerHTML = `
         Coming soon
       </div>
     </div>
-    <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
-      <div class="campaign-analysis-section-header">Products</div>
-      <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
+<div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
+      <div style="display: flex; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #dee2e6;">
+        <div class="campaign-analysis-section-header" style="margin: 0;">Products</div>
+        <div class="products-performance-indicator" id="productsPerformanceIndicatorSearchTerms" style="display: none;">
+          <!-- Will be populated dynamically -->
+        </div>
+      </div>
+      <div class="campaign-searches-content" id="campaignProductsContentSearchTerms" style="margin-top: 10px;">
         <!-- Will be populated dynamically -->
       </div>
     </div>
@@ -5463,6 +5540,139 @@ function populateProductsAnalysis(bucketStats) {
       contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
     }
   });
+
+// Update performance indicator
+  const performanceData = updateProductsPerformanceIndicator(bucketStats);
+  
+  // Update efficiency score if function exists
+  if (typeof updateEfficiencyScore === 'function') {
+    updateEfficiencyScore(performanceData);
+  }
+  
+}
+
+// Update products performance indicator
+function updateProductsPerformanceIndicator(bucketStats) {
+  // Calculate positive vs negative groups
+  const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
+  const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
+  
+  let positiveCost = 0, positiveRevenue = 0, positiveCount = 0;
+  let negativeCost = 0, negativeRevenue = 0, negativeCount = 0;
+  let totalCost = 0, totalRevenue = 0;
+  
+  // Sum up the metrics
+  positiveGroups.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      positiveCost += bucketStats[bucket].cost || 0;
+      positiveRevenue += bucketStats[bucket].revenue || 0;
+      positiveCount += bucketStats[bucket].count || 0;
+    }
+  });
+  
+  negativeGroups.forEach(bucket => {
+    if (bucketStats[bucket]) {
+      negativeCost += bucketStats[bucket].cost || 0;
+      negativeRevenue += bucketStats[bucket].revenue || 0;
+      negativeCount += bucketStats[bucket].count || 0;
+    }
+  });
+  
+  totalCost = positiveCost + negativeCost;
+  totalRevenue = positiveRevenue + negativeRevenue;
+  
+  // Calculate percentages
+  const positiveCostPct = totalCost > 0 ? (positiveCost / totalCost * 100) : 0;
+  const positiveRevPct = totalRevenue > 0 ? (positiveRevenue / totalRevenue * 100) : 0;
+  const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
+  const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
+  
+  // Get indicator containers
+  const indicators = [
+    document.getElementById('productsPerformanceIndicator'),
+    document.getElementById('productsPerformanceIndicatorSearchTerms')
+  ];
+  
+  indicators.forEach(indicator => {
+    if (!indicator) return;
+    
+    // Only show if we have data
+    if (totalCost > 0 || totalRevenue > 0) {
+      indicator.style.display = 'flex';
+      
+      // Check if structure exists
+      let positiveBar = indicator.querySelector('.positive-group-bar');
+      let negativeBar = indicator.querySelector('.negative-group-bar');
+      
+      if (!positiveBar) {
+        // Create structure
+        indicator.innerHTML = `
+          <div class="performance-group-bar positive-group-bar">
+            <span class="performance-group-icon">💚</span>
+            <div class="performance-metrics">
+              <span class="performance-cost">${positiveCostPct.toFixed(0)}%</span>
+              <div class="performance-mini-bar">
+                <div class="performance-mini-bar-fill positive-cost-bar" style="background: #22c55e; width: ${positiveCostPct}%;"></div>
+              </div>
+              <span class="performance-arrow">→</span>
+              <div class="performance-mini-bar">
+                <div class="performance-mini-bar-fill positive-rev-bar" style="background: #22c55e; width: ${positiveRevPct}%;"></div>
+              </div>
+              <span class="performance-revenue">${positiveRevPct.toFixed(0)}%</span>
+            </div>
+          </div>
+          <div class="performance-group-bar negative-group-bar">
+            <span class="performance-group-icon">🔴</span>
+            <div class="performance-metrics">
+              <span class="performance-cost">${negativeCostPct.toFixed(0)}%</span>
+              <div class="performance-mini-bar">
+                <div class="performance-mini-bar-fill negative-cost-bar" style="background: #ef4444; width: ${negativeCostPct}%;"></div>
+              </div>
+              <span class="performance-arrow">→</span>
+              <div class="performance-mini-bar">
+                <div class="performance-mini-bar-fill negative-rev-bar" style="background: #ef4444; width: ${negativeRevPct}%;"></div>
+              </div>
+              <span class="performance-revenue">${negativeRevPct.toFixed(0)}%</span>
+            </div>
+          </div>
+        `;
+      } else {
+        // Update existing values
+        const posCostText = indicator.querySelector('.positive-group-bar .performance-cost');
+        const posRevText = indicator.querySelector('.positive-group-bar .performance-revenue');
+        const negCostText = indicator.querySelector('.negative-group-bar .performance-cost');
+        const negRevText = indicator.querySelector('.negative-group-bar .performance-revenue');
+        
+        const posCostBar = indicator.querySelector('.positive-cost-bar');
+        const posRevBar = indicator.querySelector('.positive-rev-bar');
+        const negCostBar = indicator.querySelector('.negative-cost-bar');
+        const negRevBar = indicator.querySelector('.negative-rev-bar');
+        
+        if (posCostText) posCostText.textContent = positiveCostPct.toFixed(0) + '%';
+        if (posRevText) posRevText.textContent = positiveRevPct.toFixed(0) + '%';
+        if (negCostText) negCostText.textContent = negativeCostPct.toFixed(0) + '%';
+        if (negRevText) negRevText.textContent = negativeRevPct.toFixed(0) + '%';
+        
+        if (posCostBar) posCostBar.style.width = positiveCostPct + '%';
+        if (posRevBar) posRevBar.style.width = positiveRevPct + '%';
+        if (negCostBar) negCostBar.style.width = negativeCostPct + '%';
+        if (negRevBar) negRevBar.style.width = negativeRevPct + '%';
+      }
+    } else {
+      indicator.style.display = 'none';
+    }
+  });
+  
+  // Return data for efficiency score calculation
+  return {
+    positiveCostPct,
+    positiveRevPct,
+    negativeCostPct,
+    negativeRevPct,
+    positiveROAS: positiveCost > 0 ? (positiveRevenue / positiveCost) : 0,
+    negativeROAS: negativeCost > 0 ? (negativeRevenue / negativeCost) : 0,
+    totalROAS: totalCost > 0 ? (totalRevenue / totalCost) : 0
+  };
 }
 
 // Check if table structure can be reused for animation
