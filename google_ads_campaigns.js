@@ -1152,6 +1152,32 @@ function addCampaignsStyles() {
   color: #374151;
   z-index: 1;
 }
+/* Ensure all metric bar fills have transitions */
+.camp-metric-bar-fill,
+.camp-share-fill,
+.campaign-search-bucket-bar-fill,
+.bucket-coverage-bar,
+.clicks-bar-fill,
+.revenue-bar-fill,
+.value-bar-fill,
+.cost-bar-fill,
+.roas-bar-fill,
+.analysis-bar-fill {
+  transition: width 0.3s ease !important;
+}
+
+/* Smooth number transitions */
+.bucket-count,
+.bucket-coverage-text,
+.clicks-bar-text,
+.revenue-bar-text,
+.value-bar-text,
+.cost-bar-text,
+.roas-bar-text,
+.camp-metric-value,
+.camp-metric-percent {
+  transition: opacity 0.2s ease;
+}
     `;
     document.head.appendChild(style);
   }
@@ -4881,39 +4907,76 @@ async function updateProductBucketUI(stats) {
         }
       }
       
-      // Update metrics bars (Cost instead of Clicks)
+      // Update metrics bars - reuse existing elements for animation
       if (metricsContainer) {
-        metricsContainer.innerHTML = `
-          <!-- Cost Bar -->
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.costPercent > 15 ? 'white' : '#374151'}; z-index: 1;">
-                $${bucketData.cost.toFixed(0)} (${bucketData.costPercent.toFixed(1)}%)
+        // Check if bars already exist
+        let costBar = metricsContainer.querySelector('.cost-bar-fill');
+        let costText = metricsContainer.querySelector('.cost-bar-text');
+        let revenueBar = metricsContainer.querySelector('.revenue-bar-fill');
+        let revenueText = metricsContainer.querySelector('.revenue-bar-text');
+        let roasBar = metricsContainer.querySelector('.roas-bar-fill');
+        let roasText = metricsContainer.querySelector('.roas-bar-text');
+        
+        // If bars don't exist, create them once
+        if (!costBar) {
+          metricsContainer.innerHTML = `
+            <!-- Cost Bar -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+                <div class="cost-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #dc2626; transition: width 0.3s ease;"></div>
+                <div class="cost-bar-text" style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
+                  $0 (0%)
+                </div>
               </div>
             </div>
-          </div>
+            
+            <!-- Revenue Bar -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+                <div class="revenue-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #059669; transition: width 0.3s ease;"></div>
+                <div class="revenue-bar-text" style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
+                  $0 (0%)
+                </div>
+              </div>
+            </div>
+            
+            <!-- ROAS Bar -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
+                <div class="roas-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #f59e0b; transition: width 0.3s ease;"></div>
+                <div class="roas-bar-text" style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
+                  ROAS: 0.00x
+                </div>
+              </div>
+            </div>
+          `;
           
-          <!-- Revenue Bar -->
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(bucketData.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: ${bucketData.revenuePercent > 15 ? 'white' : '#374151'}; z-index: 1;">
-                $${bucketData.revenue.toFixed(0)} (${bucketData.revenuePercent.toFixed(1)}%)
-              </div>
-            </div>
-          </div>
-          
-          <!-- ROAS Bar -->
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div style="flex: 1; height: 16px; background: #e5e7eb; border-radius: 3px; position: relative; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min((bucketData.roas / 5) * 100, 100)}%; background: #f59e0b; transition: width 0.3s ease;"></div>
-              <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">
-                ROAS: ${bucketData.roas.toFixed(2)}x
-              </div>
-            </div>
-          </div>
-        `;
+          // Re-query the elements after creating
+          costBar = metricsContainer.querySelector('.cost-bar-fill');
+          costText = metricsContainer.querySelector('.cost-bar-text');
+          revenueBar = metricsContainer.querySelector('.revenue-bar-fill');
+          revenueText = metricsContainer.querySelector('.revenue-bar-text');
+          roasBar = metricsContainer.querySelector('.roas-bar-fill');
+          roasText = metricsContainer.querySelector('.roas-bar-text');
+        }
+        
+        // Update the values - this will animate due to CSS transition
+        if (costBar && costText) {
+          costBar.style.width = Math.min(bucketData.costPercent, 100) + '%';
+          costText.textContent = `$${bucketData.cost.toFixed(0)} (${bucketData.costPercent.toFixed(1)}%)`;
+          costText.style.color = bucketData.costPercent > 15 ? 'white' : '#374151';
+        }
+        
+        if (revenueBar && revenueText) {
+          revenueBar.style.width = Math.min(bucketData.revenuePercent, 100) + '%';
+          revenueText.textContent = `$${bucketData.revenue.toFixed(0)} (${bucketData.revenuePercent.toFixed(1)}%)`;
+          revenueText.style.color = bucketData.revenuePercent > 15 ? 'white' : '#374151';
+        }
+        
+        if (roasBar && roasText) {
+          roasBar.style.width = Math.min((bucketData.roas / 5) * 100, 100) + '%';
+          roasText.textContent = `ROAS: ${bucketData.roas.toFixed(2)}x`;
+        }
       }
     }
   });
@@ -5173,6 +5236,31 @@ function populateSearchesAnalysis(bucketStats) {
   });
 }
 
+// Helper function to update analysis bars with animation
+function updateAnalysisBarAnimated(container, value, maxValue, color, label) {
+  let barFill = container.querySelector('.analysis-bar-fill');
+  let barText = container.querySelector('.analysis-bar-text');
+  
+  if (!barFill) {
+    // Create the bar structure if it doesn't exist
+    container.innerHTML = `
+      <div style="width: 100%; height: 18px; background: #e5e7eb; border-radius: 9px; position: relative; overflow: hidden;">
+        <div class="analysis-bar-fill" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: ${color}; transition: width 0.3s ease;"></div>
+        <div class="analysis-bar-text" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #374151; z-index: 1;">${label}</div>
+      </div>
+    `;
+    barFill = container.querySelector('.analysis-bar-fill');
+    barText = container.querySelector('.analysis-bar-text');
+  }
+  
+  // Update values - this will animate
+  const percentage = maxValue > 0 ? (value / maxValue * 100) : 0;
+  barFill.style.width = Math.min(percentage, 100) + '%';
+  barFill.style.background = color;
+  barText.textContent = label;
+  barText.style.color = percentage > 50 ? 'white' : '#374151';
+}
+
 // Populate the products analysis section
 function populateProductsAnalysis(bucketStats) {
   // Define bucket order (best to worst)
@@ -5271,8 +5359,47 @@ function populateProductsAnalysis(bucketStats) {
   });
 }
 
+// Check if table structure can be reused for animation
+function canReuseTableStructure(container, newDataLength) {
+  const existingTable = container.querySelector('.camp-table-modern');
+  if (!existingTable) return false;
+  
+  const existingRows = existingTable.querySelectorAll('tbody tr.main-row');
+  // Only reuse if row count is similar (within 20% difference)
+  const difference = Math.abs(existingRows.length - newDataLength);
+  return difference <= Math.max(5, newDataLength * 0.2);
+}
+
+// Update existing table bars with animation
+function updateTableBarsAnimated(container, tableData, totals) {
+  const rows = container.querySelectorAll('tbody tr.main-row');
+  
+  rows.forEach((row, index) => {
+    if (index >= tableData.length) return;
+    
+    const product = tableData[index];
+    const barCells = row.querySelectorAll('.camp-metric-bar-fill');
+    const percentTexts = row.querySelectorAll('.camp-metric-percent');
+    
+    // Update each metric bar
+    ['impressions', 'clicks', 'cost', 'conversions', 'convValue'].forEach((metric, i) => {
+      if (barCells[i] && percentTexts[i]) {
+        const percentage = totals[metric] > 0 ? (product[metric] / totals[metric] * 100) : 0;
+        barCells[i].style.width = percentage + '%';
+        percentTexts[i].textContent = percentage.toFixed(1) + '%';
+      }
+    });
+  });
+}
+
 // Render products table with improved design
 function renderProductsTable(container, tableData, campaignName) {
+// Try to reuse existing table structure for animation
+if (canReuseTableStructure(container, tableData.length)) {
+  updateTableBarsAnimated(container, tableData, totals);
+  // Still need to update other values, but bars will animate
+}
+  
   // Get visible columns (excluding ROAS which is now fixed)
   const visibleColumns = window.campaignTableColumns ? 
     window.campaignTableColumns.filter(c => c.visible && c.id !== 'roas') : 
