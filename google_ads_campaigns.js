@@ -4874,6 +4874,18 @@ const EFFICIENCY_CONFIG = {
 
 // Calculate efficiency metrics for products
 function calculateProductsEfficiencyMetrics(bucketStats) {
+    // If no bucketStats or empty, return default metrics
+  if (!bucketStats || Object.keys(bucketStats).length === 0) {
+    return {
+      wss: 0, wrs: 0, aa: 0, wr: 0, tm: 0,
+      winnersROAS: 0, underperformersROAS: 0, totalROAS: 0,
+      winnersMetrics: { cost: 0, revenue: 0, count: 0 },
+      underperformersMetrics: { cost: 0, revenue: 0, count: 0 },
+      testMetrics: { cost: 0, revenue: 0, count: 0 },
+      totalMetrics: { cost: 0, revenue: 0, count: 0 }
+    };
+  }
+  
   const mapping = BUCKET_INTENT_MAPPING.products;
   
   // Aggregate metrics by intent
@@ -5077,9 +5089,38 @@ function renderEfficiencyContainer() {
   containers.forEach(container => {
     if (!container) return;
     
-    // Get current metrics if available
-    const productsMetrics = window.productsEfficiencyMetrics || calculateProductsEfficiencyMetrics(window.productBucketStats || {});
-    const searchesMetrics = window.searchesEfficiencyMetrics || calculateSearchesEfficiencyMetrics(window.searchBucketStats || {});
+    // Get current metrics if available, with proper defaults
+    const productsMetrics = window.productsEfficiencyMetrics || 
+      calculateProductsEfficiencyMetrics(window.productBucketStats || {}) ||
+      {
+        wss: 0, wrs: 0, aa: 0, wr: 0, tm: 0,
+        winnersROAS: 0, underperformersROAS: 0, totalROAS: 0,
+        winnersMetrics: { cost: 0, revenue: 0, count: 0 },
+        underperformersMetrics: { cost: 0, revenue: 0, count: 0 },
+        testMetrics: { cost: 0, revenue: 0, count: 0 },
+        totalMetrics: { cost: 0, revenue: 0, count: 0 }
+      };
+    
+    const searchesMetrics = window.searchesEfficiencyMetrics || 
+      calculateSearchesEfficiencyMetrics(window.searchBucketStats || {}) ||
+      {
+        wcs: 0, wrs: 0, aa: 0, wr: 0, tm: 0,
+        winnersRPC: 0, underperformersRPC: 0, totalRPC: 0,
+        winnersMetrics: { clicks: 0, revenue: 0, count: 0 },
+        underperformersMetrics: { clicks: 0, revenue: 0, count: 0 },
+        testMetrics: { clicks: 0, revenue: 0, count: 0 },
+        totalMetrics: { clicks: 0, revenue: 0, count: 0 }
+      };
+    
+    // Check if we have valid metrics
+    if (!productsMetrics || !searchesMetrics) {
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 11px;">
+          Loading efficiency metrics...
+        </div>
+      `;
+      return;
+    }
     
     // Calculate overall efficiency score
     const efficiencyScore = calculateEfficiencyScore(productsMetrics, searchesMetrics);
@@ -5277,9 +5318,9 @@ function renderEfficiencyContainer() {
   });
   
   // Store metrics globally
-  window.productsEfficiencyMetrics = productsMetrics;
-  window.searchesEfficiencyMetrics = searchesMetrics;
-  window.currentEfficiencyScore = efficiencyScore;
+  if (productsMetrics) window.productsEfficiencyMetrics = productsMetrics;
+  if (searchesMetrics) window.searchesEfficiencyMetrics = searchesMetrics;
+  if (efficiencyScore) window.currentEfficiencyScore = efficiencyScore;
 }
 
 // Helper function to render a metric pill
