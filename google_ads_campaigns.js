@@ -1457,28 +1457,28 @@ startDate.setDate(startDate.getDate() - 30);
 const dateRangeText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
 productsPanel.innerHTML = `
-  <div class="campaign-analysis-container" id="campaignAnalysisContainer">
-<div class="campaign-analysis-section" id="campaignAnalysisProducts">
+<div class="campaign-analysis-container" id="campaignAnalysisContainer">
+    <div class="campaign-analysis-section" id="campaignAnalysisEfficiency">
+      <div class="campaign-analysis-section-header">Efficiency</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+        Coming soon
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisProducts">
       <div class="campaign-analysis-section-header">Products</div>
       <div class="campaign-searches-content" id="campaignProductsContent">
         <!-- Will be populated dynamically -->
       </div>
     </div>
-<div class="campaign-analysis-section" id="campaignAnalysisProducts">
-  <div class="campaign-analysis-section-header">Products</div>
-  <div class="campaign-searches-content" id="campaignProductsContent">
-    <!-- Will be populated dynamically -->
-  </div>
-</div>
     <div class="campaign-analysis-section" id="campaignAnalysisSearches">
       <div class="campaign-analysis-section-header">Searches</div>
       <div class="campaign-searches-content" id="campaignSearchesContent">
         <!-- Will be populated dynamically -->
       </div>
     </div>
-<div class="campaign-analysis-section" id="campaignAnalysisDevices">
+    <div class="campaign-analysis-section" id="campaignAnalysisDevices">
       <div class="campaign-analysis-section-header">Devices</div>
-      <div class="campaign-devices-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
@@ -1681,15 +1681,15 @@ productsPanel.innerHTML = `
 const searchTermsPanel = document.createElement('div');
 searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
-  <div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
+<div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
     <!-- Same analysis container structure as products panel -->
-<div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
+    <div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
       <div class="campaign-analysis-section-header">Efficiency</div>
-      <div class="campaign-efficiency-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
-<div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
+    <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
       <div class="campaign-analysis-section-header">Products</div>
       <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
         <!-- Will be populated dynamically -->
@@ -1701,9 +1701,9 @@ searchTermsPanel.innerHTML = `
         <!-- Will be populated dynamically -->
       </div>
     </div>
-<div class="campaign-analysis-section" id="campaignAnalysisDevicesSearchTerms">
+    <div class="campaign-analysis-section" id="campaignAnalysisDevicesSearchTerms">
       <div class="campaign-analysis-section-header">Devices</div>
-      <div class="campaign-devices-content" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
         Coming soon
       </div>
     </div>
