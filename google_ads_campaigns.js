@@ -5743,9 +5743,19 @@ function updateProductsPerformanceIndicator(bucketStats) {
   const negativeCostPct = totalCost > 0 ? (negativeCost / totalCost * 100) : 0;
   const negativeRevPct = totalRevenue > 0 ? (negativeRevenue / totalRevenue * 100) : 0;
   
-  // Get indicator containers
+// Get indicator containers with retry for Products panel
+  let productsIndicator = document.getElementById('productsPerformanceIndicator');
+  
+  // If not found, try to find it within the products panel
+  if (!productsIndicator) {
+    const productsPanel = document.getElementById('campaignsProductsPanel');
+    if (productsPanel) {
+      productsIndicator = productsPanel.querySelector('#productsPerformanceIndicator');
+    }
+  }
+  
   const indicators = [
-    document.getElementById('productsPerformanceIndicator'),
+    productsIndicator,
     document.getElementById('productsPerformanceIndicatorSearchTerms')
   ];
   
