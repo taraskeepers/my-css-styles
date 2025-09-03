@@ -1049,7 +1049,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 320px;
+  height: 350px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1199,87 +1199,10 @@ function addCampaignsStyles() {
   background: rgba(0, 122, 255, 0.05);
 }
 
-/* Efficiency metrics styles */
+/* Efficiency metrics container */
 .efficiency-metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 8px;
   height: 100%;
-}
-
-.efficiency-metric-card {
-  background: white;
-  border-radius: 6px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
-}
-
-.efficiency-metric-card:hover {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.efficiency-metric-label {
-  font-size: 9px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-
-.efficiency-metric-value {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.efficiency-metric-subvalue {
-  font-size: 10px;
-  color: #9ca3af;
-}
-
-.efficiency-score-ring {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  position: relative;
-  margin-bottom: 4px;
-}
-
-.efficiency-score-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.efficiency-trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 9px;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-.trend-positive {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.trend-negative {
-  background: #fee2e2;
-  color: #991b1b;
+  overflow-y: auto;
 }
     `;
     document.head.appendChild(style);
@@ -5288,19 +5211,52 @@ async function updateBucketUI(stats) {
   });
 }
 
-// Populate the searches analysis section
+// Populate the searches analysis section with grouped buckets
 function populateSearchesAnalysis(bucketStats) {
-  // Define bucket order (most important to least)
-  const bucketOrder = [
-    { key: 'Top Search Terms', color: '#FFC107', shortName: 'Top Terms' },
-    { key: 'High Revenue Terms', color: '#4CAF50', shortName: 'High Revenue' },
-    { key: 'Hidden Gems', color: '#2196F3', shortName: 'Hidden Gems' },
-    { key: 'Mid-Performance', color: '#FF9800', shortName: 'Mid Perf' },
-    { key: 'Low Performance', color: '#9E9E9E', shortName: 'Low Perf' },
-    { key: 'Zero Converting Terms', color: '#F44336', shortName: 'Zero Conv' }
-  ];
+  // Define high-performing and low-performing groups
+  const highPerformingGroup = {
+    title: 'High Performing',
+    buckets: [
+      { key: 'Top Search Terms', color: '#FFC107', shortName: 'Top Terms' },
+      { key: 'High Revenue Terms', color: '#4CAF50', shortName: 'High Revenue' },
+      { key: 'Hidden Gems', color: '#2196F3', shortName: 'Hidden Gems' }
+    ]
+  };
   
-  // Get both containers (for products and search terms views)
+  const lowPerformingGroup = {
+    title: 'Low Performing',
+    buckets: [
+      { key: 'Mid-Performance', color: '#FF9800', shortName: 'Mid Perf' },
+      { key: 'Low Performance', color: '#9E9E9E', shortName: 'Low Perf' },
+      { key: 'Zero Converting Terms', color: '#F44336', shortName: 'Zero Conv' }
+    ]
+  };
+  
+  // Calculate group totals
+  function calculateGroupTotals(group) {
+    let totalCount = 0, totalClicks = 0, totalRevenue = 0;
+    
+    group.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key];
+      if (stats) {
+        totalCount += stats.count || 0;
+        totalClicks += stats.clicks || 0;
+        totalRevenue += stats.revenue || 0;
+      }
+    });
+    
+    const allTotalClicks = bucketStats['all']?.clicks || 1;
+    const allTotalRevenue = bucketStats['all']?.revenue || 1;
+    const clicksPercent = (totalClicks / allTotalClicks * 100);
+    const revenuePercent = (totalRevenue / allTotalRevenue * 100);
+    
+    return { totalCount, totalClicks, totalRevenue, clicksPercent, revenuePercent };
+  }
+  
+  const highPerfTotals = calculateGroupTotals(highPerformingGroup);
+  const lowPerfTotals = calculateGroupTotals(lowPerformingGroup);
+  
+  // Get both containers
   const containers = [
     document.getElementById('campaignSearchesContent'),
     document.getElementById('campaignSearchesContentSearchTerms')
@@ -5309,85 +5265,219 @@ function populateSearchesAnalysis(bucketStats) {
   containers.forEach(container => {
     if (!container) return;
     
-    // Check if structure already exists
-    const existingRows = container.querySelectorAll('.campaign-search-bucket-row');
+    let html = '';
     
-    if (existingRows.length === bucketOrder.length) {
-      // Update existing rows - this will animate
-      bucketOrder.forEach((bucket, index) => {
-        const row = existingRows[index];
-        const stats = bucketStats[bucket.key];
-        if (!stats) return;
-        
-        const clicksPercent = stats.clicksPercent || 0;
-        const revenuePercent = stats.revenuePercent || 0;
-        
-        // Update count
-        const countElement = row.querySelector('.campaign-search-bucket-count');
-        if (countElement) {
-          countElement.textContent = stats.count;
-          countElement.style.background = bucket.color;
-        }
-        
-        // Update clicks bar
-        const clicksBarFill = row.querySelector('.campaign-search-bucket-bar-fill:first-of-type');
-        const clicksBarText = row.querySelector('.campaign-search-bucket-bar-text:first-of-type');
-        if (clicksBarFill && clicksBarText) {
-          clicksBarFill.style.width = Math.min(clicksPercent, 100) + '%';
-          clicksBarText.textContent = clicksPercent.toFixed(1) + '%';
-          clicksBarText.style.color = clicksPercent > 20 ? 'white' : '';
-        }
-        
-        // Update revenue bar
-        const revenueBars = row.querySelectorAll('.campaign-search-bucket-bar');
-        if (revenueBars[1]) {
-          const revenueBarFill = revenueBars[1].querySelector('.campaign-search-bucket-bar-fill');
-          const revenueBarText = revenueBars[1].querySelector('.campaign-search-bucket-bar-text');
-          if (revenueBarFill && revenueBarText) {
-            revenueBarFill.style.width = Math.min(revenuePercent, 100) + '%';
-            revenueBarText.textContent = revenuePercent.toFixed(1) + '%';
-            revenueBarText.style.color = revenuePercent > 20 ? 'white' : '';
-          }
-        }
-      });
-    } else {
-      // Create structure for first time
-      let html = '';
+    // High Performing Group Summary
+    html += `
+      <div class="campaign-search-bucket-row" style="
+        background: linear-gradient(to right, #dcfce7, #f0fdf4);
+        border-left: 3px solid #22c55e;
+        padding: 6px 8px;
+        margin-bottom: 2px;
+        font-weight: 600;
+      ">
+        <div style="
+          width: 40px;
+          height: 24px;
+          background: #22c55e;
+          color: white;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+        ">
+          ${highPerfTotals.totalCount}
+        </div>
+        <div style="
+          width: 80px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #15803d;
+        ">
+          High Perf
+        </div>
+        <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(highPerfTotals.clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${highPerfTotals.clicksPercent > 20 ? 'color: white;' : ''}">
+            ${highPerfTotals.clicksPercent.toFixed(1)}%
+          </div>
+        </div>
+        <div class="campaign-search-bucket-bar">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(highPerfTotals.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${highPerfTotals.revenuePercent > 20 ? 'color: white;' : ''}">
+            ${highPerfTotals.revenuePercent.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // High performing bucket rows
+    highPerformingGroup.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key];
+      if (!stats) return;
       
-      bucketOrder.forEach(bucket => {
-        const stats = bucketStats[bucket.key];
-        if (!stats) return;
-        
-        const clicksPercent = stats.clicksPercent || 0;
-        const revenuePercent = stats.revenuePercent || 0;
-        
-        html += `
-          <div class="campaign-search-bucket-row">
-            <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-              ${stats.count}
-            </div>
-            <div class="campaign-search-bucket-name" title="${bucket.key}">
-              ${bucket.shortName}
-            </div>
-            <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
-              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
-              <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
-                ${clicksPercent.toFixed(1)}%
-              </div>
-            </div>
-            <div class="campaign-search-bucket-bar">
-              <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-              <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
-                ${revenuePercent.toFixed(1)}%
-              </div>
+      const clicksPercent = stats.clicksPercent || 0;
+      const revenuePercent = stats.revenuePercent || 0;
+      
+      html += `
+        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 80px;">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
+              ${clicksPercent.toFixed(1)}%
             </div>
           </div>
-        `;
-      });
+          <div class="campaign-search-bucket-bar">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+              ${revenuePercent.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    // Add spacing between groups
+    html += '<div style="height: 8px;"></div>';
+    
+    // Low Performing Group Summary
+    html += `
+      <div class="campaign-search-bucket-row" style="
+        background: linear-gradient(to right, #fee2e2, #fef2f2);
+        border-left: 3px solid #ef4444;
+        padding: 6px 8px;
+        margin-bottom: 2px;
+        font-weight: 600;
+      ">
+        <div style="
+          width: 40px;
+          height: 24px;
+          background: #ef4444;
+          color: white;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+        ">
+          ${lowPerfTotals.totalCount}
+        </div>
+        <div style="
+          width: 80px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #dc2626;
+        ">
+          Low Perf
+        </div>
+        <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(lowPerfTotals.clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${lowPerfTotals.clicksPercent > 20 ? 'color: white;' : ''}">
+            ${lowPerfTotals.clicksPercent.toFixed(1)}%
+          </div>
+        </div>
+        <div class="campaign-search-bucket-bar">
+          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(lowPerfTotals.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+          <div class="campaign-search-bucket-bar-text" style="${lowPerfTotals.revenuePercent > 20 ? 'color: white;' : ''}">
+            ${lowPerfTotals.revenuePercent.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Low performing bucket rows
+    lowPerformingGroup.buckets.forEach(bucket => {
+      const stats = bucketStats[bucket.key];
+      if (!stats) return;
       
-      container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+      const clicksPercent = stats.clicksPercent || 0;
+      const revenuePercent = stats.revenuePercent || 0;
+      
+      html += `
+        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
+          <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
+            ${stats.count}
+          </div>
+          <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 80px;">
+            ${bucket.shortName}
+          </div>
+          <div class="campaign-search-bucket-bar" style="margin-right: 4px;">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(clicksPercent, 100)}%; background: #1e40af; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${clicksPercent > 20 ? 'color: white;' : ''}">
+              ${clicksPercent.toFixed(1)}%
+            </div>
+          </div>
+          <div class="campaign-search-bucket-bar">
+            <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
+            <div class="campaign-search-bucket-bar-text" style="${revenuePercent > 20 ? 'color: white;' : ''}">
+              ${revenuePercent.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
+  });
+  
+  // Calculate and update efficiency metrics for searches
+  calculateSearchesEfficiencyMetrics(bucketStats);
+}
+
+// Calculate efficiency metrics for searches
+function calculateSearchesEfficiencyMetrics(bucketStats) {
+  const highPerformingKeys = ['Top Search Terms', 'High Revenue Terms', 'Hidden Gems'];
+  const lowPerformingKeys = ['Mid-Performance', 'Low Performance', 'Zero Converting Terms'];
+  
+  let highPerfClicks = 0, highPerfRevenue = 0;
+  let lowPerfClicks = 0, lowPerfRevenue = 0;
+  
+  highPerformingKeys.forEach(key => {
+    const stats = bucketStats[key];
+    if (stats) {
+      highPerfClicks += stats.clicks || 0;
+      highPerfRevenue += stats.revenue || 0;
     }
   });
+  
+  lowPerformingKeys.forEach(key => {
+    const stats = bucketStats[key];
+    if (stats) {
+      lowPerfClicks += stats.clicks || 0;
+      lowPerfRevenue += stats.revenue || 0;
+    }
+  });
+  
+  const totalClicks = highPerfClicks + lowPerfClicks;
+  const totalRevenue = highPerfRevenue + lowPerfRevenue;
+  
+  const highPerfClicksPct = totalClicks > 0 ? (highPerfClicks / totalClicks * 100) : 0;
+  const highPerfRevPct = totalRevenue > 0 ? (highPerfRevenue / totalRevenue * 100) : 0;
+  const lowPerfClicksPct = totalClicks > 0 ? (lowPerfClicks / totalClicks * 100) : 0;
+  const lowPerfRevPct = totalRevenue > 0 ? (lowPerfRevenue / totalRevenue * 100) : 0;
+  
+  // Store searches efficiency data globally for the efficiency container
+  window.searchesEfficiencyData = {
+    highPerfClicksPct,
+    highPerfRevPct,
+    lowPerfClicksPct,
+    lowPerfRevPct,
+    highPerfCPA: highPerfRevenue > 0 ? (highPerfClicks / highPerfRevenue) : 0,
+    lowPerfCPA: lowPerfRevenue > 0 ? (lowPerfClicks / lowPerfRevenue) : 0,
+    totalCPA: totalRevenue > 0 ? (totalClicks / totalRevenue) : 0
+  };
+  
+  // Update efficiency display
+  updateCombinedEfficiencyDisplay();
 }
 
 // Helper function to update analysis bars with animation
@@ -5802,46 +5892,8 @@ function populateProductsAnalysis(bucketStats) {
   });
 }
 
-// Update efficiency metrics
-function updateEfficiencyScore(performanceData) {
-  if (!performanceData) return;
-  
-  // Calculate all 4 metrics
-  // A. Budget Efficiency Score (0-100)
-  const budgetScore = performanceData.totalROAS > 0 ? 
-    Math.min(100, (performanceData.positiveCostPct * performanceData.positiveROAS) / performanceData.totalROAS) : 0;
-  
-  // B. Optimization Level (difference between revenue % and cost %)
-  const optimizationLevel = performanceData.positiveRevPct - performanceData.positiveCostPct;
-  
-  // C. Waste Indicator (% of budget wasted on negative products)
-  const wastePercent = performanceData.negativeROAS < 1 ? 
-    performanceData.negativeCostPct * (1 - performanceData.negativeROAS) : 0;
-  
-  // D. Efficiency Ratio (positive efficiency / negative efficiency)
-  const positiveEfficiency = performanceData.positiveCostPct > 0 ? 
-    performanceData.positiveRevPct / performanceData.positiveCostPct : 0;
-  const negativeEfficiency = performanceData.negativeCostPct > 0 ? 
-    performanceData.negativeRevPct / performanceData.negativeCostPct : 0;
-  const efficiencyRatio = negativeEfficiency > 0 ? positiveEfficiency / negativeEfficiency : positiveEfficiency;
-  
-  // Determine colors based on values
-  const scoreColor = budgetScore >= 80 ? '#22c55e' : 
-                     budgetScore >= 60 ? '#eab308' : 
-                     budgetScore >= 40 ? '#f97316' : '#ef4444';
-  
-  const optimizationColor = optimizationLevel > 20 ? '#22c55e' : 
-                           optimizationLevel > 0 ? '#eab308' : 
-                           optimizationLevel > -20 ? '#f97316' : '#ef4444';
-  
-  const wasteColor = wastePercent < 10 ? '#22c55e' : 
-                     wastePercent < 25 ? '#eab308' : 
-                     wastePercent < 40 ? '#f97316' : '#ef4444';
-  
-  const ratioColor = efficiencyRatio > 2 ? '#22c55e' : 
-                     efficiencyRatio > 1.5 ? '#eab308' : 
-                     efficiencyRatio > 1 ? '#f97316' : '#ef4444';
-  
+// Update combined efficiency display for both Products and Searches
+function updateCombinedEfficiencyDisplay() {
   // Get containers
   const containers = [
     document.getElementById('efficiencyMetricsContent'),
@@ -5851,40 +5903,117 @@ function updateEfficiencyScore(performanceData) {
   containers.forEach(container => {
     if (!container) return;
     
-    container.innerHTML = `
-      <div class="efficiency-metric-card">
-        <div class="efficiency-metric-label">Budget Score</div>
-        <div class="efficiency-score-ring" style="background: conic-gradient(${scoreColor} ${budgetScore * 3.6}deg, #e5e7eb 0deg);">
-          <div class="efficiency-score-text" style="color: ${scoreColor};">${Math.round(budgetScore)}</div>
-        </div>
-        <div class="efficiency-metric-subvalue">of 100</div>
-      </div>
+    let html = '<div style="display: flex; flex-direction: column; height: 100%; gap: 8px;">';
+    
+    // Products Efficiency Row
+    if (window.productsEfficiencyData) {
+      const data = window.productsEfficiencyData;
       
-      <div class="efficiency-metric-card">
-        <div class="efficiency-metric-label">Optimization</div>
-        <div class="efficiency-metric-value" style="color: ${optimizationColor};">
-          ${optimizationLevel > 0 ? '+' : ''}${optimizationLevel.toFixed(1)}%
-        </div>
-        <div class="efficiency-metric-subvalue">Rev% - Cost%</div>
-      </div>
+      // Calculate metrics
+      const budgetScore = data.totalROAS > 0 ? 
+        Math.min(100, (data.positiveCostPct * data.positiveROAS) / data.totalROAS) : 0;
+      const optimization = data.positiveRevPct - data.positiveCostPct;
+      const waste = data.negativeROAS < 1 ? 
+        data.negativeCostPct * (1 - data.negativeROAS) : 0;
+      const ratio = data.negativeCostPct > 0 ? 
+        (data.positiveRevPct / data.positiveCostPct) / (data.negativeRevPct / data.negativeCostPct) : 
+        (data.positiveCostPct > 0 ? data.positiveRevPct / data.positiveCostPct : 0);
       
-      <div class="efficiency-metric-card">
-        <div class="efficiency-metric-label">Waste</div>
-        <div class="efficiency-metric-value" style="color: ${wasteColor};">
-          ${wastePercent.toFixed(1)}%
+      html += `
+        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
+          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+            📦 Products
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
+                ${Math.round(budgetScore)}
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Budget</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
+                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
+                ${waste.toFixed(0)}%
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
+                ${ratio.toFixed(1)}x
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
+            </div>
+          </div>
         </div>
-        <div class="efficiency-metric-subvalue">of budget</div>
-      </div>
+      `;
+    }
+    
+    // Searches Efficiency Row
+    if (window.searchesEfficiencyData) {
+      const data = window.searchesEfficiencyData;
       
-      <div class="efficiency-metric-card">
-        <div class="efficiency-metric-label">Efficiency Ratio</div>
-        <div class="efficiency-metric-value" style="color: ${ratioColor};">
-          ${efficiencyRatio.toFixed(2)}x
+      // Calculate metrics (adapted for searches)
+      const budgetScore = Math.min(100, data.highPerfRevPct);
+      const optimization = data.highPerfRevPct - data.highPerfClicksPct;
+      const waste = data.lowPerfClicksPct > 0 ? 
+        Math.max(0, data.lowPerfClicksPct - data.lowPerfRevPct) : 0;
+      const ratio = data.lowPerfClicksPct > 0 ? 
+        (data.highPerfRevPct / data.highPerfClicksPct) / (data.lowPerfRevPct / data.lowPerfClicksPct) :
+        (data.highPerfClicksPct > 0 ? data.highPerfRevPct / data.highPerfClicksPct : 0);
+      
+      html += `
+        <div style="flex: 1; background: white; border-radius: 6px; padding: 6px; border: 1px solid #e5e7eb;">
+          <div style="font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+            🔍 Searches
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${budgetScore >= 80 ? '#22c55e' : budgetScore >= 60 ? '#eab308' : budgetScore >= 40 ? '#f97316' : '#ef4444'};">
+                ${Math.round(budgetScore)}
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Score</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${optimization > 20 ? '#22c55e' : optimization > 0 ? '#eab308' : optimization > -20 ? '#f97316' : '#ef4444'};">
+                ${optimization > 0 ? '+' : ''}${optimization.toFixed(0)}%
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Optim</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${waste < 10 ? '#22c55e' : waste < 25 ? '#eab308' : waste < 40 ? '#f97316' : '#ef4444'};">
+                ${waste.toFixed(0)}%
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Waste</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: ${ratio > 2 ? '#22c55e' : ratio > 1.5 ? '#eab308' : ratio > 1 ? '#f97316' : '#ef4444'};">
+                ${ratio.toFixed(1)}x
+              </div>
+              <div style="font-size: 8px; color: #9ca3af;">Ratio</div>
+            </div>
+          </div>
         </div>
-        <div class="efficiency-metric-subvalue">Pos/Neg</div>
-      </div>
-    `;
+      `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
   });
+}
+
+// Store products efficiency data when calculated
+function updateEfficiencyScore(performanceData) {
+  // Store data globally for the combined display
+  window.productsEfficiencyData = performanceData;
+  
+  // Update the combined display
+  updateCombinedEfficiencyDisplay();
 }
 
 // Check if table structure can be reused for animation
