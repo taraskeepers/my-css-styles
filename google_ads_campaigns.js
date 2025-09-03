@@ -6167,6 +6167,64 @@ function updateEfficiencyScore(bucketStats) {
   updateProductsPerformanceIndicatorV2(metrics.products);
 }
 
+// New version of products performance indicator using the efficiency metrics
+function updateProductsPerformanceIndicatorV2(productMetrics) {
+  const indicators = [
+    document.getElementById('productsPerformanceIndicator'),
+    document.getElementById('productsPerformanceIndicatorSearchTerms')
+  ];
+  
+  indicators.forEach(indicator => {
+    if (!indicator) return;
+    
+    const getAAStatusColor = (aa) => aa >= 1.10 ? '#22c55e' : aa >= 0.95 ? '#eab308' : '#ef4444';
+    const getAAStatusText = (aa) => aa >= 1.10 ? '✓' : aa >= 0.95 ? '~' : '!';
+    
+    indicator.style.display = 'inline-flex';
+    indicator.innerHTML = `
+      <style>
+        .perf-metric {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 6px;
+          background: #f9fafb;
+          border-radius: 4px;
+          font-size: 10px;
+        }
+        .perf-metric-label {
+          color: #6b7280;
+          font-weight: 500;
+        }
+        .perf-metric-value {
+          font-weight: 700;
+        }
+      </style>
+      
+      <div class="perf-metric">
+        <span class="perf-metric-label">Winners:</span>
+        <span class="perf-metric-value" style="color: #dc2626;">${productMetrics.WSS.toFixed(0)}%</span>
+        <span style="color: #9ca3af;">→</span>
+        <span class="perf-metric-value" style="color: #059669;">${productMetrics.WRS.toFixed(0)}%</span>
+        <span style="
+          background: ${getAAStatusColor(productMetrics.AA)};
+          color: white;
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-weight: 700;
+        ">${getAAStatusText(productMetrics.AA)} ${productMetrics.AA.toFixed(1)}x</span>
+      </div>
+      
+      <div class="perf-metric">
+        <span class="perf-metric-label">Waste:</span>
+        <span class="perf-metric-value" style="color: ${productMetrics.WR < 10 ? '#22c55e' : productMetrics.WR < 20 ? '#eab308' : '#ef4444'};">
+          ${productMetrics.WR.toFixed(0)}%
+        </span>
+      </div>
+    `;
+  });
+}
+
 // Check if table structure can be reused for animation
 function canReuseTableStructure(container, newDataLength) {
   const existingTable = container.querySelector('.camp-table-modern');
