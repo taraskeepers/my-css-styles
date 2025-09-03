@@ -5315,12 +5315,12 @@ function renderEfficiencyContainer() {
         
       </div>
     `;
+    
+    // Store metrics globally (MOVED INSIDE THE LOOP)
+    window.productsEfficiencyMetrics = productsMetrics;
+    window.searchesEfficiencyMetrics = searchesMetrics;
+    window.currentEfficiencyScore = efficiencyScore;
   });
-  
-  // Store metrics globally
-  if (productsMetrics) window.productsEfficiencyMetrics = productsMetrics;
-  if (searchesMetrics) window.searchesEfficiencyMetrics = searchesMetrics;
-  if (efficiencyScore) window.currentEfficiencyScore = efficiencyScore;
 }
 
 // Helper function to render a metric pill
