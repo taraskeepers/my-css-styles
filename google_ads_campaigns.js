@@ -5615,14 +5615,9 @@ function populateProductsAnalysis(bucketStats) {
     }
   });
 
-// Update performance indicator
+  // Update performance indicator and efficiency metrics
   const performanceData = updateProductsPerformanceIndicator(bucketStats);
-  
-  // Update efficiency score if function exists
-  if (typeof updateEfficiencyScore === 'function') {
-    updateEfficiencyScore(performanceData);
-  }
-  
+  updateEfficiencyScore(performanceData);
 }
 
 // Update efficiency metrics
@@ -5712,6 +5707,8 @@ function updateEfficiencyScore(performanceData) {
 
 // Update products performance indicator - Compact version
 function updateProductsPerformanceIndicator(bucketStats) {
+  console.log('[updateProductsPerformanceIndicator] Called with bucketStats:', bucketStats);
+  
   // Calculate positive vs negative groups
   const positiveGroups = ['Profit Stars', 'Strong Performers', 'Steady Contributors'];
   const negativeGroups = ['Break-Even Products', 'True Losses', 'Insufficient Data'];
@@ -5738,6 +5735,8 @@ function updateProductsPerformanceIndicator(bucketStats) {
   totalCost = positiveCost + negativeCost;
   totalRevenue = positiveRevenue + negativeRevenue;
   
+  console.log('[updateProductsPerformanceIndicator] Totals - Cost:', totalCost, 'Revenue:', totalRevenue);
+  
   // Calculate percentages
   const positiveCostPct = totalCost > 0 ? (positiveCost / totalCost * 100) : 0;
   const positiveRevPct = totalRevenue > 0 ? (positiveRevenue / totalRevenue * 100) : 0;
@@ -5750,8 +5749,12 @@ function updateProductsPerformanceIndicator(bucketStats) {
     document.getElementById('productsPerformanceIndicatorSearchTerms')
   ];
   
+  console.log('[updateProductsPerformanceIndicator] Found indicators:', indicators);
+  
   indicators.forEach(indicator => {
     if (!indicator) return;
+    
+    console.log('[updateProductsPerformanceIndicator] Updating indicator with values');
     
     if (totalCost > 0 || totalRevenue > 0) {
       indicator.style.display = 'inline-flex';
