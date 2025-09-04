@@ -227,7 +227,7 @@ function addCampaignsStyles() {
         padding: 10px;
         transition: all 0.2s;
         gap: 8px;
-        min-height: 95px;
+        min-height: 70px;
       }
       
       .campaign-nav-item:hover .campaign-card-details {
@@ -3121,9 +3121,8 @@ function createCampaignItem(campaign, icon) {
   const wasteScoreColor = effScore.components.waste >= 15 ? '#22c55e' : 
                           effScore.components.waste >= 10 ? '#eab308' : '#ef4444';
 
-  item.innerHTML = `
-    <div class="campaign-card-details" style="position: relative;">
-      <!-- First row: existing content -->
+item.innerHTML = `
+    <div class="campaign-card-details">
       <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
         <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
           ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
@@ -3137,6 +3136,24 @@ function createCampaignItem(campaign, icon) {
             </div>
           </div>
         </div>
+        
+        <!-- Overall Score Badge ABOVE cost bar -->
+        <div style="
+          background: ${effScore.status.color}22;
+          border: 1px solid ${effScore.status.color}44;
+          border-radius: 6px;
+          padding: 3px 8px;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        ">
+          <span style="font-size: 10px; color: #6b7280; font-weight: 500;">SCORE</span>
+          <span style="font-size: 14px; font-weight: 700; color: ${effScore.status.color};">
+            ${effScore.score}
+          </span>
+        </div>
+        
         <!-- Cost percentage bar -->
         <div style="
           width: 60px;
@@ -3169,69 +3186,6 @@ function createCampaignItem(campaign, icon) {
             z-index: 1;
           ">
             ${costPercent.toFixed(1)}%
-          </div>
-        </div>
-      </div>
-      
-      <!-- Second row: efficiency score components -->
-      <div style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 4px 0;">
-        <!-- Overall Score -->
-        <div style="
-          background: ${effScore.status.color}22;
-          border: 1px solid ${effScore.status.color}44;
-          border-radius: 6px;
-          padding: 4px 8px;
-          flex: 1;
-          text-align: center;
-        ">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">SCORE</div>
-          <div style="font-size: 14px; font-weight: 700; color: ${effScore.status.color};">
-            ${effScore.score}
-          </div>
-        </div>
-        
-        <!-- ROAS Score -->
-        <div style="
-          background: ${roasScoreColor}22;
-          border: 1px solid ${roasScoreColor}44;
-          border-radius: 6px;
-          padding: 4px 8px;
-          flex: 1;
-          text-align: center;
-        ">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ROAS</div>
-          <div style="font-size: 12px; font-weight: 700; color: ${roasScoreColor};">
-            ${effScore.components.roas}/40
-          </div>
-        </div>
-        
-        <!-- Allocation Score -->
-        <div style="
-          background: ${allocScoreColor}22;
-          border: 1px solid ${allocScoreColor}44;
-          border-radius: 6px;
-          padding: 4px 8px;
-          flex: 1;
-          text-align: center;
-        ">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ALLOC</div>
-          <div style="font-size: 12px; font-weight: 700; color: ${allocScoreColor};">
-            ${effScore.components.allocation}/40
-          </div>
-        </div>
-        
-        <!-- Waste Score -->
-        <div style="
-          background: ${wasteScoreColor}22;
-          border: 1px solid ${wasteScoreColor}44;
-          border-radius: 6px;
-          padding: 4px 8px;
-          flex: 1;
-          text-align: center;
-        ">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">WASTE</div>
-          <div style="font-size: 12px; font-weight: 700; color: ${wasteScoreColor};">
-            ${effScore.components.waste}/20
           </div>
         </div>
       </div>
@@ -5183,8 +5137,8 @@ function calculateProductBucketStatistics(data) {
 const BUCKET_INTENT_MAPPING = {
   products: {
     winners: ['Profit Stars', 'Strong Performers', 'Steady Contributors'],
-    underperformers: ['True Losses'],  // Break-Even can be configured
-    test: ['Insufficient Data', 'Break-Even Products']  // Break-Even in test by default
+    underperformers: ['True Losses', 'Break-Even Products'],  // Include Break-Even in waste
+    test: ['Insufficient Data']  // Only insufficient data in test
   },
   searches: {
     winners: ['Top Search Terms', 'High Revenue Terms'],
@@ -5367,8 +5321,11 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const aiSearches = searchesMetrics.aa;
   const ai = (aiProducts + aiSearches) / 2;
   
-  // Score allocation from 0.8 to 1.2 range
-  const scoreAI = Math.min(1, Math.max(0, (ai - 0.8) / 0.4)) * config.scoreWeights.allocation;
+// Score allocation from 0.5 to 1.5 range with granular scoring
+  // AA of 1.0 = neutral (no bonus/penalty)
+  // AA < 1.0 = underperforming (0 points at 0.5 or below)
+  // AA > 1.0 = overperforming (full points at 1.5 or above)
+  const scoreAI = Math.min(1, Math.max(0, (ai - 0.5) / 1.0)) * config.scoreWeights.allocation;
   
   // Waste Rate component (20 points max)
   const wrProducts = productsMetrics.wr;
