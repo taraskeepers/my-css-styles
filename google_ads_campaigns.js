@@ -5180,18 +5180,25 @@ const EFFICIENCY_CONFIG = {
   targetROAS: 3.0,
 
   // Winner Share target: adapt to revenue reality with guardrails
-  winnerShare: {
-    baseTarget: 0.70,       // floor target if winners' revenue share is lower
-    lowCap: 0.60,           // do not target below 60% even in odd cases
-    highCap: 0.90,          // avoid 95–100% over-concentration
-    toleranceBand: 0.30     // ±30pp from target = score linearly to zero
-  },
+winnerShare: {
+  baseTarget: 0.60,
+  lowCap: 0.50,
+  highCap: 0.70,        // base cap (used when WRS is not extreme)
+  toleranceBand: 0.40,
+
+  // --- Soft high-cap controls (enable + parameters) ---
+  softHighCapEnabled: true,
+  // Use this formula: highCap = 0.70 + 0.10 * clamp(WRS - 0.80, 0, 0.20)
+  softHighCapStart: 0.80,   // WRS above this starts nudging the cap
+  softHighCapSlope: 0.10,   // how much the cap rises per 1.00 of WRS above start
+  softHighCapMaxRange: 0.20 // clamp(WRS - start, 0, this) → max extra 0.02 in this example
+},
 
   // Allocation Alignment (AA) scoring & gating
   allocationAlignment: {
     minAA: 0.70,            // AA <= 0.7 → 0 score
     maxAA: 2.00,            // AA >= 2.0 → full score
-    wssGate: 0.25           // full AA credit only if Winners' share ≥ 25%
+    wssGate: 0.3           // full AA credit only if Winners' share ≥ 30%
   },
 
   // Waste points: compute from PRODUCTS only (no double counting)
@@ -5202,7 +5209,7 @@ const EFFICIENCY_CONFIG = {
   },
 
   // Testing Mix thresholds (display-only)
-  testingMix: { min: 0.05, max: 0.15 },
+  testingMix: { min: 0.1, max: 0.20 },
 
   // ROAS scoring: pick the curve you want (strict matches your screenshots)
   roasScoring: {
@@ -5219,9 +5226,21 @@ const EFFICIENCY_CONFIG = {
 const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
 const safeDiv = (num, den, fallback = 0) => (den > 0 ? num / den : fallback);
 
-function computeTargetWSS(baseTarget, wrs, lowCap, highCap) {
-  const t = Math.max(wrs || 0, baseTarget);
-  return clamp(t, lowCap, highCap);
+function computeTargetWSS(baseTarget, wrs, lowCap, highCap, cfg) {
+  const wrsSafe = wrs || 0;
+  const baseTargeted = Math.max(wrsSafe, baseTarget);
+
+  // Soft high cap:  highCap = baseHighCap + slope * clamp(WRS - start, 0, maxRange)
+  let effectiveHighCap = highCap;
+  if (cfg?.winnerShare?.softHighCapEnabled) {
+    const start = cfg.winnerShare.softHighCapStart ?? 0.80;
+    const slope = cfg.winnerShare.softHighCapSlope ?? 0.10;
+    const range = cfg.winnerShare.softHighCapMaxRange ?? 0.20;
+    const delta = clamp(wrsSafe - start, 0, range);   // e.g., at WRS=0.90, delta = 0.10
+    effectiveHighCap = highCap + slope * delta;       // e.g., 0.70 + 0.10*0.10 = 0.71
+  }
+
+  return clamp(baseTargeted, lowCap, effectiveHighCap);
 }
 
 function wssScoreAdaptive(wShare, rShare, cfg) {
@@ -5395,22 +5414,28 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const wrsP = productsMetrics.wrs || 0;
   const aaP  = productsMetrics.aa  || 0;
 
-  const targetWSS_P = computeTargetWSS(config.winnerShare.baseTarget, wrsP,
-                                       config.winnerShare.lowCap, config.winnerShare.highCap);
+const targetWSS_P = computeTargetWSS(
+  config.winnerShare.baseTarget, wrsP,
+  config.winnerShare.lowCap, config.winnerShare.highCap, config
+);
+  
   const wssScoreP = wssScoreAdaptive(wssP, wrsP, config);
   const aaScoreP  = aaScoreGated(aaP, wssP, config);
-  const allocScoreP = 0.7 * wssScoreP + 0.3 * aaScoreP;
+  const allocScoreP = 0.55 * wssScoreP + 0.45 * aaScoreP; // C) give AA more weight
 
   // --- Searches (click-based) ---
   const wssS = searchesMetrics.wcs || 0; // winners' click share
   const wrsS = searchesMetrics.wrs || 0;
   const aaS  = searchesMetrics.aa  || 0;
 
-  const targetWSS_S = computeTargetWSS(config.winnerShare.baseTarget, wrsS,
-                                       config.winnerShare.lowCap, config.winnerShare.highCap);
+const targetWSS_S = computeTargetWSS(
+  config.winnerShare.baseTarget, wrsS,
+  config.winnerShare.lowCap, config.winnerShare.highCap, config
+);
+  
   const wssScoreS = wssScoreAdaptive(wssS, wrsS, config);
   const aaScoreS  = aaScoreGated(aaS, wssS, config);
-  const allocScoreS = 0.7 * wssScoreS + 0.3 * aaScoreS;
+  const allocScoreS = 0.55 * wssScoreS + 0.45 * aaScoreS; // C) give AA more weight
 
   // Final allocation points (simple average; spend-weighting is unsafe without search spend)
   const scoreAllocation = ((allocScoreP + allocScoreS) / 2) * config.scoreWeights.allocation;
