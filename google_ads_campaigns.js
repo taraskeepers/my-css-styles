@@ -5159,18 +5159,36 @@ const EFFICIENCY_CONFIG = {
   // Target ROAS - can be made configurable
   targetROAS: 3.0,
   
-// Thresholds for status indicators
+  // Winner Share dynamic target parameters
+  winnerShare: {
+    baseMin: 0.70,  // Minimum target even if WRS is lower
+    lowCap: 0.60,   // Absolute minimum for target
+    highCap: 0.90,  // Absolute maximum for target
+    toleranceBand: 0.30  // Tolerance for deviation from target
+  },
+  
+  // Allocation Alignment thresholds
   allocationAlignment: {
-    green: 1.30,
-    amber: 1.00
+    minAA: 0.70,    // AA below this = 0 score
+    maxAA: 2.00,    // AA above this = full score
+    wssGate: 0.25   // Need at least 25% WSS for AA to count
   },
+  
+  // Waste thresholds (as economic excess)
   wasteRate: {
-    green: 0.10,
-    amber: 0.20
+    maxAcceptable: 0.30  // 30% excess spend = 0 points
   },
+  
+  // Testing Mix thresholds (for display only)
   testingMix: {
     min: 0.05,
     max: 0.15
+  },
+  
+  // ROAS scoring parameters
+  roasScoring: {
+    minRatio: 0.50,  // 0.5x target = 0 points
+    maxRatio: 1.25   // 1.25x target = full points
   },
   
   // Efficiency score weights
@@ -5319,69 +5337,122 @@ function calculateSearchesEfficiencyMetrics(bucketStats) {
 function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const config = EFFICIENCY_CONFIG;
   
-// ROAS component (40 points max)
+  // === 1. ROAS Component (40 points max) - Parametric ===
   const roasRatio = productsMetrics.totalROAS / config.targetROAS;
-  const scoreROAS = Math.min(1, roasRatio) * config.scoreWeights.roas;
+  const roasNormalized = Math.max(0, Math.min(1, 
+    (roasRatio - config.roasScoring.minRatio) / (config.roasScoring.maxRatio - config.roasScoring.minRatio)
+  ));
+  const scoreROAS = roasNormalized * config.scoreWeights.roas;
   
-// Allocation Index component (40 points max)
-  // Optimal allocation is 80% to winners, score decreases as we deviate from this
-  const aiProducts = productsMetrics.aa;
-  const aiSearches = searchesMetrics.aa;
-  const ai = (aiProducts + aiSearches) / 2;
+  // === 2. Allocation Component (40 points max) - Dynamic Target with AA Gating ===
   
-  // Get winner spend shares
+  // Calculate for Products
   const wssProducts = productsMetrics.wss || 0;
-  const wssSearches = searchesMetrics.wcs || 0;  
-  const avgWSS = (wssProducts + wssSearches) / 2;
+  const wrsProducts = productsMetrics.wrs || 0;
+  const aaProducts = productsMetrics.aa || 0;
   
-  // Calculate allocation score based on two factors:
-  // 1. How close winner share is to optimal 80%
-  // 2. The efficiency of that allocation (AA ratio)
+  // Dynamic target for products
+  const targetWSSProducts = Math.min(config.winnerShare.highCap, 
+    Math.max(config.winnerShare.lowCap, 
+      Math.max(wrsProducts, config.winnerShare.baseMin)
+    )
+  );
   
-  // Factor 1: Winner Share Score (0-1 scale, peak at 80%)
-  // Use a curve that peaks at 80% and drops off on both sides
-  const optimalWSS = 0.80;
-  let wssScore;
-  if (avgWSS <= optimalWSS) {
-    // Linear increase from 0% to 80%
-    wssScore = avgWSS / optimalWSS;
-} else {
-    // Penalty for over-allocation above 80% (not testing enough)
-    // 80% = 1.0, 90% = 0.9, 100% = 0.8
-    wssScore = 1.0 - ((avgWSS - optimalWSS) / (1.0 - optimalWSS)) * 0.2;
-  }
+  // WSS Score for products
+  const wssDistanceProducts = Math.abs(wssProducts - targetWSSProducts);
+  const wssScoreProducts = 1 - Math.min(wssDistanceProducts, config.winnerShare.toleranceBand) / config.winnerShare.toleranceBand;
   
-  // Factor 2: AA Efficiency Score (0-1 scale)
-  // AA of 1.0 = baseline (0.5 score), 0.5 = 0 score, 2.0+ = 1.0 score
-  const aaScore = Math.min(1, Math.max(0, (ai - 0.5) / 1.5));
+  // AA Score for products (gated by WSS)
+  const aaRawProducts = Math.max(0, Math.min(1, 
+    (aaProducts - config.allocationAlignment.minAA) / (config.allocationAlignment.maxAA - config.allocationAlignment.minAA)
+  ));
+  const aaWeightProducts = Math.max(0, Math.min(1, wssProducts / config.allocationAlignment.wssGate));
+  const aaScoreProducts = aaRawProducts * aaWeightProducts;
   
-  // Combined score: Winner share is primary (70% weight), AA efficiency is secondary (30% weight)
-  // This ensures that 38% to winners with high AA still gets low score
-  const combinedScore = (wssScore * 0.7 + aaScore * 0.3);
+  // Combined allocation score for products
+  const allocationScoreProducts = 0.7 * wssScoreProducts + 0.3 * aaScoreProducts;
   
-  const scoreAI = combinedScore * config.scoreWeights.allocation;
+  // Calculate for Searches (using clicks as proxy for spend)
+  const wssSearches = searchesMetrics.wcs || 0;  // Winner Click Share
+  const wrsSearches = searchesMetrics.wrs || 0;
+  const aaSearches = searchesMetrics.aa || 0;
   
-  // Waste Rate component (20 points max)
-  const wrProducts = productsMetrics.wr;
-  const wrSearches = searchesMetrics.wr;
-  const wrAll = (wrProducts + wrSearches) / 2;
+  // Dynamic target for searches
+  const targetWSSSearches = Math.min(config.winnerShare.highCap, 
+    Math.max(config.winnerShare.lowCap, 
+      Math.max(wrsSearches, config.winnerShare.baseMin)
+    )
+  );
   
-  // Score waste (less is better, 30% waste = 0 points)
-  const scoreWaste = Math.min(1, Math.max(0, 1 - wrAll / 0.30)) * config.scoreWeights.waste;
+  // WSS Score for searches
+  const wssDistanceSearches = Math.abs(wssSearches - targetWSSSearches);
+  const wssScoreSearches = 1 - Math.min(wssDistanceSearches, config.winnerShare.toleranceBand) / config.winnerShare.toleranceBand;
   
-  const totalScore = Math.round(scoreROAS + scoreAI + scoreWaste);
+  // AA Score for searches (gated by WSS)
+  const aaRawSearches = Math.max(0, Math.min(1, 
+    (aaSearches - config.allocationAlignment.minAA) / (config.allocationAlignment.maxAA - config.allocationAlignment.minAA)
+  ));
+  const aaWeightSearches = Math.max(0, Math.min(1, wssSearches / config.allocationAlignment.wssGate));
+  const aaScoreSearches = aaRawSearches * aaWeightSearches;
+  
+  // Combined allocation score for searches
+  const allocationScoreSearches = 0.7 * wssScoreSearches + 0.3 * aaScoreSearches;
+  
+  // Average allocation score (simple average, not spend-weighted as per request)
+  const scoreAllocation = ((allocationScoreProducts + allocationScoreSearches) / 2) * config.scoreWeights.allocation;
+  
+  // === 3. Waste Component (20 points max) - Economic Excess ===
+  // Calculate economic waste (spend above target ROAS)
+  const excessProducts = Math.max(0, 
+    productsMetrics.totalMetrics.cost - (productsMetrics.totalMetrics.revenue / config.targetROAS)
+  );
+  const excessSearches = Math.max(0, 
+    productsMetrics.totalMetrics.cost * (searchesMetrics.totalMetrics.clicks / productsMetrics.totalMetrics.cost) - 
+    (searchesMetrics.totalMetrics.revenue / config.targetROAS)
+  );
+  
+  const totalCost = productsMetrics.totalMetrics.cost + 
+    (productsMetrics.totalMetrics.cost * (searchesMetrics.totalMetrics.clicks / productsMetrics.totalMetrics.cost));
+  const totalExcess = excessProducts + excessSearches;
+  const wasteRateExcess = totalCost > 0 ? totalExcess / totalCost : 0;
+  
+  const scoreWaste = Math.max(0, Math.min(1, 
+    1 - (wasteRateExcess / config.wasteRate.maxAcceptable)
+  )) * config.scoreWeights.waste;
+  
+  const totalScore = Math.round(scoreROAS + scoreAllocation + scoreWaste);
+  
+  // Hard cap if waste is extreme
+  const finalScore = wasteRateExcess >= 0.60 ? Math.min(totalScore, 40) : totalScore;
   
   return {
-    score: totalScore,
+    score: finalScore,
     components: {
       roas: Math.round(scoreROAS),
-      allocation: Math.round(scoreAI),
+      allocation: Math.round(scoreAllocation),
       waste: Math.round(scoreWaste)
     },
-    status: getEfficiencyStatus(totalScore),
+    status: getEfficiencyStatus(finalScore),
     roasRatio,
-    ai,
-    wrAll
+    wasteRateExcess,
+    metrics: {
+      wssProducts,
+      wrsProducts,
+      aaProducts,
+      targetWSSProducts,
+      wssScoreProducts,
+      aaScoreProducts,
+      wssSearches,
+      wrsSearches,
+      aaSearches,
+      targetWSSSearches,
+      wssScoreSearches,
+      aaScoreSearches
+    },
+    testingMix: {
+      products: productsMetrics.tm || 0,
+      searches: searchesMetrics.tm || 0
+    }
   };
 }
 
@@ -5398,15 +5469,16 @@ function getMetricStatusColor(metric, value) {
   const config = EFFICIENCY_CONFIG;
   
   switch(metric) {
-case 'aa':
-      if (value >= config.allocationAlignment.green) return '#22c55e';
-      if (value >= config.allocationAlignment.amber) return '#eab308';
-      return '#ef4444';
+    case 'aa':
+      if (value >= 1.50) return '#22c55e';  // Excellent
+      if (value >= 1.10) return '#eab308';  // Good
+      return '#ef4444';  // Poor
       
     case 'wr':
-      if (value < config.wasteRate.green) return '#22c55e';
-      if (value < config.wasteRate.amber) return '#eab308';
-      return '#ef4444';
+      // Now based on economic excess
+      if (value < 0.10) return '#22c55e';  // <10% excess
+      if (value < 0.20) return '#eab308';  // <20% excess
+      return '#ef4444';  // >20% excess
       
     case 'tm':
       if (value >= config.testingMix.min && value <= config.testingMix.max) return '#22c55e';
@@ -5520,10 +5592,13 @@ function renderEfficiencyContainer() {
               </span>
             </div>
           </div>
-        </div>
+</div>
+        
+        <!-- Testing Mix Indicator -->
+        ${renderTestingMixIndicator(efficiencyScore.testingMix)}
         
         <!-- Action Recommendations -->
-        ${renderActionRecommendations(productsMetrics, searchesMetrics)}
+        ${renderActionRecommendations(productsMetrics, searchesMetrics, efficiencyScore)}
         
       </div>
     `;
@@ -5533,6 +5608,53 @@ function renderEfficiencyContainer() {
     window.searchesEfficiencyMetrics = searchesMetrics;
     window.currentEfficiencyScore = efficiencyScore;
   });
+}
+
+// Render Testing Mix indicator
+function renderTestingMixIndicator(testingMix) {
+  if (!testingMix) return '';
+  
+  const avgTM = (testingMix.products + testingMix.searches) / 2;
+  const tmPercent = (avgTM * 100).toFixed(1);
+  
+  let status, color, message;
+  if (avgTM < 0.05) {
+    status = 'Under-Testing';
+    color = '#3b82f6';
+    message = 'Risk: Not exploring enough';
+  } else if (avgTM > 0.15) {
+    status = 'Over-Testing';
+    color = '#f97316';
+    message = 'Risk: Too much exploration';
+  } else {
+    status = 'Healthy';
+    color = '#22c55e';
+    message = 'Good exploration balance';
+  }
+  
+  return `
+    <div style="
+      background: ${color}15;
+      border: 1px solid ${color}40;
+      border-radius: 6px;
+      padding: 8px;
+      margin-top: 8px;
+    ">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 10px; font-weight: 700; color: ${color};">
+            TESTING MIX: ${tmPercent}%
+          </span>
+          <span style="font-size: 9px; color: #6b7280; margin-left: 8px;">
+            ${status}
+          </span>
+        </div>
+        <div style="font-size: 9px; color: #6b7280;">
+          ${message}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // Function to update analysis headers with efficiency metrics
@@ -5778,45 +5900,50 @@ function renderComparisonBar(leftLabel, rightLabel, leftValue, rightValue) {
 }
 
 // Helper function to render action recommendations
-function renderActionRecommendations(productsMetrics, searchesMetrics) {
+function renderActionRecommendations(productsMetrics, searchesMetrics, efficiencyScore) {
   const recommendations = [];
+  const config = EFFICIENCY_CONFIG;
   
-  // Calculate budget to shift
-  const targetWSS = Math.max(productsMetrics.wrs, 0.70);
-  const shiftShare = Math.max(0, targetWSS - productsMetrics.wss);
-  const shiftAmount = shiftShare * productsMetrics.totalMetrics.cost;
+  // Calculate budget to shift based on dynamic target
+  const targetWSSProducts = efficiencyScore.metrics.targetWSSProducts;
+  const currentWSSProducts = efficiencyScore.metrics.wssProducts;
+  const shiftShareProducts = Math.max(0, targetWSSProducts - currentWSSProducts);
+  const shiftAmountProducts = shiftShareProducts * productsMetrics.totalMetrics.cost;
   
-  if (shiftAmount > 100) {
+  if (shiftAmountProducts > 100) {
     recommendations.push({
       type: 'shift',
-      value: `$${(shiftAmount / 1000).toFixed(1)}k`,
+      value: `$${(shiftAmountProducts / 1000).toFixed(1)}k`,
       label: 'Shift to Winners'
     });
   }
   
-  // Calculate wasted spend
-  const wastedAmount = productsMetrics.wr * productsMetrics.totalMetrics.cost;
-  if (wastedAmount > 100) {
+  // Show economic waste
+  const totalExcess = efficiencyScore.wasteRateExcess * 
+    (productsMetrics.totalMetrics.cost + searchesMetrics.totalMetrics.clicks);
+  
+  if (totalExcess > 100) {
     recommendations.push({
       type: 'waste',
-      value: `$${(wastedAmount / 1000).toFixed(1)}k`,
-      label: 'Wasted Spend'
+      value: `$${(totalExcess / 1000).toFixed(1)}k`,
+      label: `Above ${config.targetROAS}x Target`
     });
   }
   
-  // Check testing mix
-  if (productsMetrics.tm < 0.05) {
+  // Testing mix warnings
+  const avgTM = (efficiencyScore.testingMix.products + efficiencyScore.testingMix.searches) / 2;
+  if (avgTM < 0.05) {
     recommendations.push({
       type: 'test',
       value: 'Low',
-      label: 'Under-testing'
+      label: 'Increase Testing'
     });
-  } else if (productsMetrics.tm > 0.15) {
-    const excessTest = (productsMetrics.tm - 0.15) * productsMetrics.totalMetrics.cost;
+  } else if (avgTM > 0.15) {
+    const excessTest = (avgTM - 0.15) * productsMetrics.totalMetrics.cost;
     recommendations.push({
       type: 'test',
       value: `$${(excessTest / 1000).toFixed(1)}k`,
-      label: 'Excess Testing'
+      label: 'Reduce Testing'
     });
   }
   
