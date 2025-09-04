@@ -217,17 +217,17 @@ function addCampaignsStyles() {
         cursor: pointer;
       }
       
-      .campaign-card-details {
+.campaign-card-details {
         background-color: white;
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         display: flex;
-        align-items: center;
-        padding: 12px;
+        flex-direction: column;
+        padding: 10px;
         transition: all 0.2s;
-        gap: 12px;
-        min-height: 70px;
+        gap: 8px;
+        min-height: 95px;
       }
       
       .campaign-nav-item:hover .campaign-card-details {
@@ -1356,26 +1356,32 @@ filterContainer.className = 'campaigns-filter-container';
   listContainer.className = 'campaigns-list-container';
   navPanel.appendChild(listContainer);
   
-// Load ROAS and cost for all campaigns first
-  const campaignsWithROAS = await Promise.all(window.campaignsData.map(async (campaign) => {
-    const metrics = await calculateCampaignMetrics(campaign.channelType, campaign.campaignName);
-    return { ...campaign, roas: metrics.roas, cost: metrics.cost };
+// Load ROAS, cost and efficiency metrics for all campaigns first
+  const campaignsWithMetrics = await Promise.all(window.campaignsData.map(async (campaign) => {
+    const basicMetrics = await calculateCampaignMetrics(campaign.channelType, campaign.campaignName);
+    const efficiencyMetrics = await calculateCampaignEfficiencyMetrics(campaign.channelType, campaign.campaignName);
+    return { 
+      ...campaign, 
+      roas: basicMetrics.roas, 
+      cost: basicMetrics.cost,
+      efficiency: efficiencyMetrics
+    };
   }));
 
   // Calculate total cost for percentage calculation
-  const totalCost = campaignsWithROAS.reduce((sum, c) => sum + (c.cost || 0), 0);
+  const totalCost = campaignsWithMetrics.reduce((sum, c) => sum + (c.cost || 0), 0);
   
   // Add cost percentage to each campaign
-  campaignsWithROAS.forEach(campaign => {
+  campaignsWithMetrics.forEach(campaign => {
     campaign.costPercent = totalCost > 0 ? (campaign.cost / totalCost * 100) : 0;
   });
 
   // Update global data with metrics
-  window.campaignsData = campaignsWithROAS;
+  window.campaignsData = campaignsWithMetrics;
 
   // Group campaigns by type with ROAS
-  const pmaxCampaigns = campaignsWithROAS.filter(c => c.channelType === 'PERFORMANCE_MAX');
-  const shoppingCampaigns = campaignsWithROAS.filter(c => c.channelType === 'SHOPPING');
+  const pmaxCampaigns = campaignsWithMetrics.filter(c => c.channelType === 'PERFORMANCE_MAX');
+  const shoppingCampaigns = campaignsWithMetrics.filter(c => c.channelType === 'SHOPPING');
   
   // Render campaign groups
   renderCampaignGroup(listContainer, 'PERFORMANCE_MAX', pmaxCampaigns, '🚀');
@@ -3086,9 +3092,14 @@ function createCampaignItem(campaign, icon) {
   const badgeClass = campaign.channelType === 'PERFORMANCE_MAX' ? 'pmax' : 'shopping';
   const roas = campaign.roas || 0;
   const costPercent = campaign.costPercent || 0;
+  
+  // Get efficiency metrics
+  const efficiency = campaign.efficiency || {};
+  const effScore = efficiency.efficiencyScore || { score: 0, status: { text: 'N/A', color: '#999' } };
+  const allocIndex = efficiency.allocationIndex || 0;
+  const wasteRate = efficiency.wasteRate || 0;
 
   // Determine ROAS badge color
-  let roasColorClass = '';
   let roasBackground = '';
   if (roas >= 4) {
     roasBackground = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
@@ -3102,52 +3113,116 @@ function createCampaignItem(campaign, icon) {
 
   item.innerHTML = `
     <div class="campaign-card-details" style="position: relative;">
-      <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
-        ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
-      </div>
-      <div class="campaign-info">
-        <div class="campaign-name">${campaign.campaignName}</div>
-        <div class="campaign-meta">
-          <div class="campaign-products-count">
-            <span>📦</span>
-            <span>${campaign.products.size} products</span>
+      <!-- First row: existing content -->
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+        <div class="campaign-type-badge ${badgeClass}" style="background: ${roasBackground}; font-size: 14px; font-weight: 700; line-height: 1;">
+          ${roas > 0 ? roas.toFixed(1) + 'x' : '0x'}
+        </div>
+        <div class="campaign-info" style="flex: 1;">
+          <div class="campaign-name" style="font-size: 13px;">${campaign.campaignName}</div>
+          <div class="campaign-meta">
+            <div class="campaign-products-count">
+              <span>📦</span>
+              <span style="font-size: 11px;">${campaign.products.size} products</span>
+            </div>
+          </div>
+        </div>
+        <!-- Cost percentage bar -->
+        <div style="
+          width: 60px;
+          height: 12px;
+          background: rgba(229, 231, 235, 0.8);
+          border-radius: 6px;
+          overflow: hidden;
+          position: relative;
+        ">
+          <div style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: ${Math.min(costPercent, 100)}%;
+            background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+            transition: width 0.3s ease;
+          "></div>
+          <div style="
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 600;
+            color: ${costPercent > 50 ? 'white' : '#374151'};
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            z-index: 1;
+          ">
+            ${costPercent.toFixed(1)}%
           </div>
         </div>
       </div>
-      <!-- Cost percentage bar -->
-      <div style="
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        width: 80px;
-        height: 14px;
-        background: rgba(229, 231, 235, 0.8);
-        border-radius: 7px;
-        overflow: hidden;
-      ">
+      
+      <!-- Second row: efficiency metrics -->
+      <div style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 4px 0;">
+        <!-- Overall Score -->
         <div style="
-          position: absolute;
-          left: 0;
-          top: 0;
-          height: 100%;
-          width: ${Math.min(costPercent, 100)}%;
-          background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
-          transition: width 0.3s ease;
-        "></div>
-        <div style="
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 9px;
-          font-weight: 600;
-          color: ${costPercent > 50 ? 'white' : '#374151'};
-          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-          z-index: 1;
+          background: ${effScore.status.color}22;
+          border: 1px solid ${effScore.status.color}44;
+          border-radius: 6px;
+          padding: 4px 8px;
+          flex: 1;
+          text-align: center;
         ">
-          ${costPercent.toFixed(1)}% cost
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">SCORE</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${effScore.status.color};">
+            ${effScore.score}
+          </div>
+        </div>
+        
+        <!-- ROAS -->
+        <div style="
+          background: ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e22' : '#ef444422'};
+          border: 1px solid ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e44' : '#ef444444'};
+          border-radius: 6px;
+          padding: 4px 8px;
+          flex: 1;
+          text-align: center;
+        ">
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ROAS</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e' : '#ef4444'};">
+            ${roas.toFixed(1)}x
+          </div>
+        </div>
+        
+        <!-- Allocation -->
+        <div style="
+          background: ${getMetricStatusColor('aa', allocIndex)}22;
+          border: 1px solid ${getMetricStatusColor('aa', allocIndex)}44;
+          border-radius: 6px;
+          padding: 4px 8px;
+          flex: 1;
+          text-align: center;
+        ">
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ALLOC</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${getMetricStatusColor('aa', allocIndex)};">
+            ${allocIndex.toFixed(2)}
+          </div>
+        </div>
+        
+        <!-- Waste -->
+        <div style="
+          background: ${getMetricStatusColor('wr', wasteRate)}22;
+          border: 1px solid ${getMetricStatusColor('wr', wasteRate)}44;
+          border-radius: 6px;
+          padding: 4px 8px;
+          flex: 1;
+          text-align: center;
+        ">
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500;">WASTE</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${getMetricStatusColor('wr', wasteRate)};">
+            ${(wasteRate * 100).toFixed(0)}%
+          </div>
         </div>
       </div>
     </div>
@@ -3575,6 +3650,189 @@ async function calculateCampaignMetrics(channelType, campaignName) {
   } catch (error) {
     console.error('[calculateCampaignMetrics] Error:', error);
     return { roas: 0, cost: 0 };
+  }
+}
+
+// Calculate efficiency metrics for a specific campaign
+async function calculateCampaignEfficiencyMetrics(channelType, campaignName) {
+  try {
+    const tablePrefix = getProjectTablePrefix();
+    const productBucketsTable = `${tablePrefix}googleSheets_productBuckets_30d`;
+    const searchTermsTable = `${tablePrefix}googleSheets_searchTerms_30d`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    
+    // Get product buckets data
+    const productBucketsRequest = objectStore.get(productBucketsTable);
+    const productBucketsResult = await new Promise((resolve, reject) => {
+      productBucketsRequest.onsuccess = () => resolve(productBucketsRequest.result);
+      productBucketsRequest.onerror = () => reject(productBucketsRequest.error);
+    });
+    
+    // Get search terms data
+    const searchTermsRequest = objectStore.get(searchTermsTable);
+    const searchTermsResult = await new Promise((resolve, reject) => {
+      searchTermsRequest.onsuccess = () => resolve(searchTermsRequest.result);
+      searchTermsRequest.onerror = () => reject(searchTermsRequest.error);
+    });
+    
+    db.close();
+    
+    // Calculate product bucket statistics for this campaign
+    const productStats = {
+      'all': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'Profit Stars': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'Strong Performers': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'Steady Contributors': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'Break-Even Products': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'True Losses': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 },
+      'Insufficient Data': { count: 0, impressions: 0, cost: 0, conversions: 0, revenue: 0 }
+    };
+    
+    if (productBucketsResult && productBucketsResult.data) {
+      const uniqueProducts = new Set();
+      
+      productBucketsResult.data.forEach(row => {
+        if (row['Campaign Name'] === campaignName && row['Channel Type'] === channelType) {
+          const productKey = `${row['Product Title']}_${row['Campaign Name']}`;
+          
+          // Count unique products for buckets
+          if (row['Device'] === 'All' && !uniqueProducts.has(productKey)) {
+            uniqueProducts.add(productKey);
+            
+            let bucketValue = 'Insufficient Data';
+            if (row['PROFITABILITY_BUCKET']) {
+              try {
+                const bucketData = typeof row['PROFITABILITY_BUCKET'] === 'string' ? 
+                  JSON.parse(row['PROFITABILITY_BUCKET']) : row['PROFITABILITY_BUCKET'];
+                bucketValue = bucketData.value || 'Insufficient Data';
+              } catch (e) {
+                // Silent fail
+              }
+            }
+            
+            if (productStats[bucketValue]) {
+              productStats[bucketValue].count++;
+            }
+          }
+          
+          // Aggregate metrics
+          const cost = parseFloat(row['Cost']) || 0;
+          const revenue = parseFloat(row['ConvValue']) || 0;
+          
+          productStats['all'].cost += cost;
+          productStats['all'].revenue += revenue;
+          
+          // Also add to specific bucket
+          let bucketValue = 'Insufficient Data';
+          if (row['PROFITABILITY_BUCKET']) {
+            try {
+              const bucketData = typeof row['PROFITABILITY_BUCKET'] === 'string' ? 
+                JSON.parse(row['PROFITABILITY_BUCKET']) : row['PROFITABILITY_BUCKET'];
+              bucketValue = bucketData.value || 'Insufficient Data';
+            } catch (e) {
+              // Silent fail
+            }
+          }
+          
+          if (productStats[bucketValue]) {
+            productStats[bucketValue].cost += cost;
+            productStats[bucketValue].revenue += revenue;
+          }
+        }
+      });
+      
+      // Set count for 'all'
+      productStats['all'].count = uniqueProducts.size;
+    }
+    
+    // Calculate percentages
+    for (let bucket in productStats) {
+      const bucketData = productStats[bucket];
+      bucketData.costPercent = productStats['all'].cost > 0 ? (bucketData.cost / productStats['all'].cost * 100) : 0;
+      bucketData.revenuePercent = productStats['all'].revenue > 0 ? (bucketData.revenue / productStats['all'].revenue * 100) : 0;
+      bucketData.roas = bucketData.cost > 0 ? (bucketData.revenue / bucketData.cost) : 0;
+    }
+    
+    // Calculate search terms bucket statistics
+    const searchStats = {
+      'all': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'Top Search Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'High Revenue Terms': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'Hidden Gems': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'Mid-Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'Low Performance': { count: 0, clicks: 0, revenue: 0, value: 0 },
+      'Zero Converting Terms': { count: 0, clicks: 0, revenue: 0, value: 0 }
+    };
+    
+    if (searchTermsResult && searchTermsResult.data) {
+      // Ensure performance buckets are loaded
+      if (!window.searchTermPerformanceBuckets) {
+        await ensureSearchTermPerformanceBuckets();
+      }
+      
+      searchTermsResult.data.forEach(item => {
+        if (item.Campaign_Name === campaignName && item.Query && item.Query.toLowerCase() !== 'blank') {
+          const queryLower = item.Query.toLowerCase();
+          const bucket = window.searchTermPerformanceBuckets ? 
+            window.searchTermPerformanceBuckets[queryLower] || 'Mid-Performance' : 
+            'Mid-Performance';
+          
+          const clicks = item.Clicks || 0;
+          const value = item.Value || 0;
+          
+          searchStats['all'].count++;
+          searchStats['all'].clicks += clicks;
+          searchStats['all'].revenue += value;
+          searchStats['all'].value += value;
+          
+          if (searchStats[bucket]) {
+            searchStats[bucket].count++;
+            searchStats[bucket].clicks += clicks;
+            searchStats[bucket].revenue += value;
+            searchStats[bucket].value += value;
+          }
+        }
+      });
+    }
+    
+    // Calculate percentages for search stats
+    for (let bucket in searchStats) {
+      const bucketData = searchStats[bucket];
+      bucketData.clicksPercent = searchStats['all'].clicks > 0 ? (bucketData.clicks / searchStats['all'].clicks * 100) : 0;
+      bucketData.revenuePercent = searchStats['all'].revenue > 0 ? (bucketData.revenue / searchStats['all'].revenue * 100) : 0;
+    }
+    
+    // Calculate efficiency metrics
+    const productsMetrics = calculateProductsEfficiencyMetrics(productStats);
+    const searchesMetrics = calculateSearchesEfficiencyMetrics(searchStats);
+    const efficiencyScore = calculateEfficiencyScore(productsMetrics, searchesMetrics);
+    
+    return {
+      productsMetrics,
+      searchesMetrics,
+      efficiencyScore,
+      totalROAS: productsMetrics.totalROAS,
+      allocationIndex: (productsMetrics.aa + searchesMetrics.aa) / 2,
+      wasteRate: (productsMetrics.wr + searchesMetrics.wr) / 2
+    };
+    
+  } catch (error) {
+    console.error('[calculateCampaignEfficiencyMetrics] Error:', error);
+    return {
+      efficiencyScore: { score: 0, status: { text: 'N/A', color: '#999' } },
+      totalROAS: 0,
+      allocationIndex: 0,
+      wasteRate: 0
+    };
   }
 }
 
