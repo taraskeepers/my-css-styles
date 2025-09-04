@@ -3093,11 +3093,13 @@ function createCampaignItem(campaign, icon) {
   const roas = campaign.roas || 0;
   const costPercent = campaign.costPercent || 0;
   
-  // Get efficiency metrics
+  // Get efficiency metrics and score components
   const efficiency = campaign.efficiency || {};
-  const effScore = efficiency.efficiencyScore || { score: 0, status: { text: 'N/A', color: '#999' } };
-  const allocIndex = efficiency.allocationIndex || 0;
-  const wasteRate = efficiency.wasteRate || 0;
+  const effScore = efficiency.efficiencyScore || { 
+    score: 0, 
+    status: { text: 'N/A', color: '#999' },
+    components: { roas: 0, allocation: 0, waste: 0 }
+  };
 
   // Determine ROAS badge color
   let roasBackground = '';
@@ -3110,6 +3112,14 @@ function createCampaignItem(campaign, icon) {
   } else {
     roasBackground = 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)';
   }
+  
+  // Get score components colors
+  const roasScoreColor = effScore.components.roas >= 20 ? '#22c55e' : 
+                         effScore.components.roas >= 10 ? '#eab308' : '#ef4444';
+  const allocScoreColor = effScore.components.allocation >= 30 ? '#22c55e' : 
+                          effScore.components.allocation >= 20 ? '#eab308' : '#ef4444';
+  const wasteScoreColor = effScore.components.waste >= 15 ? '#22c55e' : 
+                          effScore.components.waste >= 10 ? '#eab308' : '#ef4444';
 
   item.innerHTML = `
     <div class="campaign-card-details" style="position: relative;">
@@ -3163,7 +3173,7 @@ function createCampaignItem(campaign, icon) {
         </div>
       </div>
       
-      <!-- Second row: efficiency metrics -->
+      <!-- Second row: efficiency score components -->
       <div style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 4px 0;">
         <!-- Overall Score -->
         <div style="
@@ -3180,53 +3190,56 @@ function createCampaignItem(campaign, icon) {
           </div>
         </div>
         
-        <!-- ROAS -->
+        <!-- ROAS Score -->
         <div style="
-          background: ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e22' : '#ef444422'};
-          border: 1px solid ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e44' : '#ef444444'};
+          background: ${roasScoreColor}22;
+          border: 1px solid ${roasScoreColor}44;
           border-radius: 6px;
           padding: 4px 8px;
           flex: 1;
           text-align: center;
         ">
           <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ROAS</div>
-          <div style="font-size: 14px; font-weight: 700; color: ${roas >= EFFICIENCY_CONFIG.targetROAS ? '#22c55e' : '#ef4444'};">
-            ${roas.toFixed(1)}x
+          <div style="font-size: 12px; font-weight: 700; color: ${roasScoreColor};">
+            ${effScore.components.roas}/40
           </div>
         </div>
         
-        <!-- Allocation -->
+        <!-- Allocation Score -->
         <div style="
-          background: ${getMetricStatusColor('aa', allocIndex)}22;
-          border: 1px solid ${getMetricStatusColor('aa', allocIndex)}44;
+          background: ${allocScoreColor}22;
+          border: 1px solid ${allocScoreColor}44;
           border-radius: 6px;
           padding: 4px 8px;
           flex: 1;
           text-align: center;
         ">
           <div style="font-size: 8px; color: #6b7280; font-weight: 500;">ALLOC</div>
-          <div style="font-size: 14px; font-weight: 700; color: ${getMetricStatusColor('aa', allocIndex)};">
-            ${allocIndex.toFixed(2)}
+          <div style="font-size: 12px; font-weight: 700; color: ${allocScoreColor};">
+            ${effScore.components.allocation}/40
           </div>
         </div>
         
-        <!-- Waste -->
+        <!-- Waste Score -->
         <div style="
-          background: ${getMetricStatusColor('wr', wasteRate)}22;
-          border: 1px solid ${getMetricStatusColor('wr', wasteRate)}44;
+          background: ${wasteScoreColor}22;
+          border: 1px solid ${wasteScoreColor}44;
           border-radius: 6px;
           padding: 4px 8px;
           flex: 1;
           text-align: center;
         ">
           <div style="font-size: 8px; color: #6b7280; font-weight: 500;">WASTE</div>
-          <div style="font-size: 14px; font-weight: 700; color: ${getMetricStatusColor('wr', wasteRate)};">
-            ${(wasteRate * 100).toFixed(0)}%
+          <div style="font-size: 12px; font-weight: 700; color: ${wasteScoreColor};">
+            ${effScore.components.waste}/20
           </div>
         </div>
       </div>
     </div>
   `;
+  
+  // Store efficiency metrics on the element for later use
+  item.campaignEfficiency = campaign.efficiency;
   
   return item;
 }
@@ -3261,21 +3274,18 @@ function addCampaignClickHandlers() {
       const [channelType, ...campaignNameParts] = campaignKey.split('::');
       const campaignName = campaignNameParts.join('::'); // Handle campaign names with ::
       
-      // Update selected campaign
-      window.selectedCampaign = {
-        channelType: channelType,
-        campaignName: campaignName,
-        key: campaignKey
-      };
+      // Get stored efficiency metrics from the campaign item
+      const storedEfficiency = this.campaignEfficiency;
       
       // Update selected campaign
       window.selectedCampaign = {
         channelType: channelType,
         campaignName: campaignName,
-        key: campaignKey
+        key: campaignKey,
+        efficiency: storedEfficiency // Store the pre-calculated efficiency
       };
       
-      // Check current view and load appropriate data <--- ADD THIS
+      // Check current view and load appropriate data
       const currentView = document.querySelector('.campaigns-view-tab.active')?.getAttribute('data-view');
       if (currentView === 'search-terms') {
         await loadCampaignSearchTerms(channelType, campaignName);
@@ -6234,11 +6244,13 @@ async function updateBucketUI(stats) {
 
 // Populate the searches analysis section with grouped buckets
 function populateSearchesAnalysis(bucketStats) {
-  // Store bucket stats globally FIRST
-  window.searchBucketStats = bucketStats;
-  
-  // Calculate and store efficiency metrics
-  window.searchesEfficiencyMetrics = calculateSearchesEfficiencyMetrics(bucketStats);
+  // If we have pre-calculated efficiency metrics from the selected campaign, use those
+  if (window.selectedCampaign && window.selectedCampaign.efficiency && window.selectedCampaign.efficiency.searchesMetrics) {
+    window.searchesEfficiencyMetrics = window.selectedCampaign.efficiency.searchesMetrics;
+  } else {
+    // Calculate new metrics if not available
+    window.searchesEfficiencyMetrics = calculateSearchesEfficiencyMetrics(bucketStats);
+  }
   
   // Render the new efficiency container
   renderEfficiencyContainer();
@@ -6492,11 +6504,13 @@ function updateAnalysisBarAnimated(container, value, maxValue, color, label) {
 
 // Populate the products analysis section with grouped buckets
 function populateProductsAnalysis(bucketStats) {
-  // Store bucket stats globally FIRST
-  window.productBucketStats = bucketStats;
-  
-  // Calculate and store efficiency metrics
-  window.productsEfficiencyMetrics = calculateProductsEfficiencyMetrics(bucketStats);
+    // If we have pre-calculated efficiency metrics from the selected campaign, use those
+  if (window.selectedCampaign && window.selectedCampaign.efficiency && window.selectedCampaign.efficiency.productsMetrics) {
+    window.productsEfficiencyMetrics = window.selectedCampaign.efficiency.productsMetrics;
+  } else {
+    // Calculate new metrics if not available
+    window.productsEfficiencyMetrics = calculateProductsEfficiencyMetrics(bucketStats);
+  }
   
   // Render the new efficiency container
   renderEfficiencyContainer();
