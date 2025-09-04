@@ -5161,7 +5161,7 @@ const EFFICIENCY_CONFIG = {
   
 // Thresholds for status indicators
   allocationAlignment: {
-    green: 1.20,
+    green: 1.30,
     amber: 1.00
   },
   wasteRate: {
@@ -5319,10 +5319,9 @@ function calculateSearchesEfficiencyMetrics(bucketStats) {
 function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const config = EFFICIENCY_CONFIG;
   
-// ROAS component (40 points max) - more strict scoring
+// ROAS component (40 points max)
   const roasRatio = productsMetrics.totalROAS / config.targetROAS;
-  // Use a curve that's less generous: ROAS 3.0 = full points, ROAS 1.5 = 50% points
-  const scoreROAS = Math.min(1, Math.max(0, roasRatio * 0.8)) * config.scoreWeights.roas;
+  const scoreROAS = Math.min(1, roasRatio) * config.scoreWeights.roas;
   
 // Allocation Index component (40 points max)
   // Optimal allocation is 80% to winners, score decreases as we deviate from this
@@ -5346,10 +5345,10 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   if (avgWSS <= optimalWSS) {
     // Linear increase from 0% to 80%
     wssScore = avgWSS / optimalWSS;
-  } else {
-    // Slight penalty for over-allocation above 80% (still good, but not optimal)
-    // 80% = 1.0, 100% = 0.9
-    wssScore = 1.0 - ((avgWSS - optimalWSS) / (1.0 - optimalWSS)) * 0.1;
+} else {
+    // Penalty for over-allocation above 80% (not testing enough)
+    // 80% = 1.0, 90% = 0.9, 100% = 0.8
+    wssScore = 1.0 - ((avgWSS - optimalWSS) / (1.0 - optimalWSS)) * 0.2;
   }
   
   // Factor 2: AA Efficiency Score (0-1 scale)
@@ -5400,9 +5399,9 @@ function getMetricStatusColor(metric, value) {
   
   switch(metric) {
 case 'aa':
-      if (value >= 1.20) return '#22c55e';  // Green: AA >= 1.2
-      if (value >= 1.00) return '#eab308';  // Amber: AA >= 1.0
-      return '#ef4444';  // Red: AA < 1.0
+      if (value >= config.allocationAlignment.green) return '#22c55e';
+      if (value >= config.allocationAlignment.amber) return '#eab308';
+      return '#ef4444';
       
     case 'wr':
       if (value < config.wasteRate.green) return '#22c55e';
@@ -5485,7 +5484,7 @@ function renderEfficiencyContainer() {
             ${efficiencyScore.status.text}
           </div>
           
-          <!-- Score Components -->
+<!-- Score Components -->
           <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
             <div style="
               background: white;
@@ -5494,7 +5493,7 @@ function renderEfficiencyContainer() {
               font-size: 11px;
             ">
               <span style="color: #6b7280;">ROAS:</span>
-              <span style="font-weight: 700; color: ${efficiencyScore.roasRatio >= 1 ? '#22c55e' : '#ef4444'};">
+              <span style="font-weight: 700; color: ${productsMetrics.totalROAS >= 3 ? '#22c55e' : productsMetrics.totalROAS >= 1.5 ? '#eab308' : '#ef4444'};">
                 ${efficiencyScore.components.roas}/40
               </span>
             </div>
@@ -5505,7 +5504,7 @@ function renderEfficiencyContainer() {
               font-size: 11px;
             ">
               <span style="color: #6b7280;">Alloc:</span>
-              <span style="font-weight: 700; color: ${getMetricStatusColor('aa', efficiencyScore.ai)};">
+              <span style="font-weight: 700; color: ${efficiencyScore.components.allocation >= 30 ? '#22c55e' : efficiencyScore.components.allocation >= 20 ? '#eab308' : '#ef4444'};">
                 ${efficiencyScore.components.allocation}/40
               </span>
             </div>
@@ -5516,7 +5515,7 @@ function renderEfficiencyContainer() {
               font-size: 11px;
             ">
               <span style="color: #6b7280;">Waste:</span>
-              <span style="font-weight: 700; color: ${getMetricStatusColor('wr', efficiencyScore.wrAll)};">
+              <span style="font-weight: 700; color: ${efficiencyScore.components.waste >= 15 ? '#22c55e' : efficiencyScore.components.waste >= 10 ? '#eab308' : '#ef4444'};">
                 ${efficiencyScore.components.waste}/20
               </span>
             </div>
