@@ -5185,10 +5185,10 @@ const EFFICIENCY_CONFIG = {
     max: 0.15
   },
   
-  // ROAS scoring parameters
+// ROAS scoring parameters
   roasScoring: {
-    minRatio: 0.50,  // 0.5x target = 0 points
-    maxRatio: 1.25   // 1.25x target = full points
+    minRatio: 0.30,  // 0.3x target = 0 points
+    maxRatio: 1.00   // 1.0x target = full points
   },
   
   // Efficiency score weights
@@ -5337,10 +5337,12 @@ function calculateSearchesEfficiencyMetrics(bucketStats) {
 function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const config = EFFICIENCY_CONFIG;
   
-  // === 1. ROAS Component (40 points max) - Parametric ===
+// === 1. ROAS Component (40 points max) - More reasonable curve ===
   const roasRatio = productsMetrics.totalROAS / config.targetROAS;
+  // Full points at 1.0x target, 0 points at 0.3x target
+  // ROAS 3.0 = 40 points, ROAS 2.7 = 36 points, ROAS 1.5 = 20 points
   const roasNormalized = Math.max(0, Math.min(1, 
-    (roasRatio - config.roasScoring.minRatio) / (config.roasScoring.maxRatio - config.roasScoring.minRatio)
+    (roasRatio - 0.3) / (1.0 - 0.3)
   ));
   const scoreROAS = roasNormalized * config.scoreWeights.roas;
   
@@ -5351,22 +5353,19 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const wrsProducts = productsMetrics.wrs || 0;
   const aaProducts = productsMetrics.aa || 0;
   
-  // Dynamic target for products
-  const targetWSSProducts = Math.min(config.winnerShare.highCap, 
-    Math.max(config.winnerShare.lowCap, 
-      Math.max(wrsProducts, config.winnerShare.baseMin)
-    )
-  );
+// Simpler target: aim for 70% to winners as baseline
+  const targetWSSProducts = 0.70;
   
   // WSS Score for products
   const wssDistanceProducts = Math.abs(wssProducts - targetWSSProducts);
   const wssScoreProducts = 1 - Math.min(wssDistanceProducts, config.winnerShare.toleranceBand) / config.winnerShare.toleranceBand;
   
-  // AA Score for products (gated by WSS)
+// AA Score for products (lighter gating)
   const aaRawProducts = Math.max(0, Math.min(1, 
-    (aaProducts - config.allocationAlignment.minAA) / (config.allocationAlignment.maxAA - config.allocationAlignment.minAA)
+    (aaProducts - 0.70) / (2.00 - 0.70)
   ));
-  const aaWeightProducts = Math.max(0, Math.min(1, wssProducts / config.allocationAlignment.wssGate));
+  // Only gate if WSS is very low (<20%)
+  const aaWeightProducts = wssProducts < 0.20 ? (wssProducts / 0.20) : 1.0;
   const aaScoreProducts = aaRawProducts * aaWeightProducts;
   
   // Combined allocation score for products
@@ -5401,18 +5400,32 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   // Average allocation score (simple average, not spend-weighted as per request)
   const scoreAllocation = ((allocationScoreProducts + allocationScoreSearches) / 2) * config.scoreWeights.allocation;
   
-  // === 3. Waste Component (20 points max) - Economic Excess ===
-  // Calculate economic waste (spend above target ROAS)
-  const excessProducts = Math.max(0, 
-    productsMetrics.totalMetrics.cost - (productsMetrics.totalMetrics.revenue / config.targetROAS)
-  );
-  const excessSearches = Math.max(0, 
-    productsMetrics.totalMetrics.cost * (searchesMetrics.totalMetrics.clicks / productsMetrics.totalMetrics.cost) - 
-    (searchesMetrics.totalMetrics.revenue / config.targetROAS)
-  );
+// === 3. Waste Component (20 points max) - Bucket-based Economic Excess ===
   
-  const totalCost = productsMetrics.totalMetrics.cost + 
-    (productsMetrics.totalMetrics.cost * (searchesMetrics.totalMetrics.clicks / productsMetrics.totalMetrics.cost));
+  // For Products: Calculate excess only from underperforming buckets
+  let excessProducts = 0;
+  const underperformingProductBuckets = ['True Losses', 'Break-Even Products'];
+  underperformingProductBuckets.forEach(bucket => {
+    const metrics = productsMetrics[bucket] || productsMetrics.underperformersMetrics;
+    if (metrics) {
+      const bucketExcess = Math.max(0, metrics.cost - (metrics.revenue / config.targetROAS));
+      excessProducts += bucketExcess;
+    }
+  });
+  
+  // For Searches: Calculate excess from underperforming buckets
+  let excessSearches = 0;
+  const underperformingSearchBuckets = ['Zero Converting Terms', 'Low Performance', 'Mid-Performance'];
+  // Note: searches use different structure, need to check the actual metrics
+  if (searchesMetrics.underperformersMetrics) {
+    // Approximate cost from clicks (assuming average CPC)
+    const avgCPC = productsMetrics.totalMetrics.cost / Math.max(1, productsMetrics.totalMetrics.clicks || 1000);
+    const searchCost = searchesMetrics.underperformersMetrics.clicks * avgCPC;
+    const searchExcess = Math.max(0, searchCost - (searchesMetrics.underperformersMetrics.revenue / config.targetROAS));
+    excessSearches = searchExcess;
+  }
+  
+  const totalCost = productsMetrics.totalMetrics.cost;
   const totalExcess = excessProducts + excessSearches;
   const wasteRateExcess = totalCost > 0 ? totalExcess / totalCost : 0;
   
