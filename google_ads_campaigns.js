@@ -5133,9 +5133,9 @@ const BUCKET_INTENT_MAPPING = {
     test: ['Insufficient Data']  // Only insufficient data is test
   },
   searches: {
-    winners: ['Top Search Terms', 'High Revenue Terms', 'Hidden Gems'],
+    winners: ['Top Search Terms', 'High Revenue Terms'],
     underperformers: ['Zero Converting Terms', 'Low Performance', 'Mid-Performance'],
-    test: []  // Good signals but low volume
+    test: ['Hidden Gems']  // Good signals but low volume
   }
 };
 
