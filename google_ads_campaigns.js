@@ -3137,55 +3137,58 @@ item.innerHTML = `
           </div>
         </div>
         
-        <!-- Overall Score Badge ABOVE cost bar -->
-        <div style="
-          background: ${effScore.status.color}22;
-          border: 1px solid ${effScore.status.color}44;
-          border-radius: 6px;
-          padding: 3px 8px;
-          text-align: center;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        ">
-          <span style="font-size: 10px; color: #6b7280; font-weight: 500;">SCORE</span>
-          <span style="font-size: 14px; font-weight: 700; color: ${effScore.status.color};">
-            ${effScore.score}
-          </span>
-        </div>
-        
-        <!-- Cost percentage bar -->
-        <div style="
-          width: 60px;
-          height: 12px;
-          background: rgba(229, 231, 235, 0.8);
-          border-radius: 6px;
-          overflow: hidden;
-          position: relative;
-        ">
+        <!-- Stack Score and Cost bar vertically -->
+        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+          <!-- Overall Score Badge -->
           <div style="
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: ${Math.min(costPercent, 100)}%;
-            background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
-            transition: width 0.3s ease;
-          "></div>
-          <div style="
-            position: absolute;
-            width: 100%;
-            height: 100%;
+            background: ${effScore.status.color}22;
+            border: 1px solid ${effScore.status.color}44;
+            border-radius: 6px;
+            padding: 2px 10px;
+            text-align: center;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            font-weight: 600;
-            color: ${costPercent > 50 ? 'white' : '#374151'};
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            z-index: 1;
+            gap: 4px;
           ">
-            ${costPercent.toFixed(1)}%
+            <span style="font-size: 9px; color: #6b7280; font-weight: 500;">SCORE</span>
+            <span style="font-size: 13px; font-weight: 700; color: ${effScore.status.color};">
+              ${effScore.score}
+            </span>
+          </div>
+          
+          <!-- Cost percentage bar -->
+          <div style="
+            width: 60px;
+            height: 10px;
+            background: rgba(229, 231, 235, 0.8);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              left: 0;
+              top: 0;
+              height: 100%;
+              width: ${Math.min(costPercent, 100)}%;
+              background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+              transition: width 0.3s ease;
+            "></div>
+            <div style="
+              position: absolute;
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 7px;
+              font-weight: 600;
+              color: ${costPercent > 50 ? 'white' : '#374151'};
+              text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+              z-index: 1;
+            ">
+              ${costPercent.toFixed(1)}%
+            </div>
           </div>
         </div>
       </div>
@@ -5152,10 +5155,10 @@ const EFFICIENCY_CONFIG = {
   // Target ROAS - can be made configurable
   targetROAS: 3.0,
   
-  // Thresholds for status indicators
+// Thresholds for status indicators
   allocationAlignment: {
-    green: 1.10,
-    amber: 0.95
+    green: 1.20,
+    amber: 1.00
   },
   wasteRate: {
     green: 0.10,
@@ -5316,16 +5319,27 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const roasRatio = productsMetrics.totalROAS / config.targetROAS;
   const scoreROAS = Math.min(1, roasRatio) * config.scoreWeights.roas;
   
-  // Allocation Index component (40 points max)
+// Allocation Index component (40 points max)
+  // Consider BOTH the AA ratio AND the absolute share going to winners
   const aiProducts = productsMetrics.aa;
   const aiSearches = searchesMetrics.aa;
   const ai = (aiProducts + aiSearches) / 2;
   
-// Score allocation from 0.5 to 1.5 range with granular scoring
-  // AA of 1.0 = neutral (no bonus/penalty)
-  // AA < 1.0 = underperforming (0 points at 0.5 or below)
-  // AA > 1.0 = overperforming (full points at 1.5 or above)
-  const scoreAI = Math.min(1, Math.max(0, (ai - 0.5) / 1.0)) * config.scoreWeights.allocation;
+  // Get winner spend shares
+  const wssProducts = productsMetrics.wss || 0;
+  const wssSearches = searchesMetrics.wcs || 0;  // Note: searches use clicks as proxy
+  const avgWSS = (wssProducts + wssSearches) / 2;
+  
+  // Calculate AA score component (0 to 1 scale)
+  // AA of 1.0 = neutral, 0.7 or below = 0 points, 1.5 or above = full points
+  const aaScore = Math.min(1, Math.max(0, (ai - 0.7) / 0.8));
+  
+  // Calculate WSS penalty - campaigns with low winner share get penalized
+  // WSS below 50% starts reducing the score
+  const wssMultiplier = Math.min(1, Math.max(0.3, avgWSS * 2));  // 50% WSS = 1.0x, 25% WSS = 0.5x
+  
+  // Combined score: AA efficiency * WSS multiplier
+  const scoreAI = aaScore * wssMultiplier * config.scoreWeights.allocation;
   
   // Waste Rate component (20 points max)
   const wrProducts = productsMetrics.wr;
@@ -5364,10 +5378,10 @@ function getMetricStatusColor(metric, value) {
   const config = EFFICIENCY_CONFIG;
   
   switch(metric) {
-    case 'aa':
-      if (value >= config.allocationAlignment.green) return '#22c55e';
-      if (value >= config.allocationAlignment.amber) return '#eab308';
-      return '#ef4444';
+case 'aa':
+      if (value >= 1.20) return '#22c55e';  // Green: AA >= 1.2
+      if (value >= 1.00) return '#eab308';  // Amber: AA >= 1.0
+      return '#ef4444';  // Red: AA < 1.0
       
     case 'wr':
       if (value < config.wasteRate.green) return '#22c55e';
