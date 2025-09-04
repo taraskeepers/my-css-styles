@@ -5140,68 +5140,113 @@ function calculateProductBucketStatistics(data) {
 
 // ============= NEW EFFICIENCY FRAMEWORK IMPLEMENTATION =============
 
-// Define bucket mappings for the three intent categories
+// Normalization helpers to avoid label mismatches ('Strong Perf' vs 'Strong Performers', etc.)
+const normalizeBucketName = (s = '') => s.toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
+
 const BUCKET_INTENT_MAPPING = {
   products: {
-    winners: ['Profit Stars', 'Strong Performers', 'Steady Contributors'],
-    underperformers: ['True Losses', 'Break-Even Products'],  // Include Break-Even in waste
-    test: ['Insufficient Data']  // Only insufficient data in test
+    winners: new Set([
+      'profit stars','profit star','profitable',
+      'strong perf','strong performers','strong performer',
+      'steady','steady contributors','steady contributor'
+    ].map(normalizeBucketName)),
+    underperformers: new Set([
+      'underperf','underperform','underperforming',
+      'losses','true losses',
+      'break-even','break-even products','break even'
+    ].map(normalizeBucketName)),
+    test: new Set([
+      'insufficient','insufficient data'
+    ].map(normalizeBucketName))
   },
   searches: {
-    winners: ['Top Search Terms', 'High Revenue Terms'],
-    underperformers: ['Zero Converting Terms', 'Low Performance', 'Mid-Performance'],
-    test: ['Hidden Gems']  // Good signals but low volume
+    winners: new Set([
+      'high perf','top terms','top search terms',
+      'high revenue','high revenue terms'
+    ].map(normalizeBucketName)),
+    underperformers: new Set([
+      'mid perf','mid-performance','mid performance',
+      'low perf','low performance',
+      'zero conv','zero converting terms','zero converting'
+    ].map(normalizeBucketName)),
+    test: new Set([
+      'hidden gems','hidden gem'
+    ].map(normalizeBucketName))
   }
 };
 
-// Configuration for the efficiency framework
+// ============= EFFICIENCY FRAMEWORK CONFIGURATION =============
 const EFFICIENCY_CONFIG = {
-  // Target ROAS - can be made configurable
   targetROAS: 3.0,
-  
-  // Winner Share dynamic target parameters
+
+  // Winner Share target: adapt to revenue reality with guardrails
   winnerShare: {
-    baseMin: 0.70,  // Minimum target even if WRS is lower
-    lowCap: 0.60,   // Absolute minimum for target
-    highCap: 0.90,  // Absolute maximum for target
-    toleranceBand: 0.30  // Tolerance for deviation from target
+    baseTarget: 0.70,       // floor target if winners' revenue share is lower
+    lowCap: 0.60,           // do not target below 60% even in odd cases
+    highCap: 0.90,          // avoid 95–100% over-concentration
+    toleranceBand: 0.30     // ±30pp from target = score linearly to zero
   },
-  
-  // Allocation Alignment thresholds
+
+  // Allocation Alignment (AA) scoring & gating
   allocationAlignment: {
-    minAA: 0.70,    // AA below this = 0 score
-    maxAA: 2.00,    // AA above this = full score
-    wssGate: 0.25   // Need at least 25% WSS for AA to count
+    minAA: 0.70,            // AA <= 0.7 → 0 score
+    maxAA: 2.00,            // AA >= 2.0 → full score
+    wssGate: 0.25           // full AA credit only if Winners' share ≥ 25%
   },
-  
-  // Waste thresholds (as economic excess)
+
+  // Waste points: compute from PRODUCTS only (no double counting)
   wasteRate: {
-    maxAcceptable: 0.30  // 30% excess spend = 0 points
+    maxAcceptable: 0.30,    // 30% excess above target ROAS → 0/20
+    useProductsOnly: true,  // keep true while search has no spend data
+    includeSearchProxy: true // compute a proxy (clicks-based) for display only
   },
-  
-  // Testing Mix thresholds (for display only)
-  testingMix: {
-    min: 0.05,
-    max: 0.15
-  },
-  
-// ROAS scoring parameters
+
+  // Testing Mix thresholds (display-only)
+  testingMix: { min: 0.05, max: 0.15 },
+
+  // ROAS scoring: pick the curve you want (strict matches your screenshots)
   roasScoring: {
-    minRatio: 0.30,  // 0.3x target = 0 points
-    maxRatio: 1.00   // 1.0x target = full points
+    curve: 'strict', // 'strict' or 'baseline'
+    strict:   { minRatio: 0.50, fullRatio: 1.25, exponent: 1.00 }, // 0 @0.5×, full @1.25×
+    baseline: { minRatio: 0.30, fullRatio: 1.00, exponent: 1.00 }  // 0 @0.3×, full @1.0×
   },
-  
-  // Efficiency score weights
-  scoreWeights: {
-    roas: 40,
-    allocation: 40,
-    waste: 20
-  }
+
+  // Overall weights (keep 40/40/20)
+  scoreWeights: { roas: 40, allocation: 40, waste: 20 }
 };
+
+// ---------- Utilities ----------
+const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
+const safeDiv = (num, den, fallback = 0) => (den > 0 ? num / den : fallback);
+
+function computeTargetWSS(baseTarget, wrs, lowCap, highCap) {
+  const t = Math.max(wrs || 0, baseTarget);
+  return clamp(t, lowCap, highCap);
+}
+
+function wssScoreAdaptive(wShare, rShare, cfg) {
+  const target = computeTargetWSS(cfg.winnerShare.baseTarget, rShare, cfg.winnerShare.lowCap, cfg.winnerShare.highCap);
+  const dist = Math.min(Math.abs((wShare || 0) - target), cfg.winnerShare.toleranceBand);
+  return 1 - dist / cfg.winnerShare.toleranceBand; // 1 good → 0 poor
+}
+
+function aaScoreGated(aa, wShare, cfg) {
+  const raw = clamp((aa - cfg.allocationAlignment.minAA) /
+                    (cfg.allocationAlignment.maxAA - cfg.allocationAlignment.minAA), 0, 1);
+  const gate = clamp((wShare || 0) / cfg.allocationAlignment.wssGate, 0, 1);
+  return raw * gate; // no full credit unless Winners have real funding
+}
+
+function sanityCheckShares(label, obj) {
+  const w = obj.wss ?? obj.wcs ?? 0;
+  const sum = (w || 0) + (obj.wr || 0) + (obj.tm || 0);
+  if (Math.abs(sum - 1) > 0.05) {
+    console.warn(`[${label}] winners+underperf+test = ${sum.toFixed(2)} (expected ~1.00). Check bucket mapping / inputs.`);
+  }
+}
 
 // Calculate efficiency metrics for products
 function calculateProductsEfficiencyMetrics(bucketStats) {
-    // If no bucketStats or empty, return default metrics
   if (!bucketStats || Object.keys(bucketStats).length === 0) {
     return {
       wss: 0, wrs: 0, aa: 0, wr: 0, tm: 0,
@@ -5209,235 +5254,197 @@ function calculateProductsEfficiencyMetrics(bucketStats) {
       winnersMetrics: { cost: 0, revenue: 0, count: 0 },
       underperformersMetrics: { cost: 0, revenue: 0, count: 0 },
       testMetrics: { cost: 0, revenue: 0, count: 0 },
-      totalMetrics: { cost: 0, revenue: 0, count: 0 }
+      totalMetrics: { cost: 0, revenue: 0, count: 0, clicks: 0 }
     };
   }
-  
-  const mapping = BUCKET_INTENT_MAPPING.products;
-  
-  // Aggregate metrics by intent
-  let winnersMetrics = { cost: 0, revenue: 0, count: 0 };
-  let underperformersMetrics = { cost: 0, revenue: 0, count: 0 };
-  let testMetrics = { cost: 0, revenue: 0, count: 0 };
-  let totalMetrics = { cost: 0, revenue: 0, count: 0 };
-  
-  // Process each bucket
+
+  const map = BUCKET_INTENT_MAPPING.products;
+  let winners = { cost: 0, revenue: 0, count: 0 };
+  let under   = { cost: 0, revenue: 0, count: 0 };
+  let test    = { cost: 0, revenue: 0, count: 0 };
+  let total   = { cost: 0, revenue: 0, count: 0, clicks: 0 };
+
   Object.entries(bucketStats).forEach(([bucket, stats]) => {
     if (bucket === 'all') {
-      totalMetrics = {
+      total = {
         cost: stats.cost || 0,
         revenue: stats.revenue || 0,
-        count: stats.count || 0
+        count: stats.count || 0,
+        clicks: stats.clicks || 0
       };
-    } else if (mapping.winners.includes(bucket)) {
-      winnersMetrics.cost += stats.cost || 0;
-      winnersMetrics.revenue += stats.revenue || 0;
-      winnersMetrics.count += stats.count || 0;
-    } else if (mapping.underperformers.includes(bucket)) {
-      underperformersMetrics.cost += stats.cost || 0;
-      underperformersMetrics.revenue += stats.revenue || 0;
-      underperformersMetrics.count += stats.count || 0;
-    } else if (mapping.test.includes(bucket)) {
-      testMetrics.cost += stats.cost || 0;
-      testMetrics.revenue += stats.revenue || 0;
-      testMetrics.count += stats.count || 0;
+      return;
+    }
+    const key = normalizeBucketName(bucket);
+    if (map.winners.has(key)) {
+      winners.cost  += stats.cost   || 0;
+      winners.revenue += stats.revenue|| 0;
+      winners.count += stats.count  || 0;
+    } else if (map.underperformers.has(key)) {
+      under.cost    += stats.cost   || 0;
+      under.revenue += stats.revenue|| 0;
+      under.count   += stats.count  || 0;
+    } else if (map.test.has(key)) {
+      test.cost     += stats.cost   || 0;
+      test.revenue  += stats.revenue|| 0;
+      test.count    += stats.count  || 0;
     }
   });
-  
-  // Calculate the 5 core metrics
-  const wss = totalMetrics.cost > 0 ? winnersMetrics.cost / totalMetrics.cost : 0;
-  const wrs = totalMetrics.revenue > 0 ? winnersMetrics.revenue / totalMetrics.revenue : 0;
-  const aa = wss > 0 ? wrs / wss : 0;
-  const wr = totalMetrics.cost > 0 ? underperformersMetrics.cost / totalMetrics.cost : 0;
-  const tm = totalMetrics.cost > 0 ? testMetrics.cost / totalMetrics.cost : 0;
-  
-  // Calculate ROAS for each group
-  const winnersROAS = winnersMetrics.cost > 0 ? winnersMetrics.revenue / winnersMetrics.cost : 0;
-  const underperformersROAS = underperformersMetrics.cost > 0 ? underperformersMetrics.revenue / underperformersMetrics.cost : 0;
-  const totalROAS = totalMetrics.cost > 0 ? totalMetrics.revenue / totalMetrics.cost : 0;
-  
+
+  const wss = safeDiv(winners.cost, total.cost, 0);
+  const wrs = safeDiv(winners.revenue, total.revenue, 0);
+  const aa  = wss > 0 ? wrs / wss : 0;
+  const wr  = safeDiv(under.cost, total.cost, 0);
+  const tm  = safeDiv(test.cost, total.cost, 0);
+
+  const winnersROAS = safeDiv(winners.revenue, winners.cost, 0);
+  const underROAS   = safeDiv(under.revenue, under.cost, 0);
+  const totalROAS   = safeDiv(total.revenue, total.cost, 0);
+
   return {
-    wss,
-    wrs,
-    aa,
-    wr,
-    tm,
-    winnersROAS,
-    underperformersROAS,
-    totalROAS,
-    winnersMetrics,
-    underperformersMetrics,
-    testMetrics,
-    totalMetrics
+    wss, wrs, aa, wr, tm,
+    winnersROAS, underperformersROAS: underROAS, totalROAS,
+    winnersMetrics: winners,
+    underperformersMetrics: under,
+    testMetrics: test,
+    totalMetrics: total,
+    bucketStats
   };
 }
 
 // Calculate efficiency metrics for searches (using clicks instead of cost)
 function calculateSearchesEfficiencyMetrics(bucketStats) {
-  const mapping = BUCKET_INTENT_MAPPING.searches;
-  
-  // Aggregate metrics by intent
-  let winnersMetrics = { clicks: 0, revenue: 0, count: 0 };
-  let underperformersMetrics = { clicks: 0, revenue: 0, count: 0 };
-  let testMetrics = { clicks: 0, revenue: 0, count: 0 };
-  let totalMetrics = { clicks: 0, revenue: 0, count: 0 };
-  
-  // Process each bucket
+  if (!bucketStats || Object.keys(bucketStats).length === 0) {
+    return {
+      wcs: 0, wrs: 0, aa: 0, wr: 0, tm: 0,
+      winnersRPC: 0, underperformersRPC: 0, totalRPC: 0,
+      winnersMetrics: { clicks: 0, revenue: 0, count: 0 },
+      underperformersMetrics: { clicks: 0, revenue: 0, count: 0 },
+      testMetrics: { clicks: 0, revenue: 0, count: 0 },
+      totalMetrics: { clicks: 0, revenue: 0, count: 0 }
+    };
+  }
+
+  const map = BUCKET_INTENT_MAPPING.searches;
+  let winners = { clicks: 0, revenue: 0, count: 0 };
+  let under   = { clicks: 0, revenue: 0, count: 0 };
+  let test    = { clicks: 0, revenue: 0, count: 0 };
+  let total   = { clicks: 0, revenue: 0, count: 0 };
+
   Object.entries(bucketStats).forEach(([bucket, stats]) => {
     if (bucket === 'all') {
-      totalMetrics = {
+      total = {
         clicks: stats.clicks || 0,
         revenue: stats.revenue || 0,
         count: stats.count || 0
       };
-    } else if (mapping.winners.includes(bucket)) {
-      winnersMetrics.clicks += stats.clicks || 0;
-      winnersMetrics.revenue += stats.revenue || 0;
-      winnersMetrics.count += stats.count || 0;
-    } else if (mapping.underperformers.includes(bucket)) {
-      underperformersMetrics.clicks += stats.clicks || 0;
-      underperformersMetrics.revenue += stats.revenue || 0;
-      underperformersMetrics.count += stats.count || 0;
-    } else if (mapping.test.includes(bucket)) {
-      testMetrics.clicks += stats.clicks || 0;
-      testMetrics.revenue += stats.revenue || 0;
-      testMetrics.count += stats.count || 0;
+      return;
+    }
+    const key = normalizeBucketName(bucket);
+    if (map.winners.has(key)) {
+      winners.clicks  += stats.clicks  || 0;
+      winners.revenue += stats.revenue || 0;
+      winners.count   += stats.count   || 0;
+    } else if (map.underperformers.has(key)) {
+      under.clicks    += stats.clicks  || 0;
+      under.revenue   += stats.revenue || 0;
+      under.count     += stats.count   || 0;
+    } else if (map.test.has(key)) {
+      test.clicks     += stats.clicks  || 0;
+      test.revenue    += stats.revenue || 0;
+      test.count      += stats.count   || 0;
     }
   });
-  
-  // Calculate the 5 core metrics (using clicks as proxy for spend)
-  const wcs = totalMetrics.clicks > 0 ? winnersMetrics.clicks / totalMetrics.clicks : 0; // Winners Click Share
-  const wrs = totalMetrics.revenue > 0 ? winnersMetrics.revenue / totalMetrics.revenue : 0;
-  const aa = wcs > 0 ? wrs / wcs : 0;
-  const wr = totalMetrics.clicks > 0 ? underperformersMetrics.clicks / totalMetrics.clicks : 0;
-  const tm = totalMetrics.clicks > 0 ? testMetrics.clicks / totalMetrics.clicks : 0;
-  
-  // Calculate revenue per click (instead of ROAS)
-  const winnersRPC = winnersMetrics.clicks > 0 ? winnersMetrics.revenue / winnersMetrics.clicks : 0;
-  const underperformersRPC = underperformersMetrics.clicks > 0 ? underperformersMetrics.revenue / underperformersMetrics.clicks : 0;
-  const totalRPC = totalMetrics.clicks > 0 ? totalMetrics.revenue / totalMetrics.clicks : 0;
-  
+
+  const wcs = safeDiv(winners.clicks, total.clicks, 0);  // winners' click share
+  const wrs = safeDiv(winners.revenue, total.revenue, 0);
+  const aa  = wcs > 0 ? wrs / wcs : 0;                  // efficiency of winner mix
+  const wr  = safeDiv(under.clicks, total.clicks, 0);   // underperformer click share
+  const tm  = safeDiv(test.clicks, total.clicks, 0);
+
+  const winnersRPC = safeDiv(winners.revenue, winners.clicks, 0);
+  const underRPC   = safeDiv(under.revenue, under.clicks, 0);
+  const totalRPC   = safeDiv(total.revenue, total.clicks, 0);
+
   return {
-    wcs, // Note: using clicks instead of spend
-    wrs,
-    aa,
-    wr,
-    tm,
-    winnersRPC,
-    underperformersRPC,
-    totalRPC,
-    winnersMetrics,
-    underperformersMetrics,
-    testMetrics,
-    totalMetrics
+    wcs, wrs, aa, wr, tm,
+    winnersRPC, underperformersRPC: underRPC, totalRPC,
+    winnersMetrics: winners,
+    underperformersMetrics: under,
+    testMetrics: test,
+    totalMetrics: total
   };
 }
 
 // Calculate combined efficiency score (0-100)
 function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const config = EFFICIENCY_CONFIG;
-  
-// === 1. ROAS Component (40 points max) - More reasonable curve ===
-  const roasRatio = productsMetrics.totalROAS / config.targetROAS;
-  // Full points at 1.0x target, 0 points at 0.3x target
-  // ROAS 3.0 = 40 points, ROAS 2.7 = 36 points, ROAS 1.5 = 20 points
-  const roasNormalized = Math.max(0, Math.min(1, 
-    (roasRatio - 0.3) / (1.0 - 0.3)
-  ));
-  const scoreROAS = roasNormalized * config.scoreWeights.roas;
-  
-  // === 2. Allocation Component (40 points max) - Dynamic Target with AA Gating ===
-  
-  // Calculate for Products
-  const wssProducts = productsMetrics.wss || 0;
-  const wrsProducts = productsMetrics.wrs || 0;
-  const aaProducts = productsMetrics.aa || 0;
-  
-// Simpler target: aim for 70% to winners as baseline
-  const targetWSSProducts = 0.70;
-  
-  // WSS Score for products
-  const wssDistanceProducts = Math.abs(wssProducts - targetWSSProducts);
-  const wssScoreProducts = 1 - Math.min(wssDistanceProducts, config.winnerShare.toleranceBand) / config.winnerShare.toleranceBand;
-  
-// AA Score for products (lighter gating)
-  const aaRawProducts = Math.max(0, Math.min(1, 
-    (aaProducts - 0.70) / (2.00 - 0.70)
-  ));
-  // Only gate if WSS is very low (<20%)
-  const aaWeightProducts = wssProducts < 0.20 ? (wssProducts / 0.20) : 1.0;
-  const aaScoreProducts = aaRawProducts * aaWeightProducts;
-  
-  // Combined allocation score for products
-  const allocationScoreProducts = 0.7 * wssScoreProducts + 0.3 * aaScoreProducts;
-  
-  // Calculate for Searches (using clicks as proxy for spend)
-  const wssSearches = searchesMetrics.wcs || 0;  // Winner Click Share
-  const wrsSearches = searchesMetrics.wrs || 0;
-  const aaSearches = searchesMetrics.aa || 0;
-  
-  // Dynamic target for searches
-  const targetWSSSearches = Math.min(config.winnerShare.highCap, 
-    Math.max(config.winnerShare.lowCap, 
-      Math.max(wrsSearches, config.winnerShare.baseMin)
-    )
-  );
-  
-  // WSS Score for searches
-  const wssDistanceSearches = Math.abs(wssSearches - targetWSSSearches);
-  const wssScoreSearches = 1 - Math.min(wssDistanceSearches, config.winnerShare.toleranceBand) / config.winnerShare.toleranceBand;
-  
-  // AA Score for searches (gated by WSS)
-  const aaRawSearches = Math.max(0, Math.min(1, 
-    (aaSearches - config.allocationAlignment.minAA) / (config.allocationAlignment.maxAA - config.allocationAlignment.minAA)
-  ));
-  const aaWeightSearches = Math.max(0, Math.min(1, wssSearches / config.allocationAlignment.wssGate));
-  const aaScoreSearches = aaRawSearches * aaWeightSearches;
-  
-  // Combined allocation score for searches
-  const allocationScoreSearches = 0.7 * wssScoreSearches + 0.3 * aaScoreSearches;
-  
-  // Average allocation score (simple average, not spend-weighted as per request)
-  const scoreAllocation = ((allocationScoreProducts + allocationScoreSearches) / 2) * config.scoreWeights.allocation;
-  
-// === 3. Waste Component (20 points max) - Bucket-based Economic Excess ===
-  
-  // For Products: Calculate excess only from underperforming buckets
-  let excessProducts = 0;
-  const underperformingProductBuckets = ['True Losses', 'Break-Even Products'];
-  underperformingProductBuckets.forEach(bucket => {
-    const metrics = productsMetrics[bucket] || productsMetrics.underperformersMetrics;
-    if (metrics) {
-      const bucketExcess = Math.max(0, metrics.cost - (metrics.revenue / config.targetROAS));
-      excessProducts += bucketExcess;
-    }
-  });
-  
-  // For Searches: Calculate excess from underperforming buckets
-  let excessSearches = 0;
-  const underperformingSearchBuckets = ['Zero Converting Terms', 'Low Performance', 'Mid-Performance'];
-  // Note: searches use different structure, need to check the actual metrics
-  if (searchesMetrics.underperformersMetrics) {
-    // Approximate cost from clicks (assuming average CPC)
-    const avgCPC = productsMetrics.totalMetrics.cost / Math.max(1, productsMetrics.totalMetrics.clicks || 1000);
-    const searchCost = searchesMetrics.underperformersMetrics.clicks * avgCPC;
-    const searchExcess = Math.max(0, searchCost - (searchesMetrics.underperformersMetrics.revenue / config.targetROAS));
-    excessSearches = searchExcess;
+
+  // ----- 0) Sanity checks (optional, logs only)
+  sanityCheckShares('Products', productsMetrics);
+  sanityCheckShares('Searches', searchesMetrics);
+
+  // ===== 1) ROAS Component (0–40) =====
+  const curve = config.roasScoring[config.roasScoring.curve]; // strict or baseline
+  const roasRatio = safeDiv(productsMetrics.totalROAS, config.targetROAS, 0); // campaign ROAS vs target
+  const roas01 = clamp((roasRatio - curve.minRatio) / (curve.fullRatio - curve.minRatio), 0, 1);
+  const scoreROAS = Math.pow(roas01, curve.exponent) * config.scoreWeights.roas;
+
+  // ===== 2) Allocation Component (0–40) =====
+  // --- Products ---
+  const wssP = productsMetrics.wss || 0;
+  const wrsP = productsMetrics.wrs || 0;
+  const aaP  = productsMetrics.aa  || 0;
+
+  const targetWSS_P = computeTargetWSS(config.winnerShare.baseTarget, wrsP,
+                                       config.winnerShare.lowCap, config.winnerShare.highCap);
+  const wssScoreP = wssScoreAdaptive(wssP, wrsP, config);
+  const aaScoreP  = aaScoreGated(aaP, wssP, config);
+  const allocScoreP = 0.7 * wssScoreP + 0.3 * aaScoreP;
+
+  // --- Searches (click-based) ---
+  const wssS = searchesMetrics.wcs || 0; // winners' click share
+  const wrsS = searchesMetrics.wrs || 0;
+  const aaS  = searchesMetrics.aa  || 0;
+
+  const targetWSS_S = computeTargetWSS(config.winnerShare.baseTarget, wrsS,
+                                       config.winnerShare.lowCap, config.winnerShare.highCap);
+  const wssScoreS = wssScoreAdaptive(wssS, wrsS, config);
+  const aaScoreS  = aaScoreGated(aaS, wssS, config);
+  const allocScoreS = 0.7 * wssScoreS + 0.3 * aaScoreS;
+
+  // Final allocation points (simple average; spend-weighting is unsafe without search spend)
+  const scoreAllocation = ((allocScoreP + allocScoreS) / 2) * config.scoreWeights.allocation;
+
+  // ===== 3) Waste Component (0–20) =====
+  // Products-only economic excess (no double counting)
+  let wasteProducts$ = 0;
+  if (productsMetrics.underperformersMetrics) {
+    const uc = productsMetrics.underperformersMetrics.cost || 0;
+    const ur = productsMetrics.underperformersMetrics.revenue || 0;
+    wasteProducts$ = Math.max(0, uc - (ur / config.targetROAS));
   }
-  
-  const totalCost = productsMetrics.totalMetrics.cost;
-  const totalExcess = excessProducts + excessSearches;
-  const wasteRateExcess = totalCost > 0 ? totalExcess / totalCost : 0;
-  
-  const scoreWaste = Math.max(0, Math.min(1, 
-    1 - (wasteRateExcess / config.wasteRate.maxAcceptable)
-  )) * config.scoreWeights.waste;
-  
+
+  const totalCost = productsMetrics.totalMetrics?.cost || 1;
+  const wasteRateExcess = clamp(wasteProducts$ / totalCost, 0, 1);
+  const scoreWaste = clamp(1 - wasteRateExcess / config.wasteRate.maxAcceptable, 0, 1) * config.scoreWeights.waste;
+
+  // Optional: compute a search “waste proxy” for display (NOT used in points)
+  let searchWasteProxyRate = 0;
+  if (config.wasteRate.includeSearchProxy && searchesMetrics?.underperformersMetrics) {
+    const totalSearchClicks = searchesMetrics.totalMetrics?.clicks || 0;
+    if (totalSearchClicks > 0) {
+      const avgCPC = totalCost / totalSearchClicks; // campaign CPC
+      const uClicks = searchesMetrics.underperformersMetrics.clicks || 0;
+      const uRev    = searchesMetrics.underperformersMetrics.revenue || 0;
+      const proxy$  = Math.max(0, uClicks * avgCPC - (uRev / config.targetROAS));
+      searchWasteProxyRate = clamp(proxy$ / totalCost, 0, 1);
+    }
+  }
+
+  // ===== 4) Total & guardrails =====
   const totalScore = Math.round(scoreROAS + scoreAllocation + scoreWaste);
-  
-  // Hard cap if waste is extreme
   const finalScore = wasteRateExcess >= 0.60 ? Math.min(totalScore, 40) : totalScore;
-  
+
   return {
     score: finalScore,
     components: {
@@ -5447,20 +5454,17 @@ function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
     },
     status: getEfficiencyStatus(finalScore),
     roasRatio,
-    wasteRateExcess,
+    wasteRateExcess,             // products-only excess (drives points)
+    searchWasteProxyRate,        // display-only proxy based on clicks
     metrics: {
-      wssProducts,
-      wrsProducts,
-      aaProducts,
-      targetWSSProducts,
-      wssScoreProducts,
-      aaScoreProducts,
-      wssSearches,
-      wrsSearches,
-      aaSearches,
-      targetWSSSearches,
-      wssScoreSearches,
-      aaScoreSearches
+      // Products
+      wssProducts: wssP, wrsProducts: wrsP, aaProducts: aaP,
+      targetWSSProducts: targetWSS_P,
+      wssScoreProducts: wssScoreP, aaScoreProducts: aaScoreP,
+      // Searches
+      wssSearches: wssS, wrsSearches: wrsS, aaSearches: aaS,
+      targetWSSSearches: targetWSS_S,
+      wssScoreSearches: wssScoreS, aaScoreSearches: aaScoreS
     },
     testingMix: {
       products: productsMetrics.tm || 0,
@@ -5917,8 +5921,8 @@ function renderActionRecommendations(productsMetrics, searchesMetrics, efficienc
   const recommendations = [];
   const config = EFFICIENCY_CONFIG;
   
-  // Calculate budget to shift based on dynamic target
-  const targetWSSProducts = efficiencyScore.metrics.targetWSSProducts;
+  // Calculate budget to shift (Products) using adaptive target
+  const targetWSSProducts = efficiencyScore.metrics.targetWSSProducts;   // from metrics
   const currentWSSProducts = efficiencyScore.metrics.wssProducts;
   const shiftShareProducts = Math.max(0, targetWSSProducts - currentWSSProducts);
   const shiftAmountProducts = shiftShareProducts * productsMetrics.totalMetrics.cost;
