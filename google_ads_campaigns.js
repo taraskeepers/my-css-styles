@@ -3137,8 +3137,8 @@ item.innerHTML = `
           </div>
         </div>
         
-        <!-- Stack Score and Cost bar vertically -->
-        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+        <!-- Stack Score and Cost bar vertically with proper alignment -->
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: center; width: 80px;">
           <!-- Overall Score Badge -->
           <div style="
             background: ${effScore.status.color}22;
@@ -3149,6 +3149,7 @@ item.innerHTML = `
             display: flex;
             align-items: center;
             gap: 4px;
+            width: fit-content;
           ">
             <span style="font-size: 9px; color: #6b7280; font-weight: 500;">SCORE</span>
             <span style="font-size: 13px; font-weight: 700; color: ${effScore.status.color};">
@@ -3156,38 +3157,41 @@ item.innerHTML = `
             </span>
           </div>
           
-          <!-- Cost percentage bar -->
-          <div style="
-            width: 60px;
-            height: 10px;
-            background: rgba(229, 231, 235, 0.8);
-            border-radius: 5px;
-            overflow: hidden;
-            position: relative;
-          ">
+          <!-- Cost container with label -->
+          <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+            <span style="font-size: 8px; color: #9ca3af; font-weight: 500; white-space: nowrap;">Cost</span>
             <div style="
-              position: absolute;
-              left: 0;
-              top: 0;
-              height: 100%;
-              width: ${Math.min(costPercent, 100)}%;
-              background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
-              transition: width 0.3s ease;
-            "></div>
-            <div style="
-              position: absolute;
-              width: 100%;
-              height: 100%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 7px;
-              font-weight: 600;
-              color: ${costPercent > 50 ? 'white' : '#374151'};
-              text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-              z-index: 1;
+              flex: 1;
+              height: 10px;
+              background: rgba(229, 231, 235, 0.8);
+              border-radius: 5px;
+              overflow: hidden;
+              position: relative;
             ">
-              ${costPercent.toFixed(1)}%
+              <div style="
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                width: ${Math.min(costPercent, 100)}%;
+                background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+                transition: width 0.3s ease;
+              "></div>
+              <div style="
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 7px;
+                font-weight: 600;
+                color: ${costPercent > 50 ? 'white' : '#374151'};
+                text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                z-index: 1;
+              ">
+                ${costPercent.toFixed(1)}%
+              </div>
             </div>
           </div>
         </div>
@@ -5315,31 +5319,48 @@ function calculateSearchesEfficiencyMetrics(bucketStats) {
 function calculateEfficiencyScore(productsMetrics, searchesMetrics) {
   const config = EFFICIENCY_CONFIG;
   
-  // ROAS component (40 points max)
+// ROAS component (40 points max) - more strict scoring
   const roasRatio = productsMetrics.totalROAS / config.targetROAS;
-  const scoreROAS = Math.min(1, roasRatio) * config.scoreWeights.roas;
+  // Use a curve that's less generous: ROAS 3.0 = full points, ROAS 1.5 = 50% points
+  const scoreROAS = Math.min(1, Math.max(0, roasRatio * 0.8)) * config.scoreWeights.roas;
   
 // Allocation Index component (40 points max)
-  // Consider BOTH the AA ratio AND the absolute share going to winners
+  // Optimal allocation is 80% to winners, score decreases as we deviate from this
   const aiProducts = productsMetrics.aa;
   const aiSearches = searchesMetrics.aa;
   const ai = (aiProducts + aiSearches) / 2;
   
   // Get winner spend shares
   const wssProducts = productsMetrics.wss || 0;
-  const wssSearches = searchesMetrics.wcs || 0;  // Note: searches use clicks as proxy
+  const wssSearches = searchesMetrics.wcs || 0;  
   const avgWSS = (wssProducts + wssSearches) / 2;
   
-  // Calculate AA score component (0 to 1 scale)
-  // AA of 1.0 = neutral, 0.7 or below = 0 points, 1.5 or above = full points
-  const aaScore = Math.min(1, Math.max(0, (ai - 0.7) / 0.8));
+  // Calculate allocation score based on two factors:
+  // 1. How close winner share is to optimal 80%
+  // 2. The efficiency of that allocation (AA ratio)
   
-  // Calculate WSS penalty - campaigns with low winner share get penalized
-  // WSS below 50% starts reducing the score
-  const wssMultiplier = Math.min(1, Math.max(0.3, avgWSS * 2));  // 50% WSS = 1.0x, 25% WSS = 0.5x
+  // Factor 1: Winner Share Score (0-1 scale, peak at 80%)
+  // Use a curve that peaks at 80% and drops off on both sides
+  const optimalWSS = 0.80;
+  let wssScore;
+  if (avgWSS <= optimalWSS) {
+    // Linear increase from 0% to 80%
+    wssScore = avgWSS / optimalWSS;
+  } else {
+    // Slight penalty for over-allocation above 80% (still good, but not optimal)
+    // 80% = 1.0, 100% = 0.9
+    wssScore = 1.0 - ((avgWSS - optimalWSS) / (1.0 - optimalWSS)) * 0.1;
+  }
   
-  // Combined score: AA efficiency * WSS multiplier
-  const scoreAI = aaScore * wssMultiplier * config.scoreWeights.allocation;
+  // Factor 2: AA Efficiency Score (0-1 scale)
+  // AA of 1.0 = baseline (0.5 score), 0.5 = 0 score, 2.0+ = 1.0 score
+  const aaScore = Math.min(1, Math.max(0, (ai - 0.5) / 1.5));
+  
+  // Combined score: Winner share is primary (70% weight), AA efficiency is secondary (30% weight)
+  // This ensures that 38% to winners with high AA still gets low score
+  const combinedScore = (wssScore * 0.7 + aaScore * 0.3);
+  
+  const scoreAI = combinedScore * config.scoreWeights.allocation;
   
   // Waste Rate component (20 points max)
   const wrProducts = productsMetrics.wr;
