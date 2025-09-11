@@ -1230,6 +1230,165 @@ runIntegratedBucketAnalysis: async function(prefix) {
     console.error('[Integrated Analysis] Error:', error);
     return [];
   }
+},
+
+// NEW: Analyze titles using the external API
+analyzeTitles: async function(projectKey) {
+  console.log(`[Title Analyzer] Starting title analysis for ${projectKey}`);
+  
+  try {
+    // Get product data from IDB
+    const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
+    if (!productData || !productData.data || productData.data.length === 0) {
+      console.log('[Title Analyzer] No product data found');
+      return null;
+    }
+    
+    // Extract unique titles with their metadata
+    const titleMap = new Map();
+    productData.data.forEach(row => {
+      const title = row['Product Title'];
+      if (title && title.trim()) {
+        // Use title as key to ensure uniqueness
+        if (!titleMap.has(title)) {
+          titleMap.set(title, {
+            title: title,
+            source: row['Product Channel'] || 'google_ads',
+            q: row['Campaign Name'] || 'unknown',
+            metadata: {
+              product_id: row['Product ID'] || undefined,
+              category_hint: row['Product Type L1'] || undefined,
+              brand_hint: row['Product Brand'] || undefined
+            }
+          });
+        }
+      }
+    });
+    
+    const uniqueTitles = Array.from(titleMap.values());
+    console.log(`[Title Analyzer] Found ${uniqueTitles.length} unique titles`);
+    
+    if (uniqueTitles.length === 0) {
+      console.log('[Title Analyzer] No valid titles to analyze');
+      return null;
+    }
+    
+    // Get owner_id
+    console.log('[Title Analyzer] Getting owner_id...');
+    let ownerId;
+    try {
+      ownerId = await getCurrentOwnerId();
+      console.log('[Title Analyzer] Owner ID obtained:', ownerId);
+    } catch (error) {
+      console.error('[Title Analyzer] Failed to get owner_id:', error);
+      throw new Error('Unable to authenticate. Please try again.');
+    }
+    
+    // Process in batches of 100 to avoid overwhelming the API
+    const batchSize = 100;
+    const results = [];
+    const totalBatches = Math.ceil(uniqueTitles.length / batchSize);
+    
+    for (let i = 0; i < uniqueTitles.length; i += batchSize) {
+      const batchNum = Math.floor(i / batchSize) + 1;
+      console.log(`[Title Analyzer] Processing batch ${batchNum}/${totalBatches}`);
+      
+      const batch = uniqueTitles.slice(i, i + batchSize);
+      
+      // Prepare request payload
+      const requestPayload = {
+        owner_id: ownerId,
+        batch_id: `${projectKey}_batch_${Date.now()}_${batchNum}`,
+        titles: batch,
+        options: {
+          include_debug: false,
+          return_matched_terms: true,
+          scoring_version: "v2.3.0"
+        }
+      };
+      
+      console.log(`[Title Analyzer] Sending ${batch.length} titles to API...`);
+      
+      try {
+        // Send request to API
+        const response = await fetch('https://1u2htt30ib.execute-api.us-east-2.amazonaws.com/prod', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestPayload)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Title Analyzer] API error response:', errorText);
+          
+          // Parse error if possible
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.error === 'Rate limit exceeded') {
+              throw new Error(`API rate limit exceeded. Try again later. ${errorData.message}`);
+            }
+            throw new Error(errorData.message || 'API request failed');
+          } catch (e) {
+            if (e.message.includes('API rate limit')) throw e;
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+        }
+        
+        const responseData = await response.json();
+        console.log(`[Title Analyzer] Batch ${batchNum} processed successfully`);
+        
+        // Add batch results to overall results
+        if (responseData.results && Array.isArray(responseData.results)) {
+          results.push(...responseData.results);
+        }
+        
+        // Show rate limit info if available
+        if (responseData.rate_limit_info) {
+          console.log('[Title Analyzer] Rate limit info:', responseData.rate_limit_info);
+        }
+        
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < uniqueTitles.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+      } catch (error) {
+        console.error(`[Title Analyzer] Error processing batch ${batchNum}:`, error);
+        // Continue with other batches even if one fails
+        if (error.message.includes('rate limit')) {
+          throw error; // Stop if rate limited
+        }
+      }
+    }
+    
+    console.log(`[Title Analyzer] Analysis complete. ${results.length} titles analyzed`);
+    
+    // Save results to IDB
+    const analyzerResults = {
+      projectKey: projectKey,
+      analyzedAt: new Date().toISOString(),
+      totalTitles: uniqueTitles.length,
+      resultsCount: results.length,
+      results: results,
+      summary: {
+        averageScore: results.reduce((sum, r) => sum + (r.final_score || 0), 0) / results.length,
+        highPerformers: results.filter(r => r.final_score >= 80).length,
+        needsImprovement: results.filter(r => r.final_score < 50).length
+      }
+    };
+    
+    // Save to IDB with project-specific key
+    await window.embedIDB.setData(projectKey + "title_analyzer_results", analyzerResults);
+    console.log(`[Title Analyzer] Results saved to ${projectKey}title_analyzer_results`);
+    
+    return analyzerResults;
+    
+  } catch (error) {
+    console.error('[Title Analyzer] Analysis failed:', error);
+    throw error;
+  }
 }
   
 };
