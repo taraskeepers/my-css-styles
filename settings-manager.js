@@ -1190,7 +1190,7 @@ async function initializeGoogleAdsTab() {
             margin-bottom: 12px;
           " />
         
-        <!-- Title Analyzer Toggle Section -->
+        <!-- Title Analyzer Toggle Section with inline styles -->
         <div style="
           display: flex;
           align-items: center;
@@ -1220,18 +1220,49 @@ async function initializeGoogleAdsTab() {
             </div>
           </div>
           
-          <!-- Toggle Switch -->
+          <!-- Toggle Switch with inline styles -->
           <div style="margin-left: 16px;">
-            <label class="toggle-switch" style="${!hasData ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+            <label style="
+              position: relative;
+              display: inline-block;
+              width: 48px;
+              height: 26px;
+              ${!hasData ? 'opacity: 0.5; cursor: not-allowed;' : 'cursor: pointer;'}
+            ">
               <input type="checkbox" 
                 id="titleAnalyzer_${projectKey}" 
                 data-project="${projectKey}"
                 ${titleAnalyzerEnabled ? 'checked' : ''}
                 ${!hasData ? 'disabled' : ''}
-                style="display: none;">
-              <span class="toggle-slider" style="
-                ${!hasData ? 'cursor: not-allowed;' : 'cursor: pointer;'}
-              "></span>
+                style="
+                  opacity: 0;
+                  width: 0;
+                  height: 0;
+                ">
+              <span style="
+                position: absolute;
+                cursor: ${!hasData ? 'not-allowed' : 'pointer'};
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: ${titleAnalyzerEnabled ? 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' : '#e5e7eb'};
+                transition: .3s;
+                border-radius: 26px;
+              ">
+                <span style="
+                  position: absolute;
+                  content: '';
+                  height: 20px;
+                  width: 20px;
+                  left: ${titleAnalyzerEnabled ? '25px' : '3px'};
+                  bottom: 3px;
+                  background-color: white;
+                  transition: .3s;
+                  border-radius: 50%;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+                "></span>
+              </span>
             </label>
           </div>
         </div>
@@ -1254,6 +1285,20 @@ async function initializeGoogleAdsTab() {
           const enabled = this.checked;
           
           console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
+          
+          // Update visual state of the toggle
+          const slider = this.nextElementSibling;
+          const knob = slider ? slider.firstElementChild : null;
+          
+          if (slider) {
+            slider.style.background = enabled ? 
+              'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' : 
+              '#e5e7eb';
+          }
+          
+          if (knob) {
+            knob.style.left = enabled ? '25px' : '3px';
+          }
           
           // Save the toggle state
           try {
@@ -1284,6 +1329,17 @@ async function initializeGoogleAdsTab() {
             console.error('[Title Analyzer] Error saving toggle state:', error);
             // Revert the toggle on error
             this.checked = !enabled;
+            
+            // Revert visual state
+            if (slider) {
+              slider.style.background = !enabled ? 
+                'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' : 
+                '#e5e7eb';
+            }
+            if (knob) {
+              knob.style.left = !enabled ? '25px' : '3px';
+            }
+            
             window.showNotification(`Error: ${error.message}`, 'error');
           }
         });
@@ -1291,7 +1347,7 @@ async function initializeGoogleAdsTab() {
     });
   }, 100);
 
-  // Update the save button handler
+  // Keep the existing save button handler (no changes needed)
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
     // Remove existing listeners
@@ -1375,9 +1431,18 @@ async function initializeGoogleAdsTab() {
           const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
           if (analyzerToggle) {
             analyzerToggle.disabled = false;
-            if (analyzerToggle.parentElement) {
-              analyzerToggle.parentElement.style.opacity = '1';
-              analyzerToggle.parentElement.style.cursor = 'pointer';
+            analyzerToggle.parentElement.style.opacity = '1';
+            analyzerToggle.parentElement.style.cursor = 'pointer';
+            
+            // Update the background of the container
+            const container = analyzerToggle.closest('div[style*="background"]');
+            if (container && container.parentElement) {
+              const analyzerSection = container.parentElement.querySelector('div[style*="border-radius: 8px"]');
+              if (analyzerSection) {
+                analyzerSection.style.background = '#f0f9ff';
+                analyzerSection.style.borderColor = '#bae6fd';
+                analyzerSection.style.opacity = '1';
+              }
             }
           }
           
@@ -1430,6 +1495,11 @@ async function initializeGoogleAdsTab() {
       this.disabled = false;
       this.textContent = "Upload All Google Sheets Data";
       this.style.opacity = "1";
+      
+      // Refresh the tab to update toggle states
+      setTimeout(() => {
+        initializeGoogleAdsTab();
+      }, 500);
       
       // Show summary
       let message = `Uploaded ${successCount} of ${urlsToProcess.length} spreadsheets`;
