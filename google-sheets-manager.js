@@ -1284,10 +1284,10 @@ analyzeTitles: async function(projectKey) {
       top10SearchTerms = Array.from(campaigns).slice(0, 10);
     }
     
-    // Get company name from settings
+// Get company name from settings FOR THIS SPECIFIC PROJECT
     let companyName = '';
     try {
-      // Try to get company from myCompanyArray for this project
+      // Get company for THIS project specifically
       if (window.myCompanyArray && window.myCompanyArray.length > 0) {
         const match = window.myCompanyArray.find(item => 
           item && item.startsWith(projectKey.replace('_', ''))
@@ -1296,31 +1296,95 @@ analyzeTitles: async function(projectKey) {
           companyName = match.split(' - ')[1] || "";
         }
       }
-      // Fallback to global myCompany
-      if (!companyName && window.myCompany) {
+      // Only use global myCompany as fallback if this is project 1
+      if (!companyName && projectKey.includes('pr1_') && window.myCompany) {
         companyName = window.myCompany;
       }
     } catch (error) {
       console.log('[Title Analyzer] Could not get company name:', error);
     }
     
-    // Extract unique product brands
-    const productBrands = new Set();
+    // Only include the company name for THIS project, not all brands
+    const sources = [];
     if (companyName) {
-      productBrands.add(companyName.toLowerCase());
+      sources.push(companyName.toLowerCase());
     }
     
-    productData.data.forEach(row => {
-      const brand = row['Product Brand'];
-      if (brand && brand.trim()) {
-        productBrands.add(brand.toLowerCase().trim());
+    console.log(`[Title Analyzer] Source for ${projectKey}:`, sources);
+    
+    // Get the TOP 10 search terms that have Top_Bucket values assigned
+    let top10SearchTerms = [];
+    
+    try {
+      // Try 30-day data first, then 365-day
+      let searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_30d");
+      if (!searchTermsData || !searchTermsData.data || searchTermsData.data.length === 0) {
+        console.log('[Title Analyzer] No 30d search terms found, trying 365d...');
+        searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_365d");
       }
-    });
+      
+      if (searchTermsData && searchTermsData.data && searchTermsData.data.length > 0) {
+        // Get ONLY the terms that have Top_Bucket values assigned (all/all aggregation)
+        const termsWithBuckets = searchTermsData.data
+          .filter(row => 
+            row.Campaign_Name === 'all' && 
+            row.Channel_Type === 'all' && 
+            row.Top_Bucket && 
+            row.Top_Bucket !== '' &&
+            row.Query && 
+            row.Query.toLowerCase() !== 'blank'
+          )
+          .sort((a, b) => {
+            // Sort by Top_Bucket order
+            const order = {'Top1': 1, 'Top2': 2, 'Top3': 3, 'Top4': 4, 'Top5': 5, 'Top10': 6};
+            return (order[a.Top_Bucket] || 999) - (order[b.Top_Bucket] || 999);
+          })
+          .map(row => row.Query);
+        
+        // Take up to 10 terms
+        top10SearchTerms = termsWithBuckets.slice(0, 10);
+        
+        console.log(`[Title Analyzer] Found ${top10SearchTerms.length} search terms with Top_Bucket values:`, top10SearchTerms);
+      }
+    } catch (error) {
+      console.log('[Title Analyzer] Could not get search terms:', error);
+    }
     
-    const uniqueSources = Array.from(productBrands);
-    console.log('[Title Analyzer] Unique sources (brands):', uniqueSources);
+    // If we have less than 10 terms, try to fill from general top terms
+    if (top10SearchTerms.length < 10) {
+      try {
+        let searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_365d");
+        if (!searchTermsData || !searchTermsData.data) {
+          searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_30d");
+        }
+        
+        if (searchTermsData && searchTermsData.data) {
+          const additionalTerms = searchTermsData.data
+            .filter(row => 
+              row.Campaign_Name === 'all' && 
+              row.Channel_Type === 'all' &&
+              row.Query &&
+              row.Query.toLowerCase() !== 'blank' &&
+              !top10SearchTerms.includes(row.Query)
+            )
+            .sort((a, b) => (b.Value || 0) - (a.Value || 0))
+            .slice(0, 10 - top10SearchTerms.length)
+            .map(row => row.Query);
+          
+          top10SearchTerms = [...top10SearchTerms, ...additionalTerms];
+        }
+      } catch (error) {
+        console.log('[Title Analyzer] Error getting additional terms:', error);
+      }
+    }
     
-    // Extract unique titles with their metadata
+    // If still no search terms, use a default
+    if (top10SearchTerms.length === 0) {
+      console.log('[Title Analyzer] No search terms found, using default');
+      top10SearchTerms = ['product'];
+    }
+    
+// Extract unique titles with their metadata
     const titleMap = new Map();
     productData.data.forEach(row => {
       const title = row['Product Title'];
@@ -1329,8 +1393,8 @@ analyzeTitles: async function(projectKey) {
         if (!titleMap.has(title)) {
           titleMap.set(title, {
             title: title,
-            source: uniqueSources, // Send array of sources
-            q: top10SearchTerms,    // Send array of keywords
+            source: sources,           // Array with just this project's company
+            q: top10SearchTerms,        // Array of top 10 search terms with Top_Bucket values
             metadata: {
               product_id: row['Product ID'] || undefined,
               category_hint: row['Product Type L1'] || undefined,
@@ -1448,7 +1512,7 @@ analyzeTitles: async function(projectKey) {
       totalTitles: uniqueTitles.length,
       resultsCount: results.length,
       searchTermsUsed: top10SearchTerms,
-      brandsAnalyzed: uniqueSources,
+      brandsAnalyzed: sources,
       results: results,
       summary: {
         averageScore: results.reduce((sum, r) => sum + (r.final_score || 0), 0) / results.length,
