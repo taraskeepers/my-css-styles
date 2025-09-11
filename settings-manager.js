@@ -1198,7 +1198,7 @@ async function initializeGoogleAdsTab() {
           " />
         
         <!-- Title Analyzer Toggle -->
-        <div style="
+        <div id="titleAnalyzerContainer_${projectKey}" style="
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -1206,7 +1206,7 @@ async function initializeGoogleAdsTab() {
           background: ${hasData ? '#f0f4f8' : '#fafafa'};
           border: 1px solid ${hasData ? '#cbd5e0' : '#e5e7eb'};
           border-radius: 8px;
-          ${!hasData ? 'opacity: 0.5; cursor: not-allowed;' : ''}
+          ${!hasData ? 'opacity: 0.5;' : ''}
         ">
           <div>
             <div style="
@@ -1224,7 +1224,7 @@ async function initializeGoogleAdsTab() {
                 'Upload Google Sheets data first'}
             </div>
           </div>
-          <label class="toggle-switch" style="${!hasData ? 'pointer-events: none;' : ''}">
+          <label class="toggle-switch" style="${!hasData ? 'pointer-events: none;' : 'pointer-events: auto; cursor: pointer;'}">
             <input type="checkbox" 
               id="titleAnalyzer_${projectKey}" 
               data-project="${projectKey}"
@@ -1239,58 +1239,95 @@ async function initializeGoogleAdsTab() {
     projectsList.innerHTML += rowHTML;
   }
   
-  // Add event listeners for Title Analyzer toggles
-  projectsList.querySelectorAll('input[id^="titleAnalyzer_"]').forEach(toggle => {
-    toggle.addEventListener('change', async function() {
-      const projectKey = this.dataset.project;
-      const enabled = this.checked;
+  // Add event listeners after DOM is ready - use setTimeout to ensure DOM is rendered
+  setTimeout(() => {
+    // Add event listeners for Title Analyzer toggles
+    const toggles = document.querySelectorAll('input[id^="titleAnalyzer_"]');
+    console.log(`[Title Analyzer] Found ${toggles.length} toggle switches`);
+    
+    toggles.forEach(toggle => {
+      // Remove any existing listeners first
+      const newToggle = toggle.cloneNode(true);
+      toggle.parentNode.replaceChild(newToggle, toggle);
       
-      console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
-      
-      // Save the toggle state
-      await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
-        enabled: enabled,
-        lastUpdated: Date.now()
+      // Add fresh listener
+      newToggle.addEventListener('change', async function(e) {
+        e.stopPropagation();
+        const projectKey = this.dataset.project;
+        const enabled = this.checked;
+        
+        console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
+        
+        // Save the toggle state
+        try {
+          await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
+            enabled: enabled,
+            lastUpdated: Date.now()
+          });
+          
+          // Update status text
+          const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
+          if (statusEl) {
+            if (enabled) {
+              statusEl.textContent = 'Processing...';
+              statusEl.style.color = '#3b82f6';
+            } else {
+              statusEl.textContent = 'Click to enable title optimization analysis';
+              statusEl.style.color = '#6b7280';
+            }
+          }
+          
+          // If enabled, trigger title analysis for existing data
+          if (enabled) {
+            await analyzeTitlesForProject(projectKey);
+          }
+        } catch (error) {
+          console.error('[Title Analyzer] Error handling toggle:', error);
+          // Revert the toggle on error
+          this.checked = !enabled;
+          window.showNotification(`Error: ${error.message}`, 'error');
+        }
       });
       
-      // Update status text
-      const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
-      if (statusEl) {
-        statusEl.textContent = enabled ? 
-          'Analyzing titles on data updates' : 
-          'Click to enable title optimization analysis';
-      }
-      
-      // If enabled, trigger title analysis for existing data
-      if (enabled) {
-        await analyzeTitlesForProject(projectKey);
+      // Also make the container clickable (except for the input area)
+      const container = document.getElementById(`titleAnalyzerContainer_${newToggle.dataset.project}`);
+      if (container && !newToggle.disabled) {
+        container.style.cursor = 'pointer';
+        container.onclick = function(e) {
+          // Don't trigger if clicking on the toggle itself
+          if (e.target.type !== 'checkbox' && !e.target.classList.contains('toggle-slider')) {
+            newToggle.click();
+          }
+        };
       }
     });
-  });
+  }, 100); // Small delay to ensure DOM is ready
 
   // Keep the existing save button handler
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
-    saveBtn.onclick = async function() {
-      const inputs = projectsList.querySelectorAll('input[data-project]');
+    // Clone to remove any existing listeners
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    
+    newSaveBtn.onclick = async function() {
+      const inputs = projectsList.querySelectorAll('input[id^="googleSheetsUrl_"]');
       const urlsToProcess = [];
       
       // Collect all non-empty URLs
       inputs.forEach(input => {
-        if (input.id.startsWith('googleSheetsUrl_')) {
-          const projectKey = input.dataset.project;
-          const url = input.value.trim();
-          if (url) {
-            // Basic URL validation
-            if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
-              window.showNotification(
-                `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
-                'error'
-              );
-              return;
-            }
-            urlsToProcess.push({ projectKey, url });
+        const projectKey = input.dataset.project;
+        const url = input.value.trim();
+        if (url) {
+          // Basic URL validation
+          if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
+            window.showNotification(
+              `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
+              'error'
+            );
+            return;
           }
+          urlsToProcess.push({ projectKey, url });
         }
       });
       
@@ -1320,7 +1357,7 @@ async function initializeGoogleAdsTab() {
             statusEl.style.color = "#3b82f6";
           }
           
-          // Call the fetcher with validation wrapper
+          // Call the fetcher
           const result = await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
           
           // Check if data was actually stored
@@ -1337,16 +1374,35 @@ async function initializeGoogleAdsTab() {
             
             // Enable Title Analyzer toggle for this project
             const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
+            const analyzerContainer = document.getElementById(`titleAnalyzerContainer_${projectKey}`);
+            
             if (analyzerToggle) {
               analyzerToggle.disabled = false;
-              analyzerToggle.parentElement.style.pointerEvents = 'auto';
-              analyzerToggle.parentElement.parentElement.style.opacity = '1';
-              analyzerToggle.parentElement.parentElement.style.cursor = 'auto';
-              analyzerToggle.parentElement.parentElement.style.background = '#f0f4f8';
-              analyzerToggle.parentElement.parentElement.style.borderColor = '#cbd5e0';
+              if (analyzerToggle.parentElement) {
+                analyzerToggle.parentElement.style.pointerEvents = 'auto';
+                analyzerToggle.parentElement.style.cursor = 'pointer';
+              }
             }
             
-            // Check if Title Analyzer is enabled and run analysis
+            if (analyzerContainer) {
+              analyzerContainer.style.opacity = '1';
+              analyzerContainer.style.background = '#f0f4f8';
+              analyzerContainer.style.borderColor = '#cbd5e0';
+              
+              // Update the text colors
+              const titleEl = analyzerContainer.querySelector('div[style*="font-weight: 500"]');
+              if (titleEl) {
+                titleEl.style.color = '#1a1a1a';
+              }
+              
+              const statusTextEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
+              if (statusTextEl) {
+                statusTextEl.textContent = 'Click to enable title optimization analysis';
+                statusTextEl.style.color = '#6b7280';
+              }
+            }
+            
+            // Check if Title Analyzer was previously enabled and run analysis
             const analyzerConfig = await window.embedIDB.getData(projectKey + "titleAnalyzer_config");
             if (analyzerConfig && analyzerConfig.data && analyzerConfig.data.enabled) {
               console.log(`[Title Analyzer] Auto-running analysis for ${projectKey}`);
@@ -1391,6 +1447,11 @@ async function initializeGoogleAdsTab() {
       this.textContent = "Upload All Google Sheets Data";
       this.style.opacity = "1";
       
+      // Re-initialize the tab to refresh toggle states
+      setTimeout(() => {
+        initializeGoogleAdsTab();
+      }, 500);
+      
       // Show summary notification
       if (successCount > 0 && errorCount === 0) {
         window.showNotification(
@@ -1399,7 +1460,7 @@ async function initializeGoogleAdsTab() {
         );
       } else if (successCount > 0 && errorCount > 0) {
         window.showNotification(
-          `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed. Check the status messages.`,
+          `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed.`,
           'warning',
           5000
         );
