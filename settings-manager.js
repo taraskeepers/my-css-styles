@@ -680,6 +680,51 @@
 })();
 
 // ========================================
+// OWNER ID HELPER FUNCTION
+// ========================================
+
+/**
+ * Get the current user's owner_id
+ * @returns {Promise<string>} The owner_id of the current user
+ */
+function getCurrentOwnerId() {
+  return new Promise((resolve, reject) => {
+    const requestId = 'ownerId_' + Date.now() + '_' + Math.random();
+    
+    console.log("[Title Analyzer] Requesting owner_id with requestId:", requestId);
+    
+    const messageHandler = function(event) {
+      const data = event.data;
+      
+      if (data.requestId === requestId) {
+        window.removeEventListener('message', messageHandler);
+        
+        if (data.command === "currentOwnerIdResponse") {
+          console.log("[Title Analyzer] Received owner_id:", data.ownerId);
+          resolve(data.ownerId);
+        } else if (data.command === "currentOwnerIdError") {
+          console.error("[Title Analyzer] Error getting owner_id:", data.error);
+          reject(new Error(data.error));
+        }
+      }
+    };
+    
+    window.addEventListener('message', messageHandler);
+    
+    window.parent.postMessage({
+      command: "getCurrentOwnerId",
+      requestId: requestId
+    }, "*");
+    
+    setTimeout(() => {
+      window.removeEventListener('message', messageHandler);
+      console.error("[Title Analyzer] Timeout waiting for owner_id");
+      reject(new Error('Timeout waiting for owner ID'));
+    }, 5000);
+  });
+}
+
+// ========================================
 // SETTINGS OVERLAY MANAGEMENT
 // ========================================
 
@@ -999,7 +1044,7 @@ case 'googleads':
   }
 }
 
-// Initialize Google Ads tab with per-project URL inputs
+// Initialize Google Ads tab with per-project URL inputs and Title Analyzer toggles
 async function initializeGoogleAdsTab() {
   const projectsList = document.getElementById("googleAdsProjectsList");
   if (!projectsList) return;
@@ -1031,6 +1076,7 @@ async function initializeGoogleAdsTab() {
     let existingUrl = '';
     let statusText = 'No data uploaded';
     let statusColor = '#6b7280';
+    let hasData = false;
     
     try {
       const config = await window.embedIDB.getData(projectKey + "googleSheets_config");
@@ -1042,30 +1088,42 @@ async function initializeGoogleAdsTab() {
         if (productData && productData.data && productData.data.length > 0) {
           statusText = `✓ ${productData.data.length} products loaded`;
           statusColor = '#059669';
+          hasData = true;
         }
       }
     } catch (error) {
       console.log(`[Settings] No Google Sheets data for project ${projectNum}`);
     }
     
-const rowHTML = `
-  <div style="
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-  ">
-    <div style="
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    ">
+    // Check if Title Analyzer is enabled for this project
+    let titleAnalyzerEnabled = false;
+    try {
+      const analyzerConfig = await window.embedIDB.getData(projectKey + "titleAnalyzer_config");
+      if (analyzerConfig && analyzerConfig.data) {
+        titleAnalyzerEnabled = analyzerConfig.data.enabled || false;
+      }
+    } catch (error) {
+      // No config exists yet, that's fine
+    }
+    
+    const rowHTML = `
       <div style="
-        font-size: 16px;
-        font-weight: 600;
-        color: #1a1a1a;
-      ">Project ${projectNum}${project.project ? ' - ' + project.project : ''}</div>
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+      ">
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        ">
+          <div style="
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+          ">Project ${projectNum}${project.project ? ' - ' + project.project : ''}</div>
           <div style="
             font-size: 14px;
             color: ${statusColor};
@@ -1084,14 +1142,81 @@ const rowHTML = `
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             box-sizing: border-box;
+            margin-bottom: 12px;
           " />
+        
+        <!-- Title Analyzer Toggle -->
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: ${hasData ? '#f0f4f8' : '#fafafa'};
+          border: 1px solid ${hasData ? '#cbd5e0' : '#e5e7eb'};
+          border-radius: 8px;
+          ${!hasData ? 'opacity: 0.5; cursor: not-allowed;' : ''}
+        ">
+          <div>
+            <div style="
+              font-size: 14px;
+              font-weight: 500;
+              color: ${hasData ? '#1a1a1a' : '#9ca3af'};
+            ">Title Analyzer</div>
+            <div style="
+              font-size: 12px;
+              color: ${hasData ? '#6b7280' : '#9ca3af'};
+              margin-top: 2px;
+            " id="titleAnalyzerStatus_${projectKey}">
+              ${hasData ? 
+                (titleAnalyzerEnabled ? 'Analyzing titles on data updates' : 'Click to enable title optimization analysis') : 
+                'Upload Google Sheets data first'}
+            </div>
+          </div>
+          <label class="toggle-switch" style="${!hasData ? 'pointer-events: none;' : ''}">
+            <input type="checkbox" 
+              id="titleAnalyzer_${projectKey}" 
+              data-project="${projectKey}"
+              ${titleAnalyzerEnabled ? 'checked' : ''}
+              ${!hasData ? 'disabled' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
     `;
     
     projectsList.innerHTML += rowHTML;
   }
   
-// Add save button handler
+  // Add event listeners for Title Analyzer toggles
+  projectsList.querySelectorAll('input[id^="titleAnalyzer_"]').forEach(toggle => {
+    toggle.addEventListener('change', async function() {
+      const projectKey = this.dataset.project;
+      const enabled = this.checked;
+      
+      console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
+      
+      // Save the toggle state
+      await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
+        enabled: enabled,
+        lastUpdated: Date.now()
+      });
+      
+      // Update status text
+      const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
+      if (statusEl) {
+        statusEl.textContent = enabled ? 
+          'Analyzing titles on data updates' : 
+          'Click to enable title optimization analysis';
+      }
+      
+      // If enabled, trigger title analysis for existing data
+      if (enabled) {
+        await analyzeTitlesForProject(projectKey);
+      }
+    });
+  });
+
+  // Keep the existing save button handler
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
     saveBtn.onclick = async function() {
@@ -1100,18 +1225,20 @@ const rowHTML = `
       
       // Collect all non-empty URLs
       inputs.forEach(input => {
-        const projectKey = input.dataset.project;
-        const url = input.value.trim();
-        if (url) {
-          // Basic URL validation
-          if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
-            window.showNotification(
-              `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
-              'error'
-            );
-            return;
+        if (input.id.startsWith('googleSheetsUrl_')) {
+          const projectKey = input.dataset.project;
+          const url = input.value.trim();
+          if (url) {
+            // Basic URL validation
+            if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
+              window.showNotification(
+                `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
+                'error'
+              );
+              return;
+            }
+            urlsToProcess.push({ projectKey, url });
           }
-          urlsToProcess.push({ projectKey, url });
         }
       });
       
@@ -1144,17 +1271,34 @@ const rowHTML = `
           // Call the fetcher with validation wrapper
           const result = await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
           
-// Check if data was actually stored (trust the processing result)
-const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
-if (productData && productData.data && productData.data.length > 0) {
-  // Data exists, processing was successful
-  console.log(`[Settings] Validation passed - ${productData.data.length} records found`);
+          // Check if data was actually stored
+          const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
+          if (productData && productData.data && productData.data.length > 0) {
+            console.log(`[Settings] Validation passed - ${productData.data.length} records found`);
             
             // Update status on success
             if (statusEl) {
               const count = productData.data.length;
               statusEl.textContent = `✓ ${count} products loaded`;
               statusEl.style.color = "#059669";
+            }
+            
+            // Enable Title Analyzer toggle for this project
+            const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
+            if (analyzerToggle) {
+              analyzerToggle.disabled = false;
+              analyzerToggle.parentElement.style.pointerEvents = 'auto';
+              analyzerToggle.parentElement.parentElement.style.opacity = '1';
+              analyzerToggle.parentElement.parentElement.style.cursor = 'auto';
+              analyzerToggle.parentElement.parentElement.style.background = '#f0f4f8';
+              analyzerToggle.parentElement.parentElement.style.borderColor = '#cbd5e0';
+            }
+            
+            // Check if Title Analyzer is enabled and run analysis
+            const analyzerConfig = await window.embedIDB.getData(projectKey + "titleAnalyzer_config");
+            if (analyzerConfig && analyzerConfig.data && analyzerConfig.data.enabled) {
+              console.log(`[Title Analyzer] Auto-running analysis for ${projectKey}`);
+              await analyzeTitlesForProject(projectKey);
             }
             
             successCount++;
@@ -1201,14 +1345,6 @@ if (productData && productData.data && productData.data.length > 0) {
           `Successfully uploaded data for ${successCount} project${successCount > 1 ? 's' : ''}!`,
           'success'
         );
-        // Refresh Google Ads availability check
-        if (typeof checkGoogleAdsDataAvailability === 'function') {
-          await checkGoogleAdsDataAvailability();
-          // Force immediate UI update for current project
-          if (typeof updateGoogleAdsButtonState === 'function') {
-            updateGoogleAdsButtonState();
-          }
-        }
       } else if (successCount > 0 && errorCount > 0) {
         window.showNotification(
           `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed. Check the status messages.`,
@@ -1216,7 +1352,6 @@ if (productData && productData.data && productData.data.length > 0) {
           5000
         );
       } else {
-        // Show detailed error
         const errorDetail = errors.length > 0 ? errors[0] : "Unknown error occurred";
         window.showNotification(errorDetail, 'error', 5000);
       }
