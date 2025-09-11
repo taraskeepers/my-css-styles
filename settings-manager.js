@@ -691,19 +691,26 @@ function getCurrentOwnerId() {
   return new Promise((resolve, reject) => {
     const requestId = 'ownerId_' + Date.now() + '_' + Math.random();
     
-    console.log("[Title Analyzer] Requesting owner_id with requestId:", requestId);
+    console.log("[Title Analyzer DEBUG] Step 1: Starting getCurrentOwnerId with requestId:", requestId);
+    console.log("[Title Analyzer DEBUG] Step 2: window.parent exists?", !!window.parent);
+    console.log("[Title Analyzer DEBUG] Step 3: Current origin:", window.location.origin);
     
     const messageHandler = function(event) {
+      console.log("[Title Analyzer DEBUG] Step 4: Received message event:", event);
+      console.log("[Title Analyzer DEBUG] Step 5: Event data:", event.data);
+      console.log("[Title Analyzer DEBUG] Step 6: Event origin:", event.origin);
+      
       const data = event.data;
       
-      if (data.requestId === requestId) {
+      if (data && data.requestId === requestId) {
+        console.log("[Title Analyzer DEBUG] Step 7: RequestId matches! Command:", data.command);
         window.removeEventListener('message', messageHandler);
         
         if (data.command === "currentOwnerIdResponse") {
-          console.log("[Title Analyzer] Received owner_id:", data.ownerId);
+          console.log("[Title Analyzer DEBUG] Step 8: SUCCESS! Received owner_id:", data.ownerId);
           resolve(data.ownerId);
         } else if (data.command === "currentOwnerIdError") {
-          console.error("[Title Analyzer] Error getting owner_id:", data.error);
+          console.error("[Title Analyzer DEBUG] Step 8: ERROR! Error message:", data.error);
           reject(new Error(data.error));
         }
       }
@@ -711,14 +718,17 @@ function getCurrentOwnerId() {
     
     window.addEventListener('message', messageHandler);
     
-    window.parent.postMessage({
+    const message = {
       command: "getCurrentOwnerId",
       requestId: requestId
-    }, "*");
+    };
+    
+    console.log("[Title Analyzer DEBUG] Step 9: Sending message to parent:", message);
+    window.parent.postMessage(message, "*");
     
     setTimeout(() => {
       window.removeEventListener('message', messageHandler);
-      console.error("[Title Analyzer] Timeout waiting for owner_id");
+      console.error("[Title Analyzer DEBUG] Step 10: TIMEOUT! No response received within 5 seconds");
       reject(new Error('Timeout waiting for owner ID'));
     }, 5000);
   });
@@ -731,48 +741,30 @@ function getCurrentOwnerId() {
 async function analyzeTitlesForProject(projectKey) {
   console.log(`[Title Analyzer] Triggered analysis for ${projectKey}`);
   
-  // Update UI to show processing
-  const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
-  if (statusEl) {
-    statusEl.textContent = 'Analyzing titles...';
-    statusEl.style.color = '#3b82f6';
-  }
-  
   try {
     // Call the analyzer
     const results = await window.googleSheetsManager.analyzeTitles(projectKey);
     
     if (results) {
-      // Update status with results
-      if (statusEl) {
-        statusEl.textContent = `✓ Analyzed ${results.resultsCount} titles (Avg score: ${Math.round(results.summary.averageScore)})`;
-        statusEl.style.color = '#059669';
-      }
-      
+      console.log(`[Title Analyzer] Analysis complete: ${results.resultsCount} titles analyzed`);
       window.showNotification(
-        `Title analysis complete for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Average score: ${Math.round(results.summary.averageScore)}/100`,
+        `Title analysis complete. Average score: ${Math.round(results.summary.averageScore)}/100`,
         'success'
       );
+      return results;
     } else {
-      if (statusEl) {
-        statusEl.textContent = 'No titles found to analyze';
-        statusEl.style.color = '#6b7280';
-      }
+      console.log('[Title Analyzer] No titles found to analyze');
+      return null;
     }
     
   } catch (error) {
     console.error('[Title Analyzer] Failed:', error);
-    
-    if (statusEl) {
-      statusEl.textContent = `Error: ${error.message}`;
-      statusEl.style.color = '#dc2626';
-    }
-    
     window.showNotification(
       `Title analysis failed: ${error.message}`,
       'error',
       5000
     );
+    throw error;
   }
 }
 
@@ -1220,7 +1212,7 @@ async function initializeGoogleAdsTab() {
               margin-top: 2px;
             " id="titleAnalyzerStatus_${projectKey}">
               ${hasData ? 
-                (titleAnalyzerEnabled ? 'Analyzing titles on data updates' : 'Click to enable title optimization analysis') : 
+                (titleAnalyzerEnabled ? 'Will analyze titles on next upload' : 'Enable to analyze titles on upload') : 
                 'Upload Google Sheets data first'}
             </div>
           </div>
@@ -1239,26 +1231,20 @@ async function initializeGoogleAdsTab() {
     projectsList.innerHTML += rowHTML;
   }
   
-  // Add event listeners after DOM is ready - use setTimeout to ensure DOM is rendered
+  // Add event listeners for Title Analyzer toggles - JUST TO SAVE STATE
   setTimeout(() => {
-    // Add event listeners for Title Analyzer toggles
     const toggles = document.querySelectorAll('input[id^="titleAnalyzer_"]');
     console.log(`[Title Analyzer] Found ${toggles.length} toggle switches`);
     
     toggles.forEach(toggle => {
-      // Remove any existing listeners first
-      const newToggle = toggle.cloneNode(true);
-      toggle.parentNode.replaceChild(newToggle, toggle);
-      
-      // Add fresh listener
-      newToggle.addEventListener('change', async function(e) {
+      toggle.addEventListener('change', async function(e) {
         e.stopPropagation();
         const projectKey = this.dataset.project;
         const enabled = this.checked;
         
         console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
         
-        // Save the toggle state
+        // Just save the toggle state, don't run analysis
         try {
           await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
             enabled: enabled,
@@ -1268,45 +1254,24 @@ async function initializeGoogleAdsTab() {
           // Update status text
           const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
           if (statusEl) {
-            if (enabled) {
-              statusEl.textContent = 'Processing...';
-              statusEl.style.color = '#3b82f6';
-            } else {
-              statusEl.textContent = 'Click to enable title optimization analysis';
-              statusEl.style.color = '#6b7280';
-            }
+            statusEl.textContent = enabled ? 
+              'Will analyze titles on next upload' : 
+              'Enable to analyze titles on upload';
           }
           
-          // If enabled, trigger title analysis for existing data
-          if (enabled) {
-            await analyzeTitlesForProject(projectKey);
-          }
+          console.log(`[Title Analyzer] Toggle state saved for ${projectKey}: ${enabled}`);
         } catch (error) {
-          console.error('[Title Analyzer] Error handling toggle:', error);
-          // Revert the toggle on error
+          console.error('[Title Analyzer] Error saving toggle state:', error);
           this.checked = !enabled;
           window.showNotification(`Error: ${error.message}`, 'error');
         }
       });
-      
-      // Also make the container clickable (except for the input area)
-      const container = document.getElementById(`titleAnalyzerContainer_${newToggle.dataset.project}`);
-      if (container && !newToggle.disabled) {
-        container.style.cursor = 'pointer';
-        container.onclick = function(e) {
-          // Don't trigger if clicking on the toggle itself
-          if (e.target.type !== 'checkbox' && !e.target.classList.contains('toggle-slider')) {
-            newToggle.click();
-          }
-        };
-      }
     });
-  }, 100); // Small delay to ensure DOM is ready
+  }, 100);
 
-  // Keep the existing save button handler
+  // Update the save button handler to include Title Analysis
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
-    // Clone to remove any existing listeners
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
     
@@ -1319,7 +1284,6 @@ async function initializeGoogleAdsTab() {
         const projectKey = input.dataset.project;
         const url = input.value.trim();
         if (url) {
-          // Basic URL validation
           if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
             window.showNotification(
               `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
@@ -1353,7 +1317,7 @@ async function initializeGoogleAdsTab() {
           // Show processing status
           const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
           if (statusEl) {
-            statusEl.textContent = "Processing...";
+            statusEl.textContent = "Processing Google Sheets...";
             statusEl.style.color = "#3b82f6";
           }
           
@@ -1380,7 +1344,6 @@ async function initializeGoogleAdsTab() {
               analyzerToggle.disabled = false;
               if (analyzerToggle.parentElement) {
                 analyzerToggle.parentElement.style.pointerEvents = 'auto';
-                analyzerToggle.parentElement.style.cursor = 'pointer';
               }
             }
             
@@ -1388,25 +1351,35 @@ async function initializeGoogleAdsTab() {
               analyzerContainer.style.opacity = '1';
               analyzerContainer.style.background = '#f0f4f8';
               analyzerContainer.style.borderColor = '#cbd5e0';
-              
-              // Update the text colors
-              const titleEl = analyzerContainer.querySelector('div[style*="font-weight: 500"]');
-              if (titleEl) {
-                titleEl.style.color = '#1a1a1a';
-              }
-              
-              const statusTextEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
-              if (statusTextEl) {
-                statusTextEl.textContent = 'Click to enable title optimization analysis';
-                statusTextEl.style.color = '#6b7280';
-              }
             }
             
-            // Check if Title Analyzer was previously enabled and run analysis
+            // NOW CHECK IF TITLE ANALYZER IS ENABLED AND RUN ANALYSIS
             const analyzerConfig = await window.embedIDB.getData(projectKey + "titleAnalyzer_config");
             if (analyzerConfig && analyzerConfig.data && analyzerConfig.data.enabled) {
-              console.log(`[Title Analyzer] Auto-running analysis for ${projectKey}`);
-              await analyzeTitlesForProject(projectKey);
+              console.log(`[Title Analyzer] Toggle is ON for ${projectKey}, running analysis...`);
+              
+              // Update status to show analyzing
+              if (statusEl) {
+                statusEl.textContent = `✓ ${productData.data.length} products loaded - Analyzing titles...`;
+                statusEl.style.color = "#3b82f6";
+              }
+              
+              try {
+                const analysisResult = await analyzeTitlesForProject(projectKey);
+                
+                if (analysisResult && statusEl) {
+                  statusEl.textContent = `✓ ${productData.data.length} products, ${analysisResult.resultsCount} titles analyzed`;
+                  statusEl.style.color = "#059669";
+                }
+              } catch (analysisError) {
+                console.error(`[Title Analyzer] Analysis failed for ${projectKey}:`, analysisError);
+                if (statusEl) {
+                  statusEl.textContent = `✓ ${productData.data.length} products loaded (analysis failed)`;
+                  statusEl.style.color = "#f59e0b";
+                }
+              }
+            } else {
+              console.log(`[Title Analyzer] Toggle is OFF for ${projectKey}, skipping analysis`);
             }
             
             successCount++;
@@ -1417,13 +1390,10 @@ async function initializeGoogleAdsTab() {
         } catch (error) {
           console.error(`[Settings] Failed to process ${projectKey}:`, error);
           
-          // Update status on error
           const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
           const projectName = projectKey.replace('acc1_pr', 'Project ').replace('_', '');
           
           let errorMessage = error.message;
-          
-          // Provide more user-friendly error messages
           if (errorMessage.includes('Failed to fetch')) {
             errorMessage = "Unable to access the spreadsheet. Please check sharing permissions.";
           } else if (errorMessage.includes('CORS')) {
@@ -1446,11 +1416,6 @@ async function initializeGoogleAdsTab() {
       this.disabled = false;
       this.textContent = "Upload All Google Sheets Data";
       this.style.opacity = "1";
-      
-      // Re-initialize the tab to refresh toggle states
-      setTimeout(() => {
-        initializeGoogleAdsTab();
-      }, 500);
       
       // Show summary notification
       if (successCount > 0 && errorCount === 0) {
