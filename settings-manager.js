@@ -725,6 +725,58 @@ function getCurrentOwnerId() {
 }
 
 // ========================================
+// TITLE ANALYZER FUNCTIONS
+// ========================================
+
+async function analyzeTitlesForProject(projectKey) {
+  console.log(`[Title Analyzer] Triggered analysis for ${projectKey}`);
+  
+  // Update UI to show processing
+  const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
+  if (statusEl) {
+    statusEl.textContent = 'Analyzing titles...';
+    statusEl.style.color = '#3b82f6';
+  }
+  
+  try {
+    // Call the analyzer
+    const results = await window.googleSheetsManager.analyzeTitles(projectKey);
+    
+    if (results) {
+      // Update status with results
+      if (statusEl) {
+        statusEl.textContent = `✓ Analyzed ${results.resultsCount} titles (Avg score: ${Math.round(results.summary.averageScore)})`;
+        statusEl.style.color = '#059669';
+      }
+      
+      window.showNotification(
+        `Title analysis complete for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Average score: ${Math.round(results.summary.averageScore)}/100`,
+        'success'
+      );
+    } else {
+      if (statusEl) {
+        statusEl.textContent = 'No titles found to analyze';
+        statusEl.style.color = '#6b7280';
+      }
+    }
+    
+  } catch (error) {
+    console.error('[Title Analyzer] Failed:', error);
+    
+    if (statusEl) {
+      statusEl.textContent = `Error: ${error.message}`;
+      statusEl.style.color = '#dc2626';
+    }
+    
+    window.showNotification(
+      `Title analysis failed: ${error.message}`,
+      'error',
+      5000
+    );
+  }
+}
+
+// ========================================
 // SETTINGS OVERLAY MANAGEMENT
 // ========================================
 
