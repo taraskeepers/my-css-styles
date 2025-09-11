@@ -1311,7 +1311,7 @@ analyzeTitles: async function(projectKey) {
       
       try {
         // Send request to API
-        const response = await fetch('https://1u2htt30ib.execute-api.us-east-2.amazonaws.com/prod', {
+        const response = await fetch('https://1u2htt30ib.execute-api.us-east-2.amazonaws.com/prod/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
