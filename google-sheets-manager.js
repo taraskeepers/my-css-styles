@@ -1244,6 +1244,82 @@ analyzeTitles: async function(projectKey) {
       return null;
     }
     
+    // First, get the top 10 search terms
+    console.log('[Title Analyzer] Getting top 10 search terms...');
+    let top10SearchTerms = [];
+    
+    try {
+      // Try to get 30-day search terms first, fallback to 365d
+      let searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_30d");
+      if (!searchTermsData || !searchTermsData.data || searchTermsData.data.length === 0) {
+        console.log('[Title Analyzer] No 30d search terms found, trying 365d...');
+        searchTermsData = await window.embedIDB.getData(projectKey + "googleSheets_searchTerms_365d");
+      }
+      
+      if (searchTermsData && searchTermsData.data && searchTermsData.data.length > 0) {
+        // Filter for all/all aggregation and sort by value
+        const allAllTerms = searchTermsData.data
+          .filter(row => row.Campaign_Name === 'all' && row.Channel_Type === 'all')
+          .sort((a, b) => (b.Value || 0) - (a.Value || 0))
+          .slice(0, 10)
+          .map(row => row.Query);
+        
+        top10SearchTerms = allAllTerms;
+        console.log('[Title Analyzer] Top 10 search terms:', top10SearchTerms);
+      }
+    } catch (error) {
+      console.log('[Title Analyzer] Could not get search terms:', error);
+    }
+    
+    // If no search terms found, use a default set
+    if (top10SearchTerms.length === 0) {
+      console.log('[Title Analyzer] No search terms found, using Campaign Names as fallback');
+      // Extract unique campaign names as fallback
+      const campaigns = new Set();
+      productData.data.forEach(row => {
+        if (row['Campaign Name']) {
+          campaigns.add(row['Campaign Name']);
+        }
+      });
+      top10SearchTerms = Array.from(campaigns).slice(0, 10);
+    }
+    
+    // Get company name from settings
+    let companyName = '';
+    try {
+      // Try to get company from myCompanyArray for this project
+      if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+        const match = window.myCompanyArray.find(item => 
+          item && item.startsWith(projectKey.replace('_', ''))
+        );
+        if (match) {
+          companyName = match.split(' - ')[1] || "";
+        }
+      }
+      // Fallback to global myCompany
+      if (!companyName && window.myCompany) {
+        companyName = window.myCompany;
+      }
+    } catch (error) {
+      console.log('[Title Analyzer] Could not get company name:', error);
+    }
+    
+    // Extract unique product brands
+    const productBrands = new Set();
+    if (companyName) {
+      productBrands.add(companyName.toLowerCase());
+    }
+    
+    productData.data.forEach(row => {
+      const brand = row['Product Brand'];
+      if (brand && brand.trim()) {
+        productBrands.add(brand.toLowerCase().trim());
+      }
+    });
+    
+    const uniqueSources = Array.from(productBrands);
+    console.log('[Title Analyzer] Unique sources (brands):', uniqueSources);
+    
     // Extract unique titles with their metadata
     const titleMap = new Map();
     productData.data.forEach(row => {
@@ -1253,8 +1329,8 @@ analyzeTitles: async function(projectKey) {
         if (!titleMap.has(title)) {
           titleMap.set(title, {
             title: title,
-            source: row['Product Channel'] || 'google_ads',
-            q: row['Campaign Name'] || 'unknown',
+            source: uniqueSources, // Send array of sources
+            q: top10SearchTerms,    // Send array of keywords
             metadata: {
               product_id: row['Product ID'] || undefined,
               category_hint: row['Product Type L1'] || undefined,
@@ -1365,23 +1441,26 @@ analyzeTitles: async function(projectKey) {
     
     console.log(`[Title Analyzer] Analysis complete. ${results.length} titles analyzed`);
     
-    // Save results to IDB
+    // Save results to IDB with updated naming
     const analyzerResults = {
       projectKey: projectKey,
       analyzedAt: new Date().toISOString(),
       totalTitles: uniqueTitles.length,
       resultsCount: results.length,
+      searchTermsUsed: top10SearchTerms,
+      brandsAnalyzed: uniqueSources,
       results: results,
       summary: {
         averageScore: results.reduce((sum, r) => sum + (r.final_score || 0), 0) / results.length,
+        averageKos: results.reduce((sum, r) => sum + (r.avg_kos || 0), 0) / results.length,
         highPerformers: results.filter(r => r.final_score >= 80).length,
         needsImprovement: results.filter(r => r.final_score < 50).length
       }
     };
     
-    // Save to IDB with project-specific key
-    await window.embedIDB.setData(projectKey + "title_analyzer_results", analyzerResults);
-    console.log(`[Title Analyzer] Results saved to ${projectKey}title_analyzer_results`);
+    // Save to IDB with updated key format
+    await window.embedIDB.setData(projectKey + "googleads_title_analyzer_results", analyzerResults);
+    console.log(`[Title Analyzer] Results saved to ${projectKey}googleads_title_analyzer_results`);
     
     return analyzerResults;
     
