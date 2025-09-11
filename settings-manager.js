@@ -1156,6 +1156,7 @@ async function initializeGoogleAdsTab() {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 20px;
+        margin-bottom: 16px;
       ">
         <div style="
           display: flex;
@@ -1189,41 +1190,50 @@ async function initializeGoogleAdsTab() {
             margin-bottom: 12px;
           " />
         
-        <!-- Title Analyzer Toggle -->
-        <div id="titleAnalyzerContainer_${projectKey}" style="
+        <!-- Title Analyzer Toggle Section -->
+        <div style="
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 12px;
-          background: ${hasData ? '#f0f4f8' : '#fafafa'};
-          border: 1px solid ${hasData ? '#cbd5e0' : '#e5e7eb'};
+          padding: 12px 16px;
+          background: ${hasData ? '#f0f9ff' : '#f9fafb'};
+          border: 1px solid ${hasData ? '#bae6fd' : '#e5e7eb'};
           border-radius: 8px;
-          ${!hasData ? 'opacity: 0.5;' : ''}
+          transition: all 0.2s ease;
+          ${!hasData ? 'opacity: 0.6;' : ''}
         ">
-          <div>
+          <div style="flex: 1;">
             <div style="
               font-size: 14px;
               font-weight: 500;
-              color: ${hasData ? '#1a1a1a' : '#9ca3af'};
+              color: ${hasData ? '#0c4a6e' : '#9ca3af'};
+              margin-bottom: 4px;
             ">Title Analyzer</div>
             <div style="
               font-size: 12px;
-              color: ${hasData ? '#6b7280' : '#9ca3af'};
-              margin-top: 2px;
+              color: ${hasData ? '#64748b' : '#cbd5e0'};
+              line-height: 1.4;
             " id="titleAnalyzerStatus_${projectKey}">
               ${hasData ? 
-                (titleAnalyzerEnabled ? 'Will analyze titles on next upload' : 'Enable to analyze titles on upload') : 
-                'Upload Google Sheets data first'}
+                (titleAnalyzerEnabled ? '✓ Enabled - Will analyze titles on next upload' : 'Enable to analyze title optimization on upload') : 
+                'Upload Google Sheets data first to enable'}
             </div>
           </div>
-          <label class="toggle-switch" style="${!hasData ? 'pointer-events: none;' : 'pointer-events: auto; cursor: pointer;'}">
-            <input type="checkbox" 
-              id="titleAnalyzer_${projectKey}" 
-              data-project="${projectKey}"
-              ${titleAnalyzerEnabled ? 'checked' : ''}
-              ${!hasData ? 'disabled' : ''}>
-            <span class="toggle-slider"></span>
-          </label>
+          
+          <!-- Toggle Switch -->
+          <div style="margin-left: 16px;">
+            <label class="toggle-switch" style="${!hasData ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+              <input type="checkbox" 
+                id="titleAnalyzer_${projectKey}" 
+                data-project="${projectKey}"
+                ${titleAnalyzerEnabled ? 'checked' : ''}
+                ${!hasData ? 'disabled' : ''}
+                style="display: none;">
+              <span class="toggle-slider" style="
+                ${!hasData ? 'cursor: not-allowed;' : 'cursor: pointer;'}
+              "></span>
+            </label>
+          </div>
         </div>
       </div>
     `;
@@ -1231,47 +1241,60 @@ async function initializeGoogleAdsTab() {
     projectsList.innerHTML += rowHTML;
   }
   
-  // Add event listeners for Title Analyzer toggles - JUST TO SAVE STATE
+  // Add event listeners for Title Analyzer toggles after DOM is ready
   setTimeout(() => {
     const toggles = document.querySelectorAll('input[id^="titleAnalyzer_"]');
     console.log(`[Title Analyzer] Found ${toggles.length} toggle switches`);
     
     toggles.forEach(toggle => {
-      toggle.addEventListener('change', async function(e) {
-        e.stopPropagation();
-        const projectKey = this.dataset.project;
-        const enabled = this.checked;
-        
-        console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
-        
-        // Just save the toggle state, don't run analysis
-        try {
-          await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
-            enabled: enabled,
-            lastUpdated: Date.now()
-          });
+      // Only add listener if not disabled
+      if (!toggle.disabled) {
+        toggle.addEventListener('change', async function(e) {
+          const projectKey = this.dataset.project;
+          const enabled = this.checked;
           
-          // Update status text
-          const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
-          if (statusEl) {
-            statusEl.textContent = enabled ? 
-              'Will analyze titles on next upload' : 
-              'Enable to analyze titles on upload';
+          console.log(`[Title Analyzer] Toggle changed for ${projectKey}: ${enabled}`);
+          
+          // Save the toggle state
+          try {
+            await window.embedIDB.setData(projectKey + "titleAnalyzer_config", {
+              enabled: enabled,
+              lastUpdated: Date.now()
+            });
+            
+            // Update status text
+            const statusEl = document.getElementById(`titleAnalyzerStatus_${projectKey}`);
+            if (statusEl) {
+              statusEl.textContent = enabled ? 
+                '✓ Enabled - Will analyze titles on next upload' : 
+                'Enable to analyze title optimization on upload';
+            }
+            
+            console.log(`[Title Analyzer] Toggle state saved for ${projectKey}: ${enabled}`);
+            
+            // Show notification
+            window.showNotification(
+              enabled ? 
+                'Title Analyzer enabled. Analysis will run on next upload.' : 
+                'Title Analyzer disabled.',
+              'info'
+            );
+            
+          } catch (error) {
+            console.error('[Title Analyzer] Error saving toggle state:', error);
+            // Revert the toggle on error
+            this.checked = !enabled;
+            window.showNotification(`Error: ${error.message}`, 'error');
           }
-          
-          console.log(`[Title Analyzer] Toggle state saved for ${projectKey}: ${enabled}`);
-        } catch (error) {
-          console.error('[Title Analyzer] Error saving toggle state:', error);
-          this.checked = !enabled;
-          window.showNotification(`Error: ${error.message}`, 'error');
-        }
-      });
+        });
+      }
     });
   }, 100);
 
-  // Update the save button handler to include Title Analysis
+  // Update the save button handler
   const saveBtn = document.getElementById("saveGoogleAdsUrls");
   if (saveBtn) {
+    // Remove existing listeners
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
     
@@ -1279,159 +1302,149 @@ async function initializeGoogleAdsTab() {
       const inputs = projectsList.querySelectorAll('input[id^="googleSheetsUrl_"]');
       const urlsToProcess = [];
       
-      // Collect all non-empty URLs
-      inputs.forEach(input => {
+      // Collect all non-empty URLs with their Title Analyzer status
+      for (const input of inputs) {
         const projectKey = input.dataset.project;
         const url = input.value.trim();
+        
         if (url) {
           if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
             window.showNotification(
-              `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}. Please use a Google Sheets URL.`,
+              `Invalid URL for ${projectKey.replace('acc1_pr', 'Project ').replace('_', '')}`,
               'error'
             );
-            return;
+            continue;
           }
-          urlsToProcess.push({ projectKey, url });
+          
+          // Check if Title Analyzer is enabled for this project
+          const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
+          const analyzerEnabled = analyzerToggle ? analyzerToggle.checked : false;
+          
+          urlsToProcess.push({ 
+            projectKey, 
+            url, 
+            analyzeTitle: analyzerEnabled 
+          });
         }
-      });
+      }
       
       if (urlsToProcess.length === 0) {
         window.showNotification("Please enter at least one Google Sheets URL", 'warning');
         return;
       }
       
-      // Disable the button during processing
+      // Disable button during processing
       this.disabled = true;
       this.textContent = "Processing...";
       this.style.opacity = "0.7";
       
-      // Process each URL
       let successCount = 0;
-      let errorCount = 0;
+      let analysisCount = 0;
       const errors = [];
       
-      for (const { projectKey, url } of urlsToProcess) {
+      // Process each URL
+      for (const { projectKey, url, analyzeTitle } of urlsToProcess) {
         try {
-          console.log(`[Settings] Processing Google Sheets for ${projectKey}`);
+          console.log(`[Settings] Processing Google Sheets for ${projectKey}, Title Analyzer: ${analyzeTitle}`);
           
-          // Show processing status
           const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
           if (statusEl) {
-            statusEl.textContent = "Processing Google Sheets...";
+            statusEl.textContent = "Uploading Google Sheets data...";
             statusEl.style.color = "#3b82f6";
           }
           
-          // Call the fetcher
+          // Upload Google Sheets data
           const result = await window.googleSheetsManager.fetchAndStoreFromUrl(url, projectKey);
           
-          // Check if data was actually stored
+          // Verify data was stored
           const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
-          if (productData && productData.data && productData.data.length > 0) {
-            console.log(`[Settings] Validation passed - ${productData.data.length} records found`);
+          if (!productData || !productData.data || productData.data.length === 0) {
+            throw new Error("No data was loaded from the spreadsheet");
+          }
+          
+          const productCount = productData.data.length;
+          console.log(`[Settings] Successfully loaded ${productCount} products for ${projectKey}`);
+          
+          // Update UI to show success
+          if (statusEl) {
+            statusEl.textContent = `✓ ${productCount} products loaded`;
+            statusEl.style.color = "#059669";
+          }
+          
+          // Enable the Title Analyzer toggle for future use
+          const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
+          if (analyzerToggle) {
+            analyzerToggle.disabled = false;
+            if (analyzerToggle.parentElement) {
+              analyzerToggle.parentElement.style.opacity = '1';
+              analyzerToggle.parentElement.style.cursor = 'pointer';
+            }
+          }
+          
+          successCount++;
+          
+          // Run Title Analysis if enabled
+          if (analyzeTitle) {
+            console.log(`[Title Analyzer] Running analysis for ${projectKey}...`);
             
-            // Update status on success
             if (statusEl) {
-              const count = productData.data.length;
-              statusEl.textContent = `✓ ${count} products loaded`;
-              statusEl.style.color = "#059669";
+              statusEl.textContent = `✓ ${productCount} products - Analyzing titles...`;
+              statusEl.style.color = "#8b5cf6";
             }
             
-            // Enable Title Analyzer toggle for this project
-            const analyzerToggle = document.getElementById(`titleAnalyzer_${projectKey}`);
-            const analyzerContainer = document.getElementById(`titleAnalyzerContainer_${projectKey}`);
-            
-            if (analyzerToggle) {
-              analyzerToggle.disabled = false;
-              if (analyzerToggle.parentElement) {
-                analyzerToggle.parentElement.style.pointerEvents = 'auto';
-              }
-            }
-            
-            if (analyzerContainer) {
-              analyzerContainer.style.opacity = '1';
-              analyzerContainer.style.background = '#f0f4f8';
-              analyzerContainer.style.borderColor = '#cbd5e0';
-            }
-            
-            // NOW CHECK IF TITLE ANALYZER IS ENABLED AND RUN ANALYSIS
-            const analyzerConfig = await window.embedIDB.getData(projectKey + "titleAnalyzer_config");
-            if (analyzerConfig && analyzerConfig.data && analyzerConfig.data.enabled) {
-              console.log(`[Title Analyzer] Toggle is ON for ${projectKey}, running analysis...`);
+            try {
+              const analysisResult = await window.googleSheetsManager.analyzeTitles(projectKey);
               
-              // Update status to show analyzing
-              if (statusEl) {
-                statusEl.textContent = `✓ ${productData.data.length} products loaded - Analyzing titles...`;
-                statusEl.style.color = "#3b82f6";
-              }
-              
-              try {
-                const analysisResult = await analyzeTitlesForProject(projectKey);
-                
-                if (analysisResult && statusEl) {
-                  statusEl.textContent = `✓ ${productData.data.length} products, ${analysisResult.resultsCount} titles analyzed`;
+              if (analysisResult) {
+                analysisCount++;
+                if (statusEl) {
+                  const avgScore = Math.round(analysisResult.summary.averageScore);
+                  statusEl.textContent = `✓ ${productCount} products, ${analysisResult.resultsCount} titles analyzed (Avg: ${avgScore})`;
                   statusEl.style.color = "#059669";
                 }
-              } catch (analysisError) {
-                console.error(`[Title Analyzer] Analysis failed for ${projectKey}:`, analysisError);
-                if (statusEl) {
-                  statusEl.textContent = `✓ ${productData.data.length} products loaded (analysis failed)`;
-                  statusEl.style.color = "#f59e0b";
-                }
               }
-            } else {
-              console.log(`[Title Analyzer] Toggle is OFF for ${projectKey}, skipping analysis`);
+            } catch (analysisError) {
+              console.error(`[Title Analyzer] Analysis failed:`, analysisError);
+              if (statusEl) {
+                statusEl.textContent = `✓ ${productCount} products (analysis failed)`;
+                statusEl.style.color = "#f59e0b";
+              }
+              errors.push(`Title analysis failed for ${projectKey}: ${analysisError.message}`);
             }
-            
-            successCount++;
-          } else {
-            throw new Error("No data was loaded from the spreadsheet");
           }
           
         } catch (error) {
           console.error(`[Settings] Failed to process ${projectKey}:`, error);
           
           const statusEl = document.getElementById(`googleAdsStatus_${projectKey}`);
-          const projectName = projectKey.replace('acc1_pr', 'Project ').replace('_', '');
-          
-          let errorMessage = error.message;
-          if (errorMessage.includes('Failed to fetch')) {
-            errorMessage = "Unable to access the spreadsheet. Please check sharing permissions.";
-          } else if (errorMessage.includes('CORS')) {
-            errorMessage = "Access denied. Make sure the spreadsheet is publicly accessible.";
-          } else if (errorMessage.includes('404')) {
-            errorMessage = "Spreadsheet not found. Please check the URL.";
-          }
-          
           if (statusEl) {
-            statusEl.textContent = `✗ Error: ${errorMessage}`;
+            statusEl.textContent = `✗ Error: ${error.message}`;
             statusEl.style.color = "#dc2626";
           }
           
-          errors.push(`${projectName}: ${errorMessage}`);
-          errorCount++;
+          errors.push(`${projectKey}: ${error.message}`);
         }
       }
       
-      // Re-enable the button
+      // Re-enable button
       this.disabled = false;
       this.textContent = "Upload All Google Sheets Data";
       this.style.opacity = "1";
       
-      // Show summary notification
-      if (successCount > 0 && errorCount === 0) {
-        window.showNotification(
-          `Successfully uploaded data for ${successCount} project${successCount > 1 ? 's' : ''}!`,
-          'success'
-        );
-      } else if (successCount > 0 && errorCount > 0) {
-        window.showNotification(
-          `Uploaded ${successCount} project${successCount > 1 ? 's' : ''}, but ${errorCount} failed.`,
-          'warning',
-          5000
-        );
-      } else {
-        const errorDetail = errors.length > 0 ? errors[0] : "Unknown error occurred";
-        window.showNotification(errorDetail, 'error', 5000);
+      // Show summary
+      let message = `Uploaded ${successCount} of ${urlsToProcess.length} spreadsheets`;
+      if (analysisCount > 0) {
+        message += `, analyzed titles for ${analysisCount} projects`;
+      }
+      
+      window.showNotification(
+        message,
+        successCount === urlsToProcess.length ? 'success' : 'warning',
+        5000
+      );
+      
+      if (errors.length > 0) {
+        console.error('[Settings] Errors occurred:', errors);
       }
     };
   }
