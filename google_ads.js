@@ -6180,6 +6180,7 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6331,6 +6332,7 @@ viewChartsGoogleAdsBtn.addEventListener("click", function() {
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6469,6 +6471,7 @@ viewMapGoogleAdsBtn.addEventListener("click", function() {
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
 
   // Expand the navigation panel
   const navPanel = document.getElementById('googleAdsNavPanel');
@@ -6628,6 +6631,7 @@ viewPerformanceOverviewGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
 
 // Hide products nav panel and show campaigns nav panel
     const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
@@ -6728,6 +6732,7 @@ if (viewCampaignsOverviewGoogleAdsBtn) {
     viewMapGoogleAdsBtn.classList.remove("active");
     if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
     if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+    if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
     
     // Hide all containers
     const containersToHide = [
@@ -6901,6 +6906,7 @@ viewBucketsGoogleAdsBtn.addEventListener("click", function() {
   viewMapGoogleAdsBtn.classList.remove("active");
   if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
   if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+  if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
 
 // Show buckets switcher with main switcher wrapper
 const bucketsSwitcher = document.getElementById('googleAdsBucketsSwitcher');
