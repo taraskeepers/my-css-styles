@@ -303,6 +303,90 @@ SEARCH_TERMS_COLUMNS: [
       });
     });
   },
+
+// Aggregate product data by Product Title
+aggregateProductData: function(productData) {
+  console.log('[Google Sheets] Aggregating product data by Product Title...');
+  
+  const productMap = new Map();
+  
+  // Helper to parse numbers
+  const parseNumber = (value) => {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+  };
+  
+  // Group and aggregate by Product Title
+  productData.forEach(row => {
+    const productTitle = row['Product Title'];
+    if (!productTitle) return;
+    
+    if (!productMap.has(productTitle)) {
+      // Initialize with first row's data (for non-numeric fields)
+      productMap.set(productTitle, {
+        ...row,
+        'Campaign Name': 'all',  // Set Campaign Name to "all"
+        // Initialize numeric fields to 0
+        'Impressions': 0,
+        'Clicks': 0,
+        'Cost': 0,
+        'Conversions': 0,
+        'Conversion Value': 0,
+        'Add to Cart Conv': 0,
+        'Add to Cart Conv Value': 0,
+        'Begin Checkout Conv': 0,
+        'Begin Checkout Conv Value': 0,
+        'Purchase Conv': 0,
+        'Purchase Conv Value': 0
+      });
+    }
+    
+    const aggregated = productMap.get(productTitle);
+    
+    // Sum up numeric fields
+    aggregated['Impressions'] += parseNumber(row['Impressions']);
+    aggregated['Clicks'] += parseNumber(row['Clicks']);
+    aggregated['Cost'] += parseNumber(row['Cost']);
+    aggregated['Conversions'] += parseNumber(row['Conversions']);
+    aggregated['Conversion Value'] += parseNumber(row['Conversion Value']);
+    aggregated['Add to Cart Conv'] += parseNumber(row['Add to Cart Conv']);
+    aggregated['Add to Cart Conv Value'] += parseNumber(row['Add to Cart Conv Value']);
+    aggregated['Begin Checkout Conv'] += parseNumber(row['Begin Checkout Conv']);
+    aggregated['Begin Checkout Conv Value'] += parseNumber(row['Begin Checkout Conv Value']);
+    aggregated['Purchase Conv'] += parseNumber(row['Purchase Conv']);
+    aggregated['Purchase Conv Value'] += parseNumber(row['Purchase Conv Value']);
+  });
+  
+  // Calculate derived metrics for each aggregated product
+  const aggregatedData = [];
+  productMap.forEach((data, productTitle) => {
+    // Calculate CTR, CVR, ROAS, AOV, CPA from aggregated values
+    const impressions = data['Impressions'];
+    const clicks = data['Clicks'];
+    const cost = data['Cost'];
+    const conversions = data['Conversions'];
+    const conversionValue = data['Conversion Value'];
+    
+    // Calculate derived metrics
+    data['CTR'] = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    data['CVR'] = clicks > 0 ? (conversions / clicks) * 100 : 0;
+    data['ROAS'] = cost > 0 ? conversionValue / cost : 0;
+    data['AOV'] = conversions > 0 ? conversionValue / conversions : 0;
+    data['CPA'] = conversions > 0 ? cost / conversions : 0;
+    
+    // Round calculated metrics to 2 decimal places
+    data['CTR'] = Math.round(data['CTR'] * 100) / 100;
+    data['CVR'] = Math.round(data['CVR'] * 100) / 100;
+    data['ROAS'] = Math.round(data['ROAS'] * 100) / 100;
+    data['AOV'] = Math.round(data['AOV'] * 100) / 100;
+    data['CPA'] = Math.round(data['CPA'] * 100) / 100;
+    
+    aggregatedData.push(data);
+  });
+  
+  console.log(`[Google Sheets] Aggregated ${productData.length} rows into ${aggregatedData.length} unique products`);
+  return aggregatedData;
+},
   
 // Main function to fetch and store data from URL
 fetchAndStoreFromUrl: async function(url, prefix = 'acc1_') {
@@ -510,8 +594,12 @@ if (searchInsights90Data.length > 0 || searchTerms90Data.length > 0) {
   processedSearchTerms90d = await this.processSearchTermsData(searchInsights90Data, searchTerms90Data);
 }
 
+// CREATE AGGREGATED PRODUCT DATA
+const aggregatedProductData = this.aggregateProductData(productData);
+
 const basicSavePromises = [
   window.embedIDB.setData(prefix + "googleSheets_productPerformance", productData),
+  window.embedIDB.setData(prefix + "googleSheets_productPerformance_all", aggregatedProductData), // NEW TABLE
   window.embedIDB.setData(prefix + "googleSheets_locationRevenue", locationData),
   window.embedIDB.setData(prefix + "googleSheets_searchTerms_365d", processedSearchTerms),
   window.embedIDB.setData(prefix + "googleSheets_searchTerms_30d", processedSearchTerms30d),
@@ -524,6 +612,8 @@ const basicSavePromises = [
 ];
 
 await Promise.all(basicSavePromises);
+
+console.log(`[Google Sheets] ✅ Saved ${productData.length} raw records and ${aggregatedProductData.length} aggregated products`);
 
 // Calculate and store averages
 if (productData.length > 0) {
@@ -574,20 +664,22 @@ ProgressManager.completeStep('buckets');
 // Update final status with bucket count
 const statusEl = document.getElementById('googleAdsStatus');
 if (statusEl) {
-statusEl.innerHTML = `
-  <div style="color: #4CAF50; font-weight: 500;">
-    ✓ Google Ads Data Uploaded Successfully
-  </div>
-  <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
-Product Performance: ${productData.length} rows<br>
-${locationData.length > 0 ? `Location Revenue: ${locationData.length} rows<br>` : 'Location Revenue: Not available<br>'}
-${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms.length} queries<br>` : 'Search Terms (365d): Not available<br>'}
-${processedSearchTerms30d.length > 0 ? `Search Terms (30d): ${processedSearchTerms30d.length} queries<br>` : 'Search Terms (30d): Not available<br>'}
-${processedSearchTerms90d.length > 0 ? `Search Terms (90d): ${processedSearchTerms90d.length} queries<br>` : 'Search Terms (90d): Not available<br>'}
-    ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
-    <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
-  </div>
-`;
+  const aggregatedData = this.aggregateProductData(productData); // Get count for display
+  statusEl.innerHTML = `
+    <div style="color: #4CAF50; font-weight: 500;">
+      ✓ Google Ads Data Uploaded Successfully
+    </div>
+    <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+      Product Performance: ${productData.length} rows<br>
+      Product Performance (Aggregated): ${aggregatedData.length} unique products<br>
+      ${locationData.length > 0 ? `Location Revenue: ${locationData.length} rows<br>` : 'Location Revenue: Not available<br>'}
+      ${processedSearchTerms.length > 0 ? `Search Terms (365d): ${processedSearchTerms.length} queries<br>` : 'Search Terms (365d): Not available<br>'}
+      ${processedSearchTerms30d.length > 0 ? `Search Terms (30d): ${processedSearchTerms30d.length} queries<br>` : 'Search Terms (30d): Not available<br>'}
+      ${processedSearchTerms90d.length > 0 ? `Search Terms (90d): ${processedSearchTerms90d.length} queries<br>` : 'Search Terms (90d): Not available<br>'}
+      ${finalBuckets.length > 0 ? `Product Buckets (30d): ${finalBuckets.length} analyzed<br>` : ''}
+      <span style="font-size: 0.7rem;">Last updated: ${new Date().toLocaleString()}</span>
+    </div>
+  `;
 }
 
 // Don't hide loader yet - just update text
