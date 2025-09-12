@@ -1284,33 +1284,58 @@ analyzeTitles: async function(projectKey) {
       top10SearchTerms = Array.from(campaigns).slice(0, 10);
     }
     
-// Get company name from settings FOR THIS SPECIFIC PROJECT
-    let companyName = '';
-    try {
-      // Get company for THIS project specifically
-      if (window.myCompanyArray && window.myCompanyArray.length > 0) {
-        const match = window.myCompanyArray.find(item => 
-          item && item.startsWith(projectKey.replace('_', ''))
-        );
-        if (match) {
-          companyName = match.split(' - ')[1] || "";
-        }
-      }
-      // Only use global myCompany as fallback if this is project 1
-      if (!companyName && projectKey.includes('pr1_') && window.myCompany) {
-        companyName = window.myCompany;
-      }
-    } catch (error) {
-      console.log('[Title Analyzer] Could not get company name:', error);
+// Build sources array: company name + unique Product Brand values
+const sources = new Set(); // Use Set to ensure uniqueness
+
+// 1. Get company name for THIS SPECIFIC PROJECT
+let companyName = '';
+try {
+  // Fix the projectKey format for matching
+  const projectKeyForMatch = projectKey.replace(/_$/, ''); // Remove trailing underscore
+  
+  // Get company for THIS project specifically
+  if (window.myCompanyArray && window.myCompanyArray.length > 0) {
+    const match = window.myCompanyArray.find(item => 
+      item && item.startsWith(projectKeyForMatch + ' - ')
+    );
+    if (match) {
+      companyName = match.split(' - ')[1] || "";
+      console.log(`[Title Analyzer] Found company for ${projectKey}: ${companyName}`);
     }
-    
-    // Only include the company name for THIS project, not all brands
-    const sources = [];
-    if (companyName) {
-      sources.push(companyName.toLowerCase());
-    }
-    
-    console.log(`[Title Analyzer] Source for ${projectKey}:`, sources);
+  }
+  // Only use global myCompany as fallback if this is project 1
+  if (!companyName && projectKey.includes('pr1_') && window.myCompany) {
+    companyName = window.myCompany;
+  }
+  
+  if (!companyName) {
+    console.warn(`[Title Analyzer] No company found for ${projectKey}, myCompanyArray:`, window.myCompanyArray);
+  }
+} catch (error) {
+  console.log('[Title Analyzer] Could not get company name:', error);
+}
+
+// Add company name to sources if found
+if (companyName) {
+  sources.add(companyName.toLowerCase().trim());
+}
+
+// 2. Extract unique Product Brand values from the data
+const brandSet = new Set();
+productData.data.forEach(row => {
+  const brand = row['Product Brand'];
+  if (brand && brand.trim()) {
+    brandSet.add(brand.toLowerCase().trim());
+  }
+});
+
+// Add all unique brands to sources
+brandSet.forEach(brand => sources.add(brand));
+
+// Convert Set to Array for the API
+const sourcesArray = Array.from(sources);
+
+console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} unique values`, sourcesArray);
     
     // Get the TOP 10 search terms that have Top_Bucket values assigned
     top10SearchTerms = [];
@@ -1393,7 +1418,7 @@ analyzeTitles: async function(projectKey) {
         if (!titleMap.has(title)) {
           titleMap.set(title, {
             title: title,
-            source: sources,           // Array with just this project's company
+            source: sourcesArray,           // Array with just this project's company
             q: top10SearchTerms,        // Array of top 10 search terms with Top_Bucket values
             metadata: {
               product_id: row['Product ID'] || undefined,
@@ -1522,11 +1547,20 @@ analyzeTitles: async function(projectKey) {
       }
     };
     
-    // Save to IDB with updated key format
-    await window.embedIDB.setData(projectKey + "googleads_title_analyzer_results", analyzerResults);
-    console.log(`[Title Analyzer] Results saved to ${projectKey}googleads_title_analyzer_results`);
-    
-    return analyzerResults;
+// Save to IDB with updated key format
+await window.embedIDB.setData(projectKey + "googleads_title_analyzer_results", analyzerResults);
+console.log(`[Title Analyzer] Results saved to ${projectKey}googleads_title_analyzer_results`);
+
+// Hide loader after analysis completes
+const loader = document.getElementById("overlayLoader");
+if (loader) {
+  loader.style.opacity = "0";
+  setTimeout(() => { 
+    loader.style.display = "none";
+  }, 500);
+}
+
+return analyzerResults;
     
   } catch (error) {
     console.error('[Title Analyzer] Analysis failed:', error);
