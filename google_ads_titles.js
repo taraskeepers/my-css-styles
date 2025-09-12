@@ -146,15 +146,15 @@ function addTitlesAnalyzerStyles() {
         text-align: right;
       }
       
-      /* Column widths - matching campaigns structure */
-      .titles-table-modern th:nth-child(1),
-      .titles-table-modern td:nth-child(1) { width: 60px; }
-      
-      .titles-table-modern th:nth-child(2),
-      .titles-table-modern td:nth-child(2) { width: 90px; }
-      
-      .titles-table-modern th:nth-child(3),
-      .titles-table-modern td:nth-child(3) { width: 70px; }
+/* Column widths - optimized */
+.titles-table-modern th:nth-child(1),
+.titles-table-modern td:nth-child(1) { width: 50px; } /* POS */
+
+.titles-table-modern th:nth-child(2),
+.titles-table-modern td:nth-child(2) { width: 70px; } /* SHARE */
+
+.titles-table-modern th:nth-child(3),
+.titles-table-modern td:nth-child(3) { width: 60px; } /* ROAS */
       
       .titles-table-modern th:nth-child(4),
       .titles-table-modern td:nth-child(4) { width: 80px; }
@@ -164,8 +164,8 @@ function addTitlesAnalyzerStyles() {
       
       .titles-table-modern th.metric-col,
       .titles-table-modern td.metric-col { 
-        width: 90px;
-        max-width: 90px;
+        width: 80px;
+        max-width: 80px;
       }
       
       /* Sort icon */
@@ -319,6 +319,96 @@ function addTitlesAnalyzerStyles() {
         background: rgba(239, 68, 68, 0.1);
         color: #dc2626;
       }
+      /* Image zoom on hover */
+.titles-product-img-container {
+  position: relative;
+  display: inline-block;
+}
+
+.titles-product-img-zoom {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  border: 2px solid #667eea;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.titles-product-img-container:hover .titles-product-img-zoom {
+  opacity: 1;
+}
+
+/* Position indicator styles */
+.titles-position-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.titles-position-indicator.top {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  color: white;
+}
+
+.titles-position-indicator.mid {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.titles-position-indicator.low {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  color: white;
+}
+
+.titles-position-indicator.bottom {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: white;
+}
+
+/* Market share bar */
+.titles-share-bar {
+  width: 60px;
+  height: 32px;
+  background: #e9ecef;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.titles-share-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  transition: width 0.3s ease;
+}
+
+.titles-share-text {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e40af;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 0 2px rgba(255,255,255,0.8);
+}
+
     `;
     document.head.appendChild(style);
   }
@@ -473,6 +563,172 @@ async function loadTitlesProductData() {
   });
 }
 
+// Load processed data for POS and SHARE
+async function loadProcessedDataForTitles(productTitles) {
+  console.log('[loadProcessedDataForTitles] Loading processed data for titles:', productTitles.length);
+  
+  try {
+    // Get the processed table name
+    const tablePrefix = typeof window.getProjectTablePrefix === 'function' ? 
+      window.getProjectTablePrefix() : 
+      (() => {
+        const accountPrefix = window.currentAccount || 'acc1';
+        const currentProjectNum = window.dataPrefix ? 
+          parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+        return `${accountPrefix}_pr${currentProjectNum}_`;
+      })();
+    
+    const processedTableName = `${tablePrefix}processed`;
+    
+    // Open IndexedDB
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open myAppDB'));
+    });
+    
+    // Get data from IndexedDB
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(processedTableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) {
+      console.warn('[loadProcessedDataForTitles] No processed data found');
+      return new Map();
+    }
+    
+    // Process data: aggregate by product title
+    const productMetrics = new Map();
+    
+    result.data.forEach(row => {
+      // Filter by company source
+      if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
+        return;
+      }
+      
+      const title = row.title;
+      const position = parseFloat(row.avg_week_position);
+      const visibility = parseFloat(row.avg_visibility);
+      const weekTrend = row.week_trend || null;
+      
+      // Skip if title doesn't match any of our products
+      if (!productTitles.includes(title)) {
+        return;
+      }
+      
+      if (!productMetrics.has(title)) {
+        productMetrics.set(title, {
+          positions: [],
+          visibilities: [],
+          trends: []
+        });
+      }
+      
+      const metrics = productMetrics.get(title);
+      
+      if (!isNaN(position) && position > 0) {
+        metrics.positions.push(position);
+      }
+      if (!isNaN(visibility)) {
+        metrics.visibilities.push(visibility);
+      }
+      if (weekTrend && weekTrend !== 'N/A') {
+        metrics.trends.push(weekTrend);
+      }
+    });
+    
+    // Calculate averages
+    const processedMetrics = new Map();
+    
+    for (const [title, metrics] of productMetrics) {
+      const processed = {
+        avgPosition: null,
+        avgVisibility: null,
+        trend: null
+      };
+      
+      if (metrics.positions.length > 0) {
+        const avgPos = metrics.positions.reduce((a, b) => a + b, 0) / metrics.positions.length;
+        processed.avgPosition = Math.round(avgPos);
+      }
+      
+      if (metrics.visibilities.length > 0) {
+        const avgVis = metrics.visibilities.reduce((a, b) => a + b, 0) / metrics.visibilities.length;
+        processed.avgVisibility = avgVis * 100; // Convert to percentage
+      }
+      
+      // Calculate average trend
+      if (metrics.trends.length > 0) {
+        processed.trend = calculateAverageTrend(metrics.trends);
+      }
+      
+      processedMetrics.set(title, processed);
+    }
+    
+    console.log('[loadProcessedDataForTitles] Processed metrics for products:', processedMetrics.size);
+    return processedMetrics;
+    
+  } catch (error) {
+    console.error('[loadProcessedDataForTitles] Error loading processed data:', error);
+    return new Map();
+  }
+}
+
+// Helper function to calculate average trend
+function calculateAverageTrend(trends) {
+  if (!trends || trends.length === 0) return null;
+  
+  const validTrends = [];
+  trends.forEach(trend => {
+    if (trend && trend !== 'N/A') {
+      const match = trend.match(/([⬆⬇])\s*([+-]?\d+\.?\d*)/);
+      if (match) {
+        const arrow = match[1];
+        const value = parseFloat(match[2]);
+        validTrends.push({ arrow, value });
+      }
+    }
+  });
+  
+  if (validTrends.length === 0) return null;
+  
+  const avgValue = validTrends.reduce((sum, t) => sum + Math.abs(t.value), 0) / validTrends.length;
+  const upCount = validTrends.filter(t => t.arrow === '⬆').length;
+  const downCount = validTrends.filter(t => t.arrow === '⬇').length;
+  const arrow = upCount >= downCount ? '⬆' : '⬇';
+  const formattedValue = avgValue.toFixed(2);
+  const isPositive = arrow === '⬆';
+  
+  return {
+    text: `${arrow} ${formattedValue}`,
+    color: isPositive ? '#22c55e' : '#ef4444',
+    isPositive
+  };
+}
+
+// Match products with company data for images
+function matchProductsWithCompanyData(products) {
+  const matchedProducts = new Map();
+  
+  if (window.allRows && Array.isArray(window.allRows)) {
+    window.allRows.forEach(product => {
+      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+        const productKey = product.title || '';
+        matchedProducts.set(productKey, product);
+      }
+    });
+  }
+  
+  return matchedProducts;
+}
+
 // Replace the loadAndRenderTitlesAnalyzer function:
 async function loadAndRenderTitlesAnalyzer() {
   const container = document.getElementById('titles_analyzer_container');
@@ -527,8 +783,16 @@ async function loadAndRenderTitlesAnalyzer() {
   container.appendChild(mainContainer);
 }
 
-// Update the renderTitlesProductsTable function to accept and render actual data:
 async function renderTitlesProductsTable(container, products) {
+  // Get product titles for matching
+  const productTitles = products.map(p => p.title);
+  
+  // Load processed data for POS and SHARE
+  const processedMetrics = await loadProcessedDataForTitles(productTitles);
+  
+  // Match products with company data for images
+  const matchedProducts = matchProductsWithCompanyData(products);
+  
   // Calculate totals for percentage calculations
   const totals = {
     impressions: products.reduce((sum, p) => sum + p.impressions, 0),
@@ -548,15 +812,15 @@ async function renderTitlesProductsTable(container, products) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center sortable" data-sort="position" style="width: 60px;">
+    <th class="center sortable" data-sort="position" style="width: 50px;">
       Pos
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share" style="width: 90px;">
+    <th class="center sortable" data-sort="share" style="width: 70px;">
       Share
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas" style="width: 70px;">
+    <th class="center sortable" data-sort="roas" style="width: 60px;">
       ROAS
       <span class="titles-sort-icon">⇅</span>
     </th>
@@ -599,9 +863,23 @@ async function renderTitlesProductsTable(container, products) {
   products.forEach((product, index) => {
     const row = document.createElement('tr');
     
-    // Calculate market share
-    const marketShare = totals.impressions > 0 ? 
-      (product.impressions / totals.impressions * 100) : 0;
+    // Get processed metrics for this product
+    const productProcessedMetrics = processedMetrics.get(product.title);
+    const adPosition = productProcessedMetrics?.avgPosition || null;
+    const marketShare = productProcessedMetrics?.avgVisibility || null;
+    const trend = productProcessedMetrics?.trend || null;
+    
+    // Get matched product for image
+    const matchedProduct = matchedProducts.get(product.title);
+    const imageUrl = matchedProduct?.thumbnail || product.image || '';
+    
+    // Position badge class
+    let posClass = 'bottom';
+    if (adPosition) {
+      if (adPosition <= 3) posClass = 'top';
+      else if (adPosition <= 8) posClass = 'mid';
+      else if (adPosition <= 14) posClass = 'low';
+    }
     
     // Determine ROAS class
     let roasClass = 'titles-roas-low';
@@ -612,12 +890,23 @@ async function renderTitlesProductsTable(container, products) {
     const isTopPerformer = index < 5 && product.roas > 2;
     
     row.innerHTML = `
-      <td class="center">${product.avgPosition > 0 ? product.avgPosition.toFixed(1) : '-'}</td>
       <td class="center">
-        <div class="titles-metric-cell">
-          <div class="titles-metric-bar" style="width: ${marketShare}%;"></div>
-          <span class="titles-metric-value">${marketShare.toFixed(1)}%</span>
-        </div>
+        ${adPosition !== null && adPosition !== undefined ? 
+          `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div class="titles-position-indicator ${posClass}">${adPosition}</div>
+            ${trend ? 
+              `<div style="font-size: 9px; color: ${trend.color}; font-weight: 600; background: ${trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 4px; border-radius: 4px;">${trend.text}</div>` : 
+              ''}
+          </div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        ${marketShare ? 
+          `<div class="titles-share-bar">
+            <div class="titles-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
+            <div class="titles-share-text">${marketShare.toFixed(1)}%</div>
+          </div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         <span class="titles-roas-indicator ${roasClass}">
@@ -625,10 +914,12 @@ async function renderTitlesProductsTable(container, products) {
         </span>
       </td>
       <td class="center">
-        ${product.image ? 
-          `<img src="${product.image}" alt="${product.title}" class="titles-product-img" />` : 
-          '<div class="titles-product-img" style="background: #f0f0f0;"></div>'
-        }
+        ${imageUrl ? 
+          `<div class="titles-product-img-container">
+            <img class="titles-product-img" src="${imageUrl}" alt="${product.title}" onerror="this.style.display='none'">
+            <img class="titles-product-img-zoom" src="${imageUrl}" alt="${product.title}">
+          </div>` : 
+          '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
       <td>
         <div class="titles-product-title-cell">
@@ -664,12 +955,46 @@ async function renderTitlesProductsTable(container, products) {
   wrapper.appendChild(table);
   container.appendChild(wrapper);
   
-  // Add sorting functionality
-  addTitlesSortingFunctionality(table, products);
+  // Add image hover positioning event listeners
+  wrapper.querySelectorAll('.titles-product-img-container').forEach(container => {
+    const img = container.querySelector('.titles-product-img');
+    const zoomImg = container.querySelector('.titles-product-img-zoom');
+    
+    if (img && zoomImg) {
+      container.addEventListener('mouseenter', function(e) {
+        const rect = this.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let left = rect.right + 10;
+        let top = rect.top - 100;
+        
+        // Adjust if would go off right edge
+        if (left + 300 > viewportWidth) {
+          left = rect.left - 310;
+        }
+        
+        // Adjust if would go off top
+        if (top < 10) {
+          top = 10;
+        }
+        
+        // Adjust if would go off bottom
+        if (top + 300 > viewportHeight - 10) {
+          top = viewportHeight - 310;
+        }
+        
+        zoomImg.style.left = `${left}px`;
+        zoomImg.style.top = `${top}px`;
+      });
+    }
+  });
+  
+  // Add sorting functionality with updated data
+  addTitlesSortingFunctionality(table, products, processedMetrics);
 }
 
-// Update the sorting functionality to work with actual data:
-function addTitlesSortingFunctionality(table, products) {
+function addTitlesSortingFunctionality(table, products, processedMetrics) {
   const headers = table.querySelectorAll('th.sortable');
   let currentSort = { column: 'impressions', direction: 'desc' };
   
@@ -693,19 +1018,22 @@ function addTitlesSortingFunctionality(table, products) {
       // Add current sort indicator
       this.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
-      // Sort products
+      // Sort products with enhanced data
       const sortedProducts = [...products].sort((a, b) => {
         let aVal, bVal;
         
         switch(sortKey) {
           case 'position':
-            aVal = a.avgPosition || 999;
-            bVal = b.avgPosition || 999;
+            const aMetrics = processedMetrics.get(a.title);
+            const bMetrics = processedMetrics.get(b.title);
+            aVal = aMetrics?.avgPosition || 999;
+            bVal = bMetrics?.avgPosition || 999;
             break;
           case 'share':
-            const totals = products.reduce((sum, p) => sum + p.impressions, 0);
-            aVal = a.impressions / totals;
-            bVal = b.impressions / totals;
+            const aShare = processedMetrics.get(a.title);
+            const bShare = processedMetrics.get(b.title);
+            aVal = aShare?.avgVisibility || 0;
+            bVal = bShare?.avgVisibility || 0;
             break;
           case 'title':
             aVal = a.title.toLowerCase();
