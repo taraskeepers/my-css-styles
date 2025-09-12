@@ -1221,18 +1221,12 @@ runIntegratedBucketAnalysis: async function(prefix) {
 analyzeTitles: async function(projectKey) {
   console.log(`[Title Analyzer] Starting title analysis for ${projectKey}`);
   
-  // Initialize Progress Manager for Title Analysis
-  if (typeof ProgressManager !== 'undefined') {
-    // Add Title Analyzer step to progress
-    if (!ProgressManager.steps.find(s => s.key === 'title_analyze')) {
-      ProgressManager.steps.push({ 
-        key: 'title_analyze', 
-        label: 'Analyzing title optimization', 
-        weight: 20 
-      });
-    }
-    ProgressManager.startStep('title_analyze', 'Preparing title analysis...');
-  }
+// Initialize Progress Manager for Title Analysis
+if (typeof ProgressManager !== 'undefined') {
+  // Don't add a new step - reuse the existing 'store' step for Title Analysis
+  // This prevents going over 100%
+  ProgressManager.startStep('store', 'Analyzing title optimization...');
+}
   
   try {
     // Get product data from IDB
@@ -1456,12 +1450,12 @@ console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} 
       const batchNum = Math.floor(i / batchSize) + 1;
       console.log(`[Title Analyzer] Processing batch ${batchNum}/${totalBatches}`);
 
-        // Update progress
-  if (typeof ProgressManager !== 'undefined') {
-    const progress = (batchNum / totalBatches) * 100;
-    ProgressManager.updateProgress('title_analyze', progress);
-    ProgressManager.updateUI(`Analyzing titles: Batch ${batchNum}/${totalBatches}`);
-  }
+// Update progress (using 'store' step which has 10% weight)
+if (typeof ProgressManager !== 'undefined') {
+  const progress = (batchNum / totalBatches) * 100;
+  ProgressManager.updateProgress('store', progress);
+  ProgressManager.updateUI(`Analyzing titles: Batch ${batchNum}/${totalBatches}`);
+}
       
       const batch = uniqueTitles.slice(i, i + batchSize);
       
@@ -1556,9 +1550,9 @@ console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} 
 await window.embedIDB.setData(projectKey + "googleads_title_analyzer_results", analyzerResults);
 console.log(`[Title Analyzer] Results saved to ${projectKey}googleads_title_analyzer_results`);
 
-// Complete the Title Analyzer step in Progress Manager
+// Complete the store step in Progress Manager
 if (typeof ProgressManager !== 'undefined') {
-  ProgressManager.completeStep('title_analyze');
+  ProgressManager.completeStep('store');
   ProgressManager.updateUI('Title analysis complete!');
 }
 
