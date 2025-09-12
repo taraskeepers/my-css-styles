@@ -161,8 +161,8 @@ function addTitlesAnalyzerStyles() {
 
 .titles-table-modern th:nth-child(5),
 .titles-table-modern td:nth-child(5) { 
-  max-width: 450px; 
-  width: 450px;
+  max-width: 350px; 
+  width: 350px;
 } /* PRODUCT TITLE */
 
 /* New analysis columns */
@@ -424,43 +424,88 @@ function addTitlesAnalyzerStyles() {
   justify-content: center;
   text-shadow: 0 0 2px rgba(255,255,255,0.8);
 }
-/* Score indicators */
-.titles-score-badge {
+/* Score fraction display */
+.titles-score-fraction {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  align-items: baseline;
+  gap: 1px;
   padding: 4px 8px;
   border-radius: 8px;
-  font-size: 12px;
   font-weight: 700;
-  min-width: 40px;
+  min-width: 55px;
+  justify-content: center;
 }
 
-.titles-score-high {
+.titles-score-value {
+  font-size: 13px;
+}
+
+.titles-score-max {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* T-Score color classes */
+.titles-tscore-excellent {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
 }
 
-.titles-score-medium {
+.titles-tscore-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+  color: #14532d;
+}
+
+.titles-tscore-fair {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   color: white;
 }
 
-.titles-score-low {
+.titles-tscore-poor {
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
   color: white;
 }
 
-/* KOS/GOS badges */
-.titles-kos-gos-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  min-width: 30px;
+/* KOS color classes */
+.titles-kos-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.titles-kos-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+  color: #14532d;
+}
+
+.titles-kos-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.titles-kos-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: white;
+}
+
+/* GOS color classes */
+.titles-gos-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.titles-gos-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+  color: #14532d;
+}
+
+.titles-gos-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.titles-gos-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: white;
 }
 
 .titles-kos-badge {
@@ -480,13 +525,13 @@ function addTitlesAnalyzerStyles() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 700;
   background: rgba(107, 114, 128, 0.1);
   color: #4b5563;
-  min-width: 24px;
+  min-width: 32px;
   position: relative;
   cursor: help;
 }
@@ -501,6 +546,191 @@ function addTitlesAnalyzerStyles() {
   background: rgba(239, 68, 68, 0.15);
   color: #dc2626;
   font-weight: 700;
+}
+/* Clickable rows */
+.titles-table-modern tbody tr {
+  cursor: pointer;
+  user-select: none;
+}
+
+.titles-table-modern tbody tr.expanded {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+/* Expanded details row */
+.titles-expanded-row {
+  background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+  border-bottom: 2px solid #dee2e6;
+}
+
+.titles-expanded-row td {
+  padding: 0 !important;
+}
+
+.titles-expanded-content {
+  padding: 20px;
+  animation: slideDown 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 800px;
+    opacity: 1;
+  }
+}
+
+.titles-expanded-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.titles-expanded-section {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.titles-expanded-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #495057;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 8px;
+}
+
+/* KOS Details Table */
+.titles-kos-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+
+.titles-kos-table th {
+  background: #f8f9fa;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: #6c757d;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.titles-kos-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.titles-kos-rank {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.titles-kos-keyword {
+  font-weight: 600;
+}
+
+.titles-kos-score {
+  text-align: center;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.titles-kos-score.high {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+
+.titles-kos-score.medium {
+  background: rgba(251, 191, 36, 0.1);
+  color: #f59e0b;
+}
+
+.titles-kos-score.low {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Improvement Suggestions */
+.titles-suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.titles-suggestion-item {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(251, 191, 36, 0.05);
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titles-suggestion-item::before {
+  content: "💡";
+  font-size: 14px;
+}
+
+/* Score Breakdown */
+.titles-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.titles-score-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.titles-score-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.titles-score-value {
+  font-weight: 700;
+  color: #495057;
+}
+
+/* Penalties Section */
+.titles-penalties-box {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.titles-penalty-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.titles-penalty-icon {
+  font-size: 14px;
 }
 
     `;
@@ -711,6 +941,7 @@ async function loadTitleAnalyzerResults() {
             analyzerMap.set(item.title, {
               finalScore: item.final_score || 0,
               kos: item.kos || 0,
+              avgKos: item.avg_kos || 0,  // Add avg_kos
               gos: item.gos || 0,
               kosDetails: item.kos_details || [],
               scoreBreakdown: item.score_breakdown || {},
@@ -1005,19 +1236,19 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       <span class="titles-sort-icon">⇅</span>
     </th>
     <th class="center" style="width: 70px;">Image</th>
-    <th class="sortable" data-sort="title" style="max-width: 450px; width: 450px;">
+    <th class="sortable" data-sort="title" style="max-width: 350px; width: 350px;">
       Product Title
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="score" style="width: 65px;">
-      Score
+    <th class="center sortable" data-sort="score" style="width: 75px;">
+      T-Score
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="kos" style="width: 50px;">
+    <th class="center sortable" data-sort="kos" style="width: 60px;">
       KOS
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="gos" style="width: 50px;">
+    <th class="center sortable" data-sort="gos" style="width: 60px;">
       GOS
       <span class="titles-sort-icon">⇅</span>
     </th>
@@ -1054,6 +1285,7 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
   
   products.forEach((product, index) => {
     const row = document.createElement('tr');
+    row.dataset.productTitle = product.title;
     
     // Get processed metrics for this product
     const productProcessedMetrics = processedMetrics.get(product.title);
@@ -1064,7 +1296,7 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
     // Get analyzer results for this product
     const analyzerData = analyzerResults.get(product.title) || {};
     const finalScore = analyzerData.finalScore || 0;
-    const kos = analyzerData.kos || 0;
+    const avgKos = analyzerData.avgKos || 0;  // Use avg_kos
     const gos = analyzerData.gos || 0;
     const suggestionsCount = analyzerData.improvementSuggestions?.length || 0;
     
@@ -1080,10 +1312,23 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       else if (adPosition <= 14) posClass = 'low';
     }
     
-    // Score class
-    let scoreClass = 'titles-score-low';
-    if (finalScore >= 70) scoreClass = 'titles-score-high';
-    else if (finalScore >= 40) scoreClass = 'titles-score-medium';
+    // T-Score class
+    let tscoreClass = 'titles-tscore-poor';
+    if (finalScore > 70) tscoreClass = 'titles-tscore-excellent';
+    else if (finalScore >= 55) tscoreClass = 'titles-tscore-good';
+    else if (finalScore >= 40) tscoreClass = 'titles-tscore-fair';
+    
+    // KOS class (avg_kos)
+    let kosClass = 'titles-kos-poor';
+    if (avgKos > 15) kosClass = 'titles-kos-excellent';
+    else if (avgKos >= 10) kosClass = 'titles-kos-good';
+    else if (avgKos > 5) kosClass = 'titles-kos-fair';
+    
+    // GOS class
+    let gosClass = 'titles-gos-poor';
+    if (gos > 60) gosClass = 'titles-gos-excellent';
+    else if (gos >= 40) gosClass = 'titles-gos-good';
+    else if (gos >= 20) gosClass = 'titles-gos-fair';
     
     // Suggestions class
     let suggClass = '';
@@ -1141,17 +1386,26 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       </td>
       <td class="center">
         ${finalScore > 0 ? 
-          `<span class="titles-score-badge ${scoreClass}">${finalScore}</span>` : 
+          `<span class="titles-score-fraction ${tscoreClass}">
+            <span class="titles-score-value">${finalScore}</span>
+            <span class="titles-score-max">/100</span>
+          </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
-        ${kos > 0 ? 
-          `<span class="titles-kos-gos-badge titles-kos-badge">${kos}</span>` : 
+        ${avgKos > 0 ? 
+          `<span class="titles-score-fraction ${kosClass}">
+            <span class="titles-score-value">${avgKos.toFixed(1)}</span>
+            <span class="titles-score-max">/20</span>
+          </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${gos > 0 ? 
-          `<span class="titles-kos-gos-badge titles-gos-badge">${gos}</span>` : 
+          `<span class="titles-score-fraction ${gosClass}">
+            <span class="titles-score-value">${gos}</span>
+            <span class="titles-score-max">/80</span>
+          </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
@@ -1176,11 +1430,8 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       <td class="right">$${product.convValue.toFixed(2)}</td>
     `;
     
-    // Store analyzer data on the row for sorting
-    row.dataset.score = finalScore;
-    row.dataset.kos = kos;
-    row.dataset.gos = gos;
-    row.dataset.suggestions = suggestionsCount;
+    // Store analyzer data on the row for expansion
+    row.dataset.analyzerData = JSON.stringify(analyzerData);
     
     tbody.appendChild(row);
   });
@@ -1188,6 +1439,16 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
   table.appendChild(tbody);
   wrapper.appendChild(table);
   container.appendChild(wrapper);
+  
+  // Add click handlers for row expansion
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', function(e) {
+      // Don't expand if clicking on image
+      if (e.target.closest('.titles-product-img-container')) return;
+      
+      toggleRowExpansion(this, analyzerResults);
+    });
+  });
   
   // Add image hover positioning event listeners
   wrapper.querySelectorAll('.titles-product-img-container').forEach(container => {
@@ -1226,6 +1487,172 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
   
   // Add sorting functionality with updated data
   addTitlesSortingFunctionality(table, products, processedMetrics, analyzerResults);
+}
+
+// Toggle row expansion to show details
+function toggleRowExpansion(row, analyzerResults) {
+  const nextRow = row.nextElementSibling;
+  const isExpanded = row.classList.contains('expanded');
+  
+  // If already expanded, collapse
+  if (isExpanded && nextRow && nextRow.classList.contains('titles-expanded-row')) {
+    row.classList.remove('expanded');
+    nextRow.remove();
+    return;
+  }
+  
+  // Remove any other expanded rows
+  const tbody = row.parentElement;
+  tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
+  tbody.querySelectorAll('.titles-expanded-row').forEach(r => r.remove());
+  
+  // Expand this row
+  row.classList.add('expanded');
+  
+  // Get analyzer data
+  const productTitle = row.dataset.productTitle;
+  const analyzerData = analyzerResults.get(productTitle);
+  
+  if (!analyzerData) {
+    console.warn('No analyzer data found for product:', productTitle);
+    return;
+  }
+  
+  // Create expanded row
+  const expandedRow = document.createElement('tr');
+  expandedRow.className = 'titles-expanded-row';
+  
+  const expandedCell = document.createElement('td');
+  expandedCell.colSpan = row.cells.length;
+  
+  // Build expanded content
+  let expandedHTML = '<div class="titles-expanded-content">';
+  
+  // Grid layout for main sections
+  expandedHTML += '<div class="titles-expanded-grid">';
+  
+  // KOS Details Section
+  if (analyzerData.kosDetails && analyzerData.kosDetails.length > 0) {
+    expandedHTML += `
+      <div class="titles-expanded-section">
+        <h4>🎯 Top 10 Keywords Analysis (KOS Details)</h4>
+        <table class="titles-kos-table">
+          <thead>
+            <tr>
+              <th style="width: 40px;">Rank</th>
+              <th>Keyword</th>
+              <th style="width: 60px;">Score</th>
+              <th style="width: 80px;">Position</th>
+              <th>Match</th>
+            </tr>
+          </thead>
+          <tbody>`;
+    
+    analyzerData.kosDetails.slice(0, 10).forEach((kw, idx) => {
+      const scoreClass = kw.score >= 15 ? 'high' : kw.score >= 10 ? 'medium' : 'low';
+      const position = kw.position_in_title !== undefined ? 
+        (kw.position_in_title === -1 ? 'Not found' : `Word ${kw.position_in_title + 1}`) : '-';
+      const matchType = kw.exact_match ? '✅ Exact' : kw.partial_match ? '⚠️ Partial' : '❌ None';
+      
+      expandedHTML += `
+        <tr>
+          <td class="titles-kos-rank">#${idx + 1}</td>
+          <td class="titles-kos-keyword">${kw.keyword || '-'}</td>
+          <td><span class="titles-kos-score ${scoreClass}">${kw.score || 0}</span></td>
+          <td>${position}</td>
+          <td>${matchType}</td>
+        </tr>`;
+    });
+    
+    expandedHTML += `
+          </tbody>
+        </table>
+      </div>`;
+  }
+  
+  // Improvement Suggestions Section
+  if (analyzerData.improvementSuggestions && analyzerData.improvementSuggestions.length > 0) {
+    expandedHTML += `
+      <div class="titles-expanded-section">
+        <h4>💡 Improvement Suggestions</h4>
+        <ul class="titles-suggestions-list">`;
+    
+    analyzerData.improvementSuggestions.forEach(suggestion => {
+      expandedHTML += `<li class="titles-suggestion-item">${suggestion}</li>`;
+    });
+    
+    expandedHTML += `
+        </ul>
+      </div>`;
+  }
+  
+  expandedHTML += '</div>'; // Close grid
+  
+  // Score Breakdown Section (full width)
+  if (analyzerData.scoreBreakdown && Object.keys(analyzerData.scoreBreakdown).length > 0) {
+    const breakdown = analyzerData.scoreBreakdown;
+    expandedHTML += `
+      <div class="titles-expanded-section">
+        <h4>📊 Score Breakdown</h4>
+        <div class="titles-score-grid">`;
+    
+    // Display each score component
+    const scoreComponents = [
+      { label: 'Keyword Score (KOS)', value: breakdown.kos || 0, max: 20 },
+      { label: 'Generic Score (GOS)', value: breakdown.gos || 0, max: 80 },
+      { label: 'Frontload Bonus', value: breakdown.frontload_score || 0, max: 10 },
+      { label: 'Keyword Match', value: breakdown.keyword_match_score || 0, max: 20 },
+      { label: 'Brand Score', value: breakdown.brand_score || 0, max: 10 },
+      { label: 'Category Score', value: breakdown.category_score || 0, max: 10 },
+      { label: 'Length Score', value: breakdown.length_score || 0, max: 10 },
+      { label: 'Attributes Score', value: breakdown.attributes_score || 0, max: 10 },
+      { label: 'Quality Score', value: breakdown.quality_score || 0, max: 10 }
+    ];
+    
+    scoreComponents.forEach(component => {
+      if (component.value !== undefined) {
+        expandedHTML += `
+          <div class="titles-score-item">
+            <span class="titles-score-label">${component.label}:</span>
+            <span class="titles-score-value">${component.value}/${component.max}</span>
+          </div>`;
+      }
+    });
+    
+    expandedHTML += '</div>';
+    
+    // Penalties section
+    const penalties = [];
+    if (breakdown.length_penalty) penalties.push({ reason: 'Title length not optimal', value: breakdown.length_penalty });
+    if (breakdown.keyword_penalty) penalties.push({ reason: 'Missing important keywords', value: breakdown.keyword_penalty });
+    if (breakdown.position_penalty) penalties.push({ reason: 'Keywords not frontloaded', value: breakdown.position_penalty });
+    
+    if (penalties.length > 0) {
+      expandedHTML += `
+        <div class="titles-penalties-box">
+          <h5 style="margin: 0 0 8px 0; font-size: 13px; color: #dc2626;">⚠️ Penalties Applied</h5>`;
+      
+      penalties.forEach(penalty => {
+        expandedHTML += `
+          <div class="titles-penalty-item">
+            <span class="titles-penalty-icon">▼</span>
+            <span>${penalty.reason}: -${Math.abs(penalty.value)} points</span>
+          </div>`;
+      });
+      
+      expandedHTML += '</div>';
+    }
+    
+    expandedHTML += '</div>'; // Close score breakdown section
+  }
+  
+  expandedHTML += '</div>'; // Close expanded content
+  
+  expandedCell.innerHTML = expandedHTML;
+  expandedRow.appendChild(expandedCell);
+  
+  // Insert after the clicked row
+  row.parentNode.insertBefore(expandedRow, row.nextSibling);
 }
 
 function addTitlesSortingFunctionality(table, products, processedMetrics, analyzerResults) {
@@ -1278,8 +1705,8 @@ function addTitlesSortingFunctionality(table, products, processedMetrics, analyz
           case 'kos':
             const aKos = analyzerResults.get(a.title);
             const bKos = analyzerResults.get(b.title);
-            aVal = aKos?.kos || 0;
-            bVal = bKos?.kos || 0;
+            aVal = aKos?.avgKos || 0;  // Use avgKos
+            bVal = bKos?.avgKos || 0;
             break;
           case 'gos':
             const aGos = analyzerResults.get(a.title);
