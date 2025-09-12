@@ -324,27 +324,61 @@ function addTitlesAnalyzerStyles() {
   }
 }
 
-// Add these new functions after the addTitlesAnalyzerStyles function:
-
 // Load data from googleSheets_productPerformance_all
 async function loadTitlesProductData() {
   return new Promise((resolve, reject) => {
-    const dbName = 'ParentIDB';
-    const request = indexedDB.open(dbName);
+    console.log('[loadTitlesProductData] Starting to load data...');
+    
+    // Get table prefix (similar to how campaigns does it)
+    const tablePrefix = getProjectTablePrefix ? getProjectTablePrefix() : '';
+    const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
+    
+    console.log('[loadTitlesProductData] Looking for table:', tableName);
+    
+    // Open the myAppDB database (not ParentIDB)
+    const request = indexedDB.open('myAppDB');
     
     request.onsuccess = function(event) {
       const db = event.target.result;
-      const transaction = db.transaction(['googleSheets_productPerformance_all'], 'readonly');
-      const store = transaction.objectStore('googleSheets_productPerformance_all');
-      const getAllRequest = store.getAll();
       
-      getAllRequest.onsuccess = function() {
-        const allRecords = getAllRequest.result || [];
+      // Check if projectData object store exists
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadTitlesProductData] projectData object store not found');
+        db.close();
+        reject(new Error('projectData object store not found'));
+        return;
+      }
+      
+      // Create transaction and get the projectData object store
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      
+      // Get the data using the table name as the key
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadTitlesProductData] No data found for table:', tableName);
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        // Extract the actual data array
+        const allRecords = Array.isArray(result.data) ? result.data : [];
+        console.log('[loadTitlesProductData] Found records:', allRecords.length);
         
         // Process and aggregate data by product
         const productMap = new Map();
         
         allRecords.forEach(record => {
+          // Skip records that don't have "all" as campaign name
+          if (record['Campaign Name'] !== 'all') {
+            return;
+          }
+          
           const key = record['Product Title'] || 'Unknown Product';
           
           if (!productMap.has(key)) {
@@ -357,59 +391,89 @@ async function loadTitlesProductData() {
               cost: 0,
               conversions: 0,
               convValue: 0,
+              weightedPositionSum: 0,
+              positionImpressions: 0,
               records: []
             });
           }
           
           const product = productMap.get(key);
-          product.impressions += parseFloat(record['Impressions'] || 0);
-          product.clicks += parseFloat(record['Clicks'] || 0);
-          product.cost += parseFloat(record['Cost'] || 0);
-          product.conversions += parseFloat(record['Conversions'] || 0);
-          product.convValue += parseFloat(record['Conversion Value'] || 0);
+          
+          // Parse and aggregate metrics
+          const impressions = parseFloat(record['Impressions'] || 0);
+          const clicks = parseFloat(record['Clicks'] || 0);
+          const cost = parseFloat(record['Cost'] || 0);
+          const conversions = parseFloat(record['Conversions'] || 0);
+          const convValue = parseFloat(record['Conversion Value'] || 0);
+          const avgPosition = parseFloat(record['Average Position'] || 0);
+          
+          product.impressions += impressions;
+          product.clicks += clicks;
+          product.cost += cost;
+          product.conversions += conversions;
+          product.convValue += convValue;
+          
+          // Calculate weighted average position
+          if (avgPosition > 0 && impressions > 0) {
+            product.weightedPositionSum += avgPosition * impressions;
+            product.positionImpressions += impressions;
+          }
+          
           product.records.push(record);
         });
         
         // Convert map to array and calculate derived metrics
         const products = Array.from(productMap.values()).map(p => {
+          // Calculate metrics
           p.ctr = p.impressions > 0 ? (p.clicks / p.impressions * 100) : 0;
           p.avgCpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
           p.cpa = p.conversions > 0 ? (p.cost / p.conversions) : 0;
           p.cvr = p.clicks > 0 ? (p.conversions / p.clicks * 100) : 0;
           p.aov = p.conversions > 0 ? (p.convValue / p.conversions) : 0;
           p.roas = p.cost > 0 ? (p.convValue / p.cost) : 0;
+          p.avgPosition = p.positionImpressions > 0 ? 
+            (p.weightedPositionSum / p.positionImpressions) : 0;
           
-          // Calculate average position if available
-          let totalPosImpressions = 0;
-          let weightedPosSum = 0;
-          p.records.forEach(r => {
-            const pos = parseFloat(r['Average Position'] || 0);
-            const impr = parseFloat(r['Impressions'] || 0);
-            if (pos > 0 && impr > 0) {
-              weightedPosSum += pos * impr;
-              totalPosImpressions += impr;
-            }
-          });
-          p.avgPosition = totalPosImpressions > 0 ? (weightedPosSum / totalPosImpressions) : 0;
+          // Clean up temporary calculation fields
+          delete p.weightedPositionSum;
+          delete p.positionImpressions;
           
           return p;
         });
         
-        // Sort by impressions by default
+        // Sort by impressions by default (highest first)
         products.sort((a, b) => b.impressions - a.impressions);
         
+        console.log('[loadTitlesProductData] Processed products:', products.length);
+        db.close();
         resolve(products);
       };
       
-      getAllRequest.onerror = function() {
+      getRequest.onerror = function() {
+        console.error('[loadTitlesProductData] Error getting data:', getRequest.error);
+        db.close();
         reject(new Error('Failed to load titles product data'));
       };
     };
     
     request.onerror = function() {
+      console.error('[loadTitlesProductData] Failed to open database:', request.error);
       reject(new Error('Failed to open database'));
     };
   });
+}
+
+// Add helper function if it doesn't exist
+function getProjectTablePrefix() {
+  // This function should already exist in your main code
+  // If not, add this simple implementation
+  if (typeof window.getProjectTablePrefix === 'function') {
+    return window.getProjectTablePrefix();
+  }
+  
+  // Default implementation - adjust based on your actual project structure
+  const projectId = window.currentProjectId || '';
+  return projectId ? `project_${projectId}_` : '';
 }
 
 // Replace the loadAndRenderTitlesAnalyzer function:
