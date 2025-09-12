@@ -6081,6 +6081,15 @@ container.innerHTML = `
   <button id="viewChartsGoogleAds">Rank Map</button>
   <button id="viewMapGoogleAds">Map</button>
 </div>
+
+// After the closing </div> of google-ads-view-switcher, add:
+<div id="titleAnalyzerSwitcher" class="title-analyzer-switcher">
+  <button id="viewTitleAnalyzer" class="title-analyzer-btn">
+    <span class="beta-badge">BETA</span>
+    <span class="analyzer-icon">📊</span>
+    Title Analyzer v2.3.0
+  </button>
+</div>
             </div>
             <div class="second-row-controls" style="display: none;">
               <div class="chart-mode-toggle-top">
@@ -6802,6 +6811,82 @@ if (viewCampaignsOverviewGoogleAdsBtn) {
     const mainContainer = document.querySelector('.campaigns-main-container');
     if (mainContainer) {
       mainContainer.classList.remove('nav-collapsed');
+    }
+  });
+}
+
+// Add Title Analyzer button functionality
+const viewTitleAnalyzerBtn = document.getElementById("viewTitleAnalyzer");
+if (viewTitleAnalyzerBtn) {
+  viewTitleAnalyzerBtn.addEventListener("click", function() {
+    // Clear all active states from regular switcher
+    viewOverviewGoogleAdsBtn.classList.remove("active");
+    viewChartsGoogleAdsBtn.classList.remove("active");
+    viewMapGoogleAdsBtn.classList.remove("active");
+    if (viewBucketsGoogleAdsBtn) viewBucketsGoogleAdsBtn.classList.remove("active");
+    if (viewPerformanceOverviewGoogleAdsBtn) viewPerformanceOverviewGoogleAdsBtn.classList.remove("active");
+    if (viewCampaignsOverviewGoogleAdsBtn) viewCampaignsOverviewGoogleAdsBtn.classList.remove("active");
+    
+    // Set this button as active
+    viewTitleAnalyzerBtn.classList.add("active");
+    
+    // Hide all containers in googleAdsContentWrapper
+    const containersToHide = [
+      'product_info', 'product_metrics', 'google_ads_ranking_map', 'product_tables',
+      'googleAdsMapContainer', 'roas_charts', 'roas_metrics_table', 'roas_channels',
+      'buckets_products', 'bucketed_products_container', 'campaigns_overview_container'
+    ];
+    
+    containersToHide.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.style.display = 'none';
+    });
+    
+    // Hide nav panels
+    const googleAdsNavPanel = document.getElementById('googleAdsNavPanel');
+    const campaignsNavPanel = document.getElementById('campaignsNavPanel');
+    if (googleAdsNavPanel) googleAdsNavPanel.style.display = 'none';
+    if (campaignsNavPanel) campaignsNavPanel.style.display = 'none';
+    
+    // Hide other UI elements
+    const table = document.querySelector('.google-ads-table');
+    if (table) table.style.display = 'none';
+    
+    const secondRowControls = document.querySelector('.second-row-controls');
+    if (secondRowControls) secondRowControls.style.display = 'none';
+    
+    const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
+    if (switcherWrapper) switcherWrapper.style.display = 'none';
+    
+    // Show or create titles analyzer container
+    let titlesContainer = document.getElementById('titles_analyzer_container');
+    if (!titlesContainer) {
+      titlesContainer = document.createElement('div');
+      titlesContainer.id = 'titles_analyzer_container';
+      const contentWrapper = document.getElementById('googleAdsContentWrapper');
+      if (contentWrapper) {
+        contentWrapper.appendChild(titlesContainer);
+      }
+    }
+    titlesContainer.style.display = 'block';
+    
+    // Load titles script if not already loaded
+    if (!window.titlesAnalyzerInitialized) {
+      if (window.initializeTitlesAnalyzer) {
+        window.initializeTitlesAnalyzer();
+        window.titlesAnalyzerInitialized = true;
+      } else {
+        // Load the script
+        const titlesScript = document.createElement('script');
+        titlesScript.src = 'google_ads_titles.js';
+        titlesScript.onload = function() {
+          if (window.initializeTitlesAnalyzer) {
+            window.initializeTitlesAnalyzer();
+            window.titlesAnalyzerInitialized = true;
+          }
+        };
+        document.head.appendChild(titlesScript);
+      }
     }
   });
 }
@@ -9048,6 +9133,99 @@ if (window.googleAdsApexCharts) {
   gap: 20px;
   margin-top: 10px;
   align-items: center;
+}
+
+/* Title Analyzer Switcher Styles */
+.title-analyzer-switcher {
+  display: inline-flex;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 28px;
+  padding: 3px;
+  height: 42px;
+  margin-left: 15px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.title-analyzer-switcher::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #f093fb, #f5576c, #4facfe, #00f2fe);
+  border-radius: 28px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  animation: gradient-border 3s ease infinite;
+}
+
+@keyframes gradient-border {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+.title-analyzer-switcher:hover::before {
+  opacity: 0.7;
+}
+
+.title-analyzer-btn {
+  padding: 10px 24px;
+  border: none;
+  background: white;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.title-analyzer-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.title-analyzer-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.beta-badge {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.analyzer-icon {
+  font-size: 16px;
+}
+
+/* Title Analyzer Content Container */
+#titles_analyzer_container {
+  display: none;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  background: #f5f7fa;
 }
     `;
     document.head.appendChild(style);
