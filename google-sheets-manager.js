@@ -590,28 +590,13 @@ ${processedSearchTerms90d.length > 0 ? `Search Terms (90d): ${processedSearchTer
 `;
 }
 
-// NOW show completion
+// Don't hide loader yet - just update text
 if (loader) {
   const loaderText = loader.querySelector('.apple-loading-text');
   const subtitle = loader.querySelector('.loading-subtitle');
-  if (loaderText) loaderText.textContent = 'Upload Complete!';
-  if (subtitle) subtitle.textContent = `Successfully processed ${productData.length + locationData.length + finalBuckets.length} records`;
-  
-  setTimeout(() => {
-    loader.style.opacity = "0";
-    setTimeout(() => { 
-      loader.style.display = "none";
-      // Reset UI for next time
-      const progressContainer = loader.querySelector('.progress-container');
-      const progressText = loader.querySelector('.progress-text');
-      const loadingSteps = loader.querySelector('.loading-steps');
-      if (progressContainer) progressContainer.style.display = 'none';
-      if (progressText) progressText.style.display = 'none';
-      if (loadingSteps) loadingSteps.style.display = 'none';
-      if (loaderText) loaderText.textContent = 'Loading data…';
-      if (subtitle) subtitle.textContent = '';
-    }, 500);
-  }, 2000);
+  if (loaderText) loaderText.textContent = 'Google Sheets Data Uploaded';
+  if (subtitle) subtitle.textContent = `Processed ${productData.length + locationData.length + finalBuckets.length} records`;
+  // DON'T HIDE - Title Analyzer will handle it if enabled
 }
 
 return { productData, locationData, productBuckets: finalBuckets };
@@ -1236,6 +1221,19 @@ runIntegratedBucketAnalysis: async function(prefix) {
 analyzeTitles: async function(projectKey) {
   console.log(`[Title Analyzer] Starting title analysis for ${projectKey}`);
   
+  // Initialize Progress Manager for Title Analysis
+  if (typeof ProgressManager !== 'undefined') {
+    // Add Title Analyzer step to progress
+    if (!ProgressManager.steps.find(s => s.key === 'title_analyze')) {
+      ProgressManager.steps.push({ 
+        key: 'title_analyze', 
+        label: 'Analyzing title optimization', 
+        weight: 20 
+      });
+    }
+    ProgressManager.startStep('title_analyze', 'Preparing title analysis...');
+  }
+  
   try {
     // Get product data from IDB
     const productData = await window.embedIDB.getData(projectKey + "googleSheets_productPerformance");
@@ -1457,6 +1455,13 @@ console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} 
     for (let i = 0; i < uniqueTitles.length; i += batchSize) {
       const batchNum = Math.floor(i / batchSize) + 1;
       console.log(`[Title Analyzer] Processing batch ${batchNum}/${totalBatches}`);
+
+        // Update progress
+  if (typeof ProgressManager !== 'undefined') {
+    const progress = (batchNum / totalBatches) * 100;
+    ProgressManager.updateProgress('title_analyze', progress);
+    ProgressManager.updateUI(`Analyzing titles: Batch ${batchNum}/${totalBatches}`);
+  }
       
       const batch = uniqueTitles.slice(i, i + batchSize);
       
@@ -1537,7 +1542,7 @@ console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} 
       totalTitles: uniqueTitles.length,
       resultsCount: results.length,
       searchTermsUsed: top10SearchTerms,
-      brandsAnalyzed: sources,
+      brandsAnalyzed: sourcesArray,
       results: results,
       summary: {
         averageScore: results.reduce((sum, r) => sum + (r.final_score || 0), 0) / results.length,
@@ -1551,18 +1556,35 @@ console.log(`[Title Analyzer] Sources for ${projectKey}: ${sourcesArray.length} 
 await window.embedIDB.setData(projectKey + "googleads_title_analyzer_results", analyzerResults);
 console.log(`[Title Analyzer] Results saved to ${projectKey}googleads_title_analyzer_results`);
 
-// Hide loader after analysis completes
+// Complete the Title Analyzer step in Progress Manager
+if (typeof ProgressManager !== 'undefined') {
+  ProgressManager.completeStep('title_analyze');
+  ProgressManager.updateUI('Title analysis complete!');
+}
+
+// NOW hide the loader after everything is done
 const loader = document.getElementById("overlayLoader");
 if (loader) {
-  loader.style.opacity = "0";
-  setTimeout(() => { 
-    loader.style.display = "none";
-  }, 500);
+  setTimeout(() => {
+    loader.style.opacity = "0";
+    setTimeout(() => { 
+      loader.style.display = "none";
+      // Reset progress for next time
+      if (typeof ProgressManager !== 'undefined') {
+        const progressContainer = loader.querySelector('.progress-container');
+        const progressText = loader.querySelector('.progress-text');
+        const loadingSteps = loader.querySelector('.loading-steps');
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (progressText) progressText.style.display = 'none';
+        if (loadingSteps) loadingSteps.style.display = 'none';
+      }
+    }, 500);
+  }, 1000); // Show complete message for 1 second
 }
 
 return analyzerResults;
-    
-  } catch (error) {
+
+} catch (error) {
     console.error('[Title Analyzer] Analysis failed:', error);
     throw error;
   }
