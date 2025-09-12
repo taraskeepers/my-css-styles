@@ -329,13 +329,23 @@ async function loadTitlesProductData() {
   return new Promise((resolve, reject) => {
     console.log('[loadTitlesProductData] Starting to load data...');
     
-    // Get table prefix (similar to how campaigns does it)
-    const tablePrefix = getProjectTablePrefix ? getProjectTablePrefix() : '';
+    // Use the existing global getProjectTablePrefix function from google_ads_campaigns.js
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      // Fallback - try to determine the prefix manually
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
     const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
     
     console.log('[loadTitlesProductData] Looking for table:', tableName);
     
-    // Open the myAppDB database (not ParentIDB)
+    // Rest of the function remains the same...
     const request = indexedDB.open('myAppDB');
     
     request.onsuccess = function(event) {
@@ -461,19 +471,6 @@ async function loadTitlesProductData() {
       reject(new Error('Failed to open database'));
     };
   });
-}
-
-// Add helper function if it doesn't exist
-function getProjectTablePrefix() {
-  // This function should already exist in your main code
-  // If not, add this simple implementation
-  if (typeof window.getProjectTablePrefix === 'function') {
-    return window.getProjectTablePrefix();
-  }
-  
-  // Default implementation - adjust based on your actual project structure
-  const projectId = window.currentProjectId || '';
-  return projectId ? `project_${projectId}_` : '';
 }
 
 // Replace the loadAndRenderTitlesAnalyzer function:
