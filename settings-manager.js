@@ -1354,9 +1354,16 @@ async function initializeGoogleAdsTab() {
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
     
-    newSaveBtn.onclick = async function() {
-      const inputs = projectsList.querySelectorAll('input[id^="googleSheetsUrl_"]');
-      const urlsToProcess = [];
+newSaveBtn.onclick = async function() {
+  // Check if googleSheetsManager exists
+  if (!window.googleSheetsManager) {
+    console.error('[Settings] googleSheetsManager is undefined. Available globals:', Object.keys(window).filter(k => k.includes('google')));
+    window.showNotification('Google Sheets integration not available. Please reload the page.', 'error');
+    return;
+  }
+  
+  const inputs = projectsList.querySelectorAll('input[id^="googleSheetsUrl_"]');
+  const urlsToProcess = [];
       
       // Collect all non-empty URLs with their Title Analyzer status
       for (const input of inputs) {
