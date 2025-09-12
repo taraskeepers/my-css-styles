@@ -1455,17 +1455,28 @@ newSaveBtn.onclick = async function() {
           
           successCount++;
           
-          // Run Title Analysis if enabled
-          if (analyzeTitle) {
-            console.log(`[Title Analyzer] Running analysis for ${projectKey}...`);
-            
-            if (statusEl) {
-              statusEl.textContent = `✓ ${productCount} products - Analyzing titles...`;
-              statusEl.style.color = "#8b5cf6";
-            }
-            
-            try {
-              const analysisResult = await window.googleSheetsManager.analyzeTitles(projectKey);
+// Run Title Analysis if enabled
+if (analyzeTitle) {
+  console.log(`[Title Analyzer] Running analysis for ${projectKey}...`);
+  
+  // Keep loader visible during title analysis
+  const loader = document.getElementById("overlayLoader");
+  if (loader) {
+    loader.style.display = "flex";
+    loader.style.opacity = "1";
+    const loaderText = loader.querySelector('.apple-loading-text');
+    if (loaderText) {
+      loaderText.textContent = 'Analyzing Titles...';
+    }
+  }
+  
+  if (statusEl) {
+    statusEl.textContent = `✓ ${productCount} products - Analyzing titles...`;
+    statusEl.style.color = "#8b5cf6";
+  }
+  
+  try {
+    const analysisResult = await window.googleSheetsManager.analyzeTitles(projectKey);
               
               if (analysisResult) {
                 analysisCount++;
