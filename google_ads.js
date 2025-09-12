@@ -6082,7 +6082,6 @@ container.innerHTML = `
   <button id="viewMapGoogleAds">Map</button>
 </div>
 
-// After the closing </div> of google-ads-view-switcher, add:
 <div id="titleAnalyzerSwitcher" class="title-analyzer-switcher">
   <button id="viewTitleAnalyzer" class="title-analyzer-btn">
     <span class="beta-badge">BETA</span>
