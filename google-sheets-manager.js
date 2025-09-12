@@ -1313,7 +1313,7 @@ analyzeTitles: async function(projectKey) {
     console.log(`[Title Analyzer] Source for ${projectKey}:`, sources);
     
     // Get the TOP 10 search terms that have Top_Bucket values assigned
-    let top10SearchTerms = [];
+    top10SearchTerms = [];
     
     try {
       // Try 30-day data first, then 365-day
