@@ -146,27 +146,43 @@ function addTitlesAnalyzerStyles() {
         text-align: right;
       }
       
-/* Column widths - optimized */
+/* Column widths - updated */
 .titles-table-modern th:nth-child(1),
-.titles-table-modern td:nth-child(1) { width: 50px; } /* POS */
+.titles-table-modern td:nth-child(1) { width: 70px; } /* POS */
 
 .titles-table-modern th:nth-child(2),
-.titles-table-modern td:nth-child(2) { width: 70px; } /* SHARE */
+.titles-table-modern td:nth-child(2) { width: 80px; } /* SHARE */
 
 .titles-table-modern th:nth-child(3),
-.titles-table-modern td:nth-child(3) { width: 60px; } /* ROAS */
-      
-      .titles-table-modern th:nth-child(4),
-      .titles-table-modern td:nth-child(4) { width: 80px; }
-      
-      .titles-table-modern th:nth-child(5),
-      .titles-table-modern td:nth-child(5) { width: 300px; }
-      
-      .titles-table-modern th.metric-col,
-      .titles-table-modern td.metric-col { 
-        width: 80px;
-        max-width: 80px;
-      }
+.titles-table-modern td:nth-child(3) { width: 70px; } /* ROAS */
+
+.titles-table-modern th:nth-child(4),
+.titles-table-modern td:nth-child(4) { width: 70px; } /* IMAGE */
+
+.titles-table-modern th:nth-child(5),
+.titles-table-modern td:nth-child(5) { 
+  max-width: 450px; 
+  width: 450px;
+} /* PRODUCT TITLE */
+
+/* New analysis columns */
+.titles-table-modern th:nth-child(6),
+.titles-table-modern td:nth-child(6) { width: 65px; } /* SCORE */
+
+.titles-table-modern th:nth-child(7),
+.titles-table-modern td:nth-child(7) { width: 50px; } /* KOS */
+
+.titles-table-modern th:nth-child(8),
+.titles-table-modern td:nth-child(8) { width: 50px; } /* GOS */
+
+.titles-table-modern th:nth-child(9),
+.titles-table-modern td:nth-child(9) { width: 60px; } /* SUGG */
+
+.titles-table-modern th.metric-col,
+.titles-table-modern td.metric-col { 
+  width: 80px;
+  max-width: 80px;
+}
       
       /* Sort icon */
       .titles-sort-icon {
@@ -408,6 +424,84 @@ function addTitlesAnalyzerStyles() {
   justify-content: center;
   text-shadow: 0 0 2px rgba(255,255,255,0.8);
 }
+/* Score indicators */
+.titles-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 40px;
+}
+
+.titles-score-high {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.titles-score-medium {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.titles-score-low {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: white;
+}
+
+/* KOS/GOS badges */
+.titles-kos-gos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 30px;
+}
+
+.titles-kos-badge {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.titles-gos-badge {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Suggestions count */
+.titles-suggestions-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(107, 114, 128, 0.1);
+  color: #4b5563;
+  min-width: 24px;
+  position: relative;
+  cursor: help;
+}
+
+.titles-suggestions-count.has-many {
+  background: rgba(251, 191, 36, 0.15);
+  color: #d97706;
+  font-weight: 700;
+}
+
+.titles-suggestions-count.critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  font-weight: 700;
+}
 
     `;
     document.head.appendChild(style);
@@ -559,6 +653,89 @@ async function loadTitlesProductData() {
     request.onerror = function() {
       console.error('[loadTitlesProductData] Failed to open database:', request.error);
       reject(new Error('Failed to open database'));
+    };
+  });
+}
+
+// Load title analyzer results data
+async function loadTitleAnalyzerResults() {
+  return new Promise((resolve, reject) => {
+    console.log('[loadTitleAnalyzerResults] Starting to load analyzer results...');
+    
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}googleads_title_analyzer_results`;
+    
+    console.log('[loadTitleAnalyzerResults] Looking for table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadTitleAnalyzerResults] projectData object store not found');
+        db.close();
+        resolve(new Map());
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data || !result.data.results) {
+          console.warn('[loadTitleAnalyzerResults] No analyzer results found');
+          db.close();
+          resolve(new Map());
+          return;
+        }
+        
+        // Create a map of title -> analyzer data
+        const analyzerMap = new Map();
+        
+        result.data.results.forEach(item => {
+          if (item.title) {
+            analyzerMap.set(item.title, {
+              finalScore: item.final_score || 0,
+              kos: item.kos || 0,
+              gos: item.gos || 0,
+              kosDetails: item.kos_details || [],
+              scoreBreakdown: item.score_breakdown || {},
+              improvementSuggestions: item.improvement_suggestions || [],
+              titleLength: item.title_length || 0,
+              wordCount: item.word_count || 0
+            });
+          }
+        });
+        
+        console.log('[loadTitleAnalyzerResults] Loaded analyzer results for titles:', analyzerMap.size);
+        db.close();
+        resolve(analyzerMap);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadTitleAnalyzerResults] Error getting data:', getRequest.error);
+        db.close();
+        resolve(new Map());
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadTitleAnalyzerResults] Failed to open database:', request.error);
+      resolve(new Map());
     };
   });
 }
@@ -766,24 +943,27 @@ async function loadAndRenderTitlesAnalyzer() {
   tableContainer.className = 'titles-products-table-container';
   productsPanel.appendChild(tableContainer);
   
-  // Load and render products data
-  try {
-    const products = await loadTitlesProductData();
-    await renderTitlesProductsTable(tableContainer, products);
-  } catch (error) {
-    console.error('[TitlesAnalyzer] Error loading data:', error);
-    tableContainer.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #999;">
-        Error loading title performance data. Please refresh and try again.
-      </div>
-    `;
-  }
+// Load and render products data
+try {
+  const [products, analyzerResults] = await Promise.all([
+    loadTitlesProductData(),
+    loadTitleAnalyzerResults()
+  ]);
+  await renderTitlesProductsTable(tableContainer, products, analyzerResults);
+} catch (error) {
+  console.error('[TitlesAnalyzer] Error loading data:', error);
+  tableContainer.innerHTML = `
+    <div style="text-align: center; padding: 40px; color: #999;">
+      Error loading title performance data. Please refresh and try again.
+    </div>
+  `;
+}
   
   mainContainer.appendChild(productsPanel);
   container.appendChild(mainContainer);
 }
 
-async function renderTitlesProductsTable(container, products) {
+async function renderTitlesProductsTable(container, products, analyzerResults = new Map()) {
   // Get product titles for matching
   const productTitles = products.map(p => p.title);
   
@@ -812,21 +992,37 @@ async function renderTitlesProductsTable(container, products) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center sortable" data-sort="position" style="width: 50px;">
+    <th class="center sortable" data-sort="position" style="width: 70px;">
       Pos
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share" style="width: 70px;">
+    <th class="center sortable" data-sort="share" style="width: 80px;">
       Share
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas" style="width: 60px;">
+    <th class="center sortable" data-sort="roas" style="width: 70px;">
       ROAS
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center" style="width: 80px;">Image</th>
-    <th class="sortable" data-sort="title" style="width: 300px;">
+    <th class="center" style="width: 70px;">Image</th>
+    <th class="sortable" data-sort="title" style="max-width: 450px; width: 450px;">
       Product Title
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="score" style="width: 65px;">
+      Score
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="kos" style="width: 50px;">
+      KOS
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="gos" style="width: 50px;">
+      GOS
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="suggestions" style="width: 60px;">
+      Sugg
       <span class="titles-sort-icon">⇅</span>
     </th>
     <th class="right sortable metric-col" data-sort="impressions">
@@ -843,10 +1039,6 @@ async function renderTitlesProductsTable(container, products) {
     </th>
     <th class="right sortable metric-col" data-sort="cost">
       Cost
-      <span class="titles-sort-icon">⇅</span>
-    </th>
-    <th class="right sortable metric-col" data-sort="conversions">
-      Conv
       <span class="titles-sort-icon">⇅</span>
     </th>
     <th class="right sortable metric-col" data-sort="revenue">
@@ -869,6 +1061,13 @@ async function renderTitlesProductsTable(container, products) {
     const marketShare = productProcessedMetrics?.avgVisibility || null;
     const trend = productProcessedMetrics?.trend || null;
     
+    // Get analyzer results for this product
+    const analyzerData = analyzerResults.get(product.title) || {};
+    const finalScore = analyzerData.finalScore || 0;
+    const kos = analyzerData.kos || 0;
+    const gos = analyzerData.gos || 0;
+    const suggestionsCount = analyzerData.improvementSuggestions?.length || 0;
+    
     // Get matched product for image
     const matchedProduct = matchedProducts.get(product.title);
     const imageUrl = matchedProduct?.thumbnail || product.image || '';
@@ -880,6 +1079,16 @@ async function renderTitlesProductsTable(container, products) {
       else if (adPosition <= 8) posClass = 'mid';
       else if (adPosition <= 14) posClass = 'low';
     }
+    
+    // Score class
+    let scoreClass = 'titles-score-low';
+    if (finalScore >= 70) scoreClass = 'titles-score-high';
+    else if (finalScore >= 40) scoreClass = 'titles-score-medium';
+    
+    // Suggestions class
+    let suggClass = '';
+    if (suggestionsCount >= 7) suggClass = 'critical';
+    else if (suggestionsCount >= 4) suggClass = 'has-many';
     
     // Determine ROAS class
     let roasClass = 'titles-roas-low';
@@ -930,6 +1139,26 @@ async function renderTitlesProductsTable(container, products) {
           ${product.sku ? `<div class="titles-product-sku">SKU: ${product.sku}</div>` : ''}
         </div>
       </td>
+      <td class="center">
+        ${finalScore > 0 ? 
+          `<span class="titles-score-badge ${scoreClass}">${finalScore}</span>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        ${kos > 0 ? 
+          `<span class="titles-kos-gos-badge titles-kos-badge">${kos}</span>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        ${gos > 0 ? 
+          `<span class="titles-kos-gos-badge titles-gos-badge">${gos}</span>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        ${suggestionsCount > 0 ? 
+          `<span class="titles-suggestions-count ${suggClass}" title="${suggestionsCount} improvement suggestions">${suggestionsCount}</span>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
       <td class="right">
         <div class="titles-metric-cell">
           <div class="titles-metric-bar" style="width: ${(product.impressions / Math.max(...products.map(p => p.impressions)) * 100)}%;"></div>
@@ -944,9 +1173,14 @@ async function renderTitlesProductsTable(container, products) {
       </td>
       <td class="right">${product.ctr.toFixed(2)}%</td>
       <td class="right">$${product.cost.toFixed(2)}</td>
-      <td class="right">${product.conversions.toFixed(1)}</td>
       <td class="right">$${product.convValue.toFixed(2)}</td>
     `;
+    
+    // Store analyzer data on the row for sorting
+    row.dataset.score = finalScore;
+    row.dataset.kos = kos;
+    row.dataset.gos = gos;
+    row.dataset.suggestions = suggestionsCount;
     
     tbody.appendChild(row);
   });
@@ -991,10 +1225,10 @@ async function renderTitlesProductsTable(container, products) {
   });
   
   // Add sorting functionality with updated data
-  addTitlesSortingFunctionality(table, products, processedMetrics);
+  addTitlesSortingFunctionality(table, products, processedMetrics, analyzerResults);
 }
 
-function addTitlesSortingFunctionality(table, products, processedMetrics) {
+function addTitlesSortingFunctionality(table, products, processedMetrics, analyzerResults) {
   const headers = table.querySelectorAll('th.sortable');
   let currentSort = { column: 'impressions', direction: 'desc' };
   
@@ -1035,6 +1269,30 @@ function addTitlesSortingFunctionality(table, products, processedMetrics) {
             aVal = aShare?.avgVisibility || 0;
             bVal = bShare?.avgVisibility || 0;
             break;
+          case 'score':
+            const aScore = analyzerResults.get(a.title);
+            const bScore = analyzerResults.get(b.title);
+            aVal = aScore?.finalScore || 0;
+            bVal = bScore?.finalScore || 0;
+            break;
+          case 'kos':
+            const aKos = analyzerResults.get(a.title);
+            const bKos = analyzerResults.get(b.title);
+            aVal = aKos?.kos || 0;
+            bVal = bKos?.kos || 0;
+            break;
+          case 'gos':
+            const aGos = analyzerResults.get(a.title);
+            const bGos = analyzerResults.get(b.title);
+            aVal = aGos?.gos || 0;
+            bVal = bGos?.gos || 0;
+            break;
+          case 'suggestions':
+            const aSugg = analyzerResults.get(a.title);
+            const bSugg = analyzerResults.get(b.title);
+            aVal = aSugg?.improvementSuggestions?.length || 0;
+            bVal = bSugg?.improvementSuggestions?.length || 0;
+            break;
           case 'title':
             aVal = a.title.toLowerCase();
             bVal = b.title.toLowerCase();
@@ -1058,7 +1316,7 @@ function addTitlesSortingFunctionality(table, products, processedMetrics) {
       // Re-render table with sorted data
       const container = table.closest('.titles-products-table-container');
       container.innerHTML = '';
-      renderTitlesProductsTable(container, sortedProducts);
+      renderTitlesProductsTable(container, sortedProducts, analyzerResults);
     });
   });
 }
