@@ -28,6 +28,7 @@ function addTitlesAnalyzerStyles() {
         gap: 20px;
         height: calc(100vh - 200px);
         width: 100%;
+        padding-top: 50px;
       }
       
       /* Products panel for titles */
@@ -323,7 +324,95 @@ function addTitlesAnalyzerStyles() {
   }
 }
 
-// Load and render titles analyzer
+// Add these new functions after the addTitlesAnalyzerStyles function:
+
+// Load data from googleSheets_productPerformance_all
+async function loadTitlesProductData() {
+  return new Promise((resolve, reject) => {
+    const dbName = 'ParentIDB';
+    const request = indexedDB.open(dbName);
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      const transaction = db.transaction(['googleSheets_productPerformance_all'], 'readonly');
+      const store = transaction.objectStore('googleSheets_productPerformance_all');
+      const getAllRequest = store.getAll();
+      
+      getAllRequest.onsuccess = function() {
+        const allRecords = getAllRequest.result || [];
+        
+        // Process and aggregate data by product
+        const productMap = new Map();
+        
+        allRecords.forEach(record => {
+          const key = record['Product Title'] || 'Unknown Product';
+          
+          if (!productMap.has(key)) {
+            productMap.set(key, {
+              title: key,
+              sku: record['Product ID'] || '',
+              image: record['Product Image URL'] || '',
+              impressions: 0,
+              clicks: 0,
+              cost: 0,
+              conversions: 0,
+              convValue: 0,
+              records: []
+            });
+          }
+          
+          const product = productMap.get(key);
+          product.impressions += parseFloat(record['Impressions'] || 0);
+          product.clicks += parseFloat(record['Clicks'] || 0);
+          product.cost += parseFloat(record['Cost'] || 0);
+          product.conversions += parseFloat(record['Conversions'] || 0);
+          product.convValue += parseFloat(record['Conversion Value'] || 0);
+          product.records.push(record);
+        });
+        
+        // Convert map to array and calculate derived metrics
+        const products = Array.from(productMap.values()).map(p => {
+          p.ctr = p.impressions > 0 ? (p.clicks / p.impressions * 100) : 0;
+          p.avgCpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
+          p.cpa = p.conversions > 0 ? (p.cost / p.conversions) : 0;
+          p.cvr = p.clicks > 0 ? (p.conversions / p.clicks * 100) : 0;
+          p.aov = p.conversions > 0 ? (p.convValue / p.conversions) : 0;
+          p.roas = p.cost > 0 ? (p.convValue / p.cost) : 0;
+          
+          // Calculate average position if available
+          let totalPosImpressions = 0;
+          let weightedPosSum = 0;
+          p.records.forEach(r => {
+            const pos = parseFloat(r['Average Position'] || 0);
+            const impr = parseFloat(r['Impressions'] || 0);
+            if (pos > 0 && impr > 0) {
+              weightedPosSum += pos * impr;
+              totalPosImpressions += impr;
+            }
+          });
+          p.avgPosition = totalPosImpressions > 0 ? (weightedPosSum / totalPosImpressions) : 0;
+          
+          return p;
+        });
+        
+        // Sort by impressions by default
+        products.sort((a, b) => b.impressions - a.impressions);
+        
+        resolve(products);
+      };
+      
+      getAllRequest.onerror = function() {
+        reject(new Error('Failed to load titles product data'));
+      };
+    };
+    
+    request.onerror = function() {
+      reject(new Error('Failed to open database'));
+    };
+  });
+}
+
+// Replace the loadAndRenderTitlesAnalyzer function:
 async function loadAndRenderTitlesAnalyzer() {
   const container = document.getElementById('titles_analyzer_container');
   if (!container) return;
@@ -360,17 +449,33 @@ async function loadAndRenderTitlesAnalyzer() {
   tableContainer.className = 'titles-products-table-container';
   productsPanel.appendChild(tableContainer);
   
-  // Load and render products data (reuse the same data structure)
-  await renderTitlesProductsTable(tableContainer);
+  // Load and render products data
+  try {
+    const products = await loadTitlesProductData();
+    await renderTitlesProductsTable(tableContainer, products);
+  } catch (error) {
+    console.error('[TitlesAnalyzer] Error loading data:', error);
+    tableContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #999;">
+        Error loading title performance data. Please refresh and try again.
+      </div>
+    `;
+  }
   
   mainContainer.appendChild(productsPanel);
   container.appendChild(mainContainer);
 }
 
-// Render products table for titles analyzer
-async function renderTitlesProductsTable(container) {
-  // This would load the same data as campaigns but with title-specific analysis
-  // For now, creating sample structure
+// Update the renderTitlesProductsTable function to accept and render actual data:
+async function renderTitlesProductsTable(container, products) {
+  // Calculate totals for percentage calculations
+  const totals = {
+    impressions: products.reduce((sum, p) => sum + p.impressions, 0),
+    clicks: products.reduce((sum, p) => sum + p.clicks, 0),
+    cost: products.reduce((sum, p) => sum + p.cost, 0),
+    conversions: products.reduce((sum, p) => sum + p.conversions, 0),
+    convValue: products.reduce((sum, p) => sum + p.convValue, 0)
+  };
   
   const wrapper = document.createElement('div');
   wrapper.className = 'titles-products-wrapper';
@@ -382,20 +487,20 @@ async function renderTitlesProductsTable(container) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center sortable" data-sort="position">
+    <th class="center sortable" data-sort="position" style="width: 60px;">
       Pos
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share">
+    <th class="center sortable" data-sort="share" style="width: 90px;">
       Share
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas">
+    <th class="center sortable" data-sort="roas" style="width: 70px;">
       ROAS
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center">Image</th>
-    <th class="sortable" data-sort="title">
+    <th class="center" style="width: 80px;">Image</th>
+    <th class="sortable" data-sort="title" style="width: 300px;">
       Product Title
       <span class="titles-sort-icon">⇅</span>
     </th>
@@ -427,32 +532,144 @@ async function renderTitlesProductsTable(container) {
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
-  // Create tbody (would be populated with actual data)
+  // Create tbody with actual data
   const tbody = document.createElement('tbody');
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="11" style="text-align: center; padding: 40px; color: #999;">
-        Loading title performance data...
-      </td>
-    </tr>
-  `;
-  table.appendChild(tbody);
   
+  products.forEach((product, index) => {
+    const row = document.createElement('tr');
+    
+    // Calculate market share
+    const marketShare = totals.impressions > 0 ? 
+      (product.impressions / totals.impressions * 100) : 0;
+    
+    // Determine ROAS class
+    let roasClass = 'titles-roas-low';
+    if (product.roas >= 3) roasClass = 'titles-roas-high';
+    else if (product.roas >= 1.5) roasClass = 'titles-roas-medium';
+    
+    // Determine if this is a top performer
+    const isTopPerformer = index < 5 && product.roas > 2;
+    
+    row.innerHTML = `
+      <td class="center">${product.avgPosition > 0 ? product.avgPosition.toFixed(1) : '-'}</td>
+      <td class="center">
+        <div class="titles-metric-cell">
+          <div class="titles-metric-bar" style="width: ${marketShare}%;"></div>
+          <span class="titles-metric-value">${marketShare.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td class="center">
+        <span class="titles-roas-indicator ${roasClass}">
+          ${product.roas.toFixed(2)}x
+        </span>
+      </td>
+      <td class="center">
+        ${product.image ? 
+          `<img src="${product.image}" alt="${product.title}" class="titles-product-img" />` : 
+          '<div class="titles-product-img" style="background: #f0f0f0;"></div>'
+        }
+      </td>
+      <td>
+        <div class="titles-product-title-cell">
+          <div class="titles-product-title">
+            ${product.title}
+            ${isTopPerformer ? '<span class="titles-performance-badge">TOP</span>' : ''}
+          </div>
+          ${product.sku ? `<div class="titles-product-sku">SKU: ${product.sku}</div>` : ''}
+        </div>
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell">
+          <div class="titles-metric-bar" style="width: ${(product.impressions / Math.max(...products.map(p => p.impressions)) * 100)}%;"></div>
+          <span class="titles-metric-value">${product.impressions.toLocaleString()}</span>
+        </div>
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell">
+          <div class="titles-metric-bar" style="width: ${(product.clicks / Math.max(...products.map(p => p.clicks)) * 100)}%;"></div>
+          <span class="titles-metric-value">${product.clicks.toLocaleString()}</span>
+        </div>
+      </td>
+      <td class="right">${product.ctr.toFixed(2)}%</td>
+      <td class="right">$${product.cost.toFixed(2)}</td>
+      <td class="right">${product.conversions.toFixed(1)}</td>
+      <td class="right">$${product.convValue.toFixed(2)}</td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
   wrapper.appendChild(table);
   container.appendChild(wrapper);
   
   // Add sorting functionality
-  addTitlesSortingFunctionality(table);
+  addTitlesSortingFunctionality(table, products);
 }
 
-// Add sorting functionality
-function addTitlesSortingFunctionality(table) {
+// Update the sorting functionality to work with actual data:
+function addTitlesSortingFunctionality(table, products) {
   const headers = table.querySelectorAll('th.sortable');
+  let currentSort = { column: 'impressions', direction: 'desc' };
+  
   headers.forEach(header => {
     header.addEventListener('click', function() {
       const sortKey = this.getAttribute('data-sort');
-      // Implement sorting logic here
-      console.log('Sorting by:', sortKey);
+      
+      // Toggle direction if same column
+      if (currentSort.column === sortKey) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = sortKey;
+        currentSort.direction = 'desc';
+      }
+      
+      // Remove all sort indicators
+      headers.forEach(h => {
+        h.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      // Add current sort indicator
+      this.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      
+      // Sort products
+      const sortedProducts = [...products].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(sortKey) {
+          case 'position':
+            aVal = a.avgPosition || 999;
+            bVal = b.avgPosition || 999;
+            break;
+          case 'share':
+            const totals = products.reduce((sum, p) => sum + p.impressions, 0);
+            aVal = a.impressions / totals;
+            bVal = b.impressions / totals;
+            break;
+          case 'title':
+            aVal = a.title.toLowerCase();
+            bVal = b.title.toLowerCase();
+            break;
+          case 'revenue':
+            aVal = a.convValue;
+            bVal = b.convValue;
+            break;
+          default:
+            aVal = a[sortKey] || 0;
+            bVal = b[sortKey] || 0;
+        }
+        
+        if (currentSort.direction === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+      
+      // Re-render table with sorted data
+      const container = table.closest('.titles-products-table-container');
+      container.innerHTML = '';
+      renderTitlesProductsTable(container, sortedProducts);
     });
   });
 }
