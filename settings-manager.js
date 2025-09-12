@@ -1509,10 +1509,21 @@ if (analyzeTitle) {
         }
       }
       
-      // Re-enable button
-      this.disabled = false;
-      this.textContent = "Upload All Google Sheets Data";
-      this.style.opacity = "1";
+// Re-enable button
+this.disabled = false;
+this.textContent = "Upload All Google Sheets Data";
+this.style.opacity = "1";
+
+// Hide loader if no Title Analysis was performed
+if (analysisCount === 0) {
+  const loader = document.getElementById("overlayLoader");
+  if (loader) {
+    loader.style.opacity = "0";
+    setTimeout(() => { 
+      loader.style.display = "none";
+    }, 500);
+  }
+}
       
       // Refresh the tab to update toggle states
       setTimeout(() => {
