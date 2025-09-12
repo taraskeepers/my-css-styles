@@ -1530,14 +1530,22 @@ if (typeof ProgressManager !== 'undefined') {
     console.log(`[Title Analyzer] Analysis complete. ${results.length} titles analyzed`);
     
     // Save results to IDB with updated naming
-    const analyzerResults = {
-      projectKey: projectKey,
-      analyzedAt: new Date().toISOString(),
-      totalTitles: uniqueTitles.length,
-      resultsCount: results.length,
-      searchTermsUsed: top10SearchTerms,
-      brandsAnalyzed: sourcesArray,
-      results: results,
+// Remove keywords and sources from individual results to avoid redundancy
+const cleanedResults = results.map(r => {
+  const cleaned = {...r};
+  delete cleaned.keywords;
+  delete cleaned.sources;
+  return cleaned;
+});
+
+const analyzerResults = {
+  projectKey: projectKey,
+  analyzedAt: new Date().toISOString(),
+  totalTitles: uniqueTitles.length,
+  resultsCount: cleanedResults.length,
+  searchTermsUsed: top10SearchTerms,  // Saved once at top level
+  brandsAnalyzed: sourcesArray,        // Saved once at top level
+  results: cleanedResults,             // Individual results without redundant data
       summary: {
         averageScore: results.reduce((sum, r) => sum + (r.final_score || 0), 0) / results.length,
         averageKos: results.reduce((sum, r) => sum + (r.avg_kos || 0), 0) / results.length,
