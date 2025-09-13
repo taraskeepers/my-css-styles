@@ -557,10 +557,9 @@ function addTitlesAnalyzerStyles() {
   background: rgba(102, 126, 234, 0.05);
 }
 
-/* Expanded details row - COMPLETE REDESIGN */
+/* Expanded details row - ULTRA COMPACT REDESIGN */
 .titles-expanded-row {
-  background: linear-gradient(to bottom, #fafbfc, #ffffff);
-  border-bottom: 2px solid #e1e4e8;
+  background: #f8f9fa;
 }
 
 .titles-expanded-row td {
@@ -568,327 +567,233 @@ function addTitlesAnalyzerStyles() {
 }
 
 .titles-expanded-content {
-  padding: 16px 24px;
-  animation: slideDown 0.25s ease-out;
+  padding: 12px 16px;
+  max-height: 400px;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Grid layout for expanded content */
-.titles-expanded-grid {
+/* Compact 4-column layout */
+.titles-compact-grid {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  gap: 20px;
-  max-width: 1400px;
+  grid-template-columns: 240px 280px 260px 1fr;
+  gap: 12px;
+  height: 376px;
 }
 
-/* Section styling */
-.titles-detail-section {
+/* Compact section styling */
+.titles-compact-section {
   background: white;
-  border-radius: 8px;
   border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.titles-section-header {
-  background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
-  padding: 10px 14px;
+.titles-compact-header {
+  background: linear-gradient(to right, #f6f8fa, #ffffff);
+  padding: 6px 10px;
   border-bottom: 1px solid #e1e4e8;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.titles-section-icon {
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.titles-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #24292e;
-  margin: 0;
-  flex: 1;
-}
-
-.titles-section-content {
-  padding: 12px 14px;
-}
-
-/* Keywords table styling */
-.titles-keywords-table {
-  width: 100%;
-  font-size: 12px;
-  border-collapse: collapse;
-}
-
-.titles-keywords-table thead tr {
-  border-bottom: 1px solid #e1e4e8;
-}
-
-.titles-keywords-table th {
-  padding: 6px 8px;
-  text-align: left;
-  font-weight: 500;
-  color: #6a737d;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.titles-keywords-table tbody tr {
-  border-bottom: 1px solid #f6f8fa;
-}
-
-.titles-keywords-table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.titles-keywords-table tbody tr:hover {
-  background: #f6f8fa;
-}
-
-.titles-keywords-table td {
-  padding: 6px 8px;
-  color: #24292e;
-  font-size: 12px;
-}
-
-.titles-keywords-table .rank-cell {
-  width: 35px;
-  text-align: center;
-  font-weight: 600;
-  color: #667eea;
-}
-
-.titles-keywords-table .kos-cell {
-  width: 50px;
-  text-align: center;
-}
-
-.titles-kos-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  min-width: 32px;
-}
-
-.titles-kos-high {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.titles-kos-medium {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.titles-kos-low {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* Score breakdown grid */
-.titles-scores-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.titles-score-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  background: #f6f8fa;
-  border-radius: 6px;
-  border: 1px solid #e1e4e8;
-}
-
-.titles-score-name {
-  font-size: 11px;
-  color: #6a737d;
-  font-weight: 500;
-}
-
-.titles-score-value-bar {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
-.titles-score-bar {
-  width: 60px;
-  height: 4px;
-  background: #e1e4e8;
+.titles-compact-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #24292e;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 0;
+}
+
+.titles-compact-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Ultra-compact keywords table */
+.titles-keywords-compact {
+  width: 100%;
+  font-size: 11px;
+}
+
+.titles-keywords-compact tr {
+  height: 24px;
+}
+
+.titles-keywords-compact td {
+  padding: 2px 4px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #24292e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titles-keywords-compact td:first-child {
+  width: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: #6a737d;
+}
+
+.titles-keywords-compact td:last-child {
+  width: 35px;
+  text-align: center;
+}
+
+.titles-kos-mini {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.kos-h { background: #dcfce7; color: #15803d; }
+.kos-m { background: #fef3c7; color: #b45309; }
+.kos-l { background: #fee2e2; color: #991b1b; }
+
+/* Inline score display */
+.titles-scores-inline {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.titles-score-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  font-size: 10px;
+}
+
+.titles-score-label {
+  flex: 0 0 55px;
+  color: #6a737d;
+  font-weight: 500;
+  padding-right: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titles-score-visual {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.titles-mini-bar {
+  flex: 1;
+  height: 12px;
+  background: #f0f2f5;
   border-radius: 2px;
   position: relative;
   overflow: hidden;
 }
 
-.titles-score-fill {
+.titles-mini-fill {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   border-radius: 2px;
-  transition: width 0.3s ease;
 }
 
-.titles-score-fill.high {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-}
+.fill-high { background: #22c55e; }
+.fill-mid { background: #fbbf24; }
+.fill-low { background: #ef4444; }
 
-.titles-score-fill.medium {
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
-}
-
-.titles-score-fill.low {
-  background: linear-gradient(90deg, #f87171, #ef4444);
-}
-
-.titles-score-number {
-  font-size: 11px;
+.titles-score-text {
+  font-size: 10px;
   font-weight: 600;
   color: #24292e;
-  min-width: 45px;
+  min-width: 32px;
   text-align: right;
 }
 
-/* Penalties section */
-.titles-penalties-box {
+/* Compact penalties */
+.titles-penalties-compact {
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 6px;
-  padding: 10px;
-  margin-top: 10px;
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 6px;
 }
 
-.titles-penalties-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.titles-penalties-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #dc2626;
-  margin: 0;
-}
-
-.titles-penalty-items {
+.titles-penalties-grid {
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  font-size: 10px;
+}
+
+.titles-penalty-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: white;
+  border-radius: 2px;
+}
+
+.titles-penalty-label {
+  color: #7f1d1d;
+}
+
+.titles-penalty-val {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Ultra-compact suggestions */
+.titles-suggestions-ultra {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
 }
 
-.titles-penalty-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.titles-suggestion-mini {
   padding: 4px 6px;
-  background: white;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-.titles-penalty-name {
-  color: #7f1d1d;
-  font-weight: 500;
-}
-
-.titles-penalty-value {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.titles-penalty-total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px;
-  background: #dc2626;
-  color: white;
-  border-radius: 4px;
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-/* Suggestions list */
-.titles-suggestions-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 6px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.titles-suggestion-item {
+  background: #fffbeb;
+  border-left: 2px solid #f59e0b;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #78350f;
+  line-height: 1.3;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #78350f;
-  line-height: 1.4;
+  gap: 4px;
 }
 
-.titles-suggestion-icon {
+.titles-suggestion-mini span:first-child {
   color: #f59e0b;
-  font-size: 14px;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
-/* Custom scrollbar */
-.titles-suggestions-list::-webkit-scrollbar,
-.titles-section-content::-webkit-scrollbar {
-  width: 4px;
+/* Custom compact scrollbar */
+.titles-compact-body::-webkit-scrollbar {
+  width: 3px;
 }
 
-.titles-suggestions-list::-webkit-scrollbar-track,
-.titles-section-content::-webkit-scrollbar-track {
-  background: #f6f8fa;
-  border-radius: 2px;
+.titles-compact-body::-webkit-scrollbar-track {
+  background: #f0f2f5;
 }
 
-.titles-suggestions-list::-webkit-scrollbar-thumb,
-.titles-section-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
-}
-
-.titles-suggestions-list::-webkit-scrollbar-thumb:hover,
-.titles-section-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+.titles-compact-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 1px;
 }
     `;
     document.head.appendChild(style);
@@ -1670,22 +1575,18 @@ function toggleRowExpansion(row, analyzerResults) {
   const nextRow = row.nextElementSibling;
   const isExpanded = row.classList.contains('expanded');
   
-  // If already expanded, collapse
   if (isExpanded && nextRow && nextRow.classList.contains('titles-expanded-row')) {
     row.classList.remove('expanded');
     nextRow.remove();
     return;
   }
   
-  // Remove any other expanded rows
   const tbody = row.parentElement;
   tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
   tbody.querySelectorAll('.titles-expanded-row').forEach(r => r.remove());
   
-  // Expand this row
   row.classList.add('expanded');
   
-  // Get analyzer data
   const productTitle = row.dataset.productTitle;
   const analyzerData = analyzerResults.get(productTitle);
   
@@ -1694,205 +1595,182 @@ function toggleRowExpansion(row, analyzerResults) {
     return;
   }
   
-  // Create expanded row
   const expandedRow = document.createElement('tr');
   expandedRow.className = 'titles-expanded-row';
   
   const expandedCell = document.createElement('td');
   expandedCell.colSpan = row.cells.length;
   
-  // Build expanded content with new design
+  // Build ultra-compact content
   let expandedHTML = '<div class="titles-expanded-content">';
-  expandedHTML += '<div class="titles-expanded-grid">';
+  expandedHTML += '<div class="titles-compact-grid">';
   
-  // LEFT COLUMN - Top Keywords
-  expandedHTML += '<div class="titles-detail-section">';
+  // COLUMN 1: Keywords (narrow)
   expandedHTML += `
-    <div class="titles-section-header">
-      <div class="titles-section-icon">🎯</div>
-      <h4 class="titles-section-title">Top 10 Keywords</h4>
-    </div>
-    <div class="titles-section-content">`;
+    <div class="titles-compact-section">
+      <div class="titles-compact-header">
+        <span style="font-size: 12px;">🎯</span>
+        <h4 class="titles-compact-title">Top Keywords</h4>
+      </div>
+      <div class="titles-compact-body">
+        <table class="titles-keywords-compact">`;
   
   if (analyzerData.kosDetails && analyzerData.kosDetails.length > 0) {
-    expandedHTML += `
-      <table class="titles-keywords-table">
-        <thead>
-          <tr>
-            <th class="rank-cell">#</th>
-            <th>Keyword</th>
-            <th class="kos-cell">KOS</th>
-          </tr>
-        </thead>
-        <tbody>`;
-    
     analyzerData.kosDetails.slice(0, 10).forEach((kw, idx) => {
-      const kosValue = kw.kos || 0;
-      const kosClass = kosValue >= 15 ? 'titles-kos-high' : 
-                      kosValue >= 10 ? 'titles-kos-medium' : 'titles-kos-low';
-      
+      const kos = kw.kos || 0;
+      const kosClass = kos >= 15 ? 'kos-h' : kos >= 10 ? 'kos-m' : 'kos-l';
       expandedHTML += `
         <tr>
-          <td class="rank-cell">${idx + 1}</td>
-          <td>${kw.keyword || '-'}</td>
-          <td class="kos-cell">
-            <span class="titles-kos-badge ${kosClass}">${kosValue}</span>
-          </td>
+          <td>${idx + 1}</td>
+          <td title="${kw.keyword}">${kw.keyword || '-'}</td>
+          <td><span class="titles-kos-mini ${kosClass}">${kos}</span></td>
         </tr>`;
     });
-    
-    expandedHTML += `
-        </tbody>
-      </table>`;
-  } else {
-    expandedHTML += '<p style="color: #6a737d; font-size: 12px; text-align: center; margin: 20px 0;">No keyword data available</p>';
   }
   
   expandedHTML += `
-    </div>
-  </div>`;
+        </table>
+      </div>
+    </div>`;
   
-  // MIDDLE COLUMN - Score Breakdown & Penalties
-  expandedHTML += '<div class="titles-detail-section">';
+  // COLUMN 2: Scores (compact grid)
   expandedHTML += `
-    <div class="titles-section-header">
-      <div class="titles-section-icon">📊</div>
-      <h4 class="titles-section-title">Score Analysis</h4>
-    </div>
-    <div class="titles-section-content">`;
+    <div class="titles-compact-section">
+      <div class="titles-compact-header">
+        <span style="font-size: 12px;">📊</span>
+        <h4 class="titles-compact-title">Score Breakdown</h4>
+      </div>
+      <div class="titles-compact-body">
+        <div class="titles-scores-inline">`;
   
   if (analyzerData.scoreBreakdown) {
-    const breakdown = analyzerData.scoreBreakdown;
-    expandedHTML += '<div class="titles-scores-grid">';
-    
-    // Define score components with proper field names from IDB
-    const scoreComponents = [
-      { label: 'Attributes', value: breakdown.attribute_score || 0, max: 10 },
-      { label: 'Brand', value: breakdown.brand_score || 0, max: 10 },
-      { label: 'Category', value: breakdown.category_score || 0, max: 10 },
-      { label: 'Character', value: breakdown.character_score || 0, max: 10 },
-      { label: 'Frontload', value: breakdown.frontload_score || 0, max: 10 },
-      { label: 'Hooks', value: breakdown.hooks_score || 0, max: 10 },
-      { label: 'Keywords', value: breakdown.keyword_match_score || 0, max: 20 },
-      { label: 'Readability', value: breakdown.readability_score || 0, max: 10 },
-      { label: 'Structure', value: breakdown.structure_score || 0, max: 10 }
+    const b = analyzerData.scoreBreakdown;
+    const scores = [
+      { label: 'Attributes', value: b.attribute_score || 0, max: 10 },
+      { label: 'Brand', value: b.brand_score || 0, max: 10 },
+      { label: 'Category', value: b.category_score || 0, max: 10 },
+      { label: 'Character', value: b.character_score || 0, max: 10 },
+      { label: 'Frontload', value: b.frontload_score || 0, max: 10 },
+      { label: 'Hooks', value: b.hooks_score || 0, max: 10 },
+      { label: 'Keywords', value: b.keyword_match_score || 0, max: 20 },
+      { label: 'Readability', value: b.readability_score || 0, max: 10 },
+      { label: 'Structure', value: b.structure_score || 0, max: 10 }
     ];
     
-    scoreComponents.forEach(component => {
-      const percentage = (component.value / component.max) * 100;
-      const fillClass = percentage >= 70 ? 'high' : percentage >= 40 ? 'medium' : 'low';
-      
+    scores.forEach(s => {
+      const pct = (s.value / s.max) * 100;
+      const fillClass = pct >= 70 ? 'fill-high' : pct >= 40 ? 'fill-mid' : 'fill-low';
       expandedHTML += `
-        <div class="titles-score-item">
-          <span class="titles-score-name">${component.label}</span>
-          <div class="titles-score-value-bar">
-            <div class="titles-score-bar">
-              <div class="titles-score-fill ${fillClass}" style="width: ${percentage}%"></div>
+        <div class="titles-score-row">
+          <span class="titles-score-label" title="${s.label}">${s.label}</span>
+          <div class="titles-score-visual">
+            <div class="titles-mini-bar">
+              <div class="titles-mini-fill ${fillClass}" style="width: ${pct}%"></div>
             </div>
-            <span class="titles-score-number">${component.value}/${component.max}</span>
+            <span class="titles-score-text">${s.value}/${s.max}</span>
           </div>
         </div>`;
     });
     
     expandedHTML += '</div>';
     
-    // Penalties section
-    if (breakdown.penalties) {
-      const penalties = breakdown.penalties;
-      const hasPenalties = penalties.total && penalties.total > 0;
+    // Penalties (if any)
+    if (b.penalties && b.penalties.total > 0) {
+      expandedHTML += `
+        <div class="titles-penalties-compact">
+          <div class="titles-penalties-grid">`;
       
-      if (hasPenalties) {
-        expandedHTML += `
-          <div class="titles-penalties-box">
-            <div class="titles-penalties-header">
-              <span>⚠️</span>
-              <h5 class="titles-penalties-title">Penalties Applied</h5>
-            </div>
-            <div class="titles-penalty-items">`;
-        
-        if (penalties.caps_penalty > 0) {
+      const penalties = [
+        { label: 'Caps', value: b.penalties.caps_penalty },
+        { label: 'Promo', value: b.penalties.promo_penalty },
+        { label: 'Repeat', value: b.penalties.repetition_penalty },
+        { label: 'Symbol', value: b.penalties.symbol_penalty }
+      ];
+      
+      penalties.forEach(p => {
+        if (p.value > 0) {
           expandedHTML += `
-            <div class="titles-penalty-item">
-              <span class="titles-penalty-name">Excessive Caps</span>
-              <span class="titles-penalty-value">-${penalties.caps_penalty}</span>
+            <div class="titles-penalty-row">
+              <span class="titles-penalty-label">${p.label}</span>
+              <span class="titles-penalty-val">-${p.value}</span>
             </div>`;
         }
-        
-        if (penalties.promo_penalty > 0) {
-          expandedHTML += `
-            <div class="titles-penalty-item">
-              <span class="titles-penalty-name">Promotional Terms</span>
-              <span class="titles-penalty-value">-${penalties.promo_penalty}</span>
-            </div>`;
-        }
-        
-        if (penalties.repetition_penalty > 0) {
-          expandedHTML += `
-            <div class="titles-penalty-item">
-              <span class="titles-penalty-name">Word Repetition</span>
-              <span class="titles-penalty-value">-${penalties.repetition_penalty}</span>
-            </div>`;
-        }
-        
-        if (penalties.symbol_penalty > 0) {
-          expandedHTML += `
-            <div class="titles-penalty-item">
-              <span class="titles-penalty-name">Special Symbols</span>
-              <span class="titles-penalty-value">-${penalties.symbol_penalty}</span>
-            </div>`;
-        }
-        
-        expandedHTML += `
-            </div>
-            <div class="titles-penalty-total">
-              <span>Total Penalty</span>
-              <span>-${penalties.total}</span>
-            </div>
-          </div>`;
-      }
+      });
+      
+      expandedHTML += `
+          </div>
+        </div>`;
     }
   }
   
   expandedHTML += `
-    </div>
-  </div>`;
+      </div>
+    </div>`;
   
-  // RIGHT COLUMN - Improvement Suggestions
-  expandedHTML += '<div class="titles-detail-section">';
+  // COLUMN 3: Title Metrics
   expandedHTML += `
-    <div class="titles-section-header">
-      <div class="titles-section-icon">💡</div>
-      <h4 class="titles-section-title">Improvement Suggestions</h4>
-    </div>
-    <div class="titles-section-content">`;
+    <div class="titles-compact-section">
+      <div class="titles-compact-header">
+        <span style="font-size: 12px;">📏</span>
+        <h4 class="titles-compact-title">Title Metrics</h4>
+      </div>
+      <div class="titles-compact-body">
+        <div style="font-size: 11px; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Length:</span>
+            <strong>${analyzerData.titleLength || 0} chars</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Words:</span>
+            <strong>${analyzerData.wordCount || 0}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">T-Score:</span>
+            <strong style="color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'}">
+              ${analyzerData.finalScore}/100
+            </strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Avg KOS:</span>
+            <strong>${(analyzerData.avgKos || 0).toFixed(1)}/20</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span style="color: #6a737d;">GOS:</span>
+            <strong>${analyzerData.gos || 0}/80</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  
+  // COLUMN 4: Suggestions (remaining space)
+  expandedHTML += `
+    <div class="titles-compact-section">
+      <div class="titles-compact-header">
+        <span style="font-size: 12px;">💡</span>
+        <h4 class="titles-compact-title">Improvements (${analyzerData.improvementSuggestions?.length || 0})</h4>
+      </div>
+      <div class="titles-compact-body">
+        <div class="titles-suggestions-ultra">`;
   
   if (analyzerData.improvementSuggestions && analyzerData.improvementSuggestions.length > 0) {
-    expandedHTML += '<ul class="titles-suggestions-list">';
-    
     analyzerData.improvementSuggestions.forEach(suggestion => {
       expandedHTML += `
-        <li class="titles-suggestion-item">
-          <span class="titles-suggestion-icon">▸</span>
+        <div class="titles-suggestion-mini">
+          <span>•</span>
           <span>${suggestion}</span>
-        </li>`;
+        </div>`;
     });
-    
-    expandedHTML += '</ul>';
-  } else {
-    expandedHTML += '<p style="color: #6a737d; font-size: 12px; text-align: center; margin: 20px 0;">No suggestions available</p>';
   }
   
   expandedHTML += `
-    </div>
-  </div>`;
+        </div>
+      </div>
+    </div>`;
   
-  expandedHTML += '</div>'; // Close grid
-  expandedHTML += '</div>'; // Close expanded content
+  expandedHTML += '</div></div>';
   
   expandedCell.innerHTML = expandedHTML;
   expandedRow.appendChild(expandedCell);
-  
-  // Insert after the clicked row
   row.parentNode.insertBefore(expandedRow, row.nextSibling);
 }
 
