@@ -650,6 +650,139 @@ function addTitlesAnalyzerStyles() {
   font-size: 11px;
 }
 
+/* Score item with bar visualization */
+.titles-score-item-with-bar {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 11px;
+  position: relative;
+}
+
+.titles-score-item-label {
+  color: #24292e;
+  min-width: 85px;
+  font-size: 11px;
+}
+
+.titles-score-bar-container {
+  flex: 1;
+  height: 16px;
+  background: #f0f2f5;
+  border-radius: 3px;
+  position: relative;
+  margin: 0 8px;
+  overflow: hidden;
+}
+
+.titles-score-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.titles-score-bar-fill.high {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.titles-score-bar-fill.medium {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.titles-score-bar-fill.low {
+  background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.titles-score-value {
+  font-weight: 700;
+  color: #24292e;
+  min-width: 45px;
+  text-align: right;
+  font-size: 12px;
+}
+
+.titles-score-group {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.titles-score-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6a737d;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titles-score-group-title::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-radius: 2px;
+}
+
+/* Enhanced suggestions styling */
+.titles-suggestion-item {
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #451a03;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.titles-suggestion-item:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.titles-suggestion-icon {
+  color: #f59e0b;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.titles-suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.titles-suggestions-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.titles-suggestions-list::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 2px;
+}
+
+.titles-suggestions-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
 .titles-score-item-label {
   color: #24292e;
   flex: 1;
@@ -1707,7 +1840,7 @@ expandedHTML += `
   
 // COLUMN 2: Score Breakdown
   expandedHTML += `
-    <div class="titles-compact-section" style="width: 280px; flex-shrink: 0;">
+    <div class="titles-compact-section" style="width: 320px; flex-shrink: 0;">
       <div class="titles-compact-header">
         <span style="font-size: 12px;">📊</span>
         <h4 class="titles-compact-title">Score Breakdown</h4>
@@ -1717,86 +1850,119 @@ expandedHTML += `
   if (analyzerData.scoreBreakdown) {
     const b = analyzerData.scoreBreakdown;
     
+    // Helper function to get bar class
+    const getBarClass = (value, max) => {
+      const pct = (value / max) * 100;
+      if (pct >= 70) return 'high';
+      if (pct >= 40) return 'medium';
+      return 'low';
+    };
+    
     // KOS BREAKDOWN
     expandedHTML += `
       <div class="titles-score-group">
-        <div class="titles-score-group-title">KOS Breakdown</div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Frontload:</span>
-          <span class="titles-score-item-value">${b.frontload_score || 0}/10</span>
+        <div class="titles-score-group-title">KOS Breakdown</div>`;
+    
+    const kosItems = [
+      { label: 'Frontload', value: b.frontload_score || 0, max: 10 },
+      { label: 'Keyword Match', value: b.keyword_match_score || 0, max: 10 }
+    ];
+    
+    kosItems.forEach(item => {
+      const pct = (item.value / item.max) * 100;
+      const barClass = getBarClass(item.value, item.max);
+      expandedHTML += `
+        <div class="titles-score-item-with-bar">
+          <span class="titles-score-item-label">${item.label}:</span>
+          <div class="titles-score-bar-container">
+            <div class="titles-score-bar-fill ${barClass}" style="width: ${pct}%"></div>
+          </div>
+          <span class="titles-score-value">${item.value}/${item.max}</span>
+        </div>`;
+    });
+    
+    const totalKos = (b.frontload_score || 0) + (b.keyword_match_score || 0);
+    const kosPct = (totalKos / 20) * 100;
+    expandedHTML += `
+      <div class="titles-score-item-with-bar" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0f2f5;">
+        <span class="titles-score-item-label" style="font-weight: 700;">Total KOS:</span>
+        <div class="titles-score-bar-container">
+          <div class="titles-score-bar-fill ${getBarClass(totalKos, 20)}" style="width: ${kosPct}%"></div>
         </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Keyword Match:</span>
-          <span class="titles-score-item-value">${b.keyword_match_score || 0}/10</span>
-        </div>
-        <div class="titles-score-item total">
-          <span class="titles-score-item-label">Total KOS:</span>
-          <span class="titles-score-item-value">${(b.frontload_score || 0) + (b.keyword_match_score || 0)}/20</span>
-        </div>
-      </div>`;
+        <span class="titles-score-value" style="font-weight: 700;">${totalKos}/20</span>
+      </div>
+    </div>`;
     
     // GOS BREAKDOWN
     expandedHTML += `
       <div class="titles-score-group">
-        <div class="titles-score-group-title">GOS Breakdown</div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Brand:</span>
-          <span class="titles-score-item-value">${b.brand_score || 0}/5</span>
+        <div class="titles-score-group-title">GOS Breakdown</div>`;
+    
+    const gosItems = [
+      { label: 'Brand', value: b.brand_score || 0, max: 5 },
+      { label: 'Category', value: b.category_score || 0, max: 10 },
+      { label: 'Attributes', value: b.attribute_score || 0, max: 10 },
+      { label: 'Hooks', value: b.hooks_score || 0, max: 5 },
+      { label: 'Readability', value: b.readability_score || 0, max: 5 },
+      { label: 'Structure', value: b.structure_score || 0, max: 15 },
+      { label: 'Character', value: b.character_score || 0, max: 30 }
+    ];
+    
+    gosItems.forEach(item => {
+      const pct = (item.value / item.max) * 100;
+      const barClass = getBarClass(item.value, item.max);
+      expandedHTML += `
+        <div class="titles-score-item-with-bar">
+          <span class="titles-score-item-label">${item.label}:</span>
+          <div class="titles-score-bar-container">
+            <div class="titles-score-bar-fill ${barClass}" style="width: ${pct}%"></div>
+          </div>
+          <span class="titles-score-value">${item.value}/${item.max}</span>
+        </div>`;
+    });
+    
+    const totalGos = analyzerData.gos || 0;
+    const gosPct = (totalGos / 80) * 100;
+    expandedHTML += `
+      <div class="titles-score-item-with-bar" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0f2f5;">
+        <span class="titles-score-item-label" style="font-weight: 700;">Total GOS:</span>
+        <div class="titles-score-bar-container">
+          <div class="titles-score-bar-fill ${getBarClass(totalGos, 80)}" style="width: ${gosPct}%"></div>
         </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Category:</span>
-          <span class="titles-score-item-value">${b.category_score || 0}/10</span>
-        </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Attributes:</span>
-          <span class="titles-score-item-value">${b.attribute_score || 0}/10</span>
-        </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Hooks:</span>
-          <span class="titles-score-item-value">${b.hooks_score || 0}/5</span>
-        </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Readability:</span>
-          <span class="titles-score-item-value">${b.readability_score || 0}/5</span>
-        </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Structure:</span>
-          <span class="titles-score-item-value">${b.structure_score || 0}/15</span>
-        </div>
-        <div class="titles-score-item">
-          <span class="titles-score-item-label">Character:</span>
-          <span class="titles-score-item-value">${b.character_score || 0}/30</span>
-        </div>
-        <div class="titles-score-item total">
-          <span class="titles-score-item-label">Total GOS:</span>
-          <span class="titles-score-item-value">${analyzerData.gos || 0}/80</span>
-        </div>
-      </div>`;
+        <span class="titles-score-value" style="font-weight: 700;">${totalGos}/80</span>
+      </div>
+    </div>`;
     
     // ADJUSTMENTS
     expandedHTML += `
       <div class="titles-score-group">
         <div class="titles-score-group-title">Adjustments</div>
-        <div class="titles-score-item">
+        <div class="titles-score-item" style="display: flex; justify-content: space-between; padding: 4px 0;">
           <span class="titles-score-item-label">Category Pack:</span>
-          <span class="titles-score-item-value" style="color: ${(b.category_pack_adjustment || 0) < 0 ? '#dc2626' : '#22c55e'};">
+          <span class="titles-score-value" style="color: ${(b.category_pack_adjustment || 0) < 0 ? '#dc2626' : (b.category_pack_adjustment || 0) > 0 ? '#22c55e' : '#6a737d'};">
             ${(b.category_pack_adjustment || 0) > 0 ? '+' : ''}${b.category_pack_adjustment || 0}
           </span>
         </div>
-        <div class="titles-score-item">
+        <div class="titles-score-item" style="display: flex; justify-content: space-between; padding: 4px 0;">
           <span class="titles-score-item-label">Penalties:</span>
-          <span class="titles-score-item-value" style="color: #dc2626;">
+          <span class="titles-score-value" style="color: ${b.penalties?.total ? '#dc2626' : '#6a737d'};">
             ${b.penalties?.total ? '-' + b.penalties.total : '0'}
           </span>
         </div>
       </div>`;
     
     // FINAL SCORE
+    const finalScorePct = (analyzerData.finalScore / 100) * 100;
+    const finalScoreClass = analyzerData.finalScore > 70 ? 'high' : analyzerData.finalScore > 40 ? 'medium' : 'low';
+    
     expandedHTML += `
-      <div class="titles-score-group">
-        <div class="titles-score-item total" style="border-top: 2px solid #e1e4e8; padding-top: 6px;">
-          <span class="titles-score-item-label" style="font-size: 12px;">FINAL SCORE:</span>
-          <span class="titles-score-item-value" style="font-size: 14px; color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'};">
+      <div class="titles-score-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+        <div class="titles-score-item-with-bar" style="border-top: 2px solid #667eea; padding-top: 8px;">
+          <span class="titles-score-item-label" style="font-size: 12px; font-weight: 700; color: #667eea;">FINAL SCORE:</span>
+          <div class="titles-score-bar-container" style="height: 20px;">
+            <div class="titles-score-bar-fill ${finalScoreClass}" style="width: ${finalScorePct}%"></div>
+          </div>
+          <span class="titles-score-value" style="font-size: 16px; font-weight: 700; color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'};">
             ${analyzerData.finalScore}/100
           </span>
         </div>
@@ -1842,26 +2008,31 @@ expandedHTML += `
       </div>
     </div>`;
   
-// COLUMN 4: Suggestions
+// COLUMN 4: Improvements
   expandedHTML += `
-    <div class="titles-compact-section" style="width: 400px; flex-shrink: 0;">
-      <div class="titles-compact-header">
+    <div class="titles-compact-section" style="width: 420px; flex-shrink: 0;">
+      <div class="titles-compact-header" style="background: linear-gradient(to right, #fef3c7, #ffffff);">
         <span style="font-size: 12px;">💡</span>
         <h4 class="titles-compact-title">Improvements (${analyzerData.improvementSuggestions?.length || 0})</h4>
       </div>
-      <div class="titles-compact-body">
-        <div class="titles-suggestions-ultra">`;
+      <div class="titles-compact-body" style="height: 340px; overflow-y: auto;">
+        <div class="titles-suggestions-list">`;
   
   if (analyzerData.improvementSuggestions && analyzerData.improvementSuggestions.length > 0) {
-    analyzerData.improvementSuggestions.forEach(suggestion => {
+    analyzerData.improvementSuggestions.forEach((suggestion, index) => {
       expandedHTML += `
-        <div class="titles-suggestion-mini">
-          <span>•</span>
+        <div class="titles-suggestion-item">
+          <span class="titles-suggestion-icon">${index + 1}</span>
           <span>${suggestion}</span>
         </div>`;
     });
   } else {
-    expandedHTML += `<div style="color: #6a737d; font-size: 11px; text-align: center; padding: 20px;">No suggestions available</div>`;
+    expandedHTML += `
+      <div style="color: #6a737d; font-size: 12px; text-align: center; padding: 40px;">
+        <div style="font-size: 32px; margin-bottom: 10px;">✨</div>
+        <div>No improvements needed!</div>
+        <div style="font-size: 11px; margin-top: 4px;">This title is well optimized.</div>
+      </div>`;
   }
   
   expandedHTML += `
