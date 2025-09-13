@@ -580,10 +580,9 @@ function addTitlesAnalyzerStyles() {
 
 /* Compact 4-column layout */
 .titles-compact-grid {
-  display: grid;
-  grid-template-columns: 240px 280px 260px 1fr;
-  gap: 12px;
-  height: 376px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
 }
 
 /* Compact section styling */
@@ -619,6 +618,70 @@ function addTitlesAnalyzerStyles() {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+}
+
+/* Score group styling */
+.titles-score-group {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.titles-score-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.titles-score-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6a737d;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.titles-score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.titles-score-item-label {
+  color: #24292e;
+  flex: 1;
+}
+
+.titles-score-item-value {
+  font-weight: 600;
+  color: #24292e;
+  margin-left: auto;
+  min-width: 40px;
+  text-align: right;
+}
+
+.titles-score-item.total {
+  font-weight: 700;
+  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 1px solid #f0f2f5;
+}
+
+/* Updated suggestions styling */
+.titles-suggestion-mini {
+  padding: 6px 8px;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 /* Ultra-compact keywords table */
@@ -1605,15 +1668,23 @@ function toggleRowExpansion(row, analyzerResults) {
   let expandedHTML = '<div class="titles-expanded-content">';
   expandedHTML += '<div class="titles-compact-grid">';
   
-  // COLUMN 1: Keywords (narrow)
+// COLUMN 1: Keywords (narrow)
   expandedHTML += `
-    <div class="titles-compact-section">
+    <div class="titles-compact-section" style="width: 240px; flex-shrink: 0;">
       <div class="titles-compact-header">
         <span style="font-size: 12px;">🎯</span>
         <h4 class="titles-compact-title">Top Keywords</h4>
       </div>
       <div class="titles-compact-body">
-        <table class="titles-keywords-compact">`;
+        <table class="titles-keywords-compact">
+          <thead style="border-bottom: 1px solid #e1e4e8;">
+            <tr style="height: 20px;">
+              <th style="width: 20px; text-align: center; font-size: 9px; color: #6a737d; font-weight: 600;">#</th>
+              <th style="text-align: left; font-size: 9px; color: #6a737d; font-weight: 600; padding-left: 4px;">KEYWORD</th>
+              <th style="width: 35px; text-align: center; font-size: 9px; color: #6a737d; font-weight: 600;">KOS</th>
+            </tr>
+          </thead>
+          <tbody>`;
   
   if (analyzerData.kosDetails && analyzerData.kosDetails.length > 0) {
     analyzerData.kosDetails.slice(0, 10).forEach((kw, idx) => {
@@ -1628,79 +1699,108 @@ function toggleRowExpansion(row, analyzerResults) {
     });
   }
   
-  expandedHTML += `
+expandedHTML += `
+          </tbody>
         </table>
       </div>
     </div>`;
   
-  // COLUMN 2: Scores (compact grid)
+// COLUMN 2: Score Breakdown
   expandedHTML += `
-    <div class="titles-compact-section">
+    <div class="titles-compact-section" style="width: 280px; flex-shrink: 0;">
       <div class="titles-compact-header">
         <span style="font-size: 12px;">📊</span>
         <h4 class="titles-compact-title">Score Breakdown</h4>
       </div>
-      <div class="titles-compact-body">
-        <div class="titles-scores-inline">`;
+      <div class="titles-compact-body">`;
   
   if (analyzerData.scoreBreakdown) {
     const b = analyzerData.scoreBreakdown;
-    const scores = [
-      { label: 'Attributes', value: b.attribute_score || 0, max: 10 },
-      { label: 'Brand', value: b.brand_score || 0, max: 10 },
-      { label: 'Category', value: b.category_score || 0, max: 10 },
-      { label: 'Character', value: b.character_score || 0, max: 10 },
-      { label: 'Frontload', value: b.frontload_score || 0, max: 10 },
-      { label: 'Hooks', value: b.hooks_score || 0, max: 10 },
-      { label: 'Keywords', value: b.keyword_match_score || 0, max: 20 },
-      { label: 'Readability', value: b.readability_score || 0, max: 10 },
-      { label: 'Structure', value: b.structure_score || 0, max: 10 }
-    ];
     
-    scores.forEach(s => {
-      const pct = (s.value / s.max) * 100;
-      const fillClass = pct >= 70 ? 'fill-high' : pct >= 40 ? 'fill-mid' : 'fill-low';
-      expandedHTML += `
-        <div class="titles-score-row">
-          <span class="titles-score-label" title="${s.label}">${s.label}</span>
-          <div class="titles-score-visual">
-            <div class="titles-mini-bar">
-              <div class="titles-mini-fill ${fillClass}" style="width: ${pct}%"></div>
-            </div>
-            <span class="titles-score-text">${s.value}/${s.max}</span>
-          </div>
-        </div>`;
-    });
+    // KOS BREAKDOWN
+    expandedHTML += `
+      <div class="titles-score-group">
+        <div class="titles-score-group-title">KOS Breakdown</div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Frontload:</span>
+          <span class="titles-score-item-value">${b.frontload_score || 0}/10</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Keyword Match:</span>
+          <span class="titles-score-item-value">${b.keyword_match_score || 0}/10</span>
+        </div>
+        <div class="titles-score-item total">
+          <span class="titles-score-item-label">Total KOS:</span>
+          <span class="titles-score-item-value">${(b.frontload_score || 0) + (b.keyword_match_score || 0)}/20</span>
+        </div>
+      </div>`;
     
-    expandedHTML += '</div>';
+    // GOS BREAKDOWN
+    expandedHTML += `
+      <div class="titles-score-group">
+        <div class="titles-score-group-title">GOS Breakdown</div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Brand:</span>
+          <span class="titles-score-item-value">${b.brand_score || 0}/5</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Category:</span>
+          <span class="titles-score-item-value">${b.category_score || 0}/10</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Attributes:</span>
+          <span class="titles-score-item-value">${b.attribute_score || 0}/10</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Hooks:</span>
+          <span class="titles-score-item-value">${b.hooks_score || 0}/5</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Readability:</span>
+          <span class="titles-score-item-value">${b.readability_score || 0}/5</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Structure:</span>
+          <span class="titles-score-item-value">${b.structure_score || 0}/15</span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Character:</span>
+          <span class="titles-score-item-value">${b.character_score || 0}/30</span>
+        </div>
+        <div class="titles-score-item total">
+          <span class="titles-score-item-label">Total GOS:</span>
+          <span class="titles-score-item-value">${analyzerData.gos || 0}/80</span>
+        </div>
+      </div>`;
     
-    // Penalties (if any)
-    if (b.penalties && b.penalties.total > 0) {
-      expandedHTML += `
-        <div class="titles-penalties-compact">
-          <div class="titles-penalties-grid">`;
-      
-      const penalties = [
-        { label: 'Caps', value: b.penalties.caps_penalty },
-        { label: 'Promo', value: b.penalties.promo_penalty },
-        { label: 'Repeat', value: b.penalties.repetition_penalty },
-        { label: 'Symbol', value: b.penalties.symbol_penalty }
-      ];
-      
-      penalties.forEach(p => {
-        if (p.value > 0) {
-          expandedHTML += `
-            <div class="titles-penalty-row">
-              <span class="titles-penalty-label">${p.label}</span>
-              <span class="titles-penalty-val">-${p.value}</span>
-            </div>`;
-        }
-      });
-      
-      expandedHTML += `
-          </div>
-        </div>`;
-    }
+    // ADJUSTMENTS
+    expandedHTML += `
+      <div class="titles-score-group">
+        <div class="titles-score-group-title">Adjustments</div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Category Pack:</span>
+          <span class="titles-score-item-value" style="color: ${(b.category_pack_adjustment || 0) < 0 ? '#dc2626' : '#22c55e'};">
+            ${(b.category_pack_adjustment || 0) > 0 ? '+' : ''}${b.category_pack_adjustment || 0}
+          </span>
+        </div>
+        <div class="titles-score-item">
+          <span class="titles-score-item-label">Penalties:</span>
+          <span class="titles-score-item-value" style="color: #dc2626;">
+            ${b.penalties?.total ? '-' + b.penalties.total : '0'}
+          </span>
+        </div>
+      </div>`;
+    
+    // FINAL SCORE
+    expandedHTML += `
+      <div class="titles-score-group">
+        <div class="titles-score-item total" style="border-top: 2px solid #e1e4e8; padding-top: 6px;">
+          <span class="titles-score-item-label" style="font-size: 12px;">FINAL SCORE:</span>
+          <span class="titles-score-item-value" style="font-size: 14px; color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'};">
+            ${analyzerData.finalScore}/100
+          </span>
+        </div>
+      </div>`;
   }
   
   expandedHTML += `
@@ -1709,7 +1809,7 @@ function toggleRowExpansion(row, analyzerResults) {
   
   // COLUMN 3: Title Metrics
   expandedHTML += `
-    <div class="titles-compact-section">
+    <div class="titles-compact-section" style="width: 200px; flex-shrink: 0;">
       <div class="titles-compact-header">
         <span style="font-size: 12px;">📏</span>
         <h4 class="titles-compact-title">Title Metrics</h4>
@@ -1742,9 +1842,9 @@ function toggleRowExpansion(row, analyzerResults) {
       </div>
     </div>`;
   
-  // COLUMN 4: Suggestions (remaining space)
+// COLUMN 4: Suggestions
   expandedHTML += `
-    <div class="titles-compact-section">
+    <div class="titles-compact-section" style="width: 400px; flex-shrink: 0;">
       <div class="titles-compact-header">
         <span style="font-size: 12px;">💡</span>
         <h4 class="titles-compact-title">Improvements (${analyzerData.improvementSuggestions?.length || 0})</h4>
@@ -1760,6 +1860,8 @@ function toggleRowExpansion(row, analyzerResults) {
           <span>${suggestion}</span>
         </div>`;
     });
+  } else {
+    expandedHTML += `<div style="color: #6a737d; font-size: 11px; text-align: center; padding: 20px;">No suggestions available</div>`;
   }
   
   expandedHTML += `
