@@ -1590,11 +1590,12 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       else if (adPosition <= 14) posClass = 'low';
     }
     
-    // T-Score class
+// T-Score class (using rounded value for consistency)
+    const roundedScore = Math.round(finalScore);
     let tscoreClass = 'titles-tscore-poor';
-    if (finalScore > 70) tscoreClass = 'titles-tscore-excellent';
-    else if (finalScore >= 55) tscoreClass = 'titles-tscore-good';
-    else if (finalScore >= 40) tscoreClass = 'titles-tscore-fair';
+    if (roundedScore > 70) tscoreClass = 'titles-tscore-excellent';
+    else if (roundedScore >= 55) tscoreClass = 'titles-tscore-good';
+    else if (roundedScore >= 40) tscoreClass = 'titles-tscore-fair';
     
     // KOS class (avg_kos)
     let kosClass = 'titles-kos-poor';
@@ -1665,7 +1666,7 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
       <td class="center">
         ${finalScore > 0 ? 
           `<span class="titles-score-fraction ${tscoreClass}">
-            <span class="titles-score-value">${finalScore}</span>
+            <span class="titles-score-value">${Math.round(finalScore)}</span>
             <span class="titles-score-max">/100</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
@@ -1918,7 +1919,8 @@ expandedHTML += `
     
     // FINAL SCORE
     const finalScorePct = (analyzerData.finalScore / 100) * 100;
-    const finalScoreClass = analyzerData.finalScore > 70 ? 'high' : analyzerData.finalScore > 40 ? 'medium' : 'low';
+    const roundedFinalScore = Math.round(analyzerData.finalScore);
+    const finalScoreClass = roundedFinalScore > 70 ? 'high' : roundedFinalScore > 40 ? 'medium' : 'low';
     
     expandedHTML += `
       <div class="titles-score-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
@@ -1927,8 +1929,8 @@ expandedHTML += `
           <div class="titles-score-bar-container" style="height: 20px;">
             <div class="titles-score-bar-fill ${finalScoreClass}" style="width: ${finalScorePct}%"></div>
           </div>
-          <span class="titles-score-value" style="font-size: 16px; font-weight: 700; color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'};">
-            ${analyzerData.finalScore}/100
+          <span class="titles-score-value" style="font-size: 16px; font-weight: 700; color: ${roundedFinalScore > 70 ? '#22c55e' : roundedFinalScore > 40 ? '#f59e0b' : '#ef4444'};">
+            ${Math.round(analyzerData.finalScore)}/100
           </span>
         </div>
       </div>`;
@@ -1958,7 +1960,7 @@ expandedHTML += `
           <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
             <span style="color: #6a737d;">T-Score:</span>
             <strong style="color: ${analyzerData.finalScore > 70 ? '#22c55e' : analyzerData.finalScore > 40 ? '#f59e0b' : '#ef4444'}">
-              ${analyzerData.finalScore}/100
+              ${Math.round(analyzerData.finalScore)}/100
             </strong>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
@@ -1976,7 +1978,7 @@ expandedHTML += `
 // COLUMN 4: Improvements
   expandedHTML += `
     <div class="titles-compact-section" style="width: 420px; flex-shrink: 0;">
-      <div class="titles-compact-header" style="background: linear-gradient(to right, #fef3c7, #ffffff);">
+      <div class="titles-compact-header">
         <span style="font-size: 12px;">💡</span>
         <h4 class="titles-compact-title">Improvements (${analyzerData.improvementSuggestions?.length || 0})</h4>
       </div>
