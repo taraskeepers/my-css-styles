@@ -568,9 +568,10 @@ function addTitlesAnalyzerStyles() {
 }
 
 .titles-expanded-content {
-  padding: 20px;
+  padding: 15px 20px;
+  max-height: 400px;
+  overflow-y: auto;
   animation: slideDown 0.3s ease-out;
-  overflow: hidden;
 }
 
 @keyframes slideDown {
@@ -579,158 +580,207 @@ function addTitlesAnalyzerStyles() {
     opacity: 0;
   }
   to {
-    max-height: 800px;
+    max-height: 400px;
     opacity: 1;
   }
 }
 
-.titles-expanded-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* New compact layout */
+.titles-expanded-layout {
+  display: flex;
   gap: 20px;
-  margin-bottom: 20px;
+  height: 100%;
+}
+
+.titles-expanded-left {
+  flex: 0 0 250px;
+}
+
+.titles-expanded-center {
+  flex: 0 0 320px;
+}
+
+.titles-expanded-right {
+  flex: 1;
+  min-width: 0;
 }
 
 .titles-expanded-section {
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-bottom: 15px;
+}
+
+.titles-expanded-section:last-child {
+  margin-bottom: 0;
 }
 
 .titles-expanded-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
+  margin: 0 0 10px 0;
+  font-size: 12px;
   font-weight: 700;
   color: #495057;
-  border-bottom: 2px solid #667eea;
-  padding-bottom: 8px;
+  border-bottom: 1px solid #667eea;
+  padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* KOS Details Table */
-.titles-kos-table {
+.titles-expanded-section h4 .icon {
+  font-size: 14px;
+}
+
+/* Compact KOS Table */
+.titles-kos-compact {
   width: 100%;
-  font-size: 12px;
-  border-collapse: collapse;
-}
-
-.titles-kos-table th {
-  background: #f8f9fa;
-  padding: 6px 8px;
-  text-align: left;
-  font-weight: 600;
   font-size: 11px;
-  color: #6c757d;
-  border-bottom: 1px solid #dee2e6;
 }
 
-.titles-kos-table td {
-  padding: 6px 8px;
+.titles-kos-compact td {
+  padding: 4px 6px;
   border-bottom: 1px solid #f0f2f5;
 }
 
-.titles-kos-rank {
-  font-weight: 700;
+.titles-kos-compact td:first-child {
+  font-weight: 600;
+  color: #495057;
+  width: 30px;
+  text-align: center;
   color: #667eea;
 }
 
-.titles-kos-keyword {
-  font-weight: 600;
+.titles-kos-compact td:nth-child(2) {
+  color: #333;
 }
 
-.titles-kos-score {
+.titles-kos-compact td:last-child {
+  width: 40px;
   text-align: center;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-weight: 700;
+  padding: 2px 4px;
   border-radius: 4px;
 }
 
-.titles-kos-score.high {
+.titles-kos-compact .kos-high {
   background: rgba(34, 197, 94, 0.1);
   color: #16a34a;
 }
 
-.titles-kos-score.medium {
+.titles-kos-compact .kos-medium {
   background: rgba(251, 191, 36, 0.1);
   color: #f59e0b;
 }
 
-.titles-kos-score.low {
+.titles-kos-compact .kos-low {
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;
 }
 
-/* Improvement Suggestions */
-.titles-suggestions-list {
+/* Compact Suggestions */
+.titles-suggestions-compact {
   list-style: none;
   padding: 0;
   margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
-.titles-suggestion-item {
-  padding: 8px 12px;
-  margin-bottom: 8px;
+.titles-suggestion-compact {
+  padding: 6px 8px;
+  margin-bottom: 6px;
   background: rgba(251, 191, 36, 0.05);
-  border-left: 3px solid #f59e0b;
-  border-radius: 4px;
-  font-size: 12px;
+  border-left: 2px solid #f59e0b;
+  border-radius: 3px;
+  font-size: 11px;
   color: #495057;
+  line-height: 1.4;
+}
+
+.titles-suggestion-compact:last-child {
+  margin-bottom: 0;
+}
+
+/* Score Breakdown - Single Row */
+.titles-score-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.titles-score-item-compact {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.titles-suggestion-item::before {
-  content: "💡";
-  font-size: 14px;
-}
-
-/* Score Breakdown */
-.titles-score-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.titles-score-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 4px 8px;
   background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
-.titles-score-label {
+.titles-score-label-compact {
   color: #6c757d;
   font-weight: 500;
 }
 
-.titles-score-value {
+.titles-score-value-compact {
   font-weight: 700;
   color: #495057;
 }
 
 /* Penalties Section */
-.titles-penalties-box {
+.titles-penalties-compact {
   background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 6px;
-  padding: 10px;
-  margin-top: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
 }
 
-.titles-penalty-item {
+.titles-penalties-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 6px 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 12px;
+  gap: 4px;
+}
+
+.titles-penalty-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 11px;
   color: #dc2626;
 }
 
-.titles-penalty-icon {
-  font-size: 14px;
+.titles-penalty-value {
+  font-weight: 700;
+}
+
+/* Scrollbar styling for expanded content */
+.titles-expanded-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.titles-expanded-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.titles-expanded-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.titles-expanded-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
     `;
@@ -1525,42 +1575,29 @@ function toggleRowExpansion(row, analyzerResults) {
   const expandedCell = document.createElement('td');
   expandedCell.colSpan = row.cells.length;
   
-  // Build expanded content
+  // Build expanded content with new compact layout
   let expandedHTML = '<div class="titles-expanded-content">';
+  expandedHTML += '<div class="titles-expanded-layout">';
   
-  // Grid layout for main sections
-  expandedHTML += '<div class="titles-expanded-grid">';
-  
-  // KOS Details Section
+  // LEFT COLUMN - KOS Details
+  expandedHTML += '<div class="titles-expanded-left">';
   if (analyzerData.kosDetails && analyzerData.kosDetails.length > 0) {
     expandedHTML += `
       <div class="titles-expanded-section">
-        <h4>🎯 Top 10 Keywords Analysis (KOS Details)</h4>
-        <table class="titles-kos-table">
-          <thead>
-            <tr>
-              <th style="width: 40px;">Rank</th>
-              <th>Keyword</th>
-              <th style="width: 60px;">Score</th>
-              <th style="width: 80px;">Position</th>
-              <th>Match</th>
-            </tr>
-          </thead>
+        <h4><span class="icon">🎯</span> Top 10 Keywords</h4>
+        <table class="titles-kos-compact">
           <tbody>`;
     
+    // Only show top 10 keywords with their KOS value
     analyzerData.kosDetails.slice(0, 10).forEach((kw, idx) => {
-      const scoreClass = kw.score >= 15 ? 'high' : kw.score >= 10 ? 'medium' : 'low';
-      const position = kw.position_in_title !== undefined ? 
-        (kw.position_in_title === -1 ? 'Not found' : `Word ${kw.position_in_title + 1}`) : '-';
-      const matchType = kw.exact_match ? '✅ Exact' : kw.partial_match ? '⚠️ Partial' : '❌ None';
+      const kosValue = kw.kos || 0;
+      const kosClass = kosValue >= 15 ? 'kos-high' : kosValue >= 10 ? 'kos-medium' : 'kos-low';
       
       expandedHTML += `
         <tr>
-          <td class="titles-kos-rank">#${idx + 1}</td>
-          <td class="titles-kos-keyword">${kw.keyword || '-'}</td>
-          <td><span class="titles-kos-score ${scoreClass}">${kw.score || 0}</span></td>
-          <td>${position}</td>
-          <td>${matchType}</td>
+          <td>#${idx + 1}</td>
+          <td>${kw.keyword || '-'}</td>
+          <td class="${kosClass}">${kosValue}</td>
         </tr>`;
     });
     
@@ -1569,74 +1606,107 @@ function toggleRowExpansion(row, analyzerResults) {
         </table>
       </div>`;
   }
+  expandedHTML += '</div>';
   
-  // Improvement Suggestions Section
+  // CENTER COLUMN - Improvement Suggestions
+  expandedHTML += '<div class="titles-expanded-center">';
   if (analyzerData.improvementSuggestions && analyzerData.improvementSuggestions.length > 0) {
     expandedHTML += `
       <div class="titles-expanded-section">
-        <h4>💡 Improvement Suggestions</h4>
-        <ul class="titles-suggestions-list">`;
+        <h4><span class="icon">💡</span> Improvements</h4>
+        <ul class="titles-suggestions-compact">`;
     
     analyzerData.improvementSuggestions.forEach(suggestion => {
-      expandedHTML += `<li class="titles-suggestion-item">${suggestion}</li>`;
+      expandedHTML += `<li class="titles-suggestion-compact">${suggestion}</li>`;
     });
     
     expandedHTML += `
         </ul>
       </div>`;
   }
+  expandedHTML += '</div>';
   
-  expandedHTML += '</div>'; // Close grid
+  // RIGHT COLUMN - Score Breakdown and Penalties
+  expandedHTML += '<div class="titles-expanded-right">';
   
-  // Score Breakdown Section (full width)
+  // Score Breakdown
   if (analyzerData.scoreBreakdown && Object.keys(analyzerData.scoreBreakdown).length > 0) {
     const breakdown = analyzerData.scoreBreakdown;
     expandedHTML += `
       <div class="titles-expanded-section">
-        <h4>📊 Score Breakdown</h4>
-        <div class="titles-score-grid">`;
+        <h4><span class="icon">📊</span> Score Breakdown</h4>
+        <div class="titles-score-row">`;
     
-    // Display each score component
+    // Display score components in a single row
     const scoreComponents = [
-      { label: 'Keyword Score (KOS)', value: breakdown.kos || 0, max: 20 },
-      { label: 'Generic Score (GOS)', value: breakdown.gos || 0, max: 80 },
-      { label: 'Frontload Bonus', value: breakdown.frontload_score || 0, max: 10 },
-      { label: 'Keyword Match', value: breakdown.keyword_match_score || 0, max: 20 },
-      { label: 'Brand Score', value: breakdown.brand_score || 0, max: 10 },
-      { label: 'Category Score', value: breakdown.category_score || 0, max: 10 },
-      { label: 'Length Score', value: breakdown.length_score || 0, max: 10 },
-      { label: 'Attributes Score', value: breakdown.attributes_score || 0, max: 10 },
-      { label: 'Quality Score', value: breakdown.quality_score || 0, max: 10 }
+      { label: 'KOS', value: breakdown.kos || 0, max: 20 },
+      { label: 'GOS', value: breakdown.gos || 0, max: 80 },
+      { label: 'Frontload', value: breakdown.frontload_score || 0, max: 10 },
+      { label: 'Match', value: breakdown.keyword_match_score || 0, max: 20 },
+      { label: 'Brand', value: breakdown.brand_score || 0, max: 10 },
+      { label: 'Category', value: breakdown.category_score || 0, max: 10 },
+      { label: 'Length', value: breakdown.length_score || 0, max: 10 },
+      { label: 'Attributes', value: breakdown.attributes_score || 0, max: 10 },
+      { label: 'Quality', value: breakdown.quality_score || 0, max: 10 }
     ];
     
     scoreComponents.forEach(component => {
       if (component.value !== undefined) {
         expandedHTML += `
-          <div class="titles-score-item">
-            <span class="titles-score-label">${component.label}:</span>
-            <span class="titles-score-value">${component.value}/${component.max}</span>
+          <div class="titles-score-item-compact">
+            <span class="titles-score-label-compact">${component.label}:</span>
+            <span class="titles-score-value-compact">${component.value}/${component.max}</span>
           </div>`;
       }
     });
     
     expandedHTML += '</div>';
     
-    // Penalties section
+    // Penalties section - check all penalty fields in breakdown
     const penalties = [];
-    if (breakdown.length_penalty) penalties.push({ reason: 'Title length not optimal', value: breakdown.length_penalty });
-    if (breakdown.keyword_penalty) penalties.push({ reason: 'Missing important keywords', value: breakdown.keyword_penalty });
-    if (breakdown.position_penalty) penalties.push({ reason: 'Keywords not frontloaded', value: breakdown.position_penalty });
+    
+    // Check for various penalty fields that might exist
+    Object.keys(breakdown).forEach(key => {
+      if (key.includes('penalty') && breakdown[key]) {
+        const penaltyValue = breakdown[key];
+        if (penaltyValue !== 0) {
+          // Format the penalty name
+          let penaltyName = key.replace(/_/g, ' ').replace('penalty', '').trim();
+          penaltyName = penaltyName.charAt(0).toUpperCase() + penaltyName.slice(1);
+          
+          penalties.push({
+            reason: penaltyName,
+            value: Math.abs(penaltyValue)
+          });
+        }
+      }
+    });
+    
+    // Also check for specific penalty patterns
+    if (breakdown.title_length_penalty) {
+      penalties.push({ reason: 'Title length', value: Math.abs(breakdown.title_length_penalty) });
+    }
+    if (breakdown.keyword_position_penalty) {
+      penalties.push({ reason: 'Keyword position', value: Math.abs(breakdown.keyword_position_penalty) });
+    }
+    if (breakdown.missing_keywords_penalty) {
+      penalties.push({ reason: 'Missing keywords', value: Math.abs(breakdown.missing_keywords_penalty) });
+    }
     
     if (penalties.length > 0) {
       expandedHTML += `
-        <div class="titles-penalties-box">
-          <h5 style="margin: 0 0 8px 0; font-size: 13px; color: #dc2626;">⚠️ Penalties Applied</h5>`;
+        <div class="titles-penalties-compact">
+          <div class="titles-penalties-title">
+            <span>⚠️</span>
+            <span>Penalties Applied</span>
+          </div>`;
       
       penalties.forEach(penalty => {
         expandedHTML += `
-          <div class="titles-penalty-item">
-            <span class="titles-penalty-icon">▼</span>
-            <span>${penalty.reason}: -${Math.abs(penalty.value)} points</span>
+          <div class="titles-penalty-item-compact">
+            <span>▼</span>
+            <span>${penalty.reason}:</span>
+            <span class="titles-penalty-value">-${penalty.value}</span>
           </div>`;
       });
       
@@ -1646,6 +1716,8 @@ function toggleRowExpansion(row, analyzerResults) {
     expandedHTML += '</div>'; // Close score breakdown section
   }
   
+  expandedHTML += '</div>'; // Close right column
+  expandedHTML += '</div>'; // Close layout
   expandedHTML += '</div>'; // Close expanded content
   
   expandedCell.innerHTML = expandedHTML;
