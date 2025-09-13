@@ -203,7 +203,7 @@ function addTitlesAnalyzerStyles() {
       .titles-table-modern tbody tr {
         border-bottom: 1px solid #f0f2f5;
         transition: background 0.15s ease;
-        height: 70px;
+        height: 30px;
       }
       
       .titles-table-modern tbody tr:hover {
