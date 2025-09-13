@@ -1858,41 +1858,6 @@ expandedHTML += `
       return 'low';
     };
     
-    // KOS BREAKDOWN
-    expandedHTML += `
-      <div class="titles-score-group">
-        <div class="titles-score-group-title">KOS Breakdown</div>`;
-    
-    const kosItems = [
-      { label: 'Frontload', value: b.frontload_score || 0, max: 10 },
-      { label: 'Keyword Match', value: b.keyword_match_score || 0, max: 10 }
-    ];
-    
-    kosItems.forEach(item => {
-      const pct = (item.value / item.max) * 100;
-      const barClass = getBarClass(item.value, item.max);
-      expandedHTML += `
-        <div class="titles-score-item-with-bar">
-          <span class="titles-score-item-label">${item.label}:</span>
-          <div class="titles-score-bar-container">
-            <div class="titles-score-bar-fill ${barClass}" style="width: ${pct}%"></div>
-          </div>
-          <span class="titles-score-value">${item.value}/${item.max}</span>
-        </div>`;
-    });
-    
-    const totalKos = (b.frontload_score || 0) + (b.keyword_match_score || 0);
-    const kosPct = (totalKos / 20) * 100;
-    expandedHTML += `
-      <div class="titles-score-item-with-bar" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0f2f5;">
-        <span class="titles-score-item-label" style="font-weight: 700;">Total KOS:</span>
-        <div class="titles-score-bar-container">
-          <div class="titles-score-bar-fill ${getBarClass(totalKos, 20)}" style="width: ${kosPct}%"></div>
-        </div>
-        <span class="titles-score-value" style="font-weight: 700;">${totalKos}/20</span>
-      </div>
-    </div>`;
-    
     // GOS BREAKDOWN
     expandedHTML += `
       <div class="titles-score-group">
