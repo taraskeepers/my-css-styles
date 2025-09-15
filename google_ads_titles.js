@@ -2291,15 +2291,21 @@ function addTitlesSortingFunctionality(table, products, processedMetrics, analyz
   });
 }
 
-// Load search terms data for titles analysis
 async function loadSearchTermsDataForTitles() {
   try {
     const tablePrefix = typeof window.getProjectTablePrefix === 'function' ? 
-      window.getProjectTablePrefix() : 'acc1_pr1_';
+      window.getProjectTablePrefix() : (() => {
+        const accountPrefix = window.currentAccount || 'acc1';
+        const currentProjectNum = window.dataPrefix ? 
+          parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+        return `${accountPrefix}_pr${currentProjectNum}_`;
+      })();
     
     const days = window.selectedDateRangeDays || 30;
     const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
     const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    console.log('[loadSearchTermsDataForTitles] Loading from table:', tableName);
     
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('myAppDB');
@@ -2318,23 +2324,41 @@ async function loadSearchTermsDataForTitles() {
     
     db.close();
     
-    if (!result || !result.data) return new Map();
+    if (!result || !result.data || result.data.length === 0) {
+      console.warn('[loadSearchTermsDataForTitles] No search terms data found');
+      return new Map();
+    }
     
-    // Filter and create map - matching google_ads_search_terms.js logic
+    // Filter exactly like search_terms_tab.js does
+    const filteredData = result.data.filter(item => 
+      item.Query && 
+      item.Query.toLowerCase() !== 'blank' &&
+      item.Campaign_Name === 'all' &&
+      item.Channel_Type === 'all'
+    );
+    
+    console.log(`[loadSearchTermsDataForTitles] Filtered to ${filteredData.length} all/all records`);
+    
+    // Calculate total revenue for correct percentage
+    const totalRevenue = filteredData.reduce((sum, item) => sum + (item.Value || 0), 0);
+    
+    // Create map with exact same data structure as search_terms_tab.js
     const searchTermsMap = new Map();
-    result.data.forEach(item => {
-      if (item.Query && item.Query.toLowerCase() !== 'blank') {
-        searchTermsMap.set(item.Query.toLowerCase(), {
-          query: item.Query,
-          impressions: parseFloat(item.Impressions) || 0,
-          clicks: parseFloat(item.Clicks) || 0,
-          conversions: parseFloat(item.Conversions) || 0,
-          value: parseFloat(item.Value) || 0,
-          revenuePercent: parseFloat(item['% of all revenue']) || 0
-        });
-      }
+    filteredData.forEach(item => {
+      // Recalculate percentage based on all/all total
+      const revenuePercent = totalRevenue > 0 ? (item.Value / totalRevenue) : 0;
+      
+      searchTermsMap.set(item.Query.toLowerCase(), {
+        Query: item.Query,
+        Impressions: item.Impressions || 0,
+        Clicks: item.Clicks || 0,
+        Conversions: item.Conversions || 0,
+        Value: item.Value || 0,
+        '% of all revenue': revenuePercent
+      });
     });
     
+    console.log('[loadSearchTermsDataForTitles] Loaded search terms:', searchTermsMap.size);
     return searchTermsMap;
   } catch (error) {
     console.error('[loadSearchTermsDataForTitles] Error:', error);
@@ -2383,10 +2407,6 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
   const topKeywords = extractTopKeywords(analyzerResults);
   const searchTermsData = await loadSearchTermsDataForTitles();
   
-  // Get processed metrics for product ranking
-  const productTitles = products.map(p => p.title);
-  const processedMetrics = await loadProcessedDataForTitles(productTitles);
-  
   if (topKeywords.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 40px; color: #999;">
@@ -2396,11 +2416,19 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     return;
   }
   
+  // Pre-load all product ranking summaries for current keywords
+  const productRankingSummaries = {};
+  const summaryPromises = topKeywords.map(async (keyword) => {
+    const summary = await getCompactProductRankingSummaryForTitles(keyword);
+    productRankingSummaries[keyword] = summary;
+  });
+  await Promise.all(summaryPromises);
+  
   // Find max values for metric bars
-  const maxImpressions = Math.max(...Array.from(searchTermsData.values()).map(d => d.impressions || 0));
-  const maxClicks = Math.max(...Array.from(searchTermsData.values()).map(d => d.clicks || 0));
-  const maxConversions = Math.max(...Array.from(searchTermsData.values()).map(d => d.conversions || 0));
-  const maxRevenue = Math.max(...Array.from(searchTermsData.values()).map(d => d.value || 0));
+  const maxImpressions = Math.max(...Array.from(searchTermsData.values()).map(d => d.Impressions || 0));
+  const maxClicks = Math.max(...Array.from(searchTermsData.values()).map(d => d.Clicks || 0));
+  const maxConversions = Math.max(...Array.from(searchTermsData.values()).map(d => d.Conversions || 0));
+  const maxRevenue = Math.max(...Array.from(searchTermsData.values()).map(d => d.Value || 0));
   
   const wrapper = document.createElement('div');
   wrapper.className = 'titles-products-wrapper';
@@ -2408,16 +2436,15 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
   const table = document.createElement('table');
   table.className = 'titles-table-modern';
   
-  // Create header with adjusted column widths
+  // Create header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
     <th class="center" style="width: 40px;">#</th>
-    <th class="sortable" data-sort="term" style="width: 200px;">
+    <th class="sortable" data-sort="term" style="width: 300px;">
       Search Term
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th style="width: 100px;">Ranking</th>
     <th class="center sortable" data-sort="optimized" style="width: 90px;">
       # Optimized
       <span class="titles-sort-icon">⇅</span>
@@ -2466,33 +2493,10 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     const stats = calculateKeywordStats(keyword, analyzerResults);
     const searchData = searchTermsData.get(keyword.toLowerCase()) || {};
     
-    const ctr = searchData.impressions > 0 ? 
-      (searchData.clicks / searchData.impressions * 100) : 0;
-    const cvr = searchData.clicks > 0 ? 
-      (searchData.conversions / searchData.clicks * 100) : 0;
-    
-    // Get average position and share for this search term
-    let avgPosition = null;
-    let avgShare = null;
-    
-    // Calculate average across all products for this keyword
-    let positionSum = 0, positionCount = 0, shareSum = 0, shareCount = 0;
-    stats.rankedProducts.forEach(rp => {
-      const metrics = processedMetrics.get(rp.title);
-      if (metrics) {
-        if (metrics.avgPosition) {
-          positionSum += metrics.avgPosition;
-          positionCount++;
-        }
-        if (metrics.avgVisibility) {
-          shareSum += metrics.avgVisibility;
-          shareCount++;
-        }
-      }
-    });
-    
-    if (positionCount > 0) avgPosition = Math.round(positionSum / positionCount);
-    if (shareCount > 0) avgShare = shareSum / shareCount;
+    const ctr = searchData.Impressions > 0 ? 
+      (searchData.Clicks / searchData.Impressions * 100) : 0;
+    const cvr = searchData.Clicks > 0 ? 
+      (searchData.Conversions / searchData.Clicks * 100) : 0;
     
     // Determine optimization level colors
     const optimizedColor = stats.optimizedCount > 5 ? '#22c55e' : 
@@ -2507,25 +2511,15 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     row.style.cursor = 'pointer';
     row.style.height = '70px';
     
-    // Position class
-    let posClass = 'bottom';
-    if (avgPosition) {
-      if (avgPosition <= 3) posClass = 'top';
-      else if (avgPosition <= 8) posClass = 'mid';
-      else if (avgPosition <= 14) posClass = 'low';
-    }
-    
     row.innerHTML = `
       <td class="center">${index + 1}</td>
       <td>
-        <div class="titles-search-term-name">
-          ${keyword}
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="titles-search-term-name">
+            ${keyword}
+          </div>
+          ${renderCompactProductRankingBadgeForTitles(productRankingSummaries[keyword])}
         </div>
-      </td>
-      <td class="center">
-        ${avgPosition !== null ? 
-          `<div class="titles-position-indicator ${posClass}" style="display: inline-block;">${avgPosition}</div>` : 
-          '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         <span style="padding: 4px 10px; background: ${optimizedColor}15; color: ${optimizedColor}; 
@@ -2542,15 +2536,15 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
       <td class="right">
         <div class="titles-metric-cell">
           ${maxImpressions > 0 ? 
-            `<div class="titles-metric-bar" style="width: ${(searchData.impressions / maxImpressions * 100)}%;"></div>` : ''}
-          <span class="titles-metric-value">${searchData.impressions ? searchData.impressions.toLocaleString() : '-'}</span>
+            `<div class="titles-metric-bar" style="width: ${(searchData.Impressions / maxImpressions * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.Impressions ? searchData.Impressions.toLocaleString() : '-'}</span>
         </div>
       </td>
       <td class="right">
         <div class="titles-metric-cell">
           ${maxClicks > 0 ? 
-            `<div class="titles-metric-bar" style="width: ${(searchData.clicks / maxClicks * 100)}%;"></div>` : ''}
-          <span class="titles-metric-value">${searchData.clicks ? searchData.clicks.toLocaleString() : '-'}</span>
+            `<div class="titles-metric-bar" style="width: ${(searchData.Clicks / maxClicks * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.Clicks ? searchData.Clicks.toLocaleString() : '-'}</span>
         </div>
       </td>
       <td class="right" style="color: ${ctr > 5 ? '#22c55e' : ctr > 2 ? '#fbbf24' : '#ef4444'};">
@@ -2559,8 +2553,8 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
       <td class="right">
         <div class="titles-metric-cell">
           ${maxConversions > 0 ? 
-            `<div class="titles-metric-bar" style="width: ${(searchData.conversions / maxConversions * 100)}%;"></div>` : ''}
-          <span class="titles-metric-value">${searchData.conversions || '-'}</span>
+            `<div class="titles-metric-bar" style="width: ${(searchData.Conversions / maxConversions * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.Conversions || '-'}</span>
         </div>
       </td>
       <td class="right" style="color: ${cvr > 5 ? '#22c55e' : cvr > 2 ? '#fbbf24' : '#ef4444'};">
@@ -2569,12 +2563,12 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
       <td class="right">
         <div class="titles-metric-cell">
           ${maxRevenue > 0 ? 
-            `<div class="titles-metric-bar" style="width: ${(searchData.value / maxRevenue * 100)}%;"></div>` : ''}
-          <span class="titles-metric-value">${searchData.value ? '$' + searchData.value.toFixed(2) : '-'}</span>
+            `<div class="titles-metric-bar" style="width: ${(searchData.Value / maxRevenue * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.Value ? '$' + searchData.Value.toFixed(2) : '-'}</span>
         </div>
       </td>
       <td class="right">
-        ${searchData.revenuePercent ? (searchData.revenuePercent * 100).toFixed(2) + '%' : '-'}
+        ${searchData['% of all revenue'] ? (searchData['% of all revenue'] * 100).toFixed(2) + '%' : '-'}
       </td>
     `;
     
@@ -2588,6 +2582,7 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
   // Add click handlers for expansion
   tbody.querySelectorAll('.titles-search-term-row').forEach(row => {
     row.addEventListener('click', function() {
+      const processedMetrics = window.titlesAnalyzerData?.processedMetrics || new Map();
       toggleSearchTermExpansion(this, products, analyzerResults, processedMetrics);
     });
   });
@@ -2784,6 +2779,246 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
   expandedCell.innerHTML = expandedHTML;
   expandedRow.appendChild(expandedCell);
   row.parentNode.insertBefore(expandedRow, row.nextSibling);
+}
+
+// Get compact product ranking summary for a search term (from search_terms_tab.js)
+async function getCompactProductRankingSummaryForTitles(searchTerm) {
+  const metrics = await calculateProductRankingMetricsForTitles(searchTerm);
+  
+  if (!metrics || metrics.length === 0) {
+    return null;
+  }
+  
+  // Aggregate by device type
+  const deviceSummary = {
+    desktop: { active: 0, trend: 0 },
+    mobile: { active: 0, trend: 0 }
+  };
+  
+  metrics.forEach(metric => {
+    if (metric.device.toLowerCase().includes('mobile')) {
+      deviceSummary.mobile.active += metric.activeProducts;
+      deviceSummary.mobile.trend += metric.productsTrend;
+    } else {
+      deviceSummary.desktop.active += metric.activeProducts;
+      deviceSummary.desktop.trend += metric.productsTrend;
+    }
+  });
+  
+  return deviceSummary;
+}
+
+// Calculate product ranking metrics for titles view (from search_terms_tab.js logic)
+async function calculateProductRankingMetricsForTitles(searchTerm) {
+  if (!window.allRows || !Array.isArray(window.allRows)) {
+    return [];
+  }
+  
+  const normalizedTerm = searchTerm.toLowerCase().trim();
+  
+  // Get total products count
+  const totalProducts = await getTotalProductsCountForTitles();
+  
+  // Get company to filter
+  const companyToFilter = window.myCompany || '';
+  
+  const results = [];
+  
+  // Check if projectTableData exists and has data
+  if (window.projectTableData && Array.isArray(window.projectTableData)) {
+    // Group by location/device from projectTableData
+    const projectDataMap = {};
+    
+    window.projectTableData.forEach(item => {
+      if (item.searchTerm && item.searchTerm.toLowerCase().trim() === normalizedTerm) {
+        const key = `${item.location}|${item.device}`;
+        projectDataMap[key] = item;
+      }
+    });
+    
+    // For each location/device combination found in projectTableData
+    for (const [key, projectData] of Object.entries(projectDataMap)) {
+      const [location, device] = key.split('|');
+      
+      // Count active/inactive products from allRows
+      let activeCount = 0;
+      let inactiveCount = 0;
+      let prevActiveCount = 0;
+      
+      // Get products for this location/device
+      const products = window.allRows.filter(product => 
+        product.q && product.q.toLowerCase().trim() === normalizedTerm &&
+        product.source && product.source.toLowerCase() === companyToFilter.toLowerCase() &&
+        product.location_requested === location &&
+        product.device === device
+      );
+      
+      // Count active/inactive
+      products.forEach(product => {
+        if (product.product_status === 'inactive') {
+          inactiveCount++;
+        } else {
+          activeCount++;
+        }
+        
+        // Track previous period active products
+        if (product.product_status !== 'inactive') {
+          // For previous period, check if product had data
+          if (product.historical_data && Array.isArray(product.historical_data)) {
+            const days = 7;
+            const endDate = moment().subtract(1, 'days');
+            const startDate = endDate.clone().subtract(days - 1, 'days');
+            const prevEndDate = startDate.clone().subtract(1, 'days');
+            const prevStartDate = prevEndDate.clone().subtract(days - 1, 'days');
+            
+            const hasPrevData = product.historical_data.some(item => {
+              if (!item.date || !item.date.value) return false;
+              const itemDate = moment(item.date.value, 'YYYY-MM-DD');
+              return itemDate.isBetween(prevStartDate, prevEndDate, 'day', '[]');
+            });
+            if (hasPrevData) {
+              prevActiveCount++;
+            }
+          }
+        }
+      });
+      
+      const productsTrend = activeCount - prevActiveCount;
+      
+      results.push({
+        location: location,
+        device: device,
+        avgRank: projectData.avgRank || 0,
+        rankTrend: projectData.rankChange || 0,
+        marketShare: projectData.avgShare || 0,
+        shareTrend: projectData.trendVal || 0,
+        activeProducts: activeCount,
+        inactiveProducts: inactiveCount,
+        prevActiveProducts: prevActiveCount,
+        productsTrend: productsTrend,
+        totalProducts: totalProducts
+      });
+    }
+  }
+  
+  return results;
+}
+
+// Get total products count for titles
+async function getTotalProductsCountForTitles() {
+  try {
+    const tablePrefix = typeof window.getProjectTablePrefix === 'function' ? 
+      window.getProjectTablePrefix() : 'acc1_pr1_';
+    const tableName = `${tablePrefix}googleSheets_productBuckets_30d`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const uniqueProducts = new Set();
+    
+    await new Promise((resolve) => {
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        if (result && result.data) {
+          result.data.forEach(item => {
+            if (item['Product Title']) {
+              uniqueProducts.add(item['Product Title']);
+            }
+          });
+        }
+        resolve();
+      };
+      getRequest.onerror = () => resolve();
+    });
+    
+    db.close();
+    return uniqueProducts.size;
+  } catch (error) {
+    console.error('[Titles] Error getting total products:', error);
+    return 0;
+  }
+}
+
+// Render compact product ranking badge (from search_terms_tab.js)
+function renderCompactProductRankingBadgeForTitles(deviceSummary) {
+  if (!deviceSummary) return '';
+  
+  const hasDesktop = deviceSummary.desktop.active > 0;
+  const hasMobile = deviceSummary.mobile.active > 0;
+  
+  if (!hasDesktop && !hasMobile) return '';
+  
+  let badgeContent = '';
+  
+  // Desktop section
+  if (hasDesktop) {
+    const trendColor = deviceSummary.desktop.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.desktop.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.desktop.trend > 0 ? '↑' : 
+                      deviceSummary.desktop.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">💻</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.desktop.active}</span>
+        ${deviceSummary.desktop.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.desktop.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  // Add separator if both exist
+  if (hasDesktop && hasMobile) {
+    badgeContent += `
+      <div style="width: 1px; height: 16px; background: #e0e0e0;"></div>
+    `;
+  }
+  
+  // Mobile section
+  if (hasMobile) {
+    const trendColor = deviceSummary.mobile.trend > 0 ? '#4CAF50' : 
+                       deviceSummary.mobile.trend < 0 ? '#F44336' : '#999';
+    const trendArrow = deviceSummary.mobile.trend > 0 ? '↑' : 
+                      deviceSummary.mobile.trend < 0 ? '↓' : '';
+    
+    badgeContent += `
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="font-size: 14px;">📱</span>
+        <span style="font-weight: 600; color: #333; font-size: 13px;">${deviceSummary.mobile.active}</span>
+        ${deviceSummary.mobile.trend !== 0 ? `
+          <span style="color: ${trendColor}; font-size: 11px; font-weight: 500;">
+            ${trendArrow}${Math.abs(deviceSummary.mobile.trend)}
+          </span>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="small-product-ranking" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf0 100%);
+      border: 1px solid #d1d9e0;
+      border-radius: 16px;
+      margin-left: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    ">
+      ${badgeContent}
+    </div>
+  `;
 }
 
 // Export initialization function
