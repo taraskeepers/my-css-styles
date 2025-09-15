@@ -1051,6 +1051,80 @@ function addTitlesAnalyzerStyles() {
   background: #f8f9fa;
   padding: 8px 0;
 }
+/* Search terms table row height and styling */
+.titles-search-terms-table-container .titles-table-modern tbody tr {
+  height: 70px;
+}
+
+.titles-search-term-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* KOS distribution chart */
+.titles-kos-distribution {
+  background: white;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.titles-kos-bar-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.titles-kos-bar-label {
+  min-width: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.titles-kos-bar-container {
+  flex: 1;
+  height: 20px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.titles-kos-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.titles-kos-bar-count {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.titles-search-products-container {
+  display: flex;
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+.titles-search-products-table {
+  flex: 1;
+}
     `;
     document.head.appendChild(style);
   }
@@ -2246,17 +2320,17 @@ async function loadSearchTermsDataForTitles() {
     
     if (!result || !result.data) return new Map();
     
-    // Create a map of search term -> metrics
+    // Filter and create map - matching google_ads_search_terms.js logic
     const searchTermsMap = new Map();
     result.data.forEach(item => {
       if (item.Query && item.Query.toLowerCase() !== 'blank') {
         searchTermsMap.set(item.Query.toLowerCase(), {
           query: item.Query,
-          impressions: item.Impressions || 0,
-          clicks: item.Clicks || 0,
-          conversions: item.Conversions || 0,
-          value: item.Value || 0,
-          revenuePercent: item['% of all revenue'] || 0
+          impressions: parseFloat(item.Impressions) || 0,
+          clicks: parseFloat(item.Clicks) || 0,
+          conversions: parseFloat(item.Conversions) || 0,
+          value: parseFloat(item.Value) || 0,
+          revenuePercent: parseFloat(item['% of all revenue']) || 0
         });
       }
     });
@@ -2305,10 +2379,13 @@ function calculateKeywordStats(keyword, analyzerResults) {
   return { optimizedCount, rankedCount, rankedProducts };
 }
 
-// Render search terms table for titles
 async function renderTitlesSearchTermsTable(container, analyzerResults, products) {
   const topKeywords = extractTopKeywords(analyzerResults);
   const searchTermsData = await loadSearchTermsDataForTitles();
+  
+  // Get processed metrics for product ranking
+  const productTitles = products.map(p => p.title);
+  const processedMetrics = await loadProcessedDataForTitles(productTitles);
   
   if (topKeywords.length === 0) {
     container.innerHTML = `
@@ -2319,55 +2396,62 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     return;
   }
   
+  // Find max values for metric bars
+  const maxImpressions = Math.max(...Array.from(searchTermsData.values()).map(d => d.impressions || 0));
+  const maxClicks = Math.max(...Array.from(searchTermsData.values()).map(d => d.clicks || 0));
+  const maxConversions = Math.max(...Array.from(searchTermsData.values()).map(d => d.conversions || 0));
+  const maxRevenue = Math.max(...Array.from(searchTermsData.values()).map(d => d.value || 0));
+  
   const wrapper = document.createElement('div');
   wrapper.className = 'titles-products-wrapper';
   
   const table = document.createElement('table');
   table.className = 'titles-table-modern';
   
-  // Create header
+  // Create header with adjusted column widths
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center" style="width: 50px;">#</th>
-    <th class="sortable" data-sort="term" style="width: 250px;">
+    <th class="center" style="width: 40px;">#</th>
+    <th class="sortable" data-sort="term" style="width: 200px;">
       Search Term
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="optimized" style="width: 120px;">
+    <th style="width: 100px;">Ranking</th>
+    <th class="center sortable" data-sort="optimized" style="width: 90px;">
       # Optimized
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="ranked" style="width: 120px;">
+    <th class="center sortable" data-sort="ranked" style="width: 90px;">
       # Ranked
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="impressions">
+    <th class="right sortable" data-sort="impressions" style="width: 100px;">
       IMPR
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="clicks">
+    <th class="right sortable" data-sort="clicks" style="width: 100px;">
       Clicks
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="ctr">
+    <th class="right sortable" data-sort="ctr" style="width: 70px;">
       CTR %
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="conversions">
+    <th class="right sortable" data-sort="conversions" style="width: 90px;">
       CONV
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="cvr">
+    <th class="right sortable" data-sort="cvr" style="width: 70px;">
       CVR %
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="revenue">
+    <th class="right sortable" data-sort="revenue" style="width: 100px;">
       Revenue
       <span class="titles-sort-icon">⇅</span>
     </th>
-    <th class="right sortable metric-col" data-sort="revpercent">
-      % of Revenue
+    <th class="right sortable" data-sort="revpercent" style="width: 90px;">
+      % of Rev
       <span class="titles-sort-icon">⇅</span>
     </th>
   `;
@@ -2383,9 +2467,32 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     const searchData = searchTermsData.get(keyword.toLowerCase()) || {};
     
     const ctr = searchData.impressions > 0 ? 
-      (searchData.clicks / searchData.impressions * 100).toFixed(2) : '0.00';
+      (searchData.clicks / searchData.impressions * 100) : 0;
     const cvr = searchData.clicks > 0 ? 
-      (searchData.conversions / searchData.clicks * 100).toFixed(2) : '0.00';
+      (searchData.conversions / searchData.clicks * 100) : 0;
+    
+    // Get average position and share for this search term
+    let avgPosition = null;
+    let avgShare = null;
+    
+    // Calculate average across all products for this keyword
+    let positionSum = 0, positionCount = 0, shareSum = 0, shareCount = 0;
+    stats.rankedProducts.forEach(rp => {
+      const metrics = processedMetrics.get(rp.title);
+      if (metrics) {
+        if (metrics.avgPosition) {
+          positionSum += metrics.avgPosition;
+          positionCount++;
+        }
+        if (metrics.avgVisibility) {
+          shareSum += metrics.avgVisibility;
+          shareCount++;
+        }
+      }
+    });
+    
+    if (positionCount > 0) avgPosition = Math.round(positionSum / positionCount);
+    if (shareCount > 0) avgShare = shareSum / shareCount;
     
     // Determine optimization level colors
     const optimizedColor = stats.optimizedCount > 5 ? '#22c55e' : 
@@ -2398,13 +2505,27 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
     row.dataset.keyword = keyword;
     row.dataset.rankedProducts = JSON.stringify(stats.rankedProducts);
     row.style.cursor = 'pointer';
+    row.style.height = '70px';
+    
+    // Position class
+    let posClass = 'bottom';
+    if (avgPosition) {
+      if (avgPosition <= 3) posClass = 'top';
+      else if (avgPosition <= 8) posClass = 'mid';
+      else if (avgPosition <= 14) posClass = 'low';
+    }
     
     row.innerHTML = `
       <td class="center">${index + 1}</td>
       <td>
-        <div style="font-weight: 600; color: #333; font-size: 13px;">
+        <div class="titles-search-term-name">
           ${keyword}
         </div>
+      </td>
+      <td class="center">
+        ${avgPosition !== null ? 
+          `<div class="titles-position-indicator ${posClass}" style="display: inline-block;">${avgPosition}</div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         <span style="padding: 4px 10px; background: ${optimizedColor}15; color: ${optimizedColor}; 
@@ -2419,22 +2540,38 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
         </span>
       </td>
       <td class="right">
-        ${searchData.impressions ? searchData.impressions.toLocaleString() : '-'}
+        <div class="titles-metric-cell">
+          ${maxImpressions > 0 ? 
+            `<div class="titles-metric-bar" style="width: ${(searchData.impressions / maxImpressions * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.impressions ? searchData.impressions.toLocaleString() : '-'}</span>
+        </div>
       </td>
       <td class="right">
-        ${searchData.clicks ? searchData.clicks.toLocaleString() : '-'}
+        <div class="titles-metric-cell">
+          ${maxClicks > 0 ? 
+            `<div class="titles-metric-bar" style="width: ${(searchData.clicks / maxClicks * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.clicks ? searchData.clicks.toLocaleString() : '-'}</span>
+        </div>
       </td>
-      <td class="right" style="color: ${parseFloat(ctr) > 5 ? '#22c55e' : parseFloat(ctr) > 2 ? '#fbbf24' : '#ef4444'};">
-        ${ctr}%
-      </td>
-      <td class="right">
-        ${searchData.conversions || '-'}
-      </td>
-      <td class="right" style="color: ${parseFloat(cvr) > 5 ? '#22c55e' : parseFloat(cvr) > 2 ? '#fbbf24' : '#ef4444'};">
-        ${cvr}%
+      <td class="right" style="color: ${ctr > 5 ? '#22c55e' : ctr > 2 ? '#fbbf24' : '#ef4444'};">
+        ${ctr.toFixed(2)}%
       </td>
       <td class="right">
-        ${searchData.value ? '$' + searchData.value.toFixed(2) : '-'}
+        <div class="titles-metric-cell">
+          ${maxConversions > 0 ? 
+            `<div class="titles-metric-bar" style="width: ${(searchData.conversions / maxConversions * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.conversions || '-'}</span>
+        </div>
+      </td>
+      <td class="right" style="color: ${cvr > 5 ? '#22c55e' : cvr > 2 ? '#fbbf24' : '#ef4444'};">
+        ${cvr.toFixed(2)}%
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell">
+          ${maxRevenue > 0 ? 
+            `<div class="titles-metric-bar" style="width: ${(searchData.value / maxRevenue * 100)}%;"></div>` : ''}
+          <span class="titles-metric-value">${searchData.value ? '$' + searchData.value.toFixed(2) : '-'}</span>
+        </div>
       </td>
       <td class="right">
         ${searchData.revenuePercent ? (searchData.revenuePercent * 100).toFixed(2) + '%' : '-'}
@@ -2451,13 +2588,12 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
   // Add click handlers for expansion
   tbody.querySelectorAll('.titles-search-term-row').forEach(row => {
     row.addEventListener('click', function() {
-      toggleSearchTermExpansion(this, products, analyzerResults);
+      toggleSearchTermExpansion(this, products, analyzerResults, processedMetrics);
     });
   });
 }
 
-// Toggle search term row expansion
-function toggleSearchTermExpansion(row, products, analyzerResults) {
+function toggleSearchTermExpansion(row, products, analyzerResults, processedMetrics) {
   const nextRow = row.nextElementSibling;
   const isExpanded = nextRow && nextRow.classList.contains('titles-search-terms-expanded');
   
@@ -2471,6 +2607,17 @@ function toggleSearchTermExpansion(row, products, analyzerResults) {
   
   if (rankedProducts.length === 0) return;
   
+  // Calculate KOS distribution
+  const kosDistribution = { 20: 0, 15: 0, 10: 0, 5: 0 };
+  rankedProducts.forEach(rp => {
+    if (rp.kos === 20) kosDistribution[20]++;
+    else if (rp.kos >= 15) kosDistribution[15]++;
+    else if (rp.kos >= 10) kosDistribution[10]++;
+    else if (rp.kos >= 5) kosDistribution[5]++;
+  });
+  
+  const maxCount = Math.max(...Object.values(kosDistribution));
+  
   const expandedRow = document.createElement('tr');
   expandedRow.className = 'titles-search-terms-expanded';
   
@@ -2478,12 +2625,46 @@ function toggleSearchTermExpansion(row, products, analyzerResults) {
   expandedCell.colSpan = row.cells.length;
   expandedCell.style.padding = '0';
   
-  let expandedHTML = '<div class="titles-search-terms-products">';
-  expandedHTML += '<table class="titles-table-modern" style="margin: 0 16px; width: calc(100% - 32px);">';
+  let expandedHTML = '<div class="titles-search-products-container">';
+  
+  // KOS Distribution Chart
+  expandedHTML += `
+    <div class="titles-kos-distribution">
+      <h4 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #333;">KOS Distribution</h4>`;
+  
+  const kosColors = {
+    20: '#22c55e',
+    15: '#86efac',
+    10: '#fbbf24',
+    5: '#f87171'
+  };
+  
+  [20, 15, 10, 5].forEach(score => {
+    const count = kosDistribution[score];
+    const width = maxCount > 0 ? (count / maxCount * 100) : 0;
+    expandedHTML += `
+      <div class="titles-kos-bar-row">
+        <div class="titles-kos-bar-label">KOS ${score}:</div>
+        <div class="titles-kos-bar-container">
+          <div class="titles-kos-bar-fill" style="width: ${width}%; background: ${kosColors[score]};">
+            <span class="titles-kos-bar-count">${count}</span>
+          </div>
+        </div>
+      </div>`;
+  });
+  
+  expandedHTML += '</div>';
+  
+  // Products table
+  expandedHTML += '<div class="titles-search-products-table">';
+  expandedHTML += '<table class="titles-table-modern" style="margin: 0; width: 100%;">';
   expandedHTML += '<tbody>';
   
   // Sort products by KOS value (highest first)
   rankedProducts.sort((a, b) => b.kos - a.kos);
+  
+  // Get matched products for images
+  const matchedProducts = matchProductsWithCompanyData(products);
   
   // Render each ranked product
   rankedProducts.forEach((productData, idx) => {
@@ -2491,45 +2672,114 @@ function toggleSearchTermExpansion(row, products, analyzerResults) {
     if (!product) return;
     
     const analyzerData = analyzerResults.get(productData.title);
-    const kosClass = productData.kos >= 15 ? 'titles-kos-excellent' : 
-                    productData.kos >= 10 ? 'titles-kos-good' : 
-                    productData.kos >= 5 ? 'titles-kos-fair' : 'titles-kos-poor';
+    const productProcessedMetrics = processedMetrics.get(product.title);
+    const matchedProduct = matchedProducts.get(product.title);
+    
+    // Get all the same data as main product table
+    const adPosition = productProcessedMetrics?.avgPosition || null;
+    const marketShare = productProcessedMetrics?.avgVisibility || null;
+    const imageUrl = matchedProduct?.thumbnail || product.image || '';
+    
+    // Score classes
+    const roundedScore = Math.round(analyzerData?.finalScore || 0);
+    let tscoreClass = 'titles-tscore-poor';
+    if (roundedScore > 70) tscoreClass = 'titles-tscore-excellent';
+    else if (roundedScore >= 55) tscoreClass = 'titles-tscore-good';
+    else if (roundedScore >= 40) tscoreClass = 'titles-tscore-fair';
+    
+    let kosClass = 'titles-kos-poor';
+    if (productData.kos >= 15) kosClass = 'titles-kos-excellent';
+    else if (productData.kos >= 10) kosClass = 'titles-kos-good';
+    else if (productData.kos >= 5) kosClass = 'titles-kos-fair';
+    
+    let gosClass = 'titles-gos-poor';
+    const gos = analyzerData?.gos || 0;
+    if (gos > 60) gosClass = 'titles-gos-excellent';
+    else if (gos >= 40) gosClass = 'titles-gos-good';
+    else if (gos >= 20) gosClass = 'titles-gos-fair';
+    
+    const suggestionsCount = analyzerData?.improvementSuggestions?.length || 0;
+    let suggClass = '';
+    if (suggestionsCount >= 7) suggClass = 'critical';
+    else if (suggestionsCount >= 4) suggClass = 'has-many';
+    
+    let roasClass = 'titles-roas-low';
+    if (product.roas >= 3) roasClass = 'titles-roas-high';
+    else if (product.roas >= 1.5) roasClass = 'titles-roas-medium';
+    
+    let posClass = 'bottom';
+    if (adPosition) {
+      if (adPosition <= 3) posClass = 'top';
+      else if (adPosition <= 8) posClass = 'mid';
+      else if (adPosition <= 14) posClass = 'low';
+    }
     
     expandedHTML += `
-      <tr style="background: ${idx % 2 === 0 ? 'white' : '#f9f9f9'};">
-        <td class="center" style="width: 50px;">
+      <tr style="background: ${idx % 2 === 0 ? 'white' : '#f9f9f9'}; height: 48px;">
+        <td class="center" style="width: 40px; padding: 4px;">
           <span style="color: #999; font-size: 11px;">${idx + 1}</span>
         </td>
-        <td style="width: 250px;">
-          <div class="titles-product-title-cell">
-            <div class="titles-product-title" style="font-size: 12px;">
-              ${product.title}
-            </div>
+        <td style="width: 200px; padding: 4px;">
+          <div class="titles-product-title" style="font-size: 12px; line-height: 1.2;">
+            ${product.title}
           </div>
         </td>
-        <td class="center" style="width: 120px;">
-          <span class="titles-score-fraction ${kosClass}">
-            <span class="titles-score-value">${productData.kos}</span>
-            <span class="titles-score-max">/20</span>
+        <td class="center" style="width: 100px; padding: 4px;">
+          ${adPosition !== null ? 
+            `<div class="titles-position-indicator ${posClass}" style="width: 30px; height: 30px; font-size: 12px;">${adPosition}</div>` : 
+            '<span style="color: #adb5bd;">-</span>'}
+        </td>
+        <td class="center" style="width: 90px; padding: 4px;">
+          ${marketShare ? 
+            `<div class="titles-share-bar" style="width: 50px; height: 24px;">
+              <div class="titles-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
+              <div class="titles-share-text" style="font-size: 10px;">${marketShare.toFixed(1)}%</div>
+            </div>` : 
+            '<span style="color: #adb5bd;">-</span>'}
+        </td>
+        <td class="center" style="width: 90px; padding: 4px;">
+          <span class="titles-roas-indicator ${roasClass}" style="font-size: 11px; padding: 2px 6px;">
+            ${product.roas.toFixed(2)}x
           </span>
         </td>
-        <td class="center" style="width: 120px;">
-          ${analyzerData?.finalScore ? 
-            `<span style="font-weight: 600;">${Math.round(analyzerData.finalScore)}/100</span>` : 
-            '-'}
+        <td class="center" style="width: 60px; padding: 4px;">
+          ${imageUrl ? 
+            `<img class="titles-product-img" src="${imageUrl}" alt="${product.title}" style="width: 32px; height: 32px;" onerror="this.style.display='none'">` : 
+            '<div style="width: 32px; height: 32px; background: #f0f2f5; border-radius: 4px; margin: 0 auto;"></div>'}
         </td>
-        <td class="right">${product.impressions.toLocaleString()}</td>
-        <td class="right">${product.clicks.toLocaleString()}</td>
-        <td class="right">${product.ctr.toFixed(2)}%</td>
-        <td class="right">${product.conversions}</td>
-        <td class="right">${product.cvr.toFixed(2)}%</td>
-        <td class="right">$${product.convValue.toFixed(2)}</td>
-        <td class="right">${product.roas.toFixed(2)}x</td>
+        <td class="center" style="width: 70px; padding: 4px;">
+          <span class="titles-score-fraction ${tscoreClass}" style="padding: 2px 6px; font-size: 11px;">
+            <span class="titles-score-value">${roundedScore}</span>
+            <span class="titles-score-max" style="font-size: 9px;">/100</span>
+          </span>
+        </td>
+        <td class="center" style="width: 60px; padding: 4px;">
+          <span class="titles-score-fraction ${kosClass}" style="padding: 2px 6px; font-size: 11px;">
+            <span class="titles-score-value">${productData.kos}</span>
+            <span class="titles-score-max" style="font-size: 9px;">/20</span>
+          </span>
+        </td>
+        <td class="center" style="width: 60px; padding: 4px;">
+          <span class="titles-score-fraction ${gosClass}" style="padding: 2px 6px; font-size: 11px;">
+            <span class="titles-score-value">${gos}</span>
+            <span class="titles-score-max" style="font-size: 9px;">/80</span>
+          </span>
+        </td>
+        <td class="center" style="width: 60px; padding: 4px;">
+          ${suggestionsCount > 0 ? 
+            `<span class="titles-suggestions-count ${suggClass}" style="font-size: 11px; padding: 2px 6px; min-width: 24px;">${suggestionsCount}</span>` : 
+            '<span style="color: #adb5bd;">-</span>'}
+        </td>
+        <td class="right" style="font-size: 11px; padding: 4px;">${product.impressions.toLocaleString()}</td>
+        <td class="right" style="font-size: 11px; padding: 4px;">${product.clicks.toLocaleString()}</td>
+        <td class="right" style="font-size: 11px; padding: 4px;">${product.ctr.toFixed(2)}%</td>
+        <td class="right" style="font-size: 11px; padding: 4px;">$${product.cost.toFixed(2)}</td>
+        <td class="right" style="font-size: 11px; padding: 4px;">$${product.convValue.toFixed(2)}</td>
       </tr>
     `;
   });
   
-  expandedHTML += '</tbody></table></div>';
+  expandedHTML += '</tbody></table></div></div>';
   
   expandedCell.innerHTML = expandedHTML;
   expandedRow.appendChild(expandedCell);
