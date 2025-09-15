@@ -1062,36 +1062,64 @@ function addTitlesAnalyzerStyles() {
   color: #333;
 }
 
-/* KOS distribution chart */
+/* Modern KOS distribution chart */
 .titles-kos-distribution {
-  background: white;
-  border: 1px solid #e1e4e8;
-  border-radius: 8px;
-  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 16px;
   margin: 12px;
-  width: 220px;
+  width: 260px;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.titles-kos-distribution h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .titles-kos-bar-row {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
-  gap: 8px;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.titles-kos-bar-row:last-child {
+  margin-bottom: 0;
 }
 
 .titles-kos-bar-label {
-  min-width: 50px;
+  min-width: 65px;
   font-size: 12px;
   font-weight: 600;
-  color: #495057;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titles-kos-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 20px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .titles-kos-bar-container {
   flex: 1;
-  height: 20px;
-  background: #f0f2f5;
-  border-radius: 4px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -1101,29 +1129,88 @@ function addTitlesAnalyzerStyles() {
   left: 0;
   top: 0;
   bottom: 0;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: 12px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
 }
 
 .titles-kos-bar-count {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .titles-search-products-container {
   display: flex;
   gap: 16px;
-  padding: 0 16px 16px;
+  padding: 12px 16px 16px;
+  background: #f8f9fa;
 }
 
 .titles-search-products-table {
   flex: 1;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.titles-search-products-header {
+  background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+  border-bottom: 2px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.titles-search-products-header th {
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.titles-expanded-product-row {
+  height: 70px;
+  border-bottom: 1px solid #f0f2f5;
+  transition: background 0.2s ease;
+}
+
+.titles-expanded-product-row:hover {
+  background: rgba(102, 126, 234, 0.02);
+}
+
+/* Image zoom for expanded rows */
+.titles-expanded-img-container {
+  position: relative;
+  display: inline-block;
+}
+
+.titles-expanded-img-zoom {
+  position: fixed;
+  width: 250px;
+  height: 250px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  border: 2px solid #667eea;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.titles-expanded-img-container:hover .titles-expanded-img-zoom {
+  opacity: 1;
 }
     `;
     document.head.appendChild(style);
@@ -1609,11 +1696,17 @@ try {
     loadTitleAnalyzerResults()
   ]);
   
+  // Get product titles for matching
+  const productTitles = products.map(p => p.title);
+  
+  // Load processed data for POS and SHARE
+  const processedMetrics = await loadProcessedDataForTitles(productTitles);
+  
   // Render products table (default view)
   await renderTitlesProductsTable(tableContainer, products, analyzerResults);
   
-  // Store data for switcher
-  window.titlesAnalyzerData = { products, analyzerResults };
+  // Store data for switcher including processedMetrics
+  window.titlesAnalyzerData = { products, analyzerResults, processedMetrics };
   
   // Add switcher event listeners
   header.querySelectorAll('.titles-switch-btn').forEach(btn => {
@@ -2579,13 +2672,21 @@ async function renderTitlesSearchTermsTable(container, analyzerResults, products
   wrapper.appendChild(table);
   container.appendChild(wrapper);
   
-  // Add click handlers for expansion
-  tbody.querySelectorAll('.titles-search-term-row').forEach(row => {
-    row.addEventListener('click', function() {
-      const processedMetrics = window.titlesAnalyzerData?.processedMetrics || new Map();
-      toggleSearchTermExpansion(this, products, analyzerResults, processedMetrics);
-    });
+// Add click handlers for expansion
+tbody.querySelectorAll('.titles-search-term-row').forEach(row => {
+  row.addEventListener('click', async function() {
+    // Get or load processedMetrics
+    let processedMetrics = window.titlesAnalyzerData?.processedMetrics;
+    if (!processedMetrics) {
+      const productTitles = products.map(p => p.title);
+      processedMetrics = await loadProcessedDataForTitles(productTitles);
+      if (window.titlesAnalyzerData) {
+        window.titlesAnalyzerData.processedMetrics = processedMetrics;
+      }
+    }
+    toggleSearchTermExpansion(this, products, analyzerResults, processedMetrics);
   });
+});
 }
 
 function toggleSearchTermExpansion(row, products, analyzerResults, processedMetrics) {
@@ -2611,7 +2712,21 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
     else if (rp.kos >= 5) kosDistribution[5]++;
   });
   
-  const maxCount = Math.max(...Object.values(kosDistribution));
+  const maxCount = Math.max(...Object.values(kosDistribution), 1);
+  
+  // Get matched products for images
+  const matchedProducts = matchProductsWithCompanyData(products);
+  
+  // Calculate max values for metric bars
+  const rankedProductData = rankedProducts.map(rp => {
+    const product = products.find(p => p.title === rp.title);
+    return product;
+  }).filter(p => p);
+  
+  const maxImpr = Math.max(...rankedProductData.map(p => p.impressions || 0));
+  const maxClicks = Math.max(...rankedProductData.map(p => p.clicks || 0));
+  const maxCost = Math.max(...rankedProductData.map(p => p.cost || 0));
+  const maxRevenue = Math.max(...rankedProductData.map(p => p.convValue || 0));
   
   const expandedRow = document.createElement('tr');
   expandedRow.className = 'titles-search-terms-expanded';
@@ -2622,44 +2737,80 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
   
   let expandedHTML = '<div class="titles-search-products-container">';
   
-  // KOS Distribution Chart
+  // Modern KOS Distribution Chart
   expandedHTML += `
     <div class="titles-kos-distribution">
-      <h4 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #333;">KOS Distribution</h4>`;
+      <h4>
+        <span style="font-size: 16px;">📊</span>
+        KOS Distribution Analysis
+      </h4>`;
   
-  const kosColors = {
-    20: '#22c55e',
-    15: '#86efac',
-    10: '#fbbf24',
-    5: '#f87171'
-  };
+  const kosConfigs = [
+    { score: 20, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)', label: 'Perfect' },
+    { score: 15, color: '#22d3ee', bgColor: 'rgba(34, 211, 238, 0.2)', label: 'Good' },
+    { score: 10, color: '#fbbf24', bgColor: 'rgba(251, 191, 36, 0.2)', label: 'Fair' },
+    { score: 5, color: '#f87171', bgColor: 'rgba(248, 113, 113, 0.2)', label: 'Poor' }
+  ];
   
-  [20, 15, 10, 5].forEach(score => {
-    const count = kosDistribution[score];
+  kosConfigs.forEach(config => {
+    const count = kosDistribution[config.score];
+    const percentage = rankedProducts.length > 0 ? (count / rankedProducts.length * 100) : 0;
     const width = maxCount > 0 ? (count / maxCount * 100) : 0;
+    
     expandedHTML += `
       <div class="titles-kos-bar-row">
-        <div class="titles-kos-bar-label">KOS ${score}:</div>
+        <div class="titles-kos-bar-label">
+          <span class="titles-kos-score-badge" style="background: ${config.bgColor}; color: ${config.color};">
+            ${config.score}
+          </span>
+          <span style="font-size: 11px; opacity: 0.9;">${config.label}</span>
+        </div>
         <div class="titles-kos-bar-container">
-          <div class="titles-kos-bar-fill" style="width: ${width}%; background: ${kosColors[score]};">
+          <div class="titles-kos-bar-fill" style="width: ${width}%; background: ${config.color};">
             <span class="titles-kos-bar-count">${count}</span>
           </div>
         </div>
       </div>`;
   });
   
-  expandedHTML += '</div>';
+  expandedHTML += `
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: rgba(255,255,255,0.9);">Total Products:</span>
+          <span style="font-size: 16px; font-weight: 700; color: white;">${rankedProducts.length}</span>
+        </div>
+      </div>
+    </div>`;
   
-  // Products table
+  // Products table with headers
   expandedHTML += '<div class="titles-search-products-table">';
   expandedHTML += '<table class="titles-table-modern" style="margin: 0; width: 100%;">';
-  expandedHTML += '<tbody>';
+  
+  // Add column headers
+  expandedHTML += `
+    <thead class="titles-search-products-header">
+      <tr>
+        <th class="center" style="width: 40px;">#</th>
+        <th style="width: 50px;">POS</th>
+        <th style="width: 60px;">SHARE</th>
+        <th style="width: 60px;">ROAS</th>
+        <th class="center" style="width: 50px;">IMG</th>
+        <th style="width: 300px;">PRODUCT TITLE</th>
+        <th class="center" style="width: 60px;">T-SCORE</th>
+        <th class="center" style="width: 50px;">KOS</th>
+        <th class="center" style="width: 50px;">GOS</th>
+        <th class="center" style="width: 50px;">SUGG</th>
+        <th class="right" style="width: 80px;">IMPR</th>
+        <th class="right" style="width: 80px;">CLICKS</th>
+        <th class="right" style="width: 60px;">CTR %</th>
+        <th class="right" style="width: 80px;">COST</th>
+        <th class="right" style="width: 80px;">REVENUE</th>
+      </tr>
+    </thead>
+    <tbody>`;
   
   // Sort products by KOS value (highest first)
   rankedProducts.sort((a, b) => b.kos - a.kos);
-  
-  // Get matched products for images
-  const matchedProducts = matchProductsWithCompanyData(products);
   
   // Render each ranked product
   rankedProducts.forEach((productData, idx) => {
@@ -2667,12 +2818,12 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
     if (!product) return;
     
     const analyzerData = analyzerResults.get(productData.title);
-    const productProcessedMetrics = processedMetrics.get(product.title);
+    const productProcessedMetrics = processedMetrics?.get(product.title) || {};
     const matchedProduct = matchedProducts.get(product.title);
     
-    // Get all the same data as main product table
-    const adPosition = productProcessedMetrics?.avgPosition || null;
-    const marketShare = productProcessedMetrics?.avgVisibility || null;
+    // Get metrics
+    const adPosition = productProcessedMetrics.avgPosition || null;
+    const marketShare = productProcessedMetrics.avgVisibility || null;
     const imageUrl = matchedProduct?.thumbnail || product.image || '';
     
     // Score classes
@@ -2710,66 +2861,93 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
     }
     
     expandedHTML += `
-      <tr style="background: ${idx % 2 === 0 ? 'white' : '#f9f9f9'}; height: 48px;">
-        <td class="center" style="width: 40px; padding: 4px;">
-          <span style="color: #999; font-size: 11px;">${idx + 1}</span>
-        </td>
-        <td style="width: 200px; padding: 4px;">
-          <div class="titles-product-title" style="font-size: 12px; line-height: 1.2;">
-            ${product.title}
-          </div>
-        </td>
-        <td class="center" style="width: 100px; padding: 4px;">
+      <tr class="titles-expanded-product-row" style="background: ${idx % 2 === 0 ? 'white' : '#f9f9f9'};">
+        <td class="center" style="padding: 8px; color: #999; font-size: 12px;">${idx + 1}</td>
+        <td class="center" style="padding: 8px;">
           ${adPosition !== null ? 
-            `<div class="titles-position-indicator ${posClass}" style="width: 30px; height: 30px; font-size: 12px;">${adPosition}</div>` : 
-            '<span style="color: #adb5bd;">-</span>'}
+            `<div class="titles-position-indicator ${posClass}" style="width: 32px; height: 32px; font-size: 13px;">${adPosition}</div>` : 
+            '<span style="color: #adb5bd; font-size: 12px;">-</span>'}
         </td>
-        <td class="center" style="width: 90px; padding: 4px;">
+        <td class="center" style="padding: 8px;">
           ${marketShare ? 
-            `<div class="titles-share-bar" style="width: 50px; height: 24px;">
+            `<div class="titles-share-bar" style="width: 50px; height: 26px;">
               <div class="titles-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
               <div class="titles-share-text" style="font-size: 10px;">${marketShare.toFixed(1)}%</div>
             </div>` : 
-            '<span style="color: #adb5bd;">-</span>'}
+            '<span style="color: #adb5bd; font-size: 12px;">-</span>'}
         </td>
-        <td class="center" style="width: 90px; padding: 4px;">
-          <span class="titles-roas-indicator ${roasClass}" style="font-size: 11px; padding: 2px 6px;">
+        <td class="center" style="padding: 8px;">
+          <span class="titles-roas-indicator ${roasClass}" style="font-size: 12px; padding: 3px 8px;">
             ${product.roas.toFixed(2)}x
           </span>
         </td>
-        <td class="center" style="width: 60px; padding: 4px;">
+        <td class="center" style="padding: 8px;">
           ${imageUrl ? 
-            `<img class="titles-product-img" src="${imageUrl}" alt="${product.title}" style="width: 32px; height: 32px;" onerror="this.style.display='none'">` : 
-            '<div style="width: 32px; height: 32px; background: #f0f2f5; border-radius: 4px; margin: 0 auto;"></div>'}
+            `<div class="titles-expanded-img-container">
+              <img class="titles-product-img" src="${imageUrl}" alt="${product.title}" 
+                   style="width: 40px; height: 40px;" onerror="this.style.display='none'">
+              <img class="titles-expanded-img-zoom" src="${imageUrl}" alt="${product.title}">
+            </div>` : 
+            '<div style="width: 40px; height: 40px; background: #f0f2f5; border-radius: 6px; margin: 0 auto;"></div>'}
         </td>
-        <td class="center" style="width: 70px; padding: 4px;">
-          <span class="titles-score-fraction ${tscoreClass}" style="padding: 2px 6px; font-size: 11px;">
+        <td style="padding: 8px;">
+          <div class="titles-product-title" style="font-size: 13px; font-weight: 600; line-height: 1.3;">
+            ${product.title}
+          </div>
+          ${product.sku ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">SKU: ${product.sku}</div>` : ''}
+        </td>
+        <td class="center" style="padding: 8px;">
+          <span class="titles-score-fraction ${tscoreClass}" style="padding: 3px 8px; font-size: 12px;">
             <span class="titles-score-value">${roundedScore}</span>
-            <span class="titles-score-max" style="font-size: 9px;">/100</span>
+            <span class="titles-score-max" style="font-size: 10px;">/100</span>
           </span>
         </td>
-        <td class="center" style="width: 60px; padding: 4px;">
-          <span class="titles-score-fraction ${kosClass}" style="padding: 2px 6px; font-size: 11px;">
+        <td class="center" style="padding: 8px;">
+          <span class="titles-score-fraction ${kosClass}" style="padding: 3px 8px; font-size: 12px;">
             <span class="titles-score-value">${productData.kos}</span>
-            <span class="titles-score-max" style="font-size: 9px;">/20</span>
+            <span class="titles-score-max" style="font-size: 10px;">/20</span>
           </span>
         </td>
-        <td class="center" style="width: 60px; padding: 4px;">
-          <span class="titles-score-fraction ${gosClass}" style="padding: 2px 6px; font-size: 11px;">
+        <td class="center" style="padding: 8px;">
+          <span class="titles-score-fraction ${gosClass}" style="padding: 3px 8px; font-size: 12px;">
             <span class="titles-score-value">${gos}</span>
-            <span class="titles-score-max" style="font-size: 9px;">/80</span>
+            <span class="titles-score-max" style="font-size: 10px;">/80</span>
           </span>
         </td>
-        <td class="center" style="width: 60px; padding: 4px;">
+        <td class="center" style="padding: 8px;">
           ${suggestionsCount > 0 ? 
-            `<span class="titles-suggestions-count ${suggClass}" style="font-size: 11px; padding: 2px 6px; min-width: 24px;">${suggestionsCount}</span>` : 
-            '<span style="color: #adb5bd;">-</span>'}
+            `<span class="titles-suggestions-count ${suggClass}" style="font-size: 12px; padding: 3px 8px; min-width: 28px;">${suggestionsCount}</span>` : 
+            '<span style="color: #adb5bd; font-size: 12px;">-</span>'}
         </td>
-        <td class="right" style="font-size: 11px; padding: 4px;">${product.impressions.toLocaleString()}</td>
-        <td class="right" style="font-size: 11px; padding: 4px;">${product.clicks.toLocaleString()}</td>
-        <td class="right" style="font-size: 11px; padding: 4px;">${product.ctr.toFixed(2)}%</td>
-        <td class="right" style="font-size: 11px; padding: 4px;">$${product.cost.toFixed(2)}</td>
-        <td class="right" style="font-size: 11px; padding: 4px;">$${product.convValue.toFixed(2)}</td>
+        <td class="right" style="padding: 8px;">
+          <div class="titles-metric-cell">
+            ${maxImpr > 0 ? 
+              `<div class="titles-metric-bar" style="width: ${(product.impressions / maxImpr * 100)}%;"></div>` : ''}
+            <span class="titles-metric-value" style="font-size: 12px;">${product.impressions.toLocaleString()}</span>
+          </div>
+        </td>
+        <td class="right" style="padding: 8px;">
+          <div class="titles-metric-cell">
+            ${maxClicks > 0 ? 
+              `<div class="titles-metric-bar" style="width: ${(product.clicks / maxClicks * 100)}%;"></div>` : ''}
+            <span class="titles-metric-value" style="font-size: 12px;">${product.clicks.toLocaleString()}</span>
+          </div>
+        </td>
+        <td class="right" style="padding: 8px; font-size: 12px;">${product.ctr.toFixed(2)}%</td>
+        <td class="right" style="padding: 8px;">
+          <div class="titles-metric-cell">
+            ${maxCost > 0 ? 
+              `<div class="titles-metric-bar" style="width: ${(product.cost / maxCost * 100)}%;"></div>` : ''}
+            <span class="titles-metric-value" style="font-size: 12px;">$${product.cost.toFixed(2)}</span>
+          </div>
+        </td>
+        <td class="right" style="padding: 8px;">
+          <div class="titles-metric-cell">
+            ${maxRevenue > 0 ? 
+              `<div class="titles-metric-bar" style="width: ${(product.convValue / maxRevenue * 100)}%;"></div>` : ''}
+            <span class="titles-metric-value" style="font-size: 12px;">$${product.convValue.toFixed(2)}</span>
+          </div>
+        </td>
       </tr>
     `;
   });
@@ -2779,6 +2957,38 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
   expandedCell.innerHTML = expandedHTML;
   expandedRow.appendChild(expandedCell);
   row.parentNode.insertBefore(expandedRow, row.nextSibling);
+  
+  // Add hover positioning for image zoom
+  setTimeout(() => {
+    expandedRow.querySelectorAll('.titles-expanded-img-container').forEach(container => {
+      container.addEventListener('mouseenter', function(e) {
+        const img = this.querySelector('.titles-expanded-img-zoom');
+        if (!img) return;
+        
+        const rect = this.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let left = rect.right + 10;
+        let top = rect.top - 50;
+        
+        if (left + 250 > viewportWidth) {
+          left = rect.left - 260;
+        }
+        
+        if (top < 10) {
+          top = 10;
+        }
+        
+        if (top + 250 > viewportHeight - 10) {
+          top = viewportHeight - 260;
+        }
+        
+        img.style.left = `${left}px`;
+        img.style.top = `${top}px`;
+      });
+    });
+  }, 100);
 }
 
 // Get compact product ranking summary for a search term (from search_terms_tab.js)
