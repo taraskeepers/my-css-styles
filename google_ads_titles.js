@@ -991,6 +991,66 @@ function addTitlesAnalyzerStyles() {
   background: #cbd5e1;
   border-radius: 1px;
 }
+/* Header right section and switcher */
+.titles-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.titles-view-switcher {
+  display: flex;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.titles-switch-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titles-switch-btn span {
+  font-size: 14px;
+}
+
+.titles-switch-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.titles-switch-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Search terms table container */
+.titles-search-terms-table-container {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+  display: none;
+}
+
+/* Search terms expanded rows */
+.titles-search-terms-expanded {
+  animation: slideDown 0.3s ease-out;
+}
+
+.titles-search-terms-products {
+  background: #f8f9fa;
+  padding: 8px 0;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1431,34 +1491,84 @@ async function loadAndRenderTitlesAnalyzer() {
   const productsPanel = document.createElement('div');
   productsPanel.id = 'titlesProductsPanel';
   
-  // Create header
-  const header = document.createElement('div');
-  header.className = 'titles-products-header';
-  header.innerHTML = `
-    <div class="titles-header-left">
-      <h2 class="titles-header-title">
-        Title Performance Analyzer
-        <span class="titles-analyzer-version">v2.3.0 BETA</span>
-      </h2>
-      <div class="titles-selected-info">
-        Analyzing title effectiveness across all campaigns
-      </div>
+// Create header
+const header = document.createElement('div');
+header.className = 'titles-products-header';
+header.innerHTML = `
+  <div class="titles-header-left">
+    <h2 class="titles-header-title">
+      Title Performance Analyzer
+      <span class="titles-analyzer-version">v2.3.0 BETA</span>
+    </h2>
+    <div class="titles-selected-info">
+      Analyzing title effectiveness across all campaigns
     </div>
-  `;
+  </div>
+  <div class="titles-header-right">
+    <div class="titles-view-switcher">
+      <button class="titles-switch-btn active" data-view="products">
+        <span>📦</span> Products
+      </button>
+      <button class="titles-switch-btn" data-view="search-terms">
+        <span>🔍</span> Search Terms
+      </button>
+    </div>
+  </div>
+`;
   productsPanel.appendChild(header);
   
   // Create table container
   const tableContainer = document.createElement('div');
   tableContainer.className = 'titles-products-table-container';
   productsPanel.appendChild(tableContainer);
+
+  // Create search terms table container
+const searchTermsContainer = document.createElement('div');
+searchTermsContainer.className = 'titles-search-terms-table-container';
+searchTermsContainer.style.display = 'none';
+productsPanel.appendChild(searchTermsContainer);
   
-// Load and render products data
+// Load and render data
 try {
   const [products, analyzerResults] = await Promise.all([
     loadTitlesProductData(),
     loadTitleAnalyzerResults()
   ]);
+  
+  // Render products table (default view)
   await renderTitlesProductsTable(tableContainer, products, analyzerResults);
+  
+  // Store data for switcher
+  window.titlesAnalyzerData = { products, analyzerResults };
+  
+  // Add switcher event listeners
+  header.querySelectorAll('.titles-switch-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      // Update active state
+      header.querySelectorAll('.titles-switch-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      const view = this.dataset.view;
+      
+      if (view === 'products') {
+        tableContainer.style.display = 'block';
+        searchTermsContainer.style.display = 'none';
+      } else if (view === 'search-terms') {
+        tableContainer.style.display = 'none';
+        searchTermsContainer.style.display = 'block';
+        
+        // Render search terms table if not already rendered
+        if (!searchTermsContainer.hasChildNodes()) {
+          await renderTitlesSearchTermsTable(
+            searchTermsContainer, 
+            window.titlesAnalyzerData.analyzerResults,
+            window.titlesAnalyzerData.products
+          );
+        }
+      }
+    });
+  });
+  
 } catch (error) {
   console.error('[TitlesAnalyzer] Error loading data:', error);
   tableContainer.innerHTML = `
@@ -2105,6 +2215,325 @@ function addTitlesSortingFunctionality(table, products, processedMetrics, analyz
       renderTitlesProductsTable(container, sortedProducts, analyzerResults);
     });
   });
+}
+
+// Load search terms data for titles analysis
+async function loadSearchTermsDataForTitles() {
+  try {
+    const tablePrefix = typeof window.getProjectTablePrefix === 'function' ? 
+      window.getProjectTablePrefix() : 'acc1_pr1_';
+    
+    const days = window.selectedDateRangeDays || 30;
+    const suffix = days === 365 ? '365d' : days === 90 ? '90d' : days === 60 ? '60d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_searchTerms_${suffix}`;
+    
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(new Error('Failed to open database'));
+    });
+    
+    const transaction = db.transaction(['projectData'], 'readonly');
+    const objectStore = transaction.objectStore('projectData');
+    const getRequest = objectStore.get(tableName);
+    
+    const result = await new Promise((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    
+    db.close();
+    
+    if (!result || !result.data) return new Map();
+    
+    // Create a map of search term -> metrics
+    const searchTermsMap = new Map();
+    result.data.forEach(item => {
+      if (item.Query && item.Query.toLowerCase() !== 'blank') {
+        searchTermsMap.set(item.Query.toLowerCase(), {
+          query: item.Query,
+          impressions: item.Impressions || 0,
+          clicks: item.Clicks || 0,
+          conversions: item.Conversions || 0,
+          value: item.Value || 0,
+          revenuePercent: item['% of all revenue'] || 0
+        });
+      }
+    });
+    
+    return searchTermsMap;
+  } catch (error) {
+    console.error('[loadSearchTermsDataForTitles] Error:', error);
+    return new Map();
+  }
+}
+
+// Extract top keywords from analyzer results
+function extractTopKeywords(analyzerResults) {
+  // Get first record to extract the keywords list
+  for (const [, data] of analyzerResults) {
+    if (data.kosDetails && data.kosDetails.length > 0) {
+      return data.kosDetails.slice(0, 10).map(kd => kd.keyword);
+    }
+  }
+  return [];
+}
+
+// Calculate keyword statistics
+function calculateKeywordStats(keyword, analyzerResults) {
+  let optimizedCount = 0;
+  let rankedCount = 0;
+  const rankedProducts = [];
+  
+  for (const [title, data] of analyzerResults) {
+    if (data.kosDetails) {
+      const keywordData = data.kosDetails.find(kd => 
+        kd.keyword && kd.keyword.toLowerCase() === keyword.toLowerCase()
+      );
+      
+      if (keywordData) {
+        const kos = keywordData.kos || 0;
+        if (kos === 20) optimizedCount++;
+        if (kos > 0) {
+          rankedCount++;
+          rankedProducts.push({ title, kos });
+        }
+      }
+    }
+  }
+  
+  return { optimizedCount, rankedCount, rankedProducts };
+}
+
+// Render search terms table for titles
+async function renderTitlesSearchTermsTable(container, analyzerResults, products) {
+  const topKeywords = extractTopKeywords(analyzerResults);
+  const searchTermsData = await loadSearchTermsDataForTitles();
+  
+  if (topKeywords.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #999;">
+        No keyword data available for analysis
+      </div>
+    `;
+    return;
+  }
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'titles-products-wrapper';
+  
+  const table = document.createElement('table');
+  table.className = 'titles-table-modern';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `
+    <th class="center" style="width: 50px;">#</th>
+    <th class="sortable" data-sort="term" style="width: 250px;">
+      Search Term
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="optimized" style="width: 120px;">
+      # Optimized
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="ranked" style="width: 120px;">
+      # Ranked
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="impressions">
+      IMPR
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="clicks">
+      Clicks
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="ctr">
+      CTR %
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="conversions">
+      CONV
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="cvr">
+      CVR %
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="revenue">
+      Revenue
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable metric-col" data-sort="revpercent">
+      % of Revenue
+      <span class="titles-sort-icon">⇅</span>
+    </th>
+  `;
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create tbody
+  const tbody = document.createElement('tbody');
+  
+  // Process each keyword
+  topKeywords.forEach((keyword, index) => {
+    const stats = calculateKeywordStats(keyword, analyzerResults);
+    const searchData = searchTermsData.get(keyword.toLowerCase()) || {};
+    
+    const ctr = searchData.impressions > 0 ? 
+      (searchData.clicks / searchData.impressions * 100).toFixed(2) : '0.00';
+    const cvr = searchData.clicks > 0 ? 
+      (searchData.conversions / searchData.clicks * 100).toFixed(2) : '0.00';
+    
+    // Determine optimization level colors
+    const optimizedColor = stats.optimizedCount > 5 ? '#22c55e' : 
+                          stats.optimizedCount > 2 ? '#fbbf24' : '#ef4444';
+    const rankedColor = stats.rankedCount > 10 ? '#22c55e' : 
+                       stats.rankedCount > 5 ? '#fbbf24' : '#ef4444';
+    
+    const row = document.createElement('tr');
+    row.className = 'titles-search-term-row';
+    row.dataset.keyword = keyword;
+    row.dataset.rankedProducts = JSON.stringify(stats.rankedProducts);
+    row.style.cursor = 'pointer';
+    
+    row.innerHTML = `
+      <td class="center">${index + 1}</td>
+      <td>
+        <div style="font-weight: 600; color: #333; font-size: 13px;">
+          ${keyword}
+        </div>
+      </td>
+      <td class="center">
+        <span style="padding: 4px 10px; background: ${optimizedColor}15; color: ${optimizedColor}; 
+                     border-radius: 12px; font-weight: 700; font-size: 13px;">
+          ${stats.optimizedCount}
+        </span>
+      </td>
+      <td class="center">
+        <span style="padding: 4px 10px; background: ${rankedColor}15; color: ${rankedColor}; 
+                     border-radius: 12px; font-weight: 700; font-size: 13px;">
+          ${stats.rankedCount}
+        </span>
+      </td>
+      <td class="right">
+        ${searchData.impressions ? searchData.impressions.toLocaleString() : '-'}
+      </td>
+      <td class="right">
+        ${searchData.clicks ? searchData.clicks.toLocaleString() : '-'}
+      </td>
+      <td class="right" style="color: ${parseFloat(ctr) > 5 ? '#22c55e' : parseFloat(ctr) > 2 ? '#fbbf24' : '#ef4444'};">
+        ${ctr}%
+      </td>
+      <td class="right">
+        ${searchData.conversions || '-'}
+      </td>
+      <td class="right" style="color: ${parseFloat(cvr) > 5 ? '#22c55e' : parseFloat(cvr) > 2 ? '#fbbf24' : '#ef4444'};">
+        ${cvr}%
+      </td>
+      <td class="right">
+        ${searchData.value ? '$' + searchData.value.toFixed(2) : '-'}
+      </td>
+      <td class="right">
+        ${searchData.revenuePercent ? (searchData.revenuePercent * 100).toFixed(2) + '%' : '-'}
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+  
+  // Add click handlers for expansion
+  tbody.querySelectorAll('.titles-search-term-row').forEach(row => {
+    row.addEventListener('click', function() {
+      toggleSearchTermExpansion(this, products, analyzerResults);
+    });
+  });
+}
+
+// Toggle search term row expansion
+function toggleSearchTermExpansion(row, products, analyzerResults) {
+  const nextRow = row.nextElementSibling;
+  const isExpanded = nextRow && nextRow.classList.contains('titles-search-terms-expanded');
+  
+  if (isExpanded) {
+    nextRow.remove();
+    return;
+  }
+  
+  const keyword = row.dataset.keyword;
+  const rankedProducts = JSON.parse(row.dataset.rankedProducts || '[]');
+  
+  if (rankedProducts.length === 0) return;
+  
+  const expandedRow = document.createElement('tr');
+  expandedRow.className = 'titles-search-terms-expanded';
+  
+  const expandedCell = document.createElement('td');
+  expandedCell.colSpan = row.cells.length;
+  expandedCell.style.padding = '0';
+  
+  let expandedHTML = '<div class="titles-search-terms-products">';
+  expandedHTML += '<table class="titles-table-modern" style="margin: 0 16px; width: calc(100% - 32px);">';
+  expandedHTML += '<tbody>';
+  
+  // Sort products by KOS value (highest first)
+  rankedProducts.sort((a, b) => b.kos - a.kos);
+  
+  // Render each ranked product
+  rankedProducts.forEach((productData, idx) => {
+    const product = products.find(p => p.title === productData.title);
+    if (!product) return;
+    
+    const analyzerData = analyzerResults.get(productData.title);
+    const kosClass = productData.kos >= 15 ? 'titles-kos-excellent' : 
+                    productData.kos >= 10 ? 'titles-kos-good' : 
+                    productData.kos >= 5 ? 'titles-kos-fair' : 'titles-kos-poor';
+    
+    expandedHTML += `
+      <tr style="background: ${idx % 2 === 0 ? 'white' : '#f9f9f9'};">
+        <td class="center" style="width: 50px;">
+          <span style="color: #999; font-size: 11px;">${idx + 1}</span>
+        </td>
+        <td style="width: 250px;">
+          <div class="titles-product-title-cell">
+            <div class="titles-product-title" style="font-size: 12px;">
+              ${product.title}
+            </div>
+          </div>
+        </td>
+        <td class="center" style="width: 120px;">
+          <span class="titles-score-fraction ${kosClass}">
+            <span class="titles-score-value">${productData.kos}</span>
+            <span class="titles-score-max">/20</span>
+          </span>
+        </td>
+        <td class="center" style="width: 120px;">
+          ${analyzerData?.finalScore ? 
+            `<span style="font-weight: 600;">${Math.round(analyzerData.finalScore)}/100</span>` : 
+            '-'}
+        </td>
+        <td class="right">${product.impressions.toLocaleString()}</td>
+        <td class="right">${product.clicks.toLocaleString()}</td>
+        <td class="right">${product.ctr.toFixed(2)}%</td>
+        <td class="right">${product.conversions}</td>
+        <td class="right">${product.cvr.toFixed(2)}%</td>
+        <td class="right">$${product.convValue.toFixed(2)}</td>
+        <td class="right">${product.roas.toFixed(2)}x</td>
+      </tr>
+    `;
+  });
+  
+  expandedHTML += '</tbody></table></div>';
+  
+  expandedCell.innerHTML = expandedHTML;
+  expandedRow.appendChild(expandedCell);
+  row.parentNode.insertBefore(expandedRow, row.nextSibling);
 }
 
 // Export initialization function
