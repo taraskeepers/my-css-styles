@@ -1071,6 +1071,7 @@ function addTitlesAnalyzerStyles() {
   width: 260px;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  align-self: flex-start;
 }
 
 .titles-kos-distribution h4 {
@@ -1108,8 +1109,9 @@ function addTitlesAnalyzerStyles() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  min-width: 42px;
   height: 20px;
+  padding: 0 6px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 700;
@@ -2703,14 +2705,21 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
   
   if (rankedProducts.length === 0) return;
   
-  // Calculate KOS distribution
-  const kosDistribution = { 20: 0, 15: 0, 10: 0, 5: 0 };
-  rankedProducts.forEach(rp => {
-    if (rp.kos === 20) kosDistribution[20]++;
-    else if (rp.kos >= 15) kosDistribution[15]++;
-    else if (rp.kos >= 10) kosDistribution[10]++;
-    else if (rp.kos >= 5) kosDistribution[5]++;
-  });
+// Calculate KOS distribution - using ranges
+const kosDistribution = { 
+  perfect: 0,  // 20
+  good: 0,     // 15-19
+  fair: 0,     // 10-14
+  poor: 0      // 5-9
+};
+
+rankedProducts.forEach(rp => {
+  const kos = rp.kos || 0;
+  if (kos === 20) kosDistribution.perfect++;
+  else if (kos >= 15 && kos < 20) kosDistribution.good++;
+  else if (kos >= 10 && kos < 15) kosDistribution.fair++;
+  else if (kos >= 5 && kos < 10) kosDistribution.poor++;
+});
   
   const maxCount = Math.max(...Object.values(kosDistribution), 1);
   
@@ -2745,33 +2754,33 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
         KOS Distribution Analysis
       </h4>`;
   
-  const kosConfigs = [
-    { score: 20, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)', label: 'Perfect' },
-    { score: 15, color: '#22d3ee', bgColor: 'rgba(34, 211, 238, 0.2)', label: 'Good' },
-    { score: 10, color: '#fbbf24', bgColor: 'rgba(251, 191, 36, 0.2)', label: 'Fair' },
-    { score: 5, color: '#f87171', bgColor: 'rgba(248, 113, 113, 0.2)', label: 'Poor' }
-  ];
+const kosConfigs = [
+  { key: 'perfect', scoreRange: '20', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)', label: 'Perfect' },
+  { key: 'good', scoreRange: '15-19', color: '#22d3ee', bgColor: 'rgba(34, 211, 238, 0.2)', label: 'Good' },
+  { key: 'fair', scoreRange: '10-14', color: '#fbbf24', bgColor: 'rgba(251, 191, 36, 0.2)', label: 'Fair' },
+  { key: 'poor', scoreRange: '5-9', color: '#f87171', bgColor: 'rgba(248, 113, 113, 0.2)', label: 'Poor' }
+];
+
+kosConfigs.forEach(config => {
+  const count = kosDistribution[config.key];
+  const percentage = rankedProducts.length > 0 ? (count / rankedProducts.length * 100) : 0;
+  const width = maxCount > 0 ? (count / maxCount * 100) : 0;
   
-  kosConfigs.forEach(config => {
-    const count = kosDistribution[config.score];
-    const percentage = rankedProducts.length > 0 ? (count / rankedProducts.length * 100) : 0;
-    const width = maxCount > 0 ? (count / maxCount * 100) : 0;
-    
-    expandedHTML += `
-      <div class="titles-kos-bar-row">
-        <div class="titles-kos-bar-label">
-          <span class="titles-kos-score-badge" style="background: ${config.bgColor}; color: ${config.color};">
-            ${config.score}
-          </span>
-          <span style="font-size: 11px; opacity: 0.9;">${config.label}</span>
+  expandedHTML += `
+    <div class="titles-kos-bar-row">
+      <div class="titles-kos-bar-label">
+        <span class="titles-kos-score-badge" style="background: ${config.bgColor}; color: ${config.color};">
+          ${config.scoreRange}
+        </span>
+        <span style="font-size: 11px; opacity: 0.9;">${config.label}</span>
+      </div>
+      <div class="titles-kos-bar-container">
+        <div class="titles-kos-bar-fill" style="width: ${width}%; background: ${config.color};">
+          <span class="titles-kos-bar-count">${count}</span>
         </div>
-        <div class="titles-kos-bar-container">
-          <div class="titles-kos-bar-fill" style="width: ${width}%; background: ${config.color};">
-            <span class="titles-kos-bar-count">${count}</span>
-          </div>
-        </div>
-      </div>`;
-  });
+      </div>
+    </div>`;
+});
   
   expandedHTML += `
       <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2);">
@@ -2796,8 +2805,8 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
         <th style="width: 60px;">ROAS</th>
         <th class="center" style="width: 50px;">IMG</th>
         <th style="width: 300px;">PRODUCT TITLE</th>
-        <th class="center" style="width: 60px;">T-SCORE</th>
-        <th class="center" style="width: 50px;">KOS</th>
+<th class="center" style="width: 50px;">KOS</th>
+<th class="center" style="width: 60px;">T-SCORE</th>
         <th class="center" style="width: 50px;">GOS</th>
         <th class="center" style="width: 50px;">SUGG</th>
         <th class="right" style="width: 80px;">IMPR</th>
@@ -2896,18 +2905,18 @@ function toggleSearchTermExpansion(row, products, analyzerResults, processedMetr
           </div>
           ${product.sku ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">SKU: ${product.sku}</div>` : ''}
         </td>
-        <td class="center" style="padding: 8px;">
-          <span class="titles-score-fraction ${tscoreClass}" style="padding: 3px 8px; font-size: 12px;">
-            <span class="titles-score-value">${roundedScore}</span>
-            <span class="titles-score-max" style="font-size: 10px;">/100</span>
-          </span>
-        </td>
-        <td class="center" style="padding: 8px;">
-          <span class="titles-score-fraction ${kosClass}" style="padding: 3px 8px; font-size: 12px;">
-            <span class="titles-score-value">${productData.kos}</span>
-            <span class="titles-score-max" style="font-size: 10px;">/20</span>
-          </span>
-        </td>
+<td class="center" style="padding: 8px;">
+  <span class="titles-score-fraction ${kosClass}" style="padding: 3px 8px; font-size: 12px;">
+    <span class="titles-score-value">${productData.kos}</span>
+    <span class="titles-score-max" style="font-size: 10px;">/20</span>
+  </span>
+</td>
+<td class="center" style="padding: 8px;">
+  <span class="titles-score-fraction ${tscoreClass}" style="padding: 3px 8px; font-size: 12px;">
+    <span class="titles-score-value">${roundedScore}</span>
+    <span class="titles-score-max" style="font-size: 10px;">/100</span>
+  </span>
+</td>
         <td class="center" style="padding: 8px;">
           <span class="titles-score-fraction ${gosClass}" style="padding: 3px 8px; font-size: 12px;">
             <span class="titles-score-value">${gos}</span>
