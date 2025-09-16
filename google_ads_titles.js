@@ -2472,27 +2472,61 @@ function extractTopKeywords(analyzerResults) {
   return [];
 }
 
-// Calculate keyword statistics
 function calculateKeywordStats(keyword, analyzerResults) {
   let optimizedCount = 0;
   let rankedCount = 0;
   const rankedProducts = [];
   
   for (const [title, data] of analyzerResults) {
-    if (data.kosDetails) {
-      const keywordData = data.kosDetails.find(kd => 
+    if (data.kosDetails && Array.isArray(data.kosDetails)) {
+      // Try to find exact match first
+      let keywordData = data.kosDetails.find(kd => 
         kd.keyword && kd.keyword.toLowerCase() === keyword.toLowerCase()
       );
+      
+      // If no exact match, try to find partial match
+      if (!keywordData) {
+        keywordData = data.kosDetails.find(kd => 
+          kd.keyword && (
+            kd.keyword.toLowerCase().includes(keyword.toLowerCase()) ||
+            keyword.toLowerCase().includes(kd.keyword.toLowerCase())
+          )
+        );
+      }
+      
+      // If still no match but we have kosDetails, check if this keyword exists in top 10
+      if (!keywordData && data.kosDetails.length > 0) {
+        // Check if this is one of the top 10 keywords by position
+        const keywordIndex = data.kosDetails.findIndex(kd => 
+          kd.keyword && kd.keyword.toLowerCase() === keyword.toLowerCase()
+        );
+        
+        // If it's in the top 10 positions, use the data
+        if (keywordIndex >= 0 && keywordIndex < 10) {
+          keywordData = data.kosDetails[keywordIndex];
+        }
+      }
       
       if (keywordData) {
         const kos = keywordData.kos || 0;
         if (kos === 20) optimizedCount++;
         if (kos > 0) {
           rankedCount++;
-          rankedProducts.push({ title, kos });
+          rankedProducts.push({ 
+            title, 
+            kos,
+            // Store the actual keyword data for debugging
+            keywordFound: keywordData.keyword
+          });
         }
       }
     }
+  }
+  
+  // Debug logging
+  console.log(`[calculateKeywordStats] Keyword: "${keyword}", Found products:`, rankedProducts.length);
+  if (rankedProducts.length > 0) {
+    console.log('[calculateKeywordStats] Sample KOS values:', rankedProducts.slice(0, 5).map(p => ({title: p.title.substring(0, 30), kos: p.kos})));
   }
   
   return { optimizedCount, rankedCount, rankedProducts };
@@ -2721,7 +2755,21 @@ rankedProducts.forEach(rp => {
   else if (kos >= 5 && kos < 10) kosDistribution.poor++;
 });
   
-  const maxCount = Math.max(...Object.values(kosDistribution), 1);
+  const maxCount = Math.max(
+  kosDistribution.perfect,
+  kosDistribution.good,
+  kosDistribution.fair,
+  kosDistribution.poor,
+  1
+);
+
+  // Debug logging to understand the distribution
+console.log(`[KOS Distribution] Keyword: "${keyword}"`);
+console.log('[KOS Distribution] Products found:', rankedProducts.length);
+console.log('[KOS Distribution] Distribution:', kosDistribution);
+if (rankedProducts.length > 0) {
+  console.log('[KOS Distribution] KOS values:', rankedProducts.map(rp => rp.kos));
+}
   
   // Get matched products for images
   const matchedProducts = matchProductsWithCompanyData(products);
