@@ -1214,19 +1214,19 @@ function addTitlesAnalyzerStyles() {
 .titles-expanded-img-container:hover .titles-expanded-img-zoom {
   opacity: 1;
 }
+
 /* Title filter and averages section */
 .titles-filter-section {
   display: flex;
   align-items: center;
   gap: 0;
   flex: 1;
-  margin-left: 20px;
+  margin-left: 50px; /* Fixed 50px from titles-header-left */
   position: relative;
 }
 
 .titles-title-filter {
-  position: absolute;
-  left: 240px; /* Aligns with Product Title column */
+  position: relative;
   width: 280px;
 }
 
@@ -1251,42 +1251,143 @@ function addTitlesAnalyzerStyles() {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Filter tags container */
+.titles-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 28px;
+}
+
+.titles-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 16px;
+  font-size: 12px;
+  color: #667eea;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.titles-filter-tag-text {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titles-filter-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 10px;
+  color: #667eea;
+}
+
+.titles-filter-tag-remove:hover {
+  background: #667eea;
+  color: white;
+}
+
 .titles-avg-scores {
   position: absolute;
-  right: 440px; /* Positions to start of score columns */
+  right: 420px; /* Adjusted to align with score columns */
   display: flex;
-  gap: 15px;
+  gap: 20px;
   align-items: center;
 }
 
 .titles-avg-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  min-width: 65px;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 10px;
+  min-width: 75px;
 }
 
-.titles-avg-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
+/* T-Score average styling */
+.titles-avg-item.tscore-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.titles-avg-item.tscore-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+}
+
+.titles-avg-item.tscore-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.titles-avg-item.tscore-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+/* KOS average styling */
+.titles-avg-item.kos-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.titles-avg-item.kos-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+}
+
+.titles-avg-item.kos-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.titles-avg-item.kos-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+/* GOS average styling */
+.titles-avg-item.gos-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.titles-avg-item.gos-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+}
+
+.titles-avg-item.gos-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.titles-avg-item.gos-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+.titles-avg-score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-weight: 700;
 }
 
 .titles-avg-value {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
   color: white;
 }
 
 .titles-avg-max {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
 }
     `;
     document.head.appendChild(style);
@@ -1746,24 +1847,28 @@ header.innerHTML = `
       <input type="text" 
              class="titles-filter-input" 
              id="titleFilterInput" 
-             placeholder="🔍 Filter products by title..." 
+             placeholder="🔍 Filter products by title... (Press Enter)" 
              autocomplete="off">
+      <div class="titles-filter-tags" id="titleFilterTags"></div>
     </div>
     <div class="titles-avg-scores">
-      <div class="titles-avg-item">
-        <span class="titles-avg-label">AVG T-Score</span>
-        <span class="titles-avg-value" id="avgTScore">-</span>
-        <span class="titles-avg-max">/100</span>
+      <div class="titles-avg-item" id="avgTScoreContainer">
+        <div class="titles-avg-score-display">
+          <span class="titles-avg-value" id="avgTScore">-</span>
+          <span class="titles-avg-max">/100</span>
+        </div>
       </div>
-      <div class="titles-avg-item">
-        <span class="titles-avg-label">AVG KOS</span>
-        <span class="titles-avg-value" id="avgKOS">-</span>
-        <span class="titles-avg-max">/20</span>
+      <div class="titles-avg-item" id="avgKOSContainer">
+        <div class="titles-avg-score-display">
+          <span class="titles-avg-value" id="avgKOS">-</span>
+          <span class="titles-avg-max">/20</span>
+        </div>
       </div>
-      <div class="titles-avg-item">
-        <span class="titles-avg-label">AVG GOS</span>
-        <span class="titles-avg-value" id="avgGOS">-</span>
-        <span class="titles-avg-max">/80</span>
+      <div class="titles-avg-item" id="avgGOSContainer">
+        <div class="titles-avg-score-display">
+          <span class="titles-avg-value" id="avgGOS">-</span>
+          <span class="titles-avg-max">/80</span>
+        </div>
       </div>
     </div>
   </div>
@@ -1810,16 +1915,20 @@ try {
   // Store data for switcher including processedMetrics
   window.titlesAnalyzerData = { products, analyzerResults, processedMetrics };
 
-  // Initialize averages
+// Initialize averages
 updateTitlesAverages(products, analyzerResults);
 
-// Add filter event listener
+// Add filter event listener for Enter key
 const filterInput = document.getElementById('titleFilterInput');
 if (filterInput) {
-  filterInput.addEventListener('input', function(e) {
-    const filterText = e.target.value;
-    if (filterText.length === 0 || filterText.length >= 3) {
-      filterTitlesTable(products, analyzerResults, processedMetrics, filterText);
+  filterInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      const filterText = e.target.value.trim();
+      if (filterText.length > 0) {
+        addFilterTag(filterText);
+        applyTitleFilters();
+        e.target.value = ''; // Clear input after adding
+      }
     }
   });
 }
@@ -1836,10 +1945,20 @@ if (filterInput) {
 if (view === 'products') {
   tableContainer.style.display = 'block';
   searchTermsContainer.style.display = 'none';
-  // Reset filter and update averages when switching back
+  // Clear filters when switching back
+  const tagsContainer = document.getElementById('titleFilterTags');
+  if (tagsContainer) {
+    tagsContainer.innerHTML = '';
+  }
   const filterInput = document.getElementById('titleFilterInput');
   if (filterInput) {
     filterInput.value = '';
+  }
+  // Re-render with all products
+  const container = document.querySelector('.titles-products-table-container');
+  if (container) {
+    container.innerHTML = '';
+    renderTitlesProductsTable(container, window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults);
   }
   updateTitlesAverages(window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults);
 } else if (view === 'search-terms') {
@@ -2167,36 +2286,48 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
   addTitlesSortingFunctionality(table, products, processedMetrics, analyzerResults);
 }
 
-function updateTitlesAverages(products, analyzerResults, filterText = '') {
+function updateTitlesAverages(products, analyzerResults, filterTexts = []) {
   // Filter products if needed
   let filteredProducts = products;
-  if (filterText && filterText.length >= 3) {
-    filteredProducts = products.filter(p => 
-      p.title.toLowerCase().includes(filterText.toLowerCase())
-    );
+  if (filterTexts && filterTexts.length > 0) {
+    filteredProducts = products.filter(p => {
+      const title = p.title.toLowerCase();
+      return filterTexts.every(filterText => 
+        title.includes(filterText.toLowerCase())
+      );
+    });
   }
   
   // Calculate averages
   let totalTScore = 0;
   let totalKOS = 0;
   let totalGOS = 0;
-  let validCount = 0;
+  let tScoreCount = 0;
+  let kosCount = 0;
+  let gosCount = 0;
   
   filteredProducts.forEach(product => {
     const analyzerData = analyzerResults.get(product.title);
     if (analyzerData) {
-      if (analyzerData.finalScore > 0) {
+      if (analyzerData.finalScore !== undefined && analyzerData.finalScore > 0) {
         totalTScore += analyzerData.finalScore;
+        tScoreCount++;
       }
-      if (analyzerData.avgKos > 0) {
+      if (analyzerData.avgKos !== undefined && analyzerData.avgKos > 0) {
         totalKOS += analyzerData.avgKos;
+        kosCount++;
       }
-      if (analyzerData.gos > 0) {
+      if (analyzerData.gos !== undefined && analyzerData.gos > 0) {
         totalGOS += analyzerData.gos;
+        gosCount++;
       }
-      validCount++;
     }
   });
+  
+  // Calculate averages
+  const avgTScoreValue = tScoreCount > 0 ? Math.round(totalTScore / tScoreCount) : 0;
+  const avgKOSValue = kosCount > 0 ? (totalKOS / kosCount) : 0;
+  const avgGOSValue = gosCount > 0 ? Math.round(totalGOS / gosCount) : 0;
   
   // Update display
   const avgTScoreEl = document.getElementById('avgTScore');
@@ -2204,17 +2335,100 @@ function updateTitlesAverages(products, analyzerResults, filterText = '') {
   const avgGOSEl = document.getElementById('avgGOS');
   
   if (avgTScoreEl) {
-    avgTScoreEl.textContent = validCount > 0 ? 
-      Math.round(totalTScore / validCount) : '-';
+    avgTScoreEl.textContent = tScoreCount > 0 ? avgTScoreValue : '-';
+    // Update T-Score container class
+    const container = document.getElementById('avgTScoreContainer');
+    if (container) {
+      container.className = 'titles-avg-item';
+      if (avgTScoreValue > 70) container.classList.add('tscore-excellent');
+      else if (avgTScoreValue >= 55) container.classList.add('tscore-good');
+      else if (avgTScoreValue >= 40) container.classList.add('tscore-fair');
+      else container.classList.add('tscore-poor');
+    }
   }
+  
   if (avgKOSEl) {
-    avgKOSEl.textContent = validCount > 0 ? 
-      (totalKOS / validCount).toFixed(1) : '-';
+    avgKOSEl.textContent = kosCount > 0 ? avgKOSValue.toFixed(1) : '-';
+    // Update KOS container class
+    const container = document.getElementById('avgKOSContainer');
+    if (container) {
+      container.className = 'titles-avg-item';
+      if (avgKOSValue > 15) container.classList.add('kos-excellent');
+      else if (avgKOSValue >= 10) container.classList.add('kos-good');
+      else if (avgKOSValue > 5) container.classList.add('kos-fair');
+      else container.classList.add('kos-poor');
+    }
   }
+  
   if (avgGOSEl) {
-    avgGOSEl.textContent = validCount > 0 ? 
-      Math.round(totalGOS / validCount) : '-';
+    avgGOSEl.textContent = gosCount > 0 ? avgGOSValue : '-';
+    // Update GOS container class
+    const container = document.getElementById('avgGOSContainer');
+    if (container) {
+      container.className = 'titles-avg-item';
+      if (avgGOSValue > 60) container.classList.add('gos-excellent');
+      else if (avgGOSValue >= 40) container.classList.add('gos-good');
+      else if (avgGOSValue >= 20) container.classList.add('gos-fair');
+      else container.classList.add('gos-poor');
+    }
   }
+}
+
+function getActiveFilterTexts() {
+  const tags = document.querySelectorAll('.titles-filter-tag');
+  return Array.from(tags).map(tag => tag.dataset.filterText);
+}
+
+function addFilterTag(filterText) {
+  const tagsContainer = document.getElementById('titleFilterTags');
+  if (!tagsContainer) return;
+  
+  // Check if filter already exists
+  const existingTags = Array.from(tagsContainer.querySelectorAll('.titles-filter-tag'));
+  if (existingTags.some(tag => tag.dataset.filterText === filterText)) {
+    return;
+  }
+  
+  const tag = document.createElement('div');
+  tag.className = 'titles-filter-tag';
+  tag.dataset.filterText = filterText;
+  tag.innerHTML = `
+    <span class="titles-filter-tag-text" title="${filterText}">${filterText}</span>
+    <span class="titles-filter-tag-remove">✕</span>
+  `;
+  
+  // Add remove handler
+  tag.querySelector('.titles-filter-tag-remove').addEventListener('click', function() {
+    tag.remove();
+    applyTitleFilters();
+  });
+  
+  tagsContainer.appendChild(tag);
+}
+
+function applyTitleFilters() {
+  const filterTexts = getActiveFilterTexts();
+  const { products, analyzerResults, processedMetrics } = window.titlesAnalyzerData;
+  
+  let filteredProducts = products;
+  if (filterTexts.length > 0) {
+    filteredProducts = products.filter(p => {
+      const title = p.title.toLowerCase();
+      return filterTexts.every(filterText => 
+        title.includes(filterText.toLowerCase())
+      );
+    });
+  }
+  
+  // Clear and re-render table
+  const container = document.querySelector('.titles-products-table-container');
+  if (container) {
+    container.innerHTML = '';
+    renderTitlesProductsTable(container, filteredProducts, analyzerResults);
+  }
+  
+  // Update averages
+  updateTitlesAverages(products, analyzerResults, filterTexts);
 }
 
 function filterTitlesTable(products, analyzerResults, processedMetrics, filterText) {
