@@ -1852,35 +1852,46 @@ header.innerHTML = `
              autocomplete="off">
       <div class="titles-filter-tags" id="titleFilterTags"></div>
     </div>
-<div class="titles-avg-scores">
-  <div class="titles-avg-item" id="avgTScoreContainer">
-    <div style="display: flex; flex-direction: column; align-items: center;">
-      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
-      <div class="titles-avg-score-display">
-        <span class="titles-avg-value" id="avgTScore">-</span>
-        <span class="titles-avg-max">/100</span>
+    <div class="titles-avg-scores">
+      <div class="titles-avg-item" id="avgTScoreContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
+          <div class="titles-avg-score-display">
+            <span class="titles-avg-value" id="avgTScore">-</span>
+            <span class="titles-avg-max">/100</span>
+          </div>
+        </div>
+      </div>
+      <div class="titles-avg-item" id="avgKOSContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
+          <div class="titles-avg-score-display">
+            <span class="titles-avg-value" id="avgKOS">-</span>
+            <span class="titles-avg-max">/20</span>
+          </div>
+        </div>
+      </div>
+      <div class="titles-avg-item" id="avgGOSContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
+          <div class="titles-avg-score-display">
+            <span class="titles-avg-value" id="avgGOS">-</span>
+            <span class="titles-avg-max">/80</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="titles-avg-item" id="avgKOSContainer">
-    <div style="display: flex; flex-direction: column; align-items: center;">
-      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
-      <div class="titles-avg-score-display">
-        <span class="titles-avg-value" id="avgKOS">-</span>
-        <span class="titles-avg-max">/20</span>
-      </div>
+  <div class="titles-header-right">
+    <div class="titles-view-switcher">
+      <button class="titles-switch-btn active" data-view="products">
+        <span>📦</span> Products
+      </button>
+      <button class="titles-switch-btn" data-view="search-terms">
+        <span>🔍</span> Search Terms
+      </button>
     </div>
   </div>
-  <div class="titles-avg-item" id="avgGOSContainer">
-    <div style="display: flex; flex-direction: column; align-items: center;">
-      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
-      <div class="titles-avg-score-display">
-        <span class="titles-avg-value" id="avgGOS">-</span>
-        <span class="titles-avg-max">/80</span>
-      </div>
-    </div>
-  </div>
-</div>
 `;
   productsPanel.appendChild(header);
   
