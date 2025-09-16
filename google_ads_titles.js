@@ -1317,9 +1317,10 @@ function addTitlesAnalyzerStyles() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
+  padding: 8px 14px;
   border-radius: 10px;
-  min-width: 75px;
+  min-width: 85px;
+  min-height: 50px;
 }
 
 /* T-Score average styling */
@@ -1851,37 +1852,35 @@ header.innerHTML = `
              autocomplete="off">
       <div class="titles-filter-tags" id="titleFilterTags"></div>
     </div>
-    <div class="titles-avg-scores">
-      <div class="titles-avg-item" id="avgTScoreContainer">
-        <div class="titles-avg-score-display">
-          <span class="titles-avg-value" id="avgTScore">-</span>
-          <span class="titles-avg-max">/100</span>
-        </div>
-      </div>
-      <div class="titles-avg-item" id="avgKOSContainer">
-        <div class="titles-avg-score-display">
-          <span class="titles-avg-value" id="avgKOS">-</span>
-          <span class="titles-avg-max">/20</span>
-        </div>
-      </div>
-      <div class="titles-avg-item" id="avgGOSContainer">
-        <div class="titles-avg-score-display">
-          <span class="titles-avg-value" id="avgGOS">-</span>
-          <span class="titles-avg-max">/80</span>
-        </div>
+<div class="titles-avg-scores">
+  <div class="titles-avg-item" id="avgTScoreContainer">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
+      <div class="titles-avg-score-display">
+        <span class="titles-avg-value" id="avgTScore">-</span>
+        <span class="titles-avg-max">/100</span>
       </div>
     </div>
   </div>
-  <div class="titles-header-right">
-    <div class="titles-view-switcher">
-      <button class="titles-switch-btn active" data-view="products">
-        <span>📦</span> Products
-      </button>
-      <button class="titles-switch-btn" data-view="search-terms">
-        <span>🔍</span> Search Terms
-      </button>
+  <div class="titles-avg-item" id="avgKOSContainer">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
+      <div class="titles-avg-score-display">
+        <span class="titles-avg-value" id="avgKOS">-</span>
+        <span class="titles-avg-max">/20</span>
+      </div>
     </div>
   </div>
+  <div class="titles-avg-item" id="avgGOSContainer">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
+      <div class="titles-avg-score-display">
+        <span class="titles-avg-value" id="avgGOS">-</span>
+        <span class="titles-avg-max">/80</span>
+      </div>
+    </div>
+  </div>
+</div>
 `;
   productsPanel.appendChild(header);
   
@@ -1909,29 +1908,33 @@ try {
   // Load processed data for POS and SHARE
   const processedMetrics = await loadProcessedDataForTitles(productTitles);
   
-  // Render products table (default view)
-  await renderTitlesProductsTable(tableContainer, products, analyzerResults);
+// Store data for switcher including processedMetrics BEFORE rendering
+window.titlesAnalyzerData = { products, analyzerResults, processedMetrics };
+
+// Render products table (default view)
+await renderTitlesProductsTable(tableContainer, products, analyzerResults);
+
+// Initialize averages after a delay to ensure DOM is ready
+setTimeout(() => {
+  updateTitlesAverages(products, analyzerResults, []);
   
-  // Store data for switcher including processedMetrics
-  window.titlesAnalyzerData = { products, analyzerResults, processedMetrics };
-
-// Initialize averages
-updateTitlesAverages(products, analyzerResults);
-
-// Add filter event listener for Enter key
-const filterInput = document.getElementById('titleFilterInput');
-if (filterInput) {
-  filterInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      const filterText = e.target.value.trim();
-      if (filterText.length > 0) {
-        addFilterTag(filterText);
-        applyTitleFilters();
-        e.target.value = ''; // Clear input after adding
+  // Add filter event listener for Enter key
+  const filterInput = document.getElementById('titleFilterInput');
+  if (filterInput) {
+    filterInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const filterText = e.target.value.trim();
+        if (filterText.length > 0) {
+          console.log('[Filter] Adding filter tag:', filterText);
+          addFilterTag(filterText);
+          applyTitleFilters();
+          e.target.value = ''; // Clear input after adding
+        }
       }
-    }
-  });
-}
+    });
+  }
+}, 200);
   
   // Add switcher event listeners
   header.querySelectorAll('.titles-switch-btn').forEach(btn => {
@@ -2287,6 +2290,14 @@ async function renderTitlesProductsTable(container, products, analyzerResults = 
 }
 
 function updateTitlesAverages(products, analyzerResults, filterTexts = []) {
+  console.log('[updateTitlesAverages] Called with products:', products?.length, 'analyzerResults:', analyzerResults?.size);
+  
+  // Ensure we have valid inputs
+  if (!products || !analyzerResults) {
+    console.warn('[updateTitlesAverages] Missing products or analyzerResults');
+    return;
+  }
+  
   // Filter products if needed
   let filteredProducts = products;
   if (filterTexts && filterTexts.length > 0) {
@@ -2329,49 +2340,53 @@ function updateTitlesAverages(products, analyzerResults, filterTexts = []) {
   const avgKOSValue = kosCount > 0 ? (totalKOS / kosCount) : 0;
   const avgGOSValue = gosCount > 0 ? Math.round(totalGOS / gosCount) : 0;
   
-  // Update display
-  const avgTScoreEl = document.getElementById('avgTScore');
-  const avgKOSEl = document.getElementById('avgKOS');
-  const avgGOSEl = document.getElementById('avgGOS');
+  console.log('[updateTitlesAverages] Calculated:', { avgTScoreValue, avgKOSValue, avgGOSValue });
   
-  if (avgTScoreEl) {
-    avgTScoreEl.textContent = tScoreCount > 0 ? avgTScoreValue : '-';
-    // Update T-Score container class
-    const container = document.getElementById('avgTScoreContainer');
-    if (container) {
-      container.className = 'titles-avg-item';
-      if (avgTScoreValue > 70) container.classList.add('tscore-excellent');
-      else if (avgTScoreValue >= 55) container.classList.add('tscore-good');
-      else if (avgTScoreValue >= 40) container.classList.add('tscore-fair');
-      else container.classList.add('tscore-poor');
+  // Update display with timeout to ensure DOM is ready
+  setTimeout(() => {
+    const avgTScoreEl = document.getElementById('avgTScore');
+    const avgKOSEl = document.getElementById('avgKOS');
+    const avgGOSEl = document.getElementById('avgGOS');
+    
+    if (avgTScoreEl) {
+      avgTScoreEl.textContent = tScoreCount > 0 ? avgTScoreValue : '-';
+      // Update T-Score container class
+      const container = document.getElementById('avgTScoreContainer');
+      if (container && tScoreCount > 0) {
+        container.className = 'titles-avg-item';
+        if (avgTScoreValue > 70) container.classList.add('tscore-excellent');
+        else if (avgTScoreValue >= 55) container.classList.add('tscore-good');
+        else if (avgTScoreValue >= 40) container.classList.add('tscore-fair');
+        else container.classList.add('tscore-poor');
+      }
     }
-  }
-  
-  if (avgKOSEl) {
-    avgKOSEl.textContent = kosCount > 0 ? avgKOSValue.toFixed(1) : '-';
-    // Update KOS container class
-    const container = document.getElementById('avgKOSContainer');
-    if (container) {
-      container.className = 'titles-avg-item';
-      if (avgKOSValue > 15) container.classList.add('kos-excellent');
-      else if (avgKOSValue >= 10) container.classList.add('kos-good');
-      else if (avgKOSValue > 5) container.classList.add('kos-fair');
-      else container.classList.add('kos-poor');
+    
+    if (avgKOSEl) {
+      avgKOSEl.textContent = kosCount > 0 ? avgKOSValue.toFixed(1) : '-';
+      // Update KOS container class
+      const container = document.getElementById('avgKOSContainer');
+      if (container && kosCount > 0) {
+        container.className = 'titles-avg-item';
+        if (avgKOSValue > 15) container.classList.add('kos-excellent');
+        else if (avgKOSValue >= 10) container.classList.add('kos-good');
+        else if (avgKOSValue > 5) container.classList.add('kos-fair');
+        else container.classList.add('kos-poor');
+      }
     }
-  }
-  
-  if (avgGOSEl) {
-    avgGOSEl.textContent = gosCount > 0 ? avgGOSValue : '-';
-    // Update GOS container class
-    const container = document.getElementById('avgGOSContainer');
-    if (container) {
-      container.className = 'titles-avg-item';
-      if (avgGOSValue > 60) container.classList.add('gos-excellent');
-      else if (avgGOSValue >= 40) container.classList.add('gos-good');
-      else if (avgGOSValue >= 20) container.classList.add('gos-fair');
-      else container.classList.add('gos-poor');
+    
+    if (avgGOSEl) {
+      avgGOSEl.textContent = gosCount > 0 ? avgGOSValue : '-';
+      // Update GOS container class
+      const container = document.getElementById('avgGOSContainer');
+      if (container && gosCount > 0) {
+        container.className = 'titles-avg-item';
+        if (avgGOSValue > 60) container.classList.add('gos-excellent');
+        else if (avgGOSValue >= 40) container.classList.add('gos-good');
+        else if (avgGOSValue >= 20) container.classList.add('gos-fair');
+        else container.classList.add('gos-poor');
+      }
     }
-  }
+  }, 50);
 }
 
 function getActiveFilterTexts() {
@@ -2385,7 +2400,7 @@ function addFilterTag(filterText) {
   
   // Check if filter already exists
   const existingTags = Array.from(tagsContainer.querySelectorAll('.titles-filter-tag'));
-  if (existingTags.some(tag => tag.dataset.filterText === filterText)) {
+  if (existingTags.some(tag => tag.dataset.filterText.toLowerCase() === filterText.toLowerCase())) {
     return;
   }
   
@@ -2408,6 +2423,12 @@ function addFilterTag(filterText) {
 
 function applyTitleFilters() {
   const filterTexts = getActiveFilterTexts();
+  
+  if (!window.titlesAnalyzerData) {
+    console.error('[applyTitleFilters] No titles analyzer data available');
+    return;
+  }
+  
   const { products, analyzerResults, processedMetrics } = window.titlesAnalyzerData;
   
   let filteredProducts = products;
@@ -2429,25 +2450,6 @@ function applyTitleFilters() {
   
   // Update averages
   updateTitlesAverages(products, analyzerResults, filterTexts);
-}
-
-function filterTitlesTable(products, analyzerResults, processedMetrics, filterText) {
-  const container = document.querySelector('.titles-products-table-container');
-  if (!container) return;
-  
-  let filteredProducts = products;
-  if (filterText && filterText.length >= 3) {
-    filteredProducts = products.filter(p => 
-      p.title.toLowerCase().includes(filterText.toLowerCase())
-    );
-  }
-  
-  // Clear and re-render
-  container.innerHTML = '';
-  renderTitlesProductsTable(container, filteredProducts, analyzerResults);
-  
-  // Update averages
-  updateTitlesAverages(filteredProducts, analyzerResults, filterText);
 }
 
 function toggleRowExpansion(row, analyzerResults) {
