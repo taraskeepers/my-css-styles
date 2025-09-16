@@ -1307,7 +1307,7 @@ function addTitlesAnalyzerStyles() {
 
 .titles-avg-scores {
   position: absolute;
-  right: 420px; /* Adjusted to align with score columns */
+  right: 600px; /* Adjusted to align with score columns */
   display: flex;
   gap: 20px;
   align-items: center;
@@ -1936,49 +1936,52 @@ setTimeout(() => {
   }
 }, 200);
   
-  // Add switcher event listeners
-  header.querySelectorAll('.titles-switch-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-      // Update active state
-      header.querySelectorAll('.titles-switch-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
+// Add switcher event listeners
+header.querySelectorAll('.titles-switch-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    // Update active state
+    header.querySelectorAll('.titles-switch-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    
+    const view = this.dataset.view;
+    
+    if (view === 'products') {
+      tableContainer.style.display = 'block';
+      searchTermsContainer.style.display = 'none';
       
-      const view = this.dataset.view;
-      
-if (view === 'products') {
-  tableContainer.style.display = 'block';
-  searchTermsContainer.style.display = 'none';
-  // Clear filters when switching back
-  const tagsContainer = document.getElementById('titleFilterTags');
-  if (tagsContainer) {
-    tagsContainer.innerHTML = '';
-  }
-  const filterInput = document.getElementById('titleFilterInput');
-  if (filterInput) {
-    filterInput.value = '';
-  }
-  // Re-render with all products
-  const container = document.querySelector('.titles-products-table-container');
-  if (container) {
-    container.innerHTML = '';
-    renderTitlesProductsTable(container, window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults);
-  }
-  updateTitlesAverages(window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults);
-} else if (view === 'search-terms') {
-        tableContainer.style.display = 'none';
-        searchTermsContainer.style.display = 'block';
-        
-        // Render search terms table if not already rendered
-        if (!searchTermsContainer.hasChildNodes()) {
-          await renderTitlesSearchTermsTable(
-            searchTermsContainer, 
-            window.titlesAnalyzerData.analyzerResults,
-            window.titlesAnalyzerData.products
-          );
-        }
+      // Clear filters when switching back
+      const tagsContainer = document.getElementById('titleFilterTags');
+      if (tagsContainer) {
+        tagsContainer.innerHTML = '';
       }
-    });
+      const filterInput = document.getElementById('titleFilterInput');
+      if (filterInput) {
+        filterInput.value = '';
+      }
+      
+      // Re-render with all products
+      const container = document.querySelector('.titles-products-table-container');
+      if (container) {
+        container.innerHTML = '';
+        renderTitlesProductsTable(container, window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults);
+      }
+      updateTitlesAverages(window.titlesAnalyzerData.products, window.titlesAnalyzerData.analyzerResults, []);
+      
+    } else if (view === 'search-terms') {
+      tableContainer.style.display = 'none';
+      searchTermsContainer.style.display = 'block';
+      
+      // Render search terms table if not already rendered
+      if (!searchTermsContainer.hasChildNodes()) {
+        await renderTitlesSearchTermsTable(
+          searchTermsContainer, 
+          window.titlesAnalyzerData.analyzerResults,
+          window.titlesAnalyzerData.products
+        );
+      }
+    }
   });
+});
   
 } catch (error) {
   console.error('[TitlesAnalyzer] Error loading data:', error);
