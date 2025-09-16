@@ -1307,7 +1307,7 @@ function addTitlesAnalyzerStyles() {
 
 .titles-avg-scores {
   position: absolute;
-  right: 600px; /* Adjusted to align with score columns */
+  right: 350px; /* Adjusted to align with score columns */
   display: flex;
   gap: 20px;
   align-items: center;
