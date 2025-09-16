@@ -2812,7 +2812,12 @@ const kosConfigs = [
 kosConfigs.forEach(config => {
   const count = kosDistribution[config.key];
   const percentage = rankedProducts.length > 0 ? (count / rankedProducts.length * 100) : 0;
-  const width = maxCount > 0 ? (count / maxCount * 100) : 0;
+  let width = maxCount > 0 ? (count / maxCount * 100) : 0;
+  
+  // Ensure minimum width for visibility if count > 0
+  if (count > 0 && width < 15) {
+    width = 15; // Minimum 15% width to show the bar and count
+  }
   
   expandedHTML += `
     <div class="titles-kos-bar-row">
