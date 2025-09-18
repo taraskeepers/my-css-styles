@@ -1076,19 +1076,21 @@ serpStatsRec.data.forEach((row, idx) => {
       }
     }
 
-    // Simple helper to decide if data is present & fresh
-    const isFresh = (rec) => {
-      if (!rec || !rec.data || !rec.data.length) return false;
-      return isToday(rec.savedAt);  // uses your existing isToday(timestamp) check
-    };
+// Simple helper to decide if data is present & fresh
+const isFresh = (rec, isProductTable = false) => {
+  if (!rec || rec.data === undefined) return false;
+  // For product tables, empty arrays are acceptable
+  if (!isProductTable && (!rec.data || !rec.data.length)) return false;
+  return isToday(rec.savedAt);  // uses your existing isToday(timestamp) check
+};
 
-const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec) && isFresh(productTitlesEvaluatedRec) && isFresh(productTitlesCompaniesRec);
+const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec) && isFresh(productTitlesEvaluatedRec, true) && isFresh(productTitlesCompaniesRec, true);
 console.log("[🧪 isFresh checks]",
   "processed =", isFresh(processedRec),
   "serp =", isFresh(serpStatsRec),
   "trends =", isFresh(marketTrendsRec),
-  "productTitlesEvaluated =", isFresh(productTitlesEvaluatedRec),
-  "productTitlesCompanies =", isFresh(productTitlesCompaniesRec)
+  "productTitlesEvaluated =", isFresh(productTitlesEvaluatedRec, true),
+  "productTitlesCompanies =", isFresh(productTitlesCompaniesRec, true)
 );
 
     if (allFresh) {
