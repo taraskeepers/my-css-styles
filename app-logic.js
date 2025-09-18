@@ -517,11 +517,13 @@ document.getElementById("locationText").textContent = "(select a location)";
 
 /* specialized helper logic */
 
-async function onReceivedRowsWithData(rows, companyStats, marketTrends) {
+async function onReceivedRowsWithData(rows, companyStats, marketTrends, productTitlesEvaluated, productTitlesCompanies) {
   console.log("[onReceivedRowsWithData] Called with all data directly");
   console.log("Received", rows.length, "rows");
   console.log("CompanyStats:", companyStats?.length, "records");
   console.log("MarketTrends:", marketTrends?.length, "records");
+  console.log("ProductTitlesEvaluated:", productTitlesEvaluated?.length, "records");
+  console.log("ProductTitlesCompanies:", productTitlesCompanies?.length, "records");
 
   // Ensure company data is ready
   if (window.myCompanyReady) {
@@ -547,18 +549,22 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
     window.filterState.activeProjectNumber = 1;
   }
 
-  // 4) Use the passed data directly - DON'T reload from IDB
-  window.companyStatsData = companyStats;
-  window.marketTrendsData = marketTrends;
+// 4) Use the passed data directly - DON'T reload from IDB
+window.companyStatsData = companyStats;
+window.marketTrendsData = marketTrends;
+window.productTitlesEvaluatedData = productTitlesEvaluated;
+window.productTitlesCompaniesData = productTitlesCompanies;
   
-  // 6) Process table data ONLY if the function exists
-  if (typeof processTableData === 'function') {
-    processTableData({ data: rows }, "processed");
-    processTableData({ data: companyStats }, "company_serp_stats");
-    processTableData({ data: marketTrends }, "market_trends");
-  } else {
-    console.log("[onReceivedRowsWithData] processTableData not found, skipping table processing");
-  }
+// 6) Process table data ONLY if the function exists
+if (typeof processTableData === 'function') {
+  processTableData({ data: rows }, "processed");
+  processTableData({ data: companyStats }, "company_serp_stats");
+  processTableData({ data: marketTrends }, "market_trends");
+  processTableData({ data: productTitlesEvaluated }, "product_titles_evaluated");
+  processTableData({ data: productTitlesCompanies }, "product_titles_companies");
+} else {
+  console.log("[onReceivedRowsWithData] processTableData not found, skipping table processing");
+}
 
   // 6) Render the data
   if (typeof renderData === "function") {
@@ -615,23 +621,29 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
 
   console.log("[DEBUG] Data prefix set to:", window.dataPrefix);
 
-  // 6) Load the data using the appropriate prefix
-  Promise.all([
-    getDataFromIDB(window.dataPrefix + "processed"),
-    getDataFromIDB(window.dataPrefix + "company_serp_stats"),
-    getDataFromIDB(window.dataPrefix + "market_trends")
-  ])
-  .then(([processed, serpStats, marketTrends]) => {
-    console.log("[DEBUG] processed data:", processed);
-    console.log("[DEBUG] company_serp_stats data:", serpStats);
-    console.log("[DEBUG] market_trends data:", marketTrends);
+// 6) Load the data using the appropriate prefix
+Promise.all([
+  getDataFromIDB(window.dataPrefix + "processed"),
+  getDataFromIDB(window.dataPrefix + "company_serp_stats"),
+  getDataFromIDB(window.dataPrefix + "market_trends"),
+  getDataFromIDB(window.dataPrefix + "product_titles_evaluated"),
+  getDataFromIDB(window.dataPrefix + "product_titles_companies")
+])
+.then(([processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies]) => {
+  console.log("[DEBUG] processed data:", processed);
+  console.log("[DEBUG] company_serp_stats data:", serpStats);
+  console.log("[DEBUG] market_trends data:", marketTrends);
+  console.log("[DEBUG] product_titles_evaluated data:", productTitlesEvaluated);
+  console.log("[DEBUG] product_titles_companies data:", productTitlesCompanies);
 
-    // Process and use the loaded data
-    if (processed && serpStats && marketTrends) {
-      // Process the data (you can adjust this logic as needed)
-      processTableData(processed, "processed");
-      processTableData(serpStats, "company_serp_stats");
-      processTableData(marketTrends, "market_trends");
+  // Process and use the loaded data
+  if (processed && serpStats && marketTrends && productTitlesEvaluated && productTitlesCompanies) {
+    // Process the data (you can adjust this logic as needed)
+    processTableData(processed, "processed");
+    processTableData(serpStats, "company_serp_stats");
+    processTableData(marketTrends, "market_trends");
+    processTableData(productTitlesEvaluated, "product_titles_evaluated");
+    processTableData(productTitlesCompanies, "product_titles_companies");
 
       if (document.getElementById("projectPage").style.display !== "none") {
   setTimeout(() => {
@@ -646,9 +658,10 @@ if (!window.filterState.company || window.filterState.company.trim() === "") {
       } else {
         console.warn("renderData() not yet defined — skipping this trace");
       }
-    } else {
-      console.warn("[WARN] One or more required tables are missing data.");
-    }
+} else {
+  console.warn("[WARN] One or more required tables are missing data.");
+  console.log("[DEBUG] Missing tables - processed:", !!processed, "serpStats:", !!serpStats, "marketTrends:", !!marketTrends, "productTitlesEvaluated:", !!productTitlesEvaluated, "productTitlesCompanies:", !!productTitlesCompanies);
+}
   })
   .catch(error => {
     console.error("[ERROR] Error loading tables:", error);
