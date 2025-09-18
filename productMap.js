@@ -9013,7 +9013,7 @@ sortedActiveProducts.forEach((product, index) => {
   const badgeColor = productToUse.posBadgeBackground || 'gray';
   
   // Create the HTML for small card
-  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+  const imageUrl = getSafeImageUrl(productToUse.thumbnail);
   const title = productToUse.title || 'No title';
   
   smallCard.innerHTML = `
@@ -9081,7 +9081,7 @@ if (sortedInactiveProducts.length > 0) {
     const trendValue = productToUse.finalSlope || '';
     const badgeColor = productToUse.posBadgeBackground || 'gray';
     
-    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
+    const imageUrl = getSafeImageUrl(productToUse.thumbnail);
     const title = productToUse.title || 'No title';
     
     smallCard.innerHTML = `
@@ -10344,6 +10344,33 @@ window.debugSegmentationData = function() {
   
   console.log("===============================");
 };
+
+function getSafeImageUrl(thumbnail) {
+  if (!thumbnail) {
+    return 'https://via.placeholder.com/50?text=No+Image';
+  }
+  
+  // If it's already a regular URL, return it
+  if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
+    return thumbnail;
+  }
+  
+  // If it's a base64 data URI, validate and return it
+  if (thumbnail.startsWith('data:image/')) {
+    try {
+      // Basic validation - check if base64 part exists and is reasonable length
+      const base64Part = thumbnail.split(',')[1];
+      if (base64Part && base64Part.length > 50) {
+        return thumbnail;
+      }
+    } catch (e) {
+      console.warn('Invalid base64 image data:', e);
+    }
+  }
+  
+  // Fallback to placeholder
+  return 'https://via.placeholder.com/50?text=No+Image';
+}
 
 // Debug function to check market share data
 function debugMarketShareIssue() {
