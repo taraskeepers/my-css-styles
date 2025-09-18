@@ -1,61 +1,3 @@
-// Image handling utilities - add these near the top of your file
-function createInlinePlaceholder(width = 50, height = 50, text = 'No Image') {
-  return `data:image/svg+xml;base64,${btoa(`
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${width}" height="${height}" fill="#e0e0e0"/>
-      <text x="50%" y="50%" font-family="Arial" font-size="10" fill="#999" 
-            dominant-baseline="middle" text-anchor="middle">${text}</text>
-    </svg>
-  `)}`;
-}
-
-function isValidBase64Image(dataUrl) {
-  if (!dataUrl || !dataUrl.startsWith('data:image/')) {
-    return false;
-  }
-  
-  try {
-    const parts = dataUrl.split(',');
-    if (parts.length !== 2) return false;
-    
-    const base64Data = parts[1];
-    // Try to decode base64 to check if it's valid
-    atob(base64Data);
-    
-    // Check if it's reasonably sized (not too small, not too large)
-    return base64Data.length > 100 && base64Data.length < 2000000; // 2MB limit
-  } catch (e) {
-    return false;
-  }
-}
-
-function getSafeImageUrl(thumbnail, width = 50, height = 50) {
-  // If no thumbnail, return inline placeholder
-  if (!thumbnail) {
-    return createInlinePlaceholder(width, height, 'No Image');
-  }
-  
-  // If it's a regular URL, return it
-  if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
-    return thumbnail;
-  }
-  
-  // If it's a valid base64 data URI, return it
-  if (isValidBase64Image(thumbnail)) {
-    return thumbnail;
-  }
-  
-  // If we get here, the thumbnail is invalid - return placeholder
-  console.warn('Invalid thumbnail data, using placeholder:', thumbnail.substring(0, 100));
-  return createInlinePlaceholder(width, height, 'No Image');
-}
-
-function handleImageError(imgElement, width = 50, height = 50) {
-  console.warn('Image failed to load:', imgElement.src.substring(0, 100) + '...');
-  imgElement.onerror = null; // Prevent infinite loop
-  imgElement.src = createInlinePlaceholder(width, height, 'Error');
-}
-
 // Replace your existing window.getProductRecordsForPopup function with this debug version:
 
 window.getProductRecordsForPopup = function(productTitle, productUrl) {
@@ -9071,7 +9013,7 @@ sortedActiveProducts.forEach((product, index) => {
   const badgeColor = productToUse.posBadgeBackground || 'gray';
   
   // Create the HTML for small card
-  const imageUrl = getSafeImageUrl(productToUse.thumbnail, 50, 50);
+  const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
   const title = productToUse.title || 'No title';
   
   smallCard.innerHTML = `
@@ -9079,10 +9021,10 @@ sortedActiveProducts.forEach((product, index) => {
       <div class="small-ad-pos-value">${posValue}</div>
       <div class="small-ad-pos-trend">${trendArrow}${trendValue}</div>
     </div>
-<img class="small-ad-image" 
-     src="${imageUrl}" 
-     alt="${title}"
-     onerror="handleImageError(this, 50, 50);">
+    <img class="small-ad-image" 
+         src="${imageUrl}" 
+         alt="${title}"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/50?text=No+Image';">
     <div class="small-ad-title">${title}</div>
   `;
   
@@ -9139,7 +9081,7 @@ if (sortedInactiveProducts.length > 0) {
     const trendValue = productToUse.finalSlope || '';
     const badgeColor = productToUse.posBadgeBackground || 'gray';
     
-    const imageUrl = getSafeImageUrl(productToUse.thumbnail, 50, 50);
+    const imageUrl = productToUse.thumbnail || 'https://via.placeholder.com/50?text=No+Image';
     const title = productToUse.title || 'No title';
     
     smallCard.innerHTML = `
@@ -10402,24 +10344,6 @@ window.debugSegmentationData = function() {
   
   console.log("===============================");
 };
-
-function debugThumbnail(product) {
-  const thumb = product.thumbnail;
-  console.log(`Product: ${product.title}`);
-  console.log(`Thumbnail type: ${typeof thumb}`);
-  console.log(`Thumbnail length: ${thumb?.length || 0}`);
-  
-  if (thumb?.startsWith('data:image/')) {
-    const parts = thumb.split(',');
-    console.log(`MIME type: ${parts[0]}`);
-    console.log(`Base64 length: ${parts[1]?.length || 0}`);
-    console.log(`Is valid: ${isValidBase64Image(thumb)}`);
-  } else if (thumb?.startsWith('http')) {
-    console.log(`HTTP URL: ${thumb.substring(0, 100)}...`);
-  } else {
-    console.log(`Unknown format: ${thumb?.substring(0, 50)}...`);
-  }
-}
 
 // Debug function to check market share data
 function debugMarketShareIssue() {
