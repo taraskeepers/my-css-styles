@@ -1009,21 +1009,27 @@ function createLocationListItem(loc) {
   // 3) Attempt to read IDB records for processed, serp, and market_trends
   try {
     window.filterState.activeProjectNumber = projectNumber;
-    const processedKey = prefix + "processed";
-    const serpKey = prefix + "company_serp_stats";
-    const trendsKey = prefix + "market_trends";
+const processedKey = prefix + "processed";
+const serpKey = prefix + "company_serp_stats";
+const trendsKey = prefix + "market_trends";
+const productTitlesEvaluatedKey = prefix + "product_titles_evaluated";
+const productTitlesCompaniesKey = prefix + "product_titles_companies";
 
-    console.group("[📦 IDB Access: Requested Tables]");
-    console.log("✅ Processed:", processedKey);
-    console.log("✅ SERP Stats:", serpKey);
-    console.log("✅ Market Trends:", trendsKey);
-    console.groupEnd();
+console.group("[📦 IDB Access: Requested Tables]");
+console.log("✅ Processed:", processedKey);
+console.log("✅ SERP Stats:", serpKey);
+console.log("✅ Market Trends:", trendsKey);
+console.log("✅ Product Titles Evaluated:", productTitlesEvaluatedKey);
+console.log("✅ Product Titles Companies:", productTitlesCompaniesKey);
+console.groupEnd();
 
-    const [processedRec, serpStatsRec, marketTrendsRec] = await Promise.all([
-      window.embedIDB.getData(processedKey),
-      window.embedIDB.getData(serpKey),
-      window.embedIDB.getData(trendsKey)
-    ]);
+const [processedRec, serpStatsRec, marketTrendsRec, productTitlesEvaluatedRec, productTitlesCompaniesRec] = await Promise.all([
+  window.embedIDB.getData(processedKey),
+  window.embedIDB.getData(serpKey),
+  window.embedIDB.getData(trendsKey),
+  window.embedIDB.getData(productTitlesEvaluatedKey),
+  window.embedIDB.getData(productTitlesCompaniesKey)
+]);
 
     console.group("[🧪 switchAccountAndReload] Raw IDB results:");
     console.log("serpStatsRec =", serpStatsRec);
@@ -1076,12 +1082,14 @@ serpStatsRec.data.forEach((row, idx) => {
       return isToday(rec.savedAt);  // uses your existing isToday(timestamp) check
     };
 
-    const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec);
-    console.log("[🧪 isFresh checks]",
-      "processed =", isFresh(processedRec),
-      "serp =", isFresh(serpStatsRec),
-      "trends =", isFresh(marketTrendsRec)
-    );
+const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec) && isFresh(productTitlesEvaluatedRec) && isFresh(productTitlesCompaniesRec);
+console.log("[🧪 isFresh checks]",
+  "processed =", isFresh(processedRec),
+  "serp =", isFresh(serpStatsRec),
+  "trends =", isFresh(marketTrendsRec),
+  "productTitlesEvaluated =", isFresh(productTitlesEvaluatedRec),
+  "productTitlesCompanies =", isFresh(productTitlesCompaniesRec)
+);
 
     if (allFresh) {
       console.log("[switchAccountAndReload] Using IDB cache for:", prefix);
@@ -1107,6 +1115,20 @@ if (marketTrendsRec && marketTrendsRec.data) {
   window.marketTrendsData = marketTrendsRec.data;
 } else {
   window.marketTrendsData = [];
+}
+
+if (productTitlesEvaluatedRec && productTitlesEvaluatedRec.data) {
+  window.productTitlesEvaluatedData = productTitlesEvaluatedRec.data;
+} else {
+  window.productTitlesEvaluatedData = [];
+  console.log("[switchAccountAndReload] No product titles evaluated data found!");
+}
+
+if (productTitlesCompaniesRec && productTitlesCompaniesRec.data) {
+  window.productTitlesCompaniesData = productTitlesCompaniesRec.data;
+} else {
+  window.productTitlesCompaniesData = [];
+  console.log("[switchAccountAndReload] No product titles companies data found!");
 }
 
 // Load Google Sheets data if available for THIS PROJECT
@@ -1148,10 +1170,12 @@ if (typeof updateGoogleAdsButtonState === 'function') {
       }      
 
 console.group("[📊 Data Injected Into Page]");
-      console.log("window.dataPrefix =", window.dataPrefix);
-      console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
-      console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
-      console.groupEnd();
+console.log("window.dataPrefix =", window.dataPrefix);
+console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
+console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
+console.log("productTitlesEvaluatedData.length =", productTitlesEvaluatedRec?.data?.length || 0);
+console.log("productTitlesCompaniesData.length =", productTitlesCompaniesRec?.data?.length || 0);
+console.groupEnd();
       
       // Update company from myCompanyArray for current project
       if (typeof updateCompanySelector === 'function') {
@@ -1183,7 +1207,7 @@ console.group("[📊 Data Injected Into Page]");
       }
       
       // MODIFIED: Pass all data to avoid double-loading
-      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data);
+      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data, productTitlesEvaluatedRec.data, productTitlesCompaniesRec.data);
       // CRITICAL: Set dataLoaded flag
 window.dataLoaded = true;
 console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true");
