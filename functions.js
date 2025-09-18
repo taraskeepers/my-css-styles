@@ -21,19 +21,19 @@ const [processed, serpStats, marketTrends, productTitlesEvaluated, productTitles
   window.embedIDB.getData(prefix + "product_titles_companies")
 ]);
 
-// Check if all tables have data
+// Check if all tables have data (product tables can be empty)
 const hasProcessed = processed?.data?.length > 0;
 const hasSerpStats = serpStats?.data?.length > 0;
 const hasMarketTrends = marketTrends?.data?.length > 0;
-const hasProductTitlesEvaluated = productTitlesEvaluated?.data?.length > 0;
-const hasProductTitlesCompanies = productTitlesCompanies?.data?.length > 0;
+const hasProductTitlesEvaluated = productTitlesEvaluated?.data !== undefined;
+const hasProductTitlesCompanies = productTitlesCompanies?.data !== undefined;
 
 console.log(`[checkProjectDatasetsInIDB] Results for ${prefix}:`, {
   hasProcessed,
   hasSerpStats,
   hasMarketTrends,
-  hasProductTitlesEvaluated,
-  hasProductTitlesCompanies
+  hasProductTitlesEvaluated: hasProductTitlesEvaluated && `(${productTitlesEvaluated?.data?.length || 0} rows)`,
+  hasProductTitlesCompanies: hasProductTitlesCompanies && `(${productTitlesCompanies?.data?.length || 0} rows)`
 });
 
 return hasProcessed && hasSerpStats && hasMarketTrends && hasProductTitlesEvaluated && hasProductTitlesCompanies;
