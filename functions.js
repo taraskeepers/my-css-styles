@@ -12,25 +12,31 @@ async function checkProjectDatasetsInIDB(projectNumber) {
     
     console.log(`[checkProjectDatasetsInIDB] Checking datasets for prefix: ${prefix}`);
     
-    // Check all three required tables
-    const [processed, serpStats, marketTrends] = await Promise.all([
-      window.embedIDB.getData(prefix + "processed"),
-      window.embedIDB.getData(prefix + "company_serp_stats"),
-      window.embedIDB.getData(prefix + "market_trends")
-    ]);
-    
-    // Check if all tables have data
-    const hasProcessed = processed?.data?.length > 0;
-    const hasSerpStats = serpStats?.data?.length > 0;
-    const hasMarketTrends = marketTrends?.data?.length > 0;
-    
-    console.log(`[checkProjectDatasetsInIDB] Results for ${prefix}:`, {
-      hasProcessed,
-      hasSerpStats,
-      hasMarketTrends
-    });
-    
-    return hasProcessed && hasSerpStats && hasMarketTrends;
+// Check all five required tables
+const [processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies] = await Promise.all([
+  window.embedIDB.getData(prefix + "processed"),
+  window.embedIDB.getData(prefix + "company_serp_stats"),
+  window.embedIDB.getData(prefix + "market_trends"),
+  window.embedIDB.getData(prefix + "product_titles_evaluated"),
+  window.embedIDB.getData(prefix + "product_titles_companies")
+]);
+
+// Check if all tables have data
+const hasProcessed = processed?.data?.length > 0;
+const hasSerpStats = serpStats?.data?.length > 0;
+const hasMarketTrends = marketTrends?.data?.length > 0;
+const hasProductTitlesEvaluated = productTitlesEvaluated?.data?.length > 0;
+const hasProductTitlesCompanies = productTitlesCompanies?.data?.length > 0;
+
+console.log(`[checkProjectDatasetsInIDB] Results for ${prefix}:`, {
+  hasProcessed,
+  hasSerpStats,
+  hasMarketTrends,
+  hasProductTitlesEvaluated,
+  hasProductTitlesCompanies
+});
+
+return hasProcessed && hasSerpStats && hasMarketTrends && hasProductTitlesEvaluated && hasProductTitlesCompanies;
   } catch (error) {
     console.error("[checkProjectDatasetsInIDB] Error checking datasets:", error);
     return false;
