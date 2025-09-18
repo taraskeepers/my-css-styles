@@ -636,8 +636,8 @@ Promise.all([
   console.log("[DEBUG] product_titles_evaluated data:", productTitlesEvaluated);
   console.log("[DEBUG] product_titles_companies data:", productTitlesCompanies);
 
-  // Process and use the loaded data
-  if (processed && serpStats && marketTrends && productTitlesEvaluated && productTitlesCompanies) {
+// Process and use the loaded data (product tables can be empty)
+if (processed && serpStats && marketTrends && (productTitlesEvaluated !== null) && (productTitlesCompanies !== null)) {
     // Process the data (you can adjust this logic as needed)
     processTableData(processed, "processed");
     processTableData(serpStats, "company_serp_stats");
@@ -659,8 +659,9 @@ Promise.all([
         console.warn("renderData() not yet defined — skipping this trace");
       }
 } else {
-  console.warn("[WARN] One or more required tables are missing data.");
-  console.log("[DEBUG] Missing tables - processed:", !!processed, "serpStats:", !!serpStats, "marketTrends:", !!marketTrends, "productTitlesEvaluated:", !!productTitlesEvaluated, "productTitlesCompanies:", !!productTitlesCompanies);
+  console.warn("[WARN] One or more core tables are missing data.");
+  console.log("[DEBUG] Missing tables - processed:", !!processed, "serpStats:", !!serpStats, "marketTrends:", !!marketTrends);
+  console.log("[DEBUG] Product tables (can be empty) - productTitlesEvaluated:", productTitlesEvaluated !== null, "productTitlesCompanies:", productTitlesCompanies !== null);
 }
   })
   .catch(error => {
