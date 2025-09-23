@@ -8,8 +8,14 @@ async function initializeProductStudio() {
   console.log('[initializeProductStudio] Starting Product Studio initialization...');
   
   if (window.productStudioInitialized) {
+    console.log('[initializeProductStudio] Already initialized, skipping...');
     return;
   }
+  
+  // Add debugging
+  console.log('[initializeProductStudio] Looking for Product Studio container...');
+  const container = document.getElementById('productStudioContent');
+  console.log('[initializeProductStudio] Container found:', !!container);
   
   // Add product studio specific styles
   addProductStudioStyles();
@@ -17,10 +23,15 @@ async function initializeProductStudio() {
   // Load and render product studio panels
   await loadAndRenderProductStudioPanels();
   
-  // Initialize toggle functionality
-  initializeProductStudioToggle();
+  // Wait a moment for DOM to update
+  setTimeout(() => {
+    console.log('[initializeProductStudio] Initializing toggle functionality...');
+    // Initialize toggle functionality
+    initializeProductStudioToggle();
+  }, 100);
   
   window.productStudioInitialized = true;
+  console.log('[initializeProductStudio] Product Studio initialization complete');
 }
 
 // Add product studio specific styles (reusing titles analyzer styles)
@@ -417,8 +428,13 @@ async function createProductsPanel() {
 
 // Initialize toggle functionality
 function initializeProductStudioToggle() {
-  const companiesBtn = document.getElementById('companiesMode');
-  const productsBtn = document.getElementById('productsMode');
+  const companiesBtn = document.getElementById('studioCompaniesMode');
+  const productsBtn = document.getElementById('studioProductsMode');
+  
+  console.log('[initializeProductStudioToggle] Found buttons:', {
+    companiesBtn: !!companiesBtn,
+    productsBtn: !!productsBtn
+  });
   
   if (companiesBtn && productsBtn) {
     // Remove any existing event listeners
@@ -426,22 +442,34 @@ function initializeProductStudioToggle() {
     productsBtn.replaceWith(productsBtn.cloneNode(true));
     
     // Get the new elements after cloning
-    const newCompaniesBtn = document.getElementById('companiesMode');
-    const newProductsBtn = document.getElementById('productsMode');
+    const newCompaniesBtn = document.getElementById('studioCompaniesMode');
+    const newProductsBtn = document.getElementById('studioProductsMode');
     
-    newCompaniesBtn.addEventListener('click', function() {
+    newCompaniesBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[ProductStudio] Companies button clicked');
+      
       newCompaniesBtn.classList.add('active');
       newProductsBtn.classList.remove('active');
       showCompaniesPanel();
       console.log('Companies mode selected in Product Studio');
     });
     
-    newProductsBtn.addEventListener('click', function() {
+    newProductsBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[ProductStudio] Products button clicked');
+      
       newProductsBtn.classList.add('active');
       newCompaniesBtn.classList.remove('active');
       showProductsPanel();
       console.log('Products mode selected in Product Studio');
     });
+    
+    console.log('[initializeProductStudioToggle] Event listeners attached successfully');
+  } else {
+    console.error('[initializeProductStudioToggle] Could not find toggle buttons');
   }
 }
 
