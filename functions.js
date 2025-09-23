@@ -12,13 +12,15 @@ async function checkProjectDatasetsInIDB(projectNumber) {
     
     console.log(`[checkProjectDatasetsInIDB] Checking datasets for prefix: ${prefix}`);
     
-// Check all five required tables
-const [processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies] = await Promise.all([
+// Check all seven required tables
+const [processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies, companyPricing, companyImages] = await Promise.all([
   window.embedIDB.getData(prefix + "processed"),
   window.embedIDB.getData(prefix + "company_serp_stats"),
   window.embedIDB.getData(prefix + "market_trends"),
   window.embedIDB.getData(prefix + "product_titles_evaluated"),
-  window.embedIDB.getData(prefix + "product_titles_companies")
+  window.embedIDB.getData(prefix + "product_titles_companies"),
+  window.embedIDB.getData(prefix + "company_pricing"),
+  window.embedIDB.getData(prefix + "images")
 ]);
 
 // Check if all tables have data (product tables can be empty)
@@ -27,16 +29,20 @@ const hasSerpStats = serpStats?.data?.length > 0;
 const hasMarketTrends = marketTrends?.data?.length > 0;
 const hasProductTitlesEvaluated = productTitlesEvaluated?.data !== undefined;
 const hasProductTitlesCompanies = productTitlesCompanies?.data !== undefined;
+const hasCompanyPricing = companyPricing?.data !== undefined;
+const hasCompanyImages = companyImages?.data !== undefined;
 
 console.log(`[checkProjectDatasetsInIDB] Results for ${prefix}:`, {
   hasProcessed,
   hasSerpStats,
   hasMarketTrends,
   hasProductTitlesEvaluated: hasProductTitlesEvaluated && `(${productTitlesEvaluated?.data?.length || 0} rows)`,
-  hasProductTitlesCompanies: hasProductTitlesCompanies && `(${productTitlesCompanies?.data?.length || 0} rows)`
+  hasProductTitlesCompanies: hasProductTitlesCompanies && `(${productTitlesCompanies?.data?.length || 0} rows)`,
+  hasCompanyPricing: hasCompanyPricing && `(${companyPricing?.data?.length || 0} rows)`,
+  hasCompanyImages: hasCompanyImages && `(${companyImages?.data?.length || 0} rows)`
 });
 
-return hasProcessed && hasSerpStats && hasMarketTrends && hasProductTitlesEvaluated && hasProductTitlesCompanies;
+return hasProcessed && hasSerpStats && hasMarketTrends && hasProductTitlesEvaluated && hasProductTitlesCompanies && hasCompanyPricing && hasCompanyImages;
   } catch (error) {
     console.error("[checkProjectDatasetsInIDB] Error checking datasets:", error);
     return false;
