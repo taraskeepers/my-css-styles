@@ -1014,6 +1014,8 @@ const serpKey = prefix + "company_serp_stats";
 const trendsKey = prefix + "market_trends";
 const productTitlesEvaluatedKey = prefix + "product_titles_evaluated";
 const productTitlesCompaniesKey = prefix + "product_titles_companies";
+const companyPricingKey = prefix + "company_pricing";
+const companyImagesKey = prefix + "images";
 
 console.group("[📦 IDB Access: Requested Tables]");
 console.log("✅ Processed:", processedKey);
@@ -1023,12 +1025,14 @@ console.log("✅ Product Titles Evaluated:", productTitlesEvaluatedKey);
 console.log("✅ Product Titles Companies:", productTitlesCompaniesKey);
 console.groupEnd();
 
-const [processedRec, serpStatsRec, marketTrendsRec, productTitlesEvaluatedRec, productTitlesCompaniesRec] = await Promise.all([
+const [processedRec, serpStatsRec, marketTrendsRec, productTitlesEvaluatedRec, productTitlesCompaniesRec, companyPricingRec, companyImagesRec] = await Promise.all([
   window.embedIDB.getData(processedKey),
   window.embedIDB.getData(serpKey),
   window.embedIDB.getData(trendsKey),
   window.embedIDB.getData(productTitlesEvaluatedKey),
-  window.embedIDB.getData(productTitlesCompaniesKey)
+  window.embedIDB.getData(productTitlesCompaniesKey),
+  window.embedIDB.getData(companyPricingKey),
+  window.embedIDB.getData(companyImagesKey)
 ]);
 
     console.group("[🧪 switchAccountAndReload] Raw IDB results:");
@@ -1084,13 +1088,15 @@ const isFresh = (rec, isProductTable = false) => {
   return isToday(rec.savedAt);  // uses your existing isToday(timestamp) check
 };
 
-const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec) && isFresh(productTitlesEvaluatedRec, true) && isFresh(productTitlesCompaniesRec, true);
+const allFresh = isFresh(processedRec) && isFresh(serpStatsRec) && isFresh(marketTrendsRec) && isFresh(productTitlesEvaluatedRec, true) && isFresh(productTitlesCompaniesRec, true) && isFresh(companyPricingRec, true) && isFresh(companyImagesRec, true);
 console.log("[🧪 isFresh checks]",
   "processed =", isFresh(processedRec),
   "serp =", isFresh(serpStatsRec),
   "trends =", isFresh(marketTrendsRec),
   "productTitlesEvaluated =", isFresh(productTitlesEvaluatedRec, true),
-  "productTitlesCompanies =", isFresh(productTitlesCompaniesRec, true)
+  "productTitlesCompanies =", isFresh(productTitlesCompaniesRec, true),
+  "companyPricing =", isFresh(companyPricingRec, true),
+  "companyImages =", isFresh(companyImagesRec, true)
 );
 
     if (allFresh) {
@@ -1131,6 +1137,20 @@ if (productTitlesCompaniesRec && productTitlesCompaniesRec.data) {
 } else {
   window.productTitlesCompaniesData = [];
   console.log("[switchAccountAndReload] No product titles companies data found!");
+}
+
+if (companyPricingRec && companyPricingRec.data) {
+  window.companyPricingData = companyPricingRec.data;
+} else {
+  window.companyPricingData = [];
+  console.log("[switchAccountAndReload] No company pricing data found!");
+}
+
+if (companyImagesRec && companyImagesRec.data) {
+  window.companyImagesData = companyImagesRec.data;
+} else {
+  window.companyImagesData = [];
+  console.log("[switchAccountAndReload] No images data found!");
 }
 
 // Load Google Sheets data if available for THIS PROJECT
@@ -1177,6 +1197,8 @@ console.log("companyStatsData.length =", serpStatsRec?.data?.length || 0);
 console.log("marketTrendsData.length =", marketTrendsRec?.data?.length || 0);
 console.log("productTitlesEvaluatedData.length =", productTitlesEvaluatedRec?.data?.length || 0);
 console.log("productTitlesCompaniesData.length =", productTitlesCompaniesRec?.data?.length || 0);
+console.log("companyPricingData.length =", companyPricingRec?.data?.length || 0);
+console.log("companyImagesData.length =", companyImagesRec?.data?.length || 0);
 console.groupEnd();
       
       // Update company from myCompanyArray for current project
@@ -1209,7 +1231,7 @@ console.groupEnd();
       }
       
       // MODIFIED: Pass all data to avoid double-loading
-      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data, productTitlesEvaluatedRec.data, productTitlesCompaniesRec.data);
+      onReceivedRowsWithData(processedRec.data, serpStatsRec.data, marketTrendsRec.data, productTitlesEvaluatedRec.data, productTitlesCompaniesRec.data, companyPricingRec.data, companyImagesRec.data);
       // CRITICAL: Set dataLoaded flag
 window.dataLoaded = true;
 console.log("[switchAccountAndReload] Data loading complete. dataLoaded = true");
