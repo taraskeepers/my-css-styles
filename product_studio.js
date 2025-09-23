@@ -34,7 +34,7 @@ async function initializeProductStudio() {
   console.log('[initializeProductStudio] Product Studio initialization complete');
 }
 
-// Add product studio specific styles (reusing titles analyzer styles)
+// Add product studio specific styles (complete copy from titles analyzer)
 function addProductStudioStyles() {
   if (!document.getElementById('product-studio-styles')) {
     const style = document.createElement('style');
@@ -46,11 +46,10 @@ function addProductStudioStyles() {
         gap: 20px;
         height: calc(100vh - 200px);
         width: 100%;
-        padding-top: 80px;
+        padding-top: 50px;
       }
       
-      /* Companies and Products panels - reuse titles styling */
-      #titlesCompaniesPanel,
+      /* Products panel for product studio */
       #titlesGlobalProductsPanel {
         flex: 1;
         background-color: white;
@@ -61,7 +60,7 @@ function addProductStudioStyles() {
         overflow: hidden;
       }
       
-      /* Header section - same as titles */
+      /* Header section */
       .product-studio-header {
         padding: 15px 20px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -101,7 +100,7 @@ function addProductStudioStyles() {
         margin-top: 4px;
       }
       
-      /* Table container - same as titles */
+      /* TABLE STYLES */
       .product-studio-table-container {
         flex: 1;
         overflow: auto;
@@ -114,15 +113,14 @@ function addProductStudioStyles() {
         overflow: auto;
       }
       
-      /* Reuse all titles table styles */
-      .titles-table-modern {
+      .product-studio-table {
         width: 100%;
         background: white;
         border-collapse: collapse;
       }
       
-      /* Copy all the titles table styling here or reference it */
-      .titles-table-modern thead {
+      /* Table header */
+      .product-studio-table thead {
         position: sticky;
         top: 0;
         z-index: 10;
@@ -130,11 +128,11 @@ function addProductStudioStyles() {
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
       }
       
-      .titles-table-modern thead tr {
+      .product-studio-table thead tr {
         border-bottom: 2px solid #e9ecef;
       }
       
-      .titles-table-modern th {
+      .product-studio-table th {
         padding: 10px 8px;
         font-size: 11px;
         font-weight: 600;
@@ -148,81 +146,709 @@ function addProductStudioStyles() {
         user-select: none;
       }
       
-      .titles-table-modern th.sortable {
+      .product-studio-table th.sortable {
         cursor: pointer;
         padding-right: 20px;
       }
       
-      .titles-table-modern th.sortable:hover {
+      .product-studio-table th.sortable:hover {
         background: rgba(102, 126, 234, 0.04);
         color: #495057;
       }
       
-      .titles-table-modern th.center {
+      .product-studio-table th.center {
         text-align: center;
       }
       
-      .titles-table-modern tbody tr {
-        height: 60px;
+      .product-studio-table th.right {
+        text-align: right;
+      }
+      
+      /* Sort icon */
+      .product-studio-sort-icon {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: #adb5bd;
+      }
+      
+      .product-studio-table th.sorted-asc .product-studio-sort-icon,
+      .product-studio-table th.sorted-desc .product-studio-sort-icon {
+        color: #667eea;
+      }
+      
+      /* Table body */
+      .product-studio-table tbody tr {
         border-bottom: 1px solid #f0f2f5;
-        transition: background 0.2s ease;
-      }
-      
-      .titles-table-modern tbody tr:hover {
-        background: rgba(102, 126, 234, 0.02);
+        transition: background 0.15s ease;
+        height: 60px;
         cursor: pointer;
+        user-select: none;
       }
       
-      .titles-table-modern td {
+      .product-studio-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.02);
+      }
+      
+      .product-studio-table tbody tr.expanded {
+        background: rgba(102, 126, 234, 0.05);
+      }
+      
+      .product-studio-table td {
         padding: 8px;
+        font-size: 13px;
+        color: #495057;
+        vertical-align: middle;
+      }
+      
+      .product-studio-table td.center {
+        text-align: center;
+      }
+      
+      .product-studio-table td.right {
+        text-align: right;
+      }
+      
+      /* Product image in table */
+      .product-studio-img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        background: #f8f9fa;
+      }
+      
+      /* Product title cell */
+      .product-studio-title-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .product-studio-title {
+        font-weight: 600;
         color: #333;
         font-size: 13px;
-        vertical-align: middle;
+        line-height: 1.3;
+        max-height: 2.6em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      
+      /* Image zoom on hover */
+      .product-studio-img-container {
+        position: relative;
+        display: inline-block;
+      }
+      
+      .product-studio-img-zoom {
+        position: fixed;
+        width: 300px;
+        height: 300px;
+        border-radius: 12px;
+        object-fit: contain;
+        background: white;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        border: 2px solid #667eea;
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease-in-out;
+      }
+      
+      .product-studio-img-container:hover .product-studio-img-zoom {
+        opacity: 1;
+      }
+      
+      /* Position indicator styles */
+      .product-studio-position-indicator {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      
+      .product-studio-position-indicator.top {
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        color: white;
+      }
+      
+      .product-studio-position-indicator.mid {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+      }
+      
+      .product-studio-position-indicator.low {
+        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        color: white;
+      }
+      
+      .product-studio-position-indicator.bottom {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        color: white;
+      }
+      
+      /* Market share bar */
+      .product-studio-share-bar {
+        width: 60px;
+        height: 32px;
+        background: #e9ecef;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+      }
+      
+      .product-studio-share-fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+        transition: width 0.3s ease;
+      }
+      
+      .product-studio-share-text {
+        position: relative;
+        z-index: 2;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1e40af;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-shadow: 0 0 2px rgba(255,255,255,0.8);
+      }
+      
+      /* Score fraction display */
+      .product-studio-score-fraction {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 1px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: 700;
+        min-width: 55px;
+        justify-content: center;
+      }
+      
+      .product-studio-score-value {
+        font-size: 13px;
+      }
+      
+      .product-studio-score-max {
+        font-size: 10px;
+        opacity: 0.7;
+      }
+      
+      /* T-Score color classes */
+      .product-studio-tscore-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+      }
+      
+      .product-studio-tscore-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+        color: #14532d;
+      }
+      
+      .product-studio-tscore-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+      }
+      
+      .product-studio-tscore-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        color: white;
+      }
+      
+      /* KOS color classes */
+      .product-studio-kos-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+      }
+      
+      .product-studio-kos-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+        color: #14532d;
+      }
+      
+      .product-studio-kos-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+      }
+      
+      .product-studio-kos-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        color: white;
+      }
+      
+      /* GOS color classes */
+      .product-studio-gos-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+      }
+      
+      .product-studio-gos-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+        color: #14532d;
+      }
+      
+      .product-studio-gos-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+      }
+      
+      .product-studio-gos-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        color: white;
+      }
+      
+      /* Suggestions count */
+      .product-studio-suggestions-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 10px;
+        border-radius: 16px;
+        font-size: 13px;
+        font-weight: 700;
+        background: rgba(107, 114, 128, 0.1);
+        color: #4b5563;
+        min-width: 32px;
+        position: relative;
+        cursor: help;
+      }
+      
+      .product-studio-suggestions-count.has-many {
+        background: rgba(251, 191, 36, 0.15);
+        color: #d97706;
+        font-weight: 700;
+      }
+      
+      .product-studio-suggestions-count.critical {
+        background: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+        font-weight: 700;
+      }
+      
+      /* Expanded details row */
+      .product-studio-expanded-row {
+        background: #f8f9fa;
+      }
+      
+      .product-studio-expanded-row td {
+        padding: 0 !important;
+      }
+      
+      .product-studio-expanded-content {
+        padding: 12px 16px;
+        max-height: 480px;
+        overflow: hidden;
+        animation: slideDown 0.2s ease-out;
+      }
+      
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      /* Compact grid layout */
+      .product-studio-compact-grid {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      
+      /* Compact section styling */
+      .product-studio-compact-section {
+        background: white;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      
+      .product-studio-compact-header {
+        background: linear-gradient(to right, #f6f8fa, #ffffff);
+        padding: 6px 10px;
+        border-bottom: 1px solid #e1e4e8;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      
+      .product-studio-compact-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #24292e;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin: 0;
+      }
+      
+      .product-studio-compact-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+      }
+      
+      /* Score group styling */
+      .product-studio-score-group {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e1e4e8;
+      }
+      
+      .product-studio-score-group:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      
+      .product-studio-score-group-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: #6a737d;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .product-studio-score-group-title::before {
+        content: '';
+        width: 3px;
+        height: 12px;
+        background: linear-gradient(180deg, #667eea, #764ba2);
+        border-radius: 2px;
+      }
+      
+      /* Score item with bar visualization */
+      .product-studio-score-item-with-bar {
+        display: flex;
+        align-items: center;
+        padding: 5px 0;
+        font-size: 11px;
+        position: relative;
+      }
+      
+      .product-studio-score-item-label {
+        color: #24292e;
+        min-width: 85px;
+        font-size: 11px;
+      }
+      
+      .product-studio-score-bar-container {
+        flex: 1;
+        height: 16px;
+        background: #f0f2f5;
+        border-radius: 3px;
+        position: relative;
+        margin: 0 8px;
+        overflow: hidden;
+      }
+      
+      .product-studio-score-bar-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+      
+      .product-studio-score-bar-fill.high {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+      }
+      
+      .product-studio-score-bar-fill.medium {
+        background: linear-gradient(90deg, #fbbf24, #f59e0b);
+      }
+      
+      .product-studio-score-bar-fill.low {
+        background: linear-gradient(90deg, #f87171, #ef4444);
+      }
+      
+      .product-studio-score-value {
+        font-weight: 700;
+        color: #24292e;
+        min-width: 45px;
+        text-align: right;
+        font-size: 12px;
+      }
+      
+      /* Enhanced suggestions styling */
+      .product-studio-suggestion-item {
+        padding: 10px 12px;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border-left: 4px solid #f59e0b;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #451a03;
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      
+      .product-studio-suggestion-item:hover {
+        transform: translateX(2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      
+      .product-studio-suggestion-icon {
+        color: #f59e0b;
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      
+      .product-studio-suggestions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        max-height: 320px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      
+      /* Average scores styling */
+      .product-studio-avg-scores {
+        position: absolute;
+        right: 20px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+      
+      .product-studio-avg-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 10px;
+        min-width: 85px;
+        min-height: 50px;
+      }
+      
+      .product-studio-avg-item.tscore-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      }
+      
+      .product-studio-avg-item.tscore-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+      }
+      
+      .product-studio-avg-item.tscore-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      }
+      
+      .product-studio-avg-item.tscore-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      }
+      
+      .product-studio-avg-item.kos-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      }
+      
+      .product-studio-avg-item.kos-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+      }
+      
+      .product-studio-avg-item.kos-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      }
+      
+      .product-studio-avg-item.kos-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      }
+      
+      .product-studio-avg-item.gos-excellent {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      }
+      
+      .product-studio-avg-item.gos-good {
+        background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+      }
+      
+      .product-studio-avg-item.gos-fair {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      }
+      
+      .product-studio-avg-item.gos-poor {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      }
+      
+      .product-studio-avg-score-display {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+        font-weight: 700;
+      }
+      
+      .product-studio-avg-value {
+        font-size: 18px;
+        color: white;
+      }
+      
+      .product-studio-avg-max {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      
+      /* Title filter styles */
+      .product-studio-filter-section {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex: 1;
+        margin-left: 50px;
+        position: relative;
+      }
+      
+      .product-studio-title-filter {
+        position: relative;
+        width: 280px;
+      }
+      
+      .product-studio-filter-input {
+        width: 100%;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        font-size: 13px;
+        color: #333;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+      
+      .product-studio-filter-input::placeholder {
+        color: #999;
+      }
+      
+      .product-studio-filter-input:focus {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+      
+      /* Filter tags container */
+      .product-studio-filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+        min-height: 28px;
+      }
+      
+      .product-studio-filter-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: white;
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        border-radius: 16px;
+        font-size: 12px;
+        color: #667eea;
+        font-weight: 600;
+        animation: fadeIn 0.2s ease;
+      }
+      
+      .product-studio-filter-tag-text {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .product-studio-filter-tag-remove {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 10px;
+        color: #667eea;
+      }
+      
+      .product-studio-filter-tag-remove:hover {
+        background: #667eea;
+        color: white;
+      }
+      
+      /* Keywords table */
+      .product-studio-keywords-compact {
+        width: 100%;
+        font-size: 11px;
+      }
+      
+      .product-studio-keywords-compact tr {
+        height: 24px;
+      }
+      
+      .product-studio-keywords-compact td {
+        padding: 2px 4px;
+        border-bottom: 1px solid #f0f2f5;
+        color: #24292e;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
       
-      .titles-table-modern td.center {
+      .product-studio-keywords-compact td:first-child {
+        width: 20px;
+        text-align: center;
+        font-weight: 600;
+        color: #6a737d;
+      }
+      
+      .product-studio-keywords-compact td:last-child {
+        width: 35px;
         text-align: center;
       }
       
-      /* Column widths */
-      .titles-table-modern th:nth-child(1),
-      .titles-table-modern td:nth-child(1) { width: 70px; }
-      
-      .titles-table-modern th:nth-child(2),
-      .titles-table-modern td:nth-child(2) { width: 80px; }
-      
-      .titles-table-modern th:nth-child(3),
-      .titles-table-modern td:nth-child(3) { width: 70px; }
-      
-      .titles-table-modern th:nth-child(4),
-      .titles-table-modern td:nth-child(4) { width: 70px; }
-      
-      .titles-table-modern th:nth-child(5),
-      .titles-table-modern td:nth-child(5) { 
-        max-width: 350px; 
-        width: 350px;
+      .product-studio-kos-mini {
+        display: inline-block;
+        padding: 1px 5px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
       }
       
-      .titles-table-modern th:nth-child(6),
-      .titles-table-modern td:nth-child(6) { width: 65px; }
-      
-      .titles-table-modern th:nth-child(7),
-      .titles-table-modern td:nth-child(7) { width: 50px; }
-      
-      .titles-table-modern th:nth-child(8),
-      .titles-table-modern td:nth-child(8) { width: 50px; }
-      
-      .titles-table-modern th:nth-child(9),
-      .titles-table-modern td:nth-child(9) { width: 60px; }
+      .kos-h { background: #dcfce7; color: #15803d; }
+      .kos-m { background: #fef3c7; color: #b45309; }
+      .kos-l { background: #fee2e2; color: #991b1b; }
     `;
     document.head.appendChild(style);
   }
 }
 
-// Load data from product_titles_evaluated table
+// Load data from product_titles_evaluated table (aggregated by unique title)
 async function loadProductTitlesEvaluated() {
   return new Promise((resolve, reject) => {
     console.log('[loadProductTitlesEvaluated] Starting to load evaluated titles...');
@@ -276,20 +902,64 @@ async function loadProductTitlesEvaluated() {
         
         console.log('[loadProductTitlesEvaluated] Filtered products for company:', myCompany, 'Count:', filteredData.length);
         
-        // Process data
-        const processedData = filteredData.map(item => ({
-          title: item.title || '',
-          finalScore: parseFloat(item.final_score || 0),
-          kos: parseFloat(item.kos || 0),
-          gos: parseFloat(item.gos || 0),
-          suggestions: item.improvement_suggestions || [],
-          q: item.q || '',
-          scoreBreakdown: item.score_breakdown ? JSON.parse(item.score_breakdown) : {},
-          matchedTerms: item.matched_terms ? JSON.parse(item.matched_terms) : {},
-          titleLength: parseInt(item.title_length || 0),
-          wordCount: parseInt(item.word_count || 0),
-          detectedBrand: item.detected_brand || '',
-          detectedCategory: item.detected_category || ''
+        // Aggregate by unique title
+        const titleMap = new Map();
+        
+        filteredData.forEach(item => {
+          const title = item.title || '';
+          
+          if (!titleMap.has(title)) {
+            titleMap.set(title, {
+              title: title,
+              finalScores: [],
+              kosValues: [],
+              gosValues: [],
+              queries: [], // Store all queries with their KOS values
+              suggestions: item.improvement_suggestions || [],
+              scoreBreakdown: item.score_breakdown ? JSON.parse(item.score_breakdown) : {},
+              matchedTerms: item.matched_terms ? JSON.parse(item.matched_terms) : {},
+              titleLength: parseInt(item.title_length || 0),
+              wordCount: parseInt(item.word_count || 0),
+              detectedBrand: item.detected_brand || '',
+              detectedCategory: item.detected_category || ''
+            });
+          }
+          
+          const aggregated = titleMap.get(title);
+          
+          // Add scores
+          aggregated.finalScores.push(parseFloat(item.final_score || 0));
+          aggregated.kosValues.push(parseFloat(item.kos || 0));
+          aggregated.gosValues.push(parseFloat(item.gos || 0));
+          
+          // Add query with its KOS
+          if (item.q) {
+            aggregated.queries.push({
+              query: item.q,
+              kos: parseFloat(item.kos || 0)
+            });
+          }
+          
+          // Update suggestions if longer list found
+          if (item.improvement_suggestions && item.improvement_suggestions.length > aggregated.suggestions.length) {
+            aggregated.suggestions = item.improvement_suggestions;
+          }
+        });
+        
+        // Calculate averages and process data
+        const processedData = Array.from(titleMap.values()).map(item => ({
+          title: item.title,
+          finalScore: item.finalScores.reduce((a, b) => a + b, 0) / item.finalScores.length,
+          kos: item.kosValues.reduce((a, b) => a + b, 0) / item.kosValues.length, // Average KOS
+          gos: item.gosValues.reduce((a, b) => a + b, 0) / item.gosValues.length,
+          queries: item.queries, // All queries with their KOS values
+          suggestions: item.suggestions,
+          scoreBreakdown: item.scoreBreakdown,
+          matchedTerms: item.matchedTerms,
+          titleLength: item.titleLength,
+          wordCount: item.wordCount,
+          detectedBrand: item.detectedBrand,
+          detectedCategory: item.detectedCategory
         }));
         
         db.close();
@@ -584,9 +1254,8 @@ async function createCompaniesPanel() {
 async function createProductsPanel() {
   const productsPanel = document.createElement('div');
   productsPanel.id = 'titlesGlobalProductsPanel';
-  productsPanel.style.flex = '0.8'; // Make it slightly narrower
   
-  // Create header with averages section
+  // Create header with filter and averages
   const header = document.createElement('div');
   header.className = 'product-studio-header';
   header.innerHTML = `
@@ -599,31 +1268,41 @@ async function createProductsPanel() {
         Analyzing product performance across all search terms
       </div>
     </div>
-    <div class="titles-avg-scores" style="position: absolute; right: 20px; display: flex; gap: 20px;">
-      <div class="titles-avg-item" id="globalAvgTScoreContainer">
-        <div style="display: flex; flex-direction: column; align-items: center;">
-          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
-          <div class="titles-avg-score-display">
-            <span class="titles-avg-value" id="globalAvgTScore">-</span>
-            <span class="titles-avg-max">/100</span>
+    <div class="product-studio-filter-section">
+      <div class="product-studio-title-filter">
+        <input type="text" 
+               class="product-studio-filter-input" 
+               id="productStudioFilterInput" 
+               placeholder="🔍 Filter products by title... (Press Enter)" 
+               autocomplete="off">
+        <div class="product-studio-filter-tags" id="productStudioFilterTags"></div>
+      </div>
+      <div class="product-studio-avg-scores">
+        <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
+              <span class="product-studio-avg-max">/100</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="titles-avg-item" id="globalAvgKOSContainer">
-        <div style="display: flex; flex-direction: column; align-items: center;">
-          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
-          <div class="titles-avg-score-display">
-            <span class="titles-avg-value" id="globalAvgKOS">-</span>
-            <span class="titles-avg-max">/20</span>
+        <div class="product-studio-avg-item" id="globalAvgKOSContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
+              <span class="product-studio-avg-max">/20</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="titles-avg-item" id="globalAvgGOSContainer">
-        <div style="display: flex; flex-direction: column; align-items: center;">
-          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
-          <div class="titles-avg-score-display">
-            <span class="titles-avg-value" id="globalAvgGOS">-</span>
-            <span class="titles-avg-max">/80</span>
+        <div class="product-studio-avg-item" id="globalAvgGOSContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
+              <span class="product-studio-avg-max">/80</span>
+            </div>
           </div>
         </div>
       </div>
@@ -646,10 +1325,16 @@ async function createProductsPanel() {
       const productTitles = evaluatedProducts.map(p => p.title);
       const processedMetrics = await loadProcessedDataForProducts(productTitles);
       
+      // Store data globally for filtering
+      window.globalProductsData = { evaluatedProducts, processedMetrics };
+      
       await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics);
       
       // Update averages
       updateGlobalAverages(evaluatedProducts);
+      
+      // Initialize filter
+      initializeProductStudioFilter();
     } else {
       tableContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
@@ -746,7 +1431,7 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   wrapper.className = 'product-studio-wrapper';
   
   const table = document.createElement('table');
-  table.className = 'titles-table-modern';
+  table.className = 'product-studio-table';
   
   // Create header
   const thead = document.createElement('thead');
@@ -754,36 +1439,36 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   headerRow.innerHTML = `
     <th class="center sortable" data-sort="position" style="width: 70px;">
       Pos
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="share" style="width: 80px;">
       Share
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="roas" style="width: 70px;">
       ROAS
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center" style="width: 70px;">Image</th>
     <th class="sortable" data-sort="title" style="max-width: 300px; width: 300px;">
       Product Title
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="score" style="width: 75px;">
       T-Score
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="kos" style="width: 60px;">
       KOS
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="gos" style="width: 60px;">
       GOS
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="suggestions" style="width: 60px;">
       Sugg
-      <span class="titles-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
   `;
   thead.appendChild(headerRow);
@@ -817,20 +1502,20 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
     
     // Score classes
     const roundedScore = Math.round(product.finalScore);
-    let tscoreClass = 'titles-tscore-poor';
-    if (roundedScore > 70) tscoreClass = 'titles-tscore-excellent';
-    else if (roundedScore >= 55) tscoreClass = 'titles-tscore-good';
-    else if (roundedScore >= 40) tscoreClass = 'titles-tscore-fair';
+    let tscoreClass = 'product-studio-tscore-poor';
+    if (roundedScore > 70) tscoreClass = 'product-studio-tscore-excellent';
+    else if (roundedScore >= 55) tscoreClass = 'product-studio-tscore-good';
+    else if (roundedScore >= 40) tscoreClass = 'product-studio-tscore-fair';
     
-    let kosClass = 'titles-kos-poor';
-    if (product.kos > 15) kosClass = 'titles-kos-excellent';
-    else if (product.kos >= 10) kosClass = 'titles-kos-good';
-    else if (product.kos > 5) kosClass = 'titles-kos-fair';
+    let kosClass = 'product-studio-kos-poor';
+    if (product.kos > 15) kosClass = 'product-studio-kos-excellent';
+    else if (product.kos >= 10) kosClass = 'product-studio-kos-good';
+    else if (product.kos > 5) kosClass = 'product-studio-kos-fair';
     
-    let gosClass = 'titles-gos-poor';
-    if (product.gos > 60) gosClass = 'titles-gos-excellent';
-    else if (product.gos >= 40) gosClass = 'titles-gos-good';
-    else if (product.gos >= 20) gosClass = 'titles-gos-fair';
+    let gosClass = 'product-studio-gos-poor';
+    if (product.gos > 60) gosClass = 'product-studio-gos-excellent';
+    else if (product.gos >= 40) gosClass = 'product-studio-gos-good';
+    else if (product.gos >= 20) gosClass = 'product-studio-gos-fair';
     
     const suggestionsCount = product.suggestions?.length || 0;
     let suggClass = '';
@@ -841,7 +1526,7 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
       <td class="center">
         ${adPosition !== null ? 
           `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <div class="titles-position-indicator ${posClass}">${adPosition}</div>
+            <div class="product-studio-position-indicator ${posClass}">${adPosition}</div>
             ${trend ? 
               `<div style="font-size: 9px; color: ${trend.color}; font-weight: 600; background: ${trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; padding: 1px 4px; border-radius: 4px;">${trend.text}</div>` : 
               ''}
@@ -850,9 +1535,9 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
       </td>
       <td class="center">
         ${marketShare ? 
-          `<div class="titles-share-bar">
-            <div class="titles-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
-            <div class="titles-share-text">${marketShare.toFixed(1)}%</div>
+          `<div class="product-studio-share-bar">
+            <div class="product-studio-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
+            <div class="product-studio-share-text">${marketShare.toFixed(1)}%</div>
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
@@ -861,46 +1546,46 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
       </td>
       <td class="center">
         ${imageUrl ? 
-          `<div class="titles-product-img-container">
-            <img class="titles-product-img" src="${imageUrl}" alt="${product.title}" onerror="this.style.display='none'">
-            <img class="titles-product-img-zoom" src="${imageUrl}" alt="${product.title}">
+          `<div class="product-studio-img-container">
+            <img class="product-studio-img" src="${imageUrl}" alt="${product.title}" onerror="this.style.display='none'">
+            <img class="product-studio-img-zoom" src="${imageUrl}" alt="${product.title}">
           </div>` : 
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
       <td>
-        <div class="titles-product-title-cell">
-          <div class="titles-product-title" style="max-width: 280px;">
+        <div class="product-studio-title-cell">
+          <div class="product-studio-title" style="max-width: 280px;">
             ${product.title}
           </div>
         </div>
       </td>
       <td class="center">
         ${product.finalScore > 0 ? 
-          `<span class="titles-score-fraction ${tscoreClass}">
-            <span class="titles-score-value">${roundedScore}</span>
-            <span class="titles-score-max">/100</span>
+          `<span class="product-studio-score-fraction ${tscoreClass}">
+            <span class="product-studio-score-value">${roundedScore}</span>
+            <span class="product-studio-score-max">/100</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${product.kos > 0 ? 
-          `<span class="titles-score-fraction ${kosClass}">
-            <span class="titles-score-value">${product.kos.toFixed(1)}</span>
-            <span class="titles-score-max">/20</span>
+          `<span class="product-studio-score-fraction ${kosClass}">
+            <span class="product-studio-score-value">${product.kos.toFixed(1)}</span>
+            <span class="product-studio-score-max">/20</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${product.gos > 0 ? 
-          `<span class="titles-score-fraction ${gosClass}">
-            <span class="titles-score-value">${product.gos}</span>
-            <span class="titles-score-max">/80</span>
+          `<span class="product-studio-score-fraction ${gosClass}">
+            <span class="product-studio-score-value">${product.gos}</span>
+            <span class="product-studio-score-max">/80</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${suggestionsCount > 0 ? 
-          `<span class="titles-suggestions-count ${suggClass}" title="${suggestionsCount} improvement suggestions">${suggestionsCount}</span>` : 
+          `<span class="product-studio-suggestions-count ${suggClass}" title="${suggestionsCount} improvement suggestions">${suggestionsCount}</span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
     `;
@@ -915,15 +1600,15 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   // Add click handlers for row expansion
   tbody.querySelectorAll('tr').forEach(row => {
     row.addEventListener('click', function(e) {
-      if (e.target.closest('.titles-product-img-container')) return;
-      toggleGlobalRowExpansion(this);
+      if (e.target.closest('.product-studio-img-container')) return;
+      window.toggleGlobalRowExpansion(this);
     });
   });
   
   // Add image hover positioning
-  wrapper.querySelectorAll('.titles-product-img-container').forEach(container => {
-    const img = container.querySelector('.titles-product-img');
-    const zoomImg = container.querySelector('.titles-product-img-zoom');
+  wrapper.querySelectorAll('.product-studio-img-container').forEach(container => {
+    const img = container.querySelector('.product-studio-img');
+    const zoomImg = container.querySelector('.product-studio-img-zoom');
     
     if (img && zoomImg) {
       container.addEventListener('mouseenter', function(e) {
@@ -954,6 +1639,299 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   
   // Add sorting functionality
   addGlobalSortingFunctionality(table, products, processedMetrics);
+}
+
+// Toggle expanded row for global products - MAKE IT GLOBAL
+window.toggleGlobalRowExpansion = function(row) {
+  const nextRow = row.nextElementSibling;
+  const isExpanded = row.classList.contains('expanded');
+  
+  if (isExpanded && nextRow && nextRow.classList.contains('product-studio-expanded-row')) {
+    row.classList.remove('expanded');
+    nextRow.remove();
+    return;
+  }
+  
+  const tbody = row.parentElement;
+  tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
+  tbody.querySelectorAll('.product-studio-expanded-row').forEach(r => r.remove());
+  
+  row.classList.add('expanded');
+  
+  const productData = JSON.parse(row.dataset.productData);
+  
+  if (!productData) {
+    console.warn('No product data found');
+    return;
+  }
+  
+  const expandedRow = document.createElement('tr');
+  expandedRow.className = 'product-studio-expanded-row';
+  
+  const expandedCell = document.createElement('td');
+  expandedCell.colSpan = row.cells.length;
+  
+  // Build expanded content
+  let expandedHTML = '<div class="product-studio-expanded-content">';
+  expandedHTML += '<div class="product-studio-compact-grid">';
+  
+  // COLUMN 1: Keywords from all queries
+  expandedHTML += `
+    <div class="product-studio-compact-section" style="width: 240px; flex-shrink: 0;">
+      <div class="product-studio-compact-header">
+        <span style="font-size: 12px;">🎯</span>
+        <h4 class="product-studio-compact-title">Top Keywords</h4>
+      </div>
+      <div class="product-studio-compact-body">`;
+  
+  // Display all queries with their KOS values
+  if (productData.queries && productData.queries.length > 0) {
+    expandedHTML += `
+      <table class="product-studio-keywords-compact">
+        <thead style="border-bottom: 1px solid #e1e4e8;">
+          <tr style="height: 20px;">
+            <th style="width: 20px; text-align: center; font-size: 9px; color: #6a737d; font-weight: 600;">#</th>
+            <th style="text-align: left; font-size: 9px; color: #6a737d; font-weight: 600; padding-left: 4px;">KEYWORD</th>
+            <th style="width: 35px; text-align: center; font-size: 9px; color: #6a737d; font-weight: 600;">KOS</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    
+    // Sort queries by KOS value (highest first) and limit to top 10
+    const sortedQueries = [...productData.queries].sort((a, b) => b.kos - a.kos).slice(0, 10);
+    
+    sortedQueries.forEach((q, idx) => {
+      const kos = q.kos || 0;
+      const kosClass = kos >= 15 ? 'kos-h' : kos >= 10 ? 'kos-m' : 'kos-l';
+      expandedHTML += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td title="${q.query}">${q.query || '-'}</td>
+          <td><span class="product-studio-kos-mini ${kosClass}">${kos.toFixed(1)}</span></td>
+        </tr>`;
+    });
+    
+    expandedHTML += '</tbody></table>';
+  } else {
+    expandedHTML += '<div style="color: #6a737d; font-size: 11px; text-align: center; padding: 20px;">No keyword data available</div>';
+  }
+  
+  expandedHTML += `
+      </div>
+    </div>`;
+  
+  // Rest of the columns remain the same, but use product-studio classes
+  // COLUMN 2: Score Breakdown
+  expandedHTML += `
+    <div class="product-studio-compact-section" style="width: 320px; flex-shrink: 0;">
+      <div class="product-studio-compact-header">
+        <span style="font-size: 12px;">📊</span>
+        <h4 class="product-studio-compact-title">Score Breakdown</h4>
+      </div>
+      <div class="product-studio-compact-body">`;
+  
+  if (productData.scoreBreakdown) {
+    const b = productData.scoreBreakdown;
+    
+    const getBarClass = (value, max) => {
+      const pct = (value / max) * 100;
+      if (pct >= 70) return 'high';
+      if (pct >= 40) return 'medium';
+      return 'low';
+    };
+    
+    // GOS BREAKDOWN
+    expandedHTML += `
+      <div class="product-studio-score-group">
+        <div class="product-studio-score-group-title">GOS Breakdown</div>`;
+    
+    const gosItems = [
+      { label: 'Brand', value: b.brand_score || 0, max: 5 },
+      { label: 'Category', value: b.category_score || 0, max: 10 },
+      { label: 'Attributes', value: b.attribute_score || 0, max: 10 },
+      { label: 'Hooks', value: b.hooks_score || 0, max: 5 },
+      { label: 'Readability', value: b.readability_score || 0, max: 5 },
+      { label: 'Structure', value: b.structure_score || 0, max: 15 },
+      { label: 'Character', value: b.character_score || 0, max: 30 }
+    ];
+    
+    gosItems.forEach(item => {
+      const pct = (item.value / item.max) * 100;
+      const barClass = getBarClass(item.value, item.max);
+      expandedHTML += `
+        <div class="product-studio-score-item-with-bar">
+          <span class="product-studio-score-item-label">${item.label}:</span>
+          <div class="product-studio-score-bar-container">
+            <div class="product-studio-score-bar-fill ${barClass}" style="width: ${pct}%"></div>
+          </div>
+          <span class="product-studio-score-value">${item.value}/${item.max}</span>
+        </div>`;
+    });
+    
+    expandedHTML += `
+      </div>`;
+  }
+  
+  expandedHTML += `
+      </div>
+    </div>`;
+  
+  // COLUMN 3: Title Metrics
+  expandedHTML += `
+    <div class="product-studio-compact-section" style="width: 200px; flex-shrink: 0;">
+      <div class="product-studio-compact-header">
+        <span style="font-size: 12px;">📏</span>
+        <h4 class="product-studio-compact-title">Title Metrics</h4>
+      </div>
+      <div class="product-studio-compact-body">
+        <div style="font-size: 11px; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Length:</span>
+            <strong>${productData.titleLength || 0} chars</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Words:</span>
+            <strong>${productData.wordCount || 0}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">T-Score:</span>
+            <strong style="color: ${productData.finalScore > 70 ? '#22c55e' : productData.finalScore > 40 ? '#f59e0b' : '#ef4444'}">
+              ${Math.round(productData.finalScore)}/100
+            </strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Avg KOS:</span>
+            <strong>${productData.kos.toFixed(1)}/20</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">GOS:</span>
+            <strong>${Math.round(productData.gos)}/80</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f2f5;">
+            <span style="color: #6a737d;">Brand:</span>
+            <strong>${productData.detectedBrand || 'N/A'}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span style="color: #6a737d;">Category:</span>
+            <strong>${productData.detectedCategory || 'N/A'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  
+  // COLUMN 4: Improvements
+  expandedHTML += `
+    <div class="product-studio-compact-section" style="width: 380px; flex-shrink: 0;">
+      <div class="product-studio-compact-header">
+        <span style="font-size: 12px;">💡</span>
+        <h4 class="product-studio-compact-title">Improvements (${productData.suggestions?.length || 0})</h4>
+      </div>
+      <div class="product-studio-compact-body" style="height: 340px; overflow-y: auto;">
+        <div class="product-studio-suggestions-list">`;
+  
+  if (productData.suggestions && productData.suggestions.length > 0) {
+    productData.suggestions.forEach((suggestion, index) => {
+      expandedHTML += `
+        <div class="product-studio-suggestion-item">
+          <span class="product-studio-suggestion-icon">${index + 1}</span>
+          <span>${suggestion}</span>
+        </div>`;
+    });
+  } else {
+    expandedHTML += `
+      <div style="color: #6a737d; font-size: 12px; text-align: center; padding: 40px;">
+        <div style="font-size: 32px; margin-bottom: 10px;">✨</div>
+        <div>No improvements needed!</div>
+        <div style="font-size: 11px; margin-top: 4px;">This title is well optimized.</div>
+      </div>`;
+  }
+  
+  expandedHTML += `
+        </div>
+      </div>
+    </div>`;
+  
+  expandedHTML += '</div></div>';
+  
+  expandedCell.innerHTML = expandedHTML;
+  expandedRow.appendChild(expandedCell);
+  row.parentNode.insertBefore(expandedRow, row.nextSibling);
+}
+
+// Initialize filter functionality for product studio
+function initializeProductStudioFilter() {
+  const filterInput = document.getElementById('productStudioFilterInput');
+  if (filterInput) {
+    filterInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const filterText = e.target.value.trim();
+        if (filterText.length > 0) {
+          addProductStudioFilterTag(filterText);
+          applyProductStudioFilters();
+          e.target.value = '';
+        }
+      }
+    });
+  }
+}
+
+// Add filter tag
+function addProductStudioFilterTag(filterText) {
+  const tagsContainer = document.getElementById('productStudioFilterTags');
+  if (!tagsContainer) return;
+  
+  // Check if filter already exists
+  const existingTags = Array.from(tagsContainer.querySelectorAll('.product-studio-filter-tag'));
+  if (existingTags.some(tag => tag.dataset.filterText.toLowerCase() === filterText.toLowerCase())) {
+    return;
+  }
+  
+  const tag = document.createElement('div');
+  tag.className = 'product-studio-filter-tag';
+  tag.dataset.filterText = filterText;
+  tag.innerHTML = `
+    <span class="product-studio-filter-tag-text" title="${filterText}">${filterText}</span>
+    <span class="product-studio-filter-tag-remove">✕</span>
+  `;
+  
+  // Add remove handler
+  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function() {
+    tag.remove();
+    applyProductStudioFilters();
+  });
+  
+  tagsContainer.appendChild(tag);
+}
+
+// Apply filters
+function applyProductStudioFilters() {
+  const tags = document.querySelectorAll('#productStudioFilterTags .product-studio-filter-tag');
+  const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+  
+  if (!window.globalProductsData) return;
+  
+  const { evaluatedProducts, processedMetrics } = window.globalProductsData;
+  
+  let filteredProducts = evaluatedProducts;
+  if (filterTexts.length > 0) {
+    filteredProducts = evaluatedProducts.filter(p => {
+      const title = p.title.toLowerCase();
+      return filterTexts.every(filterText => 
+        title.includes(filterText.toLowerCase())
+      );
+    });
+  }
+  
+  // Clear and re-render table
+  const container = document.getElementById('globalProductsTableContainer');
+  if (container) {
+    container.innerHTML = '';
+    renderGlobalProductsTable(container, filteredProducts, processedMetrics);
+  }
+  
+  // Update averages
+  updateGlobalAverages(filteredProducts);
 }
 
 // Add sorting functionality for global products
@@ -1062,7 +2040,7 @@ function updateGlobalAverages(products) {
       avgTScoreEl.textContent = count > 0 ? avgTScoreValue : '-';
       const container = document.getElementById('globalAvgTScoreContainer');
       if (container && count > 0) {
-        container.className = 'titles-avg-item';
+        container.className = 'product-studio-avg-item';
         if (avgTScoreValue > 70) container.classList.add('tscore-excellent');
         else if (avgTScoreValue >= 55) container.classList.add('tscore-good');
         else if (avgTScoreValue >= 40) container.classList.add('tscore-fair');
@@ -1074,7 +2052,7 @@ function updateGlobalAverages(products) {
       avgKOSEl.textContent = count > 0 ? avgKOSValue.toFixed(1) : '-';
       const container = document.getElementById('globalAvgKOSContainer');
       if (container && count > 0) {
-        container.className = 'titles-avg-item';
+        container.className = 'product-studio-avg-item';
         if (avgKOSValue > 15) container.classList.add('kos-excellent');
         else if (avgKOSValue >= 10) container.classList.add('kos-good');
         else if (avgKOSValue > 5) container.classList.add('kos-fair');
@@ -1086,7 +2064,7 @@ function updateGlobalAverages(products) {
       avgGOSEl.textContent = count > 0 ? avgGOSValue : '-';
       const container = document.getElementById('globalAvgGOSContainer');
       if (container && count > 0) {
-        container.className = 'titles-avg-item';
+        container.className = 'product-studio-avg-item';
         if (avgGOSValue > 60) container.classList.add('gos-excellent');
         else if (avgGOSValue >= 40) container.classList.add('gos-good');
         else if (avgGOSValue >= 20) container.classList.add('gos-fair');
