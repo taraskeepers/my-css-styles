@@ -517,13 +517,15 @@ document.getElementById("locationText").textContent = "(select a location)";
 
 /* specialized helper logic */
 
-async function onReceivedRowsWithData(rows, companyStats, marketTrends, productTitlesEvaluated, productTitlesCompanies) {
+async function onReceivedRowsWithData(rows, companyStats, marketTrends, productTitlesEvaluated, productTitlesCompanies, companyPricing, companyImages) {
   console.log("[onReceivedRowsWithData] Called with all data directly");
   console.log("Received", rows.length, "rows");
   console.log("CompanyStats:", companyStats?.length, "records");
   console.log("MarketTrends:", marketTrends?.length, "records");
   console.log("ProductTitlesEvaluated:", productTitlesEvaluated?.length, "records");
   console.log("ProductTitlesCompanies:", productTitlesCompanies?.length, "records");
+  console.log("CompanyPricing:", companyPricing?.length, "records");
+  console.log("CompanyImages:", companyImages?.length, "records");
 
   // Ensure company data is ready
   if (window.myCompanyReady) {
@@ -554,6 +556,8 @@ window.companyStatsData = companyStats;
 window.marketTrendsData = marketTrends;
 window.productTitlesEvaluatedData = productTitlesEvaluated;
 window.productTitlesCompaniesData = productTitlesCompanies;
+window.companyPricing = companyPricing;
+window.companyImages = companyImages;
   
 // 6) Process table data ONLY if the function exists
 if (typeof processTableData === 'function') {
@@ -562,6 +566,8 @@ if (typeof processTableData === 'function') {
   processTableData({ data: marketTrends }, "market_trends");
   processTableData({ data: productTitlesEvaluated }, "product_titles_evaluated");
   processTableData({ data: productTitlesCompanies }, "product_titles_companies");
+  processTableData({ data: companyPricing }, "company_pricing");
+  processTableData({ data: companyImages }, "images");
 } else {
   console.log("[onReceivedRowsWithData] processTableData not found, skipping table processing");
 }
@@ -627,23 +633,29 @@ Promise.all([
   getDataFromIDB(window.dataPrefix + "company_serp_stats"),
   getDataFromIDB(window.dataPrefix + "market_trends"),
   getDataFromIDB(window.dataPrefix + "product_titles_evaluated"),
-  getDataFromIDB(window.dataPrefix + "product_titles_companies")
+  getDataFromIDB(window.dataPrefix + "product_titles_companies"),
+  getDataFromIDB(window.dataPrefix + "company_pricing"),
+  getDataFromIDB(window.dataPrefix + "images")
 ])
-.then(([processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies]) => {
+.then(([processed, serpStats, marketTrends, productTitlesEvaluated, productTitlesCompanies, companyPricing, companyImages]) => {
   console.log("[DEBUG] processed data:", processed);
   console.log("[DEBUG] company_serp_stats data:", serpStats);
   console.log("[DEBUG] market_trends data:", marketTrends);
   console.log("[DEBUG] product_titles_evaluated data:", productTitlesEvaluated);
   console.log("[DEBUG] product_titles_companies data:", productTitlesCompanies);
+  console.log("[DEBUG] company_pricing:", companyPricing);
+  console.log("[DEBUG] images:", companyImages);
 
 // Process and use the loaded data (product tables can be empty)
-if (processed && serpStats && marketTrends && (productTitlesEvaluated !== null) && (productTitlesCompanies !== null)) {
+if (processed && serpStats && marketTrends && (productTitlesEvaluated !== null) && (productTitlesCompanies !== null) && (companyPricing !== null) && (companyImages !== null)) {
     // Process the data (you can adjust this logic as needed)
     processTableData(processed, "processed");
     processTableData(serpStats, "company_serp_stats");
     processTableData(marketTrends, "market_trends");
     processTableData(productTitlesEvaluated, "product_titles_evaluated");
     processTableData(productTitlesCompanies, "product_titles_companies");
+    processTableData(companyPricing, "company_pricing");
+    processTableData(companyImages, "images");
 
       if (document.getElementById("projectPage").style.display !== "none") {
   setTimeout(() => {
