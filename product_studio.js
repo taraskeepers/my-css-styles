@@ -1158,6 +1158,19 @@ function addProductStudioStyles() {
   height: 100%;
   overflow: auto;
 }
+/* Highlight user's own company */
+.product-studio-table tbody tr.my-company-row {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.05)) !important;
+  border-left: 4px solid #667eea;
+}
+
+.product-studio-table tbody tr.my-company-row:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08)) !important;
+}
+
+.product-studio-table tbody tr.my-company-row .company-rank-badge {
+  box-shadow: 0 0 0 2px #667eea;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1747,27 +1760,37 @@ async function createCompaniesPanel() {
   // Create header with consistent structure
   const header = document.createElement('div');
   header.className = 'product-studio-header';
-  header.innerHTML = `
-    <div class="product-studio-header-left">
-      <h2 class="product-studio-header-title">
-        Companies Analysis
-        <span class="product-studio-version">v1.0.0 BETA</span>
-      </h2>
-      <div class="product-studio-selected-info">
-        Analyzing company performance across all metrics
-      </div>
+header.innerHTML = `
+  <div class="product-studio-header-left">
+    <h2 class="product-studio-header-title">
+      Companies Analysis
+      <span class="product-studio-version">v1.0.0 BETA</span>
+    </h2>
+    <div class="product-studio-selected-info">
+      Analyzing company performance across all metrics
     </div>
-    <div class="product-studio-companies-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
-      <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Companies</span>
-        <span id="totalCompaniesCount" style="font-size: 18px; font-weight: 700; color: white;">-</span>
-      </div>
-      <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Avg T-Score</span>
-        <span id="avgCompanyTScore" style="font-size: 18px; font-weight: 700; color: white;">-</span>
-      </div>
+  </div>
+  <div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
+    <div class="product-studio-title-filter" style="position: relative;">
+      <input type="text" 
+             class="product-studio-filter-input" 
+             id="companiesStudioFilterInput" 
+             placeholder="🔍 Filter companies by name... (Press Enter)" 
+             autocomplete="off">
+      <div class="product-studio-filter-tags" id="companiesStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
     </div>
-  `;
+  </div>
+  <div class="product-studio-companies-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
+    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Companies</span>
+      <span id="totalCompaniesCount" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+    </div>
+    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Avg T-Score</span>
+      <span id="avgCompanyTScore" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+    </div>
+  </div>
+`;
   companiesPanel.appendChild(header);
   
   // Create table container with new specific ID
@@ -1793,7 +1816,6 @@ async function createCompaniesPanel() {
   return companiesPanel;
 }
 
-// Render companies table
 function renderCompaniesTable(container, companies) {
   const wrapper = document.createElement('div');
   wrapper.className = 'product-studio-wrapper';
@@ -1847,6 +1869,12 @@ function renderCompaniesTable(container, companies) {
   companies.forEach((company, index) => {
     const row = document.createElement('tr');
     row.dataset.companyData = JSON.stringify(company);
+    
+    // Check if this is the user's company and add highlighting
+    const isMyCompany = window.myCompany && company.source.toLowerCase() === window.myCompany.toLowerCase();
+    if (isMyCompany) {
+      row.classList.add('my-company-row');
+    }
     
     // Rank badge class
     let rankClass = 'regular';
@@ -1932,23 +1960,28 @@ function renderCompaniesTable(container, companies) {
   // Add sorting functionality
   addCompaniesSortingFunctionality(table, companies);
   
-  // Store data globally for sorting
+  // Store data globally for filtering and sorting
   window.companiesTableData = companies;
 
-// Update header stats
-setTimeout(() => {
-  const totalCompaniesEl = document.getElementById('totalCompaniesCount');
-  const avgTScoreEl = document.getElementById('avgCompanyTScore');
-  
-  if (totalCompaniesEl) {
-    totalCompaniesEl.textContent = companies.length;
-  }
-  
-  if (avgTScoreEl && companies.length > 0) {
-    const avgTScore = companies.reduce((sum, c) => sum + c.avgFinalScore, 0) / companies.length;
-    avgTScoreEl.textContent = Math.round(avgTScore);
-  }
-}, 50);
+  // Initialize filter functionality
+  setTimeout(() => {
+    initializeCompaniesStudioFilter();
+  }, 100);
+
+  // Update header stats
+  setTimeout(() => {
+    const totalCompaniesEl = document.getElementById('totalCompaniesCount');
+    const avgTScoreEl = document.getElementById('avgCompanyTScore');
+    
+    if (totalCompaniesEl) {
+      totalCompaniesEl.textContent = companies.length;
+    }
+    
+    if (avgTScoreEl && companies.length > 0) {
+      const avgTScore = companies.reduce((sum, c) => sum + c.avgFinalScore, 0) / companies.length;
+      avgTScoreEl.textContent = Math.round(avgTScore);
+    }
+  }, 50);
 }
 
 // Toggle expanded row for companies
@@ -2028,13 +2061,13 @@ function addCompaniesSortingFunctionality(table, companies) {
         sortState.direction = sortKey === 'rank' ? 'asc' : 'desc';
       }
       
-// Remove all sort indicators
-headers.forEach(h => {
-  h.classList.remove('sorted-asc', 'sorted-desc');
-});
-
-// Add current sort indicator
-this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      // Remove all sort indicators
+      headers.forEach(h => {
+        h.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      // Add current sort indicator
+      this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
       // Sort companies
       const sortedCompanies = [...companies].sort((a, b) => {
@@ -2085,9 +2118,26 @@ this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc')
         }
       });
       
+      // Store sorted data globally
+      window.companiesTableData = sortedCompanies;
+      
+      // Apply current filters to the sorted data
+      const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
+      const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+      
+      let displayCompanies = sortedCompanies;
+      if (filterTexts.length > 0) {
+        displayCompanies = sortedCompanies.filter(company => {
+          const companyName = company.source.toLowerCase();
+          return filterTexts.every(filterText => 
+            companyName.includes(filterText.toLowerCase())
+          );
+        });
+      }
+      
       const container = table.closest('.product-studio-table-container');
       container.innerHTML = '';
-      renderCompaniesTable(container, sortedCompanies);
+      renderCompaniesTable(container, displayCompanies);
     });
   });
 }
@@ -3325,6 +3375,77 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
       renderGlobalProductsTable(container, sortedProducts, processedMetrics, roasData, companyFilter);
     });
   });
+}
+
+// Initialize filter functionality for companies
+function initializeCompaniesStudioFilter() {
+  const filterInput = document.getElementById('companiesStudioFilterInput');
+  if (filterInput) {
+    filterInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const filterText = e.target.value.trim();
+        if (filterText.length > 0) {
+          addCompaniesStudioFilterTag(filterText);
+          applyCompaniesStudioFilters();
+          e.target.value = '';
+        }
+      }
+    });
+  }
+}
+
+// Add filter tag for companies
+function addCompaniesStudioFilterTag(filterText) {
+  const tagsContainer = document.getElementById('companiesStudioFilterTags');
+  if (!tagsContainer) return;
+  
+  // Check if filter already exists
+  const existingTags = Array.from(tagsContainer.querySelectorAll('.product-studio-filter-tag'));
+  if (existingTags.some(tag => tag.dataset.filterText.toLowerCase() === filterText.toLowerCase())) {
+    return;
+  }
+  
+  const tag = document.createElement('div');
+  tag.className = 'product-studio-filter-tag';
+  tag.dataset.filterText = filterText;
+  tag.innerHTML = `
+    <span class="product-studio-filter-tag-text" title="${filterText}">${filterText}</span>
+    <span class="product-studio-filter-tag-remove">✕</span>
+  `;
+  
+  // Add remove handler
+  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function() {
+    tag.remove();
+    applyCompaniesStudioFilters();
+  });
+  
+  tagsContainer.appendChild(tag);
+}
+
+// Apply company filters
+function applyCompaniesStudioFilters() {
+  const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
+  const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+  
+  if (!window.companiesTableData) return;
+  
+  let filteredCompanies = window.companiesTableData;
+  if (filterTexts.length > 0) {
+    filteredCompanies = window.companiesTableData.filter(company => {
+      const companyName = company.source.toLowerCase();
+      return filterTexts.every(filterText => 
+        companyName.includes(filterText.toLowerCase())
+      );
+    });
+  }
+  
+  // Clear and re-render table
+  const container = document.getElementById('productStudioCompaniesTableContainer');
+  if (container) {
+    container.innerHTML = '';
+    renderCompaniesTable(container, filteredCompanies);
+  }
 }
 
 // Update averages for global products
