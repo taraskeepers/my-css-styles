@@ -1118,6 +1118,18 @@ function addProductStudioStyles() {
   flex-direction: column;
   overflow: hidden;
 }
+/* Ensure single panel takes full width */
+.product-studio-main-container > div:only-child {
+  width: 100%;
+}
+
+/* Make sure panels don't have minimum widths that prevent full width */
+#titlesCompaniesPanel,
+#titlesGlobalProductsPanel, 
+#titlesRankMapProductsPanel {
+  min-width: 0;
+  width: 100%;
+}
 
     `;
     document.head.appendChild(style);
