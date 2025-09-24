@@ -1171,6 +1171,172 @@ function addProductStudioStyles() {
 .product-studio-table tbody tr.my-company-row .company-rank-badge {
   box-shadow: 0 0 0 2px #667eea;
 }
+
+/* Images panel for product studio */
+#imagesGlobalProductsPanel {
+  flex: 1;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Images panel header */
+.images-studio-header {
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.images-studio-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.images-studio-header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.images-studio-version {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.images-studio-selected-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+/* Images panel averages */
+.images-studio-avg-scores {
+  position: absolute;
+  right: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.images-studio-avg-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  min-width: 85px;
+  min-height: 50px;
+}
+
+.images-studio-avg-item.tscore-excellent {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.images-studio-avg-item.tscore-good {
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+}
+
+.images-studio-avg-item.tscore-fair {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.images-studio-avg-item.tscore-poor {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+.images-studio-avg-score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-weight: 700;
+}
+
+.images-studio-avg-value {
+  font-size: 18px;
+  color: white;
+}
+
+.images-studio-avg-max {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Images filter styles */
+.images-studio-filter-section {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  margin-left: 50px;
+  position: relative;
+}
+
+.images-studio-title-filter {
+  position: relative;
+  width: 280px;
+}
+
+.images-studio-filter-input {
+  width: 100%;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #333;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.images-studio-filter-input::placeholder {
+  color: #999;
+}
+
+.images-studio-filter-input:focus {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.images-studio-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 28px;
+}
+
+/* Images table container */
+.images-studio-table-container {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+}
+
+#imagesStudioGlobalProductsTableContainer {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+}
+
+#imagesStudioGlobalProductsTableContainer .product-studio-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1722,7 +1888,7 @@ function matchProductsWithGlobalData(products, companyFilter = null) {
   return matchedProducts;
 }
 
-// Load and render both panels
+// Load and render all panels including images
 async function loadAndRenderProductStudioPanels() {
   const container = document.getElementById('productStudioContent');
   if (!container) return;
@@ -1746,14 +1912,33 @@ async function loadAndRenderProductStudioPanels() {
   const rankMapPanel = await createRankMapProductsPanel();
   mainContainer.appendChild(rankMapPanel);
   
+  // Create Images Panel
+  const imagesPanel = await createImagesGlobalProductsPanel();
+  mainContainer.appendChild(imagesPanel);
+  
   // Add main container to DOM
   container.appendChild(mainContainer);
   
-  // NOW initialize the products panel data after it's in the DOM
+  // Initialize the products panel data after it's in the DOM
   await initializeProductsPanelData();
   
-  // Initially show companies panel, hide others
+  // Initialize images panel event listeners
+  await initializeImagesPanelData();
+  
+  // Initially show companies panel, hide all others
   showCompaniesPanel();
+}
+
+// Initialize images panel data and event listeners
+async function initializeImagesPanelData() {
+  const companySelect = document.getElementById('imagesStudioCompanySelect');
+  if (companySelect) {
+    companySelect.addEventListener('change', async function() {
+      const selectedCompany = this.value;
+      console.log('[ImagesStudio] Switching to company:', selectedCompany);
+      await loadImagesDataForCompany(selectedCompany);
+    });
+  }
 }
 
 async function createCompaniesPanel() {
@@ -2288,6 +2473,79 @@ async function createRankMapProductsPanel() {
   return rankMapPanel;
 }
 
+// Create Images Global Products Panel
+async function createImagesGlobalProductsPanel() {
+  const imagesPanel = document.createElement('div');
+  imagesPanel.id = 'imagesGlobalProductsPanel';
+  
+  // Get all companies for dropdown
+  const allCompanies = await getAllCompaniesFromData();
+  const currentCompany = window.myCompany || allCompanies[0] || '';
+  
+  // Create header with filter, company dropdown and averages
+  const header = document.createElement('div');
+  header.className = 'images-studio-header';
+  header.innerHTML = `
+    <div class="images-studio-header-left">
+      <h2 class="images-studio-header-title">
+        Global Images Analysis
+        <span class="images-studio-version">v1.0.0 BETA</span>
+      </h2>
+      <div class="images-studio-selected-info">
+        Analyzing image performance across all search terms
+      </div>
+    </div>
+    <div class="images-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
+      <div class="images-studio-title-filter" style="position: relative;">
+        <input type="text" 
+               class="images-studio-filter-input" 
+               id="imagesStudioFilterInput" 
+               placeholder="🔍 Filter products by image... (Press Enter)" 
+               autocomplete="off">
+        <div class="images-studio-filter-tags" id="imagesStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
+      </div>
+      <div class="images-studio-company-selector">
+        <select id="imagesStudioCompanySelect" class="images-studio-filter-input" style="width: 200px;">
+          ${allCompanies.map(company => 
+            `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>${company}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="images-studio-avg-scores">
+      <div id="imagesGlobalAvgTScoreContainer" class="images-studio-avg-item tscore-excellent">
+        <div class="images-studio-avg-score-display">
+          <span id="imagesGlobalAvgTScore" class="images-studio-avg-value">-</span>
+          <span class="images-studio-avg-max">/50</span>
+        </div>
+      </div>
+      <div id="imagesGlobalAvgKOSContainer" class="images-studio-avg-item kos-excellent">
+        <div class="images-studio-avg-score-display">
+          <span id="imagesGlobalAvgKOS" class="images-studio-avg-value">-</span>
+          <span class="images-studio-avg-max">/30</span>
+        </div>
+      </div>
+      <div id="imagesGlobalAvgGOSContainer" class="images-studio-avg-item gos-excellent">
+        <div class="images-studio-avg-score-display">
+          <span id="imagesGlobalAvgGOS" class="images-studio-avg-value">-</span>
+          <span class="images-studio-avg-max">/80</span>
+        </div>
+      </div>
+    </div>
+  `;
+  imagesPanel.appendChild(header);
+  
+  // Create table container
+  const tableContainer = document.createElement('div');
+  tableContainer.className = 'images-studio-table-container';
+  tableContainer.id = 'imagesStudioGlobalProductsTableContainer';
+  
+  // Append table container to panel
+  imagesPanel.appendChild(tableContainer);
+  
+  return imagesPanel;
+}
+
 // Load and process rank map data with caching
 async function loadRankMapData(forceRefresh = false) {
   const CACHE_KEY = 'rankMapDataCache';
@@ -2690,11 +2948,13 @@ function showCompaniesPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
   const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
+  const imagesPanel = document.getElementById('imagesGlobalProductsPanel');
   
   if (companiesPanel && productsPanel && rankMapPanel) {
     companiesPanel.style.display = 'flex';
     productsPanel.style.display = 'none';
     rankMapPanel.style.display = 'none';
+    if (imagesPanel) imagesPanel.style.display = 'none';
   }
 }
 
@@ -2703,11 +2963,13 @@ async function showProductsPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
   const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
+  const imagesPanel = document.getElementById('imagesGlobalProductsPanel');
   
   if (companiesPanel && productsPanel && rankMapPanel) {
     companiesPanel.style.display = 'none';
     productsPanel.style.display = 'flex';
     rankMapPanel.style.display = 'none';
+    if (imagesPanel) imagesPanel.style.display = 'none';
     
     // Check if table is empty and reload if needed
     const tableContainer = document.getElementById('productStudioGlobalProductsTableContainer');
@@ -2723,11 +2985,13 @@ async function showRankMapPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
   const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
+  const imagesPanel = document.getElementById('imagesGlobalProductsPanel');
   
   if (companiesPanel && productsPanel && rankMapPanel) {
     companiesPanel.style.display = 'none';
     productsPanel.style.display = 'none';
     rankMapPanel.style.display = 'flex';
+    if (imagesPanel) imagesPanel.style.display = 'none';
     
     const tableContainer = document.getElementById('productStudioRankMapTableContainer');
     if (tableContainer) {
@@ -2768,6 +3032,146 @@ async function showRankMapPanel() {
       }
     }
   }
+}
+
+// Show Images Panel
+async function showImagesPanel() {
+  const companiesPanel = document.getElementById('titlesCompaniesPanel');
+  const productsPanel = document.getElementById('titlesGlobalProductsPanel');
+  const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
+  const imagesPanel = document.getElementById('imagesGlobalProductsPanel');
+  
+  if (companiesPanel && productsPanel && rankMapPanel && imagesPanel) {
+    // Hide all other panels
+    companiesPanel.style.display = 'none';
+    productsPanel.style.display = 'none';
+    rankMapPanel.style.display = 'none';
+    // Show images panel
+    imagesPanel.style.display = 'flex';
+    
+    // Check if table is empty and reload if needed
+    const tableContainer = document.getElementById('imagesStudioGlobalProductsTableContainer');
+    if (tableContainer && !tableContainer.hasChildNodes()) {
+      const currentCompany = document.getElementById('imagesStudioCompanySelect')?.value || window.myCompany || '';
+      await loadImagesDataForCompany(currentCompany);
+    }
+  }
+}
+
+// Load data for Images panel
+async function loadImagesDataForCompany(company) {
+  const tableContainer = document.getElementById('imagesStudioGlobalProductsTableContainer');
+  if (!tableContainer) return;
+  
+  try {
+    // Show loading state
+    tableContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div style="font-size: 24px; margin-bottom: 10px;">🔄</div>
+        <div style="color: #666;">Loading image analysis data...</div>
+      </div>
+    `;
+    
+    // Load product data similar to products panel
+    const evaluatedProducts = await loadProductTitlesEvaluated(company);
+    const processedMetrics = await loadProcessedMetrics();
+    const roasData = await loadRoasData(company);
+    
+    if (evaluatedProducts && evaluatedProducts.size > 0) {
+      // Store data globally for filtering
+      window.globalImagesData = { evaluatedProducts, processedMetrics, roasData, currentCompany: company };
+      
+      // Clear container before rendering
+      tableContainer.innerHTML = '';
+      
+      // Render table (you can customize this for image-specific display)
+      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData, company);
+      
+      // Update averages for images panel
+      updateImagesGlobalAverages(evaluatedProducts);
+    } else {
+      tableContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #999;">
+          No image data found for ${company}
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('[loadImagesDataForCompany] Error loading data:', error);
+    tableContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #999;">
+        Error loading image data: ${error.message}
+      </div>
+    `;
+  }
+}
+
+// Update averages for images panel
+function updateImagesGlobalAverages(evaluatedProducts) {
+  setTimeout(() => {
+    const avgTScoreEl = document.getElementById('imagesGlobalAvgTScore');
+    const avgKOSEl = document.getElementById('imagesGlobalAvgKOS');
+    const avgGOSEl = document.getElementById('imagesGlobalAvgGOS');
+    
+    if (!evaluatedProducts || evaluatedProducts.size === 0) {
+      if (avgTScoreEl) avgTScoreEl.textContent = '-';
+      if (avgKOSEl) avgKOSEl.textContent = '-';
+      if (avgGOSEl) avgGOSEl.textContent = '-';
+      return;
+    }
+    
+    let totalTScore = 0, totalKOS = 0, totalGOS = 0;
+    let count = 0;
+    
+    evaluatedProducts.forEach(product => {
+      if (product.tscore !== undefined) {
+        totalTScore += parseFloat(product.tscore) || 0;
+        totalKOS += parseFloat(product.kos) || 0;
+        totalGOS += parseFloat(product.gos) || 0;
+        count++;
+      }
+    });
+    
+    const avgTScoreValue = count > 0 ? (totalTScore / count) : 0;
+    const avgKOSValue = count > 0 ? (totalKOS / count) : 0;
+    const avgGOSValue = count > 0 ? (totalGOS / count) : 0;
+    
+    if (avgTScoreEl) {
+      avgTScoreEl.textContent = count > 0 ? avgTScoreValue.toFixed(1) : '-';
+      const container = document.getElementById('imagesGlobalAvgTScoreContainer');
+      if (container && count > 0) {
+        container.className = 'images-studio-avg-item';
+        if (avgTScoreValue > 40) container.classList.add('tscore-excellent');
+        else if (avgTScoreValue >= 30) container.classList.add('tscore-good');
+        else if (avgTScoreValue >= 20) container.classList.add('tscore-fair');
+        else container.classList.add('tscore-poor');
+      }
+    }
+    
+    if (avgKOSEl) {
+      avgKOSEl.textContent = count > 0 ? avgKOSValue.toFixed(1) : '-';
+      const container = document.getElementById('imagesGlobalAvgKOSContainer');
+      if (container && count > 0) {
+        container.className = 'images-studio-avg-item';
+        if (avgKOSValue > 15) container.classList.add('kos-excellent');
+        else if (avgKOSValue >= 10) container.classList.add('kos-good');
+        else if (avgKOSValue > 5) container.classList.add('kos-fair');
+        else container.classList.add('kos-poor');
+      }
+    }
+    
+    if (avgGOSEl) {
+      avgGOSEl.textContent = count > 0 ? avgGOSValue : '-';
+      const container = document.getElementById('imagesGlobalAvgGOSContainer');
+      if (container && count > 0) {
+        container.className = 'images-studio-avg-item';
+        if (avgGOSValue > 60) container.classList.add('gos-excellent');
+        else if (avgGOSValue >= 40) container.classList.add('gos-good');
+        else if (avgGOSValue >= 20) container.classList.add('gos-fair');
+        else container.classList.add('gos-poor');
+      }
+    }
+  }, 50);
 }
 
 // Replace the entire renderGlobalProductsTable function:
@@ -3569,3 +3973,5 @@ window.initializeProductStudio = initializeProductStudio;
 window.showCompaniesPanel = showCompaniesPanel;
 window.showProductsPanel = showProductsPanel;
 window.showRankMapPanel = showRankMapPanel;
+window.showImagesPanel = showImagesPanel;
+window.loadImagesDataForCompany = loadImagesDataForCompany;
