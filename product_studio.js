@@ -193,8 +193,8 @@ function addProductStudioStyles() {
       
       .product-studio-table th:nth-child(5),
       .product-studio-table td:nth-child(5) { 
-        max-width: 200px; 
-        width: 200px;
+        max-width: 300px; 
+        width: 400px;
       } /* PRODUCT TITLE - FIXED CLOSING BRACE */
       
       .product-studio-table th:nth-child(6),
@@ -273,18 +273,15 @@ function addProductStudioStyles() {
         gap: 4px;
       }
       
-      .product-studio-title {
-        font-weight: 600;
-        color: #333;
-        font-size: 13px;
-        line-height: 1.3;
-        max-height: 2.6em;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
+.product-studio-title {
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
       
       /* Image zoom on hover */
       .product-studio-img-container {
@@ -1510,7 +1507,7 @@ async function createProductsPanel() {
   // Create header with filter, company dropdown and averages
   const header = document.createElement('div');
   header.className = 'product-studio-header';
-  header.innerHTML = `
+header.innerHTML = `
     <div class="product-studio-header-left">
       <h2 class="product-studio-header-title">
         Global Products Analysis
@@ -1520,16 +1517,16 @@ async function createProductsPanel() {
         Analyzing product performance across all search terms
       </div>
     </div>
-    <div class="product-studio-filter-section">
-      <div class="product-studio-title-filter">
+    <div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; flex: 1; margin-left: 30px;">
+      <div class="product-studio-title-filter" style="position: relative;">
         <input type="text" 
                class="product-studio-filter-input" 
                id="productStudioFilterInput" 
                placeholder="🔍 Filter products by title... (Press Enter)" 
                autocomplete="off">
-        <div class="product-studio-filter-tags" id="productStudioFilterTags"></div>
+        <div class="product-studio-filter-tags" id="productStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
       </div>
-      <div class="product-studio-company-selector" style="margin-left: 20px;">
+      <div class="product-studio-company-selector">
         <select id="productStudioCompanySelect" class="product-studio-filter-input" style="width: 200px;">
           ${allCompanies.map(company => 
             `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>
@@ -1538,7 +1535,8 @@ async function createProductsPanel() {
           ).join('')}
         </select>
       </div>
-      <div class="product-studio-avg-scores" style="margin-left: 30px;">
+    </div>
+    <div class="product-studio-avg-scores" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
         <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
           <div style="display: flex; flex-direction: column; align-items: center;">
             <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
@@ -2138,7 +2136,7 @@ async function renderGlobalProductsTable(container, products, processedMetrics, 
       <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center" style="width: 60px;">Image</th>
-    <th class="sortable" data-sort="title" style="max-width: 200px; width: 200px;">
+    <th class="sortable" data-sort="title" style="min-width: 300px;">
       Product Title
       <span class="product-studio-sort-icon">⇅</span>
     </th>
@@ -2255,9 +2253,9 @@ async function renderGlobalProductsTable(container, products, processedMetrics, 
       </td>
       <td>
         <div class="product-studio-title-cell">
-          <div class="product-studio-title" style="max-width: 190px; font-size: 12px;">
-            ${product.title}
-          </div>
+<div class="product-studio-title" style="font-size: 12px;">
+  ${product.title}
+</div>
         </div>
       </td>
       <td class="center">
