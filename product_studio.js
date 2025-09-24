@@ -3152,26 +3152,36 @@ async function loadImagesDataForCompany(company) {
       loadProductPerformanceData()
     ]);
     
-    if (imagesData.length > 0) {
-      const productTitles = imagesData.map(p => p.title);
-      
-      // Load processed data for POS and SHARE
-      const processedMetrics = await loadProcessedDataForProducts(productTitles, company);
-      
-      // Store data globally for filtering
-      window.globalImagesData = { 
-        imagesData, 
-        performanceMetrics,
-        processedMetrics, 
-        roasData, 
-        currentCompany: company 
-      };
-      
-      // Clear container before rendering
-      tableContainer.innerHTML = '';
-      
-      // Render images table
-      await renderImagesProductsTable(tableContainer, imagesData, performanceMetrics, processedMetrics, roasData);
+if (imagesData.length > 0) {
+  const productTitles = imagesData.map(p => p.title);
+  
+  // Load processed data for POS and SHARE
+  const processedMetrics = await loadProcessedDataForProducts(productTitles, company);
+  
+  // Sort imagesData by CTR (descending) by default
+  const sortedImagesData = [...imagesData].sort((a, b) => {
+    const aPerfData = performanceMetrics.get(a.title);
+    const bPerfData = performanceMetrics.get(b.title);
+    const aCtr = aPerfData?.ctr || 0;
+    const bCtr = bPerfData?.ctr || 0;
+    // Sort descending (highest CTR first)
+    return bCtr - aCtr;
+  });
+  
+  // Store data globally for filtering (store sorted data)
+  window.globalImagesData = { 
+    imagesData: sortedImagesData, 
+    performanceMetrics,
+    processedMetrics, 
+    roasData, 
+    currentCompany: company 
+  };
+  
+  // Clear container before rendering
+  tableContainer.innerHTML = '';
+  
+  // Render images table with sorted data
+  await renderImagesProductsTable(tableContainer, sortedImagesData, performanceMetrics, processedMetrics, roasData);
       
     } else {
       tableContainer.innerHTML = `
@@ -3618,14 +3628,6 @@ if (!window.imagesTableSortState) {
       renderImagesProductsTable(container, sortedImages, performanceMetrics, processedMetrics, roasData);
     });
   });
-  // Trigger initial sort by CTR if it's the default
-  if (window.imagesTableSortState.column === 'ctr') {
-    const ctrHeader = Array.from(headers).find(h => h.getAttribute('data-sort') === 'ctr');
-    if (ctrHeader) {
-      // Trigger a click to perform the initial sort
-      setTimeout(() => ctrHeader.click(), 100);
-    }
-  }
 }
 
 // Load product performance data for images panel (from titles analyzer logic)
