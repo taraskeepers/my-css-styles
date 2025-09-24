@@ -911,6 +911,203 @@ function addProductStudioStyles() {
       .kos-h { background: #dcfce7; color: #15803d; }
       .kos-m { background: #fef3c7; color: #b45309; }
       .kos-l { background: #fee2e2; color: #991b1b; }
+
+/* COMPANIES PANEL SPECIFIC STYLES */
+      .companies-table {
+        width: 100%;
+        background: white;
+        border-collapse: collapse;
+      }
+      
+      .companies-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      }
+      
+      .companies-table thead tr {
+        border-bottom: 2px solid #e9ecef;
+      }
+      
+      .companies-table th {
+        padding: 10px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        text-align: left;
+        background: white;
+        position: relative;
+        white-space: nowrap;
+        user-select: none;
+      }
+      
+      .companies-table th.sortable {
+        cursor: pointer;
+        padding-right: 20px;
+      }
+      
+      .companies-table th.sortable:hover {
+        background: rgba(102, 126, 234, 0.04);
+        color: #495057;
+      }
+      
+      .companies-table tbody tr {
+        border-bottom: 1px solid #f0f2f5;
+        transition: background 0.15s ease;
+        height: 60px;
+        cursor: pointer;
+        user-select: none;
+      }
+      
+      .companies-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.02);
+      }
+      
+      .companies-table tbody tr.expanded {
+        background: rgba(102, 126, 234, 0.05);
+      }
+      
+      .companies-table td {
+        padding: 8px;
+        font-size: 13px;
+        color: #495057;
+        vertical-align: middle;
+      }
+      
+      .companies-sort-icon {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: #adb5bd;
+      }
+      
+      .companies-table th.sorted-asc .companies-sort-icon,
+      .companies-table th.sorted-desc .companies-sort-icon {
+        color: #667eea;
+      }
+      
+      .company-rank-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      
+      .company-rank-badge.gold {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+      }
+      
+      .company-rank-badge.silver {
+        background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%);
+        color: white;
+      }
+      
+      .company-rank-badge.bronze {
+        background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+        color: white;
+      }
+      
+      .company-rank-badge.regular {
+        background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%);
+        color: #4b5563;
+      }
+      
+      .companies-expanded-row {
+        background: #f8f9fa;
+      }
+      
+      .companies-expanded-row td {
+        padding: 0 !important;
+      }
+      
+      .companies-expanded-content {
+        padding: 20px 30px;
+        animation: slideDown 0.2s ease-out;
+      }
+      
+      .companies-gos-breakdown {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        max-width: 800px;
+      }
+      
+      .gos-breakdown-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      
+      .gos-breakdown-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      }
+      
+      .gos-breakdown-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        margin-bottom: 8px;
+      }
+      
+      .gos-breakdown-count {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 8px 0;
+      }
+      
+      .gos-breakdown-item.excellent {
+        border-color: #22c55e;
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.02));
+      }
+      
+      .gos-breakdown-item.excellent .gos-breakdown-count {
+        color: #16a34a;
+      }
+      
+      .gos-breakdown-item.good {
+        border-color: #4ade80;
+        background: linear-gradient(135deg, rgba(74, 222, 128, 0.05), rgba(74, 222, 128, 0.02));
+      }
+      
+      .gos-breakdown-item.good .gos-breakdown-count {
+        color: #22c55e;
+      }
+      
+      .gos-breakdown-item.poor {
+        border-color: #fbbf24;
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.05), rgba(251, 191, 36, 0.02));
+      }
+      
+      .gos-breakdown-item.poor .gos-breakdown-count {
+        color: #f59e0b;
+      }
+      
+      .gos-breakdown-item.bad {
+        border-color: #f87171;
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.05), rgba(248, 113, 113, 0.02));
+      }
+      
+      .gos-breakdown-item.bad .gos-breakdown-count {
+        color: #ef4444;
+      }
+      
     `;
     document.head.appendChild(style);
   }
@@ -1040,6 +1237,91 @@ async function loadProductTitlesEvaluated(companyFilter = null) {
     
     request.onerror = function() {
       console.error('[loadProductTitlesEvaluated] Failed to open database:', request.error);
+      resolve([]);
+    };
+  });
+}
+
+// Load companies data from IDB
+async function loadCompaniesData() {
+  return new Promise((resolve, reject) => {
+    console.log('[loadCompaniesData] Starting to load companies data...');
+    
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}product_titles_companies`;
+    
+    console.log('[loadCompaniesData] Looking for table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadCompaniesData] projectData object store not found');
+        db.close();
+        resolve([]);
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadCompaniesData] No data found for table:', tableName);
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        // Process the companies data
+        const companiesData = result.data.map(company => ({
+          source: company.source || 'Unknown',
+          avgFinalScore: parseFloat(company.avg_final_score || 0),
+          avgGos: parseFloat(company.avg_gos || 0),
+          avgKos: parseFloat(company.avg_kos || 0),
+          avgTitleLength: parseFloat(company.avg_title_length || 0),
+          avgWordCount: parseFloat(company.avg_word_count || 0),
+          totalProducts: parseInt(company.total_products || 0),
+          gosOverview: {
+            excellent: parseInt(company.gos_overview?.excellent_60_80 || 0),
+            good: parseInt(company.gos_overview?.good_40_60 || 0),
+            poor: parseInt(company.gos_overview?.poor_20_40 || 0),
+            bad: parseInt(company.gos_overview?.bad_below_20 || 0)
+          }
+        }));
+        
+        // Sort by average final score descending
+        companiesData.sort((a, b) => b.avgFinalScore - a.avgFinalScore);
+        
+        console.log('[loadCompaniesData] Loaded companies:', companiesData.length);
+        db.close();
+        resolve(companiesData);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadCompaniesData] Error getting data:', getRequest.error);
+        db.close();
+        resolve([]);
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadCompaniesData] Failed to open database:', request.error);
       resolve([]);
     };
   });
@@ -1432,67 +1714,308 @@ async function createCompaniesPanel() {
   // Create table container
   const tableContainer = document.createElement('div');
   tableContainer.className = 'product-studio-table-container';
+  tableContainer.id = 'companiesTableContainer';
   
-  // Create placeholder table
+  // Load and render companies data
+  const companiesData = await loadCompaniesData();
+  
+  if (companiesData.length > 0) {
+    renderCompaniesTable(tableContainer, companiesData);
+  } else {
+    tableContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #999;">
+        No companies data found
+      </div>
+    `;
+  }
+  
+  companiesPanel.appendChild(tableContainer);
+  
+  return companiesPanel;
+}
+
+// Render companies table
+function renderCompaniesTable(container, companies) {
   const wrapper = document.createElement('div');
   wrapper.className = 'product-studio-wrapper';
   
   const table = document.createElement('table');
-  table.className = 'titles-table-modern';
+  table.className = 'companies-table';
   
-  // Create header row
+  // Create header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
     <th class="center sortable" data-sort="rank" style="width: 70px;">
       Rank
+      <span class="companies-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share" style="width: 80px;">
-      Share
-    </th>
-    <th class="center sortable" data-sort="growth" style="width: 70px;">
-      Growth
-    </th>
-    <th class="center" style="width: 70px;">Logo</th>
-    <th class="sortable" data-sort="company" style="max-width: 350px; width: 350px;">
+    <th class="sortable" data-sort="company" style="min-width: 250px;">
       Company Name
+      <span class="companies-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="products" style="width: 65px;">
+    <th class="center sortable" data-sort="products" style="width: 80px;">
       Products
+      <span class="companies-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="revenue" style="width: 80px;">
-      Revenue
+    <th class="center sortable" data-sort="tscore" style="width: 100px;">
+      Avg T-Score
+      <span class="companies-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="trend" style="width: 60px;">
-      Trend
+    <th class="center sortable" data-sort="kos" style="width: 80px;">
+      Avg KOS
+      <span class="companies-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="gos" style="width: 80px;">
+      Avg GOS
+      <span class="companies-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="length" style="width: 100px;">
+      Avg Length
+      <span class="companies-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="words" style="width: 100px;">
+      Avg Words
+      <span class="companies-sort-icon">⇅</span>
     </th>
   `;
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
-  // Create body with placeholder data
+  // Create tbody
   const tbody = document.createElement('tbody');
-  for (let i = 1; i <= 5; i++) {
+  
+  companies.forEach((company, index) => {
     const row = document.createElement('tr');
+    row.dataset.companyData = JSON.stringify(company);
+    
+    // Rank badge class
+    let rankClass = 'regular';
+    if (index === 0) rankClass = 'gold';
+    else if (index === 1) rankClass = 'silver';
+    else if (index === 2) rankClass = 'bronze';
+    
+    // Score classes
+    const roundedScore = Math.round(company.avgFinalScore);
+    let tscoreClass = 'product-studio-tscore-poor';
+    if (roundedScore > 70) tscoreClass = 'product-studio-tscore-excellent';
+    else if (roundedScore >= 55) tscoreClass = 'product-studio-tscore-good';
+    else if (roundedScore >= 40) tscoreClass = 'product-studio-tscore-fair';
+    
+    let kosClass = 'product-studio-kos-poor';
+    if (company.avgKos > 15) kosClass = 'product-studio-kos-excellent';
+    else if (company.avgKos >= 10) kosClass = 'product-studio-kos-good';
+    else if (company.avgKos > 5) kosClass = 'product-studio-kos-fair';
+    
+    let gosClass = 'product-studio-gos-poor';
+    if (company.avgGos > 60) gosClass = 'product-studio-gos-excellent';
+    else if (company.avgGos >= 40) gosClass = 'product-studio-gos-good';
+    else if (company.avgGos >= 20) gosClass = 'product-studio-gos-fair';
+    
     row.innerHTML = `
-      <td class="center">${i}</td>
-      <td class="center">${(Math.random() * 25 + 5).toFixed(1)}%</td>
-      <td class="center">+${(Math.random() * 15 + 2).toFixed(1)}%</td>
-      <td class="center">🏢</td>
-      <td>Company ${i} - Sample Data</td>
-      <td class="center">${Math.floor(Math.random() * 50 + 10)}</td>
-      <td class="center">$${(Math.random() * 500 + 100).toFixed(0)}K</td>
-      <td class="center">📈</td>
+      <td class="center">
+        <div class="company-rank-badge ${rankClass}">${index + 1}</div>
+      </td>
+      <td>
+        <div style="font-weight: 600; color: #333; font-size: 14px;">
+          ${company.source}
+        </div>
+      </td>
+      <td class="center">
+        <span style="font-weight: 700; color: #667eea; font-size: 14px;">
+          ${company.totalProducts}
+        </span>
+      </td>
+      <td class="center">
+        <span class="product-studio-score-fraction ${tscoreClass}">
+          <span class="product-studio-score-value">${roundedScore}</span>
+          <span class="product-studio-score-max">/100</span>
+        </span>
+      </td>
+      <td class="center">
+        <span class="product-studio-score-fraction ${kosClass}">
+          <span class="product-studio-score-value">${company.avgKos.toFixed(1)}</span>
+          <span class="product-studio-score-max">/20</span>
+        </span>
+      </td>
+      <td class="center">
+        <span class="product-studio-score-fraction ${gosClass}">
+          <span class="product-studio-score-value">${Math.round(company.avgGos)}</span>
+          <span class="product-studio-score-max">/80</span>
+        </span>
+      </td>
+      <td class="center">
+        <span style="font-weight: 600; color: #495057;">
+          ${Math.round(company.avgTitleLength)}
+        </span>
+      </td>
+      <td class="center">
+        <span style="font-weight: 600; color: #495057;">
+          ${Math.round(company.avgWordCount)}
+        </span>
+      </td>
     `;
+    
     tbody.appendChild(row);
-  }
+  });
+  
   table.appendChild(tbody);
-  
   wrapper.appendChild(table);
-  tableContainer.appendChild(wrapper);
-  companiesPanel.appendChild(tableContainer);
+  container.appendChild(wrapper);
   
-  return companiesPanel;
+  // Add click handlers for row expansion
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', function() {
+      toggleCompanyRowExpansion(this);
+    });
+  });
+  
+  // Add sorting functionality
+  addCompaniesSortingFunctionality(table, companies);
+  
+  // Store data globally for sorting
+  window.companiesTableData = companies;
+}
+
+// Toggle expanded row for companies
+function toggleCompanyRowExpansion(row) {
+  const nextRow = row.nextElementSibling;
+  const isExpanded = row.classList.contains('expanded');
+  
+  if (isExpanded && nextRow && nextRow.classList.contains('companies-expanded-row')) {
+    row.classList.remove('expanded');
+    nextRow.remove();
+    return;
+  }
+  
+  const tbody = row.parentElement;
+  tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
+  tbody.querySelectorAll('.companies-expanded-row').forEach(r => r.remove());
+  
+  row.classList.add('expanded');
+  
+  const companyData = JSON.parse(row.dataset.companyData);
+  
+  const expandedRow = document.createElement('tr');
+  expandedRow.className = 'companies-expanded-row';
+  
+  const expandedCell = document.createElement('td');
+  expandedCell.colSpan = row.cells.length;
+  
+  // Build expanded content with GOS breakdown
+  expandedCell.innerHTML = `
+    <div class="companies-expanded-content">
+      <h3 style="margin: 0 0 20px 0; color: #333; font-size: 16px;">
+        T-Score Distribution for ${companyData.source}
+      </h3>
+      <div class="companies-gos-breakdown">
+        <div class="gos-breakdown-item excellent">
+          <div class="gos-breakdown-label">Excellent (60-80)</div>
+          <div class="gos-breakdown-count">${companyData.gosOverview.excellent}</div>
+          <div style="font-size: 12px; color: #6b7280;">products</div>
+        </div>
+        <div class="gos-breakdown-item good">
+          <div class="gos-breakdown-label">Good (40-60)</div>
+          <div class="gos-breakdown-count">${companyData.gosOverview.good}</div>
+          <div style="font-size: 12px; color: #6b7280;">products</div>
+        </div>
+        <div class="gos-breakdown-item poor">
+          <div class="gos-breakdown-label">Fair (20-40)</div>
+          <div class="gos-breakdown-count">${companyData.gosOverview.poor}</div>
+          <div style="font-size: 12px; color: #6b7280;">products</div>
+        </div>
+        <div class="gos-breakdown-item bad">
+          <div class="gos-breakdown-label">Poor (&lt;20)</div>
+          <div class="gos-breakdown-count">${companyData.gosOverview.bad}</div>
+          <div style="font-size: 12px; color: #6b7280;">products</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  expandedRow.appendChild(expandedCell);
+  row.parentNode.insertBefore(expandedRow, row.nextSibling);
+}
+
+// Add sorting functionality for companies table
+function addCompaniesSortingFunctionality(table, companies) {
+  const headers = table.querySelectorAll('th.sortable');
+  
+  let sortState = { column: 'rank', direction: 'asc' };
+  
+  headers.forEach(header => {
+    header.addEventListener('click', function() {
+      const sortKey = this.getAttribute('data-sort');
+      
+      if (sortState.column === sortKey) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.column = sortKey;
+        sortState.direction = sortKey === 'rank' ? 'asc' : 'desc';
+      }
+      
+      // Remove all sort indicators
+      headers.forEach(h => {
+        h.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      // Add current sort indicator
+      this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      
+      // Sort companies
+      const sortedCompanies = [...companies].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(sortKey) {
+          case 'rank':
+            aVal = companies.indexOf(a);
+            bVal = companies.indexOf(b);
+            break;
+          case 'company':
+            aVal = a.source.toLowerCase();
+            bVal = b.source.toLowerCase();
+            break;
+          case 'products':
+            aVal = a.totalProducts;
+            bVal = b.totalProducts;
+            break;
+          case 'tscore':
+            aVal = a.avgFinalScore;
+            bVal = b.avgFinalScore;
+            break;
+          case 'kos':
+            aVal = a.avgKos;
+            bVal = b.avgKos;
+            break;
+          case 'gos':
+            aVal = a.avgGos;
+            bVal = b.avgGos;
+            break;
+          case 'length':
+            aVal = a.avgTitleLength;
+            bVal = b.avgTitleLength;
+            break;
+          case 'words':
+            aVal = a.avgWordCount;
+            bVal = b.avgWordCount;
+            break;
+          default:
+            aVal = 0;
+            bVal = 0;
+        }
+        
+        if (sortState.direction === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+      
+      const container = table.closest('.product-studio-table-container');
+      container.innerHTML = '';
+      renderCompaniesTable(container, sortedCompanies);
+    });
+  });
 }
 
 // Create Products Panel with real data
