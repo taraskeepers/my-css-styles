@@ -2035,8 +2035,14 @@ async function createProductsPanel() {
   const allCompanies = await getAllCompaniesFromData();
   const currentCompany = window.myCompany || allCompanies[0] || '';
   
-  // Create header with filter, company dropdown and averages
-// Create header
+  // Initialize avgScores with default values
+  const avgScores = {
+    tscore: 0,
+    kos: 0,
+    gos: 0
+  };
+  
+  // Create header
   const header = document.createElement('div');
   header.className = 'product-studio-header';
   header.innerHTML = `
@@ -2070,17 +2076,23 @@ async function createProductsPanel() {
       </div>
     </div>
     <div class="product-studio-avg-scores" style="flex: 1; display: flex; gap: 20px; justify-content: flex-end; padding-right: 20px;">
-      <div class="score-stat-item">
-        <span class="stat-label">AVG T-SCORE</span>
-        <span class="stat-value tscore" data-value="${avgScores.tscore.toFixed(1)}">${avgScores.tscore.toFixed(1)}<span class="stat-max">/100</span></span>
+      <div class="product-studio-avg-item tscore-fair" id="globalAvgTScoreContainer">
+        <div class="product-studio-avg-score-display">
+          <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
+          <span class="product-studio-avg-max">/100</span>
+        </div>
       </div>
-      <div class="score-stat-item">
-        <span class="stat-label">AVG KOS</span>
-        <span class="stat-value kos" data-value="${avgScores.kos.toFixed(1)}">${avgScores.kos.toFixed(1)}<span class="stat-max">/20</span></span>
+      <div class="product-studio-avg-item kos-fair" id="globalAvgKOSContainer">
+        <div class="product-studio-avg-score-display">
+          <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
+          <span class="product-studio-avg-max">/20</span>
+        </div>
       </div>
-      <div class="score-stat-item">
-        <span class="stat-label">AVG GOS</span>
-        <span class="stat-value gos" data-value="${avgScores.gos.toFixed(1)}">${avgScores.gos.toFixed(1)}<span class="stat-max">/80</span></span>
+      <div class="product-studio-avg-item gos-fair" id="globalAvgGOSContainer">
+        <div class="product-studio-avg-score-display">
+          <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
+          <span class="product-studio-avg-max">/80</span>
+        </div>
       </div>
     </div>
   `;
