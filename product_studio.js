@@ -3120,6 +3120,8 @@ async function showImagesPanel() {
 async function loadImagesDataForCompany(company) {
   const tableContainer = document.getElementById('imagesStudioGlobalProductsTableContainer');
   if (!tableContainer) return;
+
+  window.imagesTableSortState = { column: 'impressions', direction: 'desc' };
   
   try {
     // Show loading state
@@ -3451,96 +3453,131 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
 
 function addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData) {
   const headers = table.querySelectorAll('th.sortable');
-  let currentSort = { column: 'impressions', direction: 'desc' };
+  
+  // Use a static sort state that persists
+  if (!window.imagesTableSortState) {
+    window.imagesTableSortState = { column: 'impressions', direction: 'desc' };
+  }
   
   headers.forEach(header => {
+    // Show current sort state visually
+    const sortKey = header.getAttribute('data-sort');
+    if (window.imagesTableSortState.column === sortKey) {
+      header.classList.add(window.imagesTableSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+    
     header.addEventListener('click', function() {
       const sortKey = this.getAttribute('data-sort');
       
-      if (currentSort.column === sortKey) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      // Toggle direction if same column, otherwise set default direction
+      if (window.imagesTableSortState.column === sortKey) {
+        window.imagesTableSortState.direction = window.imagesTableSortState.direction === 'asc' ? 'desc' : 'asc';
       } else {
-        currentSort.column = sortKey;
-        currentSort.direction = sortKey === 'position' ? 'asc' : 'desc';
+        window.imagesTableSortState.column = sortKey;
+        // Default to desc for metrics, asc for position
+        window.imagesTableSortState.direction = sortKey === 'position' ? 'asc' : 'desc';
       }
       
+      // Remove all sort indicators
       headers.forEach(h => {
         h.classList.remove('sorted-asc', 'sorted-desc');
       });
       
-      this.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      // Add current sort indicator
+      this.classList.add(window.imagesTableSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
+      // Perform the sort
       const sortedImages = [...imagesData].sort((a, b) => {
         let aVal, bVal;
         
         switch(sortKey) {
           case 'position':
-            const aMetrics = processedMetrics.get(a.title);
-            const bMetrics = processedMetrics.get(b.title);
-            aVal = aMetrics?.avgPosition || 999;
-            bVal = bMetrics?.avgPosition || 999;
+            const aPos = processedMetrics.get(a.title);
+            const bPos = processedMetrics.get(b.title);
+            aVal = aPos?.avgPosition ?? 999;
+            bVal = bPos?.avgPosition ?? 999;
             break;
+            
           case 'share':
             const aShare = processedMetrics.get(a.title);
             const bShare = processedMetrics.get(b.title);
-            aVal = aShare?.avgVisibility || 0;
-            bVal = bShare?.avgVisibility || 0;
+            aVal = aShare?.avgVisibility ?? 0;
+            bVal = bShare?.avgVisibility ?? 0;
             break;
+            
           case 'roas':
-            aVal = roasData.get(a.title) || 0;
-            bVal = roasData.get(b.title) || 0;
+            aVal = roasData.get(a.title) ?? 0;
+            bVal = roasData.get(b.title) ?? 0;
             break;
+            
           case 'title':
-            aVal = a.title.toLowerCase();
-            bVal = b.title.toLowerCase();
+            aVal = (a.title || '').toLowerCase();
+            bVal = (b.title || '').toLowerCase();
             break;
+            
           case 'images':
             // Sort by number of images in history
-            aVal = a.thumbnailHistory?.length || 0;
-            bVal = b.thumbnailHistory?.length || 0;
+            aVal = a.thumbnailHistory?.length ?? 0;
+            bVal = b.thumbnailHistory?.length ?? 0;
             break;
+            
           case 'impressions':
             const aPerfImpr = performanceMetrics.get(a.title);
             const bPerfImpr = performanceMetrics.get(b.title);
-            aVal = aPerfImpr?.impressions || 0;
-            bVal = bPerfImpr?.impressions || 0;
+            aVal = aPerfImpr?.impressions ?? 0;
+            bVal = bPerfImpr?.impressions ?? 0;
             break;
+            
           case 'clicks':
             const aPerfClicks = performanceMetrics.get(a.title);
             const bPerfClicks = performanceMetrics.get(b.title);
-            aVal = aPerfClicks?.clicks || 0;
-            bVal = bPerfClicks?.clicks || 0;
+            aVal = aPerfClicks?.clicks ?? 0;
+            bVal = bPerfClicks?.clicks ?? 0;
             break;
+            
           case 'ctr':
             const aPerfCtr = performanceMetrics.get(a.title);
             const bPerfCtr = performanceMetrics.get(b.title);
-            aVal = aPerfCtr?.ctr || 0;
-            bVal = bPerfCtr?.ctr || 0;
+            aVal = aPerfCtr?.ctr ?? 0;
+            bVal = bPerfCtr?.ctr ?? 0;
             break;
+            
           case 'cost':
             const aPerfCost = performanceMetrics.get(a.title);
             const bPerfCost = performanceMetrics.get(b.title);
-            aVal = aPerfCost?.cost || 0;
-            bVal = bPerfCost?.cost || 0;
+            aVal = aPerfCost?.cost ?? 0;
+            bVal = bPerfCost?.cost ?? 0;
             break;
+            
           case 'revenue':
             const aPerfRev = performanceMetrics.get(a.title);
             const bPerfRev = performanceMetrics.get(b.title);
-            aVal = aPerfRev?.convValue || 0;
-            bVal = bPerfRev?.convValue || 0;
+            aVal = aPerfRev?.convValue ?? 0;
+            bVal = bPerfRev?.convValue ?? 0;
             break;
+            
           default:
             aVal = 0;
             bVal = 0;
         }
         
-        if (currentSort.direction === 'asc') {
-          return aVal > bVal ? 1 : -1;
+        // Handle null/undefined values consistently
+        if (aVal === null || aVal === undefined) aVal = 0;
+        if (bVal === null || bVal === undefined) bVal = 0;
+        
+        // Sort logic
+        if (window.imagesTableSortState.direction === 'asc') {
+          if (aVal < bVal) return -1;
+          if (aVal > bVal) return 1;
+          return 0;
         } else {
-          return aVal < bVal ? 1 : -1;
+          if (aVal < bVal) return 1;
+          if (aVal > bVal) return -1;
+          return 0;
         }
       });
       
+      // Clear and re-render
       const container = table.closest('.images-studio-table-container');
       container.innerHTML = '';
       renderImagesProductsTable(container, sortedImages, performanceMetrics, processedMetrics, roasData);
