@@ -1375,7 +1375,11 @@ async function loadAndRenderProductStudioPanels() {
   const productsPanel = await createProductsPanel();
   mainContainer.appendChild(productsPanel);
   
+  // Add main container to DOM
   container.appendChild(mainContainer);
+  
+  // NOW initialize the products panel data after it's in the DOM
+  await initializeProductsPanelData();
   
   // Initially show companies panel, hide products panel
   showCompaniesPanel();
@@ -1468,8 +1472,7 @@ async function createCompaniesPanel() {
   return companiesPanel;
 }
 
-// Replace createProductsPanel function with:
-
+// Create Products Panel with real data
 async function createProductsPanel() {
   const productsPanel = document.createElement('div');
   productsPanel.id = 'titlesGlobalProductsPanel';
@@ -1547,7 +1550,16 @@ async function createProductsPanel() {
   tableContainer.className = 'product-studio-table-container';
   tableContainer.id = 'globalProductsTableContainer';
   
+  // IMPORTANT: Append table container to panel BEFORE trying to load data
   productsPanel.appendChild(tableContainer);
+  
+  // Return the panel so it can be added to DOM
+  return productsPanel;
+}
+
+// Initialize products panel data (call this after the panel is added to DOM)
+async function initializeProductsPanelData() {
+  const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
   
   // Load and render data with current company
   await loadProductDataForCompany(currentCompany);
@@ -1575,8 +1587,6 @@ async function createProductsPanel() {
       await loadProductDataForCompany(selectedCompany);
     });
   }
-  
-  return productsPanel;
 }
 
 // Update the loadProductDataForCompany function with more debugging:
@@ -1690,13 +1700,20 @@ function showCompaniesPanel() {
 }
 
 // Show Products Panel
-function showProductsPanel() {
+async function showProductsPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
   
   if (companiesPanel && productsPanel) {
     companiesPanel.style.display = 'none';
     productsPanel.style.display = 'flex';
+    
+    // Check if table is empty and reload if needed
+    const tableContainer = document.getElementById('globalProductsTableContainer');
+    if (tableContainer && !tableContainer.hasChildNodes()) {
+      const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
+      await loadProductDataForCompany(currentCompany);
+    }
   }
 }
 
