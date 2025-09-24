@@ -3228,7 +3228,7 @@ function initializeProductStudioFilter() {
   }
 }
 
-// Add filter tag
+// Add filter tag for products
 function addProductStudioFilterTag(filterText) {
   const tagsContainer = document.getElementById('productStudioFilterTags');
   if (!tagsContainer) return;
@@ -3248,24 +3248,33 @@ function addProductStudioFilterTag(filterText) {
   `;
   
   // Add remove handler
-  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function() {
+  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function(e) {
+    e.stopPropagation();
     tag.remove();
-    applyProductStudioFilters();
+    applyProductStudioFilters(); // Apply filters after removal
   });
   
   tagsContainer.appendChild(tag);
+  
+  // IMPORTANT: Apply filters immediately after adding the tag
+  applyProductStudioFilters();
 }
 
-// Replace the entire applyProductStudioFilters function:
+// Apply product filters
 function applyProductStudioFilters() {
   const tags = document.querySelectorAll('#productStudioFilterTags .product-studio-filter-tag');
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
-  if (!window.globalProductsData) return;
+  if (!window.globalProductsData) {
+    console.warn('[applyProductStudioFilters] No products data available');
+    return;
+  }
   
   const { evaluatedProducts, processedMetrics, roasData, currentCompany } = window.globalProductsData;
   
-  let filteredProducts = evaluatedProducts;
+  let filteredProducts = [...evaluatedProducts]; // Create a copy
+  
+  // Apply filters only if there are active filter tags
   if (filterTexts.length > 0) {
     filteredProducts = evaluatedProducts.filter(p => {
       const title = p.title.toLowerCase();
@@ -3273,17 +3282,22 @@ function applyProductStudioFilters() {
         title.includes(filterText.toLowerCase())
       );
     });
+    console.log(`[applyProductStudioFilters] Filtered to ${filteredProducts.length} products with filters:`, filterTexts);
+  } else {
+    console.log('[applyProductStudioFilters] No filters active, showing all products');
   }
   
   // Clear and re-render table with company filter
-  const container = document.getElementById('globalProductsTableContainer');
+  const container = document.getElementById('productStudioGlobalProductsTableContainer');
   if (container) {
     container.innerHTML = '';
     renderGlobalProductsTable(container, filteredProducts, processedMetrics, roasData, currentCompany);
+    
+    // Update averages
+    updateGlobalAverages(filteredProducts);
+  } else {
+    console.error('[applyProductStudioFilters] Container not found');
   }
-  
-  // Update averages
-  updateGlobalAverages(filteredProducts);
 }
 
 // Replace the entire addGlobalSortingFunctionality function:
@@ -3387,17 +3401,23 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
 function initializeCompaniesStudioFilter() {
   const filterInput = document.getElementById('companiesStudioFilterInput');
   if (filterInput) {
-    filterInput.addEventListener('keypress', function(e) {
+    // Remove any existing event listeners to prevent duplicates
+    const newFilterInput = filterInput.cloneNode(true);
+    filterInput.parentNode.replaceChild(newFilterInput, filterInput);
+    
+    newFilterInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         const filterText = e.target.value.trim();
         if (filterText.length > 0) {
           addCompaniesStudioFilterTag(filterText);
-          applyCompaniesStudioFilters();
-          e.target.value = '';
+          e.target.value = ''; // Clear input after adding filter
         }
       }
     });
+    console.log('[initializeCompaniesStudioFilter] Companies filter initialized');
+  } else {
+    console.warn('[initializeCompaniesStudioFilter] Filter input not found');
   }
 }
 
@@ -3421,12 +3441,16 @@ function addCompaniesStudioFilterTag(filterText) {
   `;
   
   // Add remove handler
-  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function() {
+  tag.querySelector('.product-studio-filter-tag-remove').addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent any parent click events
     tag.remove();
-    applyCompaniesStudioFilters();
+    applyCompaniesStudioFilters(); // Apply filters after removal
   });
   
   tagsContainer.appendChild(tag);
+  
+  // IMPORTANT: Apply filters immediately after adding the tag
+  applyCompaniesStudioFilters();
 }
 
 // Apply company filters
@@ -3434,9 +3458,14 @@ function applyCompaniesStudioFilters() {
   const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
-  if (!window.companiesTableData) return;
+  if (!window.companiesTableData) {
+    console.warn('[applyCompaniesStudioFilters] No companies data available');
+    return;
+  }
   
-  let filteredCompanies = window.companiesTableData;
+  let filteredCompanies = [...window.companiesTableData]; // Create a copy
+  
+  // Apply filters only if there are active filter tags
   if (filterTexts.length > 0) {
     filteredCompanies = window.companiesTableData.filter(company => {
       const companyName = company.source.toLowerCase();
@@ -3444,6 +3473,9 @@ function applyCompaniesStudioFilters() {
         companyName.includes(filterText.toLowerCase())
       );
     });
+    console.log(`[applyCompaniesStudioFilters] Filtered to ${filteredCompanies.length} companies with filters:`, filterTexts);
+  } else {
+    console.log('[applyCompaniesStudioFilters] No filters active, showing all companies');
   }
   
   // Clear and re-render table
@@ -3451,6 +3483,8 @@ function applyCompaniesStudioFilters() {
   if (container) {
     container.innerHTML = '';
     renderCompaniesTable(container, filteredCompanies);
+  } else {
+    console.error('[applyCompaniesStudioFilters] Container not found');
   }
 }
 
