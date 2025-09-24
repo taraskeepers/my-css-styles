@@ -1130,7 +1130,34 @@ function addProductStudioStyles() {
   min-width: 0;
   width: 100%;
 }
+/* Product Studio Companies Table Container - specific styling */
+#productStudioCompaniesTableContainer {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+}
 
+#productStudioCompaniesTableContainer .product-studio-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+/* Product Studio specific table containers */
+#productStudioCompaniesTableContainer,
+#productStudioGlobalProductsTableContainer,
+#productStudioRankMapTableContainer {
+  flex: 1;
+  overflow: auto;
+  background: #f5f7fa;
+}
+
+#productStudioCompaniesTableContainer .product-studio-wrapper,
+#productStudioGlobalProductsTableContainer .product-studio-wrapper,
+#productStudioRankMapTableContainer .product-studio-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1713,41 +1740,40 @@ async function loadAndRenderProductStudioPanels() {
   showCompaniesPanel();
 }
 
-// Create Companies Panel
 async function createCompaniesPanel() {
   const companiesPanel = document.createElement('div');
   companiesPanel.id = 'titlesCompaniesPanel';
   
-// Create header with consistent structure
-const header = document.createElement('div');
-header.className = 'product-studio-header';
-header.innerHTML = `
-  <div class="product-studio-header-left">
-    <h2 class="product-studio-header-title">
-      Companies Analysis
-      <span class="product-studio-version">v1.0.0 BETA</span>
-    </h2>
-    <div class="product-studio-selected-info">
-      Analyzing company performance across all metrics
+  // Create header with consistent structure
+  const header = document.createElement('div');
+  header.className = 'product-studio-header';
+  header.innerHTML = `
+    <div class="product-studio-header-left">
+      <h2 class="product-studio-header-title">
+        Companies Analysis
+        <span class="product-studio-version">v1.0.0 BETA</span>
+      </h2>
+      <div class="product-studio-selected-info">
+        Analyzing company performance across all metrics
+      </div>
     </div>
-  </div>
-  <div class="product-studio-companies-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
-    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Companies</span>
-      <span id="totalCompaniesCount" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+    <div class="product-studio-companies-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
+      <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Companies</span>
+        <span id="totalCompaniesCount" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+      </div>
+      <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Avg T-Score</span>
+        <span id="avgCompanyTScore" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+      </div>
     </div>
-    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Avg T-Score</span>
-      <span id="avgCompanyTScore" style="font-size: 18px; font-weight: 700; color: white;">-</span>
-    </div>
-  </div>
-`;
+  `;
   companiesPanel.appendChild(header);
   
-  // Create table container
+  // Create table container with new specific ID
   const tableContainer = document.createElement('div');
   tableContainer.className = 'product-studio-table-container';
-  tableContainer.id = 'companiesTableContainer';
+  tableContainer.id = 'productStudioCompaniesTableContainer'; // <- Updated ID
   
   // Load and render companies data
   const companiesData = await loadCompaniesData();
@@ -1762,7 +1788,8 @@ header.innerHTML = `
     `;
   }
   
-  companiesPanel.appendChild(tableContainer); 
+  companiesPanel.appendChild(tableContainer);
+  
   return companiesPanel;
 }
 
@@ -2142,7 +2169,7 @@ header.innerHTML = `
   // Create table container
   const tableContainer = document.createElement('div');
   tableContainer.className = 'product-studio-table-container';
-  tableContainer.id = 'globalProductsTableContainer';
+  tableContainer.id = 'productStudioGlobalProductsTableContainer';
   
   // IMPORTANT: Append table container to panel BEFORE trying to load data
   productsPanel.appendChild(tableContainer);
@@ -2189,7 +2216,7 @@ async function createRankMapProductsPanel() {
   // Create table container
   const tableContainer = document.createElement('div');
   tableContainer.className = 'product-studio-table-container';
-  tableContainer.id = 'rankMapTableContainer';
+  tableContainer.id = 'productStudioRankMapTableContainer';
   
   rankMapPanel.appendChild(tableContainer);
   
@@ -2476,7 +2503,7 @@ if (companySelect) {
 
 // Replace the entire loadProductDataForCompany function:
 async function loadProductDataForCompany(company) {
-  const tableContainer = document.getElementById('globalProductsTableContainer');
+  const tableContainer = document.getElementById('productStudioGlobalProductsTableContainer');
   if (!tableContainer) {
     console.error('[loadProductDataForCompany] Table container not found');
     return;
@@ -2618,7 +2645,7 @@ async function showProductsPanel() {
     rankMapPanel.style.display = 'none';
     
     // Check if table is empty and reload if needed
-    const tableContainer = document.getElementById('globalProductsTableContainer');
+    const tableContainer = document.getElementById('productStudioGlobalProductsTableContainer');
     if (tableContainer && !tableContainer.hasChildNodes()) {
       const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
       await loadProductDataForCompany(currentCompany);
@@ -2637,7 +2664,7 @@ async function showRankMapPanel() {
     productsPanel.style.display = 'none';
     rankMapPanel.style.display = 'flex';
     
-    const tableContainer = document.getElementById('rankMapTableContainer');
+    const tableContainer = document.getElementById('productStudioRankMapTableContainer');
     if (tableContainer) {
       // Show loading state
       tableContainer.innerHTML = `
