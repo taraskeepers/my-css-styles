@@ -46,7 +46,9 @@ function addProductStudioStyles() {
         gap: 20px;
         height: calc(100vh - 200px);
         width: 100%;
+        max-width: 1470px; /* Add max width */
         padding-top: 50px;
+        margin: 0 auto; /* Center the container */
       }
       
       /* Products panel for product studio */
@@ -843,13 +845,51 @@ function addProductStudioStyles() {
       .kos-h { background: #dcfce7; color: #15803d; }
       .kos-m { background: #fef3c7; color: #b45309; }
       .kos-l { background: #fee2e2; color: #991b1b; }
+
+      .product-studio-table th:nth-child(1),
+      .product-studio-table td:nth-child(1) { width: 50px; } /* POS */
+      
+      .product-studio-table th:nth-child(2),
+      .product-studio-table td:nth-child(2) { width: 60px; } /* SHARE */
+      
+      .product-studio-table th:nth-child(3),
+      .product-studio-table td:nth-child(3) { width: 55px; } /* ROAS */
+      
+      .product-studio-table th:nth-child(4),
+      .product-studio-table td:nth-child(4) { width: 60px; } /* IMAGE */
+      
+      .product-studio-table th:nth-child(5),
+      .product-studio-table td:nth-child(5) { 
+        max-width: 200px; 
+        width: 200px;
+
+      .product-studio-table th:nth-child(6),
+      .product-studio-table td:nth-child(6) { width: 60px; } /* T-SCORE */
+      
+      .product-studio-table th:nth-child(7),
+      .product-studio-table td:nth-child(7) { width: 50px; } /* KOS */
+      
+      .product-studio-table th:nth-child(8),
+      .product-studio-table td:nth-child(8) { width: 50px; } /* GOS */
+      
+      .product-studio-table th:nth-child(9),
+      .product-studio-table td:nth-child(9) { width: 50px; } /* SUGG */
+
+      .product-studio-table tbody tr {
+      border-bottom: 1px solid #f0f2f5;
+      transition: background 0.15s ease;
+      height: 60px;
+      cursor: pointer; /* Make it clear rows are clickable */
+      user-select: none;
+      
     `;
     document.head.appendChild(style);
   }
 }
 
-// Load data from product_titles_evaluated table (aggregated by unique title)
-async function loadProductTitlesEvaluated() {
+// Replace the loadProductTitlesEvaluated function with:
+
+async function loadProductTitlesEvaluated(companyFilter = null) {
   return new Promise((resolve, reject) => {
     console.log('[loadProductTitlesEvaluated] Starting to load evaluated titles...');
     
@@ -894,13 +934,13 @@ async function loadProductTitlesEvaluated() {
           return;
         }
         
-        // Filter by company source
-        const myCompany = (window.myCompany || '').toLowerCase();
+        // Filter by company source (use parameter or default to myCompany)
+        const companyToFilter = companyFilter || window.myCompany || '';
         const filteredData = result.data.filter(item => 
-          item.source && item.source.toLowerCase() === myCompany
+          item.source && item.source.toLowerCase() === companyToFilter.toLowerCase()
         );
         
-        console.log('[loadProductTitlesEvaluated] Filtered products for company:', myCompany, 'Count:', filteredData.length);
+        console.log('[loadProductTitlesEvaluated] Filtered products for company:', companyToFilter, 'Count:', filteredData.length);
         
         // Aggregate by unique title
         const titleMap = new Map();
@@ -914,7 +954,7 @@ async function loadProductTitlesEvaluated() {
               finalScores: [],
               kosValues: [],
               gosValues: [],
-              queries: [], // Store all queries with their KOS values
+              queries: [],
               suggestions: item.improvement_suggestions || [],
               scoreBreakdown: item.score_breakdown ? JSON.parse(item.score_breakdown) : {},
               matchedTerms: item.matched_terms ? JSON.parse(item.matched_terms) : {},
@@ -927,12 +967,10 @@ async function loadProductTitlesEvaluated() {
           
           const aggregated = titleMap.get(title);
           
-          // Add scores
           aggregated.finalScores.push(parseFloat(item.final_score || 0));
           aggregated.kosValues.push(parseFloat(item.kos || 0));
           aggregated.gosValues.push(parseFloat(item.gos || 0));
           
-          // Add query with its KOS
           if (item.q) {
             aggregated.queries.push({
               query: item.q,
@@ -940,19 +978,17 @@ async function loadProductTitlesEvaluated() {
             });
           }
           
-          // Update suggestions if longer list found
           if (item.improvement_suggestions && item.improvement_suggestions.length > aggregated.suggestions.length) {
             aggregated.suggestions = item.improvement_suggestions;
           }
         });
         
-        // Calculate averages and process data
         const processedData = Array.from(titleMap.values()).map(item => ({
           title: item.title,
           finalScore: item.finalScores.reduce((a, b) => a + b, 0) / item.finalScores.length,
-          kos: item.kosValues.reduce((a, b) => a + b, 0) / item.kosValues.length, // Average KOS
+          kos: item.kosValues.reduce((a, b) => a + b, 0) / item.kosValues.length,
           gos: item.gosValues.reduce((a, b) => a + b, 0) / item.gosValues.length,
-          queries: item.queries, // All queries with their KOS values
+          queries: item.queries,
           suggestions: item.suggestions,
           scoreBreakdown: item.scoreBreakdown,
           matchedTerms: item.matchedTerms,
@@ -975,6 +1011,168 @@ async function loadProductTitlesEvaluated() {
     
     request.onerror = function() {
       console.error('[loadProductTitlesEvaluated] Failed to open database:', request.error);
+      resolve([]);
+    };
+  });
+}
+
+// Add this function after loadProductTitlesEvaluated:
+
+// Load ROAS data from productPerformance table
+async function loadProductPerformanceData() {
+  return new Promise((resolve, reject) => {
+    console.log('[loadProductPerformanceData] Starting to load performance data...');
+    
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
+    
+    console.log('[loadProductPerformanceData] Looking for table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadProductPerformanceData] projectData object store not found');
+        db.close();
+        resolve(new Map());
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadProductPerformanceData] No data found');
+          db.close();
+          resolve(new Map());
+          return;
+        }
+        
+        const allRecords = Array.isArray(result.data) ? result.data : [];
+        const productMap = new Map();
+        
+        allRecords.forEach(record => {
+          if (record['Campaign Name'] !== 'all') {
+            return;
+          }
+          
+          const key = record['Product Title'] || 'Unknown Product';
+          
+          if (!productMap.has(key)) {
+            productMap.set(key, {
+              title: key,
+              cost: 0,
+              convValue: 0
+            });
+          }
+          
+          const product = productMap.get(key);
+          product.cost += parseFloat(record['Cost'] || 0);
+          product.convValue += parseFloat(record['Conversion Value'] || 0);
+        });
+        
+        // Calculate ROAS for each product
+        const roasMap = new Map();
+        for (const [title, data] of productMap) {
+          const roas = data.cost > 0 ? (data.convValue / data.cost) : 0;
+          roasMap.set(title, roas);
+        }
+        
+        console.log('[loadProductPerformanceData] Loaded ROAS for products:', roasMap.size);
+        db.close();
+        resolve(roasMap);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadProductPerformanceData] Error getting data:', getRequest.error);
+        db.close();
+        resolve(new Map());
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadProductPerformanceData] Failed to open database:', request.error);
+      resolve(new Map());
+    };
+  });
+}
+
+// Add this function to extract all companies from the data:
+
+async function getAllCompaniesFromData() {
+  return new Promise((resolve, reject) => {
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}product_titles_evaluated`;
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        db.close();
+        resolve([]);
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        // Get unique companies
+        const companies = new Set();
+        result.data.forEach(item => {
+          if (item.source) {
+            companies.add(item.source);
+          }
+        });
+        
+        const sortedCompanies = Array.from(companies).sort();
+        console.log('[getAllCompaniesFromData] Found companies:', sortedCompanies);
+        db.close();
+        resolve(sortedCompanies);
+      };
+      
+      getRequest.onerror = function() {
+        db.close();
+        resolve([]);
+      };
+    };
+    
+    request.onerror = function() {
       resolve([]);
     };
   });
@@ -1250,12 +1448,17 @@ async function createCompaniesPanel() {
   return companiesPanel;
 }
 
-// Create Products Panel with real data
+// Replace createProductsPanel function with:
+
 async function createProductsPanel() {
   const productsPanel = document.createElement('div');
   productsPanel.id = 'titlesGlobalProductsPanel';
   
-  // Create header with filter and averages
+  // Get all companies for dropdown
+  const allCompanies = await getAllCompaniesFromData();
+  const currentCompany = window.myCompany || allCompanies[0] || '';
+  
+  // Create header with filter, company dropdown and averages
   const header = document.createElement('div');
   header.className = 'product-studio-header';
   header.innerHTML = `
@@ -1277,7 +1480,16 @@ async function createProductsPanel() {
                autocomplete="off">
         <div class="product-studio-filter-tags" id="productStudioFilterTags"></div>
       </div>
-      <div class="product-studio-avg-scores">
+      <div class="product-studio-company-selector" style="margin-left: 20px;">
+        <select id="productStudioCompanySelect" class="product-studio-filter-input" style="width: 200px;">
+          ${allCompanies.map(company => 
+            `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>
+              ${company}
+            </option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="product-studio-avg-scores" style="margin-left: 30px;">
         <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
           <div style="display: flex; flex-direction: column; align-items: center;">
             <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
@@ -1317,41 +1529,71 @@ async function createProductsPanel() {
   
   productsPanel.appendChild(tableContainer);
   
-  // Load and render data
+  // Load and render data with current company
+  await loadProductDataForCompany(currentCompany);
+  
+  // Initialize filter
+  initializeProductStudioFilter();
+  
+  // Initialize company selector
+  const companySelect = document.getElementById('productStudioCompanySelect');
+  if (companySelect) {
+    companySelect.addEventListener('change', async function() {
+      const selectedCompany = this.value;
+      console.log('[ProductStudio] Switching to company:', selectedCompany);
+      
+      // Clear filters when switching companies
+      const tagsContainer = document.getElementById('productStudioFilterTags');
+      if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+      }
+      const filterInput = document.getElementById('productStudioFilterInput');
+      if (filterInput) {
+        filterInput.value = '';
+      }
+      
+      await loadProductDataForCompany(selectedCompany);
+    });
+  }
+  
+  return productsPanel;
+}
+
+// New function to load data for a specific company
+async function loadProductDataForCompany(company) {
+  const tableContainer = document.getElementById('globalProductsTableContainer');
+  if (!tableContainer) return;
+  
   try {
-    const evaluatedProducts = await loadProductTitlesEvaluated();
+    const evaluatedProducts = await loadProductTitlesEvaluated(company);
     
     if (evaluatedProducts.length > 0) {
       const productTitles = evaluatedProducts.map(p => p.title);
       const processedMetrics = await loadProcessedDataForProducts(productTitles);
+      const roasData = await loadProductPerformanceData();
       
       // Store data globally for filtering
-      window.globalProductsData = { evaluatedProducts, processedMetrics };
+      window.globalProductsData = { evaluatedProducts, processedMetrics, roasData };
       
-      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics);
+      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData);
       
       // Update averages
       updateGlobalAverages(evaluatedProducts);
-      
-      // Initialize filter
-      initializeProductStudioFilter();
     } else {
       tableContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
-          No product data found for ${window.myCompany || 'your company'}
+          No product data found for ${company}
         </div>
       `;
     }
   } catch (error) {
-    console.error('[createProductsPanel] Error loading data:', error);
+    console.error('[loadProductDataForCompany] Error loading data:', error);
     tableContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: #999;">
         Error loading product data. Please refresh and try again.
       </div>
     `;
   }
-  
-  return productsPanel;
 }
 
 // Initialize toggle functionality
@@ -1423,8 +1665,9 @@ function showProductsPanel() {
   }
 }
 
-// Render global products table
-async function renderGlobalProductsTable(container, products, processedMetrics) {
+// Replace renderGlobalProductsTable function with:
+
+async function renderGlobalProductsTable(container, products, processedMetrics, roasData = new Map()) {
   const matchedProducts = matchProductsWithGlobalData(products);
   
   const wrapper = document.createElement('div');
@@ -1437,36 +1680,36 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center sortable" data-sort="position" style="width: 70px;">
+    <th class="center sortable" data-sort="position" style="width: 50px;">
       Pos
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share" style="width: 80px;">
+    <th class="center sortable" data-sort="share" style="width: 60px;">
       Share
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas" style="width: 70px;">
+    <th class="center sortable" data-sort="roas" style="width: 55px;">
       ROAS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center" style="width: 70px;">Image</th>
-    <th class="sortable" data-sort="title" style="max-width: 300px; width: 300px;">
+    <th class="center" style="width: 60px;">Image</th>
+    <th class="sortable" data-sort="title" style="max-width: 200px; width: 200px;">
       Product Title
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="score" style="width: 75px;">
+    <th class="center sortable" data-sort="score" style="width: 60px;">
       T-Score
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="kos" style="width: 60px;">
+    <th class="center sortable" data-sort="kos" style="width: 50px;">
       KOS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="gos" style="width: 60px;">
+    <th class="center sortable" data-sort="gos" style="width: 50px;">
       GOS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="suggestions" style="width: 60px;">
+    <th class="center sortable" data-sort="suggestions" style="width: 50px;">
       Sugg
       <span class="product-studio-sort-icon">⇅</span>
     </th>
@@ -1488,6 +1731,10 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
     const marketShare = productProcessedMetrics?.avgVisibility || null;
     const trend = productProcessedMetrics?.trend || null;
     
+    // Get ROAS
+    const roas = roasData.get(product.title) || 0;
+    row.dataset.roas = roas; // Store for sorting
+    
     // Get matched product for image
     const matchedProduct = matchedProducts.get(product.title);
     const imageUrl = matchedProduct?.thumbnail || '';
@@ -1499,6 +1746,11 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
       else if (adPosition <= 8) posClass = 'mid';
       else if (adPosition <= 14) posClass = 'low';
     }
+    
+    // ROAS class
+    let roasClass = 'titles-roas-low';
+    if (roas >= 3) roasClass = 'titles-roas-high';
+    else if (roas >= 1.5) roasClass = 'titles-roas-medium';
     
     // Score classes
     const roundedScore = Math.round(product.finalScore);
@@ -1535,57 +1787,61 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
       </td>
       <td class="center">
         ${marketShare ? 
-          `<div class="product-studio-share-bar">
+          `<div class="product-studio-share-bar" style="width: 55px; height: 28px;">
             <div class="product-studio-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
-            <div class="product-studio-share-text">${marketShare.toFixed(1)}%</div>
+            <div class="product-studio-share-text" style="font-size: 10px;">${marketShare.toFixed(1)}%</div>
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
-        <span style="color: #adb5bd;">-</span>
+        ${roas > 0 ? 
+          `<span class="titles-roas-indicator ${roasClass}" style="padding: 3px 6px; font-size: 11px;">
+            ${roas.toFixed(2)}x
+          </span>` :
+          '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${imageUrl ? 
           `<div class="product-studio-img-container">
-            <img class="product-studio-img" src="${imageUrl}" alt="${product.title}" onerror="this.style.display='none'">
+            <img class="product-studio-img" src="${imageUrl}" alt="${product.title}" style="width: 45px; height: 45px;" onerror="this.style.display='none'">
             <img class="product-studio-img-zoom" src="${imageUrl}" alt="${product.title}">
           </div>` : 
-          '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
+          '<div style="width: 45px; height: 45px; background: #f0f2f5; border-radius: 6px; margin: 0 auto;"></div>'}
       </td>
       <td>
         <div class="product-studio-title-cell">
-          <div class="product-studio-title" style="max-width: 280px;">
+          <div class="product-studio-title" style="max-width: 190px; font-size: 12px;">
             ${product.title}
           </div>
         </div>
       </td>
       <td class="center">
         ${product.finalScore > 0 ? 
-          `<span class="product-studio-score-fraction ${tscoreClass}">
-            <span class="product-studio-score-value">${roundedScore}</span>
-            <span class="product-studio-score-max">/100</span>
+          `<span class="product-studio-score-fraction ${tscoreClass}" style="padding: 3px 6px;">
+            <span class="product-studio-score-value" style="font-size: 12px;">${roundedScore}</span>
+            <span class="product-studio-score-max" style="font-size: 9px;">/100</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${product.kos > 0 ? 
-          `<span class="product-studio-score-fraction ${kosClass}">
-            <span class="product-studio-score-value">${product.kos.toFixed(1)}</span>
-            <span class="product-studio-score-max">/20</span>
+          `<span class="product-studio-score-fraction ${kosClass}" style="padding: 3px 6px;">
+            <span class="product-studio-score-value" style="font-size: 12px;">${product.kos.toFixed(1)}</span>
+            <span class="product-studio-score-max" style="font-size: 9px;">/20</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${product.gos > 0 ? 
-          `<span class="product-studio-score-fraction ${gosClass}">
-            <span class="product-studio-score-value">${product.gos}</span>
-            <span class="product-studio-score-max">/80</span>
+          `<span class="product-studio-score-fraction ${gosClass}" style="padding: 3px 6px;">
+            <span class="product-studio-score-value" style="font-size: 12px;">${Math.round(product.gos)}</span>
+            <span class="product-studio-score-max" style="font-size: 9px;">/80</span>
           </span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
       <td class="center">
         ${suggestionsCount > 0 ? 
-          `<span class="product-studio-suggestions-count ${suggClass}" title="${suggestionsCount} improvement suggestions">${suggestionsCount}</span>` : 
+          `<span class="product-studio-suggestions-count ${suggClass}" style="font-size: 11px; padding: 3px 6px; min-width: 25px;" title="${suggestionsCount} improvement suggestions">${suggestionsCount}</span>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
     `;
@@ -1638,7 +1894,7 @@ async function renderGlobalProductsTable(container, products, processedMetrics) 
   });
   
   // Add sorting functionality
-  addGlobalSortingFunctionality(table, products, processedMetrics);
+  addGlobalSortingFunctionality(table, products, processedMetrics, roasData);
 }
 
 // Toggle expanded row for global products - MAKE IT GLOBAL
@@ -1904,14 +2160,15 @@ function addProductStudioFilterTag(filterText) {
   tagsContainer.appendChild(tag);
 }
 
-// Apply filters
+// Replace applyProductStudioFilters function:
+
 function applyProductStudioFilters() {
   const tags = document.querySelectorAll('#productStudioFilterTags .product-studio-filter-tag');
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
   if (!window.globalProductsData) return;
   
-  const { evaluatedProducts, processedMetrics } = window.globalProductsData;
+  const { evaluatedProducts, processedMetrics, roasData } = window.globalProductsData;
   
   let filteredProducts = evaluatedProducts;
   if (filterTexts.length > 0) {
@@ -1927,15 +2184,16 @@ function applyProductStudioFilters() {
   const container = document.getElementById('globalProductsTableContainer');
   if (container) {
     container.innerHTML = '';
-    renderGlobalProductsTable(container, filteredProducts, processedMetrics);
+    renderGlobalProductsTable(container, filteredProducts, processedMetrics, roasData);
   }
   
   // Update averages
   updateGlobalAverages(filteredProducts);
 }
 
-// Add sorting functionality for global products
-function addGlobalSortingFunctionality(table, products, processedMetrics) {
+// Replace addGlobalSortingFunctionality function:
+
+function addGlobalSortingFunctionality(table, products, processedMetrics, roasData = new Map()) {
   const headers = table.querySelectorAll('th.sortable');
   let currentSort = { column: 'score', direction: 'desc' };
   
@@ -1947,7 +2205,7 @@ function addGlobalSortingFunctionality(table, products, processedMetrics) {
         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
       } else {
         currentSort.column = sortKey;
-        currentSort.direction = 'desc';
+        currentSort.direction = sortKey === 'position' ? 'asc' : 'desc'; // Default asc for position
       }
       
       headers.forEach(h => {
@@ -1971,6 +2229,10 @@ function addGlobalSortingFunctionality(table, products, processedMetrics) {
             const bShare = processedMetrics.get(b.title);
             aVal = aShare?.avgVisibility || 0;
             bVal = bShare?.avgVisibility || 0;
+            break;
+          case 'roas':
+            aVal = roasData.get(a.title) || 0;
+            bVal = roasData.get(b.title) || 0;
             break;
           case 'score':
             aVal = a.finalScore || 0;
@@ -2006,7 +2268,7 @@ function addGlobalSortingFunctionality(table, products, processedMetrics) {
       
       const container = table.closest('.product-studio-table-container');
       container.innerHTML = '';
-      renderGlobalProductsTable(container, sortedProducts, processedMetrics);
+      renderGlobalProductsTable(container, sortedProducts, processedMetrics, roasData);
     });
   });
 }
