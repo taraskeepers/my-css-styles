@@ -1740,7 +1740,7 @@ function renderCompaniesTable(container, companies) {
   wrapper.className = 'product-studio-wrapper';
   
   const table = document.createElement('table');
-  table.className = 'companies-table';
+  table.className = 'product-studio-table'; // Use same class as products table
   
   // Create header
   const thead = document.createElement('thead');
@@ -1748,35 +1748,35 @@ function renderCompaniesTable(container, companies) {
   headerRow.innerHTML = `
     <th class="center sortable" data-sort="rank" style="width: 70px;">
       Rank
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="sortable" data-sort="company" style="min-width: 250px;">
+    <th class="sortable" data-sort="company" style="min-width: 300px;">
       Company Name
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="products" style="width: 80px;">
       Products
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="tscore" style="width: 100px;">
       Avg T-Score
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="kos" style="width: 80px;">
       Avg KOS
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="gos" style="width: 80px;">
       Avg GOS
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="length" style="width: 100px;">
       Avg Length
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
     <th class="center sortable" data-sort="words" style="width: 100px;">
       Avg Words
-      <span class="companies-sort-icon">⇅</span>
+      <span class="product-studio-sort-icon">⇅</span>
     </th>
   `;
   thead.appendChild(headerRow);
@@ -1814,10 +1814,10 @@ function renderCompaniesTable(container, companies) {
     
     row.innerHTML = `
       <td class="center">
-        <div class="company-rank-badge ${rankClass}">${index + 1}</div>
+        <div class="company-rank-badge ${rankClass}" style="font-size: 14px; width: 36px; height: 36px;">${index + 1}</div>
       </td>
       <td>
-        <div style="font-weight: 600; color: #333; font-size: 14px;">
+        <div style="font-weight: 600; color: #333; font-size: 13px;">
           ${company.source}
         </div>
       </td>
@@ -1827,21 +1827,21 @@ function renderCompaniesTable(container, companies) {
         </span>
       </td>
       <td class="center">
-        <span class="product-studio-score-fraction ${tscoreClass}">
-          <span class="product-studio-score-value">${roundedScore}</span>
-          <span class="product-studio-score-max">/100</span>
+        <span class="product-studio-score-fraction ${tscoreClass}" style="padding: 3px 6px;">
+          <span class="product-studio-score-value" style="font-size: 12px;">${roundedScore}</span>
+          <span class="product-studio-score-max" style="font-size: 9px;">/100</span>
         </span>
       </td>
       <td class="center">
-        <span class="product-studio-score-fraction ${kosClass}">
-          <span class="product-studio-score-value">${company.avgKos.toFixed(1)}</span>
-          <span class="product-studio-score-max">/20</span>
+        <span class="product-studio-score-fraction ${kosClass}" style="padding: 3px 6px;">
+          <span class="product-studio-score-value" style="font-size: 12px;">${company.avgKos.toFixed(1)}</span>
+          <span class="product-studio-score-max" style="font-size: 9px;">/20</span>
         </span>
       </td>
       <td class="center">
-        <span class="product-studio-score-fraction ${gosClass}">
-          <span class="product-studio-score-value">${Math.round(company.avgGos)}</span>
-          <span class="product-studio-score-max">/80</span>
+        <span class="product-studio-score-fraction ${gosClass}" style="padding: 3px 6px;">
+          <span class="product-studio-score-value" style="font-size: 12px;">${Math.round(company.avgGos)}</span>
+          <span class="product-studio-score-max" style="font-size: 9px;">/80</span>
         </span>
       </td>
       <td class="center">
@@ -1882,7 +1882,7 @@ function toggleCompanyRowExpansion(row) {
   const nextRow = row.nextElementSibling;
   const isExpanded = row.classList.contains('expanded');
   
-  if (isExpanded && nextRow && nextRow.classList.contains('companies-expanded-row')) {
+  if (isExpanded && nextRow && nextRow.classList.contains('product-studio-expanded-row')) {
     row.classList.remove('expanded');
     nextRow.remove();
     return;
@@ -1890,21 +1890,21 @@ function toggleCompanyRowExpansion(row) {
   
   const tbody = row.parentElement;
   tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
-  tbody.querySelectorAll('.companies-expanded-row').forEach(r => r.remove());
+  tbody.querySelectorAll('.product-studio-expanded-row').forEach(r => r.remove());
   
   row.classList.add('expanded');
   
   const companyData = JSON.parse(row.dataset.companyData);
   
   const expandedRow = document.createElement('tr');
-  expandedRow.className = 'companies-expanded-row';
+  expandedRow.className = 'product-studio-expanded-row';
   
   const expandedCell = document.createElement('td');
   expandedCell.colSpan = row.cells.length;
   
   // Build expanded content with GOS breakdown
   expandedCell.innerHTML = `
-    <div class="companies-expanded-content">
+    <div class="product-studio-expanded-content">
       <h3 style="margin: 0 0 20px 0; color: #333; font-size: 16px;">
         T-Score Distribution for ${companyData.source}
       </h3>
@@ -1954,13 +1954,13 @@ function addCompaniesSortingFunctionality(table, companies) {
         sortState.direction = sortKey === 'rank' ? 'asc' : 'desc';
       }
       
-      // Remove all sort indicators
-      headers.forEach(h => {
-        h.classList.remove('sorted-asc', 'sorted-desc');
-      });
-      
-      // Add current sort indicator
-      this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+// Remove all sort indicators
+headers.forEach(h => {
+  h.classList.remove('sorted-asc', 'sorted-desc');
+});
+
+// Add current sort indicator
+this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
       // Sort companies
       const sortedCompanies = [...companies].sort((a, b) => {
@@ -2040,7 +2040,7 @@ header.innerHTML = `
         Analyzing product performance across all search terms
       </div>
     </div>
-    <div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; flex: 1; margin-left: 30px;">
+<div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
       <div class="product-studio-title-filter" style="position: relative;">
         <input type="text" 
                class="product-studio-filter-input" 
@@ -2059,7 +2059,7 @@ header.innerHTML = `
         </select>
       </div>
     </div>
-    <div class="product-studio-avg-scores" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
+    <div class="product-studio-avg-scores">
         <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
           <div style="display: flex; flex-direction: column; align-items: center;">
             <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
