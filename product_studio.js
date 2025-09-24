@@ -2,6 +2,7 @@
 
 // Global variables for product studio
 window.productStudioInitialized = false;
+window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
 
 // Initialize Product Studio functionality
 async function initializeProductStudio() {
@@ -1577,26 +1578,29 @@ async function initializeProductsPanelData() {
   // Initialize filter
   initializeProductStudioFilter();
   
-  // Initialize company selector
-  const companySelect = document.getElementById('productStudioCompanySelect');
-  if (companySelect) {
-    companySelect.addEventListener('change', async function() {
-      const selectedCompany = this.value;
-      console.log('[ProductStudio] Switching to company:', selectedCompany);
-      
-      // Clear filters when switching companies
-      const tagsContainer = document.getElementById('productStudioFilterTags');
-      if (tagsContainer) {
-        tagsContainer.innerHTML = '';
-      }
-      const filterInput = document.getElementById('productStudioFilterInput');
-      if (filterInput) {
-        filterInput.value = '';
-      }
-      
-      await loadProductDataForCompany(selectedCompany);
-    });
-  }
+// In the initializeProductsPanelData function, update the company selector event listener:
+const companySelect = document.getElementById('productStudioCompanySelect');
+if (companySelect) {
+  companySelect.addEventListener('change', async function() {
+    const selectedCompany = this.value;
+    console.log('[ProductStudio] Switching to company:', selectedCompany);
+    
+    // Reset sort state when switching companies (optional)
+    window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
+    
+    // Clear filters when switching companies
+    const tagsContainer = document.getElementById('productStudioFilterTags');
+    if (tagsContainer) {
+      tagsContainer.innerHTML = '';
+    }
+    const filterInput = document.getElementById('productStudioFilterInput');
+    if (filterInput) {
+      filterInput.value = '';
+    }
+    
+    await loadProductDataForCompany(selectedCompany);
+  });
+}
 }
 
 // Replace the entire loadProductDataForCompany function:
@@ -2257,25 +2261,40 @@ function applyProductStudioFilters() {
 // Replace the entire addGlobalSortingFunctionality function:
 function addGlobalSortingFunctionality(table, products, processedMetrics, roasData = new Map(), companyFilter = null) {
   const headers = table.querySelectorAll('th.sortable');
-  let currentSort = { column: 'tscore', direction: 'desc' };
+  
+  // Use global sort state instead of local variable
+  if (!window.globalProductsSortState) {
+    window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
+  }
   
   headers.forEach(header => {
+    // Add visual indicator for current sort
+    const sortKey = header.getAttribute('data-sort');
+    if (window.globalProductsSortState.column === sortKey) {
+      header.classList.add(window.globalProductsSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+    
     header.addEventListener('click', function() {
       const sortKey = this.getAttribute('data-sort');
       
-      if (currentSort.column === sortKey) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      if (window.globalProductsSortState.column === sortKey) {
+        // Toggle direction if same column
+        window.globalProductsSortState.direction = window.globalProductsSortState.direction === 'asc' ? 'desc' : 'asc';
       } else {
-        currentSort.column = sortKey;
-        currentSort.direction = sortKey === 'position' ? 'asc' : 'desc'; // Default asc for position
+        // New column - set default direction
+        window.globalProductsSortState.column = sortKey;
+        window.globalProductsSortState.direction = sortKey === 'position' ? 'asc' : 'desc';
       }
       
+      // Remove all sort indicators
       headers.forEach(h => {
         h.classList.remove('sorted-asc', 'sorted-desc');
       });
       
-      this.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      // Add current sort indicator
+      this.classList.add(window.globalProductsSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
+      // Sort products
       const sortedProducts = [...products].sort((a, b) => {
         let aVal, bVal;
         
@@ -2296,7 +2315,7 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
             aVal = roasData.get(a.title) || 0;
             bVal = roasData.get(b.title) || 0;
             break;
-          case 'tscore':  // Changed from 'score' to 'tscore'
+          case 'tscore':
             aVal = a.finalScore || 0;
             bVal = b.finalScore || 0;
             break;
@@ -2321,7 +2340,7 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
             bVal = 0;
         }
         
-        if (currentSort.direction === 'asc') {
+        if (window.globalProductsSortState.direction === 'asc') {
           return aVal > bVal ? 1 : -1;
         } else {
           return aVal < bVal ? 1 : -1;
