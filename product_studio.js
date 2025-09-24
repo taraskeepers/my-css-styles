@@ -3274,23 +3274,12 @@ imagesData.forEach(imageProduct => {
   }
 });
 
-  const avgCtr = ctrCount > 0 ? totalCtr / ctrCount : 0;
-
-// Sort data by default sort state (CTR desc) before rendering
-const sortedImagesData = [...imagesData].sort((a, b) => {
-  const aPerfData = performanceMetrics.get(a.title) || {};
-  const bPerfData = performanceMetrics.get(b.title) || {};
-  const aVal = aPerfData.ctr || 0;
-  const bVal = bPerfData.ctr || 0;
-  
-  // Sort by CTR descending (highest first)
-  return bVal - aVal;
-});
+const avgCtr = ctrCount > 0 ? totalCtr / ctrCount : 0;
 
 // Create tbody
 const tbody = document.createElement('tbody');
 
-sortedImagesData.forEach((imageProduct, index) => {
+imagesData.forEach((imageProduct, index) => {
     const row = document.createElement('tr');
     row.dataset.productTitle = imageProduct.title;
     row.dataset.imageData = JSON.stringify(imageProduct);
@@ -3494,7 +3483,7 @@ last3Images.forEach((imgData, idx) => {
   });
   
 // Add sorting functionality
-addImagesSortingFunctionality(table, sortedImagesData, performanceMetrics, processedMetrics, roasData);
+addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData);
 }
 
 function addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData) {
@@ -3629,6 +3618,14 @@ if (!window.imagesTableSortState) {
       renderImagesProductsTable(container, sortedImages, performanceMetrics, processedMetrics, roasData);
     });
   });
+  // Trigger initial sort by CTR if it's the default
+  if (window.imagesTableSortState.column === 'ctr') {
+    const ctrHeader = Array.from(headers).find(h => h.getAttribute('data-sort') === 'ctr');
+    if (ctrHeader) {
+      // Trigger a click to perform the initial sort
+      setTimeout(() => ctrHeader.click(), 100);
+    }
+  }
 }
 
 // Load product performance data for images panel (from titles analyzer logic)
