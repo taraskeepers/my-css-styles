@@ -3134,7 +3134,7 @@ async function loadImagesDataForCompany(company) {
   const tableContainer = document.getElementById('imagesStudioGlobalProductsTableContainer');
   if (!tableContainer) return;
 
-  window.imagesTableSortState = { column: 'impressions', direction: 'desc' };
+  window.imagesTableSortState = { column: 'ctr', direction: 'desc' };
   
   try {
     // Show loading state
@@ -3262,6 +3262,18 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
       maxValues.revenue = Math.max(maxValues.revenue, perfData.convValue || 0);
     }
   });
+
+  // Calculate average CTR for styling
+let totalCtr = 0;
+let ctrCount = 0;
+imagesData.forEach(imageProduct => {
+  const perfData = performanceMetrics.get(imageProduct.title);
+  if (perfData && perfData.ctr > 0) {
+    totalCtr += perfData.ctr;
+    ctrCount++;
+  }
+});
+const avgCtr = ctrCount > 0 ? totalCtr / ctrCount : 0;
   
   // Create tbody
   const tbody = document.createElement('tbody');
@@ -3296,9 +3308,12 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
     if (roas >= 3) roasClass = 'titles-roas-high';
     else if (roas >= 1.5) roasClass = 'titles-roas-medium';
     
-// Process thumbnail history - get last 3 images (changed from 5)
+// Process thumbnail history - get last 3 images (changed from 5), skip template images
 const thumbnailHistory = imageProduct.thumbnailHistory || [];
-const last3Images = thumbnailHistory.slice(-3).reverse(); // Most recent first
+const filteredThumbnails = thumbnailHistory.filter(imgData => 
+  !imgData.thumbnail || !imgData.thumbnail.includes('b6dfc81930a4eb891fc2b15f1c0c9a44b5383197b5be39a028d7dc9af7dbf770.png')
+);
+const last3Images = filteredThumbnails.slice(-3).reverse(); // Most recent first
 
 // Build images HTML - Increased sizes for better visibility
 let imagesHTML = '<div style="display: flex; align-items: center; gap: 6px;">';
@@ -3383,7 +3398,13 @@ last3Images.forEach((imgData, idx) => {
           </span>
         </div>
       </td>
-      <td>${perfData.ctr ? perfData.ctr.toFixed(2) + '%' : '-'}</td>
+      <td>
+  ${perfData.ctr ? 
+    `<span style="font-size: 16px; font-weight: 700; color: ${perfData.ctr > avgCtr ? '#22c55e' : '#ef4444'};">
+      ${perfData.ctr.toFixed(2)}%
+    </span>` : 
+    '<span style="color: #adb5bd; font-size: 16px;">-</span>'}
+</td>
       <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.cost > 0 && perfData.cost ? 
@@ -3468,9 +3489,9 @@ function addImagesSortingFunctionality(table, imagesData, performanceMetrics, pr
   const headers = table.querySelectorAll('th.sortable');
   
   // Use a static sort state that persists
-  if (!window.imagesTableSortState) {
-    window.imagesTableSortState = { column: 'impressions', direction: 'desc' };
-  }
+if (!window.imagesTableSortState) {
+  window.imagesTableSortState = { column: 'ctr', direction: 'desc' };
+}
   
   headers.forEach(header => {
     // Show current sort state visually
