@@ -1655,6 +1655,85 @@ async function loadProductPerformanceData() {
   });
 }
 
+// Load images data from IDB
+async function loadImagesData(companyFilter = null) {
+  return new Promise((resolve, reject) => {
+    console.log('[loadImagesData] Starting to load images data...');
+    
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}images`;
+    
+    console.log('[loadImagesData] Looking for table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadImagesData] projectData object store not found');
+        db.close();
+        resolve([]);
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadImagesData] No data found for table:', tableName);
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        // Filter by company
+        const companyToFilter = companyFilter || window.myCompany || '';
+        const filteredData = result.data.filter(item => 
+          item.source && item.source.toLowerCase() === companyToFilter.toLowerCase()
+        );
+        
+        console.log('[loadImagesData] Filtered images for company:', companyToFilter, 'Count:', filteredData.length);
+        
+        // Process the data
+        const processedData = filteredData.map(item => ({
+          title: item.title || '',
+          source: item.source || '',
+          thumbnailHistory: item.thumbnail_history || []
+        }));
+        
+        db.close();
+        resolve(processedData);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadImagesData] Error getting data:', getRequest.error);
+        db.close();
+        resolve([]);
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadImagesData] Failed to open database:', request.error);
+      resolve([]);
+    };
+  });
+}
+
 // Add this function to extract all companies from the data:
 
 async function getAllCompaniesFromData() {
@@ -3058,7 +3137,6 @@ async function showImagesPanel() {
   }
 }
 
-// Load data for Images panel
 async function loadImagesDataForCompany(company) {
   const tableContainer = document.getElementById('imagesStudioGlobalProductsTableContainer');
   if (!tableContainer) return;
@@ -3072,23 +3150,36 @@ async function loadImagesDataForCompany(company) {
       </div>
     `;
     
-    // Load product data similar to products panel
-    const evaluatedProducts = await loadProductTitlesEvaluated(company);
-    const processedMetrics = await loadProcessedMetrics();
-    const roasData = await loadRoasData(company);
+    // Load all required data
+    const [imagesData, performanceMetrics, roasData] = await Promise.all([
+      loadImagesData(company),
+      loadProductPerformanceForImages(),
+      loadProductPerformanceData()
+    ]);
     
-    if (evaluatedProducts && evaluatedProducts.size > 0) {
+    if (imagesData.length > 0) {
+      const productTitles = imagesData.map(p => p.title);
+      
+      // Load processed data for POS and SHARE
+      const processedMetrics = await loadProcessedDataForProducts(productTitles, company);
+      
       // Store data globally for filtering
-      window.globalImagesData = { evaluatedProducts, processedMetrics, roasData, currentCompany: company };
+      window.globalImagesData = { 
+        imagesData, 
+        performanceMetrics,
+        processedMetrics, 
+        roasData, 
+        currentCompany: company 
+      };
       
       // Clear container before rendering
       tableContainer.innerHTML = '';
       
-      // Render table (you can customize this for image-specific display)
-      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData, company);
+      // Render images table
+      await renderImagesProductsTable(tableContainer, imagesData, performanceMetrics, processedMetrics, roasData);
       
       // Update averages for images panel
-      updateImagesGlobalAverages(evaluatedProducts);
+      updateImagesGlobalAverages(imagesData, performanceMetrics);
     } else {
       tableContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
@@ -3106,68 +3197,572 @@ async function loadImagesDataForCompany(company) {
   }
 }
 
-// Update averages for images panel
-function updateImagesGlobalAverages(evaluatedProducts) {
+async function renderImagesProductsTable(container, imagesData, performanceMetrics, processedMetrics, roasData) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'product-studio-wrapper';
+  
+  const table = document.createElement('table');
+  table.className = 'product-studio-table';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `
+    <th class="center sortable" data-sort="position" style="width: 70px;">
+      POS
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="share" style="width: 80px;">
+      SHARE
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="center sortable" data-sort="roas" style="width: 70px;">
+      ROAS
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="center" style="width: 280px;">IMAGES</th>
+    <th class="right sortable" data-sort="impressions" style="width: 100px;">
+      IMPR
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable" data-sort="clicks" style="width: 80px;">
+      CLICKS
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable" data-sort="ctr" style="width: 70px;">
+      CTR %
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable" data-sort="cost" style="width: 90px;">
+      COST
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="right sortable" data-sort="revenue" style="width: 100px;">
+      REVENUE
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+  `;
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Calculate max values for metric bars
+  const maxValues = {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    revenue: 0
+  };
+  
+  imagesData.forEach(imageProduct => {
+    const perfData = performanceMetrics.get(imageProduct.title);
+    if (perfData) {
+      maxValues.impressions = Math.max(maxValues.impressions, perfData.impressions || 0);
+      maxValues.clicks = Math.max(maxValues.clicks, perfData.clicks || 0);
+      maxValues.cost = Math.max(maxValues.cost, perfData.cost || 0);
+      maxValues.revenue = Math.max(maxValues.revenue, perfData.convValue || 0);
+    }
+  });
+  
+  // Create tbody
+  const tbody = document.createElement('tbody');
+  
+  imagesData.forEach((imageProduct, index) => {
+    const row = document.createElement('tr');
+    row.dataset.productTitle = imageProduct.title;
+    row.dataset.imageData = JSON.stringify(imageProduct);
+    
+    // Get processed metrics for POS and SHARE
+    const productProcessedMetrics = processedMetrics.get(imageProduct.title);
+    const adPosition = productProcessedMetrics?.avgPosition || null;
+    const marketShare = productProcessedMetrics?.avgVisibility || null;
+    const trend = productProcessedMetrics?.trend || null;
+    
+    // Get ROAS
+    const roas = roasData.get(imageProduct.title) || 0;
+    
+    // Get performance metrics
+    const perfData = performanceMetrics.get(imageProduct.title) || {};
+    
+    // Position badge class
+    let posClass = 'bottom';
+    if (adPosition) {
+      if (adPosition <= 3) posClass = 'top';
+      else if (adPosition <= 8) posClass = 'mid';
+      else if (adPosition <= 14) posClass = 'low';
+    }
+    
+    // ROAS class
+    let roasClass = 'titles-roas-low';
+    if (roas >= 3) roasClass = 'titles-roas-high';
+    else if (roas >= 1.5) roasClass = 'titles-roas-medium';
+    
+    // Process thumbnail history - get last 5 images
+    const thumbnailHistory = imageProduct.thumbnailHistory || [];
+    const last5Images = thumbnailHistory.slice(-5).reverse(); // Most recent first
+    
+    // Build images HTML
+    let imagesHTML = '<div style="display: flex; align-items: center; gap: 4px;">';
+    last5Images.forEach((imgData, idx) => {
+      const size = idx === 0 ? 45 : 32; // Current image normal size, others 70%
+      const opacity = idx === 0 ? 1 : 0.7;
+      const border = idx === 0 ? '2px solid #667eea' : '1px solid #e9ecef';
+      
+      imagesHTML += `
+        <div class="product-studio-img-container" style="position: relative; display: inline-block;">
+          <img src="${imgData.thumbnail}" 
+               alt="${imageProduct.title}"
+               style="width: ${size}px; height: ${size}px; object-fit: contain; 
+                      border-radius: 6px; border: ${border}; background: #f8f9fa;
+                      opacity: ${opacity};"
+               onerror="this.style.display='none'">
+          <img class="product-studio-img-zoom" src="${imgData.thumbnail}" 
+               alt="${imageProduct.title}"
+               style="position: fixed; width: 300px; height: 300px; opacity: 0;">
+        </div>
+      `;
+    });
+    imagesHTML += '</div>';
+    
+    row.innerHTML = `
+      <td class="center">
+        ${adPosition !== null ? 
+          `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div class="product-studio-position-indicator ${posClass}">${adPosition}</div>
+            ${trend ? 
+              `<div style="font-size: 9px; color: ${trend.color}; font-weight: 600; 
+                     background: ${trend.isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; 
+                     padding: 1px 4px; border-radius: 4px;">${trend.text}</div>` : 
+              ''}
+          </div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        ${marketShare ? 
+          `<div class="product-studio-share-bar" style="width: 60px; height: 32px;">
+            <div class="product-studio-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
+            <div class="product-studio-share-text" style="font-size: 11px;">${marketShare.toFixed(1)}%</div>
+          </div>` : 
+          '<span style="color: #adb5bd;">-</span>'}
+      </td>
+      <td class="center">
+        <span class="titles-roas-indicator ${roasClass}">
+          ${roas.toFixed(2)}x
+        </span>
+      </td>
+      <td class="center">
+        ${imagesHTML}
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
+          ${maxValues.impressions > 0 && perfData.impressions ? 
+            `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                  height: 24px; width: ${(perfData.impressions / maxValues.impressions * 100)}%; 
+                  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                  border-radius: 4px; z-index: 0;"></div>` : ''}
+          <span class="titles-metric-value" style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
+            ${perfData.impressions ? perfData.impressions.toLocaleString() : '-'}
+          </span>
+        </div>
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
+          ${maxValues.clicks > 0 && perfData.clicks ? 
+            `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                  height: 24px; width: ${(perfData.clicks / maxValues.clicks * 100)}%; 
+                  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                  border-radius: 4px; z-index: 0;"></div>` : ''}
+          <span class="titles-metric-value" style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
+            ${perfData.clicks ? perfData.clicks.toLocaleString() : '-'}
+          </span>
+        </div>
+      </td>
+      <td class="right">${perfData.ctr ? perfData.ctr.toFixed(2) + '%' : '-'}</td>
+      <td class="right">
+        <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
+          ${maxValues.cost > 0 && perfData.cost ? 
+            `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                  height: 24px; width: ${(perfData.cost / maxValues.cost * 100)}%; 
+                  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                  border-radius: 4px; z-index: 0;"></div>` : ''}
+          <span class="titles-metric-value" style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
+            ${perfData.cost ? '$' + perfData.cost.toFixed(2) : '-'}
+          </span>
+        </div>
+      </td>
+      <td class="right">
+        <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
+          ${maxValues.revenue > 0 && perfData.convValue ? 
+            `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                  height: 24px; width: ${(perfData.convValue / maxValues.revenue * 100)}%; 
+                  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                  border-radius: 4px; z-index: 0;"></div>` : ''}
+          <span class="titles-metric-value" style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
+            ${perfData.convValue ? '$' + perfData.convValue.toFixed(2) : '-'}
+          </span>
+        </div>
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+  
+  // Add hover positioning for image zoom
+  wrapper.querySelectorAll('.product-studio-img-container').forEach(container => {
+    const img = container.querySelector('.product-studio-img-zoom');
+    if (img) {
+      container.addEventListener('mouseenter', function(e) {
+        const rect = this.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let left = rect.right + 10;
+        let top = rect.top - 100;
+        
+        if (left + 300 > viewportWidth) {
+          left = rect.left - 310;
+        }
+        
+        if (top < 10) {
+          top = 10;
+        }
+        
+        if (top + 300 > viewportHeight - 10) {
+          top = viewportHeight - 310;
+        }
+        
+        img.style.left = `${left}px`;
+        img.style.top = `${top}px`;
+        img.style.opacity = '1';
+        img.style.pointerEvents = 'none';
+        img.style.zIndex = '10000';
+        img.style.borderRadius = '12px';
+        img.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)';
+        img.style.border = '2px solid #667eea';
+        img.style.background = 'white';
+        img.style.objectFit = 'contain';
+        img.style.transition = 'opacity 0.2s ease-in-out';
+      });
+      
+      container.addEventListener('mouseleave', function() {
+        img.style.opacity = '0';
+      });
+    }
+  });
+  
+  // Add sorting functionality
+  addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData);
+}
+
+function addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData) {
+  const headers = table.querySelectorAll('th.sortable');
+  let currentSort = { column: 'impressions', direction: 'desc' };
+  
+  headers.forEach(header => {
+    header.addEventListener('click', function() {
+      const sortKey = this.getAttribute('data-sort');
+      
+      if (currentSort.column === sortKey) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = sortKey;
+        currentSort.direction = 'desc';
+      }
+      
+      headers.forEach(h => {
+        h.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      
+      this.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      
+      const sortedImages = [...imagesData].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(sortKey) {
+          case 'position':
+            const aMetrics = processedMetrics.get(a.title);
+            const bMetrics = processedMetrics.get(b.title);
+            aVal = aMetrics?.avgPosition || 999;
+            bVal = bMetrics?.avgPosition || 999;
+            break;
+          case 'share':
+            const aShare = processedMetrics.get(a.title);
+            const bShare = processedMetrics.get(b.title);
+            aVal = aShare?.avgVisibility || 0;
+            bVal = bShare?.avgVisibility || 0;
+            break;
+          case 'roas':
+            aVal = roasData.get(a.title) || 0;
+            bVal = roasData.get(b.title) || 0;
+            break;
+          case 'impressions':
+            const aPerfImpr = performanceMetrics.get(a.title);
+            const bPerfImpr = performanceMetrics.get(b.title);
+            aVal = aPerfImpr?.impressions || 0;
+            bVal = bPerfImpr?.impressions || 0;
+            break;
+          case 'clicks':
+            const aPerfClicks = performanceMetrics.get(a.title);
+            const bPerfClicks = performanceMetrics.get(b.title);
+            aVal = aPerfClicks?.clicks || 0;
+            bVal = bPerfClicks?.clicks || 0;
+            break;
+          case 'ctr':
+            const aPerfCtr = performanceMetrics.get(a.title);
+            const bPerfCtr = performanceMetrics.get(b.title);
+            aVal = aPerfCtr?.ctr || 0;
+            bVal = bPerfCtr?.ctr || 0;
+            break;
+          case 'cost':
+            const aPerfCost = performanceMetrics.get(a.title);
+            const bPerfCost = performanceMetrics.get(b.title);
+            aVal = aPerfCost?.cost || 0;
+            bVal = bPerfCost?.cost || 0;
+            break;
+          case 'revenue':
+            const aPerfRev = performanceMetrics.get(a.title);
+            const bPerfRev = performanceMetrics.get(b.title);
+            aVal = aPerfRev?.convValue || 0;
+            bVal = bPerfRev?.convValue || 0;
+            break;
+          default:
+            aVal = 0;
+            bVal = 0;
+        }
+        
+        if (currentSort.direction === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+      
+      const container = table.closest('.images-studio-table-container');
+      container.innerHTML = '';
+      renderImagesProductsTable(container, sortedImages, performanceMetrics, processedMetrics, roasData);
+    });
+  });
+}
+
+// Load product performance data for images panel (from titles analyzer logic)
+async function loadProductPerformanceForImages() {
+  return new Promise((resolve, reject) => {
+    console.log('[loadProductPerformanceForImages] Starting to load performance data...');
+    
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
+    
+    console.log('[loadProductPerformanceForImages] Looking for table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadProductPerformanceForImages] projectData object store not found');
+        db.close();
+        resolve(new Map());
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadProductPerformanceForImages] No data found');
+          db.close();
+          resolve(new Map());
+          return;
+        }
+        
+        const allRecords = Array.isArray(result.data) ? result.data : [];
+        const productMap = new Map();
+        
+        allRecords.forEach(record => {
+          // Skip records that don't have "all" as campaign name
+          if (record['Campaign Name'] !== 'all') {
+            return;
+          }
+          
+          const key = record['Product Title'] || 'Unknown Product';
+          
+          if (!productMap.has(key)) {
+            productMap.set(key, {
+              title: key,
+              impressions: 0,
+              clicks: 0,
+              cost: 0,
+              conversions: 0,
+              convValue: 0,
+              weightedPositionSum: 0,
+              positionImpressions: 0
+            });
+          }
+          
+          const product = productMap.get(key);
+          
+          // Parse and aggregate metrics
+          const impressions = parseFloat(record['Impressions'] || 0);
+          const clicks = parseFloat(record['Clicks'] || 0);
+          const cost = parseFloat(record['Cost'] || 0);
+          const conversions = parseFloat(record['Conversions'] || 0);
+          const convValue = parseFloat(record['Conversion Value'] || 0);
+          const avgPosition = parseFloat(record['Average Position'] || 0);
+          
+          product.impressions += impressions;
+          product.clicks += clicks;
+          product.cost += cost;
+          product.conversions += conversions;
+          product.convValue += convValue;
+          
+          // Calculate weighted average position
+          if (avgPosition > 0 && impressions > 0) {
+            product.weightedPositionSum += avgPosition * impressions;
+            product.positionImpressions += impressions;
+          }
+        });
+        
+        // Convert map to final metrics map with calculations
+        const metricsMap = new Map();
+        
+        for (const [title, data] of productMap) {
+          const metrics = {
+            impressions: data.impressions,
+            clicks: data.clicks,
+            cost: data.cost,
+            conversions: data.conversions,
+            convValue: data.convValue,
+            ctr: data.impressions > 0 ? (data.clicks / data.impressions * 100) : 0,
+            avgCpc: data.clicks > 0 ? (data.cost / data.clicks) : 0,
+            cpa: data.conversions > 0 ? (data.cost / data.conversions) : 0,
+            cvr: data.clicks > 0 ? (data.conversions / data.clicks * 100) : 0,
+            aov: data.conversions > 0 ? (data.convValue / data.conversions) : 0,
+            roas: data.cost > 0 ? (data.convValue / data.cost) : 0,
+            avgPosition: data.positionImpressions > 0 ? 
+              (data.weightedPositionSum / data.positionImpressions) : 0
+          };
+          
+          metricsMap.set(title, metrics);
+        }
+        
+        console.log('[loadProductPerformanceForImages] Loaded metrics for products:', metricsMap.size);
+        db.close();
+        resolve(metricsMap);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadProductPerformanceForImages] Error getting data:', getRequest.error);
+        db.close();
+        resolve(new Map());
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadProductPerformanceForImages] Failed to open database:', request.error);
+      resolve(new Map());
+    };
+  });
+}
+
+function updateImagesGlobalAverages(imagesData, performanceMetrics) {
   setTimeout(() => {
     const avgTScoreEl = document.getElementById('imagesGlobalAvgTScore');
     const avgKOSEl = document.getElementById('imagesGlobalAvgKOS');
     const avgGOSEl = document.getElementById('imagesGlobalAvgGOS');
     
-    if (!evaluatedProducts || evaluatedProducts.size === 0) {
+    if (!imagesData || imagesData.length === 0) {
       if (avgTScoreEl) avgTScoreEl.textContent = '-';
       if (avgKOSEl) avgKOSEl.textContent = '-';
       if (avgGOSEl) avgGOSEl.textContent = '-';
       return;
     }
     
-    let totalTScore = 0, totalKOS = 0, totalGOS = 0;
+    // Calculate metrics
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let productsWithChanges = 0;
+    let totalChanges = 0;
     let count = 0;
     
-    evaluatedProducts.forEach(product => {
-      if (product.tscore !== undefined) {
-        totalTScore += parseFloat(product.tscore) || 0;
-        totalKOS += parseFloat(product.kos) || 0;
-        totalGOS += parseFloat(product.gos) || 0;
+    imagesData.forEach(imageProduct => {
+      const perfData = performanceMetrics.get(imageProduct.title);
+      if (perfData) {
+        totalImpressions += perfData.impressions || 0;
+        totalClicks += perfData.clicks || 0;
+        totalRevenue += perfData.convValue || 0;
+        totalCost += perfData.cost || 0;
         count++;
+      }
+      
+      // Count image changes
+      if (imageProduct.thumbnailHistory && imageProduct.thumbnailHistory.length > 1) {
+        productsWithChanges++;
+        totalChanges += (imageProduct.thumbnailHistory.length - 1);
       }
     });
     
-    const avgTScoreValue = count > 0 ? (totalTScore / count) : 0;
-    const avgKOSValue = count > 0 ? (totalKOS / count) : 0;
-    const avgGOSValue = count > 0 ? (totalGOS / count) : 0;
+    // Calculate averages
+    const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0;
+    const avgROAS = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+    const changeRate = imagesData.length > 0 ? (productsWithChanges / imagesData.length * 100) : 0;
     
+    // Update Average CTR (instead of T-Score)
     if (avgTScoreEl) {
-      avgTScoreEl.textContent = count > 0 ? avgTScoreValue.toFixed(1) : '-';
+      avgTScoreEl.textContent = count > 0 ? avgCTR.toFixed(1) + '%' : '-';
       const container = document.getElementById('imagesGlobalAvgTScoreContainer');
       if (container && count > 0) {
         container.className = 'images-studio-avg-item';
-        if (avgTScoreValue > 40) container.classList.add('tscore-excellent');
-        else if (avgTScoreValue >= 30) container.classList.add('tscore-good');
-        else if (avgTScoreValue >= 20) container.classList.add('tscore-fair');
+        // Use CTR thresholds for color coding
+        if (avgCTR > 5) container.classList.add('tscore-excellent');
+        else if (avgCTR >= 3) container.classList.add('tscore-good');
+        else if (avgCTR >= 1.5) container.classList.add('tscore-fair');
         else container.classList.add('tscore-poor');
       }
     }
     
+    // Update Image Changes (instead of KOS)
     if (avgKOSEl) {
-      avgKOSEl.textContent = count > 0 ? avgKOSValue.toFixed(1) : '-';
+      avgKOSEl.textContent = productsWithChanges > 0 ? productsWithChanges : '-';
       const container = document.getElementById('imagesGlobalAvgKOSContainer');
-      if (container && count > 0) {
+      if (container) {
         container.className = 'images-studio-avg-item';
-        if (avgKOSValue > 15) container.classList.add('kos-excellent');
-        else if (avgKOSValue >= 10) container.classList.add('kos-good');
-        else if (avgKOSValue > 5) container.classList.add('kos-fair');
+        // Use change count thresholds for color coding
+        if (productsWithChanges > 20) container.classList.add('kos-excellent');
+        else if (productsWithChanges >= 10) container.classList.add('kos-good');
+        else if (productsWithChanges > 5) container.classList.add('kos-fair');
         else container.classList.add('kos-poor');
       }
     }
     
+    // Update Average ROAS (instead of GOS)
     if (avgGOSEl) {
-      avgGOSEl.textContent = count > 0 ? avgGOSValue : '-';
+      avgGOSEl.textContent = count > 0 ? avgROAS.toFixed(2) + 'x' : '-';
       const container = document.getElementById('imagesGlobalAvgGOSContainer');
       if (container && count > 0) {
         container.className = 'images-studio-avg-item';
-        if (avgGOSValue > 60) container.classList.add('gos-excellent');
-        else if (avgGOSValue >= 40) container.classList.add('gos-good');
-        else if (avgGOSValue >= 20) container.classList.add('gos-fair');
+        // Use ROAS thresholds for color coding
+        if (avgROAS > 3) container.classList.add('gos-excellent');
+        else if (avgROAS >= 2) container.classList.add('gos-good');
+        else if (avgROAS >= 1) container.classList.add('gos-fair');
         else container.classList.add('gos-poor');
       }
     }
