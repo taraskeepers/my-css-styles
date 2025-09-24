@@ -1757,6 +1757,7 @@ async function loadAndRenderProductStudioPanels() {
 }
 
 async function createCompaniesPanel() {
+  window.companiesOriginalData = null;
   const companiesPanel = document.createElement('div');
   companiesPanel.id = 'titlesCompaniesPanel';
   
@@ -1966,8 +1967,13 @@ companies.forEach((company, index) => {
   // Add sorting functionality
   addCompaniesSortingFunctionality(table, companies);
   
-  // Store data globally for filtering and sorting
-  window.companiesTableData = companies;
+// Store original full dataset separately (only if not already stored)
+if (!window.companiesOriginalData) {
+  window.companiesOriginalData = [...companies];
+}
+
+// Store current working dataset 
+window.companiesTableData = companies;
 
   // Initialize filter functionality
   setTimeout(() => {
@@ -2075,19 +2081,36 @@ function addCompaniesSortingFunctionality(table, companies) {
       // Add current sort indicator
       this.classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
       
-      // Sort companies
-      const sortedCompanies = [...companies].sort((a, b) => {
+      // Get current active filters
+      const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
+      const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+      
+      // Start with original data, apply filters, then sort
+      let workingData = [...window.companiesOriginalData];
+      
+      // Apply filters first
+      if (filterTexts.length > 0) {
+        workingData = window.companiesOriginalData.filter(company => {
+          const companyName = company.source.toLowerCase();
+          return filterTexts.every(filterText => 
+            companyName.includes(filterText.toLowerCase())
+          );
+        });
+      }
+      
+      // Then sort the filtered data
+      const sortedCompanies = [...workingData].sort((a, b) => {
         let aVal, bVal;
         
-switch(sortKey) {
-  case 'rank':
-    aVal = a.originalRank || 999;
-    bVal = b.originalRank || 999;
-    break;
-  case 'company':
-    aVal = a.source.toLowerCase();
-    bVal = b.source.toLowerCase();
-    break;
+        switch(sortKey) {
+          case 'rank':
+            aVal = a.originalRank || 999;
+            bVal = b.originalRank || 999;
+            break;
+          case 'company':
+            aVal = a.source.toLowerCase();
+            bVal = b.source.toLowerCase();
+            break;
           case 'products':
             aVal = a.totalProducts;
             bVal = b.totalProducts;
@@ -2124,26 +2147,12 @@ switch(sortKey) {
         }
       });
       
-      // Store sorted data globally
+      // Update working dataset
       window.companiesTableData = sortedCompanies;
-      
-      // Apply current filters to the sorted data
-      const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
-      const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
-      
-      let displayCompanies = sortedCompanies;
-      if (filterTexts.length > 0) {
-        displayCompanies = sortedCompanies.filter(company => {
-          const companyName = company.source.toLowerCase();
-          return filterTexts.every(filterText => 
-            companyName.includes(filterText.toLowerCase())
-          );
-        });
-      }
       
       const container = table.closest('.product-studio-table-container');
       container.innerHTML = '';
-      renderCompaniesTable(container, displayCompanies);
+      renderCompaniesTable(container, sortedCompanies);
     });
   });
 }
@@ -3458,16 +3467,17 @@ function applyCompaniesStudioFilters() {
   const tags = document.querySelectorAll('#companiesStudioFilterTags .product-studio-filter-tag');
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
-  if (!window.companiesTableData) {
-    console.warn('[applyCompaniesStudioFilters] No companies data available');
+  // Always work with the original full dataset
+  if (!window.companiesOriginalData) {
+    console.error('[applyCompaniesStudioFilters] No original companies data available');
     return;
   }
   
-  let filteredCompanies = [...window.companiesTableData]; // Create a copy
+  let filteredCompanies = [...window.companiesOriginalData]; // Start with original full data
   
   // Apply filters only if there are active filter tags
   if (filterTexts.length > 0) {
-    filteredCompanies = window.companiesTableData.filter(company => {
+    filteredCompanies = window.companiesOriginalData.filter(company => {
       const companyName = company.source.toLowerCase();
       return filterTexts.every(filterText => 
         companyName.includes(filterText.toLowerCase())
@@ -3477,6 +3487,9 @@ function applyCompaniesStudioFilters() {
   } else {
     console.log('[applyCompaniesStudioFilters] No filters active, showing all companies');
   }
+  
+  // Update the working dataset
+  window.companiesTableData = filteredCompanies;
   
   // Clear and re-render table
   const container = document.getElementById('productStudioCompaniesTableContainer');
