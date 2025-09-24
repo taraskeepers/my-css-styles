@@ -1198,9 +1198,13 @@ async function getAllCompaniesFromData() {
   });
 }
 
-// Load processed data for POS and SHARE (reuse from titles analyzer)
-async function loadProcessedDataForProducts(productTitles) {
+// Replace the entire loadProcessedDataForProducts function:
+async function loadProcessedDataForProducts(productTitles, companyFilter = null) {
   console.log('[loadProcessedDataForProducts] Loading processed data for titles:', productTitles.length);
+  
+  // Use passed company or fallback to window.myCompany
+  const companyToUse = companyFilter || window.myCompany || '';
+  console.log('[loadProcessedDataForProducts] Using company:', companyToUse);
   
   try {
     const tablePrefix = typeof window.getProjectTablePrefix === 'function' ? 
@@ -1238,7 +1242,8 @@ async function loadProcessedDataForProducts(productTitles) {
     const productMetrics = new Map();
     
     result.data.forEach(row => {
-      if (!row.source || row.source.toLowerCase() !== (window.myCompany || "").toLowerCase()) {
+      // Use the passed company filter
+      if (!row.source || row.source.toLowerCase() !== companyToUse.toLowerCase()) {
         return;
       }
       
@@ -1339,19 +1344,24 @@ function calculateAverageTrendForProducts(trends) {
   };
 }
 
-// Match products with company data for images
-function matchProductsWithGlobalData(products) {
+// Replace the entire matchProductsWithGlobalData function:
+function matchProductsWithGlobalData(products, companyFilter = null) {
   const matchedProducts = new Map();
+  
+  // Use passed company or fallback to window.myCompany
+  const companyToUse = companyFilter || window.myCompany || '';
+  console.log('[matchProductsWithGlobalData] Using company:', companyToUse);
   
   if (window.allRows && Array.isArray(window.allRows)) {
     window.allRows.forEach(product => {
-      if (product.source && product.source.toLowerCase() === (window.myCompany || "").toLowerCase()) {
+      if (product.source && product.source.toLowerCase() === companyToUse.toLowerCase()) {
         const productKey = product.title || '';
         matchedProducts.set(productKey, product);
       }
     });
   }
   
+  console.log('[matchProductsWithGlobalData] Matched products:', matchedProducts.size);
   return matchedProducts;
 }
 
@@ -1589,7 +1599,7 @@ async function initializeProductsPanelData() {
   }
 }
 
-// Update the loadProductDataForCompany function with more debugging:
+// Replace the entire loadProductDataForCompany function:
 async function loadProductDataForCompany(company) {
   const tableContainer = document.getElementById('globalProductsTableContainer');
   if (!tableContainer) {
@@ -1607,19 +1617,21 @@ async function loadProductDataForCompany(company) {
       const productTitles = evaluatedProducts.map(p => p.title);
       console.log('[loadProductDataForCompany] Product titles:', productTitles.length);
       
-      const processedMetrics = await loadProcessedDataForProducts(productTitles);
+      // Pass company to loadProcessedDataForProducts
+      const processedMetrics = await loadProcessedDataForProducts(productTitles, company);
       console.log('[loadProductDataForCompany] Processed metrics loaded:', processedMetrics.size);
       
       const roasData = await loadProductPerformanceData();
       console.log('[loadProductDataForCompany] ROAS data loaded:', roasData.size);
       
-      // Store data globally for filtering
-      window.globalProductsData = { evaluatedProducts, processedMetrics, roasData };
+      // Store data globally for filtering, including the company
+      window.globalProductsData = { evaluatedProducts, processedMetrics, roasData, currentCompany: company };
       
       // Clear container before rendering
       tableContainer.innerHTML = '';
       
-      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData);
+      // Pass company to renderGlobalProductsTable
+      await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData, company);
       
       // Update averages
       updateGlobalAverages(evaluatedProducts);
@@ -1717,10 +1729,10 @@ async function showProductsPanel() {
   }
 }
 
-// Replace renderGlobalProductsTable function with:
-
-async function renderGlobalProductsTable(container, products, processedMetrics, roasData = new Map()) {
-  const matchedProducts = matchProductsWithGlobalData(products);
+// Replace the entire renderGlobalProductsTable function:
+async function renderGlobalProductsTable(container, products, processedMetrics, roasData = new Map(), companyFilter = null) {
+  // Pass company to matchProductsWithGlobalData
+  const matchedProducts = matchProductsWithGlobalData(products, companyFilter);
   
   const wrapper = document.createElement('div');
   wrapper.className = 'product-studio-wrapper';
@@ -1749,7 +1761,7 @@ async function renderGlobalProductsTable(container, products, processedMetrics, 
       Product Title
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="score" style="width: 60px;">
+    <th class="center sortable" data-sort="tscore" style="width: 60px;">
       T-Score
       <span class="product-studio-sort-icon">⇅</span>
     </th>
@@ -1945,8 +1957,8 @@ async function renderGlobalProductsTable(container, products, processedMetrics, 
     }
   });
   
-  // Add sorting functionality
-  addGlobalSortingFunctionality(table, products, processedMetrics, roasData);
+  // Add sorting functionality - pass company filter
+  addGlobalSortingFunctionality(table, products, processedMetrics, roasData, companyFilter);
 }
 
 // Toggle expanded row for global products - MAKE IT GLOBAL
@@ -2212,15 +2224,14 @@ function addProductStudioFilterTag(filterText) {
   tagsContainer.appendChild(tag);
 }
 
-// Replace applyProductStudioFilters function:
-
+// Replace the entire applyProductStudioFilters function:
 function applyProductStudioFilters() {
   const tags = document.querySelectorAll('#productStudioFilterTags .product-studio-filter-tag');
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
   if (!window.globalProductsData) return;
   
-  const { evaluatedProducts, processedMetrics, roasData } = window.globalProductsData;
+  const { evaluatedProducts, processedMetrics, roasData, currentCompany } = window.globalProductsData;
   
   let filteredProducts = evaluatedProducts;
   if (filterTexts.length > 0) {
@@ -2232,22 +2243,21 @@ function applyProductStudioFilters() {
     });
   }
   
-  // Clear and re-render table
+  // Clear and re-render table with company filter
   const container = document.getElementById('globalProductsTableContainer');
   if (container) {
     container.innerHTML = '';
-    renderGlobalProductsTable(container, filteredProducts, processedMetrics, roasData);
+    renderGlobalProductsTable(container, filteredProducts, processedMetrics, roasData, currentCompany);
   }
   
   // Update averages
   updateGlobalAverages(filteredProducts);
 }
 
-// Replace addGlobalSortingFunctionality function:
-
-function addGlobalSortingFunctionality(table, products, processedMetrics, roasData = new Map()) {
+// Replace the entire addGlobalSortingFunctionality function:
+function addGlobalSortingFunctionality(table, products, processedMetrics, roasData = new Map(), companyFilter = null) {
   const headers = table.querySelectorAll('th.sortable');
-  let currentSort = { column: 'score', direction: 'desc' };
+  let currentSort = { column: 'tscore', direction: 'desc' };
   
   headers.forEach(header => {
     header.addEventListener('click', function() {
@@ -2286,7 +2296,7 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
             aVal = roasData.get(a.title) || 0;
             bVal = roasData.get(b.title) || 0;
             break;
-          case 'score':
+          case 'tscore':  // Changed from 'score' to 'tscore'
             aVal = a.finalScore || 0;
             bVal = b.finalScore || 0;
             break;
@@ -2320,7 +2330,8 @@ function addGlobalSortingFunctionality(table, products, processedMetrics, roasDa
       
       const container = table.closest('.product-studio-table-container');
       container.innerHTML = '';
-      renderGlobalProductsTable(container, sortedProducts, processedMetrics, roasData);
+      // Pass company filter when re-rendering
+      renderGlobalProductsTable(container, sortedProducts, processedMetrics, roasData, companyFilter);
     });
   });
 }
