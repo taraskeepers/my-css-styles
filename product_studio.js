@@ -62,6 +62,17 @@ function addProductStudioStyles() {
         flex-direction: column;
         overflow: hidden;
       }
+
+      /* Rank Map panel for product studio */
+#titlesRankMapProductsPanel {
+  flex: 1;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
       
       /* Header section */
       .product-studio-header {
@@ -1386,13 +1397,17 @@ async function loadAndRenderProductStudioPanels() {
   const productsPanel = await createProductsPanel();
   mainContainer.appendChild(productsPanel);
   
+  // Create Rank Map Panel  
+  const rankMapPanel = await createRankMapProductsPanel();
+  mainContainer.appendChild(rankMapPanel);
+  
   // Add main container to DOM
   container.appendChild(mainContainer);
   
   // NOW initialize the products panel data after it's in the DOM
   await initializeProductsPanelData();
   
-  // Initially show companies panel, hide products panel
+  // Initially show companies panel, hide others
   showCompaniesPanel();
 }
 
@@ -1568,6 +1583,60 @@ async function createProductsPanel() {
   return productsPanel;
 }
 
+// Create Rank Map Products Panel
+async function createRankMapProductsPanel() {
+  const rankMapPanel = document.createElement('div');
+  rankMapPanel.id = 'titlesRankMapProductsPanel';
+  
+  // Get all companies for dropdown
+  const allCompanies = await getAllCompaniesFromData();
+  const currentCompany = window.myCompany || allCompanies[0] || '';
+  
+  // Create header with filter, company dropdown and averages
+  const header = document.createElement('div');
+  header.className = 'product-studio-header';
+  header.innerHTML = `
+    <div class="product-studio-header-left">
+      <h2 class="product-studio-header-title">
+        Rank Map Analysis
+        <span class="product-studio-version">v1.0.0 BETA</span>
+      </h2>
+      <div class="product-studio-selected-info">
+        Analyzing product ranking positions across search terms
+      </div>
+    </div>
+    <div class="product-studio-filter-section">
+      <div class="product-studio-title-filter">
+        <input type="text" 
+               class="product-studio-filter-input" 
+               id="rankMapFilterInput" 
+               placeholder="🔍 Filter products by title... (Press Enter)" 
+               autocomplete="off">
+        <div class="product-studio-filter-tags" id="rankMapFilterTags"></div>
+      </div>
+      <div class="product-studio-company-selector" style="margin-left: 20px;">
+        <select id="rankMapCompanySelect" class="product-studio-filter-input" style="width: 200px;">
+          ${allCompanies.map(company => 
+            `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>${company}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>
+  `;
+  rankMapPanel.appendChild(header);
+  
+  // Create table container
+  const tableContainer = document.createElement('div');
+  tableContainer.className = 'product-studio-table-container';
+  tableContainer.id = 'rankMapTableContainer';
+  
+  // IMPORTANT: Append table container to panel BEFORE trying to load data
+  rankMapPanel.appendChild(tableContainer);
+  
+  // Return the panel so it can be added to DOM
+  return rankMapPanel;
+}
+
 // Initialize products panel data (call this after the panel is added to DOM)
 async function initializeProductsPanelData() {
   const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
@@ -1661,20 +1730,24 @@ async function loadProductDataForCompany(company) {
 function initializeProductStudioToggle() {
   const companiesBtn = document.getElementById('studioCompaniesMode');
   const productsBtn = document.getElementById('studioProductsMode');
+  const rankMapBtn = document.getElementById('studioRankMapMode');
   
   console.log('[initializeProductStudioToggle] Found buttons:', {
     companiesBtn: !!companiesBtn,
-    productsBtn: !!productsBtn
+    productsBtn: !!productsBtn,
+    rankMapBtn: !!rankMapBtn
   });
   
-  if (companiesBtn && productsBtn) {
-    // Remove any existing event listeners
+  if (companiesBtn && productsBtn && rankMapBtn) {
+    // Remove any existing event listeners by cloning elements
     companiesBtn.replaceWith(companiesBtn.cloneNode(true));
     productsBtn.replaceWith(productsBtn.cloneNode(true));
+    rankMapBtn.replaceWith(rankMapBtn.cloneNode(true));
     
     // Get the new elements after cloning
     const newCompaniesBtn = document.getElementById('studioCompaniesMode');
     const newProductsBtn = document.getElementById('studioProductsMode');
+    const newRankMapBtn = document.getElementById('studioRankMapMode');
     
     newCompaniesBtn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -1683,6 +1756,7 @@ function initializeProductStudioToggle() {
       
       newCompaniesBtn.classList.add('active');
       newProductsBtn.classList.remove('active');
+      newRankMapBtn.classList.remove('active');
       showCompaniesPanel();
       console.log('Companies mode selected in Product Studio');
     });
@@ -1694,8 +1768,21 @@ function initializeProductStudioToggle() {
       
       newProductsBtn.classList.add('active');
       newCompaniesBtn.classList.remove('active');
+      newRankMapBtn.classList.remove('active');
       showProductsPanel();
       console.log('Products mode selected in Product Studio');
+    });
+    
+    newRankMapBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[ProductStudio] Rank Map button clicked');
+      
+      newRankMapBtn.classList.add('active');
+      newCompaniesBtn.classList.remove('active');
+      newProductsBtn.classList.remove('active');
+      showRankMapPanel();
+      console.log('Rank Map mode selected in Product Studio');
     });
     
     console.log('[initializeProductStudioToggle] Event listeners attached successfully');
@@ -1729,6 +1816,31 @@ async function showProductsPanel() {
     if (tableContainer && !tableContainer.hasChildNodes()) {
       const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
       await loadProductDataForCompany(currentCompany);
+    }
+  }
+}
+
+// Show Rank Map Panel
+async function showRankMapPanel() {
+  const companiesPanel = document.getElementById('titlesCompaniesPanel');
+  const productsPanel = document.getElementById('titlesGlobalProductsPanel');
+  const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
+  
+  if (companiesPanel && productsPanel && rankMapPanel) {
+    companiesPanel.style.display = 'none';
+    productsPanel.style.display = 'none';
+    rankMapPanel.style.display = 'flex';
+    
+    // Check if table is empty and reload if needed
+    const tableContainer = document.getElementById('rankMapTableContainer');
+    if (tableContainer && !tableContainer.hasChildNodes()) {
+      // For now, we'll just show a placeholder - content development comes next
+      tableContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <h3>Rank Map Panel Ready</h3>
+          <p>Content will be developed in the next step</p>
+        </div>
+      `;
     }
   }
 }
