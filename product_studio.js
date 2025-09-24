@@ -2561,7 +2561,7 @@ async function createImagesGlobalProductsPanel() {
   const allCompanies = await getAllCompaniesFromData();
   const currentCompany = window.myCompany || allCompanies[0] || '';
   
-  // Create header with filter, company dropdown and averages
+  // Create header with filter, company dropdown (WITHOUT averages)
   const header = document.createElement('div');
   header.className = 'images-studio-header';
   header.innerHTML = `
@@ -2579,7 +2579,7 @@ async function createImagesGlobalProductsPanel() {
         <input type="text" 
                class="images-studio-filter-input" 
                id="imagesStudioFilterInput" 
-               placeholder="🔍 Filter products by image... (Press Enter)" 
+               placeholder="🔍 Filter products by title... (Press Enter)" 
                autocomplete="off">
         <div class="images-studio-filter-tags" id="imagesStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
       </div>
@@ -2589,26 +2589,6 @@ async function createImagesGlobalProductsPanel() {
             `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>${company}</option>`
           ).join('')}
         </select>
-      </div>
-    </div>
-    <div class="images-studio-avg-scores">
-      <div id="imagesGlobalAvgTScoreContainer" class="images-studio-avg-item tscore-excellent">
-        <div class="images-studio-avg-score-display">
-          <span id="imagesGlobalAvgTScore" class="images-studio-avg-value">-</span>
-          <span class="images-studio-avg-max">/50</span>
-        </div>
-      </div>
-      <div id="imagesGlobalAvgKOSContainer" class="images-studio-avg-item kos-excellent">
-        <div class="images-studio-avg-score-display">
-          <span id="imagesGlobalAvgKOS" class="images-studio-avg-value">-</span>
-          <span class="images-studio-avg-max">/30</span>
-        </div>
-      </div>
-      <div id="imagesGlobalAvgGOSContainer" class="images-studio-avg-item gos-excellent">
-        <div class="images-studio-avg-score-display">
-          <span id="imagesGlobalAvgGOS" class="images-studio-avg-value">-</span>
-          <span class="images-studio-avg-max">/80</span>
-        </div>
       </div>
     </div>
   `;
@@ -3178,8 +3158,6 @@ async function loadImagesDataForCompany(company) {
       // Render images table
       await renderImagesProductsTable(tableContainer, imagesData, performanceMetrics, processedMetrics, roasData);
       
-      // Update averages for images panel
-      updateImagesGlobalAverages(imagesData, performanceMetrics);
     } else {
       tableContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
@@ -3204,40 +3182,47 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
   const table = document.createElement('table');
   table.className = 'product-studio-table';
   
-  // Create header
+  // Create header - ALL columns sortable and left-aligned
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   headerRow.innerHTML = `
-    <th class="center sortable" data-sort="position" style="width: 70px;">
+    <th class="sortable" data-sort="position" style="width: 70px;">
       POS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="share" style="width: 80px;">
+    <th class="sortable" data-sort="share" style="width: 80px;">
       SHARE
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center sortable" data-sort="roas" style="width: 70px;">
+    <th class="sortable" data-sort="roas" style="width: 70px;">
       ROAS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="center" style="width: 280px;">IMAGES</th>
-    <th class="right sortable" data-sort="impressions" style="width: 100px;">
+    <th class="sortable" data-sort="images" style="width: 180px;">
+      IMAGES
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="sortable" data-sort="title" style="min-width: 250px;">
+      PRODUCT TITLE
+      <span class="product-studio-sort-icon">⇅</span>
+    </th>
+    <th class="sortable" data-sort="impressions" style="width: 100px;">
       IMPR
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="right sortable" data-sort="clicks" style="width: 80px;">
+    <th class="sortable" data-sort="clicks" style="width: 80px;">
       CLICKS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="right sortable" data-sort="ctr" style="width: 70px;">
+    <th class="sortable" data-sort="ctr" style="width: 70px;">
       CTR %
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="right sortable" data-sort="cost" style="width: 90px;">
+    <th class="sortable" data-sort="cost" style="width: 90px;">
       COST
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="right sortable" data-sort="revenue" style="width: 100px;">
+    <th class="sortable" data-sort="revenue" style="width: 100px;">
       REVENUE
       <span class="product-studio-sort-icon">⇅</span>
     </th>
@@ -3296,13 +3281,13 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
     if (roas >= 3) roasClass = 'titles-roas-high';
     else if (roas >= 1.5) roasClass = 'titles-roas-medium';
     
-    // Process thumbnail history - get last 5 images
+    // Process thumbnail history - get last 3 images (changed from 5)
     const thumbnailHistory = imageProduct.thumbnailHistory || [];
-    const last5Images = thumbnailHistory.slice(-5).reverse(); // Most recent first
+    const last3Images = thumbnailHistory.slice(-3).reverse(); // Most recent first
     
     // Build images HTML
     let imagesHTML = '<div style="display: flex; align-items: center; gap: 4px;">';
-    last5Images.forEach((imgData, idx) => {
+    last3Images.forEach((imgData, idx) => {
       const size = idx === 0 ? 45 : 32; // Current image normal size, others 70%
       const opacity = idx === 0 ? 1 : 0.7;
       const border = idx === 0 ? '2px solid #667eea' : '1px solid #e9ecef';
@@ -3324,7 +3309,7 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
     imagesHTML += '</div>';
     
     row.innerHTML = `
-      <td class="center">
+      <td>
         ${adPosition !== null ? 
           `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
             <div class="product-studio-position-indicator ${posClass}">${adPosition}</div>
@@ -3336,7 +3321,7 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
-      <td class="center">
+      <td>
         ${marketShare ? 
           `<div class="product-studio-share-bar" style="width: 60px; height: 32px;">
             <div class="product-studio-share-fill" style="width: ${Math.min(marketShare, 100)}%"></div>
@@ -3344,15 +3329,22 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
           </div>` : 
           '<span style="color: #adb5bd;">-</span>'}
       </td>
-      <td class="center">
+      <td>
         <span class="titles-roas-indicator ${roasClass}">
           ${roas.toFixed(2)}x
         </span>
       </td>
-      <td class="center">
+      <td>
         ${imagesHTML}
       </td>
-      <td class="right">
+      <td>
+        <div class="product-studio-title-cell">
+          <div class="product-studio-title" style="font-size: 12px;">
+            ${imageProduct.title}
+          </div>
+        </div>
+      </td>
+      <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.impressions > 0 && perfData.impressions ? 
             `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
@@ -3364,7 +3356,7 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
           </span>
         </div>
       </td>
-      <td class="right">
+      <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.clicks > 0 && perfData.clicks ? 
             `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
@@ -3376,8 +3368,8 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
           </span>
         </div>
       </td>
-      <td class="right">${perfData.ctr ? perfData.ctr.toFixed(2) + '%' : '-'}</td>
-      <td class="right">
+      <td>${perfData.ctr ? perfData.ctr.toFixed(2) + '%' : '-'}</td>
+      <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.cost > 0 && perfData.cost ? 
             `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
@@ -3389,7 +3381,7 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
           </span>
         </div>
       </td>
-      <td class="right">
+      <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.revenue > 0 && perfData.convValue ? 
             `<div class="titles-metric-bar" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
@@ -3469,7 +3461,7 @@ function addImagesSortingFunctionality(table, imagesData, performanceMetrics, pr
         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
       } else {
         currentSort.column = sortKey;
-        currentSort.direction = 'desc';
+        currentSort.direction = sortKey === 'position' ? 'asc' : 'desc';
       }
       
       headers.forEach(h => {
@@ -3497,6 +3489,15 @@ function addImagesSortingFunctionality(table, imagesData, performanceMetrics, pr
           case 'roas':
             aVal = roasData.get(a.title) || 0;
             bVal = roasData.get(b.title) || 0;
+            break;
+          case 'title':
+            aVal = a.title.toLowerCase();
+            bVal = b.title.toLowerCase();
+            break;
+          case 'images':
+            // Sort by number of images in history
+            aVal = a.thumbnailHistory?.length || 0;
+            bVal = b.thumbnailHistory?.length || 0;
             break;
           case 'impressions':
             const aPerfImpr = performanceMetrics.get(a.title);
@@ -3679,94 +3680,6 @@ async function loadProductPerformanceForImages() {
       resolve(new Map());
     };
   });
-}
-
-function updateImagesGlobalAverages(imagesData, performanceMetrics) {
-  setTimeout(() => {
-    const avgTScoreEl = document.getElementById('imagesGlobalAvgTScore');
-    const avgKOSEl = document.getElementById('imagesGlobalAvgKOS');
-    const avgGOSEl = document.getElementById('imagesGlobalAvgGOS');
-    
-    if (!imagesData || imagesData.length === 0) {
-      if (avgTScoreEl) avgTScoreEl.textContent = '-';
-      if (avgKOSEl) avgKOSEl.textContent = '-';
-      if (avgGOSEl) avgGOSEl.textContent = '-';
-      return;
-    }
-    
-    // Calculate metrics
-    let totalImpressions = 0;
-    let totalClicks = 0;
-    let totalRevenue = 0;
-    let totalCost = 0;
-    let productsWithChanges = 0;
-    let totalChanges = 0;
-    let count = 0;
-    
-    imagesData.forEach(imageProduct => {
-      const perfData = performanceMetrics.get(imageProduct.title);
-      if (perfData) {
-        totalImpressions += perfData.impressions || 0;
-        totalClicks += perfData.clicks || 0;
-        totalRevenue += perfData.convValue || 0;
-        totalCost += perfData.cost || 0;
-        count++;
-      }
-      
-      // Count image changes
-      if (imageProduct.thumbnailHistory && imageProduct.thumbnailHistory.length > 1) {
-        productsWithChanges++;
-        totalChanges += (imageProduct.thumbnailHistory.length - 1);
-      }
-    });
-    
-    // Calculate averages
-    const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0;
-    const avgROAS = totalCost > 0 ? (totalRevenue / totalCost) : 0;
-    const changeRate = imagesData.length > 0 ? (productsWithChanges / imagesData.length * 100) : 0;
-    
-    // Update Average CTR (instead of T-Score)
-    if (avgTScoreEl) {
-      avgTScoreEl.textContent = count > 0 ? avgCTR.toFixed(1) + '%' : '-';
-      const container = document.getElementById('imagesGlobalAvgTScoreContainer');
-      if (container && count > 0) {
-        container.className = 'images-studio-avg-item';
-        // Use CTR thresholds for color coding
-        if (avgCTR > 5) container.classList.add('tscore-excellent');
-        else if (avgCTR >= 3) container.classList.add('tscore-good');
-        else if (avgCTR >= 1.5) container.classList.add('tscore-fair');
-        else container.classList.add('tscore-poor');
-      }
-    }
-    
-    // Update Image Changes (instead of KOS)
-    if (avgKOSEl) {
-      avgKOSEl.textContent = productsWithChanges > 0 ? productsWithChanges : '-';
-      const container = document.getElementById('imagesGlobalAvgKOSContainer');
-      if (container) {
-        container.className = 'images-studio-avg-item';
-        // Use change count thresholds for color coding
-        if (productsWithChanges > 20) container.classList.add('kos-excellent');
-        else if (productsWithChanges >= 10) container.classList.add('kos-good');
-        else if (productsWithChanges > 5) container.classList.add('kos-fair');
-        else container.classList.add('kos-poor');
-      }
-    }
-    
-    // Update Average ROAS (instead of GOS)
-    if (avgGOSEl) {
-      avgGOSEl.textContent = count > 0 ? avgROAS.toFixed(2) + 'x' : '-';
-      const container = document.getElementById('imagesGlobalAvgGOSContainer');
-      if (container && count > 0) {
-        container.className = 'images-studio-avg-item';
-        // Use ROAS thresholds for color coding
-        if (avgROAS > 3) container.classList.add('gos-excellent');
-        else if (avgROAS >= 2) container.classList.add('gos-good');
-        else if (avgROAS >= 1) container.classList.add('gos-fair');
-        else container.classList.add('gos-poor');
-      }
-    }
-  }, 50);
 }
 
 // Replace the entire renderGlobalProductsTable function:
