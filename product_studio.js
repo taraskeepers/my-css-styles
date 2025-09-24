@@ -8,18 +8,20 @@ window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
 async function initializeProductStudio() {
   console.log('[initializeProductStudio] Starting Product Studio initialization...');
   
-  if (window.productStudioInitialized) {
-    console.log('[initializeProductStudio] Already initialized, skipping...');
-    return;
-  }
-  
   // Add debugging
   console.log('[initializeProductStudio] Looking for Product Studio container...');
   const container = document.getElementById('productStudioContent');
   console.log('[initializeProductStudio] Container found:', !!container);
   
-  // Add product studio specific styles
-  addProductStudioStyles();
+  if (!container) {
+    console.error('[initializeProductStudio] Product Studio container not found!');
+    return;
+  }
+  
+  // Add product studio specific styles (only once)
+  if (!document.getElementById('product-studio-styles')) {
+    addProductStudioStyles();
+  }
   
   // Load and render product studio panels
   await loadAndRenderProductStudioPanels();
@@ -1666,8 +1668,13 @@ function matchProductsWithGlobalData(products, companyFilter = null) {
 
 // Load and render both panels
 async function loadAndRenderProductStudioPanels() {
+  console.log('[loadAndRenderProductStudioPanels] Starting...');
+  
   const container = document.getElementById('productStudioContent');
-  if (!container) return;
+  if (!container) {
+    console.error('[loadAndRenderProductStudioPanels] Container not found');
+    return;
+  }
   
   // Clear existing content
   container.innerHTML = '';
@@ -1676,30 +1683,42 @@ async function loadAndRenderProductStudioPanels() {
   const mainContainer = document.createElement('div');
   mainContainer.className = 'product-studio-main-container';
   
-  // Create Companies Panel
-  const companiesPanel = await createCompaniesPanel();
-  mainContainer.appendChild(companiesPanel);
-  
-  // Create Products Panel  
-  const productsPanel = await createProductsPanel();
-  mainContainer.appendChild(productsPanel);
-  
-  // Create Rank Map Panel  
-  const rankMapPanel = await createRankMapProductsPanel();
-  mainContainer.appendChild(rankMapPanel);
-  
-  // Add main container to DOM
-  container.appendChild(mainContainer);
-  
-  // NOW initialize the products panel data after it's in the DOM
-  await initializeProductsPanelData();
-  
-  // Initially show companies panel, hide others
-  showCompaniesPanel();
+  try {
+    // Create Companies Panel
+    console.log('[loadAndRenderProductStudioPanels] Creating companies panel...');
+    const companiesPanel = await createCompaniesPanel();
+    mainContainer.appendChild(companiesPanel);
+    
+    // Create Products Panel  
+    console.log('[loadAndRenderProductStudioPanels] Creating products panel...');
+    const productsPanel = await createProductsPanel();
+    mainContainer.appendChild(productsPanel);
+    
+    // Create Rank Map Panel  
+    console.log('[loadAndRenderProductStudioPanels] Creating rank map panel...');
+    const rankMapPanel = await createRankMapProductsPanel();
+    mainContainer.appendChild(rankMapPanel);
+    
+    // Add main container to DOM
+    container.appendChild(mainContainer);
+    
+    // NOW initialize the products panel data after it's in the DOM
+    console.log('[loadAndRenderProductStudioPanels] Initializing products panel data...');
+    await initializeProductsPanelData();
+    
+    // Initially show companies panel, hide others
+    console.log('[loadAndRenderProductStudioPanels] Showing companies panel...');
+    showCompaniesPanel();
+    
+  } catch (error) {
+    console.error('[loadAndRenderProductStudioPanels] Error:', error);
+  }
 }
 
 // Create Companies Panel
 async function createCompaniesPanel() {
+  console.log('[createCompaniesPanel] Starting...');
+  
   const companiesPanel = document.createElement('div');
   companiesPanel.id = 'titlesCompaniesPanel';
   
@@ -1724,15 +1743,26 @@ async function createCompaniesPanel() {
   tableContainer.className = 'product-studio-table-container';
   tableContainer.id = 'companiesTableContainer';
   
-  // Load and render companies data
-  const companiesData = await loadCompaniesData();
-  
-  if (companiesData.length > 0) {
-    renderCompaniesTable(tableContainer, companiesData);
-  } else {
+  try {
+    // Load and render companies data
+    console.log('[createCompaniesPanel] Loading companies data...');
+    const companiesData = await loadCompaniesData();
+    console.log('[createCompaniesPanel] Companies data loaded:', companiesData.length);
+    
+    if (companiesData.length > 0) {
+      renderCompaniesTable(tableContainer, companiesData);
+    } else {
+      tableContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #999;">
+          No companies data found. Please ensure product_titles_companies table exists.
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('[createCompaniesPanel] Error loading data:', error);
     tableContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: #999;">
-        No companies data found
+        Error loading companies data: ${error.message}
       </div>
     `;
   }
@@ -2400,37 +2430,45 @@ function renderRankMapTable(container, rankMapResult) {
 
 // Initialize products panel data (call this after the panel is added to DOM)
 async function initializeProductsPanelData() {
-  const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
+  console.log('[initializeProductsPanelData] Starting...');
   
-  // Load and render data with current company
-  await loadProductDataForCompany(currentCompany);
+  const companySelect = document.getElementById('productStudioCompanySelect');
+  const currentCompany = companySelect?.value || window.myCompany || '';
   
-  // Initialize filter
-  initializeProductStudioFilter();
+  console.log('[initializeProductsPanelData] Current company:', currentCompany);
   
-// In the initializeProductsPanelData function, update the company selector event listener:
-const companySelect = document.getElementById('productStudioCompanySelect');
-if (companySelect) {
-  companySelect.addEventListener('change', async function() {
-    const selectedCompany = this.value;
-    console.log('[ProductStudio] Switching to company:', selectedCompany);
+  try {
+    // Load and render data with current company
+    await loadProductDataForCompany(currentCompany);
     
-    // Reset sort state when switching companies (optional)
-    window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
+    // Initialize filter
+    initializeProductStudioFilter();
     
-    // Clear filters when switching companies
-    const tagsContainer = document.getElementById('productStudioFilterTags');
-    if (tagsContainer) {
-      tagsContainer.innerHTML = '';
+    // Add company selector event listener
+    if (companySelect) {
+      companySelect.addEventListener('change', async function() {
+        const selectedCompany = this.value;
+        console.log('[ProductStudio] Switching to company:', selectedCompany);
+        
+        // Reset sort state when switching companies (optional)
+        window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
+        
+        // Clear filters when switching companies
+        const tagsContainer = document.getElementById('productStudioFilterTags');
+        if (tagsContainer) {
+          tagsContainer.innerHTML = '';
+        }
+        const filterInput = document.getElementById('productStudioFilterInput');
+        if (filterInput) {
+          filterInput.value = '';
+        }
+        
+        await loadProductDataForCompany(selectedCompany);
+      });
     }
-    const filterInput = document.getElementById('productStudioFilterInput');
-    if (filterInput) {
-      filterInput.value = '';
-    }
-    
-    await loadProductDataForCompany(selectedCompany);
-  });
-}
+  } catch (error) {
+    console.error('[initializeProductsPanelData] Error:', error);
+  }
 }
 
 // Replace the entire loadProductDataForCompany function:
@@ -3327,3 +3365,14 @@ window.initializeProductStudio = initializeProductStudio;
 window.showCompaniesPanel = showCompaniesPanel;
 window.showProductsPanel = showProductsPanel;
 window.showRankMapPanel = showRankMapPanel;
+// Reset Product Studio when switching away and back
+window.resetProductStudio = function() {
+  console.log('[resetProductStudio] Resetting Product Studio...');
+  window.productStudioInitialized = false;
+  const container = document.getElementById('productStudioContent');
+  if (container) {
+    container.innerHTML = '';
+  }
+  // Reinitialize
+  initializeProductStudio();
+};
