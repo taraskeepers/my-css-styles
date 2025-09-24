@@ -46,9 +46,9 @@ function addProductStudioStyles() {
         gap: 20px;
         height: calc(100vh - 200px);
         width: 100%;
-        max-width: 1470px; /* Add max width */
+        max-width: 1470px;
         padding-top: 50px;
-        margin: 0 auto; /* Center the container */
+        margin-left: 0; /* Changed from margin: 0 auto to align left */
       }
       
       /* Products panel for product studio */
@@ -165,6 +165,37 @@ function addProductStudioStyles() {
       .product-studio-table th.right {
         text-align: right;
       }
+      
+      /* Column widths - FIXED */
+      .product-studio-table th:nth-child(1),
+      .product-studio-table td:nth-child(1) { width: 50px; } /* POS */
+      
+      .product-studio-table th:nth-child(2),
+      .product-studio-table td:nth-child(2) { width: 60px; } /* SHARE */
+      
+      .product-studio-table th:nth-child(3),
+      .product-studio-table td:nth-child(3) { width: 55px; } /* ROAS */
+      
+      .product-studio-table th:nth-child(4),
+      .product-studio-table td:nth-child(4) { width: 60px; } /* IMAGE */
+      
+      .product-studio-table th:nth-child(5),
+      .product-studio-table td:nth-child(5) { 
+        max-width: 200px; 
+        width: 200px;
+      } /* PRODUCT TITLE - FIXED CLOSING BRACE */
+      
+      .product-studio-table th:nth-child(6),
+      .product-studio-table td:nth-child(6) { width: 60px; } /* T-SCORE */
+      
+      .product-studio-table th:nth-child(7),
+      .product-studio-table td:nth-child(7) { width: 50px; } /* KOS */
+      
+      .product-studio-table th:nth-child(8),
+      .product-studio-table td:nth-child(8) { width: 50px; } /* GOS */
+      
+      .product-studio-table th:nth-child(9),
+      .product-studio-table td:nth-child(9) { width: 50px; } /* SUGG */
       
       /* Sort icon */
       .product-studio-sort-icon {
@@ -331,6 +362,32 @@ function addProductStudioStyles() {
         align-items: center;
         justify-content: center;
         text-shadow: 0 0 2px rgba(255,255,255,0.8);
+      }
+      
+      /* ROAS indicator - ADD THIS */
+      .titles-roas-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      
+      .titles-roas-high {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+      }
+      
+      .titles-roas-medium {
+        background: rgba(251, 191, 36, 0.1);
+        color: #f59e0b;
+      }
+      
+      .titles-roas-low {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
       }
       
       /* Score fraction display */
@@ -845,43 +902,6 @@ function addProductStudioStyles() {
       .kos-h { background: #dcfce7; color: #15803d; }
       .kos-m { background: #fef3c7; color: #b45309; }
       .kos-l { background: #fee2e2; color: #991b1b; }
-
-      .product-studio-table th:nth-child(1),
-      .product-studio-table td:nth-child(1) { width: 50px; } /* POS */
-      
-      .product-studio-table th:nth-child(2),
-      .product-studio-table td:nth-child(2) { width: 60px; } /* SHARE */
-      
-      .product-studio-table th:nth-child(3),
-      .product-studio-table td:nth-child(3) { width: 55px; } /* ROAS */
-      
-      .product-studio-table th:nth-child(4),
-      .product-studio-table td:nth-child(4) { width: 60px; } /* IMAGE */
-      
-      .product-studio-table th:nth-child(5),
-      .product-studio-table td:nth-child(5) { 
-        max-width: 200px; 
-        width: 200px;
-
-      .product-studio-table th:nth-child(6),
-      .product-studio-table td:nth-child(6) { width: 60px; } /* T-SCORE */
-      
-      .product-studio-table th:nth-child(7),
-      .product-studio-table td:nth-child(7) { width: 50px; } /* KOS */
-      
-      .product-studio-table th:nth-child(8),
-      .product-studio-table td:nth-child(8) { width: 50px; } /* GOS */
-      
-      .product-studio-table th:nth-child(9),
-      .product-studio-table td:nth-child(9) { width: 50px; } /* SUGG */
-
-      .product-studio-table tbody tr {
-      border-bottom: 1px solid #f0f2f5;
-      transition: background 0.15s ease;
-      height: 60px;
-      cursor: pointer; /* Make it clear rows are clickable */
-      user-select: none;
-      
     `;
     document.head.appendChild(style);
   }
@@ -1559,27 +1579,42 @@ async function createProductsPanel() {
   return productsPanel;
 }
 
-// New function to load data for a specific company
+// Update the loadProductDataForCompany function with more debugging:
 async function loadProductDataForCompany(company) {
   const tableContainer = document.getElementById('globalProductsTableContainer');
-  if (!tableContainer) return;
+  if (!tableContainer) {
+    console.error('[loadProductDataForCompany] Table container not found');
+    return;
+  }
+  
+  console.log('[loadProductDataForCompany] Loading data for company:', company);
   
   try {
     const evaluatedProducts = await loadProductTitlesEvaluated(company);
+    console.log('[loadProductDataForCompany] Evaluated products loaded:', evaluatedProducts.length);
     
     if (evaluatedProducts.length > 0) {
       const productTitles = evaluatedProducts.map(p => p.title);
+      console.log('[loadProductDataForCompany] Product titles:', productTitles.length);
+      
       const processedMetrics = await loadProcessedDataForProducts(productTitles);
+      console.log('[loadProductDataForCompany] Processed metrics loaded:', processedMetrics.size);
+      
       const roasData = await loadProductPerformanceData();
+      console.log('[loadProductDataForCompany] ROAS data loaded:', roasData.size);
       
       // Store data globally for filtering
       window.globalProductsData = { evaluatedProducts, processedMetrics, roasData };
+      
+      // Clear container before rendering
+      tableContainer.innerHTML = '';
       
       await renderGlobalProductsTable(tableContainer, evaluatedProducts, processedMetrics, roasData);
       
       // Update averages
       updateGlobalAverages(evaluatedProducts);
     } else {
+      console.warn('[loadProductDataForCompany] No products found for company:', company);
       tableContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
           No product data found for ${company}
@@ -1590,7 +1625,7 @@ async function loadProductDataForCompany(company) {
     console.error('[loadProductDataForCompany] Error loading data:', error);
     tableContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: #999;">
-        Error loading product data. Please refresh and try again.
+        Error loading product data: ${error.message}
       </div>
     `;
   }
