@@ -1368,8 +1368,11 @@ async function loadCompaniesData() {
           }
         }));
         
-        // Sort by average final score descending
-        companiesData.sort((a, b) => b.avgFinalScore - a.avgFinalScore);
+        // Calculate and store original T-Score based ranks
+companiesData.sort((a, b) => b.avgFinalScore - a.avgFinalScore);
+companiesData.forEach((company, index) => {
+  company.originalRank = index + 1; // Store the original T-Score rank
+});
         
         console.log('[loadCompaniesData] Loaded companies:', companiesData.length);
         db.close();
@@ -1866,85 +1869,88 @@ function renderCompaniesTable(container, companies) {
   // Create tbody
   const tbody = document.createElement('tbody');
   
-  companies.forEach((company, index) => {
-    const row = document.createElement('tr');
-    row.dataset.companyData = JSON.stringify(company);
-    
-    // Check if this is the user's company and add highlighting
-    const isMyCompany = window.myCompany && company.source.toLowerCase() === window.myCompany.toLowerCase();
-    if (isMyCompany) {
-      row.classList.add('my-company-row');
-    }
-    
-    // Rank badge class
-    let rankClass = 'regular';
-    if (index === 0) rankClass = 'gold';
-    else if (index === 1) rankClass = 'silver';
-    else if (index === 2) rankClass = 'bronze';
-    
-    // Score classes
-    const roundedScore = Math.round(company.avgFinalScore);
-    let tscoreClass = 'product-studio-tscore-poor';
-    if (roundedScore > 70) tscoreClass = 'product-studio-tscore-excellent';
-    else if (roundedScore >= 55) tscoreClass = 'product-studio-tscore-good';
-    else if (roundedScore >= 40) tscoreClass = 'product-studio-tscore-fair';
-    
-    let kosClass = 'product-studio-kos-poor';
-    if (company.avgKos > 15) kosClass = 'product-studio-kos-excellent';
-    else if (company.avgKos >= 10) kosClass = 'product-studio-kos-good';
-    else if (company.avgKos > 5) kosClass = 'product-studio-kos-fair';
-    
-    let gosClass = 'product-studio-gos-poor';
-    if (company.avgGos > 60) gosClass = 'product-studio-gos-excellent';
-    else if (company.avgGos >= 40) gosClass = 'product-studio-gos-good';
-    else if (company.avgGos >= 20) gosClass = 'product-studio-gos-fair';
-    
-    row.innerHTML = `
-      <td class="center">
-        <div class="company-rank-badge ${rankClass}" style="font-size: 14px; width: 36px; height: 36px;">${index + 1}</div>
-      </td>
-      <td>
-        <div style="font-weight: 600; color: #333; font-size: 13px;">
-          ${company.source}
-        </div>
-      </td>
-      <td class="center">
-        <span style="font-weight: 700; color: #667eea; font-size: 14px;">
-          ${company.totalProducts}
-        </span>
-      </td>
-      <td class="center">
-        <span class="product-studio-score-fraction ${tscoreClass}" style="padding: 3px 6px;">
-          <span class="product-studio-score-value" style="font-size: 12px;">${roundedScore}</span>
-          <span class="product-studio-score-max" style="font-size: 9px;">/100</span>
-        </span>
-      </td>
-      <td class="center">
-        <span class="product-studio-score-fraction ${kosClass}" style="padding: 3px 6px;">
-          <span class="product-studio-score-value" style="font-size: 12px;">${company.avgKos.toFixed(1)}</span>
-          <span class="product-studio-score-max" style="font-size: 9px;">/20</span>
-        </span>
-      </td>
-      <td class="center">
-        <span class="product-studio-score-fraction ${gosClass}" style="padding: 3px 6px;">
-          <span class="product-studio-score-value" style="font-size: 12px;">${Math.round(company.avgGos)}</span>
-          <span class="product-studio-score-max" style="font-size: 9px;">/80</span>
-        </span>
-      </td>
-      <td class="center">
-        <span style="font-weight: 600; color: #495057;">
-          ${Math.round(company.avgTitleLength)}
-        </span>
-      </td>
-      <td class="center">
-        <span style="font-weight: 600; color: #495057;">
-          ${Math.round(company.avgWordCount)}
-        </span>
-      </td>
-    `;
-    
-    tbody.appendChild(row);
-  });
+companies.forEach((company, index) => {
+  const row = document.createElement('tr');
+  row.dataset.companyData = JSON.stringify(company);
+  
+  // Check if this is the user's company and add highlighting
+  const isMyCompany = window.myCompany && company.source.toLowerCase() === window.myCompany.toLowerCase();
+  if (isMyCompany) {
+    row.classList.add('my-company-row');
+  }
+  
+  // Use the original T-Score rank (not current index)
+  const originalRank = company.originalRank || (index + 1);
+  
+  // Rank badge class based on ORIGINAL rank, not current position
+  let rankClass = 'regular';
+  if (originalRank === 1) rankClass = 'gold';
+  else if (originalRank === 2) rankClass = 'silver';
+  else if (originalRank === 3) rankClass = 'bronze';
+  
+  // Score classes
+  const roundedScore = Math.round(company.avgFinalScore);
+  let tscoreClass = 'product-studio-tscore-poor';
+  if (roundedScore > 70) tscoreClass = 'product-studio-tscore-excellent';
+  else if (roundedScore >= 55) tscoreClass = 'product-studio-tscore-good';
+  else if (roundedScore >= 40) tscoreClass = 'product-studio-tscore-fair';
+  
+  let kosClass = 'product-studio-kos-poor';
+  if (company.avgKos > 15) kosClass = 'product-studio-kos-excellent';
+  else if (company.avgKos >= 10) kosClass = 'product-studio-kos-good';
+  else if (company.avgKos > 5) kosClass = 'product-studio-kos-fair';
+  
+  let gosClass = 'product-studio-gos-poor';
+  if (company.avgGos > 60) gosClass = 'product-studio-gos-excellent';
+  else if (company.avgGos >= 40) gosClass = 'product-studio-gos-good';
+  else if (company.avgGos >= 20) gosClass = 'product-studio-gos-fair';
+  
+  row.innerHTML = `
+    <td class="center">
+      <div class="company-rank-badge ${rankClass}" style="font-size: 14px; width: 36px; height: 36px;">${originalRank}</div>
+    </td>
+    <td>
+      <div style="font-weight: 600; color: #333; font-size: 13px;">
+        ${company.source}
+      </div>
+    </td>
+    <td class="center">
+      <span style="font-weight: 700; color: #667eea; font-size: 14px;">
+        ${company.totalProducts}
+      </span>
+    </td>
+    <td class="center">
+      <span class="product-studio-score-fraction ${tscoreClass}" style="padding: 3px 6px;">
+        <span class="product-studio-score-value" style="font-size: 12px;">${roundedScore}</span>
+        <span class="product-studio-score-max" style="font-size: 9px;">/100</span>
+      </span>
+    </td>
+    <td class="center">
+      <span class="product-studio-score-fraction ${kosClass}" style="padding: 3px 6px;">
+        <span class="product-studio-score-value" style="font-size: 12px;">${company.avgKos.toFixed(1)}</span>
+        <span class="product-studio-score-max" style="font-size: 9px;">/20</span>
+      </span>
+    </td>
+    <td class="center">
+      <span class="product-studio-score-fraction ${gosClass}" style="padding: 3px 6px;">
+        <span class="product-studio-score-value" style="font-size: 12px;">${Math.round(company.avgGos)}</span>
+        <span class="product-studio-score-max" style="font-size: 9px;">/80</span>
+      </span>
+    </td>
+    <td class="center">
+      <span style="font-weight: 600; color: #495057;">
+        ${Math.round(company.avgTitleLength)}
+      </span>
+    </td>
+    <td class="center">
+      <span style="font-weight: 600; color: #495057;">
+        ${Math.round(company.avgWordCount)}
+      </span>
+    </td>
+  `;
+  
+  tbody.appendChild(row);
+});
   
   table.appendChild(tbody);
   wrapper.appendChild(table);
@@ -2073,15 +2079,15 @@ function addCompaniesSortingFunctionality(table, companies) {
       const sortedCompanies = [...companies].sort((a, b) => {
         let aVal, bVal;
         
-        switch(sortKey) {
-          case 'rank':
-            aVal = companies.indexOf(a);
-            bVal = companies.indexOf(b);
-            break;
-          case 'company':
-            aVal = a.source.toLowerCase();
-            bVal = b.source.toLowerCase();
-            break;
+switch(sortKey) {
+  case 'rank':
+    aVal = a.originalRank || 999;
+    bVal = b.originalRank || 999;
+    break;
+  case 'company':
+    aVal = a.source.toLowerCase();
+    bVal = b.source.toLowerCase();
+    break;
           case 'products':
             aVal = a.totalProducts;
             bVal = b.totalProducts;
