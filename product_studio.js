@@ -1108,6 +1108,17 @@ function addProductStudioStyles() {
         color: #ef4444;
       }
       
+      /* Companies panel for product studio */
+#titlesCompaniesPanel {
+  flex: 1;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
     `;
     document.head.appendChild(style);
   }
@@ -1695,20 +1706,30 @@ async function createCompaniesPanel() {
   const companiesPanel = document.createElement('div');
   companiesPanel.id = 'titlesCompaniesPanel';
   
-  // Create header
-  const header = document.createElement('div');
-  header.className = 'product-studio-header';
-  header.innerHTML = `
-    <div class="product-studio-header-left">
-      <h2 class="product-studio-header-title">
-        Companies Analysis
-        <span class="product-studio-version">v1.0.0 BETA</span>
-      </h2>
-      <div class="product-studio-selected-info">
-        Analyzing company performance across all metrics
-      </div>
+// Create header with consistent structure
+const header = document.createElement('div');
+header.className = 'product-studio-header';
+header.innerHTML = `
+  <div class="product-studio-header-left">
+    <h2 class="product-studio-header-title">
+      Companies Analysis
+      <span class="product-studio-version">v1.0.0 BETA</span>
+    </h2>
+    <div class="product-studio-selected-info">
+      Analyzing company performance across all metrics
     </div>
-  `;
+  </div>
+  <div class="product-studio-companies-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
+    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Companies</span>
+      <span id="totalCompaniesCount" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+    </div>
+    <div class="companies-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+      <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Avg T-Score</span>
+      <span id="avgCompanyTScore" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+    </div>
+  </div>
+`;
   companiesPanel.appendChild(header);
   
   // Create table container
@@ -1729,8 +1750,7 @@ async function createCompaniesPanel() {
     `;
   }
   
-  companiesPanel.appendChild(tableContainer);
-  
+  companiesPanel.appendChild(tableContainer); 
   return companiesPanel;
 }
 
@@ -1875,6 +1895,21 @@ function renderCompaniesTable(container, companies) {
   
   // Store data globally for sorting
   window.companiesTableData = companies;
+
+// Update header stats
+setTimeout(() => {
+  const totalCompaniesEl = document.getElementById('totalCompaniesCount');
+  const avgTScoreEl = document.getElementById('avgCompanyTScore');
+  
+  if (totalCompaniesEl) {
+    totalCompaniesEl.textContent = companies.length;
+  }
+  
+  if (avgTScoreEl && companies.length > 0) {
+    const avgTScore = companies.reduce((sum, c) => sum + c.avgFinalScore, 0) / companies.length;
+    avgTScoreEl.textContent = Math.round(avgTScore);
+  }
+}, 50);
 }
 
 // Toggle expanded row for companies
