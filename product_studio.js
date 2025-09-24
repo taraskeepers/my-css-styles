@@ -8,20 +8,18 @@ window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
 async function initializeProductStudio() {
   console.log('[initializeProductStudio] Starting Product Studio initialization...');
   
+  if (window.productStudioInitialized) {
+    console.log('[initializeProductStudio] Already initialized, skipping...');
+    return;
+  }
+  
   // Add debugging
   console.log('[initializeProductStudio] Looking for Product Studio container...');
   const container = document.getElementById('productStudioContent');
   console.log('[initializeProductStudio] Container found:', !!container);
   
-  if (!container) {
-    console.error('[initializeProductStudio] Product Studio container not found!');
-    return;
-  }
-  
-  // Add product studio specific styles (only once)
-  if (!document.getElementById('product-studio-styles')) {
-    addProductStudioStyles();
-  }
+  // Add product studio specific styles
+  addProductStudioStyles();
   
   // Load and render product studio panels
   await loadAndRenderProductStudioPanels();
@@ -915,13 +913,13 @@ function addProductStudioStyles() {
       .kos-l { background: #fee2e2; color: #991b1b; }
 
 /* COMPANIES PANEL SPECIFIC STYLES */
-      #titlesCompaniesPanel .product-studio-table {
+      .companies-table {
         width: 100%;
         background: white;
         border-collapse: collapse;
       }
       
-      #titlesCompaniesPanel .product-studio-table thead {
+      .companies-table thead {
         position: sticky;
         top: 0;
         z-index: 10;
@@ -929,11 +927,11 @@ function addProductStudioStyles() {
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
       }
       
-      #titlesCompaniesPanel .product-studio-table thead tr {
+      .companies-table thead tr {
         border-bottom: 2px solid #e9ecef;
       }
       
-      #titlesCompaniesPanel .product-studio-table th {
+      .companies-table th {
         padding: 10px 8px;
         font-size: 11px;
         font-weight: 600;
@@ -947,21 +945,17 @@ function addProductStudioStyles() {
         user-select: none;
       }
       
-      #titlesCompaniesPanel .product-studio-table th.sortable {
+      .companies-table th.sortable {
         cursor: pointer;
         padding-right: 20px;
       }
       
-      #titlesCompaniesPanel .product-studio-table th.sortable:hover {
+      .companies-table th.sortable:hover {
         background: rgba(102, 126, 234, 0.04);
         color: #495057;
       }
       
-      #titlesCompaniesPanel .product-studio-table th.center {
-        text-align: center;
-      }
-      
-      #titlesCompaniesPanel .product-studio-table tbody tr {
+      .companies-table tbody tr {
         border-bottom: 1px solid #f0f2f5;
         transition: background 0.15s ease;
         height: 60px;
@@ -969,26 +963,22 @@ function addProductStudioStyles() {
         user-select: none;
       }
       
-      #titlesCompaniesPanel .product-studio-table tbody tr:hover {
+      .companies-table tbody tr:hover {
         background: rgba(102, 126, 234, 0.02);
       }
       
-      #titlesCompaniesPanel .product-studio-table tbody tr.expanded {
+      .companies-table tbody tr.expanded {
         background: rgba(102, 126, 234, 0.05);
       }
       
-      #titlesCompaniesPanel .product-studio-table td {
+      .companies-table td {
         padding: 8px;
         font-size: 13px;
         color: #495057;
         vertical-align: middle;
       }
       
-      #titlesCompaniesPanel .product-studio-table td.center {
-        text-align: center;
-      }
-      
-      #titlesCompaniesPanel .product-studio-sort-icon {
+      .companies-sort-icon {
         position: absolute;
         right: 4px;
         top: 50%;
@@ -997,51 +987,51 @@ function addProductStudioStyles() {
         color: #adb5bd;
       }
       
-      #titlesCompaniesPanel .product-studio-table th.sorted-asc .product-studio-sort-icon,
-      #titlesCompaniesPanel .product-studio-table th.sorted-desc .product-studio-sort-icon {
+      .companies-table th.sorted-asc .companies-sort-icon,
+      .companies-table th.sorted-desc .companies-sort-icon {
         color: #667eea;
       }
       
       .company-rank-badge {
-        width: 36px !important;
-        height: 36px !important;
-        border-radius: 8px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-weight: 700 !important;
-        font-size: 14px !important;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
       }
       
       .company-rank-badge.gold {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
       }
       
       .company-rank-badge.silver {
-        background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%);
+        color: white;
       }
       
       .company-rank-badge.bronze {
-        background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+        color: white;
       }
       
       .company-rank-badge.regular {
-        background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%) !important;
-        color: #4b5563 !important;
+        background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%);
+        color: #4b5563;
       }
       
-      #titlesCompaniesPanel .product-studio-expanded-row {
+      .companies-expanded-row {
         background: #f8f9fa;
       }
       
-      #titlesCompaniesPanel .product-studio-expanded-row td {
+      .companies-expanded-row td {
         padding: 0 !important;
       }
       
-      #titlesCompaniesPanel .product-studio-expanded-content {
+      .companies-expanded-content {
         padding: 20px 30px;
         animation: slideDown 0.2s ease-out;
       }
@@ -1668,13 +1658,8 @@ function matchProductsWithGlobalData(products, companyFilter = null) {
 
 // Load and render both panels
 async function loadAndRenderProductStudioPanels() {
-  console.log('[loadAndRenderProductStudioPanels] Starting...');
-  
   const container = document.getElementById('productStudioContent');
-  if (!container) {
-    console.error('[loadAndRenderProductStudioPanels] Container not found');
-    return;
-  }
+  if (!container) return;
   
   // Clear existing content
   container.innerHTML = '';
@@ -1683,42 +1668,30 @@ async function loadAndRenderProductStudioPanels() {
   const mainContainer = document.createElement('div');
   mainContainer.className = 'product-studio-main-container';
   
-  try {
-    // Create Companies Panel
-    console.log('[loadAndRenderProductStudioPanels] Creating companies panel...');
-    const companiesPanel = await createCompaniesPanel();
-    mainContainer.appendChild(companiesPanel);
-    
-    // Create Products Panel  
-    console.log('[loadAndRenderProductStudioPanels] Creating products panel...');
-    const productsPanel = await createProductsPanel();
-    mainContainer.appendChild(productsPanel);
-    
-    // Create Rank Map Panel  
-    console.log('[loadAndRenderProductStudioPanels] Creating rank map panel...');
-    const rankMapPanel = await createRankMapProductsPanel();
-    mainContainer.appendChild(rankMapPanel);
-    
-    // Add main container to DOM
-    container.appendChild(mainContainer);
-    
-    // NOW initialize the products panel data after it's in the DOM
-    console.log('[loadAndRenderProductStudioPanels] Initializing products panel data...');
-    await initializeProductsPanelData();
-    
-    // Initially show companies panel, hide others
-    console.log('[loadAndRenderProductStudioPanels] Showing companies panel...');
-    showCompaniesPanel();
-    
-  } catch (error) {
-    console.error('[loadAndRenderProductStudioPanels] Error:', error);
-  }
+  // Create Companies Panel
+  const companiesPanel = await createCompaniesPanel();
+  mainContainer.appendChild(companiesPanel);
+  
+  // Create Products Panel  
+  const productsPanel = await createProductsPanel();
+  mainContainer.appendChild(productsPanel);
+  
+  // Create Rank Map Panel  
+  const rankMapPanel = await createRankMapProductsPanel();
+  mainContainer.appendChild(rankMapPanel);
+  
+  // Add main container to DOM
+  container.appendChild(mainContainer);
+  
+  // NOW initialize the products panel data after it's in the DOM
+  await initializeProductsPanelData();
+  
+  // Initially show companies panel, hide others
+  showCompaniesPanel();
 }
 
 // Create Companies Panel
 async function createCompaniesPanel() {
-  console.log('[createCompaniesPanel] Starting...');
-  
   const companiesPanel = document.createElement('div');
   companiesPanel.id = 'titlesCompaniesPanel';
   
@@ -1743,26 +1716,15 @@ async function createCompaniesPanel() {
   tableContainer.className = 'product-studio-table-container';
   tableContainer.id = 'companiesTableContainer';
   
-  try {
-    // Load and render companies data
-    console.log('[createCompaniesPanel] Loading companies data...');
-    const companiesData = await loadCompaniesData();
-    console.log('[createCompaniesPanel] Companies data loaded:', companiesData.length);
-    
-    if (companiesData.length > 0) {
-      renderCompaniesTable(tableContainer, companiesData);
-    } else {
-      tableContainer.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #999;">
-          No companies data found. Please ensure product_titles_companies table exists.
-        </div>
-      `;
-    }
-  } catch (error) {
-    console.error('[createCompaniesPanel] Error loading data:', error);
+  // Load and render companies data
+  const companiesData = await loadCompaniesData();
+  
+  if (companiesData.length > 0) {
+    renderCompaniesTable(tableContainer, companiesData);
+  } else {
     tableContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: #999;">
-        Error loading companies data: ${error.message}
+        No companies data found
       </div>
     `;
   }
@@ -2065,18 +2027,11 @@ async function createProductsPanel() {
   const allCompanies = await getAllCompaniesFromData();
   const currentCompany = window.myCompany || allCompanies[0] || '';
   
-  // Initialize avgScores with default values
-  const avgScores = {
-    tscore: 0,
-    kos: 0,
-    gos: 0
-  };
-  
-  // Create header
+  // Create header with filter, company dropdown and averages
   const header = document.createElement('div');
   header.className = 'product-studio-header';
-  header.innerHTML = `
-    <div class="product-studio-header-left" style="flex: 1;">
+header.innerHTML = `
+    <div class="product-studio-header-left">
       <h2 class="product-studio-header-title">
         Global Products Analysis
         <span class="product-studio-version">v1.0.0 BETA</span>
@@ -2085,15 +2040,14 @@ async function createProductsPanel() {
         Analyzing product performance across all search terms
       </div>
     </div>
-    <div class="product-studio-filter-section" style="flex: 2; display: flex; align-items: center; gap: 15px;">
-      <div class="product-studio-title-filter" style="position: relative; flex: 1;">
+<div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
+      <div class="product-studio-title-filter" style="position: relative;">
         <input type="text" 
                class="product-studio-filter-input" 
                id="productStudioFilterInput" 
                placeholder="🔍 Filter products by title... (Press Enter)" 
-               autocomplete="off"
-               style="width: 100%;">
-        <div class="product-studio-filter-tags" id="productStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 100;"></div>
+               autocomplete="off">
+        <div class="product-studio-filter-tags" id="productStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
       </div>
       <div class="product-studio-company-selector">
         <select id="productStudioCompanySelect" class="product-studio-filter-input" style="width: 200px;">
@@ -2105,23 +2059,33 @@ async function createProductsPanel() {
         </select>
       </div>
     </div>
-    <div class="product-studio-avg-scores" style="flex: 1; display: flex; gap: 20px; justify-content: flex-end; padding-right: 20px;">
-      <div class="product-studio-avg-item tscore-fair" id="globalAvgTScoreContainer">
-        <div class="product-studio-avg-score-display">
-          <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
-          <span class="product-studio-avg-max">/100</span>
+    <div class="product-studio-avg-scores">
+        <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
+              <span class="product-studio-avg-max">/100</span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="product-studio-avg-item kos-fair" id="globalAvgKOSContainer">
-        <div class="product-studio-avg-score-display">
-          <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
-          <span class="product-studio-avg-max">/20</span>
+        <div class="product-studio-avg-item" id="globalAvgKOSContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
+              <span class="product-studio-avg-max">/20</span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="product-studio-avg-item gos-fair" id="globalAvgGOSContainer">
-        <div class="product-studio-avg-score-display">
-          <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
-          <span class="product-studio-avg-max">/80</span>
+        <div class="product-studio-avg-item" id="globalAvgGOSContainer">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
+            <div class="product-studio-avg-score-display">
+              <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
+              <span class="product-studio-avg-max">/80</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2430,45 +2394,37 @@ function renderRankMapTable(container, rankMapResult) {
 
 // Initialize products panel data (call this after the panel is added to DOM)
 async function initializeProductsPanelData() {
-  console.log('[initializeProductsPanelData] Starting...');
+  const currentCompany = document.getElementById('productStudioCompanySelect')?.value || window.myCompany || '';
   
-  const companySelect = document.getElementById('productStudioCompanySelect');
-  const currentCompany = companySelect?.value || window.myCompany || '';
+  // Load and render data with current company
+  await loadProductDataForCompany(currentCompany);
   
-  console.log('[initializeProductsPanelData] Current company:', currentCompany);
+  // Initialize filter
+  initializeProductStudioFilter();
   
-  try {
-    // Load and render data with current company
-    await loadProductDataForCompany(currentCompany);
+// In the initializeProductsPanelData function, update the company selector event listener:
+const companySelect = document.getElementById('productStudioCompanySelect');
+if (companySelect) {
+  companySelect.addEventListener('change', async function() {
+    const selectedCompany = this.value;
+    console.log('[ProductStudio] Switching to company:', selectedCompany);
     
-    // Initialize filter
-    initializeProductStudioFilter();
+    // Reset sort state when switching companies (optional)
+    window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
     
-    // Add company selector event listener
-    if (companySelect) {
-      companySelect.addEventListener('change', async function() {
-        const selectedCompany = this.value;
-        console.log('[ProductStudio] Switching to company:', selectedCompany);
-        
-        // Reset sort state when switching companies (optional)
-        window.globalProductsSortState = { column: 'tscore', direction: 'desc' };
-        
-        // Clear filters when switching companies
-        const tagsContainer = document.getElementById('productStudioFilterTags');
-        if (tagsContainer) {
-          tagsContainer.innerHTML = '';
-        }
-        const filterInput = document.getElementById('productStudioFilterInput');
-        if (filterInput) {
-          filterInput.value = '';
-        }
-        
-        await loadProductDataForCompany(selectedCompany);
-      });
+    // Clear filters when switching companies
+    const tagsContainer = document.getElementById('productStudioFilterTags');
+    if (tagsContainer) {
+      tagsContainer.innerHTML = '';
     }
-  } catch (error) {
-    console.error('[initializeProductsPanelData] Error:', error);
-  }
+    const filterInput = document.getElementById('productStudioFilterInput');
+    if (filterInput) {
+      filterInput.value = '';
+    }
+    
+    await loadProductDataForCompany(selectedCompany);
+  });
+}
 }
 
 // Replace the entire loadProductDataForCompany function:
@@ -3365,14 +3321,3 @@ window.initializeProductStudio = initializeProductStudio;
 window.showCompaniesPanel = showCompaniesPanel;
 window.showProductsPanel = showProductsPanel;
 window.showRankMapPanel = showRankMapPanel;
-// Reset Product Studio when switching away and back
-window.resetProductStudio = function() {
-  console.log('[resetProductStudio] Resetting Product Studio...');
-  window.productStudioInitialized = false;
-  const container = document.getElementById('productStudioContent');
-  if (container) {
-    container.innerHTML = '';
-  }
-  // Reinitialize
-  initializeProductStudio();
-};
