@@ -1337,6 +1337,19 @@ function addProductStudioStyles() {
   height: 100%;
   overflow: auto;
 }
+/* Special styles for images panel rows */
+#imagesGlobalProductsPanel .product-studio-table tbody tr {
+  height: 100px; /* Increased height for images panel */
+}
+
+#imagesGlobalProductsPanel .product-studio-title {
+  white-space: normal; /* Allow wrapping */
+  text-overflow: initial; /* Remove ellipsis */
+  word-wrap: break-word; /* Break long words */
+  line-height: 1.4;
+  max-width: 300px; /* Set max width for wrapping */
+  display: block;
+}
     `;
     document.head.appendChild(style);
   }
@@ -3200,7 +3213,7 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
       ROAS
       <span class="product-studio-sort-icon">⇅</span>
     </th>
-    <th class="sortable" data-sort="images" style="width: 180px;">
+    <th class="sortable" data-sort="images" style="width: 260px;">
       IMAGES
       <span class="product-studio-sort-icon">⇅</span>
     </th>
@@ -3283,16 +3296,16 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
     if (roas >= 3) roasClass = 'titles-roas-high';
     else if (roas >= 1.5) roasClass = 'titles-roas-medium';
     
-    // Process thumbnail history - get last 3 images (changed from 5)
-    const thumbnailHistory = imageProduct.thumbnailHistory || [];
-    const last3Images = thumbnailHistory.slice(-3).reverse(); // Most recent first
-    
-    // Build images HTML
-    let imagesHTML = '<div style="display: flex; align-items: center; gap: 4px;">';
-    last3Images.forEach((imgData, idx) => {
-      const size = idx === 0 ? 45 : 32; // Current image normal size, others 70%
-      const opacity = idx === 0 ? 1 : 0.7;
-      const border = idx === 0 ? '2px solid #667eea' : '1px solid #e9ecef';
+// Process thumbnail history - get last 3 images (changed from 5)
+const thumbnailHistory = imageProduct.thumbnailHistory || [];
+const last3Images = thumbnailHistory.slice(-3).reverse(); // Most recent first
+
+// Build images HTML - Increased sizes for better visibility
+let imagesHTML = '<div style="display: flex; align-items: center; gap: 6px;">';
+last3Images.forEach((imgData, idx) => {
+  const size = idx === 0 ? 75 : 55; // Increased sizes: Current image 75px, others ~73% of current
+  const opacity = idx === 0 ? 1 : 0.7;
+  const border = idx === 0 ? '3px solid #667eea' : '2px solid #e9ecef';
       
       imagesHTML += `
         <div class="product-studio-img-container" style="position: relative; display: inline-block;">
@@ -3339,13 +3352,13 @@ async function renderImagesProductsTable(container, imagesData, performanceMetri
       <td>
         ${imagesHTML}
       </td>
-      <td>
-        <div class="product-studio-title-cell">
-          <div class="product-studio-title" style="font-size: 12px;">
-            ${imageProduct.title}
-          </div>
-        </div>
-      </td>
+<td>
+  <div class="product-studio-title-cell" style="padding: 8px 12px;">
+    <div class="product-studio-title" style="font-size: 13px; font-weight: 600;">
+      ${imageProduct.title}
+    </div>
+  </div>
+</td>
       <td>
         <div class="titles-metric-cell" style="position: relative; padding: 4px 8px;">
           ${maxValues.impressions > 0 && perfData.impressions ? 
