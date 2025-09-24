@@ -3273,12 +3273,24 @@ imagesData.forEach(imageProduct => {
     ctrCount++;
   }
 });
-const avgCtr = ctrCount > 0 ? totalCtr / ctrCount : 0;
+
+  const avgCtr = ctrCount > 0 ? totalCtr / ctrCount : 0;
+
+// Sort data by default sort state (CTR desc) before rendering
+const sortedImagesData = [...imagesData].sort((a, b) => {
+  const aPerfData = performanceMetrics.get(a.title) || {};
+  const bPerfData = performanceMetrics.get(b.title) || {};
+  const aVal = aPerfData.ctr || 0;
+  const bVal = bPerfData.ctr || 0;
   
-  // Create tbody
-  const tbody = document.createElement('tbody');
-  
-  imagesData.forEach((imageProduct, index) => {
+  // Sort by CTR descending (highest first)
+  return bVal - aVal;
+});
+
+// Create tbody
+const tbody = document.createElement('tbody');
+
+sortedImagesData.forEach((imageProduct, index) => {
     const row = document.createElement('tr');
     row.dataset.productTitle = imageProduct.title;
     row.dataset.imageData = JSON.stringify(imageProduct);
@@ -3481,8 +3493,8 @@ last3Images.forEach((imgData, idx) => {
     }
   });
   
-  // Add sorting functionality
-  addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData);
+// Add sorting functionality
+addImagesSortingFunctionality(table, sortedImagesData, performanceMetrics, processedMetrics, roasData);
 }
 
 function addImagesSortingFunctionality(table, imagesData, performanceMetrics, processedMetrics, roasData) {
