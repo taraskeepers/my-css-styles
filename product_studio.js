@@ -913,13 +913,13 @@ function addProductStudioStyles() {
       .kos-l { background: #fee2e2; color: #991b1b; }
 
 /* COMPANIES PANEL SPECIFIC STYLES */
-      .companies-table {
+      #titlesCompaniesPanel .product-studio-table {
         width: 100%;
         background: white;
         border-collapse: collapse;
       }
       
-      .companies-table thead {
+      #titlesCompaniesPanel .product-studio-table thead {
         position: sticky;
         top: 0;
         z-index: 10;
@@ -927,11 +927,11 @@ function addProductStudioStyles() {
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
       }
       
-      .companies-table thead tr {
+      #titlesCompaniesPanel .product-studio-table thead tr {
         border-bottom: 2px solid #e9ecef;
       }
       
-      .companies-table th {
+      #titlesCompaniesPanel .product-studio-table th {
         padding: 10px 8px;
         font-size: 11px;
         font-weight: 600;
@@ -945,17 +945,21 @@ function addProductStudioStyles() {
         user-select: none;
       }
       
-      .companies-table th.sortable {
+      #titlesCompaniesPanel .product-studio-table th.sortable {
         cursor: pointer;
         padding-right: 20px;
       }
       
-      .companies-table th.sortable:hover {
+      #titlesCompaniesPanel .product-studio-table th.sortable:hover {
         background: rgba(102, 126, 234, 0.04);
         color: #495057;
       }
       
-      .companies-table tbody tr {
+      #titlesCompaniesPanel .product-studio-table th.center {
+        text-align: center;
+      }
+      
+      #titlesCompaniesPanel .product-studio-table tbody tr {
         border-bottom: 1px solid #f0f2f5;
         transition: background 0.15s ease;
         height: 60px;
@@ -963,22 +967,26 @@ function addProductStudioStyles() {
         user-select: none;
       }
       
-      .companies-table tbody tr:hover {
+      #titlesCompaniesPanel .product-studio-table tbody tr:hover {
         background: rgba(102, 126, 234, 0.02);
       }
       
-      .companies-table tbody tr.expanded {
+      #titlesCompaniesPanel .product-studio-table tbody tr.expanded {
         background: rgba(102, 126, 234, 0.05);
       }
       
-      .companies-table td {
+      #titlesCompaniesPanel .product-studio-table td {
         padding: 8px;
         font-size: 13px;
         color: #495057;
         vertical-align: middle;
       }
       
-      .companies-sort-icon {
+      #titlesCompaniesPanel .product-studio-table td.center {
+        text-align: center;
+      }
+      
+      #titlesCompaniesPanel .product-studio-sort-icon {
         position: absolute;
         right: 4px;
         top: 50%;
@@ -987,51 +995,51 @@ function addProductStudioStyles() {
         color: #adb5bd;
       }
       
-      .companies-table th.sorted-asc .companies-sort-icon,
-      .companies-table th.sorted-desc .companies-sort-icon {
+      #titlesCompaniesPanel .product-studio-table th.sorted-asc .product-studio-sort-icon,
+      #titlesCompaniesPanel .product-studio-table th.sorted-desc .product-studio-sort-icon {
         color: #667eea;
       }
       
       .company-rank-badge {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 16px;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
       }
       
       .company-rank-badge.gold {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        color: white;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+        color: white !important;
       }
       
       .company-rank-badge.silver {
-        background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%);
-        color: white;
+        background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%) !important;
+        color: white !important;
       }
       
       .company-rank-badge.bronze {
-        background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-        color: white;
+        background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%) !important;
+        color: white !important;
       }
       
       .company-rank-badge.regular {
-        background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%);
-        color: #4b5563;
+        background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%) !important;
+        color: #4b5563 !important;
       }
       
-      .companies-expanded-row {
+      #titlesCompaniesPanel .product-studio-expanded-row {
         background: #f8f9fa;
       }
       
-      .companies-expanded-row td {
+      #titlesCompaniesPanel .product-studio-expanded-row td {
         padding: 0 !important;
       }
       
-      .companies-expanded-content {
+      #titlesCompaniesPanel .product-studio-expanded-content {
         padding: 20px 30px;
         animation: slideDown 0.2s ease-out;
       }
@@ -2028,10 +2036,11 @@ async function createProductsPanel() {
   const currentCompany = window.myCompany || allCompanies[0] || '';
   
   // Create header with filter, company dropdown and averages
+// Create header
   const header = document.createElement('div');
   header.className = 'product-studio-header';
-header.innerHTML = `
-    <div class="product-studio-header-left">
+  header.innerHTML = `
+    <div class="product-studio-header-left" style="flex: 1;">
       <h2 class="product-studio-header-title">
         Global Products Analysis
         <span class="product-studio-version">v1.0.0 BETA</span>
@@ -2040,14 +2049,15 @@ header.innerHTML = `
         Analyzing product performance across all search terms
       </div>
     </div>
-<div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
-      <div class="product-studio-title-filter" style="position: relative;">
+    <div class="product-studio-filter-section" style="flex: 2; display: flex; align-items: center; gap: 15px;">
+      <div class="product-studio-title-filter" style="position: relative; flex: 1;">
         <input type="text" 
                class="product-studio-filter-input" 
                id="productStudioFilterInput" 
                placeholder="🔍 Filter products by title... (Press Enter)" 
-               autocomplete="off">
-        <div class="product-studio-filter-tags" id="productStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;"></div>
+               autocomplete="off"
+               style="width: 100%;">
+        <div class="product-studio-filter-tags" id="productStudioFilterTags" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 100;"></div>
       </div>
       <div class="product-studio-company-selector">
         <select id="productStudioCompanySelect" class="product-studio-filter-input" style="width: 200px;">
@@ -2059,34 +2069,18 @@ header.innerHTML = `
         </select>
       </div>
     </div>
-    <div class="product-studio-avg-scores">
-        <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
-              <span class="product-studio-avg-max">/100</span>
-            </div>
-          </div>
-        </div>
-        <div class="product-studio-avg-item" id="globalAvgKOSContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
-              <span class="product-studio-avg-max">/20</span>
-            </div>
-          </div>
-        </div>
-        <div class="product-studio-avg-item" id="globalAvgGOSContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
-              <span class="product-studio-avg-max">/80</span>
-            </div>
-          </div>
-        </div>
+    <div class="product-studio-avg-scores" style="flex: 1; display: flex; gap: 20px; justify-content: flex-end; padding-right: 20px;">
+      <div class="score-stat-item">
+        <span class="stat-label">AVG T-SCORE</span>
+        <span class="stat-value tscore" data-value="${avgScores.tscore.toFixed(1)}">${avgScores.tscore.toFixed(1)}<span class="stat-max">/100</span></span>
+      </div>
+      <div class="score-stat-item">
+        <span class="stat-label">AVG KOS</span>
+        <span class="stat-value kos" data-value="${avgScores.kos.toFixed(1)}">${avgScores.kos.toFixed(1)}<span class="stat-max">/20</span></span>
+      </div>
+      <div class="score-stat-item">
+        <span class="stat-label">AVG GOS</span>
+        <span class="stat-value gos" data-value="${avgScores.gos.toFixed(1)}">${avgScores.gos.toFixed(1)}<span class="stat-max">/80</span></span>
       </div>
     </div>
   `;
