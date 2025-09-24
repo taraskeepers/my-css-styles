@@ -1588,11 +1588,7 @@ async function createRankMapProductsPanel() {
   const rankMapPanel = document.createElement('div');
   rankMapPanel.id = 'titlesRankMapProductsPanel';
   
-  // Get all companies for dropdown
-  const allCompanies = await getAllCompaniesFromData();
-  const currentCompany = window.myCompany || allCompanies[0] || '';
-  
-  // Create header with filter, company dropdown and averages
+  // Create header WITHOUT filter and company dropdown
   const header = document.createElement('div');
   header.className = 'product-studio-header';
   header.innerHTML = `
@@ -1602,24 +1598,21 @@ async function createRankMapProductsPanel() {
         <span class="product-studio-version">v1.0.0 BETA</span>
       </h2>
       <div class="product-studio-selected-info">
-        Analyzing product ranking positions across search terms
+        T-Score correlation with SERP positions across all companies
       </div>
     </div>
-    <div class="product-studio-filter-section">
-      <div class="product-studio-title-filter">
-        <input type="text" 
-               class="product-studio-filter-input" 
-               id="rankMapFilterInput" 
-               placeholder="🔍 Filter products by title... (Press Enter)" 
-               autocomplete="off">
-        <div class="product-studio-filter-tags" id="rankMapFilterTags"></div>
+    <div class="product-studio-rank-map-stats" style="position: absolute; right: 20px; display: flex; gap: 20px; align-items: center;">
+      <div class="rank-map-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Total Products</span>
+        <span id="rankMapTotalProducts" style="font-size: 18px; font-weight: 700; color: white;">-</span>
       </div>
-      <div class="product-studio-company-selector" style="margin-left: 20px;">
-        <select id="rankMapCompanySelect" class="product-studio-filter-input" style="width: 200px;">
-          ${allCompanies.map(company => 
-            `<option value="${company}" ${company.toLowerCase() === currentCompany.toLowerCase() ? 'selected' : ''}>${company}</option>`
-          ).join('')}
-        </select>
+      <div class="rank-map-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Data Coverage</span>
+        <span id="rankMapCoverage" style="font-size: 18px; font-weight: 700; color: white;">-</span>
+      </div>
+      <div class="rank-map-stat-item" style="display: flex; flex-direction: column; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">Last Updated</span>
+        <span id="rankMapLastUpdated" style="font-size: 12px; font-weight: 600; color: white;">-</span>
       </div>
     </div>
   `;
@@ -1630,11 +1623,252 @@ async function createRankMapProductsPanel() {
   tableContainer.className = 'product-studio-table-container';
   tableContainer.id = 'rankMapTableContainer';
   
-  // IMPORTANT: Append table container to panel BEFORE trying to load data
   rankMapPanel.appendChild(tableContainer);
   
-  // Return the panel so it can be added to DOM
   return rankMapPanel;
+}
+
+// Load and process rank map data with caching
+async function loadRankMapData(forceRefresh = false) {
+  const CACHE_KEY = 'rankMapDataCache';
+  const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+  
+  // Check cache first
+  if (!forceRefresh) {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        console.log('[loadRankMapData] Using cached data');
+        return data;
+      }
+    }
+  }
+  
+  console.log('[loadRankMapData] Loading fresh data...');
+  
+  // Get ALL companies first
+  const allCompanies = await getAllCompaniesFromData();
+  
+  // Initialize position map
+  const positionMap = new Map();
+  for (let pos = 1; pos <= 40; pos++) {
+    positionMap.set(pos, {
+      position: pos,
+      tscores: [],
+      products: [],
+      companies: new Set()
+    });
+  }
+  
+  let totalProducts = 0;
+  
+  // Process each company
+  for (const company of allCompanies) {
+    // Load evaluated products for this company
+    const evaluatedProducts = await loadProductTitlesEvaluated(company);
+    
+    if (evaluatedProducts.length > 0) {
+      const productTitles = evaluatedProducts.map(p => p.title);
+      
+      // Load processed metrics for this company
+      const processedMetrics = await loadProcessedDataForProducts(productTitles, company);
+      
+      // Map products to positions
+      evaluatedProducts.forEach(product => {
+        const metrics = processedMetrics.get(product.title);
+        const position = metrics?.avgPosition;
+        
+        if (position && position >= 1 && position <= 40) {
+          const roundedPos = Math.round(position);
+          const posData = positionMap.get(roundedPos);
+          
+          if (posData) {
+            posData.tscores.push(product.finalScore);
+            posData.products.push({
+              title: product.title,
+              tscore: product.finalScore,
+              company: company
+            });
+            posData.companies.add(company);
+            totalProducts++;
+          }
+        }
+      });
+    }
+  }
+  
+  // Calculate averages and prepare final data
+  const rankMapData = [];
+  let positionsWithData = 0;
+  
+  for (let pos = 1; pos <= 40; pos++) {
+    const posData = positionMap.get(pos);
+    const avgTScore = posData.tscores.length > 0 
+      ? posData.tscores.reduce((a, b) => a + b, 0) / posData.tscores.length 
+      : null;
+    
+    if (posData.tscores.length > 0) {
+      positionsWithData++;
+    }
+    
+    rankMapData.push({
+      position: pos,
+      avgTScore: avgTScore,
+      productCount: posData.tscores.length,
+      companyCount: posData.companies.size,
+      products: posData.products.slice(0, 5) // Keep top 5 for tooltip
+    });
+  }
+  
+  const result = {
+    data: rankMapData,
+    totalProducts: totalProducts,
+    coverage: Math.round((positionsWithData / 40) * 100),
+    timestamp: Date.now()
+  };
+  
+  // Cache the results
+  localStorage.setItem(CACHE_KEY, JSON.stringify({
+    data: result,
+    timestamp: Date.now()
+  }));
+  
+  return result;
+}
+
+// Render rank map table
+function renderRankMapTable(container, rankMapResult) {
+  const { data, totalProducts, coverage, timestamp } = rankMapResult;
+  
+  // Update stats
+  document.getElementById('rankMapTotalProducts').textContent = totalProducts.toLocaleString();
+  document.getElementById('rankMapCoverage').textContent = `${coverage}%`;
+  document.getElementById('rankMapLastUpdated').textContent = new Date(timestamp).toLocaleTimeString();
+  
+  // Create wrapper
+  const wrapper = document.createElement('div');
+  wrapper.className = 'product-studio-wrapper';
+  
+  const table = document.createElement('table');
+  table.className = 'product-studio-table';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `
+    <th class="center" style="width: 80px;">Position</th>
+    <th class="center" style="width: 100px;">Avg T-Score</th>
+    <th style="width: 250px;">T-Score Visualization</th>
+    <th class="center" style="width: 100px;">Products</th>
+    <th class="center" style="width: 100px;">Companies</th>
+    <th>Insights</th>
+  `;
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create tbody
+  const tbody = document.createElement('tbody');
+  
+  // Find max T-Score for scaling
+  const maxTScore = Math.max(...data.filter(d => d.avgTScore).map(d => d.avgTScore));
+  
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    
+    // Position indicator with color coding
+    let posClass = 'bottom';
+    if (row.position <= 3) posClass = 'top';
+    else if (row.position <= 8) posClass = 'mid';
+    else if (row.position <= 14) posClass = 'low';
+    
+    // T-Score color
+    let tscoreClass = '';
+    let tscoreColor = '#999';
+    if (row.avgTScore) {
+      if (row.avgTScore > 70) {
+        tscoreClass = 'product-studio-tscore-excellent';
+        tscoreColor = '#22c55e';
+      } else if (row.avgTScore >= 55) {
+        tscoreClass = 'product-studio-tscore-good';
+        tscoreColor = '#4ade80';
+      } else if (row.avgTScore >= 40) {
+        tscoreClass = 'product-studio-tscore-fair';
+        tscoreColor = '#fbbf24';
+      } else {
+        tscoreClass = 'product-studio-tscore-poor';
+        tscoreColor = '#ef4444';
+      }
+    }
+    
+    // Calculate bar width
+    const barWidth = row.avgTScore ? (row.avgTScore / 100) * 100 : 0;
+    
+    // Insights based on position and T-Score
+    let insight = '';
+    if (row.avgTScore) {
+      if (row.position <= 5 && row.avgTScore < 50) {
+        insight = '⚠️ Low quality titles ranking high';
+      } else if (row.position <= 5 && row.avgTScore > 70) {
+        insight = '✅ High quality titles dominating';
+      } else if (row.position > 20 && row.avgTScore > 60) {
+        insight = '📈 Good titles underperforming';
+      } else if (row.position > 20 && row.avgTScore < 40) {
+        insight = '❌ Poor titles in poor positions';
+      } else if (row.avgTScore >= 55 && row.avgTScore <= 70) {
+        insight = '📊 Average performance';
+      }
+    }
+    
+    tr.innerHTML = `
+      <td class="center">
+        <div class="product-studio-position-indicator ${posClass}">${row.position}</div>
+      </td>
+      <td class="center">
+        ${row.avgTScore ? 
+          `<span class="product-studio-score-fraction ${tscoreClass}">
+            <span class="product-studio-score-value">${Math.round(row.avgTScore)}</span>
+            <span class="product-studio-score-max">/100</span>
+          </span>` : 
+          '<span style="color: #adb5bd;">No data</span>'}
+      </td>
+      <td>
+        ${row.avgTScore ? 
+          `<div style="width: 100%; height: 24px; background: #f0f2f5; border-radius: 12px; position: relative; overflow: hidden;">
+            <div style="width: ${barWidth}%; height: 100%; background: linear-gradient(90deg, ${tscoreColor}dd, ${tscoreColor}); transition: width 0.3s ease;"></div>
+            <div style="position: absolute; top: 0; left: 8px; right: 8px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 11px; font-weight: 600; color: ${barWidth > 50 ? 'white' : '#333'};">${Math.round(row.avgTScore)}</span>
+              ${row.productCount > 0 ? `<span style="font-size: 10px; color: ${barWidth > 50 ? 'rgba(255,255,255,0.8)' : '#666'};">${row.productCount} samples</span>` : ''}
+            </div>
+          </div>` : 
+          '<div style="color: #adb5bd; font-size: 12px;">-</div>'}
+      </td>
+      <td class="center">
+        ${row.productCount > 0 ? 
+          `<span style="font-weight: 600; color: #333;">${row.productCount}</span>` : 
+          '<span style="color: #adb5bd;">0</span>'}
+      </td>
+      <td class="center">
+        ${row.companyCount > 0 ? 
+          `<span style="font-weight: 600; color: #667eea;">${row.companyCount}</span>` : 
+          '<span style="color: #adb5bd;">0</span>'}
+      </td>
+      <td>
+        <span style="font-size: 12px; color: #666;">${insight}</span>
+      </td>
+    `;
+    
+    // Add hover tooltip for sample products
+    if (row.products && row.products.length > 0) {
+      tr.setAttribute('title', `Sample products: ${row.products.map(p => p.title).join(', ')}`);
+    }
+    
+    tbody.appendChild(tr);
+  });
+  
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
 }
 
 // Initialize products panel data (call this after the panel is added to DOM)
@@ -1835,16 +2069,43 @@ async function showRankMapPanel() {
     productsPanel.style.display = 'none';
     rankMapPanel.style.display = 'flex';
     
-    // Check if table is empty and reload if needed
     const tableContainer = document.getElementById('rankMapTableContainer');
-    if (tableContainer && !tableContainer.hasChildNodes()) {
-      // For now, we'll just show a placeholder - content development comes next
+    if (tableContainer) {
+      // Show loading state
       tableContainer.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #666;">
-          <h3>Rank Map Panel Ready</h3>
-          <p>Content will be developed in the next step</p>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; gap: 20px;">
+          <div class="loading-spinner" style="width: 50px; height: 50px; border: 4px solid #f0f2f5; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <div style="text-align: center;">
+            <h3 style="color: #333; margin: 0;">Processing Rank Map Data</h3>
+            <p style="color: #666; margin-top: 8px; font-size: 14px;">Analyzing T-Score correlation across all positions...</p>
+            <p style="color: #999; margin-top: 4px; font-size: 12px;">This may take a few moments for the first load</p>
+          </div>
         </div>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
       `;
+      
+      // Load rank map data
+      try {
+        const rankMapResult = await loadRankMapData();
+        
+        // Clear loading state and render table
+        tableContainer.innerHTML = '';
+        renderRankMapTable(tableContainer, rankMapResult);
+      } catch (error) {
+        console.error('[showRankMapPanel] Error loading rank map data:', error);
+        tableContainer.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #999;">
+            <h3>Error Loading Rank Map Data</h3>
+            <p>${error.message}</p>
+            <button onclick="window.showRankMapPanel()" style="margin-top: 20px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
+          </div>
+        `;
+      }
     }
   }
 }
@@ -2538,3 +2799,4 @@ function updateGlobalAverages(products) {
 window.initializeProductStudio = initializeProductStudio;
 window.showCompaniesPanel = showCompaniesPanel;
 window.showProductsPanel = showProductsPanel;
+window.showRankMapPanel = showRankMapPanel;
