@@ -1795,10 +1795,12 @@ function initializeProductStudioToggle() {
 function showCompaniesPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
+  const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
   
-  if (companiesPanel && productsPanel) {
+  if (companiesPanel && productsPanel && rankMapPanel) {
     companiesPanel.style.display = 'flex';
     productsPanel.style.display = 'none';
+    rankMapPanel.style.display = 'none';
   }
 }
 
@@ -1806,10 +1808,12 @@ function showCompaniesPanel() {
 async function showProductsPanel() {
   const companiesPanel = document.getElementById('titlesCompaniesPanel');
   const productsPanel = document.getElementById('titlesGlobalProductsPanel');
+  const rankMapPanel = document.getElementById('titlesRankMapProductsPanel');
   
-  if (companiesPanel && productsPanel) {
+  if (companiesPanel && productsPanel && rankMapPanel) {
     companiesPanel.style.display = 'none';
     productsPanel.style.display = 'flex';
+    rankMapPanel.style.display = 'none';
     
     // Check if table is empty and reload if needed
     const tableContainer = document.getElementById('globalProductsTableContainer');
