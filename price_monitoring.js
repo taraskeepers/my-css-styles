@@ -453,8 +453,11 @@ async function populateMarketOverview() {
   const market = data.marketData;
   console.log('[PriceMonitoring] Populating with market data:', market);
   
-  // Update last updated time
-  document.getElementById('pmLastUpdated').textContent = new Date().toLocaleString();
+// Update last updated time (if element exists)
+const lastUpdatedEl = document.getElementById('pmLastUpdated');
+if (lastUpdatedEl) {
+  lastUpdatedEl.textContent = new Date().toLocaleString();
+}
   
   // 1. Market Temperature
   const temp = parseFloat(market.avg_rating) || 0;
