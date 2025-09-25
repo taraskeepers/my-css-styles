@@ -34,7 +34,7 @@ function createPriceMonitoringStructure() {
     switcherWrapper.id = 'pmViewSwitcherWrapper';
     switcherWrapper.className = 'pm-view-switcher-wrapper';
     switcherWrapper.style.cssText = `
-      margin: 20px 0 20px 20px;
+      margin: 0 0 0 20px;
       display: flex;
       align-items: center;
       gap: 20px;
