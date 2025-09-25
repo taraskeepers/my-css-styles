@@ -18,223 +18,248 @@
     showPriceMonitoringView('market-overview');
   };
 
-  // Create the main structure with switcher and containers
-  function createPriceMonitoringStructure() {
-    const container = document.getElementById('priceMonitoringContainer');
-    if (!container) {
-      console.error('[PriceMonitoring] Container not found!');
-      return;
+// Create the main structure with switcher and containers
+function createPriceMonitoringStructure() {
+  const container = document.getElementById('priceMonitoringContainer');
+  if (!container) {
+    console.error('[PriceMonitoring] Container not found!');
+    return;
+  }
+
+  // First, create and insert the switcher OUTSIDE and BEFORE the container
+  const priceMonitoringPage = document.getElementById('priceMonitoringPage');
+  if (priceMonitoringPage) {
+    // Check if switcher already exists
+    let switcherWrapper = document.getElementById('pmViewSwitcherWrapper');
+    if (!switcherWrapper) {
+      // Create the switcher wrapper element
+      switcherWrapper = document.createElement('div');
+      switcherWrapper.id = 'pmViewSwitcherWrapper';
+      switcherWrapper.className = 'pm-view-switcher-wrapper';
+      switcherWrapper.style.cssText = `
+        margin: 20px 0 20px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      `;
+      
+      switcherWrapper.innerHTML = `
+        <div id="pmViewSwitcher" class="pm-view-switcher">
+          <button id="pmMarketOverview" class="pm-switcher-btn active" data-view="market-overview">
+            <span class="pm-btn-icon">📊</span>
+            <span>Market Overview</span>
+          </button>
+          <button id="pmCompanies" class="pm-switcher-btn" data-view="companies">
+            <span class="pm-btn-icon">🏢</span>
+            <span>Companies</span>
+          </button>
+          <button id="pmProducts" class="pm-switcher-btn" data-view="products">
+            <span class="pm-btn-icon">📦</span>
+            <span>Products</span>
+          </button>
+          <button id="pmCompareMode" class="pm-switcher-btn" data-view="compare-mode">
+            <span class="pm-btn-icon">⚖️</span>
+            <span>Compare Mode</span>
+          </button>
+          <button id="pmPromos" class="pm-switcher-btn" data-view="promos">
+            <span class="pm-btn-icon">🏷️</span>
+            <span>PROMOs</span>
+          </button>
+        </div>
+      `;
+      
+      // Insert the switcher BEFORE the price-monitoring-wrapper
+      const wrapper = priceMonitoringPage.querySelector('.price-monitoring-wrapper');
+      if (wrapper) {
+        priceMonitoringPage.insertBefore(switcherWrapper, wrapper);
+      }
     }
+  }
 
-    container.innerHTML = `
-      <!-- Price Monitoring Header -->
-      <div class="pm-header-section">
-        <div class="pm-title-row">
-          <h2 class="pm-main-title">Price Monitoring Dashboard</h2>
-          <div class="pm-last-updated">Last updated: <span id="pmLastUpdated">-</span></div>
+  // Now update the container content WITHOUT the switcher
+  container.innerHTML = `
+    <!-- Price Monitoring Header -->
+    <div class="pm-header-section">
+      <div class="pm-title-row">
+        <h2 class="pm-main-title">Price Monitoring Dashboard</h2>
+        <div class="pm-last-updated">Last updated: <span id="pmLastUpdated">-</span></div>
+      </div>
+    </div>
+
+    <!-- Market Overview Container -->
+    <div id="pmMarketOverviewContainer" class="pm-content-container pm-market-overview-container">
+      <div class="pm-market-stats-grid">
+        <div class="pm-stat-card">
+          <div class="pm-stat-label">Market Median Price</div>
+          <div class="pm-stat-value">$0.00</div>
+          <div class="pm-stat-change positive">+0%</div>
         </div>
-        
-        <!-- Price Monitoring View Switcher -->
-        <div class="pm-view-switcher-wrapper">
-          <div id="pmViewSwitcher" class="pm-view-switcher">
-            <button id="pmMarketOverview" class="pm-switcher-btn active" data-view="market-overview">
-              <span class="pm-btn-icon">📊</span>
-              <span>Market Overview</span>
-            </button>
-            <button id="pmCompanies" class="pm-switcher-btn" data-view="companies">
-              <span class="pm-btn-icon">🏢</span>
-              <span>Companies</span>
-            </button>
-            <button id="pmProducts" class="pm-switcher-btn" data-view="products">
-              <span class="pm-btn-icon">📦</span>
-              <span>Products</span>
-            </button>
-            <button id="pmCompareMode" class="pm-switcher-btn" data-view="compare-mode">
-              <span class="pm-btn-icon">⚖️</span>
-              <span>Compare Mode</span>
-            </button>
-            <button id="pmPromos" class="pm-switcher-btn" data-view="promos">
-              <span class="pm-btn-icon">🏷️</span>
-              <span>PROMOs</span>
-            </button>
-          </div>
+        <div class="pm-stat-card">
+          <div class="pm-stat-label">Active Products</div>
+          <div class="pm-stat-value">0</div>
+          <div class="pm-stat-change">0 new today</div>
+        </div>
+        <div class="pm-stat-card">
+          <div class="pm-stat-label">Price Volatility</div>
+          <div class="pm-stat-value">0%</div>
+          <div class="pm-stat-change negative">-0%</div>
+        </div>
+        <div class="pm-stat-card">
+          <div class="pm-stat-label">Avg Discount</div>
+          <div class="pm-stat-value">0%</div>
+          <div class="pm-stat-change">0 promos active</div>
         </div>
       </div>
-
-      <!-- Market Overview Container -->
-      <div id="pmMarketOverviewContainer" class="pm-content-container pm-market-overview-container">
-        <div class="pm-market-stats-grid">
-          <div class="pm-stat-card">
-            <div class="pm-stat-label">Market Median Price</div>
-            <div class="pm-stat-value">$0.00</div>
-            <div class="pm-stat-change positive">+0%</div>
-          </div>
-          <div class="pm-stat-card">
-            <div class="pm-stat-label">Active Products</div>
-            <div class="pm-stat-value">0</div>
-            <div class="pm-stat-change">0 new today</div>
-          </div>
-          <div class="pm-stat-card">
-            <div class="pm-stat-label">Price Volatility</div>
-            <div class="pm-stat-value">0%</div>
-            <div class="pm-stat-change negative">-0%</div>
-          </div>
-          <div class="pm-stat-card">
-            <div class="pm-stat-label">Avg Discount</div>
-            <div class="pm-stat-value">0%</div>
-            <div class="pm-stat-change">0 promos active</div>
-          </div>
+      
+      <div class="pm-charts-row">
+        <div class="pm-chart-container">
+          <h3>Price Distribution by Bucket</h3>
+          <div id="pmBucketChart" class="pm-chart-placeholder">Chart will load here</div>
         </div>
-        
-        <div class="pm-charts-row">
-          <div class="pm-chart-container">
-            <h3>Price Distribution by Bucket</h3>
-            <div id="pmBucketChart" class="pm-chart-placeholder">Chart will load here</div>
-          </div>
-          <div class="pm-chart-container">
-            <h3>Price Trends (30 Days)</h3>
-            <div id="pmTrendsChart" class="pm-chart-placeholder">Chart will load here</div>
-          </div>
+        <div class="pm-chart-container">
+          <h3>Price Trends (30 Days)</h3>
+          <div id="pmTrendsChart" class="pm-chart-placeholder">Chart will load here</div>
         </div>
       </div>
+    </div>
 
-      <!-- Companies Container -->
-      <div id="pmCompaniesContainer" class="pm-content-container pm-companies-container" style="display: none;">
-        <div class="pm-company-selector-row">
-          <div class="pm-company-dropdown-wrapper">
-            <label>Select Company:</label>
-            <select id="pmCompanySelect" class="pm-select">
-              <option value="">Choose a company...</option>
+    <!-- Companies Container -->
+    <div id="pmCompaniesContainer" class="pm-content-container pm-companies-container" style="display: none;">
+      <div class="pm-company-selector-row">
+        <div class="pm-company-dropdown-wrapper">
+          <label>Select Company:</label>
+          <select id="pmCompanySelect" class="pm-select">
+            <option value="">Choose a company...</option>
+          </select>
+        </div>
+        <div class="pm-date-range-selector">
+          <button class="pm-date-btn active" data-days="7">7 Days</button>
+          <button class="pm-date-btn" data-days="30">30 Days</button>
+          <button class="pm-date-btn" data-days="90">90 Days</button>
+        </div>
+      </div>
+      
+      <div class="pm-company-metrics-grid">
+        <div class="pm-metric-card">
+          <h4>Company Price Index (CPI)</h4>
+          <div class="pm-metric-main">0.00</div>
+          <div class="pm-metric-sub">vs Market</div>
+        </div>
+        <div class="pm-metric-card">
+          <h4>Coverage Score</h4>
+          <div class="pm-metric-main">0%</div>
+          <div class="pm-metric-sub">of buckets covered</div>
+        </div>
+        <div class="pm-metric-card">
+          <h4>Promo Intensity</h4>
+          <div class="pm-metric-main">0%</div>
+          <div class="pm-metric-sub">products on sale</div>
+        </div>
+        <div class="pm-metric-card">
+          <h4>Price Stability</h4>
+          <div class="pm-metric-main">0.0</div>
+          <div class="pm-metric-sub">volatility score</div>
+        </div>
+      </div>
+      
+      <div class="pm-company-details-section">
+        <div id="pmCompanyTable" class="pm-table-container">
+          <!-- Company products table will be inserted here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Container -->
+    <div id="pmProductsContainer" class="pm-content-container pm-products-container" style="display: none;">
+      <div class="pm-products-filters">
+        <input type="text" id="pmProductSearch" class="pm-search-input" placeholder="Search products...">
+        <select id="pmBucketFilter" class="pm-select">
+          <option value="">All Price Buckets</option>
+          <option value="ultra-cheap">Ultra-cheap (≤P10)</option>
+          <option value="budget">Budget (P10-P25)</option>
+          <option value="mid">Mid (P25-P50)</option>
+          <option value="upper-mid">Upper-mid (P50-P75)</option>
+          <option value="premium">Premium (P75-P90)</option>
+          <option value="ultra-premium">Ultra-premium (>P90)</option>
+        </select>
+        <select id="pmPromoFilter" class="pm-select">
+          <option value="">All Products</option>
+          <option value="on-sale">On Sale</option>
+          <option value="regular">Regular Price</option>
+        </select>
+      </div>
+      
+      <div id="pmProductsGrid" class="pm-products-grid">
+        <!-- Product cards will be inserted here -->
+      </div>
+    </div>
+
+    <!-- Compare Mode Container -->
+    <div id="pmCompareModeContainer" class="pm-content-container pm-compare-container" style="display: none;">
+      <div class="pm-compare-header">
+        <div class="pm-compare-selectors">
+          <div class="pm-compare-item">
+            <label>Company A:</label>
+            <select id="pmCompareA" class="pm-select">
+              <option value="">Select company...</option>
             </select>
           </div>
-          <div class="pm-date-range-selector">
-            <button class="pm-date-btn active" data-days="7">7 Days</button>
-            <button class="pm-date-btn" data-days="30">30 Days</button>
-            <button class="pm-date-btn" data-days="90">90 Days</button>
+          <div class="pm-vs-divider">VS</div>
+          <div class="pm-compare-item">
+            <label>Company B:</label>
+            <select id="pmCompareB" class="pm-select">
+              <option value="">Select company...</option>
+            </select>
           </div>
-        </div>
-        
-        <div class="pm-company-metrics-grid">
-          <div class="pm-metric-card">
-            <h4>Company Price Index (CPI)</h4>
-            <div class="pm-metric-main">0.00</div>
-            <div class="pm-metric-sub">vs Market</div>
-          </div>
-          <div class="pm-metric-card">
-            <h4>Coverage Score</h4>
-            <div class="pm-metric-main">0%</div>
-            <div class="pm-metric-sub">of buckets covered</div>
-          </div>
-          <div class="pm-metric-card">
-            <h4>Promo Intensity</h4>
-            <div class="pm-metric-main">0%</div>
-            <div class="pm-metric-sub">products on sale</div>
-          </div>
-          <div class="pm-metric-card">
-            <h4>Price Stability</h4>
-            <div class="pm-metric-main">0.0</div>
-            <div class="pm-metric-sub">volatility score</div>
-          </div>
-        </div>
-        
-        <div class="pm-company-details-section">
-          <div id="pmCompanyTable" class="pm-table-container">
-            <!-- Company products table will be inserted here -->
-          </div>
+          <button id="pmCompareBtn" class="pm-primary-btn">Compare</button>
         </div>
       </div>
+      
+      <div id="pmComparisonResults" class="pm-comparison-results">
+        <!-- Comparison results will be displayed here -->
+      </div>
+    </div>
 
-      <!-- Products Container -->
-      <div id="pmProductsContainer" class="pm-content-container pm-products-container" style="display: none;">
-        <div class="pm-products-filters">
-          <input type="text" id="pmProductSearch" class="pm-search-input" placeholder="Search products...">
-          <select id="pmBucketFilter" class="pm-select">
-            <option value="">All Price Buckets</option>
-            <option value="ultra-cheap">Ultra-cheap (≤P10)</option>
-            <option value="budget">Budget (P10-P25)</option>
-            <option value="mid">Mid (P25-P50)</option>
-            <option value="upper-mid">Upper-mid (P50-P75)</option>
-            <option value="premium">Premium (P75-P90)</option>
-            <option value="ultra-premium">Ultra-premium (>P90)</option>
-          </select>
-          <select id="pmPromoFilter" class="pm-select">
-            <option value="">All Products</option>
-            <option value="on-sale">On Sale</option>
-            <option value="regular">Regular Price</option>
-          </select>
+    <!-- PROMOs Container -->
+    <div id="pmPromosContainer" class="pm-content-container pm-promos-container" style="display: none;">
+      <div class="pm-promos-summary">
+        <div class="pm-promo-stat">
+          <div class="pm-promo-number">0</div>
+          <div class="pm-promo-label">Active Promotions</div>
         </div>
-        
-        <div id="pmProductsGrid" class="pm-products-grid">
-          <!-- Product cards will be inserted here -->
+        <div class="pm-promo-stat">
+          <div class="pm-promo-number">0%</div>
+          <div class="pm-promo-label">Avg Discount</div>
+        </div>
+        <div class="pm-promo-stat">
+          <div class="pm-promo-number">0</div>
+          <div class="pm-promo-label">New Today</div>
+        </div>
+        <div class="pm-promo-stat">
+          <div class="pm-promo-number">0</div>
+          <div class="pm-promo-label">Ending Soon</div>
         </div>
       </div>
-
-      <!-- Compare Mode Container -->
-      <div id="pmCompareModeContainer" class="pm-content-container pm-compare-container" style="display: none;">
-        <div class="pm-compare-header">
-          <div class="pm-compare-selectors">
-            <div class="pm-compare-item">
-              <label>Company A:</label>
-              <select id="pmCompareA" class="pm-select">
-                <option value="">Select company...</option>
-              </select>
-            </div>
-            <div class="pm-vs-divider">VS</div>
-            <div class="pm-compare-item">
-              <label>Company B:</label>
-              <select id="pmCompareB" class="pm-select">
-                <option value="">Select company...</option>
-              </select>
-            </div>
-            <button id="pmCompareBtn" class="pm-primary-btn">Compare</button>
-          </div>
-        </div>
-        
-        <div id="pmComparisonResults" class="pm-comparison-results">
-          <!-- Comparison results will be displayed here -->
+      
+      <div class="pm-promos-timeline">
+        <h3>Promotion Timeline</h3>
+        <div id="pmPromosTimeline" class="pm-timeline-container">
+          <!-- Timeline visualization will be here -->
         </div>
       </div>
-
-      <!-- PROMOs Container -->
-      <div id="pmPromosContainer" class="pm-content-container pm-promos-container" style="display: none;">
-        <div class="pm-promos-summary">
-          <div class="pm-promo-stat">
-            <div class="pm-promo-number">0</div>
-            <div class="pm-promo-label">Active Promotions</div>
-          </div>
-          <div class="pm-promo-stat">
-            <div class="pm-promo-number">0%</div>
-            <div class="pm-promo-label">Avg Discount</div>
-          </div>
-          <div class="pm-promo-stat">
-            <div class="pm-promo-number">0</div>
-            <div class="pm-promo-label">New Today</div>
-          </div>
-          <div class="pm-promo-stat">
-            <div class="pm-promo-number">0</div>
-            <div class="pm-promo-label">Ending Soon</div>
-          </div>
-        </div>
-        
-        <div class="pm-promos-timeline">
-          <h3>Promotion Timeline</h3>
-          <div id="pmPromosTimeline" class="pm-timeline-container">
-            <!-- Timeline visualization will be here -->
-          </div>
-        </div>
-        
-        <div class="pm-promos-list">
-          <h3>Active Promotions</h3>
-          <div id="pmPromosList" class="pm-list-container">
-            <!-- Promotions list will be here -->
-          </div>
+      
+      <div class="pm-promos-list">
+        <h3>Active Promotions</h3>
+        <div id="pmPromosList" class="pm-list-container">
+          <!-- Promotions list will be here -->
         </div>
       </div>
-    `;
+    </div>
+  `;
 
-    // Add CSS styles
-    addPriceMonitoringStyles();
-  }
+  // Add CSS styles
+  addPriceMonitoringStyles();
+}
 
   // Add CSS styles for Price Monitoring
   function addPriceMonitoringStyles() {
@@ -242,47 +267,6 @@
     
     const styles = `
       <style id="pmStyles">
-        /* Price Monitoring Main Styles */
-        .pm-header-section {
-          margin-bottom: 25px;
-          border-bottom: 1px solid #e0e0e0;
-          padding-bottom: 20px;
-        }
-
-        .pm-title-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .pm-main-title {
-          font-size: 24px;
-          font-weight: 600;
-          color: #333;
-          margin: 0;
-        }
-
-        .pm-last-updated {
-          font-size: 12px;
-          color: #888;
-        }
-
-        /* View Switcher Styles */
-        .pm-view-switcher-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .pm-view-switcher {
-          display: inline-flex;
-          background-color: #f5f5f5;
-          border-radius: 30px;
-          padding: 4px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
         .pm-switcher-btn {
           padding: 10px 20px;
           border: none;
