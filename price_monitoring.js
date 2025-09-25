@@ -1188,8 +1188,6 @@ function addPriceMonitoringStyles() {
   font-size: 32px;
   color: #2196F3;
 }
-        
-      }
     </style>
   `;
   
