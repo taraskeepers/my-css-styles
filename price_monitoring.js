@@ -218,167 +218,177 @@ function createPriceMonitoringStructure() {
     // Add initial content based on view type
 if (config.view === 'market-overview') {
   container.innerHTML = `
-    <div class="pm-header-section">
-      <div class="pm-title-row">
-        <h2 class="pm-main-title">Price Monitoring Dashboard</h2>
-        <div class="pm-last-updated">Last updated: <span id="pmLastUpdated">—</span></div>
-      </div>
-    </div>
-    
-    <!-- Market Temperature Container -->
-    <div id="pmMarketTemperature" class="pm-temperature-container">
-      <div class="pm-temp-header">
-        <h3>Market Temperature</h3>
-        <div class="pm-temp-value-display">
-          <span id="pmTempValue">—</span>
-          <span class="pm-temp-unit">°</span>
-        </div>
-      </div>
-      <div class="pm-temp-gauge-wrapper">
-        <div class="pm-temp-gauge">
-          <div id="pmTempFill" class="pm-temp-fill"></div>
-          <div class="pm-temp-scale">
-            <span data-temp="0">0°</span>
-            <span data-temp="25">25°</span>
-            <span data-temp="50">50°</span>
-            <span data-temp="75">75°</span>
-            <span data-temp="100">100°</span>
+    <div class="pm-dashboard-container">
+      <!-- Header Row with Temperature and Key Metrics -->
+      <div class="pm-top-section">
+        <!-- Market Temperature Card -->
+        <div class="pm-temperature-card">
+          <div class="pm-card-header">
+            <h4>Market Temperature</h4>
+            <span class="pm-temp-value" id="pmTempValue">—°</span>
+          </div>
+          <div class="pm-temp-gauge-container">
+            <div class="pm-temp-gauge">
+              <div class="pm-temp-fill" id="pmTempFill"></div>
+              <div class="pm-temp-marker" id="pmTempMarker"></div>
+            </div>
+            <div class="pm-temp-labels">
+              <span>Frozen</span>
+              <span>Cool</span>
+              <span>Stable</span>
+              <span>Hot</span>
+              <span>Flashpoint</span>
+            </div>
+          </div>
+          <div class="pm-temp-status">
+            <span class="pm-temp-category" id="pmTempLabel">—</span>
+            <span class="pm-temp-desc" id="pmTempDescription">—</span>
           </div>
         </div>
-        <div id="pmTempLabel" class="pm-temp-label">—</div>
-        <div id="pmTempDescription" class="pm-temp-description">—</div>
-      </div>
-    </div>
-    
-    <!-- Price Range Container -->
-    <div id="pmPriceRange" class="pm-stats-card">
-      <h3>Price Range</h3>
-      <div class="pm-price-range-grid">
-        <div class="pm-price-stat">
-          <label>Min</label>
-          <div class="pm-price-value" id="pmMinPrice">$—</div>
-        </div>
-        <div class="pm-price-stat median">
-          <label>Median</label>
-          <div class="pm-price-value" id="pmMedianPrice">$—</div>
-        </div>
-        <div class="pm-price-stat">
-          <label>Max</label>
-          <div class="pm-price-value" id="pmMaxPrice">$—</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Price Buckets Container -->
-    <div id="pmPriceBuckets" class="pm-buckets-container">
-      <h3>Price Buckets Distribution</h3>
-      <div class="pm-buckets-table">
-        <div class="pm-bucket-header">
-          <span>Bucket</span>
-          <span>Range</span>
-          <span>Products</span>
-          <span>Market Share</span>
-          <span></span>
-        </div>
-        <div id="pmBucketsBody" class="pm-buckets-body">
-          <!-- Buckets will be populated here -->
-        </div>
-      </div>
-    </div>
-    
-    <!-- Products Container -->
-    <div id="pmProductsStats" class="pm-products-container">
-      <h3>Products Overview</h3>
-      <div class="pm-products-grid">
-        <div class="pm-product-stat">
-          <div class="pm-stat-icon">📦</div>
-          <div class="pm-stat-content">
-            <label>Total Products</label>
-            <div class="pm-stat-main">
-              <span id="pmTotalProducts">—</span>
-              <span id="pmTotalProductsTrend" class="pm-trend-badge"></span>
+        
+        <!-- Price Range Card -->
+        <div class="pm-price-range-card">
+          <h4>Price Range</h4>
+          <div class="pm-price-metrics">
+            <div class="pm-price-item">
+              <span class="pm-price-label">MIN</span>
+              <span class="pm-price-val" id="pmMinPrice">$—</span>
+            </div>
+            <div class="pm-price-item featured">
+              <span class="pm-price-label">MEDIAN</span>
+              <span class="pm-price-val" id="pmMedianPrice">$—</span>
+            </div>
+            <div class="pm-price-item">
+              <span class="pm-price-label">MAX</span>
+              <span class="pm-price-val" id="pmMaxPrice">$—</span>
             </div>
           </div>
         </div>
-        <div class="pm-product-stat">
-          <div class="pm-stat-icon">🏷️</div>
-          <div class="pm-stat-content">
-            <label>Discounted</label>
-            <div class="pm-stat-main">
-              <span id="pmDiscountedProducts">—</span>
-              <span id="pmDiscountedProductsTrend" class="pm-trend-badge"></span>
+
+        <!-- Quick Stats -->
+        <div class="pm-quick-stats">
+          <div class="pm-stat-item">
+            <div class="pm-stat-icon">📦</div>
+            <div class="pm-stat-info">
+              <span class="pm-stat-val" id="pmTotalProducts">—</span>
+              <span class="pm-stat-lbl">Products</span>
+              <span class="pm-stat-trend" id="pmTotalProductsTrend"></span>
             </div>
           </div>
-        </div>
-        <div class="pm-product-stat">
-          <div class="pm-stat-icon">%</div>
-          <div class="pm-stat-content">
-            <label>Discount Rate</label>
-            <div class="pm-stat-main">
-              <span id="pmDiscountRate">—</span>
-              <span id="pmDiscountRateTrend" class="pm-trend-badge"></span>
-            </div>
-          </div>
-        </div>
-        <div class="pm-product-stat">
-          <div class="pm-stat-icon">💰</div>
-          <div class="pm-stat-content">
-            <label>Avg Discount</label>
-            <div class="pm-stat-main">
-              <span id="pmAvgDiscount">—</span>
-              <span id="pmAvgDiscountTrend" class="pm-trend-badge"></span>
+          <div class="pm-stat-item">
+            <div class="pm-stat-icon">🏷️</div>
+            <div class="pm-stat-info">
+              <span class="pm-stat-val" id="pmDiscountedProducts">—</span>
+              <span class="pm-stat-lbl">Discounted</span>
+              <span class="pm-stat-trend" id="pmDiscountedProductsTrend"></span>
             </div>
           </div>
         </div>
       </div>
-      <div id="pmProductsChart" class="pm-products-chart">
-        <canvas id="pmProductsCanvas"></canvas>
-      </div>
-    </div>
-    
-    <!-- Volatility Container -->
-    <div id="pmVolatility" class="pm-metric-card">
-      <h3>Price Volatility</h3>
-      <div class="pm-metric-value">
-        <span id="pmVolatilityValue">—</span>
-        <div id="pmVolatilityIndicator" class="pm-indicator"></div>
-      </div>
-      <div id="pmVolatilityLabel" class="pm-metric-label">—</div>
-      <div class="pm-metric-scale">
-        <span>Tight</span>
-        <span>Moderate</span>
-        <span>Extreme</span>
-      </div>
-    </div>
-    
-    <!-- Price Change Velocity Container -->
-    <div id="pmVelocity" class="pm-metric-card">
-      <h3>Price Change Velocity</h3>
-      <div class="pm-metric-value">
-        <span id="pmVelocityValue">—</span>
-        <div id="pmVelocityIndicator" class="pm-indicator"></div>
-      </div>
-      <div id="pmVelocityLabel" class="pm-metric-label">—</div>
-      <div class="pm-metric-scale">
-        <span>Static</span>
-        <span>Moderate</span>
-        <span>Hyper-fluid</span>
-      </div>
-    </div>
-    
-    <!-- Promo Waves Container -->
-    <div id="pmPromoWaves" class="pm-promo-container">
-      <h3>Active Promotion Waves</h3>
-      <div class="pm-promo-grid">
-        <div class="pm-promo-stat">
-          <div class="pm-promo-icon">🌊</div>
-          <label>Active Waves</label>
-          <div id="pmActiveWaves" class="pm-promo-value">—</div>
+
+      <!-- Main Content Grid -->
+      <div class="pm-main-grid">
+        <!-- Left Column -->
+        <div class="pm-left-column">
+          <!-- Price Buckets Distribution -->
+          <div class="pm-buckets-card">
+            <h4>Price Buckets Distribution</h4>
+            <div class="pm-buckets-table">
+              <div class="pm-buckets-header">
+                <span>Bucket</span>
+                <span>Range</span>
+                <span>Products</span>
+                <span>Share</span>
+              </div>
+              <div id="pmBucketsBody" class="pm-buckets-body">
+                <!-- Buckets will be populated here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics Row -->
+          <div class="pm-metrics-row">
+            <!-- Volatility Card -->
+            <div class="pm-metric-mini">
+              <h5>Price Volatility</h5>
+              <div class="pm-metric-display">
+                <span class="pm-metric-val" id="pmVolatilityValue">—</span>
+                <span class="pm-metric-status" id="pmVolatilityLabel">—</span>
+              </div>
+              <div class="pm-metric-bar">
+                <div class="pm-metric-fill" id="pmVolatilityBar"></div>
+              </div>
+            </div>
+
+            <!-- Velocity Card -->
+            <div class="pm-metric-mini">
+              <h5>Price Change Velocity</h5>
+              <div class="pm-metric-display">
+                <span class="pm-metric-val" id="pmVelocityValue">—</span>
+                <span class="pm-metric-status" id="pmVelocityLabel">—</span>
+              </div>
+              <div class="pm-metric-bar">
+                <div class="pm-metric-fill" id="pmVelocityBar"></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="pm-promo-stat">
-          <div class="pm-promo-icon">📉</div>
-          <label>Avg Discount</label>
-          <div id="pmWaveDiscount" class="pm-promo-value">—</div>
+
+        <!-- Right Column -->
+        <div class="pm-right-column">
+          <!-- Products Trend Chart -->
+          <div class="pm-chart-card">
+            <div class="pm-chart-header">
+              <h4>Products & Discounts Trend</h4>
+              <div class="pm-chart-legend">
+                <span class="pm-legend-item" style="--color: #2196F3">Total</span>
+                <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
+                <span class="pm-legend-item" style="--color: #4CAF50">Rate %</span>
+              </div>
+            </div>
+            <div class="pm-chart-container">
+              <canvas id="pmProductsCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Bottom Stats -->
+          <div class="pm-bottom-stats">
+            <!-- Discount Stats -->
+            <div class="pm-stat-card-mini">
+              <div class="pm-stat-header">
+                <span class="pm-stat-emoji">%</span>
+                <span class="pm-stat-title">Discount Rate</span>
+              </div>
+              <div class="pm-stat-body">
+                <span class="pm-stat-number" id="pmDiscountRate">—</span>
+                <span class="pm-stat-change" id="pmDiscountRateTrend"></span>
+              </div>
+            </div>
+
+            <!-- Average Discount -->
+            <div class="pm-stat-card-mini">
+              <div class="pm-stat-header">
+                <span class="pm-stat-emoji">💰</span>
+                <span class="pm-stat-title">Avg Discount</span>
+              </div>
+              <div class="pm-stat-body">
+                <span class="pm-stat-number" id="pmAvgDiscount">—</span>
+                <span class="pm-stat-change" id="pmAvgDiscountTrend"></span>
+              </div>
+            </div>
+
+            <!-- Promo Waves -->
+            <div class="pm-stat-card-mini">
+              <div class="pm-stat-header">
+                <span class="pm-stat-emoji">🌊</span>
+                <span class="pm-stat-title">Active Waves</span>
+              </div>
+              <div class="pm-stat-body">
+                <span class="pm-stat-number" id="pmActiveWaves">—</span>
+                <span class="pm-stat-subtitle" id="pmWaveDiscount">—</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -486,10 +496,14 @@ async function populateMarketOverview() {
     tempDescription = 'Extreme market dynamics';
   }
   
-  if (tempFill) {
-    tempFill.style.width = `${temp}%`;
-    tempFill.style.background = `linear-gradient(90deg, ${tempColor}aa, ${tempColor})`;
-  }
+if (tempFill) {
+  tempFill.style.width = `${temp}%`;
+}
+
+const tempMarker = document.getElementById('pmTempMarker');
+if (tempMarker) {
+  tempMarker.style.left = `calc(${temp}% - 4px)`;
+}
   if (tempLabel) tempLabel.textContent = tempCategory;
   if (tempDesc) tempDesc.textContent = tempDescription;
   
@@ -538,29 +552,37 @@ async function populateMarketOverview() {
     }
   ];
   
-  const bucketsBody = document.getElementById('pmBucketsBody');
-  if (bucketsBody) {
-    bucketsBody.innerHTML = buckets.map((bucket, index) => {
-      const priceRange = market.price_range?.[index];
-      const range = priceRange ? `$${priceRange.min_price} - $${priceRange.max_price}` : '—';
-      const sharePercent = parseFloat(bucket.share) * 100;
-      
-      return `
-        <div class="pm-bucket-row">
-          <div class="pm-bucket-name">
-            <span class="pm-bucket-color" style="background: ${bucket.color}"></span>
-            ${bucket.name}
-          </div>
-          <div class="pm-bucket-range">${range}</div>
-          <div class="pm-bucket-count">${formatNumber(bucket.count)}</div>
-          <div class="pm-bucket-share">${sharePercent.toFixed(1)}%</div>
-          <div class="pm-bucket-bar">
-            <div class="pm-bucket-fill" style="width: ${sharePercent}%; background: ${bucket.color}"></div>
-          </div>
+const bucketsBody = document.getElementById('pmBucketsBody');
+if (bucketsBody) {
+  bucketsBody.innerHTML = buckets.map((bucket, index) => {
+    const priceRange = market.price_range?.[index];
+    let range = '—';
+    if (priceRange) {
+      // Check different possible property names
+      const min = priceRange.min || priceRange.min_price || priceRange.from || 0;
+      const max = priceRange.max || priceRange.max_price || priceRange.to || 0;
+      range = `$${parseFloat(min).toFixed(2)} - $${parseFloat(max).toFixed(2)}`;
+    }
+    const sharePercent = parseFloat(bucket.share || 0) * 100;
+    
+    return `
+      <div class="pm-bucket-row">
+        <div class="pm-bucket-name">
+          <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+          <span>${bucket.name}</span>
         </div>
-      `;
-    }).join('');
-  }
+        <div class="pm-bucket-range">${range}</div>
+        <div class="pm-bucket-products">${formatNumber(bucket.count)}</div>
+        <div class="pm-bucket-share">
+          <div class="pm-bucket-share-bar">
+            <div class="pm-bucket-share-fill" style="width: ${sharePercent}%; background: ${bucket.color}"></div>
+          </div>
+          <span class="pm-bucket-share-text">${sharePercent.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
   
   // 4. Products Stats
   const totalProducts = market.unique_total_products;
@@ -602,11 +624,11 @@ async function populateMarketOverview() {
   
   document.getElementById('pmVolatilityLabel').textContent = volatilityLabel;
   
-  const volatilityIndicator = document.getElementById('pmVolatilityIndicator');
-  if (volatilityIndicator) {
-    const position = Math.min(100, volatility * 100);
-    volatilityIndicator.style.left = `${position}%`;
-  }
+const volatilityBar = document.getElementById('pmVolatilityBar');
+if (volatilityBar) {
+  const position = Math.min(100, volatility * 100);
+  volatilityBar.style.width = `${position}%`;
+}
   
   // 7. Price Change Velocity
   const velocity = parseFloat(market.price_change_velocity) || 0;
@@ -622,11 +644,11 @@ async function populateMarketOverview() {
   
   document.getElementById('pmVelocityLabel').textContent = velocityLabel;
   
-  const velocityIndicator = document.getElementById('pmVelocityIndicator');
-  if (velocityIndicator) {
-    const position = Math.min(100, (velocity / 3) * 100);
-    velocityIndicator.style.left = `${position}%`;
-  }
+const velocityBar = document.getElementById('pmVelocityBar');
+if (velocityBar) {
+  const position = Math.min(100, (velocity / 3) * 100);
+  velocityBar.style.width = `${position}%`;
+}
   
   // 8. Promo Waves
   document.getElementById('pmActiveWaves').textContent = formatNumber(market.promo_wave_length) || '0';
@@ -724,6 +746,480 @@ function addPriceMonitoringStyles() {
   
   const styles = `
     <style id="pmStyles">
+      /* Reset and Base Styles */
+      .pm-dashboard-container {
+        width: 1490px;
+        height: 1030px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      .pm-dashboard-container h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      .pm-dashboard-container h5 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a4a4a;
+      }
+
+      /* Top Section */
+      .pm-top-section {
+        display: grid;
+        grid-template-columns: 420px 320px 1fr;
+        gap: 20px;
+        height: 140px;
+      }
+
+      /* Temperature Card */
+      .pm-temperature-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .pm-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .pm-temp-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-temp-gauge-container {
+        position: relative;
+        margin-bottom: 10px;
+      }
+
+      .pm-temp-gauge {
+        height: 24px;
+        background: linear-gradient(90deg, 
+          #0066cc 0%, #3399ff 20%, #66ccff 35%, 
+          #ffcc00 50%, #ff9900 65%, #ff6600 80%, #ff0000 100%);
+        border-radius: 12px;
+        position: relative;
+        overflow: visible;
+      }
+
+      .pm-temp-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(0,0,0,0.15);
+        border-radius: 12px;
+        pointer-events: none;
+      }
+
+      .pm-temp-marker {
+        position: absolute;
+        top: -4px;
+        width: 4px;
+        height: 32px;
+        background: white;
+        border: 2px solid #333;
+        border-radius: 3px;
+        transition: left 0.5s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+
+      .pm-temp-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9px;
+        color: #888;
+        margin-top: 4px;
+      }
+
+      .pm-temp-status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .pm-temp-category {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1a1a1a;
+      }
+
+      .pm-temp-desc {
+        font-size: 11px;
+        color: #666;
+      }
+
+      /* Price Range Card */
+      .pm-price-range-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .pm-price-metrics {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+      }
+
+      .pm-price-item {
+        text-align: center;
+        padding: 8px;
+      }
+
+      .pm-price-item.featured {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        flex: 1.2;
+      }
+
+      .pm-price-label {
+        display: block;
+        font-size: 10px;
+        color: #888;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+      }
+
+      .pm-price-item.featured .pm-price-label {
+        color: rgba(255,255,255,0.8);
+      }
+
+      .pm-price-val {
+        font-size: 20px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-price-item.featured .pm-price-val {
+        color: white;
+      }
+
+      /* Quick Stats */
+      .pm-quick-stats {
+        display: flex;
+        gap: 15px;
+      }
+
+      .pm-stat-item {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .pm-stat-icon {
+        font-size: 32px;
+      }
+
+      .pm-stat-info {
+        flex: 1;
+      }
+
+      .pm-stat-val {
+        display: block;
+        font-size: 22px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-stat-lbl {
+        display: block;
+        font-size: 11px;
+        color: #888;
+        margin-top: 2px;
+      }
+
+      .pm-stat-trend {
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 4px;
+      }
+
+      /* Main Grid */
+      .pm-main-grid {
+        display: grid;
+        grid-template-columns: 600px 1fr;
+        gap: 20px;
+        flex: 1;
+        height: calc(100% - 160px);
+      }
+
+      /* Left Column */
+      .pm-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Buckets Card */
+      .pm-buckets-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex: 1;
+      }
+
+      .pm-buckets-table {
+        margin-top: 12px;
+      }
+
+      .pm-buckets-header {
+        display: grid;
+        grid-template-columns: 120px 140px 80px 1fr;
+        padding: 8px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #888;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .pm-buckets-body {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .pm-bucket-row {
+        display: grid;
+        grid-template-columns: 120px 140px 80px 1fr;
+        padding: 10px 12px;
+        align-items: center;
+        border-bottom: 1px solid #f8f8f8;
+        transition: background 0.2s;
+      }
+
+      .pm-bucket-row:hover {
+        background: #f8f9fa;
+      }
+
+      .pm-bucket-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .pm-bucket-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+      }
+
+      .pm-bucket-range {
+        font-size: 11px;
+        color: #666;
+        font-family: 'Monaco', 'Menlo', monospace;
+      }
+
+      .pm-bucket-products {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .pm-bucket-share {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pm-bucket-share-bar {
+        flex: 1;
+        height: 16px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .pm-bucket-share-fill {
+        height: 100%;
+        transition: width 0.5s ease;
+      }
+
+      .pm-bucket-share-text {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 40px;
+        text-align: right;
+      }
+
+      /* Metrics Row */
+      .pm-metrics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .pm-metric-mini {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .pm-metric-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 12px 0 8px;
+      }
+
+      .pm-metric-val {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-metric-status {
+        font-size: 11px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .pm-metric-bar {
+        height: 6px;
+        background: #f0f0f0;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .pm-metric-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+        transition: width 0.5s ease;
+      }
+
+      /* Right Column */
+      .pm-right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Chart Card */
+      .pm-chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex: 1;
+      }
+
+      .pm-chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .pm-chart-legend {
+        display: flex;
+        gap: 12px;
+      }
+
+      .pm-legend-item {
+        font-size: 11px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pm-legend-item::before {
+        content: '';
+        width: 12px;
+        height: 3px;
+        background: var(--color);
+        border-radius: 2px;
+      }
+
+      .pm-chart-container {
+        height: 320px;
+        position: relative;
+      }
+
+      /* Bottom Stats */
+      .pm-bottom-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+
+      .pm-stat-card-mini {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .pm-stat-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .pm-stat-emoji {
+        font-size: 20px;
+      }
+
+      .pm-stat-title {
+        font-size: 11px;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .pm-stat-body {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .pm-stat-number {
+        font-size: 28px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-stat-change {
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .pm-stat-subtitle {
+        font-size: 11px;
+        color: #888;
+        display: block;
+        margin-top: 4px;
+      }
+
       /* View Switcher Styles */
       .pm-view-switcher {
         display: inline-flex !important;
@@ -769,428 +1265,23 @@ function addPriceMonitoringStyles() {
         display: inline-block;
       }
 
-      /* Placeholder content style */
-      .pm-placeholder-content {
-        padding: 40px;
-        text-align: center;
-        color: #999;
-        font-style: italic;
-        background: #f9f9f9;
-        border-radius: 8px;
-        margin-top: 20px;
-      }
-      
-      /* Price Monitoring Main Styles */
-      .pm-header-section {
-        margin-bottom: 25px;
-        border-bottom: 1px solid #e0e0e0;
-        padding-bottom: 20px;
+      /* Scrollbar Styling */
+      .pm-buckets-body::-webkit-scrollbar {
+        width: 6px;
       }
 
-      .pm-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
+      .pm-buckets-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
       }
 
-      .pm-main-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: #333;
-        margin: 0;
+      .pm-buckets-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
       }
 
-      .pm-last-updated {
-        font-size: 12px;
-        color: #888;
-      }
-
-      /* Content Containers */
-      .pm-content-container {
-        animation: pmFadeIn 0.3s ease-in-out;
-      }
-
-      @keyframes pmFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* Market Overview Styles */
-      .pm-market-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-      }
-
-      .pm-stats-card, .pm-stat-card {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-      }
-
-      .pm-stat-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-      }
-
-      .pm-stat-label {
-        font-size: 12px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-      }
-
-      .pm-stat-value {
-        font-size: 28px;
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 6px;
-      }
-
-      .pm-stat-change {
-        font-size: 13px;
-        color: #666;
-      }
-
-      .pm-stat-change.positive {
-        color: #4CAF50;
-      }
-
-      .pm-stat-change.negative {
-        color: #F44336;
-      }
-
-      /* Charts Row */
-      .pm-charts-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-        gap: 25px;
-        margin-top: 30px;
-      }
-
-      .pm-chart-container {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      }
-
-      .pm-chart-container h3 {
-        margin: 0 0 15px 0;
-        font-size: 16px;
-        color: #333;
-      }
-
-      .pm-chart-placeholder {
-        height: 300px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f9f9f9;
-        border-radius: 8px;
-        color: #999;
-        font-style: italic;
-      }
-
-      /* Responsive adjustments */
-      @media (max-width: 768px) {
-        .pm-view-switcher {
-          flex-wrap: wrap;
-        }
-        
-        .pm-switcher-btn {
-          padding: 8px 15px;
-          font-size: 12px;
-        }
-        
-        .pm-charts-row {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* Market Temperature Styles */
-      .pm-temperature-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-
-      .pm-temp-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .pm-temp-value-display {
-        font-size: 36px;
-        font-weight: bold;
-        color: #333;
-      }
-
-      .pm-temp-gauge {
-        position: relative;
-        height: 40px;
-        background: linear-gradient(90deg, 
-          #0066cc 0%, #3399ff 15%, #66ccff 30%, 
-          #ffcc00 45%, #ff9900 60%, #ff6600 75%, #ff0000 100%);
-        border-radius: 20px;
-        overflow: hidden;
-      }
-
-      .pm-temp-fill {
-        position: absolute;
-        height: 100%;
-        transition: width 0.5s ease;
-      }
-
-      .pm-temp-scale {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        font-size: 12px;
-        color: #666;
-      }
-
-      .pm-temp-label {
-        font-size: 18px;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 15px;
-      }
-
-      .pm-temp-description {
-        text-align: center;
-        color: #666;
-        margin-top: 5px;
-      }
-
-      /* Price Buckets Styles */
-      .pm-buckets-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-
-      .pm-bucket-header {
-        display: grid;
-        grid-template-columns: 150px 150px 100px 100px 1fr;
-        padding: 10px;
-        font-weight: bold;
-        border-bottom: 2px solid #e0e0e0;
-      }
-
-      .pm-bucket-row {
-        display: grid;
-        grid-template-columns: 150px 150px 100px 100px 1fr;
-        padding: 10px;
-        align-items: center;
-        border-bottom: 1px solid #f0f0f0;
-      }
-
-      .pm-bucket-row:hover {
-        background-color: #f9f9f9;
-      }
-
-      .pm-bucket-name {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .pm-bucket-color {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-      }
-
-      .pm-bucket-bar {
-        background: #f0f0f0;
-        height: 20px;
-        border-radius: 10px;
-        overflow: hidden;
-      }
-
-      .pm-bucket-fill {
-        height: 100%;
-        transition: width 0.5s ease;
-      }
-
-      /* Products Stats Styles */
-      .pm-products-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-
-      .pm-products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-      }
-
-      .pm-product-stat {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-
-      .pm-stat-icon {
-        font-size: 32px;
-      }
-
-      .pm-stat-content {
-        flex: 1;
-      }
-
-      .pm-stat-content label {
-        display: block;
-        color: #666;
-        font-size: 12px;
-        margin-bottom: 5px;
-      }
-
-      .pm-stat-main {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 24px;
-        font-weight: bold;
-      }
-
-      .pm-trend-badge {
-        font-size: 14px;
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-
-      .pm-products-chart {
-        height: 300px;
-        margin-top: 20px;
-      }
-
-      /* Metric Cards Styles */
-      .pm-metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-
-      .pm-metric-value {
-        position: relative;
-        font-size: 36px;
-        font-weight: bold;
-        text-align: center;
-        margin: 20px 0;
-      }
-
-      .pm-indicator {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        background: #2196F3;
-        border-radius: 50%;
-        bottom: -20px;
-        transition: left 0.5s ease;
-      }
-
-      .pm-metric-label {
-        text-align: center;
-        font-size: 18px;
-        color: #666;
-        margin: 10px 0;
-      }
-
-      .pm-metric-scale {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-        font-size: 12px;
-        color: #999;
-      }
-
-      /* Promo Waves Styles */
-      .pm-promo-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-
-      .pm-promo-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 30px;
-        margin-top: 20px;
-      }
-
-      .pm-promo-stat {
-        text-align: center;
-      }
-
-      .pm-promo-icon {
-        font-size: 48px;
-        margin-bottom: 10px;
-      }
-
-      .pm-promo-stat label {
-        display: block;
-        color: #666;
-        font-size: 14px;
-        margin-bottom: 10px;
-      }
-
-      .pm-promo-value {
-        font-size: 32px;
-        font-weight: bold;
-        color: #2196F3;
-      }
-
-      /* Price Range Styles */
-      .pm-price-range-grid {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        margin-top: 20px;
-      }
-
-      .pm-price-stat {
-        text-align: center;
-      }
-
-      .pm-price-stat label {
-        display: block;
-        color: #666;
-        font-size: 12px;
-        margin-bottom: 5px;
-      }
-
-      .pm-price-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: #333;
-      }
-
-      .pm-price-stat.median .pm-price-value {
-        font-size: 32px;
-        color: #2196F3;
+      .pm-buckets-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
       }
     </style>
   `;
