@@ -850,15 +850,15 @@ let html = `
         <!-- Company Price Range -->
         <div class="pmc-price-range-values">
           <div class="pmc-range-item">
-            <span class="pmc-range-value" id="pmCompanyMinPrice">$—</span>
+            <span class="pmc-range-value" id="pmcCompanyMinPrice">$—</span>
             <span class="pmc-range-title">MIN</span>
           </div>
           <div class="pmc-range-item median">
-            <span class="pmc-range-value" id="pmCompanyMedianPrice">$—</span>
+            <span class="pmc-range-value" id="pmcCompanyMedianPrice">$—</span>
             <span class="pmc-range-title">MEDIAN</span>
           </div>
           <div class="pmc-range-item">
-            <span class="pmc-range-value" id="pmCompanyMaxPrice">$—</span>
+            <span class="pmc-range-value" id="pmcCompanyMaxPrice">$—</span>
             <span class="pmc-range-title">MAX</span>
           </div>
         </div>
@@ -1047,15 +1047,11 @@ async function populateCompaniesDashboard(data) {
   // 1. Update Company Overview Card
   await updateCompanyOverviewCard(myCompanyData);
 
-// 2. Update Price Range (with delay to ensure DOM is ready)
-setTimeout(() => {
-  updateCompanyPriceRange(marketData, myCompanyData);
-}, 100);
+// 2. Update Price Range
+updateCompanyPriceRange(marketData, myCompanyData);
   
-// 3. Update Key Metrics (with delay to ensure DOM is ready)
-setTimeout(() => {
-  updateCompanyKeyMetrics(myCompanyData);
-}, 100);
+// 3. Update Key Metrics
+updateCompanyKeyMetrics(myCompanyData);
   
   // 4. Update Company Buckets
   updateCompanyBuckets(myCompanyData);
@@ -1175,16 +1171,16 @@ function updateCompanyPriceRange(market, company) {
     const medianPrice = company.median_price;
     const maxPrice = company.most_expensive_product;
     
-    document.getElementById('pmCompanyMinPrice').textContent = `$${formatNumber(minPrice, 0)}`;
-    document.getElementById('pmCompanyMedianPrice').textContent = `$${formatNumber(medianPrice, 0)}`;
-    document.getElementById('pmCompanyMaxPrice').textContent = `$${formatNumber(maxPrice, 0)}`;
+document.getElementById('pmcCompanyMinPrice').textContent = `$${formatNumber(minPrice, 0)}`;
+document.getElementById('pmcCompanyMedianPrice').textContent = `$${formatNumber(medianPrice, 0)}`;
+document.getElementById('pmcCompanyMaxPrice').textContent = `$${formatNumber(maxPrice, 0)}`;
     
     console.log('[PM Companies] Updated price elements');
   } else {
     console.log('[PM Companies] No company data available');
-    document.getElementById('pmCompanyMinPrice').textContent = '$—';
-    document.getElementById('pmCompanyMedianPrice').textContent = '$—';
-    document.getElementById('pmCompanyMaxPrice').textContent = '$—';
+document.getElementById('pmcCompanyMinPrice').textContent = '$—';
+document.getElementById('pmcCompanyMedianPrice').textContent = '$—';
+document.getElementById('pmcCompanyMaxPrice').textContent = '$—';
   }
 }
 
