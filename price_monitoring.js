@@ -289,9 +289,9 @@ if (config.view === 'market-overview') {
   <span>Range</span>
   <span>Source</span>
   <span>Products</span>
+  <span>Share</span>
   <span>Discounted</span>
   <span>Disc. Depth</span>
-  <span>Share</span>
 </div>
               <div id="pmBucketsBody" class="pm-buckets-body">
                 <!-- Buckets will be populated here -->
@@ -637,108 +637,105 @@ if (tempGauge) {
   
   const bucketsBody = document.getElementById('pmBucketsBody');
   if (bucketsBody) {
-    bucketsBody.innerHTML = buckets.map(bucket => {
-      let range = '—';
-      if (bucket.range && bucket.range.price_range) {
-        range = bucket.range.price_range;
-      }
-      
-      // Market row data
-      const marketSharePercent = parseFloat(bucket.market.share || 0) * 100;
-      const marketDiscounted = parseInt(bucket.market.discounted) || 0;
-      const marketDiscountDepth = parseFloat(bucket.market.discount_depth) || 0;
-      
-      let rows = '';
-      
-      // If company data exists, create two-row structure
-      if (bucket.company) {
-        const companySharePercent = parseFloat(bucket.company.share || 0) * 100;
-        const companyDiscounted = parseInt(bucket.company.discounted) || 0;
-        const companyDiscountDepth = parseFloat(bucket.company.discount_depth) || 0;
-        
-        rows = `
-          <div class="pm-bucket-wrapper">
-            <div class="pm-bucket-info">
-              <div class="pm-bucket-name">
-                <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
-                <span>${bucket.name}</span>
+bucketsBody.innerHTML = buckets.map(bucket => {
+  let range = '—';
+  if (bucket.range && bucket.range.price_range) {
+    range = bucket.range.price_range;
+  }
+  
+  // Market row data
+  const marketSharePercent = parseFloat(bucket.market.share || 0) * 100;
+  const marketDiscounted = parseInt(bucket.market.discounted) || 0;
+  const marketDiscountDepth = parseFloat(bucket.market.discount_depth) || 0;
+  
+  let rows = '';
+  
+  // If company data exists, create two-row structure
+  if (bucket.company) {
+    const companySharePercent = parseFloat(bucket.company.share || 0) * 100;
+    const companyDiscounted = parseInt(bucket.company.discounted) || 0;
+    const companyDiscountDepth = parseFloat(bucket.company.discount_depth) || 0;
+    
+    rows = `
+      <div class="pm-bucket-wrapper">
+        <div class="pm-bucket-info">
+          <div class="pm-bucket-name">
+            <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+            <span>${bucket.name}</span>
+          </div>
+          <div class="pm-bucket-range">${range}</div>
+        </div>
+        <div class="pm-bucket-data">
+          <div class="pm-data-row market-row">
+            <div class="pm-source">Market</div>
+            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+            <div class="pm-bucket-share">
+              <div class="pm-bucket-share-bar">
+                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>
+                <span class="pm-share-text">${marketSharePercent.toFixed(1)}%</span>
               </div>
-              <div class="pm-bucket-range">${range}</div>
             </div>
-            <div class="pm-bucket-data">
-              <div class="pm-data-row market-row">
-                <div class="pm-source-label market-label">Market</div>
-                <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
-                <div class="pm-bucket-discounted">
-                  ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
-                </div>
-                <div class="pm-discount-depth">
-                  ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
-                </div>
-                <div class="pm-bucket-share">
-                  <div class="pm-bucket-share-bar">
-                    <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
-                      <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="pm-data-row company-row">
-                <div class="pm-source-label company-label">${companyName}</div>
-                <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
-                <div class="pm-bucket-discounted">
-                  ${companyDiscounted > 0 ? `<span class="pm-discount-badge company">${companyDiscounted}</span>` : '—'}
-                </div>
-                <div class="pm-discount-depth">
-                  ${companyDiscountDepth > 0 ? `${companyDiscountDepth.toFixed(1)}%` : '—'}
-                </div>
-                <div class="pm-bucket-share">
-                  <div class="pm-bucket-share-bar">
-                    <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color}; opacity: 0.7;">
-                      <span class="pm-share-text-inside">${companySharePercent.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div class="pm-bucket-discounted">
+              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
+            </div>
+            <div class="pm-discount-depth">
+              ${marketDiscountDepth > 0 ? `<span class="pm-depth-badge">${marketDiscountDepth.toFixed(1)}%</span>` : '—'}
             </div>
           </div>
-        `;
-      } else {
-        // No company data, just show market row
-        rows = `
-          <div class="pm-bucket-wrapper single-row">
-            <div class="pm-bucket-info">
-              <div class="pm-bucket-name">
-                <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
-                <span>${bucket.name}</span>
+          <div class="pm-data-row company-row">
+            <div class="pm-source">${companyName}</div>
+            <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
+            <div class="pm-bucket-share">
+              <div class="pm-bucket-share-bar">
+                <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color};"></div>
+                <span class="pm-share-text">${companySharePercent.toFixed(1)}%</span>
               </div>
-              <div class="pm-bucket-range">${range}</div>
             </div>
-            <div class="pm-bucket-data">
-              <div class="pm-data-row market-row">
-                <div class="pm-source-label market-label">Market</div>
-                <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
-                <div class="pm-bucket-discounted">
-                  ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
-                </div>
-                <div class="pm-discount-depth">
-                  ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
-                </div>
-                <div class="pm-bucket-share">
-                  <div class="pm-bucket-share-bar">
-                    <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
-                      <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div class="pm-bucket-discounted">
+              ${companyDiscounted > 0 ? `<span class="pm-discount-badge">${companyDiscounted}</span>` : '—'}
+            </div>
+            <div class="pm-discount-depth">
+              ${companyDiscountDepth > 0 ? `<span class="pm-depth-badge">${companyDiscountDepth.toFixed(1)}%</span>` : '—'}
             </div>
           </div>
-        `;
-      }
-      
-      return rows;
-    }).join('');
+        </div>
+      </div>
+    `;
+  } else {
+    // No company data, just show market row
+    rows = `
+      <div class="pm-bucket-wrapper single-row">
+        <div class="pm-bucket-info">
+          <div class="pm-bucket-name">
+            <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+            <span>${bucket.name}</span>
+          </div>
+          <div class="pm-bucket-range">${range}</div>
+        </div>
+        <div class="pm-bucket-data">
+          <div class="pm-data-row market-row">
+            <div class="pm-source">Market</div>
+            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+            <div class="pm-bucket-share">
+              <div class="pm-bucket-share-bar">
+                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>
+                <span class="pm-share-text">${marketSharePercent.toFixed(1)}%</span>
+              </div>
+            </div>
+            <div class="pm-bucket-discounted">
+              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
+            </div>
+            <div class="pm-discount-depth">
+              ${marketDiscountDepth > 0 ? `<span class="pm-depth-badge">${marketDiscountDepth.toFixed(1)}%</span>` : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  return rows;
+}).join('');
   }
   
   // 4. Products Stats
@@ -1310,7 +1307,7 @@ function addPriceMonitoringStyles() {
 
 .pm-buckets-header {
   display: grid;
-  grid-template-columns: 110px 120px 60px 70px 70px 85px 1fr;
+  grid-template-columns: 110px 120px 60px 70px 140px 70px 85px;
   padding: 12px 16px;
   font-size: 10px;
   font-weight: 600;
@@ -1378,7 +1375,7 @@ function addPriceMonitoringStyles() {
 
 .pm-data-row {
   display: grid;
-  grid-template-columns: 60px 70px 70px 85px 1fr;
+  grid-template-columns: 60px 70px 140px 70px 85px;
   padding: 10px 16px;
   align-items: center;
   min-height: 30px;
@@ -1389,26 +1386,7 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-data-row.company-row {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.03) 0%, rgba(255,255,255,0) 100%);
-  border-top: 1px dashed #e0e0e0;
-}
-
-.pm-source-label {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-align: center;
-}
-
-.pm-source-label.market-label {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.pm-source-label.company-label {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
-  color: #5e35b1;
+  background: #f9f9f9;
 }
 
 .pm-bucket-products {
@@ -1466,11 +1444,48 @@ function addPriceMonitoringStyles() {
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.pm-share-text-inside {
+.pm-source {
+  font-size: 11px;
+  color: #666;
+}
+
+.pm-bucket-share {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pm-bucket-share-bar {
+  flex: 1;
+  height: 18px;
+  background: #f0f0f0;
+  border-radius: 9px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pm-bucket-share-fill {
+  height: 100%;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pm-share-text {
+  position: absolute;
+  right: 6px;
   font-size: 10px;
   font-weight: 600;
+  color: #333;
+  z-index: 1;
+}
+
+.pm-depth-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #ff4444;
   color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* Metrics Row */
