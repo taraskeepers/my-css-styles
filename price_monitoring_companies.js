@@ -226,7 +226,7 @@ function addCompaniesViewStyles() {
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        height: 250px;
+        height: 310px;
       }
       
       .pm-cpi-chart {
