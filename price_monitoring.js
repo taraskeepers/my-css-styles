@@ -1323,7 +1323,7 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-buckets-body {
-  max-height: 420px;
+  max-height: 600px;
   overflow-y: auto;
 }
 
