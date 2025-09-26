@@ -223,10 +223,13 @@ if (config.view === 'market-overview') {
       <div class="pm-top-section">
         <!-- Market Temperature Card -->
         <div class="pm-temperature-card">
-          <div class="pm-card-header">
-            <h4>Market Temperature</h4>
-            <span class="pm-temp-value" id="pmTempValue">—°</span>
-          </div>
+<div class="pm-card-header">
+  <h4>Market Temperature</h4>
+  <div class="pm-temp-value-container">
+    <span class="pm-temp-value" id="pmTempValue">—</span>
+    <span class="pm-temp-max">/100</span>
+  </div>
+</div>
           <div class="pm-temp-gauge-container">
             <div class="pm-temp-gauge">
               <div class="pm-temp-fill" id="pmTempFill"></div>
@@ -297,6 +300,7 @@ if (config.view === 'market-overview') {
 <div class="pm-buckets-header">
   <span>Bucket</span>
   <span>Range</span>
+  <span>Source</span>
   <span>Products</span>
   <span>Discounted</span>
   <span>Disc. Depth</span>
@@ -513,6 +517,11 @@ const tempMarker = document.getElementById('pmTempMarker');
 if (tempMarker) {
   tempMarker.style.left = `calc(${temp}% - 4px)`;
 }
+const tempGauge = document.querySelector('.pm-temp-gauge');
+if (tempGauge) {
+  const unreachedWidth = 100 - temp;
+  tempGauge.style.setProperty('--unreached-width', `${unreachedWidth}%`);
+}
   if (tempLabel) tempLabel.textContent = tempCategory;
   if (tempDesc) tempDesc.textContent = tempDescription;
   
@@ -521,60 +530,112 @@ if (tempMarker) {
   document.getElementById('pmMedianPrice').textContent = `$${formatNumber(market.median_price, 2)}`;
   document.getElementById('pmMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 2)}`;
   
-// 3. Price Buckets with Discounts and Discount Depth
+// 3. Price Buckets with Market and Company comparison
+  const companyData = data.companiesData?.find(row => 
+    row.source.toLowerCase() === (window.myCompany || '').toLowerCase()
+  );
+  
   const buckets = [
     { 
       name: 'Ultra Cheap',
       range: market.price_range?.[0],
-      count: market.ultra_cheap_bucket,
-      share: market.ultra_cheap_bucket_share,
-      discounted: market.disc_ultra_cheap_bucket,
-      discount_depth: market.disc_depth_ultra_cheap_bucket,
+      market: {
+        count: market.ultra_cheap_bucket,
+        share: market.ultra_cheap_bucket_share,
+        discounted: market.disc_ultra_cheap_bucket,
+        discount_depth: market.disc_depth_ultra_cheap_bucket
+      },
+      company: companyData ? {
+        count: companyData.ultra_cheap_bucket,
+        share: companyData.ultra_cheap_bucket_share,
+        discounted: companyData.disc_ultra_cheap_bucket,
+        discount_depth: companyData.disc_depth_ultra_cheap_bucket
+      } : null,
       color: '#4CAF50'
     },
     { 
       name: 'Budget',
-      range: market.price_range?.[1], 
-      count: market.budget_bucket,
-      share: market.budget_bucket_share,
-      discounted: market.disc_budget_bucket,
-      discount_depth: market.disc_depth_budget_bucket,
+      range: market.price_range?.[1],
+      market: {
+        count: market.budget_bucket,
+        share: market.budget_bucket_share,
+        discounted: market.disc_budget_bucket,
+        discount_depth: market.disc_depth_budget_bucket
+      },
+      company: companyData ? {
+        count: companyData.budget_bucket,
+        share: companyData.budget_bucket_share,
+        discounted: companyData.disc_budget_bucket,
+        discount_depth: companyData.disc_depth_budget_bucket
+      } : null,
       color: '#8BC34A'
     },
     { 
       name: 'Mid Range',
       range: market.price_range?.[2],
-      count: market.mid_bucket,
-      share: market.mid_bucket_share,
-      discounted: market.disc_mid_bucket,
-      discount_depth: market.disc_depth_mid_bucket,
+      market: {
+        count: market.mid_bucket,
+        share: market.mid_bucket_share,
+        discounted: market.disc_mid_bucket,
+        discount_depth: market.disc_depth_mid_bucket
+      },
+      company: companyData ? {
+        count: companyData.mid_bucket,
+        share: companyData.mid_bucket_share,
+        discounted: companyData.disc_mid_bucket,
+        discount_depth: companyData.disc_depth_mid_bucket
+      } : null,
       color: '#FFC107'
     },
     { 
       name: 'Upper Mid',
       range: market.price_range?.[3],
-      count: market.upper_mid_bucket,
-      share: market.upper_mid_bucket_share,
-      discounted: market.disc_upper_mid_bucket,
-      discount_depth: market.disc_depth_upper_mid_bucket,
+      market: {
+        count: market.upper_mid_bucket,
+        share: market.upper_mid_bucket_share,
+        discounted: market.disc_upper_mid_bucket,
+        discount_depth: market.disc_depth_upper_mid_bucket
+      },
+      company: companyData ? {
+        count: companyData.upper_mid_bucket,
+        share: companyData.upper_mid_bucket_share,
+        discounted: companyData.disc_upper_mid_bucket,
+        discount_depth: companyData.disc_depth_upper_mid_bucket
+      } : null,
       color: '#FF9800'
     },
     { 
       name: 'Premium',
       range: market.price_range?.[4],
-      count: market.premium_bucket,
-      share: market.premium_bucket_share,
-      discounted: market.disc_premium_bucket,
-      discount_depth: market.disc_depth_premium_bucket,
+      market: {
+        count: market.premium_bucket,
+        share: market.premium_bucket_share,
+        discounted: market.disc_premium_bucket,
+        discount_depth: market.disc_depth_premium_bucket
+      },
+      company: companyData ? {
+        count: companyData.premium_bucket,
+        share: companyData.premium_bucket_share,
+        discounted: companyData.disc_premium_bucket,
+        discount_depth: companyData.disc_depth_premium_bucket
+      } : null,
       color: '#FF5722'
     },
     { 
       name: 'Ultra Premium',
       range: market.price_range?.[5],
-      count: market.ultra_premium_bucket,
-      share: market.ultra_premium_bucket_share,
-      discounted: market.disc_ultra_premium_bucket,
-      discount_depth: market.disc_depth_ultra_premium_bucket,
+      market: {
+        count: market.ultra_premium_bucket,
+        share: market.ultra_premium_bucket_share,
+        discounted: market.disc_ultra_premium_bucket,
+        discount_depth: market.disc_depth_ultra_premium_bucket
+      },
+      company: companyData ? {
+        count: companyData.ultra_premium_bucket,
+        share: companyData.ultra_premium_bucket_share,
+        discounted: companyData.disc_ultra_premium_bucket,
+        discount_depth: companyData.disc_depth_ultra_premium_bucket
+      } : null,
       color: '#9C27B0'
     }
   ];
@@ -582,36 +643,69 @@ if (tempMarker) {
   const bucketsBody = document.getElementById('pmBucketsBody');
   if (bucketsBody) {
     bucketsBody.innerHTML = buckets.map(bucket => {
-      // Parse the range correctly from price_range array
       let range = '—';
       if (bucket.range && bucket.range.price_range) {
         range = bucket.range.price_range;
       }
       
-      const sharePercent = parseFloat(bucket.share || 0) * 100;
-      const discountedCount = parseInt(bucket.discounted) || 0;
-      const discountDepth = parseFloat(bucket.discount_depth) || 0;
+      // Market row data
+      const marketSharePercent = parseFloat(bucket.market.share || 0) * 100;
+      const marketDiscounted = parseInt(bucket.market.discounted) || 0;
+      const marketDiscountDepth = parseFloat(bucket.market.discount_depth) || 0;
+      
+      // Company row data
+      let companyRow = '';
+      if (bucket.company) {
+        const companySharePercent = parseFloat(bucket.company.share || 0) * 100;
+        const companyDiscounted = parseInt(bucket.company.discounted) || 0;
+        const companyDiscountDepth = parseFloat(bucket.company.discount_depth) || 0;
+        
+        companyRow = `
+          <div class="pm-bucket-subrow company-row">
+            <div class="pm-source-label company-label">${window.myCompany || 'Company'}</div>
+            <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
+            <div class="pm-bucket-discounted">
+              ${companyDiscounted > 0 ? `<span class="pm-discount-badge company">${companyDiscounted}</span>` : '—'}
+            </div>
+            <div class="pm-discount-depth">
+              ${companyDiscountDepth > 0 ? `${companyDiscountDepth.toFixed(1)}%` : '—'}
+            </div>
+            <div class="pm-bucket-share">
+              <div class="pm-bucket-share-bar">
+                <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color}; opacity: 0.7;">
+                  <span class="pm-share-text-inside">${companySharePercent.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
       
       return `
-        <div class="pm-bucket-row">
-          <div class="pm-bucket-name">
-            <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
-            <span>${bucket.name}</span>
-          </div>
-          <div class="pm-bucket-range">${range}</div>
-          <div class="pm-bucket-products">${formatNumber(bucket.count)}</div>
-          <div class="pm-bucket-discounted">
-            ${discountedCount > 0 ? `<span class="pm-discount-badge">${discountedCount}</span>` : '—'}
-          </div>
-          <div class="pm-discount-depth">
-            ${discountDepth > 0 ? `${discountDepth.toFixed(1)}%` : '—'}
-          </div>
-          <div class="pm-bucket-share">
-            <div class="pm-bucket-share-bar">
-              <div class="pm-bucket-share-fill" style="width: ${sharePercent}%; background: ${bucket.color}"></div>
+        <div class="pm-bucket-group">
+          <div class="pm-bucket-row market-row">
+            <div class="pm-bucket-name" ${bucket.company ? 'rowspan="2"' : ''}>
+              <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+              <span>${bucket.name}</span>
             </div>
-            <span class="pm-bucket-share-text">${sharePercent.toFixed(1)}%</span>
+            <div class="pm-bucket-range" ${bucket.company ? 'rowspan="2"' : ''}>${range}</div>
+            <div class="pm-source-label market-label">Market</div>
+            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+            <div class="pm-bucket-discounted">
+              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
+            </div>
+            <div class="pm-discount-depth">
+              ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
+            </div>
+            <div class="pm-bucket-share">
+              <div class="pm-bucket-share-bar">
+                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
+                  <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
           </div>
+          ${companyRow}
         </div>
       `;
     }).join('');
@@ -917,6 +1011,31 @@ function addPriceMonitoringStyles() {
         -webkit-text-fill-color: transparent;
       }
 
+      .pm-temp-value-container {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.pm-temp-max {
+  font-size: 16px;
+  color: #999;
+  font-weight: normal;
+}
+
+.pm-temp-gauge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: var(--unreached-width, 50%);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0 12px 12px 0;
+  pointer-events: none;
+  transition: width 0.5s ease;
+}
+
       .pm-temp-gauge-container {
         position: relative;
         margin: 20px 0;
@@ -1159,38 +1278,103 @@ function addPriceMonitoringStyles() {
         margin-top: 12px;
       }
 
-      .pm-buckets-header {
-        display: grid;
-        grid-template-columns: 110px 120px 70px 70px 85px 1fr;
-        padding: 12px 16px;
-        font-size: 10px;
-        font-weight: 600;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #f0f0f0;
-        background: #fafafa;
-        border-radius: 8px 8px 0 0;
-      }
+.pm-buckets-header {
+  display: grid;
+  grid-template-columns: 110px 120px 60px 70px 70px 85px 1fr;
+  padding: 12px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
 
       .pm-buckets-body {
         max-height: 420px;
         overflow-y: auto;
       }
 
-      .pm-bucket-row {
-        display: grid;
-        grid-template-columns: 110px 120px 70px 70px 85px 1fr;
-        padding: 12px 16px;
-        align-items: center;
-        border-bottom: 1px solid #f5f5f5;
-        transition: all 0.2s;
-      }
+.pm-bucket-group {
+  border-bottom: 1px solid #e8e8e8;
+}
 
-      .pm-bucket-row:hover {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(255,255,255,0) 100%);
-        transform: translateX(2px);
-      }
+.pm-bucket-row {
+  display: grid;
+  grid-template-columns: 110px 120px 60px 70px 70px 85px 1fr;
+  padding: 8px 16px;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.pm-bucket-row.market-row {
+  background: white;
+}
+
+.pm-bucket-subrow {
+  display: grid;
+  grid-template-columns: 60px 70px 70px 85px 1fr;
+  grid-column: 3 / -1;
+  padding: 8px 16px 8px 16px;
+  align-items: center;
+  background: #fafafa;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.pm-bucket-subrow.company-row {
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.03) 0%, rgba(255,255,255,0) 100%);
+}
+
+.pm-source-label {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.pm-source-label.market-label {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.pm-source-label.company-label {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+  color: #5e35b1;
+}
+
+.pm-discount-badge.company {
+  background: linear-gradient(135deg, #e8f5e9, #f3e5f5);
+  color: #5e35b1;
+}
+
+.pm-bucket-share-fill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+}
+
+.pm-share-text-inside {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.pm-bucket-share-bar {
+  flex: 1;
+  height: 18px;
+  background: #f0f0f0;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.pm-bucket-share-text {
+  display: none; /* Hide the external text since we're showing it inside */
+}
 
       .pm-bucket-name {
         display: flex;
