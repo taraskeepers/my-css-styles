@@ -2219,7 +2219,7 @@ function addPriceMonitoringStyles() {
   border: none;
   background: transparent;
   border-radius: 26px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
