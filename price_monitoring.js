@@ -350,20 +350,31 @@ if (config.view === 'market-overview') {
 
         <!-- Right Column -->
         <div class="pm-right-column">
-          <!-- Products Trend Chart -->
-          <div class="pm-chart-card">
-            <div class="pm-chart-header">
-              <h4>Products & Discounts Trend</h4>
-              <div class="pm-chart-legend">
-                <span class="pm-legend-item" style="--color: #2196F3">Total</span>
-                <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
-                <span class="pm-legend-item" style="--color: #4CAF50">Rate %</span>
-              </div>
-            </div>
-            <div class="pm-chart-container">
-              <canvas id="pmProductsCanvas"></canvas>
-            </div>
-          </div>
+<!-- Products Trend Chart -->
+<div class="pm-chart-card">
+  <div class="pm-chart-header">
+    <h4>Products & Discounts Trend</h4>
+    <div class="pm-chart-legend">
+      <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
+      <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
+      <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
+    </div>
+  </div>
+  <div class="pm-chart-container">
+    <canvas id="pmProductsCanvas"></canvas>
+  </div>
+  
+  <!-- Promo Waves Timeline -->
+  <div class="pm-promowaves-container">
+    <div class="pm-promowaves-header">
+      <h5>Active Promo Waves</h5>
+      <span class="pm-promowaves-count" id="pmPromoWavesCount">0 Active</span>
+    </div>
+    <div class="pm-promowaves-chart" id="pmPromoWavesChart">
+      <!-- Timeline will be rendered here -->
+    </div>
+  </div>
+</div>
 
           <!-- Bottom Stats -->
           <div class="pm-bottom-stats">
@@ -831,6 +842,10 @@ if (velocityBar) {
   // 8. Promo Waves
   document.getElementById('pmActiveWaves').textContent = formatNumber(market.promo_wave_length) || '0';
   document.getElementById('pmWaveDiscount').textContent = formatPercent(market.promo_wave_discount_depth) || '—';
+
+// 9. Create Promo Waves Chart
+createPromoWavesChart();
+  
 }
 
 // Helper function to update trend badges
@@ -955,9 +970,7 @@ function createProductsChart(historicalData) {
       }
     },
     legend: { 
-      position: 'top',
-      horizontalAlign: 'center',
-      fontSize: '11px'
+show: false
     },
     tooltip: {
       shared: true,
@@ -971,6 +984,111 @@ function createProductsChart(historicalData) {
     options
   );
   window.pmProductsChartInstance.render();
+}
+
+// Function to create promo waves timeline chart
+async function createPromoWavesChart() {
+  const data = await loadCompanyPricingData();
+  if (!data || !data.allData) return;
+  
+  // Filter for active promo waves
+  const promoWaves = data.allData.filter(row => 
+    row.source !== 'all' && 
+    row.q === 'all' && 
+    row.promo_wave === true || row.promo_wave === 'true'
+  );
+  
+  console.log('[PriceMonitoring] Active promo waves:', promoWaves.length);
+  
+  // Update count
+  const countEl = document.getElementById('pmPromoWavesCount');
+  if (countEl) {
+    countEl.textContent = `${promoWaves.length} Active`;
+  }
+  
+  const container = document.getElementById('pmPromoWavesChart');
+  if (!container || promoWaves.length === 0) {
+    if (container) {
+      container.innerHTML = '<div class="pm-no-promowaves">No active promo waves</div>';
+    }
+    return;
+  }
+  
+  // Prepare data for timeline
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+  
+  const timelineData = promoWaves.map((wave, index) => {
+    const waveLength = parseInt(wave.promo_wave_length) || 1;
+    const discountDepth = parseFloat(wave.promo_wave_discount_depth) || 0;
+    const discountedPercent = parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0;
+    
+    // Calculate start date (days ago from today)
+    const startDate = new Date(today.getTime() - (waveLength * 24 * 60 * 60 * 1000));
+    
+    return {
+      company: wave.source,
+      startDate: startDate,
+      endDate: today,
+      waveLength: waveLength,
+      discountDepth: discountDepth,
+      discountedPercent: discountedPercent.toFixed(1),
+      color: `hsl(${(index * 360) / promoWaves.length}, 70%, 50%)`
+    };
+  });
+  
+  // Sort by discount depth (higher depths on top)
+  timelineData.sort((a, b) => b.discountDepth - a.discountDepth);
+  
+  // Create the timeline visualization
+  let html = '<div class="pm-timeline-wrapper">';
+  
+  // Date labels
+  html += '<div class="pm-timeline-dates">';
+  for (let i = 0; i <= 6; i++) {
+    const date = new Date(thirtyDaysAgo.getTime() + (i * 5 * 24 * 60 * 60 * 1000));
+    const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    html += `<span class="pm-timeline-date" style="left: ${(i * 100) / 6}%">${label}</span>`;
+  }
+  html += '</div>';
+  
+  // Waves
+  html += '<div class="pm-timeline-waves">';
+  timelineData.forEach((wave, index) => {
+    const totalDays = 30;
+    const daysFromStart = Math.floor((today - thirtyDaysAgo) / (1000 * 60 * 60 * 24));
+    const startPosition = Math.max(0, ((wave.startDate - thirtyDaysAgo) / (1000 * 60 * 60 * 24)) / totalDays * 100);
+    const width = Math.min(100 - startPosition, (wave.waveLength / totalDays * 100));
+    
+    // Calculate height based on discount depth (min 20px, max 35px)
+    const height = Math.min(35, Math.max(20, 20 + (wave.discountDepth * 0.5)));
+    
+    html += `
+      <div class="pm-wave-row">
+        <div class="pm-wave-label">${wave.company}</div>
+        <div class="pm-wave-track">
+          <div class="pm-wave-bar" style="
+            left: ${startPosition}%;
+            width: ${width}%;
+            height: ${height}px;
+            background: ${wave.color};
+            opacity: ${0.7 + (wave.discountDepth / 100)};
+          ">
+            <span class="pm-wave-info">
+              ${wave.discountDepth.toFixed(1)}% | ${wave.discountedPercent}%
+            </span>
+          </div>
+        </div>
+        <div class="pm-wave-metrics">
+          <span class="pm-wave-days">${wave.waveLength}d</span>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  html += '</div>';
+  
+  container.innerHTML = html;
 }
 
 function addPriceMonitoringStyles() {
@@ -2080,6 +2198,173 @@ function addPriceMonitoringStyles() {
   border-top: 3px solid #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Promo Waves Container */
+.pm-promowaves-container {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.pm-promowaves-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pm-promowaves-header h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a4a4a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pm-promowaves-count {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.pm-promowaves-chart {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pm-no-promowaves {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Timeline Wrapper */
+.pm-timeline-wrapper {
+  position: relative;
+  padding: 25px 0 10px;
+  min-height: 150px;
+}
+
+.pm-timeline-dates {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 40px;
+  height: 20px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.pm-timeline-date {
+  position: absolute;
+  font-size: 9px;
+  color: #888;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Wave Rows */
+.pm-timeline-waves {
+  margin-top: 5px;
+}
+
+.pm-wave-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  height: auto;
+}
+
+.pm-wave-label {
+  width: 60px;
+  font-size: 10px;
+  color: #666;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+
+.pm-wave-track {
+  flex: 1;
+  height: 35px;
+  position: relative;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 10px,
+    #f5f5f5 10px,
+    #f5f5f5 11px
+  );
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.pm-wave-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.pm-wave-bar:hover {
+  transform: translateY(-50%) scale(1.02);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+.pm-wave-info {
+  font-size: 9px;
+  color: white;
+  font-weight: 600;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.pm-wave-metrics {
+  width: 32px;
+  text-align: center;
+}
+
+.pm-wave-days {
+  font-size: 10px;
+  color: #888;
+  font-weight: 600;
+  padding: 2px 4px;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+/* Adjust chart card to accommodate promo waves */
+.pm-chart-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-chart-container {
+  height: 280px;
+  position: relative;
 }
 
       @keyframes spin {
