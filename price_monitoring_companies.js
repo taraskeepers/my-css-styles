@@ -1047,12 +1047,15 @@ async function populateCompaniesDashboard(data) {
   // 1. Update Company Overview Card
   await updateCompanyOverviewCard(myCompanyData);
 
-  console.log('[PM Companies] About to update price range with:', { market: marketData, company: myCompanyData });
-  // 2. Update Price Range
+// 2. Update Price Range (with delay to ensure DOM is ready)
+setTimeout(() => {
   updateCompanyPriceRange(marketData, myCompanyData);
+}, 100);
   
-  // 3. Update Key Metrics
+// 3. Update Key Metrics (with delay to ensure DOM is ready)
+setTimeout(() => {
   updateCompanyKeyMetrics(myCompanyData);
+}, 100);
   
   // 4. Update Company Buckets
   updateCompanyBuckets(myCompanyData);
