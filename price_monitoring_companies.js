@@ -799,16 +799,64 @@ async function renderCpiTrendChart(myCompanyData, allData) {
   if (!ctx) return;
   
   try {
-    // Get top 5 companies from company_serp_stats
-    await openDatabase();
-    const statsData = await fetchFromIDB(`acc${accountNumber}_pr${window.filterState?.activeProjectNumber || 2}_company_serp_stats`);
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}company_serp_stats`;
+    console.log('[PM Companies] Looking for stats table for CPI chart:', tableName);
+    
+    // Use Promise to handle IndexedDB async operation
+    const statsData = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      
+      request.onsuccess = function(event) {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('projectData')) {
+          console.error('[PM Companies] projectData object store not found');
+          db.close();
+          resolve(null);
+          return;
+        }
+        
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(tableName);
+        
+        getRequest.onsuccess = function() {
+          const result = getRequest.result;
+          db.close();
+          resolve(result);
+        };
+        
+        getRequest.onerror = function() {
+          console.error('[PM Companies] Error getting stats data:', getRequest.error);
+          db.close();
+          resolve(null);
+        };
+      };
+      
+      request.onerror = function() {
+        console.error('[PM Companies] Failed to open database:', request.error);
+        resolve(null);
+      };
+    });
     
     if (!statsData || !statsData.data) {
-      console.error('[PM Companies] No stats data available');
+      console.error('[PM Companies] No stats data available for CPI chart');
+      ctx.innerHTML = '<div class="pm-no-data">No data available for CPI chart</div>';
       return;
     }
     
-    // Find top 5 companies (q=all, location=all, device=all, source != all)
+    // Find top 5 companies (q=all, location_requested=all, device=all, source != all)
     const companyRecords = statsData.data
       .filter(row => 
         row.q === 'all' && 
@@ -824,6 +872,7 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       .slice(0, 5);
     
     const top5Companies = companyRecords.map(r => r.source);
+    console.log('[PM Companies] Top 5 companies:', top5Companies);
     
     // Prepare datasets for the chart
     const datasets = [];
@@ -835,40 +884,27 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       'rgb(75, 192, 192)'
     ];
     
+    // Get labels from myCompany data
+    const myCompanyHistorical = myCompanyData.historical_data || [];
+    const last30Days = myCompanyHistorical.slice(-30);
+    const labels = last30Days.map(day => day.date?.value).filter(Boolean);
+    
     // Add baseline (CPI = 1)
-    const baselineData = new Array(30).fill(1);
+    const baselineData = new Array(labels.length).fill(1);
     datasets.push({
-      label: 'Market Average',
+      name: 'Market Average',
       data: baselineData,
-      borderColor: 'rgb(200, 200, 200)',
-      borderWidth: 2,
-      borderDash: [5, 5],
-      fill: false,
-      tension: 0
+      type: 'line',
+      color: 'rgb(200, 200, 200)'
     });
     
     // Add myCompany CPI data
-    const myCompanyCpiData = [];
-    const myCompanyHistorical = myCompanyData.historical_data || [];
-    const last30Days = myCompanyHistorical.slice(-30);
-    const labels = [];
-    
-    last30Days.forEach(day => {
-      if (day.date && day.date.value) {
-        labels.push(day.date.value);
-        myCompanyCpiData.push(parseFloat(day.cpi) || 1);
-      }
-    });
-    
-    // Add myCompany dataset
+    const myCompanyCpiData = last30Days.map(day => parseFloat(day.cpi) || 1);
     datasets.push({
-      label: myCompanyData.source,
+      name: myCompanyData.source,
       data: myCompanyCpiData,
-      borderColor: 'rgb(102, 126, 234)',
-      backgroundColor: 'rgba(102, 126, 234, 0.1)',
-      borderWidth: 3,
-      fill: true,
-      tension: 0.4
+      type: 'line',
+      color: 'rgb(102, 126, 234)'
     });
     
     // Add top 5 companies CPI data (excluding myCompany if it's in top 5)
@@ -882,21 +918,14 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       );
       
       if (companyPricingData && companyPricingData.historical_data) {
-        const companyCpiData = [];
         const companyLast30Days = companyPricingData.historical_data.slice(-30);
-        
-        companyLast30Days.forEach(day => {
-          companyCpiData.push(parseFloat(day.cpi) || 1);
-        });
+        const companyCpiData = companyLast30Days.map(day => parseFloat(day.cpi) || 1);
         
         datasets.push({
-          label: companyName,
+          name: companyName,
           data: companyCpiData,
-          borderColor: colors[colorIndex],
-          borderWidth: 1,
-          fill: false,
-          tension: 0.4,
-          borderDash: [2, 2]
+          type: 'line',
+          color: colors[colorIndex]
         });
         
         colorIndex++;
@@ -904,83 +933,85 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       }
     }
     
-    // Create the chart
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: datasets
+    // Create ApexCharts chart
+    if (window.pmCpiChartInstance) {
+      window.pmCpiChartInstance.destroy();
+      window.pmCpiChartInstance = null;
+    }
+    
+    const options = {
+      series: datasets,
+      chart: {
+        type: 'line',
+        height: 200,
+        toolbar: { show: false },
+        zoom: { enabled: false }
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: {
-              boxWidth: 12,
-              padding: 10,
-              font: {
-                size: 10
-              }
-            }
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 2,
+        dashArray: [5, 0, 0, 0, 0, 0] // First series (baseline) is dashed
+      },
+      colors: datasets.map(d => d.color),
+      xaxis: {
+        categories: labels,
+        type: 'datetime',
+        labels: {
+          datetimeFormatter: {
+            year: 'yyyy',
+            month: 'MMM',
+            day: 'dd'
           },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                label += context.parsed.y.toFixed(3);
-                return label;
-              }
-            }
+          style: {
+            fontSize: '10px'
           }
+        }
+      },
+      yaxis: {
+        min: 0.5,
+        max: 3,
+        title: {
+          text: 'CPI (Market Avg = 1.0)',
+          style: { fontSize: '11px' }
         },
-        scales: {
-          y: {
-            beginAtZero: false,
-            min: 0.5,
-            max: 3,
-            grid: {
-              display: true,
-              color: 'rgba(0, 0, 0, 0.05)'
-            },
-            ticks: {
-              callback: function(value) {
-                return value.toFixed(1);
-              }
-            },
-            title: {
-              display: true,
-              text: 'CPI (Market Avg = 1.0)'
-            }
-          },
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              maxTicksLimit: 10,
-              callback: function(value, index) {
-                return index % 3 === 0 ? this.getLabelForValue(value) : '';
-              }
-            }
+        labels: {
+          formatter: val => val.toFixed(1),
+          style: { fontSize: '10px' }
+        }
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+        row: {
+          colors: ['#f3f3f3', 'transparent'],
+          opacity: 0.5
+        }
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'left',
+        fontSize: '10px'
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        x: { format: 'dd MMM' },
+        y: {
+          formatter: function(value) {
+            return value ? value.toFixed(3) : '—';
           }
         }
       }
-    });
+    };
+    
+    window.pmCpiChartInstance = new ApexCharts(ctx, options);
+    window.pmCpiChartInstance.render();
     
   } catch (error) {
     console.error('[PM Companies] Error rendering CPI chart:', error);
+    ctx.innerHTML = '<div class="pm-no-data">Error loading CPI chart</div>';
   }
 }
 
