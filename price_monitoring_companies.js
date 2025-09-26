@@ -262,8 +262,8 @@ async function renderCompaniesDashboard() {
   if (!container) return;
   
   try {
-    // Use the existing loadCompanyPricingData function from main module
-    const data = await window.loadCompanyPricingData();
+    // Use the exported loadCompanyPricingData function
+    const data = await window.pmUtils.loadCompanyPricingData();
     if (!data || !data.allData) {
       console.error('[PM Companies] No data available');
       container.innerHTML = '<div class="pm-error">No data available</div>';
@@ -584,15 +584,15 @@ async function updateCompanyOverviewCard(companyData) {
 
 function updateCompanyPriceRange(market, company) {
   // Market prices
-  document.getElementById('pmMarketMinPrice').textContent = `$${formatNumber(market.cheapest_product, 0)}`;
-  document.getElementById('pmMarketMedianPrice').textContent = `$${formatNumber(market.median_price, 0)}`;
-  document.getElementById('pmMarketMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 0)}`;
+  document.getElementById('pmMarketMinPrice').textContent = `$${window.pmUtils.formatNumber(market.cheapest_product, 0)}`;
+  document.getElementById('pmMarketMedianPrice').textContent = `$${window.pmUtils.formatNumber(market.median_price, 0)}`;
+  document.getElementById('pmMarketMaxPrice').textContent = `$${window.pmUtils.formatNumber(market.most_expensive_product, 0)}`;
   
   // Company prices
   if (company) {
-    document.getElementById('pmCompanyMinPrice').textContent = `$${formatNumber(company.cheapest_product, 0)}`;
-    document.getElementById('pmCompanyMedianPrice').textContent = `$${formatNumber(company.median_price, 0)}`;
-    document.getElementById('pmCompanyMaxPrice').textContent = `$${formatNumber(company.most_expensive_product, 0)}`;
+    document.getElementById('pmCompanyMinPrice').textContent = `$${window.pmUtils.formatNumber(company.cheapest_product, 0)}`;
+    document.getElementById('pmCompanyMedianPrice').textContent = `$${window.pmUtils.formatNumber(company.median_price, 0)}`;
+    document.getElementById('pmCompanyMaxPrice').textContent = `$${window.pmUtils.formatNumber(company.most_expensive_product, 0)}`;
   }
 }
 
