@@ -36,18 +36,22 @@ function addCompaniesViewStyles() {
         max-height: 800px;
       }
       
-      /* Company overview card - replacing temperature card */
+// In the addCompaniesViewStyles function, replace these style definitions:
+      /* Company overview card - matching temperature card dimensions */
       .pm-company-overview-card {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
         position: relative;
         overflow: hidden;
         width: 420px;
-        height: 100%;
+        height: auto;
+        gap: 15px;
       }
       
       .pm-company-overview-card::before {
@@ -60,81 +64,73 @@ function addCompaniesViewStyles() {
         background: linear-gradient(90deg, #667eea, #764ba2);
       }
       
-      /* Company name header */
+      /* Company name header - smaller and inline */
       .company-name-header {
-        height: 80px;
-        width: 100%;
-        font-size: 18px;
+        height: 60px;
+        width: 120px;
+        font-size: 14px;
         font-weight: 800;
         color: #ffffff;
         text-align: center;
-        margin-bottom: 15px;
-        padding: 0 16px;
+        padding: 0 8px;
         background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
-        border-radius: 12px;
+        border-radius: 8px;
         border: 1px solid #1a252f;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
         box-shadow: 
-          0 4px 8px rgba(0,0,0,0.2),
-          0 1px 3px rgba(0,0,0,0.3),
+          0 2px 4px rgba(0,0,0,0.2),
+          0 1px 2px rgba(0,0,0,0.3),
           inset 0 1px 0 rgba(255,255,255,0.1);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
         overflow: hidden;
+        flex-shrink: 0;
       }
       
-      /* Rank and market share containers */
+      /* Rank and market share containers - horizontal layout */
       .pm-company-stats-row {
         display: flex;
-        gap: 20px;
-        margin-top: 20px;
+        gap: 15px;
         flex: 1;
-        align-items: flex-start;
-      }
-      
-      .pm-rank-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
       }
       
+      .pm-rank-container,
       .pm-market-container {
-        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 5px;
       }
       
       .big-rank-box {
-        width: 120px;
-        height: 120px;
-        border-radius: 12px;
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 48px;
+        font-size: 32px;
         font-weight: 900;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
         position: relative;
-        margin-top: 10px;
       }
       
       .big-market-circle {
-        width: 120px;
-        height: 120px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 18px;
         font-weight: 900;
         color: #007aff;
         background: white;
@@ -142,7 +138,6 @@ function addCompaniesViewStyles() {
         position: relative;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
-        margin-top: 10px;
       }
       
       .market-water-fill {
@@ -220,18 +215,18 @@ function addCompaniesViewStyles() {
         background: #fafafa;
       }
       
-      /* CPI Chart styles */
+/* CPI Chart styles */
       .pm-cpi-chart-container {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        height: 310px;
+        height: 310px; /* Increased from 250px */
       }
       
       .pm-cpi-chart {
         width: 100%;
-        height: 200px;
+        height: 260px; /* Increased from 200px */
       }
       
       /* Adjusted chart card for companies view */
@@ -251,6 +246,76 @@ function addCompaniesViewStyles() {
         gap: 15px;
         height: 100%;
       }
+
+      /* Company data section with bar */
+      .pm-company-data {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px;
+      }
+      
+      .pm-tree-bar-container {
+        flex: 1;
+        height: 24px;
+        position: relative;
+        background: #f5f5f5;
+        border-radius: 4px;
+        overflow: hidden;
+        max-width: 150px;
+      }
+      
+      .pm-tree-bar {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        position: relative;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0.85;
+      }
+      
+      .pm-bar-percent-inside {
+        position: absolute;
+        right: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #444;
+        line-height: 24px;
+      }
+      
+      .pm-tree-metrics {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .pm-chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      
+      .pm-chart-legend {
+        display: flex;
+        gap: 12px;
+      }
+      
+      .pm-legend-item {
+        font-size: 11px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .pm-legend-item::before {
+        content: '';
+        width: 12px;
+        height: 3px;
+        background: var(--color);
+        border-radius: 2px;
+      }
+      
     </style>
   `;
   
@@ -292,18 +357,18 @@ async function renderCompaniesDashboard() {
       <div class="pm-companies-dashboard">
         <!-- Top Section with Company Overview and Stats -->
         <div class="pm-top-section">
-          <!-- Company Overview Card -->
+<!-- Company Overview Card -->
           <div class="pm-company-overview-card">
             <div class="company-name-header">${companyName}</div>
             <div class="pm-company-stats-row">
               <div class="pm-rank-container">
-                <div class="section-label">COMPANY RANK</div>
+                <div class="section-label">RANK</div>
                 <div class="big-rank-box">
                   <span id="pmCompanyRankValue">—</span>
                 </div>
               </div>
               <div class="pm-market-container">
-                <div class="section-label">MARKET SHARE</div>
+                <div class="section-label">SHARE</div>
                 <div class="big-market-circle">
                   <div class="market-water-fill" id="pmCompanyMarketFill"></div>
                   <span class="market-value-text" id="pmCompanyMarketValue">—</span>
@@ -426,9 +491,16 @@ async function renderCompaniesDashboard() {
           <div class="pm-right-column">
             <div class="pm-companies-chart-card">
               <div class="pm-companies-charts-row">
-                <!-- Products & Discounts Trend Chart -->
+<!-- Products & Discounts Trend Chart -->
                 <div class="pm-chart-section">
-                  <h4>Products & Discounts Trend</h4>
+                  <div class="pm-chart-header">
+                    <h4>Products & Discounts Trend</h4>
+                    <div class="pm-chart-legend">
+                      <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
+                      <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
+                      <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
+                    </div>
+                  </div>
                   <div class="pm-chart-wrapper">
                     <div id="pmCompanyProductsChart"></div>
                   </div>
@@ -680,7 +752,7 @@ function updateCompanyBuckets(companyData) {
     const range = bucket.range?.price_range || '—';
     const sharePercent = (share * 100).toFixed(1);
     
-    bucketsHTML += `
+bucketsHTML += `
       <div class="pm-company-bucket-row">
         <div class="pm-bucket-label">
           <div class="pm-bucket-name">
@@ -690,6 +762,10 @@ function updateCompanyBuckets(companyData) {
           <div class="pm-bucket-range">${range}</div>
         </div>
         <div class="pm-company-data">
+          <div class="pm-tree-bar-container">
+            <div class="pm-tree-bar" style="width: ${sharePercent}%; background: ${bucket.color};"></div>
+            <span class="pm-bar-percent-inside">${sharePercent}%</span>
+          </div>
           <div class="pm-tree-metrics">
             <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
               <span class="pm-products-count">${count}</span>
@@ -701,7 +777,6 @@ function updateCompanyBuckets(companyData) {
             ${discountDepth > 0 ? 
               `<span class="pm-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
               ''}
-            <span class="pm-share-text">${sharePercent}%</span>
           </div>
         </div>
       </div>
@@ -757,11 +832,12 @@ function renderCompanyProductsChart(companyData) {
     window.pmCompanyProductsChartInstance = null;
   }
   
-  // Prepare data
+  // Prepare data - exactly like in price_monitoring.js
   const chartData = companyData.historical_data.slice(-30).map(d => ({
     x: d.date.value,
     total: parseFloat(d.total_products) || 0,
-    discounted: parseFloat(d.discounted_products) || 0
+    discounted: parseFloat(d.discounted_products) || 0,
+    rate: parseFloat(d.pr_discounted_products) * 100 || 0
   }));
   
   const series = [
@@ -772,6 +848,10 @@ function renderCompanyProductsChart(companyData) {
     {
       name: 'Discounted Products',
       data: chartData.map(d => ({ x: d.x, y: d.discounted }))
+    },
+    {
+      name: 'Discount Rate %',
+      data: chartData.map(d => ({ x: d.x, y: d.rate }))
     }
   ];
   
@@ -779,15 +859,74 @@ function renderCompanyProductsChart(companyData) {
     series: series,
     chart: {
       type: 'area',
-      height: 200,
-      toolbar: { show: false }
+      stacked: false,
+      height: 240,
+      toolbar: { show: false },
+      zoom: { enabled: false }
     },
-    dataLabels: { enabled: false },
-    stroke: { curve: 'smooth', width: 2 },
-    fill: { type: 'gradient' },
-    colors: ['#667eea', '#ff6384'],
-    xaxis: { type: 'datetime' },
-    yaxis: { title: { text: 'Product Count' } }
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: { 
+        shadeIntensity: 1,
+        opacityFrom: 0.75, 
+        opacityTo: 0.1,
+        stops: [0, 90, 100]
+      }
+    },
+    colors: ['#2196F3', '#FF9800', '#4CAF50'], // Same colors as price_monitoring.js
+    xaxis: {
+      type: 'datetime',
+      labels: { 
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: 'MMM',
+          day: 'dd'
+        },
+        style: {
+          fontSize: '10px'
+        }
+      }
+    },
+    yaxis: [
+      {
+        title: { text: 'Product Count', style: { fontSize: '11px' } },
+        labels: { 
+          formatter: val => Math.round(val),
+          style: { fontSize: '10px' }
+        }
+      },
+      {
+        opposite: true,
+        title: { text: 'Discount %', style: { fontSize: '11px' } },
+        labels: { 
+          formatter: val => val.toFixed(1) + '%',
+          style: { fontSize: '10px' }
+        },
+        max: 100
+      }
+    ],
+    grid: { 
+      borderColor: '#e7e7e7',
+      row: {
+        colors: ['#f3f3f3', 'transparent'],
+        opacity: 0.5
+      }
+    },
+    legend: { 
+      show: false  // Hide legend as it's shown in the header
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      x: { format: 'dd MMM yyyy' }
+    }
   };
   
   window.pmCompanyProductsChartInstance = new ApexCharts(chartEl, options);
@@ -939,11 +1078,11 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       window.pmCpiChartInstance = null;
     }
     
-    const options = {
+const options = {
       series: datasets,
       chart: {
         type: 'line',
-        height: 200,
+        height: 260, // Increased from 200
         toolbar: { show: false },
         zoom: { enabled: false }
       },
@@ -952,8 +1091,14 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       },
       stroke: {
         curve: 'smooth',
-        width: 2,
-        dashArray: [5, 0, 0, 0, 0, 0] // First series (baseline) is dashed
+        width: datasets.map((d, i) => {
+          // Make myCompany line (index 1) bold
+          return i === 1 ? 4 : 2;
+        }),
+        dashArray: datasets.map((d, i) => {
+          // First series (baseline) is dashed
+          return i === 0 ? 5 : 0;
+        })
       },
       colors: datasets.map(d => d.color),
       xaxis: {
@@ -967,12 +1112,14 @@ async function renderCpiTrendChart(myCompanyData, allData) {
           },
           style: {
             fontSize: '10px'
-          }
+          },
+          rotate: -45,
+          rotateAlways: false
         }
       },
       yaxis: {
         min: 0.5,
-        max: 3,
+        max: 2.5, // Reduced from 3 to prevent lines going above visible area
         title: {
           text: 'CPI (Market Avg = 1.0)',
           style: { fontSize: '11px' }
@@ -987,12 +1134,25 @@ async function renderCpiTrendChart(myCompanyData, allData) {
         row: {
           colors: ['#f3f3f3', 'transparent'],
           opacity: 0.5
+        },
+        padding: {
+          top: 10,
+          right: 10,
+          bottom: 0,
+          left: 10
         }
       },
       legend: {
         position: 'top',
         horizontalAlign: 'left',
-        fontSize: '10px'
+        fontSize: '10px',
+        offsetY: -5,
+        markers: {
+          width: 8,
+          height: 8,
+          strokeWidth: 0,
+          radius: 12
+        }
       },
       tooltip: {
         shared: true,
