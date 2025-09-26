@@ -1046,7 +1046,8 @@ async function populateCompaniesDashboard(data) {
   
   // 1. Update Company Overview Card
   await updateCompanyOverviewCard(myCompanyData);
-  
+
+  console.log('[PM Companies] About to update price range with:', { market: marketData, company: myCompanyData });
   // 2. Update Price Range
   updateCompanyPriceRange(marketData, myCompanyData);
   
@@ -1158,16 +1159,40 @@ async function updateCompanyOverviewCard(companyData) {
 }
 
 function updateCompanyPriceRange(market, company) {
-  // Only update company prices (removed market prices)
+  console.log('[PM Companies] updateCompanyPriceRange called');
+  console.log('[PM Companies] Company data:', company);
+  
   if (company) {
-    document.getElementById('pmCompanyMinPrice').textContent = `$${window.pmUtils.formatNumber(company.cheapest_product, 0)}`;
-    document.getElementById('pmCompanyMedianPrice').textContent = `$${window.pmUtils.formatNumber(company.median_price, 0)}`;
-    document.getElementById('pmCompanyMaxPrice').textContent = `$${window.pmUtils.formatNumber(company.most_expensive_product, 0)}`;
+    console.log('[PM Companies] Company cheapest_product:', company.cheapest_product);
+    console.log('[PM Companies] Company median_price:', company.median_price);
+    console.log('[PM Companies] Company most_expensive_product:', company.most_expensive_product);
+    
+    // Use the same formatting as price_monitoring.js
+    const minPrice = company.cheapest_product;
+    const medianPrice = company.median_price;
+    const maxPrice = company.most_expensive_product;
+    
+    document.getElementById('pmCompanyMinPrice').textContent = `$${formatNumber(minPrice, 0)}`;
+    document.getElementById('pmCompanyMedianPrice').textContent = `$${formatNumber(medianPrice, 0)}`;
+    document.getElementById('pmCompanyMaxPrice').textContent = `$${formatNumber(maxPrice, 0)}`;
+    
+    console.log('[PM Companies] Updated price elements');
   } else {
+    console.log('[PM Companies] No company data available');
     document.getElementById('pmCompanyMinPrice').textContent = '$—';
     document.getElementById('pmCompanyMedianPrice').textContent = '$—';
     document.getElementById('pmCompanyMaxPrice').textContent = '$—';
   }
+}
+
+// Helper function - same as in price_monitoring.js
+function formatNumber(value, decimals = 0) {
+  if (value === null || value === undefined || value === '') return '—';
+  const num = parseFloat(value);
+  if (isNaN(num)) return '—';
+  
+  if (decimals === 0) return num.toLocaleString();
+  return num.toFixed(decimals);
 }
 
 function updateCompanyKeyMetrics(companyData) {
