@@ -290,7 +290,6 @@ if (config.view === 'market-overview') {
   <span>Source</span>
   <span>Products</span>
   <span>Share</span>
-  <span>Discounted</span>
   <span>Disc. Depth</span>
 </div>
               <div id="pmBucketsBody" class="pm-buckets-body">
@@ -647,6 +646,7 @@ bucketsBody.innerHTML = buckets.map(bucket => {
   const marketSharePercent = parseFloat(bucket.market.share || 0) * 100;
   const marketDiscounted = parseInt(bucket.market.discounted) || 0;
   const marketDiscountDepth = parseFloat(bucket.market.discount_depth) || 0;
+  const marketProducts = parseInt(bucket.market.count) || 0;
   
   let rows = '';
   
@@ -655,6 +655,7 @@ bucketsBody.innerHTML = buckets.map(bucket => {
     const companySharePercent = parseFloat(bucket.company.share || 0) * 100;
     const companyDiscounted = parseInt(bucket.company.discounted) || 0;
     const companyDiscountDepth = parseFloat(bucket.company.discount_depth) || 0;
+    const companyProducts = parseInt(bucket.company.count) || 0;
     
     rows = `
       <div class="pm-bucket-wrapper">
@@ -668,15 +669,12 @@ bucketsBody.innerHTML = buckets.map(bucket => {
         <div class="pm-bucket-data">
           <div class="pm-data-row market-row">
             <div class="pm-source">Market</div>
-            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+            <div class="pm-bucket-products">${marketProducts} / ${marketDiscounted}</div>
             <div class="pm-bucket-share">
               <div class="pm-bucket-share-bar">
-                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>
+                ${marketSharePercent > 0 ? `<div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>` : ''}
                 <span class="pm-share-text">${marketSharePercent.toFixed(1)}%</span>
               </div>
-            </div>
-            <div class="pm-bucket-discounted">
-              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
             </div>
             <div class="pm-discount-depth">
               ${marketDiscountDepth > 0 ? `<span class="pm-depth-badge">${marketDiscountDepth.toFixed(1)}%</span>` : '—'}
@@ -684,15 +682,12 @@ bucketsBody.innerHTML = buckets.map(bucket => {
           </div>
           <div class="pm-data-row company-row">
             <div class="pm-source">${companyName}</div>
-            <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
+            <div class="pm-bucket-products">${companyProducts} / ${companyDiscounted}</div>
             <div class="pm-bucket-share">
               <div class="pm-bucket-share-bar">
-                <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color};"></div>
+                ${companySharePercent > 0 ? `<div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color};"></div>` : ''}
                 <span class="pm-share-text">${companySharePercent.toFixed(1)}%</span>
               </div>
-            </div>
-            <div class="pm-bucket-discounted">
-              ${companyDiscounted > 0 ? `<span class="pm-discount-badge">${companyDiscounted}</span>` : '—'}
             </div>
             <div class="pm-discount-depth">
               ${companyDiscountDepth > 0 ? `<span class="pm-depth-badge">${companyDiscountDepth.toFixed(1)}%</span>` : '—'}
@@ -715,15 +710,12 @@ bucketsBody.innerHTML = buckets.map(bucket => {
         <div class="pm-bucket-data">
           <div class="pm-data-row market-row">
             <div class="pm-source">Market</div>
-            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+            <div class="pm-bucket-products">${marketProducts} / ${marketDiscounted}</div>
             <div class="pm-bucket-share">
               <div class="pm-bucket-share-bar">
-                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>
+                ${marketSharePercent > 0 ? `<div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>` : ''}
                 <span class="pm-share-text">${marketSharePercent.toFixed(1)}%</span>
               </div>
-            </div>
-            <div class="pm-bucket-discounted">
-              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
             </div>
             <div class="pm-discount-depth">
               ${marketDiscountDepth > 0 ? `<span class="pm-depth-badge">${marketDiscountDepth.toFixed(1)}%</span>` : '—'}
@@ -1307,7 +1299,7 @@ function addPriceMonitoringStyles() {
 
 .pm-buckets-header {
   display: grid;
-  grid-template-columns: 110px 120px 60px 70px 140px 70px 85px;
+  grid-template-columns: 100px 110px 50px 80px 100px 80px;
   padding: 12px 16px;
   font-size: 10px;
   font-weight: 600;
@@ -1338,13 +1330,13 @@ function addPriceMonitoringStyles() {
 .pm-bucket-info {
   display: flex;
   align-items: center;
-  width: 230px;
+  width: 210px;
   padding: 0 16px;
   border-right: 1px solid #f0f0f0;
 }
 
 .pm-bucket-name {
-  width: 110px;
+  width: 100px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1360,7 +1352,7 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-bucket-range {
-  width: 120px;
+  width: 110px;
   font-size: 11px;
   color: #666;
   font-family: 'Monaco', 'Menlo', monospace;
@@ -1375,7 +1367,7 @@ function addPriceMonitoringStyles() {
 
 .pm-data-row {
   display: grid;
-  grid-template-columns: 60px 70px 140px 70px 85px;
+  grid-template-columns: 50px 80px 100px 80px;
   padding: 10px 16px;
   align-items: center;
   min-height: 30px;
@@ -1472,10 +1464,12 @@ function addPriceMonitoringStyles() {
 .pm-share-text {
   position: absolute;
   right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 10px;
   font-weight: 600;
   color: #333;
-  z-index: 1;
+  z-index: 2;
 }
 
 .pm-depth-badge {
