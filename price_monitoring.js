@@ -310,6 +310,7 @@ if (config.view === 'market-overview') {
             <div class="pm-buckets-table">
 <div class="pm-buckets-header">
   <span>Bucket</span>
+  <span>Dominant</span>
   <span style="text-align: right">Market</span>
   <span></span>
   <span id="pmCompanyHeaderName">Company</span>
@@ -580,114 +581,151 @@ if (companyData) {
 }
   
 // 3. Price Buckets with Market and Company comparison
-  const buckets = [
-    { 
-      name: 'Ultra Cheap',
-      range: market.price_range?.[0],
-      market: {
-        count: market.ultra_cheap_bucket,
-        share: market.ultra_cheap_bucket_share,
-        discounted: market.disc_ultra_cheap_bucket,
-        discount_depth: market.disc_depth_ultra_cheap_bucket
-      },
-      company: companyData ? {
-        count: companyData.ultra_cheap_bucket,
-        share: companyData.ultra_cheap_bucket_share,
-        discounted: companyData.disc_ultra_cheap_bucket,
-        discount_depth: companyData.disc_depth_ultra_cheap_bucket
-      } : null,
-      color: '#4CAF50'
-    },
-    { 
-      name: 'Budget',
-      range: market.price_range?.[1],
-      market: {
-        count: market.budget_bucket,
-        share: market.budget_bucket_share,
-        discounted: market.disc_budget_bucket,
-        discount_depth: market.disc_depth_budget_bucket
-      },
-      company: companyData ? {
-        count: companyData.budget_bucket,
-        share: companyData.budget_bucket_share,
-        discounted: companyData.disc_budget_bucket,
-        discount_depth: companyData.disc_depth_budget_bucket
-      } : null,
-      color: '#8BC34A'
-    },
-    { 
-      name: 'Mid Range',
-      range: market.price_range?.[2],
-      market: {
-        count: market.mid_bucket,
-        share: market.mid_bucket_share,
-        discounted: market.disc_mid_bucket,
-        discount_depth: market.disc_depth_mid_bucket
-      },
-      company: companyData ? {
-        count: companyData.mid_bucket,
-        share: companyData.mid_bucket_share,
-        discounted: companyData.disc_mid_bucket,
-        discount_depth: companyData.disc_depth_mid_bucket
-      } : null,
-      color: '#FFC107'
-    },
-    { 
-      name: 'Upper Mid',
-      range: market.price_range?.[3],
-      market: {
-        count: market.upper_mid_bucket,
-        share: market.upper_mid_bucket_share,
-        discounted: market.disc_upper_mid_bucket,
-        discount_depth: market.disc_depth_upper_mid_bucket
-      },
-      company: companyData ? {
-        count: companyData.upper_mid_bucket,
-        share: companyData.upper_mid_bucket_share,
-        discounted: companyData.disc_upper_mid_bucket,
-        discount_depth: companyData.disc_depth_upper_mid_bucket
-      } : null,
-      color: '#FF9800'
-    },
-    { 
-      name: 'Premium',
-      range: market.price_range?.[4],
-      market: {
-        count: market.premium_bucket,
-        share: market.premium_bucket_share,
-        discounted: market.disc_premium_bucket,
-        discount_depth: market.disc_depth_premium_bucket
-      },
-      company: companyData ? {
-        count: companyData.premium_bucket,
-        share: companyData.premium_bucket_share,
-        discounted: companyData.disc_premium_bucket,
-        discount_depth: companyData.disc_depth_premium_bucket
-      } : null,
-      color: '#FF5722'
-    },
-{ 
-  name: 'Ultra Premium',
-  range: market.price_range?.[5],
-  market: {
-    count: market.ultra_premium_bucket,
-    share: market.ultra_premium_bucket_share,
-    discounted: market.disc_ultra_premium_bucket,
-    discount_depth: market.disc_depth_ultra_premium_bucket
-  },
-  company: companyData ? {
-    count: companyData.ultra_premium_bucket,
-    share: companyData.ultra_premium_bucket_share,
-    discounted: companyData.disc_ultra_premium_bucket,
-    discount_depth: companyData.disc_depth_ultra_premium_bucket
-  } : null,
-  color: '#9C27B0'
-}
-  ];
-  
-// Replace the existing bucket table structure in populateMarketOverview function
-// Starting from around line 706 where bucketsBody.innerHTML is set
+// First, extract dominant companies data
+const dominantCompanies = {};
+data.allData.forEach(row => {
+  if (row.market_dominant_tier && row.q === 'all' && row.source !== 'all') {
+    // Parse market_dominant_tier - it could be an array or a single value
+    let tiers = row.market_dominant_tier;
+    if (typeof tiers === 'string') {
+      tiers = [parseInt(tiers)];
+    } else if (!Array.isArray(tiers)) {
+      tiers = [tiers];
+    }
+    
+    tiers.forEach(tier => {
+      if (tier >= 1 && tier <= 6) {
+        if (!dominantCompanies[tier]) {
+          dominantCompanies[tier] = [];
+        }
+        dominantCompanies[tier].push(row.source);
+      }
+    });
+  }
+});
 
+// Map tier numbers to bucket indices (reversed because display is reversed)
+const tierToBucketMap = {
+  6: 0, // Ultra Premium
+  5: 1, // Premium  
+  4: 2, // Upper Mid
+  3: 3, // Mid Range
+  2: 4, // Budget
+  1: 5  // Ultra Cheap
+};
+
+const buckets = [
+  { 
+    name: 'Ultra Cheap',
+    tier: 1,
+    range: market.price_range?.[0],
+    market: {
+      count: market.ultra_cheap_bucket,
+      share: market.ultra_cheap_bucket_share,
+      discounted: market.disc_ultra_cheap_bucket,
+      discount_depth: market.disc_depth_ultra_cheap_bucket
+    },
+    company: companyData ? {
+      count: companyData.ultra_cheap_bucket,
+      share: companyData.ultra_cheap_bucket_share,
+      discounted: companyData.disc_ultra_cheap_bucket,
+      discount_depth: companyData.disc_depth_ultra_cheap_bucket
+    } : null,
+    color: '#4CAF50'
+  },
+  { 
+    name: 'Budget',
+    tier: 2,
+    range: market.price_range?.[1],
+    market: {
+      count: market.budget_bucket,
+      share: market.budget_bucket_share,
+      discounted: market.disc_budget_bucket,
+      discount_depth: market.disc_depth_budget_bucket
+    },
+    company: companyData ? {
+      count: companyData.budget_bucket,
+      share: companyData.budget_bucket_share,
+      discounted: companyData.disc_budget_bucket,
+      discount_depth: companyData.disc_depth_budget_bucket
+    } : null,
+    color: '#8BC34A'
+  },
+  { 
+    name: 'Mid Range',
+    tier: 3,
+    range: market.price_range?.[2],
+    market: {
+      count: market.mid_bucket,
+      share: market.mid_bucket_share,
+      discounted: market.disc_mid_bucket,
+      discount_depth: market.disc_depth_mid_bucket
+    },
+    company: companyData ? {
+      count: companyData.mid_bucket,
+      share: companyData.mid_bucket_share,
+      discounted: companyData.disc_mid_bucket,
+      discount_depth: companyData.disc_depth_mid_bucket
+    } : null,
+    color: '#FFC107'
+  },
+  { 
+    name: 'Upper Mid',
+    tier: 4,
+    range: market.price_range?.[3],
+    market: {
+      count: market.upper_mid_bucket,
+      share: market.upper_mid_bucket_share,
+      discounted: market.disc_upper_mid_bucket,
+      discount_depth: market.disc_depth_upper_mid_bucket
+    },
+    company: companyData ? {
+      count: companyData.upper_mid_bucket,
+      share: companyData.upper_mid_bucket_share,
+      discounted: companyData.disc_upper_mid_bucket,
+      discount_depth: companyData.disc_depth_upper_mid_bucket
+    } : null,
+    color: '#FF9800'
+  },
+  { 
+    name: 'Premium',
+    tier: 5,
+    range: market.price_range?.[4],
+    market: {
+      count: market.premium_bucket,
+      share: market.premium_bucket_share,
+      discounted: market.disc_premium_bucket,
+      discount_depth: market.disc_depth_premium_bucket
+    },
+    company: companyData ? {
+      count: companyData.premium_bucket,
+      share: companyData.premium_bucket_share,
+      discounted: companyData.disc_premium_bucket,
+      discount_depth: companyData.disc_depth_premium_bucket
+    } : null,
+    color: '#FF5722'
+  },
+  { 
+    name: 'Ultra Premium',
+    tier: 6,
+    range: market.price_range?.[5],
+    market: {
+      count: market.ultra_premium_bucket,
+      share: market.ultra_premium_bucket_share,
+      discounted: market.disc_ultra_premium_bucket,
+      discount_depth: market.disc_depth_ultra_premium_bucket
+    },
+    company: companyData ? {
+      count: companyData.ultra_premium_bucket,
+      share: companyData.ultra_premium_bucket_share,
+      discounted: companyData.disc_ultra_premium_bucket,
+      discount_depth: companyData.disc_depth_ultra_premium_bucket
+    } : null,
+    color: '#9C27B0'
+  }
+];
+
+// Replace the existing bucket table structure
 const bucketsBody = document.getElementById('pmBucketsBody');
 if (bucketsBody) {
   // Update the header with dynamic company name
@@ -701,6 +739,28 @@ if (bucketsBody) {
     let range = '—';
     if (bucket.range && bucket.range.price_range) {
       range = bucket.range.price_range;
+    }
+    
+    // Get dominant company for this tier
+    const dominantList = dominantCompanies[bucket.tier] || [];
+    let dominantDisplay = '—';
+    let isDominantMyCompany = false;
+    
+    if (dominantList.length > 0) {
+      // Check if myCompany is in the list
+      isDominantMyCompany = dominantList.some(company => 
+        company.toLowerCase() === companyName.toLowerCase()
+      );
+      
+      // If multiple companies, show first with count
+      if (dominantList.length > 1) {
+        dominantDisplay = `${dominantList[0].substring(0, 12)}... +${dominantList.length - 1}`;
+      } else {
+        // Truncate long names
+        dominantDisplay = dominantList[0].length > 15 ? 
+          dominantList[0].substring(0, 12) + '...' : 
+          dominantList[0];
+      }
     }
     
     // Market data
@@ -724,6 +784,14 @@ if (bucketsBody) {
             <span>${bucket.name}</span>
           </div>
           <div class="pm-bucket-range">${range}</div>
+        </div>
+        
+        <!-- Dominant Company Column -->
+        <div class="pm-bucket-dominant ${isDominantMyCompany ? 'is-my-company' : ''}" 
+             title="${dominantList.join(', ')}">
+          ${isDominantMyCompany ? 
+            `<span class="pm-dominant-badge">${dominantDisplay}</span>` : 
+            dominantDisplay}
         </div>
         
         <!-- Market Side (LEFT) -->
@@ -1510,7 +1578,7 @@ function addPriceMonitoringStyles() {
 /* Bucket Table Styles */
 .pm-buckets-header {
   display: grid;
-  grid-template-columns: 180px 1fr 2px 1fr;
+  grid-template-columns: 160px 80px 1fr 2px 1fr;
   padding: 12px 16px;
   font-size: 10px;
   font-weight: 600;
@@ -1530,8 +1598,8 @@ function addPriceMonitoringStyles() {
 /* Tree/Butterfly Chart Styles */
 .pm-bucket-row-tree {
   display: grid;
-  grid-template-columns: 180px 1fr 2px 1fr;
-  min-height: 60px;  /* Increased from 45px */
+  grid-template-columns: 160px 80px 1fr 2px 1fr;
+  min-height: 60px;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
   position: relative;
@@ -1544,7 +1612,7 @@ function addPriceMonitoringStyles() {
 
 /* Bucket Label */
 .pm-bucket-label {
-  padding: 8px 16px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1572,21 +1640,60 @@ function addPriceMonitoringStyles() {
   padding-left: 20px;
 }
 
-/* Market Side (LEFT) */
+/* Dominant Company Column */
+.pm-bucket-dominant {
+  padding: 0 8px;
+  font-size: 11px;
+  color: #666;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.pm-bucket-dominant.is-my-company {
+  font-weight: 700;
+  color: #1976d2;
+}
+
+.pm-dominant-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  }
+  50% { 
+    transform: scale(1.02); 
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+  }
+}
+
+/* Market Side (LEFT) - Reduced width */
 .pm-tree-market {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 12px;
-  gap: 10px;
+  padding: 0 8px;
+  gap: 8px;
 }
 
-/* Company Side (RIGHT) */
+/* Company Side (RIGHT) - Reduced width */
 .pm-tree-company {
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 10px;
+  padding: 0 8px;
+  gap: 8px;
 }
 
 /* Center Divider */
@@ -1597,77 +1704,24 @@ function addPriceMonitoringStyles() {
   position: relative;
 }
 
-/* Metrics Container */
+/* Metrics Container - Slightly smaller */
 .pm-tree-metrics {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 70px;
+  min-width: 65px;
   gap: 4px;
 }
 
-/* Products Box Styling */
-.pm-products-box {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid;
-  font-size: 11px;
-  font-weight: 600;
-  gap: 2px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  transition: transform 0.2s;
-}
-
-.pm-products-box:hover {
-  transform: scale(1.05);
-}
-
-.pm-products-count {
-  color: #2c2c2c;
-  font-weight: 700;
-}
-
-.pm-products-sep {
-  color: #888;
-  margin: 0 1px;
-}
-
-.pm-discounted-count {
-  color: #555;
-  font-weight: 600;
-}
-
-/* Discount Badge */
-.pm-discount-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  background: #ff4444;
-  color: white;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.pm-discount-badge-empty {
-  display: inline-block;
-  padding: 2px 6px;
-  color: #ccc;
-  font-size: 10px;
-  margin-top: 2px;
-}
-
-/* Bar Containers */
-/* Bar Containers */
+/* Bar Containers - Adjusted for new layout */
 .pm-tree-bar-container {
   flex: 1;
-  height: 32px;
+  height: 30px;
   position: relative;
   background: #f5f5f5;
   border-radius: 6px;
   overflow: hidden;
+  max-width: 200px;
 }
 
 .pm-tree-bar-container.left {
