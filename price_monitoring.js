@@ -833,9 +833,10 @@ function addPriceMonitoringStyles() {
   
   const styles = `
     <style id="pmStyles">
-      /* Reset and Base Styles - Updated to match selectedCompanyStats */
+      /* Reset and Base Styles */
       .pm-dashboard-container {
         width: 1450px;
+        height: 1030px;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -854,6 +855,13 @@ function addPriceMonitoringStyles() {
         letter-spacing: 1px;
       }
 
+      .pm-dashboard-container h5 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a4a4a;
+      }
+
       /* Section Labels matching selectedCompanyStats */
       .section-label {
         font-size: 11px;
@@ -867,12 +875,12 @@ function addPriceMonitoringStyles() {
       /* Top Section */
       .pm-top-section {
         display: grid;
-        grid-template-columns: 380px 340px 1fr;
+        grid-template-columns: 420px 320px 1fr;
         gap: 10px;
-        height: 180px;
+        height: 160px;
       }
 
-      /* Temperature Card - Updated styling */
+      /* Temperature Card - Enhanced styling */
       .pm-temperature-card {
         background: white;
         border-radius: 12px;
@@ -880,6 +888,18 @@ function addPriceMonitoringStyles() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pm-temperature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #0066cc, #ff0000);
       }
 
       .pm-card-header {
@@ -913,6 +933,16 @@ function addPriceMonitoringStyles() {
         box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
       }
 
+      .pm-temp-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(0,0,0,0.15);
+        border-radius: 16px;
+        pointer-events: none;
+      }
+
       .pm-temp-marker {
         position: absolute;
         top: -6px;
@@ -925,7 +955,34 @@ function addPriceMonitoringStyles() {
         box-shadow: 0 3px 8px rgba(0,0,0,0.3);
       }
 
-      /* Price Range Card - Updated */
+      .pm-temp-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9px;
+        color: #888;
+        margin-top: 4px;
+      }
+
+      .pm-temp-status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .pm-temp-category {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1a1a1a;
+      }
+
+      .pm-temp-desc {
+        font-size: 11px;
+        color: #666;
+      }
+
+      /* Price Range Card - Enhanced */
       .pm-price-range-card {
         background: white;
         border-radius: 12px;
@@ -933,6 +990,29 @@ function addPriceMonitoringStyles() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pm-price-range-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      .pm-price-metrics {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+      }
+
+      .pm-price-item {
+        text-align: center;
+        padding: 8px;
       }
 
       .pm-price-item.featured {
@@ -941,9 +1021,34 @@ function addPriceMonitoringStyles() {
         padding: 12px;
         flex: 1.3;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+        transform: scale(1.05);
       }
 
-      /* Quick Stats - Updated */
+      .pm-price-label {
+        display: block;
+        font-size: 10px;
+        color: #888;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      .pm-price-item.featured .pm-price-label {
+        color: rgba(255,255,255,0.8);
+      }
+
+      .pm-price-val {
+        font-size: 20px;
+        font-weight: bold;
+        color: #1a1a1a;
+      }
+
+      .pm-price-item.featured .pm-price-val {
+        color: white;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      /* Quick Stats - Enhanced */
       .pm-quick-stats {
         display: flex;
         gap: 10px;
@@ -960,6 +1065,12 @@ function addPriceMonitoringStyles() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         position: relative;
         overflow: hidden;
+        transition: transform 0.2s;
+      }
+
+      .pm-stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
 
       .pm-stat-item::before {
@@ -972,12 +1083,56 @@ function addPriceMonitoringStyles() {
         background: linear-gradient(90deg, #667eea, #764ba2);
       }
 
+      .pm-stat-icon {
+        font-size: 32px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      }
+
+      .pm-stat-info {
+        flex: 1;
+      }
+
+      .pm-stat-val {
+        display: block;
+        font-size: 24px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .pm-stat-lbl {
+        display: block;
+        font-size: 11px;
+        color: #888;
+        margin-top: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .pm-stat-trend {
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 4px;
+        font-weight: 600;
+      }
+
       /* Main Grid */
       .pm-main-grid {
         display: grid;
         grid-template-columns: 700px 1fr;
         gap: 10px;
         flex: 1;
+        height: calc(100% - 180px);
+      }
+
+      /* Left Column */
+      .pm-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
       /* Buckets Card - Enhanced */
@@ -986,6 +1141,22 @@ function addPriceMonitoringStyles() {
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        flex: 1;
+        position: relative;
+      }
+
+      .pm-buckets-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #4CAF50, #9C27B0);
+      }
+
+      .pm-buckets-table {
+        margin-top: 12px;
       }
 
       .pm-buckets-header {
@@ -1002,6 +1173,11 @@ function addPriceMonitoringStyles() {
         border-radius: 8px 8px 0 0;
       }
 
+      .pm-buckets-body {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
       .pm-bucket-row {
         display: grid;
         grid-template-columns: 110px 120px 70px 70px 85px 1fr;
@@ -1016,13 +1192,100 @@ function addPriceMonitoringStyles() {
         transform: translateX(2px);
       }
 
-      /* Metrics Row - Styled like stats containers */
+      .pm-bucket-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .pm-bucket-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      }
+
+      .pm-bucket-range {
+        font-size: 11px;
+        color: #666;
+        font-family: 'Monaco', 'Menlo', monospace;
+      }
+
+      .pm-bucket-products {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .pm-bucket-discounted {
+        text-align: center;
+      }
+
+      .pm-discount-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #e8f5e9;
+        color: #2e7d32;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .pm-discount-depth {
+        text-align: center;
+        color: #ff6b6b;
+        font-weight: 600;
+        font-size: 11px;
+      }
+
+      .pm-bucket-share {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pm-bucket-share-bar {
+        flex: 1;
+        height: 16px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .pm-bucket-share-fill {
+        height: 100%;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+      }
+
+      .pm-bucket-share-text {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 40px;
+        text-align: right;
+      }
+
+      /* Metrics Row */
+      .pm-metrics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
       .pm-metric-mini {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         position: relative;
+        transition: transform 0.2s;
+      }
+
+      .pm-metric-mini:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
 
       .pm-metric-mini::before {
@@ -1035,7 +1298,50 @@ function addPriceMonitoringStyles() {
         background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
       }
 
-      /* Chart Card - Match selectedCompanyMarketShareChart style */
+      .pm-metric-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 12px 0 8px;
+      }
+
+      .pm-metric-val {
+        font-size: 24px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .pm-metric-status {
+        font-size: 11px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .pm-metric-bar {
+        height: 6px;
+        background: #f0f0f0;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .pm-metric-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+        transition: width 0.5s ease;
+      }
+
+      /* Right Column */
+      .pm-right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      /* Chart Card - Enhanced */
       .pm-chart-card {
         background: white;
         border-radius: 12px;
@@ -1044,26 +1350,107 @@ function addPriceMonitoringStyles() {
         flex: 1;
         display: flex;
         flex-direction: column;
+        position: relative;
+      }
+
+      .pm-chart-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #2196F3, #4CAF50);
+      }
+
+      .pm-chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .pm-chart-legend {
+        display: flex;
+        gap: 12px;
+      }
+
+      .pm-legend-item {
+        font-size: 11px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pm-legend-item::before {
+        content: '';
+        width: 12px;
+        height: 3px;
+        background: var(--color);
+        border-radius: 2px;
       }
 
       .pm-chart-container {
-        width: 100%;
-        height: 280px;
+        height: 320px;
         position: relative;
       }
 
       /* Bottom Stats - Enhanced */
+      .pm-bottom-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
       .pm-stat-card-mini {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         transition: transform 0.2s;
+        position: relative;
+        overflow: hidden;
       }
 
       .pm-stat-card-mini:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
+
+      .pm-stat-card-mini::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      .pm-stat-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .pm-stat-emoji {
+        font-size: 20px;
+      }
+
+      .pm-stat-title {
+        font-size: 11px;
+        color: #666;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .pm-stat-body {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
       }
 
       .pm-stat-number {
@@ -1074,35 +1461,60 @@ function addPriceMonitoringStyles() {
         -webkit-text-fill-color: transparent;
       }
 
-      /* Discounted products column styling */
-      .pm-discount-badge {
-        display: inline-block;
+      .pm-stat-change {
+        font-size: 12px;
         padding: 2px 6px;
-        background: #e8f5e9;
-        color: #2e7d32;
         border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .pm-stat-subtitle {
         font-size: 11px;
-        font-weight: 600;
+        color: #888;
+        display: block;
+        margin-top: 4px;
       }
 
-      .pm-discount-depth {
-        color: #ff6b6b;
-        font-weight: 600;
-        font-size: 11px;
+      /* View Switcher Styles - Enhanced */
+      .pm-view-switcher-wrapper {
+        margin: 0 0 0 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
       }
 
-      /* Additional hover effects and transitions */
-      .pm-bucket-share-fill {
-        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      /* View Switcher - Keep existing but enhance */
       .pm-view-switcher {
         display: inline-flex !important;
+        flex-direction: row !important;
         background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
         border-radius: 30px;
         padding: 4px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        gap: 2px;
+      }
+
+      .pm-switcher-btn {
+        padding: 10px 20px;
+        border: none;
+        background: transparent;
+        border-radius: 26px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #666;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .pm-switcher-btn:hover {
+        background-color: rgba(102, 126, 234, 0.08);
+        color: #333;
+        transform: scale(1.02);
       }
 
       .pm-switcher-btn.active {
@@ -1110,6 +1522,114 @@ function addPriceMonitoringStyles() {
         color: white;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
         transform: scale(1.02);
+      }
+
+      .pm-switcher-btn.active:hover {
+        transform: scale(1.05);
+      }
+
+      .pm-btn-icon {
+        font-size: 16px;
+        display: inline-block;
+      }
+
+      /* Wrapper styles */
+      .price-monitoring-wrapper {
+        width: 1490px;
+        margin: 20px 0 20px 20px;
+        background-color: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        padding: 20px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      /* Header styles for other views */
+      .pm-header-section {
+        padding: 20px 0;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
+      }
+
+      .pm-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .pm-main-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0;
+      }
+
+      .pm-last-updated {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .pm-placeholder-content {
+        padding: 40px;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+
+      /* Scrollbar Styling */
+      .pm-buckets-body::-webkit-scrollbar,
+      .price-monitoring-wrapper::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .pm-buckets-body::-webkit-scrollbar-track,
+      .price-monitoring-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+
+      .pm-buckets-body::-webkit-scrollbar-thumb,
+      .price-monitoring-wrapper::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      .pm-buckets-body::-webkit-scrollbar-thumb:hover,
+      .price-monitoring-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Animation effects */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .pm-dashboard-container > * {
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      /* Responsive adjustments for chart */
+      #pmProductsChart {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Loading states */
+      .pm-loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
     </style>
   `;
