@@ -2835,5 +2835,19 @@ function loadCompaniesData() {
     initializePriceMonitoring();
   };
 
+  // Export for external use
+window.renderPriceMonitoringTable = function() {
+  console.log('[PriceMonitoring] Rendering Price Monitoring table...');
+  initializePriceMonitoring();
+};
+
+// Export functions for companies module
+window.pmUtils = {
+  loadCompanyPricingData: loadCompanyPricingData,
+  formatNumber: formatNumber,
+  formatPercent: formatPercent,
+  calculateTrend: calculateTrend
+};
+
   console.log('[PriceMonitoring] Module loaded successfully');
 })();
