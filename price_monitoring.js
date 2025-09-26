@@ -279,26 +279,45 @@ if (config.view === 'market-overview') {
   </div>
 </div>
 
-        <!-- Quick Stats -->
-        <div class="pm-quick-stats">
-          <div class="pm-stat-item">
-            <div class="pm-stat-icon">📦</div>
-            <div class="pm-stat-info">
-              <span class="pm-stat-val" id="pmTotalProducts">—</span>
-              <span class="pm-stat-lbl">Products</span>
-              <span class="pm-stat-trend" id="pmTotalProductsTrend"></span>
-            </div>
-          </div>
-          <div class="pm-stat-item">
-            <div class="pm-stat-icon">🏷️</div>
-            <div class="pm-stat-info">
-              <span class="pm-stat-val" id="pmDiscountedProducts">—</span>
-              <span class="pm-stat-lbl">Discounted</span>
-              <span class="pm-stat-trend" id="pmDiscountedProductsTrend"></span>
-            </div>
-          </div>
+<!-- Quick Stats -->
+<div class="pm-quick-stats">
+  <div class="pm-stat-item">
+    <div class="pm-stat-icon">📊</div>
+    <div class="pm-stat-info">
+      <div class="pm-stat-grid">
+        <div class="pm-stat-cell">
+          <span class="pm-stat-val" id="pmTotalProducts">—</span>
+          <span class="pm-stat-lbl">Products</span>
+        </div>
+        <div class="pm-stat-cell">
+          <span class="pm-stat-val" id="pmDiscountedProducts">—</span>
+          <span class="pm-stat-lbl">Discounted</span>
+        </div>
+        <div class="pm-stat-cell">
+          <span class="pm-stat-val" id="pmDiscountRate">—</span>
+          <span class="pm-stat-lbl">Discount Rate</span>
+        </div>
+        <div class="pm-stat-cell">
+          <span class="pm-stat-val" id="pmAvgDiscount">—</span>
+          <span class="pm-stat-lbl">Avg Discount</span>
         </div>
       </div>
+    </div>
+  </div>
+  <div class="pm-stat-item">
+    <div class="pm-stat-icon">🌊</div>
+    <div class="pm-stat-info">
+      <div class="pm-stat-main">
+        <span class="pm-stat-val" id="pmActiveWaves">—</span>
+        <span class="pm-stat-lbl">Active Promo Waves</span>
+      </div>
+      <div class="pm-stat-secondary">
+        <span class="pm-stat-subtitle" id="pmWaveDiscount">—</span>
+        <span class="pm-stat-extra" id="pmWaveCompanies">—</span>
+      </div>
+    </div>
+  </div>
+</div>
 
       <!-- Main Content Grid -->
       <div class="pm-main-grid">
@@ -377,44 +396,6 @@ if (config.view === 'market-overview') {
   </div>
 </div>
 
-          <!-- Bottom Stats -->
-          <div class="pm-bottom-stats">
-            <!-- Discount Stats -->
-            <div class="pm-stat-card-mini">
-              <div class="pm-stat-header">
-                <span class="pm-stat-emoji">%</span>
-                <span class="pm-stat-title">Discount Rate</span>
-              </div>
-              <div class="pm-stat-body">
-                <span class="pm-stat-number" id="pmDiscountRate">—</span>
-                <span class="pm-stat-change" id="pmDiscountRateTrend"></span>
-              </div>
-            </div>
-
-            <!-- Average Discount -->
-            <div class="pm-stat-card-mini">
-              <div class="pm-stat-header">
-                <span class="pm-stat-emoji">💰</span>
-                <span class="pm-stat-title">Avg Discount</span>
-              </div>
-              <div class="pm-stat-body">
-                <span class="pm-stat-number" id="pmAvgDiscount">—</span>
-                <span class="pm-stat-change" id="pmAvgDiscountTrend"></span>
-              </div>
-            </div>
-
-            <!-- Promo Waves -->
-            <div class="pm-stat-card-mini">
-              <div class="pm-stat-header">
-                <span class="pm-stat-emoji">🌊</span>
-                <span class="pm-stat-title">Active Waves</span>
-              </div>
-              <div class="pm-stat-body">
-                <span class="pm-stat-number" id="pmActiveWaves">—</span>
-                <span class="pm-stat-subtitle" id="pmWaveDiscount">—</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -852,10 +833,11 @@ if (bucketsBody) {
   const prevRate = market.prev_unique_pr_discounted_products;
   const prevAvgDiscount = market.prev_unique_discount_depth;
   
-  document.getElementById('pmTotalProducts').textContent = formatNumber(totalProducts);
-  document.getElementById('pmDiscountedProducts').textContent = formatNumber(discountedProducts);
-  document.getElementById('pmDiscountRate').textContent = formatPercent(discountRate);
-  document.getElementById('pmAvgDiscount').textContent = formatPercent(avgDiscount);
+// Populate the combined stats container
+document.getElementById('pmTotalProducts').textContent = formatNumber(totalProducts);
+document.getElementById('pmDiscountedProducts').textContent = formatNumber(discountedProducts);
+document.getElementById('pmDiscountRate').textContent = formatPercent(discountRate);
+document.getElementById('pmAvgDiscount').textContent = formatPercent(avgDiscount);
   
   // Add trend badges
   updateTrendBadge('pmTotalProductsTrend', totalProducts, prevTotal);
@@ -907,9 +889,22 @@ if (velocityBar) {
   velocityBar.style.width = `${position}%`;
 }
   
-  // 8. Promo Waves
-  document.getElementById('pmActiveWaves').textContent = formatNumber(market.promo_wave_length) || '0';
-  document.getElementById('pmWaveDiscount').textContent = formatPercent(market.promo_wave_discount_depth) || '—';
+const activeWavesCount = parseInt(market.promo_wave_length) || 0;
+const avgWaveDiscount = parseFloat(market.promo_wave_discount_depth) || 0;
+
+document.getElementById('pmActiveWaves').textContent = formatNumber(activeWavesCount);
+document.getElementById('pmWaveDiscount').textContent = 
+  avgWaveDiscount > 0 ? `Avg depth: ${avgWaveDiscount.toFixed(1)}%` : 'No active waves';
+
+// Count companies with active waves
+const companiesWithWaves = data.allData.filter(row => 
+  row.source !== 'all' && 
+  row.q === 'all' && 
+  (row.promo_wave === true || row.promo_wave === 'true')
+).length;
+
+document.getElementById('pmWaveCompanies').textContent = 
+  companiesWithWaves > 0 ? `${companiesWithWaves} companies active` : '';
 
 // 9. Create Promo Waves Chart
 createPromoWavesChart();
@@ -1464,76 +1459,132 @@ function addPriceMonitoringStyles() {
   color: #764ba2;
 }
 
-      /* Quick Stats - Enhanced */
-      .pm-quick-stats {
-        display: flex;
-        gap: 10px;
-      }
+/* Quick Stats - Enhanced */
+.pm-quick-stats {
+  display: flex;
+  gap: 10px;
+}
 
-      .pm-stat-item {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s;
-      }
+.pm-stat-item {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+  min-height: 120px;
+}
 
-      .pm-stat-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
+.pm-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
 
-      .pm-stat-item::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-      }
+.pm-stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
 
-      .pm-stat-icon {
-        font-size: 32px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-      }
+.pm-stat-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  flex-shrink: 0;
+}
 
-      .pm-stat-info {
-        flex: 1;
-      }
+.pm-stat-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-      .pm-stat-val {
-        display: block;
-        font-size: 24px;
-        font-weight: bold;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+/* Grid layout for 4 metrics */
+.pm-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 12px 20px;
+}
 
-      .pm-stat-lbl {
-        display: block;
-        font-size: 11px;
-        color: #888;
-        margin-top: 2px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+.pm-stat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-      .pm-stat-trend {
-        display: inline-block;
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-top: 4px;
-        font-weight: 600;
-      }
+.pm-stat-cell .pm-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c2c2c;
+  line-height: 1;
+}
+
+.pm-stat-cell .pm-stat-lbl {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+/* Main/Secondary layout for promo waves */
+.pm-stat-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pm-stat-main .pm-stat-val {
+  font-size: 32px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+.pm-stat-main .pm-stat-lbl {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.pm-stat-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.pm-stat-subtitle {
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+}
+
+.pm-stat-extra {
+  font-size: 11px;
+  color: #999;
+}
+
+/* Remove trend badges from grid cells */
+.pm-stat-trend {
+  display: none;
+}
 
       /* Main Grid */
       .pm-main-grid {
@@ -2112,38 +2163,6 @@ function addPriceMonitoringStyles() {
 .pm-chart-container {
   height: 240px;  /* Reduced from 320px */
   position: relative;
-}
-
-/* Bottom Stats - Enhanced */
-.pm-bottom-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.pm-stat-card-mini {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: transform 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.pm-stat-card-mini:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.pm-stat-card-mini::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
 }
 
 .pm-stat-header {
