@@ -2686,11 +2686,25 @@ function showPriceMonitoringView(view) {
     updateLastUpdated();
   }
 
-  function loadCompaniesData() {
-    console.log('[PriceMonitoring] Loading Companies data...');
-    // TODO: Implement actual data loading
-    populateCompanySelector();
+function loadCompaniesData() {
+  console.log('[PM] Loading companies data');
+  
+  // Check if the companies module is loaded
+  if (window.pmCompaniesModule) {
+    window.pmCompaniesModule.initialize();
+  } else {
+    // Wait for the module to load (since it's loaded via embed element)
+    const checkInterval = setInterval(() => {
+      if (window.pmCompaniesModule) {
+        clearInterval(checkInterval);
+        window.pmCompaniesModule.initialize();
+      }
+    }, 100);
+    
+    // Clear interval after 5 seconds to prevent infinite checking
+    setTimeout(() => clearInterval(checkInterval), 5000);
   }
+}
 
   function loadProductsData() {
     console.log('[PriceMonitoring] Loading Products data...');
