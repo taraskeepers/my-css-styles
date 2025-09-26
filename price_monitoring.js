@@ -2258,7 +2258,7 @@ function addPriceMonitoringStyles() {
 .price-monitoring-wrapper {
   width: 1490px;
   margin: 20px 0 20px 20px;
-  background-color: #f9f9f9;  /* Changed from #fff to light grey */
+  background-color: #f9f9f9 !important;  /* Changed from #fff to light grey */
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 20px;
