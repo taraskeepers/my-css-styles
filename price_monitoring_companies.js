@@ -36,21 +36,21 @@ function addCompaniesViewStyles() {
         max-height: 800px;
       }
       
-      /* Company overview card - EXACT height of temperature card */
+/* Company overview card - EXACT height of temperature card */
       .pm-company-overview-card {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        flex-direction: row;
+        flex-direction: row;  /* HORIZONTAL layout */
         align-items: center;
         justify-content: space-between;
         gap: 20px;
         position: relative;
         overflow: hidden;
         width: 420px;
-        height: 200px;
+        height: 200px;  /* EXACT same height as temperature card */
         box-sizing: border-box;
       }
       
@@ -153,7 +153,7 @@ function addCompaniesViewStyles() {
         z-index: 1;
       }
       
-      /* Company buckets card */
+      /* Company buckets card - renamed from pm-buckets-card */
       .pm-company-buckets-card {
         background: white;
         border-radius: 12px;
@@ -192,23 +192,16 @@ function addCompaniesViewStyles() {
         border-radius: 8px 8px 0 0;
       }
       
-      .pm-bucket-shares-header {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        line-height: 1.2;
-      }
-      
       .pm-company-buckets-body {
         max-height: 600px;
         overflow-y: auto;
       }
       
-      /* Company buckets row with dominant highlight */
+      /* Company buckets row */
       .pm-company-bucket-row {
         display: grid;
         grid-template-columns: 150px 1fr;
-        min-height: 60px;
+        min-height: 50px;
         align-items: center;
         border-bottom: 1px solid #f0f0f0;
         position: relative;
@@ -219,36 +212,18 @@ function addCompaniesViewStyles() {
         background: #fafafa;
       }
       
-      .pm-company-bucket-row.is-dominant {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(102, 126, 234, 0.02) 100%);
-        border-left: 3px solid #667eea;
-      }
-      
-      .pm-company-bucket-row.is-dominant .pm-bucket-label {
-        padding-left: 13px;
-      }
-      
-      .pm-company-bucket-row.is-dominant::after {
-        content: '👑';
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 16px;
-      }
-      
-      /* CPI Chart styles */
+/* CPI Chart styles */
       .pm-cpi-chart-container {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        height: 310px;
+        height: 310px; /* Increased from 250px */
       }
       
       .pm-cpi-chart {
         width: 100%;
-        height: 260px;
+        height: 260px; /* Increased from 200px */
       }
       
       /* Adjusted chart card for companies view */
@@ -269,7 +244,7 @@ function addCompaniesViewStyles() {
         height: 100%;
       }
 
-      /* Company data section with dual bars */
+      /* Company data section */
       .pm-company-data {
         display: flex;
         align-items: center;
@@ -277,35 +252,15 @@ function addCompaniesViewStyles() {
         padding: 0 10px;
       }
       
-      .pm-dual-bars-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .pm-bar-row {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-      
-      .pm-bar-label {
-        font-size: 9px;
-        color: #888;
-        min-width: 30px;
-        text-align: right;
-      }
-      
-      /* Bar container */
+      /* Bar container - EXACTLY like price_monitoring.js */
       .pm-tree-bar-container {
         flex: 1;
-        height: 20px;
+        height: 30px;
         position: relative;
         background: #f5f5f5;
-        border-radius: 4px;
+        border-radius: 6px;
         overflow: hidden;
-        max-width: 160px;
+        max-width: 200px;
       }
       
       .pm-tree-bar {
@@ -315,17 +270,13 @@ function addCompaniesViewStyles() {
         opacity: 0.85;
       }
       
-      .pm-tree-bar.exposure {
-        opacity: 0.6;
-      }
-      
       /* Percentage ALWAYS visible */
       .pm-bar-percent-outside {
         position: absolute;
-        right: 6px;
+        right: 8px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
         color: #444;
         z-index: 2;
@@ -342,8 +293,6 @@ function addCompaniesViewStyles() {
         gap: 2px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         transition: transform 0.2s;
-        min-width: 50px;
-        justify-content: center;
       }
       
       .pm-discount-badge {
@@ -354,8 +303,6 @@ function addCompaniesViewStyles() {
         border-radius: 4px;
         font-size: 10px;
         font-weight: 600;
-        min-width: 40px;
-        text-align: center;
       }
       
       .pm-discount-badge-empty {
@@ -363,8 +310,6 @@ function addCompaniesViewStyles() {
         padding: 2px 6px;
         color: #ccc;
         font-size: 10px;
-        min-width: 40px;
-        text-align: center;
       }
       
       .pm-tree-metrics {
@@ -372,193 +317,32 @@ function addCompaniesViewStyles() {
         align-items: center;
         gap: 5px;
       }
-      
-      /* Updated price range card */
-      .pm-company-price-range-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      .pm-chart-header {
         display: flex;
-        flex-direction: column;
-        position: relative;
-        overflow: hidden;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      
+      .pm-chart-legend {
+        display: flex;
         gap: 12px;
       }
       
-      .pm-company-price-range-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-      }
-      
-      /* Company metrics row */
-      .pm-company-metrics-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 8px 0;
-        border-top: 1px solid #f0f0f0;
-      }
-      
-      .pm-company-metric-item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-      }
-      
-      .pm-company-metric-value {
-        font-size: 16px;
-        font-weight: 700;
-        color: #2c2c2c;
-      }
-      
-      .pm-company-metric-label {
-        font-size: 9px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-      }
-      
-      .pm-trend-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 10px;
-        font-weight: 600;
-        padding: 1px 4px;
-        border-radius: 3px;
-      }
-      
-      .pm-trend-indicator.positive {
-        color: #4CAF50;
-        background: rgba(76, 175, 80, 0.1);
-      }
-      
-      .pm-trend-indicator.negative {
-        color: #f44336;
-        background: rgba(244, 67, 54, 0.1);
-      }
-      
-      /* New stat item styles for metrics grid */
-      .pm-new-stat-item {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        flex: 1;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s;
-        min-height: 120px;
-      }
-      
-      .pm-new-stat-item::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-      }
-      
-      .pm-metrics-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px 15px;
-        width: 100%;
-      }
-      
-      .pm-metric-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .pm-metric-group.full-width {
-        grid-column: span 3;
-      }
-      
-      .pm-metric-group-title {
-        font-size: 9px;
-        font-weight: 600;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-      }
-      
-      .pm-metric-value-container {
-        display: flex;
-        align-items: baseline;
-        gap: 4px;
-      }
-      
-      .pm-metric-main-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #2c2c2c;
-      }
-      
-      .pm-metric-unit {
+      .pm-legend-item {
         font-size: 11px;
-        color: #999;
-      }
-      
-      .pm-metric-sub-values {
-        display: flex;
-        gap: 8px;
-        margin-top: 2px;
-      }
-      
-      .pm-metric-sub-item {
-        font-size: 10px;
         color: #666;
         display: flex;
-        align-items: center;
-        gap: 2px;
-      }
-      
-      .pm-promo-indicator {
-        display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 600;
       }
       
-      .pm-promo-indicator.active {
-        background: #4CAF50;
-        color: white;
-      }
-      
-      .pm-promo-indicator.inactive {
-        background: #e0e0e0;
-        color: #666;
-      }
-      
-      .pm-promo-details {
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-        flex-wrap: wrap;
-      }
-      
-      .pm-promo-detail {
-        font-size: 10px;
-        color: #666;
-        padding: 2px 6px;
-        background: #f5f5f5;
-        border-radius: 4px;
+      .pm-legend-item::before {
+        content: '';
+        width: 12px;
+        height: 3px;
+        background: var(--color);
+        border-radius: 2px;
       }
       
     </style>
@@ -598,11 +382,11 @@ async function renderCompaniesDashboard() {
     }
     
     // Build the dashboard HTML
-let html = `
+    let html = `
       <div class="pm-companies-dashboard">
         <!-- Top Section with Company Overview and Stats -->
         <div class="pm-top-section">
-          <!-- Company Overview Card -->
+<!-- Company Overview Card -->
           <div class="pm-company-overview-card">
             <div class="company-name-header">${companyName}</div>
             <div class="pm-rank-container">
@@ -620,10 +404,28 @@ let html = `
             </div>
           </div>
           
-          <!-- Price Range Card with integrated metrics -->
-          <div class="pm-company-price-range-card">
-            <h4>Company Price Range</h4>
+          <!-- Price Range Card (reuse from main) -->
+          <div class="pm-price-range-card">
+            <h4>Price Range</h4>
+            <div class="pm-range-row market">
+              <span class="pm-range-label">Market</span>
+              <div class="pm-range-values">
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmMarketMinPrice">$—</span>
+                  <span class="pm-range-title">MIN</span>
+                </div>
+                <div class="pm-range-item median">
+                  <span class="pm-range-value" id="pmMarketMedianPrice">$—</span>
+                  <span class="pm-range-title">MEDIAN</span>
+                </div>
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmMarketMaxPrice">$—</span>
+                  <span class="pm-range-title">MAX</span>
+                </div>
+              </div>
+            </div>
             <div class="pm-range-row company">
+              <span class="pm-range-label" id="pmCompanyRangeLabel">${companyName}</span>
               <div class="pm-range-values">
                 <div class="pm-range-item">
                   <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
@@ -639,72 +441,29 @@ let html = `
                 </div>
               </div>
             </div>
-            <!-- Integrated metrics row -->
-            <div class="pm-company-metrics-row">
-              <div class="pm-company-metric-item">
-                <span class="pm-company-metric-value" id="pmCompanyProducts">—</span>
-                <span class="pm-company-metric-label">Products</span>
-                <span class="pm-trend-indicator" id="pmCompanyProductsTrend"></span>
-              </div>
-              <div class="pm-company-metric-item">
-                <span class="pm-company-metric-value" id="pmCompanyDiscounted">—</span>
-                <span class="pm-company-metric-label">Discounted</span>
-                <span class="pm-trend-indicator" id="pmCompanyDiscountedTrend"></span>
-              </div>
-              <div class="pm-company-metric-item">
-                <span class="pm-company-metric-value" id="pmCompanyDiscountRate">—</span>
-                <span class="pm-company-metric-label">Discount Rate</span>
-                <span class="pm-trend-indicator" id="pmCompanyDiscountRateTrend"></span>
-              </div>
-              <div class="pm-company-metric-item">
-                <span class="pm-company-metric-value" id="pmCompanyAvgDiscount">—</span>
-                <span class="pm-company-metric-label">Avg Discount</span>
-                <span class="pm-trend-indicator" id="pmCompanyAvgDiscountTrend"></span>
-              </div>
-            </div>
           </div>
           
-          <!-- New Metrics Dashboard -->
-          <div class="pm-new-stat-item">
-            <div class="pm-metrics-grid">
-              <!-- CPI Metrics -->
-              <div class="pm-metric-group">
-                <div class="pm-metric-group-title">CPI Index</div>
-                <div class="pm-metric-value-container">
-                  <span class="pm-metric-main-value" id="pmCompanyCPI">—</span>
-                </div>
-                <div class="pm-metric-sub-values">
-                  <span class="pm-metric-sub-item" id="pmCPI7d">
-                    7d: <span class="pm-trend-value">—</span>
-                  </span>
-                  <span class="pm-metric-sub-item" id="pmCPI30d">
-                    30d: <span class="pm-trend-value">—</span>
-                  </span>
-                </div>
-              </div>
-              
-              <!-- Volatility & Velocity -->
-              <div class="pm-metric-group">
-                <div class="pm-metric-group-title">Market Dynamics</div>
-                <div class="pm-metric-value-container">
-                  <span class="pm-metric-main-value" id="pmCompanyVol">—</span>
-                  <span class="pm-metric-unit">vol</span>
-                </div>
-                <div class="pm-metric-sub-values">
-                  <span class="pm-metric-sub-item">
-                    Velocity: <span id="pmCompanyVelocity">—</span>
-                  </span>
-                </div>
-              </div>
-              
-              <!-- Promo Wave Status -->
-              <div class="pm-metric-group">
-                <div class="pm-metric-group-title">Promo Wave</div>
-                <div class="pm-promo-indicator" id="pmPromoStatus">
-                  <span id="pmPromoStatusText">—</span>
-                </div>
-                <div class="pm-promo-details" id="pmPromoDetails">
-                  <!-- Populated dynamically -->
+          <!-- Key Metrics Cards -->
+          <div class="pm-quick-stats">
+            <div class="pm-stat-item">
+              <div class="pm-stat-info">
+                <div class="pm-stat-grid">
+                  <div class="pm-stat-cell">
+                    <span class="pm-stat-val" id="pmCompanyProducts">—</span>
+                    <span class="pm-stat-lbl">Products</span>
+                  </div>
+                  <div class="pm-stat-cell">
+                    <span class="pm-stat-val" id="pmCompanyDiscounted">—</span>
+                    <span class="pm-stat-lbl">Discounted</span>
+                  </div>
+                  <div class="pm-stat-cell">
+                    <span class="pm-stat-val" id="pmCompanyDiscountRate">—</span>
+                    <span class="pm-stat-lbl">Discount Rate</span>
+                  </div>
+                  <div class="pm-stat-cell">
+                    <span class="pm-stat-val" id="pmCompanyAvgDiscount">—</span>
+                    <span class="pm-stat-lbl">Avg Discount</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -721,10 +480,7 @@ let html = `
               <div class="pm-company-buckets-table">
                 <div class="pm-company-buckets-header">
                   <span>Bucket</span>
-                  <div class="pm-bucket-shares-header">
-                    <span>SHARE /</span>
-                    <span>EXP WEIGHTED SHARE</span>
-                  </div>
+                  <span>${companyName}</span>
                 </div>
                 <div id="pmCompanyBucketsBody" class="pm-company-buckets-body">
                   <!-- Buckets will be populated here -->
@@ -762,7 +518,7 @@ let html = `
           <div class="pm-right-column">
             <div class="pm-companies-chart-card">
               <div class="pm-companies-charts-row">
-                <!-- Products & Discounts Trend Chart -->
+<!-- Products & Discounts Trend Chart -->
                 <div class="pm-chart-section">
                   <div class="pm-chart-header">
                     <h4>Products & Discounts Trend</h4>
@@ -926,7 +682,12 @@ async function updateCompanyOverviewCard(companyData) {
 }
 
 function updateCompanyPriceRange(market, company) {
-  // Company prices only (removed market prices)
+  // Market prices
+  document.getElementById('pmMarketMinPrice').textContent = `$${window.pmUtils.formatNumber(market.cheapest_product, 0)}`;
+  document.getElementById('pmMarketMedianPrice').textContent = `$${window.pmUtils.formatNumber(market.median_price, 0)}`;
+  document.getElementById('pmMarketMaxPrice').textContent = `$${window.pmUtils.formatNumber(market.most_expensive_product, 0)}`;
+  
+  // Company prices
   if (company) {
     document.getElementById('pmCompanyMinPrice').textContent = `$${window.pmUtils.formatNumber(company.cheapest_product, 0)}`;
     document.getElementById('pmCompanyMedianPrice').textContent = `$${window.pmUtils.formatNumber(company.median_price, 0)}`;
@@ -940,194 +701,68 @@ function updateCompanyKeyMetrics(companyData) {
   const discountRate = parseFloat(companyData.unique_pr_discounted_products) || 0;
   const avgDiscount = parseFloat(companyData.unique_discount_depth) || 0;
   
-  // Previous values for trends
-  const prevProducts = parseInt(companyData.prev_unique_total_products) || 0;
-  const prevDiscounted = parseInt(companyData.prev_unique_discounted_products) || 0;
-  const prevDiscountRate = parseFloat(companyData.prev_unique_pr_discounted_products) || 0;
-  const prevAvgDiscount = parseFloat(companyData.prev_unique_discount_depth) || 0;
-  
-  // Update values
   document.getElementById('pmCompanyProducts').textContent = totalProducts;
   document.getElementById('pmCompanyDiscounted').textContent = discountedProducts;
   document.getElementById('pmCompanyDiscountRate').textContent = `${(discountRate * 100).toFixed(1)}%`;
   document.getElementById('pmCompanyAvgDiscount').textContent = avgDiscount > 0 ? `${avgDiscount.toFixed(1)}%` : '—';
-  
-  // Update trends
-  updateTrendIndicator('pmCompanyProductsTrend', totalProducts, prevProducts);
-  updateTrendIndicator('pmCompanyDiscountedTrend', discountedProducts, prevDiscounted);
-  updateTrendIndicator('pmCompanyDiscountRateTrend', discountRate, prevDiscountRate, true);
-  updateTrendIndicator('pmCompanyAvgDiscountTrend', avgDiscount, prevAvgDiscount, true);
-  
-  // Update new metrics panel
-  updateNewMetricsPanel(companyData);
-}
-
-function updateTrendIndicator(elementId, current, previous, isPercentage = false) {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  
-  if (!previous || previous === 0) {
-    element.style.display = 'none';
-    return;
-  }
-  
-  const diff = current - previous;
-  const percentChange = ((diff / previous) * 100).toFixed(1);
-  
-  if (diff > 0) {
-    element.className = 'pm-trend-indicator positive';
-    element.innerHTML = `↑ ${percentChange}%`;
-  } else if (diff < 0) {
-    element.className = 'pm-trend-indicator negative';
-    element.innerHTML = `↓ ${Math.abs(percentChange)}%`;
-  } else {
-    element.style.display = 'none';
-  }
-}
-
-function updateNewMetricsPanel(companyData) {
-  // CPI metrics
-  const cpi = parseFloat(companyData.cpi) || 0;
-  const cpi7d = parseFloat(companyData.cpi_7d_diff) || 0;
-  const cpi30d = parseFloat(companyData.cpi_30d_diff) || 0;
-  
-  document.getElementById('pmCompanyCPI').textContent = cpi.toFixed(3);
-  
-  // CPI 7d trend
-  const cpi7dEl = document.getElementById('pmCPI7d').querySelector('.pm-trend-value');
-  if (cpi7dEl) {
-    const sign = cpi7d >= 0 ? '+' : '';
-    const color = cpi7d >= 0 ? '#4CAF50' : '#f44336';
-    cpi7dEl.innerHTML = `<span style="color: ${color}">${sign}${cpi7d.toFixed(3)}</span>`;
-  }
-  
-  // CPI 30d trend
-  const cpi30dEl = document.getElementById('pmCPI30d').querySelector('.pm-trend-value');
-  if (cpi30dEl) {
-    const sign = cpi30d >= 0 ? '+' : '';
-    const color = cpi30d >= 0 ? '#4CAF50' : '#f44336';
-    cpi30dEl.innerHTML = `<span style="color: ${color}">${sign}${cpi30d.toFixed(3)}</span>`;
-  }
-  
-  // Volatility & Velocity
-  const volatility = parseFloat(companyData.volatility) || 0;
-  const velocity = parseFloat(companyData.price_change_velocity) || 0;
-  
-  document.getElementById('pmCompanyVol').textContent = volatility.toFixed(3);
-  document.getElementById('pmCompanyVelocity').textContent = velocity.toFixed(2);
-  
-  // Promo Wave status
-  const promoActive = companyData.promo_wave === true || companyData.promo_wave === 'true';
-  const promoLength = parseInt(companyData.promo_wave_length) || 0;
-  const promoDepth = parseFloat(companyData.promo_wave_discount_depth) || 0;
-  const promoProducts = parseFloat(companyData.promo_wave_pr_discounted_products) || 0;
-  
-  const promoStatus = document.getElementById('pmPromoStatus');
-  const promoStatusText = document.getElementById('pmPromoStatusText');
-  const promoDetails = document.getElementById('pmPromoDetails');
-  
-  if (promoActive) {
-    promoStatus.className = 'pm-promo-indicator active';
-    promoStatusText.textContent = '🔥 ACTIVE';
-  } else {
-    promoStatus.className = 'pm-promo-indicator inactive';
-    promoStatusText.textContent = 'INACTIVE';
-  }
-  
-  // Promo details
-  let detailsHtml = '';
-  if (promoLength > 0) {
-    detailsHtml += `<span class="pm-promo-detail">${promoLength}d ${promoActive ? 'active' : 'last'}</span>`;
-  }
-  if (promoDepth > 0) {
-    detailsHtml += `<span class="pm-promo-detail">${promoDepth.toFixed(1)}% depth</span>`;
-  }
-  if (promoProducts > 0) {
-    detailsHtml += `<span class="pm-promo-detail">${(promoProducts * 100).toFixed(1)}% items</span>`;
-  }
-  promoDetails.innerHTML = detailsHtml;
 }
 
 function updateCompanyBuckets(companyData) {
   const bucketsBody = document.getElementById('pmCompanyBucketsBody');
   if (!bucketsBody) return;
   
-  // Get dominant tier
-  const dominantTier = companyData.market_dominant_tier;
-  let dominantTiers = [];
-  
-  if (dominantTier) {
-    if (Array.isArray(dominantTier)) {
-      dominantTiers = dominantTier.map(t => parseInt(t));
-    } else {
-      dominantTiers = [parseInt(dominantTier)];
-    }
-  }
-  
   // Define buckets based on company data
   const buckets = [
     {
       name: 'Ultra Premium',
-      tier: 6,
       range: companyData.price_range?.[5],
       count: companyData.ultra_premium_bucket,
       share: companyData.ultra_premium_bucket_share,
-      expw_share: companyData.expw_ultra_premium_bucket_share,
       discounted: companyData.disc_ultra_premium_bucket,
       discount_depth: companyData.disc_depth_ultra_premium_bucket,
       color: '#9C27B0'
     },
     {
       name: 'Premium',
-      tier: 5,
       range: companyData.price_range?.[4],
       count: companyData.premium_bucket,
       share: companyData.premium_bucket_share,
-      expw_share: companyData.expw_premium_bucket_share,
       discounted: companyData.disc_premium_bucket,
       discount_depth: companyData.disc_depth_premium_bucket,
-      color: '#FF5722'
+      color: '#7B1FA2'
     },
     {
       name: 'Upper Mid',
-      tier: 4,
       range: companyData.price_range?.[3],
       count: companyData.upper_mid_bucket,
       share: companyData.upper_mid_bucket_share,
-      expw_share: companyData.expw_upper_mid_bucket_share,
       discounted: companyData.disc_upper_mid_bucket,
       discount_depth: companyData.disc_depth_upper_mid_bucket,
-      color: '#FF9800'
-    },
-    {
-      name: 'Mid Range',
-      tier: 3,
-      range: companyData.price_range?.[2],
-      count: companyData.mid_bucket,
-      share: companyData.mid_bucket_share,
-      expw_share: companyData.expw_mid_bucket_share,
-      discounted: companyData.disc_mid_bucket,
-      discount_depth: companyData.disc_depth_mid_bucket,
       color: '#FFC107'
     },
     {
+      name: 'Mid Range',
+      range: companyData.price_range?.[2],
+      count: companyData.mid_bucket,
+      share: companyData.mid_bucket_share,
+      discounted: companyData.disc_mid_bucket,
+      discount_depth: companyData.disc_depth_mid_bucket,
+      color: '#FF9800'
+    },
+    {
       name: 'Budget',
-      tier: 2,
       range: companyData.price_range?.[1],
       count: companyData.budget_bucket,
       share: companyData.budget_bucket_share,
-      expw_share: companyData.expw_budget_bucket_share,
       discounted: companyData.disc_budget_bucket,
       discount_depth: companyData.disc_depth_budget_bucket,
-      color: '#8BC34A'
+      color: '#66BB6A'
     },
     {
       name: 'Ultra Cheap',
-      tier: 1,
       range: companyData.price_range?.[0],
       count: companyData.ultra_cheap_bucket,
       share: companyData.ultra_cheap_bucket_share,
-      expw_share: companyData.expw_ultra_cheap_bucket_share,
       discounted: companyData.disc_ultra_cheap_bucket,
       discount_depth: companyData.disc_depth_ultra_cheap_bucket,
       color: '#4CAF50'
@@ -1139,17 +774,13 @@ function updateCompanyBuckets(companyData) {
   buckets.forEach(bucket => {
     const count = parseInt(bucket.count) || 0;
     const share = parseFloat(bucket.share) || 0;
-    const expwShare = parseFloat(bucket.expw_share) || 0;
     const discounted = parseInt(bucket.discounted) || 0;
     const discountDepth = parseFloat(bucket.discount_depth) || 0;
     const range = bucket.range?.price_range || '—';
     const sharePercent = (share * 100).toFixed(1);
-    const expwSharePercent = (expwShare * 100).toFixed(1);
     
-    const isDominant = dominantTiers.includes(bucket.tier);
-    
-    bucketsHTML += `
-      <div class="pm-company-bucket-row ${isDominant ? 'is-dominant' : ''}">
+bucketsHTML += `
+      <div class="pm-company-bucket-row">
         <div class="pm-bucket-label">
           <div class="pm-bucket-name">
             <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
@@ -1168,21 +799,9 @@ function updateCompanyBuckets(companyData) {
           ${discountDepth > 0 ? 
             `<span class="pm-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
             '<span class="pm-discount-badge-empty">—</span>'}
-          <div class="pm-dual-bars-container">
-            <div class="pm-bar-row">
-              <span class="pm-bar-label">REG</span>
-              <div class="pm-tree-bar-container">
-                <div class="pm-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
-                <span class="pm-bar-percent-outside">${sharePercent}%</span>
-              </div>
-            </div>
-            <div class="pm-bar-row">
-              <span class="pm-bar-label">EXP</span>
-              <div class="pm-tree-bar-container">
-                <div class="pm-tree-bar exposure" style="width: ${Math.max(1, expwSharePercent)}%; background: ${bucket.color};"></div>
-                <span class="pm-bar-percent-outside">${expwSharePercent}%</span>
-              </div>
-            </div>
+          <div class="pm-tree-bar-container">
+            <div class="pm-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
+            <span class="pm-bar-percent-outside">${sharePercent}%</span>
           </div>
         </div>
       </div>
@@ -1608,23 +1227,3 @@ window.pmCompaniesModule = {
   initialize: initializePriceMonitoringCompanies,
   renderDashboard: renderCompaniesDashboard
 };
-
-// Add utility functions export
-if (!window.pmUtils) {
-  window.pmUtils = {
-    formatNumber: function(value, decimals = 0) {
-      if (value === null || value === undefined || value === '') return '—';
-      const num = parseFloat(value);
-      if (isNaN(num)) return '—';
-      
-      if (decimals === 0) return num.toLocaleString();
-      return num.toFixed(decimals);
-    },
-    loadCompanyPricingData: async function() {
-      // This should be the same function from price_monitoring.js
-      // Copy the loadCompanyPricingData function here or reference it
-      return typeof loadCompanyPricingData === 'function' ? 
-        await loadCompanyPricingData() : null;
-    }
-  };
-}
