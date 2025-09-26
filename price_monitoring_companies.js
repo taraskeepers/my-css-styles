@@ -29,7 +29,7 @@ function addCompaniesViewStyles() {
       /* Top Section - Companies specific */
       .pmc-top-section {
         display: grid;
-        grid-template-columns: 420px 1fr 320px;
+        grid-template-columns: 420px 1fr 650px;
         gap: 15px;
         margin-bottom: 15px;
         width: 100%;
