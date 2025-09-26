@@ -2352,7 +2352,7 @@ function addPriceMonitoringStyles() {
 /* Promo Waves Container - Compact Professional Design */
 .pm-promowaves-container {
   margin-top: 12px;
-  padding-top: 12px;
+  padding-top: 40px;
   border-top: 1px solid #f0f0f0;
   flex: 1;
   min-height: 200px;
