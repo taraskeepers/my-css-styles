@@ -1162,7 +1162,7 @@ function addPriceMonitoringStyles() {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  gap: 20px;
+  gap: 15px;
 }
 
 .pm-price-range-card::before {
@@ -1180,11 +1180,6 @@ function addPriceMonitoringStyles() {
   display: flex;
   align-items: center;
   gap: 15px;
-}
-
-.pm-range-row.company {
-  padding-top: 15px;
-  border-top: 1px solid #f0f0f0;
 }
 
 .pm-range-label {
