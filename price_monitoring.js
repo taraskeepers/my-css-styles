@@ -1182,15 +1182,6 @@ window.togglePromoWaves = function() {
   
   renderPromoWavesList(displayData, maxDiscount, window.pmPromoWavesData.length > 10);
   
-  // Adjust container height when expanded
-  const chartContainer = document.getElementById('pmPromoWavesChart');
-  if (chartContainer) {
-    if (window.pmPromoWavesExpanded) {
-      chartContainer.style.maxHeight = '300px';
-    } else {
-      chartContainer.style.maxHeight = '';
-    }
-  }
 }
 
 function addPriceMonitoringStyles() {
@@ -2111,6 +2102,8 @@ function addPriceMonitoringStyles() {
   display: flex;
   flex-direction: column;
   position: relative;
+  height: 100%;
+  min-height: 0;
 }
 
 .pm-chart-card::before {
@@ -2359,11 +2352,14 @@ function addPriceMonitoringStyles() {
 /* Promo Waves Container - Compact Professional Design */
 .pm-promowaves-container {
   margin-top: 12px;
-  padding-top: 40px;
+  padding-top: 12px;
   border-top: 1px solid #f0f0f0;
-  max-height: 390px;
+  flex: 1;
+  min-height: 200px;
+  max-height: 400px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .pm-promowaves-header {
@@ -2396,7 +2392,7 @@ function addPriceMonitoringStyles() {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: max-height 0.3s ease;
+  min-height: 0;
 }
 
 .pm-no-promowaves {
