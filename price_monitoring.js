@@ -1578,7 +1578,7 @@ function addPriceMonitoringStyles() {
 /* Bucket Table Styles */
 .pm-buckets-header {
   display: grid;
-  grid-template-columns: 160px 80px 1fr 2px 1fr;
+  grid-template-columns: 130px 80px 1fr 2px 1fr;
   padding: 12px 16px;
   font-size: 10px;
   font-weight: 600;
@@ -1598,7 +1598,7 @@ function addPriceMonitoringStyles() {
 /* Tree/Butterfly Chart Styles */
 .pm-bucket-row-tree {
   display: grid;
-  grid-template-columns: 160px 80px 1fr 2px 1fr;
+  grid-template-columns: 130px 80px 1fr 2px 1fr;
   min-height: 60px;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
@@ -1679,7 +1679,7 @@ function addPriceMonitoringStyles() {
   }
 }
 
-/* Market Side (LEFT) - Reduced width */
+/* Market Side (LEFT) */
 .pm-tree-market {
   display: flex;
   align-items: center;
@@ -1688,7 +1688,7 @@ function addPriceMonitoringStyles() {
   gap: 8px;
 }
 
-/* Company Side (RIGHT) - Reduced width */
+/* Company Side (RIGHT) */
 .pm-tree-company {
   display: flex;
   align-items: center;
@@ -1704,16 +1704,69 @@ function addPriceMonitoringStyles() {
   position: relative;
 }
 
-/* Metrics Container - Slightly smaller */
+/* Metrics Container */
 .pm-tree-metrics {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 65px;
+  min-width: 70px;
   gap: 4px;
 }
 
-/* Bar Containers - Adjusted for new layout */
+/* Products Box Styling */
+.pm-products-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
+
+.pm-products-box:hover {
+  transform: scale(1.05);
+}
+
+.pm-products-count {
+  color: #2c2c2c;
+  font-weight: 700;
+}
+
+.pm-products-sep {
+  color: #888;
+  margin: 0 1px;
+}
+
+.pm-discounted-count {
+  color: #555;
+  font-weight: 600;
+}
+
+/* Discount Badge */
+.pm-discount-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #ff4444;
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.pm-discount-badge-empty {
+  display: inline-block;
+  padding: 2px 6px;
+  color: #ccc;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* Bar Containers */
 .pm-tree-bar-container {
   flex: 1;
   height: 30px;
