@@ -205,197 +205,195 @@ function createPriceMonitoringStructure() {
     // Add initial content based on view type
 if (config.view === 'market-overview') {
   container.innerHTML = `
-    <div class="pm-dashboard-container">
-      <!-- Header Row with Temperature and Key Metrics -->
-      <div class="pm-top-section">
-        <!-- Market Temperature Card -->
-        <div class="pm-temperature-card">
-<div class="pm-card-header">
-  <h4>Market Temperature</h4>
-  <div class="pm-temp-value-container">
-    <span class="pm-temp-value" id="pmTempValue">—</span>
-    <span class="pm-temp-max">/100</span>
-  </div>
-</div>
-          <div class="pm-temp-gauge-container">
-            <div class="pm-temp-gauge">
-              <div class="pm-temp-fill" id="pmTempFill"></div>
-              <div class="pm-temp-marker" id="pmTempMarker"></div>
-            </div>
-            <div class="pm-temp-labels">
-              <span>Frozen</span>
-              <span>Cool</span>
-              <span>Stable</span>
-              <span>Hot</span>
-              <span>Flashpoint</span>
-            </div>
+    <!-- Header Row with Temperature and Key Metrics -->
+    <div class="pm-top-section">
+      <!-- Market Temperature Card -->
+      <div class="pm-temperature-card">
+        <div class="pm-card-header">
+          <h4>Market Temperature</h4>
+          <div class="pm-temp-value-container">
+            <span class="pm-temp-value" id="pmTempValue">—</span>
+            <span class="pm-temp-max">/100</span>
           </div>
-          <div class="pm-temp-status">
-            <span class="pm-temp-category" id="pmTempLabel">—</span>
-            <span class="pm-temp-desc" id="pmTempDescription">—</span>
+        </div>
+        <div class="pm-temp-gauge-container">
+          <div class="pm-temp-gauge">
+            <div class="pm-temp-fill" id="pmTempFill"></div>
+            <div class="pm-temp-marker" id="pmTempMarker"></div>
+          </div>
+          <div class="pm-temp-labels">
+            <span>Frozen</span>
+            <span>Cool</span>
+            <span>Stable</span>
+            <span>Hot</span>
+            <span>Flashpoint</span>
+          </div>
+        </div>
+        <div class="pm-temp-status">
+          <span class="pm-temp-category" id="pmTempLabel">—</span>
+          <span class="pm-temp-desc" id="pmTempDescription">—</span>
+        </div>
+      </div>
+      
+      <!-- Price Range Card -->
+      <div class="pm-price-range-card">
+        <h4>Price Range</h4>
+        
+        <!-- Market Prices -->
+        <div class="pm-range-row market">
+          <span class="pm-range-label">Market</span>
+          <div class="pm-range-values">
+            <div class="pm-range-item">
+              <span class="pm-range-value" id="pmMarketMinPrice">$—</span>
+              <span class="pm-range-title">MIN</span>
+            </div>
+            <div class="pm-range-item median">
+              <span class="pm-range-value" id="pmMarketMedianPrice">$—</span>
+              <span class="pm-range-title">MEDIAN</span>
+            </div>
+            <div class="pm-range-item">
+              <span class="pm-range-value" id="pmMarketMaxPrice">$—</span>
+              <span class="pm-range-title">MAX</span>
+            </div>
           </div>
         </div>
         
-<!-- Price Range Card -->
-<div class="pm-price-range-card">
-  <h4>Price Range</h4>
-  
-  <!-- Market Prices -->
-  <div class="pm-range-row market">
-    <span class="pm-range-label">Market</span>
-    <div class="pm-range-values">
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmMarketMinPrice">$—</span>
-        <span class="pm-range-title">MIN</span>
-      </div>
-      <div class="pm-range-item median">
-        <span class="pm-range-value" id="pmMarketMedianPrice">$—</span>
-        <span class="pm-range-title">MEDIAN</span>
-      </div>
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmMarketMaxPrice">$—</span>
-        <span class="pm-range-title">MAX</span>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Company Prices -->
-  <div class="pm-range-row company">
-    <span class="pm-range-label" id="pmCompanyRangeLabel">Company</span>
-    <div class="pm-range-values">
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
-        <span class="pm-range-title">MIN</span>
-      </div>
-      <div class="pm-range-item median">
-        <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
-        <span class="pm-range-title">MEDIAN</span>
-      </div>
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
-        <span class="pm-range-title">MAX</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quick Stats -->
-<div class="pm-quick-stats">
-  <div class="pm-stat-item">
-    <div class="pm-stat-icon">📊</div>
-    <div class="pm-stat-info">
-      <div class="pm-stat-grid">
-        <div class="pm-stat-cell">
-          <span class="pm-stat-val" id="pmTotalProducts">—</span>
-          <span class="pm-stat-lbl">Products</span>
-        </div>
-        <div class="pm-stat-cell">
-          <span class="pm-stat-val" id="pmDiscountedProducts">—</span>
-          <span class="pm-stat-lbl">Discounted</span>
-        </div>
-        <div class="pm-stat-cell">
-          <span class="pm-stat-val" id="pmDiscountRate">—</span>
-          <span class="pm-stat-lbl">Discount Rate</span>
-        </div>
-        <div class="pm-stat-cell">
-          <span class="pm-stat-val" id="pmAvgDiscount">—</span>
-          <span class="pm-stat-lbl">Avg Discount</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="pm-stat-item">
-    <div class="pm-stat-icon">🌊</div>
-    <div class="pm-stat-info">
-      <div class="pm-stat-main">
-        <span class="pm-stat-val" id="pmActiveWaves">—</span>
-        <span class="pm-stat-lbl">Active Promo Waves</span>
-      </div>
-      <div class="pm-stat-secondary">
-        <span class="pm-stat-subtitle" id="pmWaveDiscount">—</span>
-        <span class="pm-stat-extra" id="pmWaveCompanies">—</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-      <!-- Main Content Grid -->
-      <div class="pm-main-grid">
-        <!-- Left Column -->
-        <div class="pm-left-column">
-          <!-- Price Buckets Distribution -->
-          <div class="pm-buckets-card">
-            <h4>Price Buckets Distribution</h4>
-            <div class="pm-buckets-table">
-<div class="pm-buckets-header">
-  <span>Bucket</span>
-  <span>Dominant</span>
-  <span style="text-align: right">Market</span>
-  <span></span>
-  <span id="pmCompanyHeaderName">Company</span>
-</div>
-              <div id="pmBucketsBody" class="pm-buckets-body">
-                <!-- Buckets will be populated here -->
-              </div>
+        <!-- Company Prices -->
+        <div class="pm-range-row company">
+          <span class="pm-range-label" id="pmCompanyRangeLabel">Company</span>
+          <div class="pm-range-values">
+            <div class="pm-range-item">
+              <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
+              <span class="pm-range-title">MIN</span>
+            </div>
+            <div class="pm-range-item median">
+              <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
+              <span class="pm-range-title">MEDIAN</span>
+            </div>
+            <div class="pm-range-item">
+              <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
+              <span class="pm-range-title">MAX</span>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Metrics Row -->
-          <div class="pm-metrics-row">
-            <!-- Volatility Card -->
-            <div class="pm-metric-mini">
-              <h5>Price Volatility</h5>
-              <div class="pm-metric-display">
-                <span class="pm-metric-val" id="pmVolatilityValue">—</span>
-                <span class="pm-metric-status" id="pmVolatilityLabel">—</span>
+      <!-- Quick Stats -->
+      <div class="pm-quick-stats">
+        <div class="pm-stat-item">
+          <div class="pm-stat-icon">📊</div>
+          <div class="pm-stat-info">
+            <div class="pm-stat-grid">
+              <div class="pm-stat-cell">
+                <span class="pm-stat-val" id="pmTotalProducts">—</span>
+                <span class="pm-stat-lbl">Products</span>
               </div>
-              <div class="pm-metric-bar">
-                <div class="pm-metric-fill" id="pmVolatilityBar"></div>
+              <div class="pm-stat-cell">
+                <span class="pm-stat-val" id="pmDiscountedProducts">—</span>
+                <span class="pm-stat-lbl">Discounted</span>
               </div>
-            </div>
-
-            <!-- Velocity Card -->
-            <div class="pm-metric-mini">
-              <h5>Price Change Velocity</h5>
-              <div class="pm-metric-display">
-                <span class="pm-metric-val" id="pmVelocityValue">—</span>
-                <span class="pm-metric-status" id="pmVelocityLabel">—</span>
+              <div class="pm-stat-cell">
+                <span class="pm-stat-val" id="pmDiscountRate">—</span>
+                <span class="pm-stat-lbl">Discount Rate</span>
               </div>
-              <div class="pm-metric-bar">
-                <div class="pm-metric-fill" id="pmVelocityBar"></div>
+              <div class="pm-stat-cell">
+                <span class="pm-stat-val" id="pmAvgDiscount">—</span>
+                <span class="pm-stat-lbl">Avg Discount</span>
               </div>
             </div>
           </div>
         </div>
+        <div class="pm-stat-item">
+          <div class="pm-stat-icon">🌊</div>
+          <div class="pm-stat-info">
+            <div class="pm-stat-main">
+              <span class="pm-stat-val" id="pmActiveWaves">—</span>
+              <span class="pm-stat-lbl">Active Promo Waves</span>
+            </div>
+            <div class="pm-stat-secondary">
+              <span class="pm-stat-subtitle" id="pmWaveDiscount">—</span>
+              <span class="pm-stat-extra" id="pmWaveCompanies">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Right Column -->
-        <div class="pm-right-column">
-<!-- Products Trend Chart -->
-<div class="pm-chart-card">
-  <div class="pm-chart-header">
-    <h4>Products & Discounts Trend</h4>
-    <div class="pm-chart-legend">
-      <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
-      <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
-      <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
-    </div>
-  </div>
-  <div class="pm-chart-container">
-    <canvas id="pmProductsCanvas"></canvas>
-  </div>
-  
-  <!-- Promo Waves Timeline -->
-  <div class="pm-promowaves-container">
-    <div class="pm-promowaves-header">
-      <h5>Active Promo Waves</h5>
-      <span class="pm-promowaves-count" id="pmPromoWavesCount">0 Active</span>
-    </div>
-    <div class="pm-promowaves-chart" id="pmPromoWavesChart">
-      <!-- Timeline will be rendered here -->
-    </div>
-  </div>
-</div>
+    <!-- Main Content Grid -->
+    <div class="pm-main-grid">
+      <!-- Left Column -->
+      <div class="pm-left-column">
+        <!-- Price Buckets Distribution -->
+        <div class="pm-buckets-card">
+          <h4>Price Buckets Distribution</h4>
+          <div class="pm-buckets-table">
+            <div class="pm-buckets-header">
+              <span>Bucket</span>
+              <span>Dominant</span>
+              <span style="text-align: right">Market</span>
+              <span></span>
+              <span id="pmCompanyHeaderName">Company</span>
+            </div>
+            <div id="pmBucketsBody" class="pm-buckets-body">
+              <!-- Buckets will be populated here -->
+            </div>
+          </div>
+        </div>
 
+        <!-- Metrics Row -->
+        <div class="pm-metrics-row">
+          <!-- Volatility Card -->
+          <div class="pm-metric-mini">
+            <h5>Price Volatility</h5>
+            <div class="pm-metric-display">
+              <span class="pm-metric-val" id="pmVolatilityValue">—</span>
+              <span class="pm-metric-status" id="pmVolatilityLabel">—</span>
+            </div>
+            <div class="pm-metric-bar">
+              <div class="pm-metric-fill" id="pmVolatilityBar"></div>
+            </div>
+          </div>
+
+          <!-- Velocity Card -->
+          <div class="pm-metric-mini">
+            <h5>Price Change Velocity</h5>
+            <div class="pm-metric-display">
+              <span class="pm-metric-val" id="pmVelocityValue">—</span>
+              <span class="pm-metric-status" id="pmVelocityLabel">—</span>
+            </div>
+            <div class="pm-metric-bar">
+              <div class="pm-metric-fill" id="pmVelocityBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="pm-right-column">
+        <!-- Products Trend Chart -->
+        <div class="pm-chart-card">
+          <div class="pm-chart-header">
+            <h4>Products & Discounts Trend</h4>
+            <div class="pm-chart-legend">
+              <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
+              <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
+              <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
+            </div>
+          </div>
+          <div class="pm-chart-container">
+            <canvas id="pmProductsCanvas"></canvas>
+          </div>
+          
+          <!-- Promo Waves Timeline -->
+          <div class="pm-promowaves-container">
+            <div class="pm-promowaves-header">
+              <h5>Active Promo Waves</h5>
+              <span class="pm-promowaves-count" id="pmPromoWavesCount">0 Active</span>
+            </div>
+            <div class="pm-promowaves-chart" id="pmPromoWavesChart">
+              <!-- Timeline will be rendered here -->
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -945,38 +943,40 @@ function createProductsChart(historicalData) {
   const container = chartEl.parentElement;
   container.innerHTML = '<div id="pmProductsChart"></div>';
   
-  // Prepare data
-  const chartData = historicalData.slice(-30).map(d => ({
-    x: d.date.value,
-    total: parseFloat(d.total_products) || 0,
-    discounted: parseFloat(d.discounted_products) || 0,
-    rate: parseFloat(d.pr_discounted_products) * 100 || 0
-  }));
-  
-  const series = [
-    {
-      name: 'Total Products',
-      data: chartData.map(d => ({ x: d.x, y: d.total }))
-    },
-    {
-      name: 'Discounted Products',
-      data: chartData.map(d => ({ x: d.x, y: d.discounted }))
-    },
-    {
-      name: 'Discount Rate %',
-      data: chartData.map(d => ({ x: d.x, y: d.rate }))
-    }
-  ];
-  
-  const options = {
-    series: series,
-    chart: {
-      type: 'area',
-      stacked: false,
-      height: 280,
-      toolbar: { show: false },
-      zoom: { enabled: false }
-    },
+  // Force layout recalculation before creating chart
+  setTimeout(() => {
+    // Prepare data
+    const chartData = historicalData.slice(-30).map(d => ({
+      x: d.date.value,
+      total: parseFloat(d.total_products) || 0,
+      discounted: parseFloat(d.discounted_products) || 0,
+      rate: parseFloat(d.pr_discounted_products) * 100 || 0
+    }));
+    
+    const series = [
+      {
+        name: 'Total Products',
+        data: chartData.map(d => ({ x: d.x, y: d.total }))
+      },
+      {
+        name: 'Discounted Products',
+        data: chartData.map(d => ({ x: d.x, y: d.discounted }))
+      },
+      {
+        name: 'Discount Rate %',
+        data: chartData.map(d => ({ x: d.x, y: d.rate }))
+      }
+    ];
+    
+    const options = {
+      series: series,
+      chart: {
+        type: 'area',
+        stacked: false,
+        height: 280,
+        toolbar: { show: false },
+        zoom: { enabled: false }
+      },
     dataLabels: {
       enabled: false
     },
@@ -1042,11 +1042,12 @@ show: false
     }
   };
   
-  window.pmProductsChartInstance = new ApexCharts(
-    document.getElementById('pmProductsChart'), 
-    options
-  );
-  window.pmProductsChartInstance.render();
+    window.pmProductsChartInstance = new ApexCharts(
+      document.getElementById('pmProductsChart'), 
+      options
+    );
+    window.pmProductsChartInstance.render();
+  }, 100); // Small delay to ensure layout is calculated
 }
 
 // Function to create promo waves timeline chart
@@ -1197,34 +1198,22 @@ function addPriceMonitoringStyles() {
   
   const styles = `
     <style id="pmStyles">
-      /* Reset and Base Styles */
-      .pm-dashboard-container {
-        width: 1450px;
-        height: 1030px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        background-color: #f9f9f9;
-        padding: 15px;
-        border-radius: 12px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      }
+    /* Direct heading styles for price monitoring */
+.price-monitoring-wrapper h4 {
+  margin: 0 0 12px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
 
-      .pm-dashboard-container h4 {
-        margin: 0 0 12px 0;
-        font-size: 11px;
-        font-weight: 600;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-
-      .pm-dashboard-container h5 {
-        margin: 0;
-        font-size: 12px;
-        font-weight: 600;
-        color: #4a4a4a;
-      }
+.price-monitoring-wrapper h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a4a4a;
+}
 
       /* Section Labels matching selectedCompanyStats */
       .section-label {
@@ -1236,12 +1225,14 @@ function addPriceMonitoringStyles() {
         margin-bottom: 10px;
       }
 
-      /* Top Section */
-      .pm-top-section {
-        display: grid;
-        grid-template-columns: 420px 320px 1fr;
-        gap: 10px;
-      }
+/* Top Section - Add proper sizing */
+.pm-top-section {
+  display: grid;
+  grid-template-columns: 420px 320px 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+}
 
       /* Temperature Card - Enhanced styling */
       .pm-temperature-card {
@@ -1585,14 +1576,15 @@ function addPriceMonitoringStyles() {
   display: none;
 }
 
-      /* Main Grid */
-      .pm-main-grid {
-        display: grid;
-        grid-template-columns: 700px 1fr;
-        gap: 10px;
-        flex: 1;
-        height: calc(100% - 180px);
-      }
+/* Main Grid - Add proper sizing */
+.pm-main-grid {
+  display: grid;
+  grid-template-columns: 700px 1fr;
+  gap: 10px;
+  width: 100%;
+  height: calc(100vh - 400px);
+  max-height: 800px;
+}
 
       /* Left Column */
       .pm-left-column {
@@ -2273,12 +2265,13 @@ function addPriceMonitoringStyles() {
 .price-monitoring-wrapper {
   width: 1490px;
   margin: 20px 0 20px 20px;
-  background-color: #fff;
+  background-color: #f9f9f9;  /* Changed from #fff to light grey */
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 20px;
   max-height: 80vh;
   overflow-y: auto;
+  display: block;
 }
 
 /* Header styles for other views */
