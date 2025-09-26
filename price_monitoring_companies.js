@@ -27,14 +27,14 @@ function addCompaniesViewStyles() {
       }
       
       /* Adjusted grid layout for 33:77 ratio */
-      .pm-companies-main-grid {
-        display: grid;
-        grid-template-columns: 460px 1fr;
-        gap: 10px;
-        width: 100%;
-        height: calc(100vh - 400px);
-        max-height: 800px;
-      }
+.pm-companies-main-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 15px;
+  width: 100%;
+  height: calc(100vh - 400px);
+  max-height: 800px;
+}
       
 /* Company overview card - EXACT height of temperature card */
       .pm-company-overview-card {
@@ -460,17 +460,37 @@ function addCompaniesViewStyles() {
 
 .pm-advanced-metrics {
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: 15px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
   height: 100%;
 }
 
 .pm-metrics-section {
   background: white;
   border-radius: 8px;
-  padding: 15px;
+  padding: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   border-left: 4px solid;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-metrics-section .pm-metrics-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.pm-metric-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 6px;
+  background: #fafafa;
+  border-radius: 6px;
 }
 
 .pm-metrics-section.cpi-section {
@@ -554,6 +574,14 @@ function addCompaniesViewStyles() {
   color: #888;
   border: 1px solid #e0e0e0;
 }
+
+.pm-top-section {
+  display: grid;
+  grid-template-columns: 420px 1fr 320px;
+  gap: 15px;
+  margin-bottom: 15px;
+  width: 100%;
+}
       
     </style>
   `;
@@ -618,24 +646,21 @@ async function renderCompaniesDashboard() {
 <div class="pm-company-price-range-card">
   <h4>Company Performance</h4>
   
-  <!-- Company Price Range -->
-  <div class="pm-range-row company">
-    <span class="pm-range-label" id="pmCompanyRangeLabel">${companyName}</span>
-    <div class="pm-range-values">
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
-        <span class="pm-range-title">MIN</span>
-      </div>
-      <div class="pm-range-item median">
-        <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
-        <span class="pm-range-title">MEDIAN</span>
-      </div>
-      <div class="pm-range-item">
-        <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
-        <span class="pm-range-title">MAX</span>
-      </div>
-    </div>
+<!-- Company Price Range -->
+<div class="pm-range-values">
+  <div class="pm-range-item">
+    <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
+    <span class="pm-range-title">MIN</span>
   </div>
+  <div class="pm-range-item median">
+    <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
+    <span class="pm-range-title">MEDIAN</span>
+  </div>
+  <div class="pm-range-item">
+    <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
+    <span class="pm-range-title">MAX</span>
+  </div>
+</div>
   
   <!-- Company Metrics -->
   <div class="pm-company-metrics-row">
@@ -933,12 +958,7 @@ async function updateCompanyOverviewCard(companyData) {
 }
 
 function updateCompanyPriceRange(market, company) {
-  // Market prices
-  document.getElementById('pmMarketMinPrice').textContent = `$${window.pmUtils.formatNumber(market.cheapest_product, 0)}`;
-  document.getElementById('pmMarketMedianPrice').textContent = `$${window.pmUtils.formatNumber(market.median_price, 0)}`;
-  document.getElementById('pmMarketMaxPrice').textContent = `$${window.pmUtils.formatNumber(market.most_expensive_product, 0)}`;
-  
-  // Company prices
+  // Only update company prices (removed market prices)
   if (company) {
     document.getElementById('pmCompanyMinPrice').textContent = `$${window.pmUtils.formatNumber(company.cheapest_product, 0)}`;
     document.getElementById('pmCompanyMedianPrice').textContent = `$${window.pmUtils.formatNumber(company.median_price, 0)}`;
