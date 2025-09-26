@@ -294,12 +294,14 @@ if (config.view === 'market-overview') {
           <div class="pm-buckets-card">
             <h4>Price Buckets Distribution</h4>
             <div class="pm-buckets-table">
-              <div class="pm-buckets-header">
-                <span>Bucket</span>
-                <span>Range</span>
-                <span>Products</span>
-                <span>Share</span>
-              </div>
+<div class="pm-buckets-header">
+  <span>Bucket</span>
+  <span>Range</span>
+  <span>Products</span>
+  <span>Discounted</span>
+  <span>Disc. Depth</span>
+  <span>Share</span>
+</div>
               <div id="pmBucketsBody" class="pm-buckets-body">
                 <!-- Buckets will be populated here -->
               </div>
@@ -444,6 +446,10 @@ if (config.view === 'market-overview') {
 }
 
 async function populateMarketOverview() {
+  // Check for ApexCharts availability
+  if (typeof ApexCharts === 'undefined') {
+    console.warn('[PriceMonitoring] ApexCharts not loaded, charts will not be displayed');
+  }
   const data = await loadCompanyPricingData();
   if (!data || !data.marketData) {
     console.error('[PriceMonitoring] No market data available');
@@ -515,77 +521,101 @@ if (tempMarker) {
   document.getElementById('pmMedianPrice').textContent = `$${formatNumber(market.median_price, 2)}`;
   document.getElementById('pmMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 2)}`;
   
-  // 3. Price Buckets
+// 3. Price Buckets with Discounts and Discount Depth
   const buckets = [
     { 
-      name: 'Ultra Cheap', 
+      name: 'Ultra Cheap',
+      range: market.price_range?.[0],
       count: market.ultra_cheap_bucket,
       share: market.ultra_cheap_bucket_share,
+      discounted: market.disc_ultra_cheap_bucket,
+      discount_depth: market.disc_depth_ultra_cheap_bucket,
       color: '#4CAF50'
     },
     { 
-      name: 'Budget', 
+      name: 'Budget',
+      range: market.price_range?.[1], 
       count: market.budget_bucket,
       share: market.budget_bucket_share,
+      discounted: market.disc_budget_bucket,
+      discount_depth: market.disc_depth_budget_bucket,
       color: '#8BC34A'
     },
     { 
-      name: 'Mid Range', 
+      name: 'Mid Range',
+      range: market.price_range?.[2],
       count: market.mid_bucket,
       share: market.mid_bucket_share,
+      discounted: market.disc_mid_bucket,
+      discount_depth: market.disc_depth_mid_bucket,
       color: '#FFC107'
     },
     { 
-      name: 'Upper Mid', 
+      name: 'Upper Mid',
+      range: market.price_range?.[3],
       count: market.upper_mid_bucket,
       share: market.upper_mid_bucket_share,
+      discounted: market.disc_upper_mid_bucket,
+      discount_depth: market.disc_depth_upper_mid_bucket,
       color: '#FF9800'
     },
     { 
-      name: 'Premium', 
+      name: 'Premium',
+      range: market.price_range?.[4],
       count: market.premium_bucket,
       share: market.premium_bucket_share,
+      discounted: market.disc_premium_bucket,
+      discount_depth: market.disc_depth_premium_bucket,
       color: '#FF5722'
     },
     { 
-      name: 'Ultra Premium', 
+      name: 'Ultra Premium',
+      range: market.price_range?.[5],
       count: market.ultra_premium_bucket,
       share: market.ultra_premium_bucket_share,
+      discounted: market.disc_ultra_premium_bucket,
+      discount_depth: market.disc_depth_ultra_premium_bucket,
       color: '#9C27B0'
     }
   ];
   
-const bucketsBody = document.getElementById('pmBucketsBody');
-if (bucketsBody) {
-  bucketsBody.innerHTML = buckets.map((bucket, index) => {
-    const priceRange = market.price_range?.[index];
-    let range = '—';
-    if (priceRange) {
-      // Check different possible property names
-      const min = priceRange.min || priceRange.min_price || priceRange.from || 0;
-      const max = priceRange.max || priceRange.max_price || priceRange.to || 0;
-      range = `$${parseFloat(min).toFixed(2)} - $${parseFloat(max).toFixed(2)}`;
-    }
-    const sharePercent = parseFloat(bucket.share || 0) * 100;
-    
-    return `
-      <div class="pm-bucket-row">
-        <div class="pm-bucket-name">
-          <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
-          <span>${bucket.name}</span>
-        </div>
-        <div class="pm-bucket-range">${range}</div>
-        <div class="pm-bucket-products">${formatNumber(bucket.count)}</div>
-        <div class="pm-bucket-share">
-          <div class="pm-bucket-share-bar">
-            <div class="pm-bucket-share-fill" style="width: ${sharePercent}%; background: ${bucket.color}"></div>
+  const bucketsBody = document.getElementById('pmBucketsBody');
+  if (bucketsBody) {
+    bucketsBody.innerHTML = buckets.map(bucket => {
+      // Parse the range correctly from price_range array
+      let range = '—';
+      if (bucket.range && bucket.range.price_range) {
+        range = bucket.range.price_range;
+      }
+      
+      const sharePercent = parseFloat(bucket.share || 0) * 100;
+      const discountedCount = parseInt(bucket.discounted) || 0;
+      const discountDepth = parseFloat(bucket.discount_depth) || 0;
+      
+      return `
+        <div class="pm-bucket-row">
+          <div class="pm-bucket-name">
+            <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+            <span>${bucket.name}</span>
           </div>
-          <span class="pm-bucket-share-text">${sharePercent.toFixed(1)}%</span>
+          <div class="pm-bucket-range">${range}</div>
+          <div class="pm-bucket-products">${formatNumber(bucket.count)}</div>
+          <div class="pm-bucket-discounted">
+            ${discountedCount > 0 ? `<span class="pm-discount-badge">${discountedCount}</span>` : '—'}
+          </div>
+          <div class="pm-discount-depth">
+            ${discountDepth > 0 ? `${discountDepth.toFixed(1)}%` : '—'}
+          </div>
+          <div class="pm-bucket-share">
+            <div class="pm-bucket-share-bar">
+              <div class="pm-bucket-share-fill" style="width: ${sharePercent}%; background: ${bucket.color}"></div>
+            </div>
+            <span class="pm-bucket-share-text">${sharePercent.toFixed(1)}%</span>
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');
-}
+      `;
+    }).join('');
+  }
   
   // 4. Products Stats
   const totalProducts = market.unique_total_products;
@@ -677,71 +707,125 @@ function updateTrendBadge(elementId, current, previous) {
   badge.style.display = 'inline-block';
 }
 
-// Function to create products chart
+// Function to create products area chart (like selectedCompanyMarketShareChart)
 function createProductsChart(historicalData) {
-  const canvas = document.getElementById('pmProductsCanvas');
-  if (!canvas || !historicalData || historicalData.length === 0) return;
+  const chartEl = document.getElementById('pmProductsCanvas');
+  if (!chartEl || !historicalData || historicalData.length === 0) return;
   
-  const ctx = canvas.getContext('2d');
+  // Destroy existing chart if any
+  if (window.pmProductsChartInstance) {
+    window.pmProductsChartInstance.destroy();
+    window.pmProductsChartInstance = null;
+  }
+  
+  // Convert canvas to div for ApexCharts
+  const container = chartEl.parentElement;
+  container.innerHTML = '<div id="pmProductsChart"></div>';
   
   // Prepare data
-  const labels = historicalData.slice(-30).map(d => {
-    const date = new Date(d.date.value);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  });
+  const chartData = historicalData.slice(-30).map(d => ({
+    x: d.date.value,
+    total: parseFloat(d.total_products) || 0,
+    discounted: parseFloat(d.discounted_products) || 0,
+    rate: parseFloat(d.pr_discounted_products) * 100 || 0
+  }));
   
-  const datasets = [
+  const series = [
     {
-      label: 'Total Products',
-      data: historicalData.slice(-30).map(d => parseFloat(d.total_products)),
-      borderColor: '#2196F3',
-      backgroundColor: '#2196F333',
-      yAxisID: 'y-products'
+      name: 'Total Products',
+      data: chartData.map(d => ({ x: d.x, y: d.total }))
     },
     {
-      label: 'Discounted Products',
-      data: historicalData.slice(-30).map(d => parseFloat(d.discounted_products)),
-      borderColor: '#FF9800',
-      backgroundColor: '#FF980033',
-      yAxisID: 'y-products'
+      name: 'Discounted Products',
+      data: chartData.map(d => ({ x: d.x, y: d.discounted }))
     },
     {
-      label: 'Discount %',
-      data: historicalData.slice(-30).map(d => parseFloat(d.pr_discounted_products) * 100),
-      borderColor: '#4CAF50',
-      backgroundColor: '#4CAF5033',
-      yAxisID: 'y-percentage'
+      name: 'Discount Rate %',
+      data: chartData.map(d => ({ x: d.x, y: d.rate }))
     }
   ];
   
-  new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { mode: 'index', intersect: false }
-      },
-      scales: {
-        'y-products': {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: { display: true, text: 'Product Count' }
+  const options = {
+    series: series,
+    chart: {
+      type: 'area',
+      stacked: false,
+      height: 280,
+      toolbar: { show: false },
+      zoom: { enabled: false }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: { 
+        shadeIntensity: 1,
+        opacityFrom: 0.75, 
+        opacityTo: 0.1,
+        stops: [0, 90, 100]
+      }
+    },
+    colors: ['#2196F3', '#FF9800', '#4CAF50'],
+    xaxis: {
+      type: 'datetime',
+      labels: { 
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: 'MMM',
+          day: 'dd'
         },
-        'y-percentage': {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: { display: true, text: 'Percentage' },
-          grid: { drawOnChartArea: false }
+        style: {
+          fontSize: '10px'
         }
       }
+    },
+    yaxis: [
+      {
+        title: { text: 'Product Count', style: { fontSize: '11px' } },
+        labels: { 
+          formatter: val => Math.round(val),
+          style: { fontSize: '10px' }
+        }
+      },
+      {
+        opposite: true,
+        title: { text: 'Discount %', style: { fontSize: '11px' } },
+        labels: { 
+          formatter: val => val.toFixed(1) + '%',
+          style: { fontSize: '10px' }
+        },
+        max: 100
+      }
+    ],
+    grid: { 
+      borderColor: '#e7e7e7',
+      row: {
+        colors: ['#f3f3f3', 'transparent'],
+        opacity: 0.5
+      }
+    },
+    legend: { 
+      position: 'top',
+      horizontalAlign: 'center',
+      fontSize: '11px'
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      x: { format: 'dd MMM yyyy' }
     }
-  });
+  };
+  
+  window.pmProductsChartInstance = new ApexCharts(
+    document.getElementById('pmProductsChart'), 
+    options
+  );
+  window.pmProductsChartInstance.render();
 }
 
 function addPriceMonitoringStyles() {
@@ -749,542 +833,283 @@ function addPriceMonitoringStyles() {
   
   const styles = `
     <style id="pmStyles">
-      /* Reset and Base Styles */
+      /* Reset and Base Styles - Updated to match selectedCompanyStats */
       .pm-dashboard-container {
-        width: 1490px;
-        height: 1030px;
+        width: 1450px;
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 10px;
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 12px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
 
       .pm-dashboard-container h4 {
-        margin: 0;
-        font-size: 14px;
+        margin: 0 0 12px 0;
+        font-size: 11px;
         font-weight: 600;
-        color: #1a1a1a;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
 
-      .pm-dashboard-container h5 {
-        margin: 0;
-        font-size: 12px;
+      /* Section Labels matching selectedCompanyStats */
+      .section-label {
+        font-size: 11px;
         font-weight: 600;
-        color: #4a4a4a;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
       }
 
       /* Top Section */
       .pm-top-section {
         display: grid;
-        grid-template-columns: 420px 320px 1fr;
-        gap: 20px;
-        height: 140px;
+        grid-template-columns: 380px 340px 1fr;
+        gap: 10px;
+        height: 180px;
       }
 
-      /* Temperature Card */
+      /* Temperature Card - Updated styling */
       .pm-temperature-card {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
       }
 
       .pm-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 15px;
       }
 
       .pm-temp-value {
-        font-size: 24px;
+        font-size: 32px;
         font-weight: bold;
-        color: #1a1a1a;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
 
       .pm-temp-gauge-container {
         position: relative;
-        margin-bottom: 10px;
+        margin: 20px 0;
       }
 
       .pm-temp-gauge {
-        height: 24px;
+        height: 32px;
         background: linear-gradient(90deg, 
           #0066cc 0%, #3399ff 20%, #66ccff 35%, 
           #ffcc00 50%, #ff9900 65%, #ff6600 80%, #ff0000 100%);
-        border-radius: 12px;
+        border-radius: 16px;
         position: relative;
         overflow: visible;
-      }
-
-      .pm-temp-fill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        background: rgba(0,0,0,0.15);
-        border-radius: 12px;
-        pointer-events: none;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
       }
 
       .pm-temp-marker {
         position: absolute;
-        top: -4px;
-        width: 4px;
-        height: 32px;
+        top: -6px;
+        width: 6px;
+        height: 44px;
         background: white;
-        border: 2px solid #333;
-        border-radius: 3px;
+        border: 3px solid #333;
+        border-radius: 6px;
         transition: left 0.5s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
       }
 
-      .pm-temp-labels {
-        display: flex;
-        justify-content: space-between;
-        font-size: 9px;
-        color: #888;
-        margin-top: 4px;
-      }
-
-      .pm-temp-status {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 8px;
-        border-top: 1px solid #f0f0f0;
-      }
-
-      .pm-temp-category {
-        font-weight: 600;
-        font-size: 13px;
-        color: #1a1a1a;
-      }
-
-      .pm-temp-desc {
-        font-size: 11px;
-        color: #666;
-      }
-
-      /* Price Range Card */
+      /* Price Range Card - Updated */
       .pm-price-range-card {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      }
-
-      .pm-price-metrics {
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        justify-content: space-between;
-        margin-top: 16px;
-      }
-
-      .pm-price-item {
-        text-align: center;
-        padding: 8px;
+        flex-direction: column;
       }
 
       .pm-price-item.featured {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 8px;
-        flex: 1.2;
+        border-radius: 12px;
+        padding: 12px;
+        flex: 1.3;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
       }
 
-      .pm-price-label {
-        display: block;
-        font-size: 10px;
-        color: #888;
-        margin-bottom: 4px;
-        letter-spacing: 1px;
-      }
-
-      .pm-price-item.featured .pm-price-label {
-        color: rgba(255,255,255,0.8);
-      }
-
-      .pm-price-val {
-        font-size: 20px;
-        font-weight: bold;
-        color: #1a1a1a;
-      }
-
-      .pm-price-item.featured .pm-price-val {
-        color: white;
-      }
-
-      /* Quick Stats */
+      /* Quick Stats - Updated */
       .pm-quick-stats {
         display: flex;
-        gap: 15px;
+        gap: 10px;
       }
 
       .pm-stat-item {
         background: white;
         border-radius: 12px;
-        padding: 16px;
+        padding: 20px;
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        gap: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
       }
 
-      .pm-stat-icon {
-        font-size: 32px;
-      }
-
-      .pm-stat-info {
-        flex: 1;
-      }
-
-      .pm-stat-val {
-        display: block;
-        font-size: 22px;
-        font-weight: bold;
-        color: #1a1a1a;
-      }
-
-      .pm-stat-lbl {
-        display: block;
-        font-size: 11px;
-        color: #888;
-        margin-top: 2px;
-      }
-
-      .pm-stat-trend {
-        display: inline-block;
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-top: 4px;
+      .pm-stat-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
       }
 
       /* Main Grid */
       .pm-main-grid {
         display: grid;
-        grid-template-columns: 600px 1fr;
-        gap: 20px;
+        grid-template-columns: 700px 1fr;
+        gap: 10px;
         flex: 1;
-        height: calc(100% - 160px);
       }
 
-      /* Left Column */
-      .pm-left-column {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-
-      /* Buckets Card */
+      /* Buckets Card - Enhanced */
       .pm-buckets-card {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        flex: 1;
-      }
-
-      .pm-buckets-table {
-        margin-top: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       }
 
       .pm-buckets-header {
         display: grid;
-        grid-template-columns: 120px 140px 80px 1fr;
-        padding: 8px 12px;
-        font-size: 11px;
+        grid-template-columns: 110px 120px 70px 70px 85px 1fr;
+        padding: 12px 16px;
+        font-size: 10px;
         font-weight: 600;
-        color: #888;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         border-bottom: 2px solid #f0f0f0;
-      }
-
-      .pm-buckets-body {
-        max-height: 420px;
-        overflow-y: auto;
+        background: #fafafa;
+        border-radius: 8px 8px 0 0;
       }
 
       .pm-bucket-row {
         display: grid;
-        grid-template-columns: 120px 140px 80px 1fr;
-        padding: 10px 12px;
+        grid-template-columns: 110px 120px 70px 70px 85px 1fr;
+        padding: 12px 16px;
         align-items: center;
-        border-bottom: 1px solid #f8f8f8;
-        transition: background 0.2s;
+        border-bottom: 1px solid #f5f5f5;
+        transition: all 0.2s;
       }
 
       .pm-bucket-row:hover {
-        background: #f8f9fa;
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(255,255,255,0) 100%);
+        transform: translateX(2px);
       }
 
-      .pm-bucket-name {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      .pm-bucket-indicator {
-        width: 12px;
-        height: 12px;
-        border-radius: 3px;
-      }
-
-      .pm-bucket-range {
-        font-size: 11px;
-        color: #666;
-        font-family: 'Monaco', 'Menlo', monospace;
-      }
-
-      .pm-bucket-products {
-        font-size: 12px;
-        font-weight: 600;
-        text-align: center;
-      }
-
-      .pm-bucket-share {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .pm-bucket-share-bar {
-        flex: 1;
-        height: 16px;
-        background: #f0f0f0;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-
-      .pm-bucket-share-fill {
-        height: 100%;
-        transition: width 0.5s ease;
-      }
-
-      .pm-bucket-share-text {
-        font-size: 11px;
-        font-weight: 600;
-        min-width: 40px;
-        text-align: right;
-      }
-
-      /* Metrics Row */
-      .pm-metrics-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-      }
-
+      /* Metrics Row - Styled like stats containers */
       .pm-metric-mini {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
       }
 
-      .pm-metric-display {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin: 12px 0 8px;
-      }
-
-      .pm-metric-val {
-        font-size: 24px;
-        font-weight: bold;
-        color: #1a1a1a;
-      }
-
-      .pm-metric-status {
-        font-size: 11px;
-        padding: 4px 8px;
-        background: #f0f0f0;
-        border-radius: 4px;
-        font-weight: 500;
-      }
-
-      .pm-metric-bar {
-        height: 6px;
-        background: #f0f0f0;
-        border-radius: 3px;
-        overflow: hidden;
-      }
-
-      .pm-metric-fill {
-        height: 100%;
+      .pm-metric-mini::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
         background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
-        transition: width 0.5s ease;
       }
 
-      /* Right Column */
-      .pm-right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-
-      /* Chart Card */
+      /* Chart Card - Match selectedCompanyMarketShareChart style */
       .pm-chart-card {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         flex: 1;
-      }
-
-      .pm-chart-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .pm-chart-legend {
-        display: flex;
-        gap: 12px;
-      }
-
-      .pm-legend-item {
-        font-size: 11px;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .pm-legend-item::before {
-        content: '';
-        width: 12px;
-        height: 3px;
-        background: var(--color);
-        border-radius: 2px;
+        flex-direction: column;
       }
 
       .pm-chart-container {
-        height: 320px;
+        width: 100%;
+        height: 280px;
         position: relative;
       }
 
-      /* Bottom Stats */
-      .pm-bottom-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-      }
-
+      /* Bottom Stats - Enhanced */
       .pm-stat-card-mini {
         background: white;
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s;
       }
 
-      .pm-stat-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-      }
-
-      .pm-stat-emoji {
-        font-size: 20px;
-      }
-
-      .pm-stat-title {
-        font-size: 11px;
-        color: #666;
-        font-weight: 500;
-      }
-
-      .pm-stat-body {
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
+      .pm-stat-card-mini:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
 
       .pm-stat-number {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: bold;
-        color: #1a1a1a;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
 
-      .pm-stat-change {
-        font-size: 12px;
+      /* Discounted products column styling */
+      .pm-discount-badge {
+        display: inline-block;
         padding: 2px 6px;
+        background: #e8f5e9;
+        color: #2e7d32;
         border-radius: 4px;
-        font-weight: 500;
-      }
-
-      .pm-stat-subtitle {
         font-size: 11px;
-        color: #888;
-        display: block;
-        margin-top: 4px;
+        font-weight: 600;
       }
 
-      /* View Switcher Styles */
+      .pm-discount-depth {
+        color: #ff6b6b;
+        font-weight: 600;
+        font-size: 11px;
+      }
+
+      /* Additional hover effects and transitions */
+      .pm-bucket-share-fill {
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* View Switcher - Keep existing but enhance */
       .pm-view-switcher {
         display: inline-flex !important;
-        flex-direction: row !important;
-        background-color: #f5f5f5;
+        background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
         border-radius: 30px;
         padding: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        gap: 2px;
-      }
-
-      .pm-switcher-btn {
-        padding: 10px 20px;
-        border: none;
-        background: transparent;
-        border-radius: 26px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #666;
-        display: inline-flex !important;
-        align-items: center;
-        gap: 6px;
-        position: relative;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-
-      .pm-switcher-btn:hover {
-        background-color: rgba(0, 122, 255, 0.08);
-        color: #333;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       }
 
       .pm-switcher-btn.active {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
-      }
-
-      .pm-btn-icon {
-        font-size: 16px;
-        display: inline-block;
-      }
-
-      /* Scrollbar Styling */
-      .pm-buckets-body::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
+        transform: scale(1.02);
       }
     </style>
   `;
