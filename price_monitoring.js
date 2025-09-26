@@ -616,17 +616,23 @@ if (tempGauge) {
       } : null,
       color: '#FF5722'
     },
-    { 
-      name: 'Ultra Premium',
-      range: market.price_range?.[5],
-      market: {
-        count: market.ultra_premium_bucket,
-        share: market.ultra_premium_bucket_share,
-        discounted: market.disc_ultra_premium_bucket,
-        discount_depth: market.disc_depth_ultra_premium_bucket
-      } : null,
-      color: '#9C27B0'
-    }
+{ 
+  name: 'Ultra Premium',
+  range: market.price_range?.[5],
+  market: {
+    count: market.ultra_premium_bucket,
+    share: market.ultra_premium_bucket_share,
+    discounted: market.disc_ultra_premium_bucket,
+    discount_depth: market.disc_depth_ultra_premium_bucket
+  },
+  company: companyData ? {
+    count: companyData.ultra_premium_bucket,
+    share: companyData.ultra_premium_bucket_share,
+    discounted: companyData.disc_ultra_premium_bucket,
+    discount_depth: companyData.disc_depth_ultra_premium_bucket
+  } : null,
+  color: '#9C27B0'
+}
   ];
   
   const bucketsBody = document.getElementById('pmBucketsBody');
