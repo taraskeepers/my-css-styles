@@ -353,11 +353,19 @@ function addCompaniesViewStyles() {
         margin-top: 2px;
       }
       
-      .pmc-metric-compact-trend {
-        font-size: 10px;
-        font-weight: 600;
-        margin-top: 2px;
-      }
+.pmc-metric-compact-trend {
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.pmc-metric-compact-trend.positive {
+  color: #4CAF50;
+}
+
+.pmc-metric-compact-trend.negative {
+  color: #f44336;
+}
       
       .pmc-promo-wave-status {
         display: flex;
@@ -1798,7 +1806,7 @@ function updateAdvancedMetrics(companyData) {
     const arrow = cpi7dDiff > 0 ? '↑' : '↓';
     const className = cpi7dDiff > 0 ? 'positive' : 'negative';
     cpiTrendEl.textContent = `${arrow} ${Math.abs(cpi7dDiff).toFixed(2)}`;
-    cpiTrendEl.className = `pm-metric-compact-trend ${className}`;
+    cpiTrendEl.className = `pmc-metric-compact-trend ${className}`;
   } else {
     cpiTrendEl.textContent = '';
   }
