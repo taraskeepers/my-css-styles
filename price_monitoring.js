@@ -643,7 +643,8 @@ if (bucketsBody) {
     companyHeader.textContent = companyName || 'Company';
   }
   
-  bucketsBody.innerHTML = buckets.map(bucket => {
+  // REVERSE the buckets array to show Ultra Premium first
+  bucketsBody.innerHTML = buckets.slice().reverse().map(bucket => {
     let range = '—';
     if (bucket.range && bucket.range.price_range) {
       range = bucket.range.price_range;
@@ -685,9 +686,10 @@ if (bucketsBody) {
               '<span class="pm-discount-badge-empty">—</span>'}
           </div>
           <div class="pm-tree-bar-container left">
-            <div class="pm-tree-bar" style="width: ${marketSharePercent}%; background: ${bucket.color};">
-              <span class="pm-bar-percent left">${marketSharePercent.toFixed(1)}%</span>
-            </div>
+            ${marketSharePercent > 0 ? 
+              `<div class="pm-tree-bar" style="width: ${marketSharePercent}%; background: ${bucket.color};"></div>` : 
+              ''}
+            <span class="pm-bar-percent-outside left">${marketSharePercent.toFixed(1)}%</span>
           </div>
         </div>
         
@@ -697,9 +699,10 @@ if (bucketsBody) {
         <!-- Company Side (RIGHT) -->
         <div class="pm-tree-company">
           <div class="pm-tree-bar-container right">
-            <div class="pm-tree-bar" style="width: ${companySharePercent}%; background: ${bucket.color};">
-              <span class="pm-bar-percent right">${companySharePercent.toFixed(1)}%</span>
-            </div>
+            ${companySharePercent > 0 ? 
+              `<div class="pm-tree-bar" style="width: ${companySharePercent}%; background: ${bucket.color};"></div>` : 
+              ''}
+            <span class="pm-bar-percent-outside right">${companySharePercent.toFixed(1)}%</span>
           </div>
           <div class="pm-tree-metrics">
             <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
@@ -1437,9 +1440,10 @@ function addPriceMonitoringStyles() {
 }
 
 /* Bar Containers */
+/* Bar Containers */
 .pm-tree-bar-container {
   flex: 1;
-  height: 32px;  /* Increased from 24px */
+  height: 32px;
   position: relative;
   background: #f5f5f5;
   border-radius: 6px;
@@ -1464,36 +1468,28 @@ function addPriceMonitoringStyles() {
   position: relative;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.85;
-  min-width: 35px; /* Ensure minimum width for percentage text */
 }
 
 .pm-tree-bar:hover {
   opacity: 1;
 }
 
-/* Percentage inside bars */
-.pm-bar-percent {
+/* Percentage OUTSIDE bars (in grey area) */
+.pm-bar-percent-outside {
   position: absolute;
   font-size: 11px;
   font-weight: 600;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  color: #444;  /* Dark color */
   line-height: 32px;
+  z-index: 2;
 }
 
-.pm-bar-percent.left {
+.pm-bar-percent-outside.left {
   left: 8px;
 }
 
-.pm-bar-percent.right {
+.pm-bar-percent-outside.right {
   right: 8px;
-}
-
-/* If bar is too small, hide the percentage */
-.pm-tree-bar[style*="width: 0"] .pm-bar-percent,
-.pm-tree-bar[style*="width: 1"] .pm-bar-percent,
-.pm-tree-bar[style*="width: 2"] .pm-bar-percent {
-  display: none;
 }
 
 /* New bucket structure styles */
