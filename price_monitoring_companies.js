@@ -36,18 +36,22 @@ function addCompaniesViewStyles() {
         max-height: 800px;
       }
       
-/* Company overview card - EXACTLY matching temperature card dimensions */
+/* Company overview card - EXACT height of temperature card */
       .pm-company-overview-card {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        flex-direction: column;
+        flex-direction: row;  /* HORIZONTAL layout */
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
         position: relative;
         overflow: hidden;
         width: 420px;
-        /* Same structure as temperature card */
+        height: 200px;  /* EXACT same height as temperature card */
+        box-sizing: border-box;
       }
       
       .pm-company-overview-card::before {
@@ -60,29 +64,28 @@ function addCompaniesViewStyles() {
         background: linear-gradient(90deg, #667eea, #764ba2);
       }
       
-      /* Company header matching temperature card header */
-      .pm-company-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-      }
-      
-      .pm-company-header h4 {
-        margin: 0;
-        font-size: 11px;
-        font-weight: 600;
-        color: #999;
+      /* Company name styled EXACTLY like product_explorer.js */
+      .company-name-header {
+        height: 80px;
+        width: 140px;
+        font-size: 14px;
+        font-weight: 800;
+        color: #ffffff;
+        text-align: center;
+        padding: 0 10px;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+        border-radius: 12px;
+        border: 1px solid #1a252f;
         text-transform: uppercase;
         letter-spacing: 1px;
-      }
-      
-      /* Stats row */
-      .pm-company-stats-row {
+        box-shadow: 
+          0 4px 8px rgba(0,0,0,0.2),
+          0 1px 3px rgba(0,0,0,0.3),
+          inset 0 1px 0 rgba(255,255,255,0.1);
         display: flex;
-        justify-content: space-around;
         align-items: center;
-        padding: 20px 0;
+        justify-content: center;
+        flex-shrink: 0;
       }
       
       .pm-rank-container,
@@ -90,25 +93,26 @@ function addCompaniesViewStyles() {
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 8px;
       }
       
       .section-label {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         color: #999;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
       }
       
       .big-rank-box {
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 42px;
+        font-size: 36px;
         font-weight: 900;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -116,13 +120,13 @@ function addCompaniesViewStyles() {
       }
       
       .big-market-circle {
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 900;
         color: #007aff;
         background: white;
@@ -193,6 +197,7 @@ function addCompaniesViewStyles() {
         overflow-y: auto;
       }
       
+      /* Company buckets row */
       .pm-company-bucket-row {
         display: grid;
         grid-template-columns: 150px 1fr;
@@ -239,7 +244,7 @@ function addCompaniesViewStyles() {
         height: 100%;
       }
 
-/* Company buckets data section */
+      /* Company data section */
       .pm-company-data {
         display: flex;
         align-items: center;
@@ -247,7 +252,7 @@ function addCompaniesViewStyles() {
         padding: 0 10px;
       }
       
-      /* Copy exact styles from price_monitoring.js */
+      /* Bar container - EXACTLY like price_monitoring.js */
       .pm-tree-bar-container {
         flex: 1;
         height: 30px;
@@ -260,22 +265,21 @@ function addCompaniesViewStyles() {
       
       .pm-tree-bar {
         height: 100%;
-        display: flex;
-        align-items: center;
         position: relative;
         transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         opacity: 0.85;
       }
       
-      /* Percentage text EXACTLY as in price_monitoring.js */
+      /* Percentage ALWAYS visible */
       .pm-bar-percent-outside {
         position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
         font-size: 11px;
         font-weight: 600;
         color: #444;
-        line-height: 30px;
         z-index: 2;
-        right: 8px;
       }
       
       .pm-products-box {
@@ -384,22 +388,18 @@ async function renderCompaniesDashboard() {
         <div class="pm-top-section">
 <!-- Company Overview Card -->
           <div class="pm-company-overview-card">
-            <div class="pm-company-header">
-              <h4>${companyName}</h4>
-            </div>
-            <div class="pm-company-stats-row">
-              <div class="pm-rank-container">
-                <div class="section-label">COMPANY RANK</div>
-                <div class="big-rank-box">
-                  <span id="pmCompanyRankValue">—</span>
-                </div>
+            <div class="company-name-header">${companyName}</div>
+            <div class="pm-rank-container">
+              <div class="section-label">COMPANY RANK</div>
+              <div class="big-rank-box">
+                <span id="pmCompanyRankValue">—</span>
               </div>
-              <div class="pm-market-container">
-                <div class="section-label">MARKET SHARE</div>
-                <div class="big-market-circle">
-                  <div class="market-water-fill" id="pmCompanyMarketFill"></div>
-                  <span class="market-value-text" id="pmCompanyMarketValue">—</span>
-                </div>
+            </div>
+            <div class="pm-market-container">
+              <div class="section-label">MARKET SHARE</div>
+              <div class="big-market-circle">
+                <div class="market-water-fill" id="pmCompanyMarketFill"></div>
+                <span class="market-value-text" id="pmCompanyMarketValue">—</span>
               </div>
             </div>
           </div>
@@ -800,9 +800,7 @@ bucketsHTML += `
             `<span class="pm-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
             '<span class="pm-discount-badge-empty">—</span>'}
           <div class="pm-tree-bar-container">
-            ${sharePercent > 0 ? 
-              `<div class="pm-tree-bar" style="width: ${sharePercent}%; background: ${bucket.color};"></div>` : 
-              ''}
+            <div class="pm-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
             <span class="pm-bar-percent-outside">${sharePercent}%</span>
           </div>
         </div>
