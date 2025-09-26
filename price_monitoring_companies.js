@@ -262,13 +262,30 @@ async function renderCompaniesDashboard() {
   if (!container) return;
   
   try {
-    // Fetch the pricing data
-    const data = await fetchPriceMonitoringData();
-    if (!data) return;
+    // Use the existing loadCompanyPricingData function from main module
+    const data = await window.loadCompanyPricingData();
+    if (!data || !data.allData) {
+      console.error('[PM Companies] No data available');
+      container.innerHTML = '<div class="pm-error">No data available</div>';
+      return;
+    }
     
-    const myCompanyData = data.myCompany;
-    const marketData = data.market;
-    const companyName = myCompanyData?.source || 'Company';
+    // Find market data (source='all' and q='all')
+    const marketData = data.allData.find(row => 
+      row.source === 'all' && row.q === 'all'
+    );
+    
+    // Find company data
+    const companyName = window.myCompany || 'East Perry';
+    const myCompanyData = data.allData.find(row => 
+      row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+    );
+    
+    if (!marketData || !myCompanyData) {
+      console.error('[PM Companies] Market or company data not found');
+      container.innerHTML = '<div class="pm-error">Data not found</div>';
+      return;
+    }
     
     // Build the dashboard HTML
     let html = `
@@ -298,57 +315,54 @@ async function renderCompaniesDashboard() {
           <!-- Price Range Card (reuse from main) -->
           <div class="pm-price-range-card">
             <h4>Price Range</h4>
-            <div class="pm-price-range-content">
-              <div class="pm-price-range-row">
-                <span class="pm-range-label">Market</span>
-                <div class="pm-range-values">
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Min</span>
-                    <span class="pm-price-value" id="pmMarketMinPrice">$—</span>
-                  </span>
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Median</span>
-                    <span class="pm-price-value median" id="pmMarketMedianPrice">$—</span>
-                  </span>
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Max</span>
-                    <span class="pm-price-value" id="pmMarketMaxPrice">$—</span>
-                  </span>
+            <div class="pm-range-row market">
+              <span class="pm-range-label">Market</span>
+              <div class="pm-range-values">
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmMarketMinPrice">$—</span>
+                  <span class="pm-range-title">MIN</span>
+                </div>
+                <div class="pm-range-item median">
+                  <span class="pm-range-value" id="pmMarketMedianPrice">$—</span>
+                  <span class="pm-range-title">MEDIAN</span>
+                </div>
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmMarketMaxPrice">$—</span>
+                  <span class="pm-range-title">MAX</span>
                 </div>
               </div>
-              <div class="pm-price-range-row">
-                <span class="pm-range-label" id="pmCompanyRangeLabel">${companyName}</span>
-                <div class="pm-range-values">
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Min</span>
-                    <span class="pm-price-value" id="pmCompanyMinPrice">$—</span>
-                  </span>
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Median</span>
-                    <span class="pm-price-value median" id="pmCompanyMedianPrice">$—</span>
-                  </span>
-                  <span class="pm-price-point">
-                    <span class="pm-price-label">Max</span>
-                    <span class="pm-price-value" id="pmCompanyMaxPrice">$—</span>
-                  </span>
+            </div>
+            <div class="pm-range-row company">
+              <span class="pm-range-label" id="pmCompanyRangeLabel">${companyName}</span>
+              <div class="pm-range-values">
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
+                  <span class="pm-range-title">MIN</span>
+                </div>
+                <div class="pm-range-item median">
+                  <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
+                  <span class="pm-range-title">MEDIAN</span>
+                </div>
+                <div class="pm-range-item">
+                  <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
+                  <span class="pm-range-title">MAX</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <!-- Key Metrics Cards (reuse from main) -->
+          <!-- Key Metrics Cards -->
           <div class="pm-quick-stats">
             <div class="pm-stat-item">
-              <div class="pm-stat-icon">📦</div>
               <div class="pm-stat-info">
                 <div class="pm-stat-grid">
                   <div class="pm-stat-cell">
                     <span class="pm-stat-val" id="pmCompanyProducts">—</span>
-                    <span class="pm-stat-lbl">Total Products</span>
+                    <span class="pm-stat-lbl">Products</span>
                   </div>
                   <div class="pm-stat-cell">
                     <span class="pm-stat-val" id="pmCompanyDiscounted">—</span>
-                    <span class="pm-stat-lbl">On Discount</span>
+                    <span class="pm-stat-lbl">Discounted</span>
                   </div>
                   <div class="pm-stat-cell">
                     <span class="pm-stat-val" id="pmCompanyDiscountRate">—</span>
@@ -382,7 +396,7 @@ async function renderCompaniesDashboard() {
               </div>
             </div>
             
-            <!-- Metrics Row (reuse from main) -->
+            <!-- Metrics Row -->
             <div class="pm-metrics-row">
               <div class="pm-metric-mini">
                 <h5>Price Volatility</h5>
@@ -416,7 +430,7 @@ async function renderCompaniesDashboard() {
                 <div class="pm-chart-section">
                   <h4>Products & Discounts Trend</h4>
                   <div class="pm-chart-wrapper">
-                    <canvas id="pmCompanyProductsChart"></canvas>
+                    <div id="pmCompanyProductsChart"></div>
                   </div>
                 </div>
                 
@@ -424,7 +438,7 @@ async function renderCompaniesDashboard() {
                 <div class="pm-cpi-chart-container">
                   <h4>CPI Market Position</h4>
                   <div class="pm-cpi-chart">
-                    <canvas id="pmCpiTrendChart"></canvas>
+                    <div id="pmCpiTrendChart"></div>
                   </div>
                 </div>
               </div>
@@ -437,7 +451,11 @@ async function renderCompaniesDashboard() {
     container.innerHTML = html;
     
     // Populate the dashboard with data
-    await populateCompaniesDashboard(data);
+    await populateCompaniesDashboard({
+      myCompany: myCompanyData,
+      market: marketData,
+      allData: data.allData
+    });
     
   } catch (error) {
     console.error('[PM Companies] Error rendering dashboard:', error);
@@ -479,40 +497,86 @@ async function populateCompaniesDashboard(data) {
 async function updateCompanyOverviewCard(companyData) {
   // Get company rank from company_serp_stats
   try {
-    await openDatabase();
-    const statsData = await fetchFromIDB(`acc${accountNumber}_pr${window.filterState?.activeProjectNumber || 2}_company_serp_stats`);
-    
-    if (statsData && statsData.data) {
-      // Find the company's overall rank (q=all, location=all, device=all)
-      const companyStats = statsData.data.find(row => 
-        row.source === companyData.source &&
-        row.q === 'all' &&
-        row.location_requested === 'all' &&
-        row.device === 'all'
-      );
-      
-      if (companyStats) {
-        // Update rank
-        const rankValue = companyStats['7d_rank'];
-        const rankElement = document.getElementById('pmCompanyRankValue');
-        if (rankElement && rankValue) {
-          rankElement.textContent = Math.round(parseFloat(rankValue));
-        }
-        
-        // Update market share
-        const marketShare = parseFloat(companyStats['7d_market_share']) * 100;
-        const marketElement = document.getElementById('pmCompanyMarketValue');
-        const marketFill = document.getElementById('pmCompanyMarketFill');
-        
-        if (marketElement) {
-          marketElement.textContent = `${marketShare.toFixed(1)}%`;
-        }
-        
-        if (marketFill) {
-          marketFill.style.height = `${Math.min(100, Math.max(0, marketShare * 2))}%`;
-        }
-      }
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
     }
+    
+    const tableName = `${tablePrefix}company_serp_stats`;
+    console.log('[PM Companies] Looking for stats table:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[PM Companies] projectData object store not found');
+        db.close();
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[PM Companies] No stats data found');
+          db.close();
+          return;
+        }
+        
+        // Find the company's overall rank (q=all, location_requested=all, device=all)
+        const companyStats = result.data.find(row => 
+          row.source === companyData.source &&
+          row.q === 'all' &&
+          row.location_requested === 'all' &&
+          row.device === 'all'
+        );
+        
+        if (companyStats) {
+          // Update rank
+          const rankValue = companyStats['7d_rank'];
+          const rankElement = document.getElementById('pmCompanyRankValue');
+          if (rankElement && rankValue) {
+            rankElement.textContent = Math.round(parseFloat(rankValue));
+          }
+          
+          // Update market share
+          const marketShare = parseFloat(companyStats['7d_market_share']) * 100;
+          const marketElement = document.getElementById('pmCompanyMarketValue');
+          const marketFill = document.getElementById('pmCompanyMarketFill');
+          
+          if (marketElement) {
+            marketElement.textContent = `${marketShare.toFixed(1)}%`;
+          }
+          
+          if (marketFill) {
+            marketFill.style.height = `${Math.min(100, Math.max(0, marketShare * 2))}%`;
+          }
+        }
+        
+        db.close();
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[PM Companies] Error getting stats data:', getRequest.error);
+        db.close();
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[PM Companies] Failed to open database:', request.error);
+    };
   } catch (error) {
     console.error('[PM Companies] Error fetching company stats:', error);
   }
@@ -684,90 +748,50 @@ function updateCompanyVolatilityLeadership(companyData) {
 }
 
 function renderCompanyProductsChart(companyData) {
-  const ctx = document.getElementById('pmCompanyProductsChart');
-  if (!ctx) return;
+  const chartEl = document.getElementById('pmCompanyProductsChart');
+  if (!chartEl || !companyData.historical_data) return;
   
-  // Extract historical data
-  const historicalData = companyData.historical_data || [];
-  const last30Days = historicalData.slice(-30);
+  // Destroy existing chart if any
+  if (window.pmCompanyProductsChartInstance) {
+    window.pmCompanyProductsChartInstance.destroy();
+    window.pmCompanyProductsChartInstance = null;
+  }
   
-  // Prepare chart data
-  const labels = [];
-  const productsData = [];
-  const discountedData = [];
+  // Prepare data
+  const chartData = companyData.historical_data.slice(-30).map(d => ({
+    x: d.date.value,
+    total: parseFloat(d.total_products) || 0,
+    discounted: parseFloat(d.discounted_products) || 0
+  }));
   
-  last30Days.forEach(day => {
-    if (day.date && day.date.value) {
-      labels.push(day.date.value);
-      productsData.push(parseInt(day.total_products) || 0);
-      discountedData.push(parseInt(day.discounted_products) || 0);
-    }
-  });
-  
-  // Create chart
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Total Products',
-          data: productsData,
-          borderColor: 'rgb(102, 126, 234)',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
-          tension: 0.4,
-          fill: true
-        },
-        {
-          label: 'Discounted Products',
-          data: discountedData,
-          borderColor: 'rgb(255, 99, 132)',
-          backgroundColor: 'rgba(255, 99, 132, 0.1)',
-          tension: 0.4,
-          fill: true
-        }
-      ]
+  const series = [
+    {
+      name: 'Total Products',
+      data: chartData.map(d => ({ x: d.x, y: d.total }))
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            display: true,
-            color: 'rgba(0, 0, 0, 0.05)'
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            maxTicksLimit: 10,
-            callback: function(value, index) {
-              // Show every 3rd label
-              return index % 3 === 0 ? this.getLabelForValue(value) : '';
-            }
-          }
-        }
-      }
+    {
+      name: 'Discounted Products',
+      data: chartData.map(d => ({ x: d.x, y: d.discounted }))
     }
-  });
+  ];
+  
+  const options = {
+    series: series,
+    chart: {
+      type: 'area',
+      height: 200,
+      toolbar: { show: false }
+    },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: { type: 'gradient' },
+    colors: ['#667eea', '#ff6384'],
+    xaxis: { type: 'datetime' },
+    yaxis: { title: { text: 'Product Count' } }
+  };
+  
+  window.pmCompanyProductsChartInstance = new ApexCharts(chartEl, options);
+  window.pmCompanyProductsChartInstance.render();
 }
 
 async function renderCpiTrendChart(myCompanyData, allData) {
