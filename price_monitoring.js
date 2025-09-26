@@ -236,24 +236,68 @@ if (config.view === 'market-overview') {
           </div>
         </div>
         
-        <!-- Price Range Card -->
-        <div class="pm-price-range-card">
-          <h4>Price Range</h4>
-          <div class="pm-price-metrics">
-            <div class="pm-price-item">
-              <span class="pm-price-label">MIN</span>
-              <span class="pm-price-val" id="pmMinPrice">$—</span>
-            </div>
-            <div class="pm-price-item featured">
-              <span class="pm-price-label">MEDIAN</span>
-              <span class="pm-price-val" id="pmMedianPrice">$—</span>
-            </div>
-            <div class="pm-price-item">
-              <span class="pm-price-label">MAX</span>
-              <span class="pm-price-val" id="pmMaxPrice">$—</span>
-            </div>
-          </div>
-        </div>
+<!-- Price Range Card -->
+<div class="pm-price-range-card">
+  <h4>Price Range</h4>
+  
+  <!-- Market Prices -->
+  <div class="pm-range-row market">
+    <span class="pm-range-label">Market</span>
+    <div class="pm-range-values">
+      <div class="pm-range-item">
+        <span class="pm-range-value" id="pmMarketMinPrice">$—</span>
+        <span class="pm-range-title">MIN</span>
+      </div>
+      <div class="pm-range-item median">
+        <span class="pm-range-value" id="pmMarketMedianPrice">$—</span>
+        <span class="pm-range-title">MEDIAN</span>
+      </div>
+      <div class="pm-range-item">
+        <span class="pm-range-value" id="pmMarketMaxPrice">$—</span>
+        <span class="pm-range-title">MAX</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Visual Range Spectrum -->
+  <div class="pm-range-spectrum">
+    <div class="pm-spectrum-bar market">
+      <span class="pm-spectrum-label left">MIN</span>
+      <div class="pm-spectrum-track">
+        <div class="pm-spectrum-fill" id="pmMarketSpectrumFill"></div>
+        <div class="pm-spectrum-median-marker" id="pmMarketMedianMarker"></div>
+      </div>
+      <span class="pm-spectrum-label right">MAX</span>
+    </div>
+    <div class="pm-spectrum-bar company">
+      <span class="pm-spectrum-label left">MIN</span>
+      <div class="pm-spectrum-track">
+        <div class="pm-spectrum-fill" id="pmCompanySpectrumFill"></div>
+        <div class="pm-spectrum-median-marker" id="pmCompanyMedianMarker"></div>
+      </div>
+      <span class="pm-spectrum-label right">MAX</span>
+    </div>
+  </div>
+  
+  <!-- Company Prices -->
+  <div class="pm-range-row company">
+    <span class="pm-range-label">Company</span>
+    <div class="pm-range-values">
+      <div class="pm-range-item">
+        <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
+        <span class="pm-range-title">MIN</span>
+      </div>
+      <div class="pm-range-item median">
+        <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
+        <span class="pm-range-title">MEDIAN</span>
+      </div>
+      <div class="pm-range-item">
+        <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
+        <span class="pm-range-title">MAX</span>
+      </div>
+    </div>
+  </div>
+</div>
 
         <!-- Quick Stats -->
         <div class="pm-quick-stats">
@@ -521,10 +565,46 @@ if (tempGauge) {
   if (tempLabel) tempLabel.textContent = tempCategory;
   if (tempDesc) tempDesc.textContent = tempDescription;
   
-  // 2. Price Range
-  document.getElementById('pmMinPrice').textContent = `$${formatNumber(market.cheapest_product, 2)}`;
-  document.getElementById('pmMedianPrice').textContent = `$${formatNumber(market.median_price, 2)}`;
-  document.getElementById('pmMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 2)}`;
+// 2. Price Range - Updated to show both Market and Company
+// Market prices
+document.getElementById('pmMarketMinPrice').textContent = `$${formatNumber(market.cheapest_product, 0)}`;
+document.getElementById('pmMarketMedianPrice').textContent = `$${formatNumber(market.median_price, 0)}`;
+document.getElementById('pmMarketMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 0)}`;
+
+// Company prices
+if (companyData) {
+  document.getElementById('pmCompanyMinPrice').textContent = `$${formatNumber(companyData.cheapest_product, 0)}`;
+  document.getElementById('pmCompanyMedianPrice').textContent = `$${formatNumber(companyData.median_price, 0)}`;
+  document.getElementById('pmCompanyMaxPrice').textContent = `$${formatNumber(companyData.most_expensive_product, 0)}`;
+  
+  // Calculate spectrum positions
+  const companyMin = parseFloat(companyData.cheapest_product) || 0;
+  const companyMedian = parseFloat(companyData.median_price) || 0;
+  const companyMax = parseFloat(companyData.most_expensive_product) || 1;
+  
+  // Position median marker for company
+  const companyMedianPosition = ((companyMedian - companyMin) / (companyMax - companyMin)) * 100;
+  const companyMedianMarker = document.getElementById('pmCompanyMedianMarker');
+  if (companyMedianMarker) {
+    companyMedianMarker.style.left = `${companyMedianPosition}%`;
+  }
+} else {
+  document.getElementById('pmCompanyMinPrice').textContent = '$—';
+  document.getElementById('pmCompanyMedianPrice').textContent = '$—';
+  document.getElementById('pmCompanyMaxPrice').textContent = '$—';
+}
+
+// Calculate spectrum positions for market
+const marketMin = parseFloat(market.cheapest_product) || 0;
+const marketMedian = parseFloat(market.median_price) || 0;
+const marketMax = parseFloat(market.most_expensive_product) || 1;
+
+// Position median marker for market
+const marketMedianPosition = ((marketMedian - marketMin) / (marketMax - marketMin)) * 100;
+const marketMedianMarker = document.getElementById('pmMarketMedianMarker');
+if (marketMedianMarker) {
+  marketMedianMarker.style.left = `${marketMedianPosition}%`;
+}
   
 // 3. Price Buckets with Market and Company comparison
   const buckets = [
@@ -1110,71 +1190,158 @@ function addPriceMonitoringStyles() {
         color: #666;
       }
 
-      /* Price Range Card - Enhanced */
-      .pm-price-range-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        overflow: hidden;
-      }
+/* Price Range Card - Enhanced */
+.pm-price-range-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  gap: 15px;
+}
 
-      .pm-price-range-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-      }
+.pm-price-range-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
 
-      .pm-price-metrics {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 16px;
-      }
+/* Range Rows */
+.pm-range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-      .pm-price-item {
-        text-align: center;
-        padding: 8px;
-      }
+.pm-range-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
 
-      .pm-price-item.featured {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 12px;
-        padding: 12px;
-        flex: 1.3;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-        transform: scale(1.05);
-      }
+.pm-range-values {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+}
 
-      .pm-price-label {
-        display: block;
-        font-size: 10px;
-        color: #888;
-        margin-bottom: 4px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-      }
+.pm-range-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
-      .pm-price-item.featured .pm-price-label {
-        color: rgba(255,255,255,0.8);
-      }
+.pm-range-item.median {
+  transform: scale(1.1);
+}
 
-      .pm-price-val {
-        font-size: 20px;
-        font-weight: bold;
-        color: #1a1a1a;
-      }
+.pm-range-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c2c2c;
+}
 
-      .pm-price-item.featured .pm-price-val {
-        color: white;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
+.pm-range-item.median .pm-range-value {
+  font-size: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pm-range-title {
+  font-size: 9px;
+  color: #999;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Visual Range Spectrum */
+.pm-range-spectrum {
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pm-spectrum-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-spectrum-label {
+  font-size: 9px;
+  color: #999;
+  font-weight: 600;
+  min-width: 25px;
+  text-align: center;
+}
+
+.pm-spectrum-track {
+  flex: 1;
+  height: 20px;
+  background: linear-gradient(90deg, #e8f5e9 0%, #fff9c4 35%, #ffebee 70%, #f3e5f5 100%);
+  border-radius: 10px;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pm-spectrum-bar.market .pm-spectrum-track {
+  border: 2px solid #667eea;
+}
+
+.pm-spectrum-bar.company .pm-spectrum-track {
+  border: 2px solid #764ba2;
+}
+
+.pm-spectrum-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, 
+    rgba(102, 126, 234, 0.2) 0%, 
+    rgba(118, 75, 162, 0.2) 100%);
+}
+
+.pm-spectrum-median-marker {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: calc(100% + 6px);
+  background: #ff6b6b;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: left 0.5s ease;
+}
+
+.pm-spectrum-median-marker::after {
+  content: 'MEDIAN';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  color: #ff6b6b;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
       /* Quick Stats - Enhanced */
       .pm-quick-stats {
