@@ -288,7 +288,7 @@ if (config.view === 'market-overview') {
   <span>Bucket</span>
   <span style="text-align: right">Market</span>
   <span></span>
-  <span>East Perry</span>
+  <span id="pmCompanyHeaderName">Company</span>
 </div>
               <div id="pmBucketsBody" class="pm-buckets-body">
                 <!-- Buckets will be populated here -->
@@ -637,6 +637,12 @@ if (tempGauge) {
 
 const bucketsBody = document.getElementById('pmBucketsBody');
 if (bucketsBody) {
+  // Update the header with dynamic company name
+  const companyHeader = document.getElementById('pmCompanyHeaderName');
+  if (companyHeader) {
+    companyHeader.textContent = companyName || 'Company';
+  }
+  
   bucketsBody.innerHTML = buckets.map(bucket => {
     let range = '—';
     if (bucket.range && bucket.range.price_range) {
@@ -669,12 +675,18 @@ if (bucketsBody) {
         <!-- Market Side (LEFT) -->
         <div class="pm-tree-market">
           <div class="pm-tree-metrics">
-            <span class="pm-tree-products">${marketProducts}/${marketDiscounted}</span>
-            <span class="pm-tree-percent">${marketSharePercent.toFixed(1)}%</span>
+            <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+              <span class="pm-products-count">${marketProducts}</span>
+              <span class="pm-products-sep">/</span>
+              <span class="pm-discounted-count">${marketDiscounted}</span>
+            </div>
+            ${marketDiscountDepth > 0 ? 
+              `<span class="pm-discount-badge">${marketDiscountDepth.toFixed(1)}%</span>` : 
+              '<span class="pm-discount-badge-empty">—</span>'}
           </div>
           <div class="pm-tree-bar-container left">
             <div class="pm-tree-bar" style="width: ${marketSharePercent}%; background: ${bucket.color};">
-              ${marketDiscountDepth > 0 ? `<span class="pm-tree-depth">${marketDiscountDepth.toFixed(1)}%</span>` : ''}
+              <span class="pm-bar-percent left">${marketSharePercent.toFixed(1)}%</span>
             </div>
           </div>
         </div>
@@ -686,12 +698,18 @@ if (bucketsBody) {
         <div class="pm-tree-company">
           <div class="pm-tree-bar-container right">
             <div class="pm-tree-bar" style="width: ${companySharePercent}%; background: ${bucket.color};">
-              ${companyDiscountDepth > 0 ? `<span class="pm-tree-depth">${companyDiscountDepth.toFixed(1)}%</span>` : ''}
+              <span class="pm-bar-percent right">${companySharePercent.toFixed(1)}%</span>
             </div>
           </div>
           <div class="pm-tree-metrics">
-            <span class="pm-tree-percent">${companySharePercent.toFixed(1)}%</span>
-            <span class="pm-tree-products">${companyProducts}/${companyDiscounted}</span>
+            <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+              <span class="pm-products-count">${companyProducts}</span>
+              <span class="pm-products-sep">/</span>
+              <span class="pm-discounted-count">${companyDiscounted}</span>
+            </div>
+            ${companyDiscountDepth > 0 ? 
+              `<span class="pm-discount-badge">${companyDiscountDepth.toFixed(1)}%</span>` : 
+              '<span class="pm-discount-badge-empty">—</span>'}
           </div>
         </div>
       </div>
@@ -1266,6 +1284,7 @@ function addPriceMonitoringStyles() {
         margin-top: 12px;
       }
 
+/* Bucket Table Styles */
 .pm-buckets-header {
   display: grid;
   grid-template-columns: 180px 1fr 2px 1fr;
@@ -1278,15 +1297,6 @@ function addPriceMonitoringStyles() {
   border-bottom: 2px solid #f0f0f0;
   background: #fafafa;
   border-radius: 8px 8px 0 0;
-  align-items: center;
-}
-
-.pm-buckets-header::after {
-  content: '';
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 180px 1fr 2px 1fr;
-  gap: 0;
 }
 
 .pm-buckets-body {
@@ -1298,7 +1308,7 @@ function addPriceMonitoringStyles() {
 .pm-bucket-row-tree {
   display: grid;
   grid-template-columns: 180px 1fr 2px 1fr;
-  min-height: 45px;
+  min-height: 60px;  /* Increased from 45px */
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
   position: relative;
@@ -1308,7 +1318,6 @@ function addPriceMonitoringStyles() {
 .pm-bucket-row-tree:hover {
   background: #fafafa;
 }
-
 
 /* Bucket Label */
 .pm-bucket-label {
@@ -1346,7 +1355,7 @@ function addPriceMonitoringStyles() {
   align-items: center;
   justify-content: flex-end;
   padding: 0 12px;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Company Side (RIGHT) */
@@ -1354,7 +1363,7 @@ function addPriceMonitoringStyles() {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Center Divider */
@@ -1365,34 +1374,75 @@ function addPriceMonitoringStyles() {
   position: relative;
 }
 
-/* Metrics */
+/* Metrics Container */
 .pm-tree-metrics {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 60px;
-  gap: 2px;
+  min-width: 70px;
+  gap: 4px;
 }
 
-.pm-tree-products {
+/* Products Box Styling */
+.pm-products-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid;
   font-size: 11px;
   font-weight: 600;
-  color: #444;
+  gap: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
 }
 
-.pm-tree-percent {
+.pm-products-box:hover {
+  transform: scale(1.05);
+}
+
+.pm-products-count {
+  color: #2c2c2c;
+  font-weight: 700;
+}
+
+.pm-products-sep {
+  color: #888;
+  margin: 0 1px;
+}
+
+.pm-discounted-count {
+  color: #555;
+  font-weight: 600;
+}
+
+/* Discount Badge */
+.pm-discount-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #ff4444;
+  color: white;
+  border-radius: 4px;
   font-size: 10px;
-  color: #666;
-  font-weight: 500;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.pm-discount-badge-empty {
+  display: inline-block;
+  padding: 2px 6px;
+  color: #ccc;
+  font-size: 10px;
+  margin-top: 2px;
 }
 
 /* Bar Containers */
 .pm-tree-bar-container {
   flex: 1;
-  height: 24px;
+  height: 32px;  /* Increased from 24px */
   position: relative;
   background: #f5f5f5;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -1414,44 +1464,36 @@ function addPriceMonitoringStyles() {
   position: relative;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.85;
+  min-width: 35px; /* Ensure minimum width for percentage text */
 }
 
 .pm-tree-bar:hover {
   opacity: 1;
 }
 
-/* Discount Depth Badge inside bar */
-.pm-tree-depth {
+/* Percentage inside bars */
+.pm-bar-percent {
   position: absolute;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: white;
-  padding: 2px 6px;
-  background: rgba(0,0,0,0.2);
-  border-radius: 3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  line-height: 32px;
 }
 
-.pm-tree-bar-container.left .pm-tree-depth {
-  right: 4px;
+.pm-bar-percent.left {
+  left: 8px;
 }
 
-.pm-tree-bar-container.right .pm-tree-depth {
-  left: 4px;
+.pm-bar-percent.right {
+  right: 8px;
 }
 
-/* Update header to match new structure */
-.pm-buckets-header {
-  display: grid;
-  grid-template-columns: 180px 1fr 2px 1fr;
-  padding: 12px 16px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid #f0f0f0;
-  background: #fafafa;
-  border-radius: 8px 8px 0 0;
+/* If bar is too small, hide the percentage */
+.pm-tree-bar[style*="width: 0"] .pm-bar-percent,
+.pm-tree-bar[style*="width: 1"] .pm-bar-percent,
+.pm-tree-bar[style*="width: 2"] .pm-bar-percent {
+  display: none;
 }
 
 /* New bucket structure styles */
