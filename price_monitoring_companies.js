@@ -227,35 +227,43 @@ function addCompaniesViewStyles() {
         text-align: center;
       }
       
-      .pmc-metric-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #2c2c2c;
-        line-height: 1;
-      }
-      
-      .pmc-metric-label {
-        font-size: 10px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        font-weight: 500;
-        margin-top: 4px;
-      }
-      
-      .pmc-metric-trend {
-        font-size: 11px;
-        font-weight: 600;
-        margin-top: 2px;
-      }
-      
-      .pmc-metric-trend.positive {
-        color: #4CAF50;
-      }
-      
-      .pmc-metric-trend.negative {
-        color: #f44336;
-      }
+.pmc-metric-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c2c2c;
+  line-height: 1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pmc-metric-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.pmc-metric-trend {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.pmc-metric-trend.positive {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.pmc-metric-trend.negative {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
       
       /* Advanced Metrics Container */
       .pmc-advanced-metrics-container {
@@ -445,12 +453,12 @@ function addCompaniesViewStyles() {
       }
       
       /* Dual bar container */
-      .pm-dual-bars-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        flex: 1;
-      }
+.pm-dual-bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
       
       .pm-bar-row {
         display: flex;
@@ -467,7 +475,7 @@ function addCompaniesViewStyles() {
       }
       
       .pm-tree-bar-container.small {
-        height: 20px;
+        height: 30px;
         max-width: 150px;
       }
       
@@ -484,7 +492,7 @@ function addCompaniesViewStyles() {
       .pm-company-bucket-row {
         display: grid;
         grid-template-columns: 150px 1fr;
-        min-height: 50px;
+        min-height: 80px;
         align-items: center;
         border-bottom: 1px solid #f0f0f0;
         position: relative;
@@ -559,18 +567,18 @@ function addCompaniesViewStyles() {
         z-index: 2;
       }
       
-      .pm-products-box {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid;
-        font-size: 11px;
-        font-weight: 600;
-        gap: 2px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        transition: transform 0.2s;
-      }
+.pm-products-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
       
       .pm-products-count {
         color: #2c2c2c;
@@ -587,22 +595,22 @@ function addCompaniesViewStyles() {
         font-weight: 600;
       }
       
-      .pm-discount-badge {
-        display: inline-block;
-        padding: 2px 6px;
-        background: #ff4444;
-        color: white;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: 600;
-      }
-      
-      .pm-discount-badge-empty {
-        display: inline-block;
-        padding: 2px 6px;
-        color: #ccc;
-        font-size: 10px;
-      }
+.pm-discount-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #ff4444;
+  color: white;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pm-discount-badge-empty {
+  display: inline-block;
+  padding: 4px 8px;
+  color: #ccc;
+  font-size: 11px;
+}
       
       .pm-tree-metrics {
         display: flex;
@@ -1150,6 +1158,10 @@ function updateCompanyPriceRange(market, company) {
     document.getElementById('pmCompanyMinPrice').textContent = `$${window.pmUtils.formatNumber(company.cheapest_product, 0)}`;
     document.getElementById('pmCompanyMedianPrice').textContent = `$${window.pmUtils.formatNumber(company.median_price, 0)}`;
     document.getElementById('pmCompanyMaxPrice').textContent = `$${window.pmUtils.formatNumber(company.most_expensive_product, 0)}`;
+  } else {
+    document.getElementById('pmCompanyMinPrice').textContent = '$—';
+    document.getElementById('pmCompanyMedianPrice').textContent = '$—';
+    document.getElementById('pmCompanyMaxPrice').textContent = '$—';
   }
 }
 
