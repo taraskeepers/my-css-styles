@@ -1038,12 +1038,18 @@ function renderPromoWavesList(displayData, maxDiscount, hasMore) {
   const container = document.getElementById('pmPromoWavesChart');
   if (!container) return;
   
-  // Create x-axis scale
-  const scaleSteps = [0, 25, 50, 75, 100];
+  // Create dynamic x-axis scale based on max discount
+  const roundedMax = Math.ceil(maxDiscount / 5) * 5; // Round up to nearest 5
+  const scaleSteps = [];
+  const stepSize = roundedMax / 4; // Create 4 intervals
+  for (let i = 0; i <= 4; i++) {
+    scaleSteps.push(i * stepSize);
+  }
+  
   let xAxisHtml = '<div class="pm-waves-xaxis">';
   scaleSteps.forEach(step => {
-    const position = (step / 100) * 100;
-    xAxisHtml += `<span class="pm-xaxis-tick" style="left: ${position}%">${step}%</span>`;
+    const position = (step / roundedMax) * 100;
+    xAxisHtml += `<span class="pm-xaxis-tick" style="left: ${position}%">${step.toFixed(0)}%</span>`;
   });
   xAxisHtml += '</div>';
   
@@ -1056,7 +1062,8 @@ function renderPromoWavesList(displayData, maxDiscount, hasMore) {
   `;
   
   displayData.forEach((wave) => {
-    const barWidth = Math.max((wave.discountDepth / maxDiscount) * 100, 1); // Ensure minimum visibility
+    // Scale bars to the rounded max for better visual alignment
+    const barWidth = Math.max((wave.discountDepth / roundedMax) * 100, 1); // Ensure minimum visibility
     
     html += `
       <div class="pm-wave-item">
@@ -2236,7 +2243,7 @@ function addPriceMonitoringStyles() {
   margin-top: 12px;
   padding-top: 40px;
   border-top: 1px solid #f0f0f0;
-  max-height: 380px;
+  max-height: 390px;
   display: flex;
   flex-direction: column;
 }
@@ -2351,7 +2358,7 @@ function addPriceMonitoringStyles() {
   position: relative;
 }
 
-/* Add subtle grid lines */
+/* Add subtle grid lines - adjusted for dynamic scale */
 .pm-wave-item::before {
   content: '';
   position: absolute;
@@ -2361,9 +2368,9 @@ function addPriceMonitoringStyles() {
   background: repeating-linear-gradient(
     90deg,
     transparent,
-    transparent 24.9%,
-    rgba(0, 0, 0, 0.03) 25%,
-    rgba(0, 0, 0, 0.03) 25.1%
+    transparent calc(25% - 0.5px),
+    rgba(0, 0, 0, 0.03) calc(25% - 0.5px),
+    rgba(0, 0, 0, 0.03) calc(25% + 0.5px)
   );
   pointer-events: none;
 }
