@@ -20,41 +20,40 @@ function addCompaniesViewStyles() {
   
   const styles = `
     <style id="pmCompaniesStyles">
-      /* Companies View Specific Styles */
-      .pm-companies-dashboard {
+      /* Companies View - INDEPENDENT Styles */
+      .pmc-dashboard {
         width: 100%;
         height: 100%;
       }
       
-      /* Adjusted grid layout for 33:77 ratio */
-.pm-companies-main-grid {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 15px;
-  width: 100%;
-  height: calc(100vh - 400px);
-  max-height: 800px;
-}
+      /* Top Section - Companies specific */
+      .pmc-top-section {
+        display: grid;
+        grid-template-columns: 420px 1fr 320px;
+        gap: 15px;
+        margin-bottom: 15px;
+        width: 100%;
+      }
       
-/* Company overview card - EXACT height of temperature card */
-      .pm-company-overview-card {
+      /* Company overview card - EXACT height of temperature card */
+      .pmc-company-overview-card {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        flex-direction: row;  /* HORIZONTAL layout */
+        flex-direction: row;
         align-items: center;
         justify-content: space-between;
         gap: 20px;
         position: relative;
         overflow: hidden;
         width: 420px;
-        height: 200px;  /* EXACT same height as temperature card */
+        height: 200px;
         box-sizing: border-box;
       }
       
-      .pm-company-overview-card::before {
+      .pmc-company-overview-card::before {
         content: '';
         position: absolute;
         top: 0;
@@ -153,7 +152,243 @@ function addCompaniesViewStyles() {
         z-index: 1;
       }
       
-      /* Company buckets card - renamed from pm-buckets-card */
+      /* Company Price Range & Metrics Card */
+      .pmc-company-performance-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .pmc-company-performance-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+      
+      .pmc-price-range-values {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .pmc-range-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+      }
+      
+      .pmc-range-item.median {
+        transform: scale(1.15);
+        padding: 0 10px;
+      }
+      
+      .pmc-range-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: #2c2c2c;
+      }
+      
+      .pmc-range-item.median .pmc-range-value {
+        font-size: 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      
+      .pmc-range-title {
+        font-size: 9px;
+        color: #999;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+      
+      .pmc-metrics-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+      }
+      
+      .pmc-metric-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      
+      .pmc-metric-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2c2c2c;
+        line-height: 1;
+      }
+      
+      .pmc-metric-label {
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 500;
+        margin-top: 4px;
+      }
+      
+      .pmc-metric-trend {
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      
+      .pmc-metric-trend.positive {
+        color: #4CAF50;
+      }
+      
+      .pmc-metric-trend.negative {
+        color: #f44336;
+      }
+      
+      /* Advanced Metrics Container */
+      .pmc-advanced-metrics-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .pmc-advanced-metrics-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+      
+      .pmc-advanced-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        height: 100%;
+      }
+      
+      .pmc-metrics-section {
+        background: white;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .pmc-metrics-section.cpi-section {
+        border-left-color: #2196F3;
+      }
+      
+      .pmc-metrics-section.promo-section {
+        border-left-color: #FF9800;
+      }
+      
+      .pmc-metrics-section.performance-section {
+        border-left-color: #4CAF50;
+      }
+      
+      .pmc-section-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+      }
+      
+      .pmc-metrics-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      
+      .pmc-metric-compact {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 6px;
+        background: #fafafa;
+        border-radius: 6px;
+      }
+      
+      .pmc-metric-compact-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #2c2c2c;
+        line-height: 1;
+      }
+      
+      .pmc-metric-compact-label {
+        font-size: 9px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+        margin-top: 2px;
+      }
+      
+      .pmc-metric-compact-trend {
+        font-size: 10px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      
+      .pmc-promo-wave-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      .pmc-promo-wave-status.active {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+      }
+      
+      .pmc-promo-wave-status.inactive {
+        background: #f5f5f5;
+        color: #888;
+        border: 1px solid #e0e0e0;
+      }
+      
+      /* Main grid */
+      .pmc-main-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 15px;
+        width: 100%;
+        height: calc(100vh - 400px);
+        max-height: 800px;
+      }
+      
+      /* Company buckets card */
       .pm-company-buckets-card {
         background: white;
         border-radius: 12px;
@@ -178,67 +413,67 @@ function addCompaniesViewStyles() {
         margin-top: 12px;
       }
       
-/* Updated company buckets styles */
-.pm-company-buckets-header {
-  display: grid;
-  grid-template-columns: 150px 1fr;
-  padding: 12px 16px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid #f0f0f0;
-  background: #fafafa;
-  border-radius: 8px 8px 0 0;
-}
-
-.pm-company-buckets-header .pm-share-header {
-  text-align: center;
-  line-height: 1.2;
-}
-
-.pm-company-bucket-row.is-dominant {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-left: 4px solid #667eea;
-  font-weight: 600;
-}
-
-.pm-company-bucket-row.is-dominant .pm-bucket-name {
-  color: #667eea;
-  font-weight: 700;
-}
-
-/* Dual bar container */
-.pm-dual-bars-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.pm-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pm-bar-label {
-  font-size: 9px;
-  color: #888;
-  min-width: 40px;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.pm-tree-bar-container.small {
-  height: 20px;
-  max-width: 150px;
-}
-
-.pm-bar-percent-outside.small {
-  font-size: 10px;
-}
+      /* Updated company buckets styles */
+      .pm-company-buckets-header {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        padding: 12px 16px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #f0f0f0;
+        background: #fafafa;
+        border-radius: 8px 8px 0 0;
+      }
+      
+      .pm-company-buckets-header .pm-share-header {
+        text-align: center;
+        line-height: 1.2;
+      }
+      
+      .pm-company-bucket-row.is-dominant {
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        border-left: 4px solid #667eea;
+        font-weight: 600;
+      }
+      
+      .pm-company-bucket-row.is-dominant .pm-bucket-name {
+        color: #667eea;
+        font-weight: 700;
+      }
+      
+      /* Dual bar container */
+      .pm-dual-bars-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+      }
+      
+      .pm-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .pm-bar-label {
+        font-size: 9px;
+        color: #888;
+        min-width: 40px;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+      
+      .pm-tree-bar-container.small {
+        height: 20px;
+        max-width: 150px;
+      }
+      
+      .pm-bar-percent-outside.small {
+        font-size: 10px;
+      }
       
       .pm-company-buckets-body {
         max-height: 600px;
@@ -260,39 +495,35 @@ function addCompaniesViewStyles() {
         background: #fafafa;
       }
       
-/* CPI Chart styles */
-      .pm-cpi-chart-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        height: 310px; /* Increased from 250px */
-      }
-      
-      .pm-cpi-chart {
-        width: 100%;
-        height: 260px; /* Increased from 200px */
-      }
-      
-      /* Adjusted chart card for companies view */
-      .pm-companies-chart-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      .pm-bucket-label {
+        padding: 8px 12px;
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 4px;
       }
       
-      .pm-companies-charts-row {
-        display: grid;
-        grid-template-rows: 1fr 1fr;
-        gap: 15px;
-        height: 100%;
+      .pm-bucket-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
       }
-
-      /* Company data section */
+      
+      .pm-bucket-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      }
+      
+      .pm-bucket-range {
+        font-size: 10px;
+        color: #888;
+        font-family: 'Monaco', 'Menlo', monospace;
+        padding-left: 20px;
+      }
+      
       .pm-company-data {
         display: flex;
         align-items: center;
@@ -300,7 +531,6 @@ function addCompaniesViewStyles() {
         padding: 0 10px;
       }
       
-      /* Bar container - EXACTLY like price_monitoring.js */
       .pm-tree-bar-container {
         flex: 1;
         height: 30px;
@@ -318,7 +548,6 @@ function addCompaniesViewStyles() {
         opacity: 0.85;
       }
       
-      /* Percentage ALWAYS visible */
       .pm-bar-percent-outside {
         position: absolute;
         right: 8px;
@@ -343,6 +572,21 @@ function addCompaniesViewStyles() {
         transition: transform 0.2s;
       }
       
+      .pm-products-count {
+        color: #2c2c2c;
+        font-weight: 700;
+      }
+      
+      .pm-products-sep {
+        color: #888;
+        margin: 0 1px;
+      }
+      
+      .pm-discounted-count {
+        color: #555;
+        font-weight: 600;
+      }
+      
       .pm-discount-badge {
         display: inline-block;
         padding: 2px 6px;
@@ -365,6 +609,92 @@ function addCompaniesViewStyles() {
         align-items: center;
         gap: 5px;
       }
+      
+      /* Metrics Row */
+      .pm-metrics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      
+      .pm-metric-mini {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        transition: transform 0.2s;
+      }
+      
+      .pm-metric-mini:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
+      
+      .pm-metric-mini::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+      }
+      
+      .pm-metric-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 12px 0 8px;
+      }
+      
+      .pm-metric-val {
+        font-size: 24px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      
+      .pm-metric-status {
+        font-size: 11px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+      
+      .pm-metric-bar {
+        height: 6px;
+        background: #f0f0f0;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      
+      .pm-metric-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+        transition: width 0.5s ease;
+      }
+      
+      /* Chart sections */
+      .pm-companies-chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .pm-companies-charts-row {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 15px;
+        height: 100%;
+      }
+      
       .pm-chart-header {
         display: flex;
         justify-content: space-between;
@@ -392,189 +722,56 @@ function addCompaniesViewStyles() {
         background: var(--color);
         border-radius: 2px;
       }
-
-      .pm-company-price-range-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  position: relative;
-  overflow: hidden;
-}
-
-.pm-company-price-range-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-}
-
-.pm-company-metrics-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-
-.pm-metric-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.pm-metric-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #2c2c2c;
-  line-height: 1;
-}
-
-.pm-metric-label {
-  font-size: 10px;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-weight: 500;
-  margin-top: 4px;
-}
-
-.pm-metric-trend {
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.pm-metric-trend.positive {
-  color: #4CAF50;
-}
-
-.pm-metric-trend.negative {
-  color: #f44336;
-}
-
-.pm-advanced-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  height: 100%;
-}
-
-.pm-metrics-section {
-  background: white;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  border-left: 4px solid;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-}
-
-.pm-metrics-section .pm-metrics-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.pm-metric-compact {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 6px;
-  background: #fafafa;
-  border-radius: 6px;
-}
-
-.pm-metrics-section.cpi-section {
-  border-left-color: #2196F3;
-}
-
-.pm-metrics-section.promo-section {
-  border-left-color: #FF9800;
-}
-
-.pm-metrics-section.performance-section {
-  border-left-color: #4CAF50;
-}
-
-.pm-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
-}
-
-.pm-metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.pm-metric-compact {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 8px;
-  background: #fafafa;
-  border-radius: 6px;
-}
-
-.pm-metric-compact-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #2c2c2c;
-  line-height: 1;
-}
-
-.pm-metric-compact-label {
-  font-size: 9px;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-  margin-top: 2px;
-}
-
-.pm-metric-compact-trend {
-  font-size: 10px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.pm-promo-wave-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.pm-promo-wave-status.active {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  color: white;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-}
-
-.pm-promo-wave-status.inactive {
-  background: #f5f5f5;
-  color: #888;
-  border: 1px solid #e0e0e0;
-}
       
+      /* CPI Chart styles */
+      .pm-cpi-chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        height: 310px;
+      }
+      
+      .pm-cpi-chart {
+        width: 100%;
+        height: 260px;
+      }
+      
+      /* Direct heading styles for price monitoring */
+      .price-monitoring-wrapper h4 {
+        margin: 0 0 12px 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      
+      .price-monitoring-wrapper h5 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a4a4a;
+      }
+      
+      /* Scrollbar styling */
+      .pm-company-buckets-body::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      .pm-company-buckets-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+      
+      .pm-company-buckets-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+      
+      .pm-company-buckets-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
     </style>
   `;
   
@@ -611,206 +808,204 @@ async function renderCompaniesDashboard() {
       return;
     }
     
-    // Build the dashboard HTML
-    let html = `
-      <div class="pm-companies-dashboard">
-        <!-- Top Section with Company Overview and Stats -->
-        <div class="pm-top-section">
-<!-- Company Overview Card -->
-          <div class="pm-company-overview-card">
-            <div class="company-name-header">${companyName}</div>
-            <div class="pm-rank-container">
-              <div class="section-label">COMPANY RANK</div>
-              <div class="big-rank-box">
-                <span id="pmCompanyRankValue">—</span>
-              </div>
-            </div>
-            <div class="pm-market-container">
-              <div class="section-label">MARKET SHARE</div>
-              <div class="big-market-circle">
-                <div class="market-water-fill" id="pmCompanyMarketFill"></div>
-                <span class="market-value-text" id="pmCompanyMarketValue">—</span>
-              </div>
-            </div>
+let html = `
+  <div class="pmc-dashboard">
+    <!-- Top Section with Company Overview and Stats -->
+    <div class="pmc-top-section">
+      <!-- Company Overview Card -->
+      <div class="pmc-company-overview-card">
+        <div class="company-name-header">${companyName}</div>
+        <div class="pm-rank-container">
+          <div class="section-label">COMPANY RANK</div>
+          <div class="big-rank-box">
+            <span id="pmCompanyRankValue">—</span>
           </div>
-          
-<!-- Company Price Range & Metrics Card -->
-<div class="pm-company-price-range-card">
-  <h4>Company Performance</h4>
-  
-<!-- Company Price Range -->
-<div class="pm-range-values">
-  <div class="pm-range-item">
-    <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
-    <span class="pm-range-title">MIN</span>
-  </div>
-  <div class="pm-range-item median">
-    <span class="pm-range-value" id="pmCompanyMedianPrice">$—</span>
-    <span class="pm-range-title">MEDIAN</span>
-  </div>
-  <div class="pm-range-item">
-    <span class="pm-range-value" id="pmCompanyMaxPrice">$—</span>
-    <span class="pm-range-title">MAX</span>
-  </div>
-</div>
-  
-  <!-- Company Metrics -->
-  <div class="pm-company-metrics-row">
-    <div class="pm-metric-item">
-      <span class="pm-metric-value" id="pmCompanyProducts">—</span>
-      <span class="pm-metric-label">Products</span>
-      <span class="pm-metric-trend" id="pmCompanyProductsTrend"></span>
-    </div>
-    <div class="pm-metric-item">
-      <span class="pm-metric-value" id="pmCompanyDiscounted">—</span>
-      <span class="pm-metric-label">Discounted</span>
-      <span class="pm-metric-trend" id="pmCompanyDiscountedTrend"></span>
-    </div>
-    <div class="pm-metric-item">
-      <span class="pm-metric-value" id="pmCompanyDiscountRate">—</span>
-      <span class="pm-metric-label">Discount Rate</span>
-      <span class="pm-metric-trend" id="pmCompanyDiscountRateTrend"></span>
-    </div>
-    <div class="pm-metric-item">
-      <span class="pm-metric-value" id="pmCompanyAvgDiscount">—</span>
-      <span class="pm-metric-label">Avg Discount</span>
-      <span class="pm-metric-trend" id="pmCompanyAvgDiscountTrend"></span>
-    </div>
-  </div>
-</div>
-          
-<!-- Advanced Metrics -->
-<div class="pm-quick-stats">
-  <div class="pm-stat-item">
-    <div class="pm-advanced-metrics">
-      <!-- CPI Section -->
-      <div class="pm-metrics-section cpi-section">
-        <div class="pm-section-title">Market Position</div>
-        <div class="pm-metrics-grid">
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmCpiValue">—</span>
-            <span class="pm-metric-compact-label">CPI</span>
-            <span class="pm-metric-compact-trend" id="pmCpiTrend"></span>
-          </div>
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmVolatilityValueNew">—</span>
-            <span class="pm-metric-compact-label">Volatility</span>
+        </div>
+        <div class="pm-market-container">
+          <div class="section-label">MARKET SHARE</div>
+          <div class="big-market-circle">
+            <div class="market-water-fill" id="pmCompanyMarketFill"></div>
+            <span class="market-value-text" id="pmCompanyMarketValue">—</span>
           </div>
         </div>
       </div>
       
-      <!-- Promo Wave Section -->
-      <div class="pm-metrics-section promo-section">
-        <div class="pm-section-title">Promo Wave Status</div>
-        <div class="pm-promo-wave-status" id="pmPromoWaveStatus">
-          <span id="pmPromoWaveText">—</span>
-        </div>
-        <div class="pm-metrics-grid" style="margin-top: 8px;">
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmPromoLength">—</span>
-            <span class="pm-metric-compact-label">Length (days)</span>
-          </div>
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmPromoDepth">—</span>
-            <span class="pm-metric-compact-label">Avg Depth</span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Performance Section -->
-      <div class="pm-metrics-section performance-section">
-        <div class="pm-section-title">Performance</div>
-        <div class="pm-metrics-grid">
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmPromoProducts">—</span>
-            <span class="pm-metric-compact-label">Promo Products</span>
-          </div>
-          <div class="pm-metric-compact">
-            <span class="pm-metric-compact-value" id="pmPriceVelocity">—</span>
-            <span class="pm-metric-compact-label">Price Velocity</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+      <!-- Company Price Range & Metrics Card -->
+      <div class="pmc-company-performance-card">
+        <h4>Company Performance</h4>
         
-        <!-- Main Content Grid with adjusted ratio -->
-        <div class="pm-companies-main-grid">
-          <!-- Left Column (33%) -->
-          <div class="pm-left-column">
-            <!-- Company Buckets Distribution -->
-            <div class="pm-company-buckets-card">
-              <h4>Company Price Buckets</h4>
-              <div class="pm-company-buckets-table">
-<div class="pm-company-buckets-header">
-  <span>Bucket</span>
-  <span class="pm-share-header">Share /<br/>Exp Weighted Share</span>
-</div>
-                <div id="pmCompanyBucketsBody" class="pm-company-buckets-body">
-                  <!-- Buckets will be populated here -->
+        <!-- Company Price Range -->
+        <div class="pmc-price-range-values">
+          <div class="pmc-range-item">
+            <span class="pmc-range-value" id="pmCompanyMinPrice">$—</span>
+            <span class="pmc-range-title">MIN</span>
+          </div>
+          <div class="pmc-range-item median">
+            <span class="pmc-range-value" id="pmCompanyMedianPrice">$—</span>
+            <span class="pmc-range-title">MEDIAN</span>
+          </div>
+          <div class="pmc-range-item">
+            <span class="pmc-range-value" id="pmCompanyMaxPrice">$—</span>
+            <span class="pmc-range-title">MAX</span>
+          </div>
+        </div>
+        
+        <!-- Company Metrics -->
+        <div class="pmc-metrics-row">
+          <div class="pmc-metric-item">
+            <span class="pmc-metric-value" id="pmCompanyProducts">—</span>
+            <span class="pmc-metric-label">Products</span>
+            <span class="pmc-metric-trend" id="pmCompanyProductsTrend"></span>
+          </div>
+          <div class="pmc-metric-item">
+            <span class="pmc-metric-value" id="pmCompanyDiscounted">—</span>
+            <span class="pmc-metric-label">Discounted</span>
+            <span class="pmc-metric-trend" id="pmCompanyDiscountedTrend"></span>
+          </div>
+          <div class="pmc-metric-item">
+            <span class="pmc-metric-value" id="pmCompanyDiscountRate">—</span>
+            <span class="pmc-metric-label">Discount Rate</span>
+            <span class="pmc-metric-trend" id="pmCompanyDiscountRateTrend"></span>
+          </div>
+          <div class="pmc-metric-item">
+            <span class="pmc-metric-value" id="pmCompanyAvgDiscount">—</span>
+            <span class="pmc-metric-label">Avg Discount</span>
+            <span class="pmc-metric-trend" id="pmCompanyAvgDiscountTrend"></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Advanced Metrics -->
+      <div class="pmc-advanced-metrics-container">
+        <div class="pmc-advanced-metrics">
+          <!-- CPI Section -->
+          <div class="pmc-metrics-section cpi-section">
+            <div class="pmc-section-title">Market Position</div>
+            <div class="pmc-metrics-grid">
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmCpiValue">—</span>
+                <span class="pmc-metric-compact-label">CPI</span>
+                <span class="pmc-metric-compact-trend" id="pmCpiTrend"></span>
+              </div>
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmVolatilityValueNew">—</span>
+                <span class="pmc-metric-compact-label">Volatility</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Promo Wave Section -->
+          <div class="pmc-metrics-section promo-section">
+            <div class="pmc-section-title">Promo Wave Status</div>
+            <div class="pmc-promo-wave-status" id="pmPromoWaveStatus">
+              <span id="pmPromoWaveText">—</span>
+            </div>
+            <div class="pmc-metrics-grid" style="margin-top: 8px;">
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmPromoLength">—</span>
+                <span class="pmc-metric-compact-label">Length (days)</span>
+              </div>
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmPromoDepth">—</span>
+                <span class="pmc-metric-compact-label">Avg Depth</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Performance Section -->
+          <div class="pmc-metrics-section performance-section">
+            <div class="pmc-section-title">Performance</div>
+            <div class="pmc-metrics-grid">
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmPromoProducts">—</span>
+                <span class="pmc-metric-compact-label">Promo Products</span>
+              </div>
+              <div class="pmc-metric-compact">
+                <span class="pmc-metric-compact-value" id="pmPriceVelocity">—</span>
+                <span class="pmc-metric-compact-label">Price Velocity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="pmc-main-grid">
+      <!-- Left Column -->
+      <div class="pm-left-column">
+        <!-- Company Buckets Distribution -->
+        <div class="pm-company-buckets-card">
+          <h4>Company Price Buckets</h4>
+          <div class="pm-company-buckets-table">
+            <div class="pm-company-buckets-header">
+              <span>Bucket</span>
+              <span class="pm-share-header">Share /<br/>Exp Weighted Share</span>
+            </div>
+            <div id="pmCompanyBucketsBody" class="pm-company-buckets-body">
+              <!-- Buckets will be populated here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Metrics Row -->
+        <div class="pm-metrics-row">
+          <div class="pm-metric-mini">
+            <h5>Price Volatility</h5>
+            <div class="pm-metric-display">
+              <span class="pm-metric-val" id="pmCompanyVolatility">—</span>
+              <span class="pm-metric-status" id="pmCompanyVolatilityLabel">—</span>
+            </div>
+            <div class="pm-metric-bar">
+              <div class="pm-metric-fill volatility" id="pmCompanyVolatilityBar"></div>
+            </div>
+          </div>
+          
+          <div class="pm-metric-mini">
+            <h5>Price Leadership</h5>
+            <div class="pm-metric-display">
+              <span class="pm-metric-val" id="pmCompanyLeadership">—</span>
+              <span class="pm-metric-status" id="pmCompanyLeadershipLabel">—</span>
+            </div>
+            <div class="pm-metric-bar">
+              <div class="pm-metric-fill leadership" id="pmCompanyLeadershipBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Column -->
+      <div class="pm-right-column">
+        <div class="pm-companies-chart-card">
+          <div class="pm-companies-charts-row">
+            <!-- Products & Discounts Trend Chart -->
+            <div class="pm-chart-section">
+              <div class="pm-chart-header">
+                <h4>Products & Discounts Trend</h4>
+                <div class="pm-chart-legend">
+                  <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
+                  <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
+                  <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
                 </div>
+              </div>
+              <div class="pm-chart-wrapper">
+                <div id="pmCompanyProductsChart"></div>
               </div>
             </div>
             
-            <!-- Metrics Row -->
-            <div class="pm-metrics-row">
-              <div class="pm-metric-mini">
-                <h5>Price Volatility</h5>
-                <div class="pm-metric-display">
-                  <span class="pm-metric-val" id="pmCompanyVolatility">—</span>
-                  <span class="pm-metric-status" id="pmCompanyVolatilityLabel">—</span>
-                </div>
-                <div class="pm-metric-bar">
-                  <div class="pm-metric-fill volatility" id="pmCompanyVolatilityBar"></div>
-                </div>
-              </div>
-              
-              <div class="pm-metric-mini">
-                <h5>Price Leadership</h5>
-                <div class="pm-metric-display">
-                  <span class="pm-metric-val" id="pmCompanyLeadership">—</span>
-                  <span class="pm-metric-status" id="pmCompanyLeadershipLabel">—</span>
-                </div>
-                <div class="pm-metric-bar">
-                  <div class="pm-metric-fill leadership" id="pmCompanyLeadershipBar"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Right Column (77%) -->
-          <div class="pm-right-column">
-            <div class="pm-companies-chart-card">
-              <div class="pm-companies-charts-row">
-<!-- Products & Discounts Trend Chart -->
-                <div class="pm-chart-section">
-                  <div class="pm-chart-header">
-                    <h4>Products & Discounts Trend</h4>
-                    <div class="pm-chart-legend">
-                      <span class="pm-legend-item" style="--color: #2196F3">Total Products</span>
-                      <span class="pm-legend-item" style="--color: #FF9800">Discounted</span>
-                      <span class="pm-legend-item" style="--color: #4CAF50">Discount Depth</span>
-                    </div>
-                  </div>
-                  <div class="pm-chart-wrapper">
-                    <div id="pmCompanyProductsChart"></div>
-                  </div>
-                </div>
-                
-                <!-- CPI Trend Chart -->
-                <div class="pm-cpi-chart-container">
-                  <h4>CPI Market Position</h4>
-                  <div class="pm-cpi-chart">
-                    <div id="pmCpiTrendChart"></div>
-                  </div>
-                </div>
+            <!-- CPI Trend Chart -->
+            <div class="pm-cpi-chart-container">
+              <h4>CPI Market Position</h4>
+              <div class="pm-cpi-chart">
+                <div id="pmCpiTrendChart"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  </div>
+`;
     
     container.innerHTML = html;
     
