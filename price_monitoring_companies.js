@@ -574,14 +574,6 @@ function addCompaniesViewStyles() {
   color: #888;
   border: 1px solid #e0e0e0;
 }
-
-.pm-top-section {
-  display: grid;
-  grid-template-columns: 420px 1fr 320px;
-  gap: 15px;
-  margin-bottom: 15px;
-  width: 100%;
-}
       
     </style>
   `;
