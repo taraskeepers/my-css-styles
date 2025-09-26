@@ -18,7 +18,6 @@
     showPriceMonitoringView('market-overview');
   };
 
-// Add this function after the 'use strict' declaration
 async function loadCompanyPricingData() {
   return new Promise((resolve) => {
     console.log('[PriceMonitoring] Loading company pricing data...');
@@ -63,23 +62,11 @@ async function loadCompanyPricingData() {
           return;
         }
         
-        // Find the market row (source='all' and q='all')
-        const marketData = result.data.find(row => 
-          row.source === 'all' && row.q === 'all'
-        );
-        
-        // Get company-specific data (q='all' but source != 'all')
-        const companiesData = result.data.filter(row => 
-          row.q === 'all' && row.source !== 'all'
-        );
-        
-        console.log('[PriceMonitoring] Market data found:', !!marketData);
-        console.log('[PriceMonitoring] Companies found:', companiesData.length);
+        // Return ALL data, we'll filter when displaying
+        console.log('[PriceMonitoring] Total records found:', result.data.length);
         
         db.close();
         resolve({
-          marketData,
-          companiesData,
           allData: result.data
         });
       };
@@ -450,18 +437,30 @@ if (config.view === 'market-overview') {
 }
 
 async function populateMarketOverview() {
-  // Check for ApexCharts availability
-  if (typeof ApexCharts === 'undefined') {
-    console.warn('[PriceMonitoring] ApexCharts not loaded, charts will not be displayed');
-  }
   const data = await loadCompanyPricingData();
-  if (!data || !data.marketData) {
-    console.error('[PriceMonitoring] No market data available');
+  if (!data || !data.allData) {
+    console.error('[PriceMonitoring] No data available');
     return;
   }
   
-  const market = data.marketData;
-  console.log('[PriceMonitoring] Populating with market data:', market);
+  // Filter for market data (source='all' and q='all')
+  const market = data.allData.find(row => 
+    row.source === 'all' && row.q === 'all'
+  );
+  
+  // Find company data
+  const companyName = window.myCompany || 'East Perry'; // Use your company name
+  const companyData = data.allData.find(row => 
+    row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+  );
+  
+  if (!market) {
+    console.error('[PriceMonitoring] No market data found');
+    return;
+  }
+  
+  console.log('[PriceMonitoring] Market data found:', market);
+  console.log('[PriceMonitoring] Company data found:', !!companyData);
   
 // Update last updated time (if element exists)
 const lastUpdatedEl = document.getElementById('pmLastUpdated');
@@ -531,10 +530,6 @@ if (tempGauge) {
   document.getElementById('pmMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 2)}`;
   
 // 3. Price Buckets with Market and Company comparison
-  const companyData = data.companiesData?.find(row => 
-    row.source.toLowerCase() === (window.myCompany || '').toLowerCase()
-  );
-  
   const buckets = [
     { 
       name: 'Ultra Cheap',
@@ -629,12 +624,6 @@ if (tempGauge) {
         share: market.ultra_premium_bucket_share,
         discounted: market.disc_ultra_premium_bucket,
         discount_depth: market.disc_depth_ultra_premium_bucket
-      },
-      company: companyData ? {
-        count: companyData.ultra_premium_bucket,
-        share: companyData.ultra_premium_bucket_share,
-        discounted: companyData.disc_ultra_premium_bucket,
-        discount_depth: companyData.disc_depth_ultra_premium_bucket
       } : null,
       color: '#9C27B0'
     }
@@ -653,27 +642,88 @@ if (tempGauge) {
       const marketDiscounted = parseInt(bucket.market.discounted) || 0;
       const marketDiscountDepth = parseFloat(bucket.market.discount_depth) || 0;
       
-      // Company row data
-      let companyRow = '';
+      let rows = '';
+      
+      // If company data exists, create two-row structure
       if (bucket.company) {
         const companySharePercent = parseFloat(bucket.company.share || 0) * 100;
         const companyDiscounted = parseInt(bucket.company.discounted) || 0;
         const companyDiscountDepth = parseFloat(bucket.company.discount_depth) || 0;
         
-        companyRow = `
-          <div class="pm-bucket-subrow company-row">
-            <div class="pm-source-label company-label">${window.myCompany || 'Company'}</div>
-            <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
-            <div class="pm-bucket-discounted">
-              ${companyDiscounted > 0 ? `<span class="pm-discount-badge company">${companyDiscounted}</span>` : '—'}
+        rows = `
+          <div class="pm-bucket-wrapper">
+            <div class="pm-bucket-info">
+              <div class="pm-bucket-name">
+                <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+                <span>${bucket.name}</span>
+              </div>
+              <div class="pm-bucket-range">${range}</div>
             </div>
-            <div class="pm-discount-depth">
-              ${companyDiscountDepth > 0 ? `${companyDiscountDepth.toFixed(1)}%` : '—'}
+            <div class="pm-bucket-data">
+              <div class="pm-data-row market-row">
+                <div class="pm-source-label market-label">Market</div>
+                <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+                <div class="pm-bucket-discounted">
+                  ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
+                </div>
+                <div class="pm-discount-depth">
+                  ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
+                </div>
+                <div class="pm-bucket-share">
+                  <div class="pm-bucket-share-bar">
+                    <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
+                      <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="pm-data-row company-row">
+                <div class="pm-source-label company-label">${companyName}</div>
+                <div class="pm-bucket-products">${formatNumber(bucket.company.count)}</div>
+                <div class="pm-bucket-discounted">
+                  ${companyDiscounted > 0 ? `<span class="pm-discount-badge company">${companyDiscounted}</span>` : '—'}
+                </div>
+                <div class="pm-discount-depth">
+                  ${companyDiscountDepth > 0 ? `${companyDiscountDepth.toFixed(1)}%` : '—'}
+                </div>
+                <div class="pm-bucket-share">
+                  <div class="pm-bucket-share-bar">
+                    <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color}; opacity: 0.7;">
+                      <span class="pm-share-text-inside">${companySharePercent.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="pm-bucket-share">
-              <div class="pm-bucket-share-bar">
-                <div class="pm-bucket-share-fill" style="width: ${companySharePercent}%; background: ${bucket.color}; opacity: 0.7;">
-                  <span class="pm-share-text-inside">${companySharePercent.toFixed(1)}%</span>
+          </div>
+        `;
+      } else {
+        // No company data, just show market row
+        rows = `
+          <div class="pm-bucket-wrapper single-row">
+            <div class="pm-bucket-info">
+              <div class="pm-bucket-name">
+                <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
+                <span>${bucket.name}</span>
+              </div>
+              <div class="pm-bucket-range">${range}</div>
+            </div>
+            <div class="pm-bucket-data">
+              <div class="pm-data-row market-row">
+                <div class="pm-source-label market-label">Market</div>
+                <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
+                <div class="pm-bucket-discounted">
+                  ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
+                </div>
+                <div class="pm-discount-depth">
+                  ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
+                </div>
+                <div class="pm-bucket-share">
+                  <div class="pm-bucket-share-bar">
+                    <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
+                      <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -681,33 +731,7 @@ if (tempGauge) {
         `;
       }
       
-      return `
-        <div class="pm-bucket-group">
-          <div class="pm-bucket-row market-row">
-            <div class="pm-bucket-name" ${bucket.company ? 'rowspan="2"' : ''}>
-              <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
-              <span>${bucket.name}</span>
-            </div>
-            <div class="pm-bucket-range" ${bucket.company ? 'rowspan="2"' : ''}>${range}</div>
-            <div class="pm-source-label market-label">Market</div>
-            <div class="pm-bucket-products">${formatNumber(bucket.market.count)}</div>
-            <div class="pm-bucket-discounted">
-              ${marketDiscounted > 0 ? `<span class="pm-discount-badge">${marketDiscounted}</span>` : '—'}
-            </div>
-            <div class="pm-discount-depth">
-              ${marketDiscountDepth > 0 ? `${marketDiscountDepth.toFixed(1)}%` : '—'}
-            </div>
-            <div class="pm-bucket-share">
-              <div class="pm-bucket-share-bar">
-                <div class="pm-bucket-share-fill" style="width: ${marketSharePercent}%; background: ${bucket.color};">
-                  <span class="pm-share-text-inside">${marketSharePercent.toFixed(1)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          ${companyRow}
-        </div>
-      `;
+      return rows;
     }).join('');
   }
   
@@ -1292,39 +1316,75 @@ function addPriceMonitoringStyles() {
   border-radius: 8px 8px 0 0;
 }
 
-      .pm-buckets-body {
-        max-height: 420px;
-        overflow-y: auto;
-      }
+.pm-buckets-body {
+  max-height: 420px;
+  overflow-y: auto;
+}
 
-.pm-bucket-group {
+/* New bucket structure styles */
+.pm-bucket-wrapper {
+  display: flex;
   border-bottom: 1px solid #e8e8e8;
+  min-height: 60px;
 }
 
-.pm-bucket-row {
-  display: grid;
-  grid-template-columns: 110px 120px 60px 70px 70px 85px 1fr;
-  padding: 8px 16px;
+.pm-bucket-wrapper.single-row {
+  min-height: 40px;
+}
+
+.pm-bucket-info {
+  display: flex;
   align-items: center;
-  transition: all 0.2s;
+  width: 230px;
+  padding: 0 16px;
+  border-right: 1px solid #f0f0f0;
 }
 
-.pm-bucket-row.market-row {
+.pm-bucket-name {
+  width: 110px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pm-bucket-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.pm-bucket-range {
+  width: 120px;
+  font-size: 11px;
+  color: #666;
+  font-family: 'Monaco', 'Menlo', monospace;
+  padding-left: 10px;
+}
+
+.pm-bucket-data {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-data-row {
+  display: grid;
+  grid-template-columns: 60px 70px 70px 85px 1fr;
+  padding: 10px 16px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.pm-data-row.market-row {
   background: white;
 }
 
-.pm-bucket-subrow {
-  display: grid;
-  grid-template-columns: 60px 70px 70px 85px 1fr;
-  grid-column: 3 / -1;
-  padding: 8px 16px 8px 16px;
-  align-items: center;
-  background: #fafafa;
-  border-top: 1px dashed #e0e0e0;
-}
-
-.pm-bucket-subrow.company-row {
+.pm-data-row.company-row {
   background: linear-gradient(90deg, rgba(102, 126, 234, 0.03) 0%, rgba(255,255,255,0) 100%);
+  border-top: 1px dashed #e0e0e0;
 }
 
 .pm-source-label {
@@ -1332,6 +1392,7 @@ function addPriceMonitoringStyles() {
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 4px;
+  text-align: center;
 }
 
 .pm-source-label.market-label {
@@ -1344,24 +1405,41 @@ function addPriceMonitoringStyles() {
   color: #5e35b1;
 }
 
+.pm-bucket-products {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pm-bucket-discounted {
+  text-align: center;
+}
+
+.pm-discount-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .pm-discount-badge.company {
   background: linear-gradient(135deg, #e8f5e9, #f3e5f5);
   color: #5e35b1;
 }
 
-.pm-bucket-share-fill {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 6px;
+.pm-discount-depth {
+  text-align: center;
+  color: #ff6b6b;
+  font-weight: 600;
+  font-size: 11px;
 }
 
-.pm-share-text-inside {
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+.pm-bucket-share {
+  display: flex;
+  align-items: center;
 }
 
 .pm-bucket-share-bar {
@@ -1372,444 +1450,382 @@ function addPriceMonitoringStyles() {
   overflow: hidden;
 }
 
-.pm-bucket-share-text {
-  display: none; /* Hide the external text since we're showing it inside */
+.pm-bucket-share-fill {
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-      .pm-bucket-name {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        font-weight: 500;
-      }
+.pm-share-text-inside {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
 
-      .pm-bucket-indicator {
-        width: 12px;
-        height: 12px;
-        border-radius: 3px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      }
+/* Metrics Row */
+.pm-metrics-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
 
-      .pm-bucket-range {
-        font-size: 11px;
-        color: #666;
-        font-family: 'Monaco', 'Menlo', monospace;
-      }
+.pm-metric-mini {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  position: relative;
+  transition: transform 0.2s;
+}
 
-      .pm-bucket-products {
-        font-size: 12px;
-        font-weight: 600;
-        text-align: center;
-      }
+.pm-metric-mini:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
 
-      .pm-bucket-discounted {
-        text-align: center;
-      }
+.pm-metric-mini::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+}
 
-      .pm-discount-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        background: #e8f5e9;
-        color: #2e7d32;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 600;
-      }
+.pm-metric-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 12px 0 8px;
+}
 
-      .pm-discount-depth {
-        text-align: center;
-        color: #ff6b6b;
-        font-weight: 600;
-        font-size: 11px;
-      }
+.pm-metric-val {
+  font-size: 24px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
-      .pm-bucket-share {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+.pm-metric-status {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-weight: 500;
+}
 
-      .pm-bucket-share-bar {
-        flex: 1;
-        height: 16px;
-        background: #f0f0f0;
-        border-radius: 8px;
-        overflow: hidden;
-      }
+.pm-metric-bar {
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
 
-      .pm-bucket-share-fill {
-        height: 100%;
-        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-      }
+.pm-metric-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+  transition: width 0.5s ease;
+}
 
-      .pm-bucket-share-text {
-        font-size: 11px;
-        font-weight: 600;
-        min-width: 40px;
-        text-align: right;
-      }
+/* Right Column */
+.pm-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-      /* Metrics Row */
-      .pm-metrics-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
+/* Chart Card - Enhanced */
+.pm-chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
 
-      .pm-metric-mini {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        position: relative;
-        transition: transform 0.2s;
-      }
+.pm-chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #2196F3, #4CAF50);
+}
 
-      .pm-metric-mini:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
+.pm-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 
-      .pm-metric-mini::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
-      }
+.pm-chart-legend {
+  display: flex;
+  gap: 12px;
+}
 
-      .pm-metric-display {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin: 12px 0 8px;
-      }
+.pm-legend-item {
+  font-size: 11px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-      .pm-metric-val {
-        font-size: 24px;
-        font-weight: bold;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+.pm-legend-item::before {
+  content: '';
+  width: 12px;
+  height: 3px;
+  background: var(--color);
+  border-radius: 2px;
+}
 
-      .pm-metric-status {
-        font-size: 11px;
-        padding: 4px 8px;
-        background: #f0f0f0;
-        border-radius: 4px;
-        font-weight: 500;
-      }
+.pm-chart-container {
+  height: 320px;
+  position: relative;
+}
 
-      .pm-metric-bar {
-        height: 6px;
-        background: #f0f0f0;
-        border-radius: 3px;
-        overflow: hidden;
-      }
+/* Bottom Stats - Enhanced */
+.pm-bottom-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
 
-      .pm-metric-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
-        transition: width 0.5s ease;
-      }
+.pm-stat-card-mini {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
 
-      /* Right Column */
-      .pm-right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+.pm-stat-card-mini:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
 
-      /* Chart Card - Enhanced */
-      .pm-chart-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-      }
+.pm-stat-card-mini::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
 
-      .pm-chart-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #2196F3, #4CAF50);
-      }
+.pm-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 
-      .pm-chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
+.pm-stat-emoji {
+  font-size: 20px;
+}
 
-      .pm-chart-legend {
-        display: flex;
-        gap: 12px;
-      }
+.pm-stat-title {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
-      .pm-legend-item {
-        font-size: 11px;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
+.pm-stat-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
 
-      .pm-legend-item::before {
-        content: '';
-        width: 12px;
-        height: 3px;
-        background: var(--color);
-        border-radius: 2px;
-      }
+.pm-stat-number {
+  font-size: 32px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
-      .pm-chart-container {
-        height: 320px;
-        position: relative;
-      }
+.pm-stat-change {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
 
-      /* Bottom Stats - Enhanced */
-      .pm-bottom-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-      }
+.pm-stat-subtitle {
+  font-size: 11px;
+  color: #888;
+  display: block;
+  margin-top: 4px;
+}
 
-      .pm-stat-card-mini {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        transition: transform 0.2s;
-        position: relative;
-        overflow: hidden;
-      }
+/* View Switcher Styles - Enhanced */
+.pm-view-switcher-wrapper {
+  margin: 0 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
-      .pm-stat-card-mini:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
+.pm-view-switcher {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+  border-radius: 30px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  gap: 2px;
+}
 
-      .pm-stat-card-mini::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-      }
+.pm-switcher-btn {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 26px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #666;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
-      .pm-stat-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-      }
+.pm-switcher-btn:hover {
+  background-color: rgba(102, 126, 234, 0.08);
+  color: #333;
+  transform: scale(1.02);
+}
 
-      .pm-stat-emoji {
-        font-size: 20px;
-      }
+.pm-switcher-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+  transform: scale(1.02);
+}
 
-      .pm-stat-title {
-        font-size: 11px;
-        color: #666;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+.pm-switcher-btn.active:hover {
+  transform: scale(1.05);
+}
 
-      .pm-stat-body {
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
-      }
+.pm-btn-icon {
+  font-size: 16px;
+  display: inline-block;
+}
 
-      .pm-stat-number {
-        font-size: 32px;
-        font-weight: bold;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+/* Wrapper styles */
+.price-monitoring-wrapper {
+  width: 1490px;
+  margin: 20px 0 20px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
 
-      .pm-stat-change {
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: 500;
-      }
+/* Header styles for other views */
+.pm-header-section {
+  padding: 20px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+}
 
-      .pm-stat-subtitle {
-        font-size: 11px;
-        color: #888;
-        display: block;
-        margin-top: 4px;
-      }
+.pm-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-      /* View Switcher Styles - Enhanced */
-      .pm-view-switcher-wrapper {
-        margin: 0 0 0 20px;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-      }
+.pm-main-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
 
-      .pm-view-switcher {
-        display: inline-flex !important;
-        flex-direction: row !important;
-        background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
-        border-radius: 30px;
-        padding: 4px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        gap: 2px;
-      }
+.pm-last-updated {
+  font-size: 12px;
+  color: #888;
+}
 
-      .pm-switcher-btn {
-        padding: 10px 20px;
-        border: none;
-        background: transparent;
-        border-radius: 26px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #666;
-        display: inline-flex !important;
-        align-items: center;
-        gap: 6px;
-        position: relative;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
+.pm-placeholder-content {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
 
-      .pm-switcher-btn:hover {
-        background-color: rgba(102, 126, 234, 0.08);
-        color: #333;
-        transform: scale(1.02);
-      }
+/* Scrollbar Styling */
+.pm-buckets-body::-webkit-scrollbar,
+.price-monitoring-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
 
-      .pm-switcher-btn.active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
-        transform: scale(1.02);
-      }
+.pm-buckets-body::-webkit-scrollbar-track,
+.price-monitoring-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
 
-      .pm-switcher-btn.active:hover {
-        transform: scale(1.05);
-      }
+.pm-buckets-body::-webkit-scrollbar-thumb,
+.price-monitoring-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
 
-      .pm-btn-icon {
-        font-size: 16px;
-        display: inline-block;
-      }
+.pm-buckets-body::-webkit-scrollbar-thumb:hover,
+.price-monitoring-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
 
-      /* Wrapper styles */
-      .price-monitoring-wrapper {
-        width: 1490px;
-        margin: 20px 0 20px 20px;
-        background-color: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border-radius: 12px;
-        padding: 20px;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
+/* Animation effects */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-      /* Header styles for other views */
-      .pm-header-section {
-        padding: 20px 0;
-        border-bottom: 1px solid #eee;
-        margin-bottom: 20px;
-      }
+.pm-dashboard-container > * {
+  animation: fadeIn 0.5s ease-out;
+}
 
-      .pm-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+/* Responsive adjustments for chart */
+#pmProductsChart {
+  width: 100%;
+  height: 100%;
+}
 
-      .pm-main-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0;
-      }
-
-      .pm-last-updated {
-        font-size: 12px;
-        color: #888;
-      }
-
-      .pm-placeholder-content {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-        font-size: 14px;
-      }
-
-      /* Scrollbar Styling */
-      .pm-buckets-body::-webkit-scrollbar,
-      .price-monitoring-wrapper::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-track,
-      .price-monitoring-wrapper::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-thumb,
-      .price-monitoring-wrapper::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-      }
-
-      .pm-buckets-body::-webkit-scrollbar-thumb:hover,
-      .price-monitoring-wrapper::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-      }
-
-      /* Animation effects */
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .pm-dashboard-container > * {
-        animation: fadeIn 0.5s ease-out;
-      }
-
-      /* Responsive adjustments for chart */
-      #pmProductsChart {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* Loading states */
-      .pm-loading {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
+/* Loading states */
+.pm-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
       @keyframes spin {
         0% { transform: rotate(0deg); }
