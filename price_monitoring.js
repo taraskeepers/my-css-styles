@@ -995,7 +995,7 @@ async function createPromoWavesChart() {
   const promoWaves = data.allData.filter(row => 
     row.source !== 'all' && 
     row.q === 'all' && 
-    row.promo_wave === true || row.promo_wave === 'true'
+    (row.promo_wave === true || row.promo_wave === 'true')
   );
   
   console.log('[PriceMonitoring] Active promo waves:', promoWaves.length);
@@ -1014,78 +1014,49 @@ async function createPromoWavesChart() {
     return;
   }
   
-  // Prepare data for timeline
-  const today = new Date();
-  const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+  // Prepare and sort data by discount depth (highest first)
+  const waveData = promoWaves.map(wave => ({
+    company: wave.source,
+    waveLength: parseInt(wave.promo_wave_length) || 0,
+    discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
+    discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
+  })).sort((a, b) => b.discountDepth - a.discountDepth);
   
-  const timelineData = promoWaves.map((wave, index) => {
-    const waveLength = parseInt(wave.promo_wave_length) || 1;
-    const discountDepth = parseFloat(wave.promo_wave_discount_depth) || 0;
-    const discountedPercent = parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0;
-    
-    // Calculate start date (days ago from today)
-    const startDate = new Date(today.getTime() - (waveLength * 24 * 60 * 60 * 1000));
-    
-    return {
-      company: wave.source,
-      startDate: startDate,
-      endDate: today,
-      waveLength: waveLength,
-      discountDepth: discountDepth,
-      discountedPercent: discountedPercent.toFixed(1),
-      color: `hsl(${(index * 360) / promoWaves.length}, 70%, 50%)`
-    };
-  });
+  // Limit to top 10 for initial display
+  const displayData = waveData.slice(0, 10);
   
-  // Sort by discount depth (higher depths on top)
-  timelineData.sort((a, b) => b.discountDepth - a.discountDepth);
+  // Calculate the maximum discount depth for scaling
+  const maxDiscount = Math.max(...waveData.map(d => d.discountDepth));
   
-  // Create the timeline visualization
-  let html = '<div class="pm-timeline-wrapper">';
+  // Create the compact bar visualization
+  let html = '<div class="pm-waves-list">';
   
-  // Date labels
-  html += '<div class="pm-timeline-dates">';
-  for (let i = 0; i <= 6; i++) {
-    const date = new Date(thirtyDaysAgo.getTime() + (i * 5 * 24 * 60 * 60 * 1000));
-    const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    html += `<span class="pm-timeline-date" style="left: ${(i * 100) / 6}%">${label}</span>`;
-  }
-  html += '</div>';
-  
-  // Waves
-  html += '<div class="pm-timeline-waves">';
-  timelineData.forEach((wave, index) => {
-    const totalDays = 30;
-    const daysFromStart = Math.floor((today - thirtyDaysAgo) / (1000 * 60 * 60 * 24));
-    const startPosition = Math.max(0, ((wave.startDate - thirtyDaysAgo) / (1000 * 60 * 60 * 24)) / totalDays * 100);
-    const width = Math.min(100 - startPosition, (wave.waveLength / totalDays * 100));
-    
-    // Calculate height based on discount depth (min 20px, max 35px)
-    const height = Math.min(35, Math.max(20, 20 + (wave.discountDepth * 0.5)));
+  displayData.forEach((wave, index) => {
+    const barWidth = (wave.discountDepth / maxDiscount) * 100;
     
     html += `
-      <div class="pm-wave-row">
-        <div class="pm-wave-label">${wave.company}</div>
-        <div class="pm-wave-track">
-          <div class="pm-wave-bar" style="
-            left: ${startPosition}%;
-            width: ${width}%;
-            height: ${height}px;
-            background: ${wave.color};
-            opacity: ${0.7 + (wave.discountDepth / 100)};
-          ">
-            <span class="pm-wave-info">
-              ${wave.discountDepth.toFixed(1)}% | ${wave.discountedPercent}%
-            </span>
+      <div class="pm-wave-item">
+        <div class="pm-wave-company">${wave.company}</div>
+        <div class="pm-wave-bar-container">
+          <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
+            <div class="pm-wave-metrics">
+              <span class="pm-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
+              <span class="pm-wave-separator">|</span>
+              <span class="pm-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
+              <span class="pm-wave-separator">|</span>
+              <span class="pm-wave-duration">${wave.waveLength}d</span>
+            </div>
           </div>
-        </div>
-        <div class="pm-wave-metrics">
-          <span class="pm-wave-days">${wave.waveLength}d</span>
         </div>
       </div>
     `;
   });
-  html += '</div>';
+  
+  // Add "show more" if there are more than 10
+  if (waveData.length > 10) {
+    html += `<div class="pm-waves-more">+${waveData.length - 10} more waves</div>`;
+  }
+  
   html += '</div>';
   
   container.innerHTML = html;
@@ -1965,7 +1936,7 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-chart-container {
-  height: 320px;
+  height: 240px;  /* Reduced from 320px */
   position: relative;
 }
 
@@ -2200,15 +2171,14 @@ function addPriceMonitoringStyles() {
   animation: spin 1s linear infinite;
 }
 
-/* Promo Waves Container */
+/* Promo Waves Container - Compact Professional Design */
 .pm-promowaves-container {
-  margin-top: 15px;
-  padding-top: 15px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid #f0f0f0;
-  flex: 1;
+  max-height: 180px;
   display: flex;
   flex-direction: column;
-  min-height: 200px;
 }
 
 .pm-promowaves-header {
@@ -2216,11 +2186,12 @@ function addPriceMonitoringStyles() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .pm-promowaves-header h5 {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #4a4a4a;
   text-transform: uppercase;
@@ -2228,17 +2199,16 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-promowaves-count {
-  font-size: 11px;
-  padding: 3px 8px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border-radius: 12px;
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 10px;
   font-weight: 600;
 }
 
 .pm-promowaves-chart {
   flex: 1;
-  position: relative;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -2247,124 +2217,128 @@ function addPriceMonitoringStyles() {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100px;
+  height: 80px;
   color: #999;
   font-size: 12px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
-/* Timeline Wrapper */
-.pm-timeline-wrapper {
-  position: relative;
-  padding: 25px 0 10px;
-  min-height: 150px;
-}
-
-.pm-timeline-dates {
-  position: absolute;
-  top: 0;
-  left: 60px;
-  right: 40px;
-  height: 20px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.pm-timeline-date {
-  position: absolute;
-  font-size: 9px;
-  color: #888;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-/* Wave Rows */
-.pm-timeline-waves {
-  margin-top: 5px;
-}
-
-.pm-wave-row {
+/* Waves List - Compact Bar Design */
+.pm-waves-list {
   display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  height: auto;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.pm-wave-label {
-  width: 60px;
-  font-size: 10px;
-  color: #666;
+.pm-wave-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  height: 22px;
+  font-size: 11px;
+}
+
+.pm-wave-company {
+  padding-right: 10px;
+  color: #333;
   font-weight: 500;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  padding-right: 8px;
+  text-align: right;
+  font-size: 10px;
 }
 
-.pm-wave-track {
-  flex: 1;
-  height: 35px;
+.pm-wave-bar-container {
   position: relative;
-  background: repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 10px,
-    #f5f5f5 10px,
-    #f5f5f5 11px
-  );
+  height: 18px;
+  background: #f5f8fa;
   border-radius: 4px;
-  margin: 0 8px;
+  overflow: hidden;
 }
 
-.pm-wave-bar {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+.pm-wave-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(33, 150, 243, 0.4), rgba(33, 150, 243, 0.6));
   border-radius: 4px;
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
-  cursor: pointer;
+  min-width: fit-content;
 }
 
-.pm-wave-bar:hover {
-  transform: translateY(-50%) scale(1.02);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-  z-index: 10;
-}
-
-.pm-wave-info {
-  font-size: 9px;
-  color: white;
-  font-weight: 600;
-  white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+.pm-wave-bar-fill:hover {
+  background: linear-gradient(90deg, rgba(33, 150, 243, 0.5), rgba(33, 150, 243, 0.7));
 }
 
 .pm-wave-metrics {
-  width: 32px;
-  text-align: center;
-}
-
-.pm-wave-days {
-  font-size: 10px;
-  color: #888;
-  font-weight: 600;
-  padding: 2px 4px;
-  background: #f0f0f0;
-  border-radius: 4px;
-}
-
-/* Adjust chart card to accommodate promo waves */
-.pm-chart-card {
-  flex: 1;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #1565c0;
+  font-weight: 500;
 }
 
-.pm-chart-container {
-  height: 280px;
-  position: relative;
+.pm-wave-discount {
+  font-weight: 700;
+  color: #0d47a1;
+}
+
+.pm-wave-separator {
+  color: rgba(13, 71, 161, 0.3);
+  font-weight: 300;
+}
+
+.pm-wave-products {
+  color: #1565c0;
+}
+
+.pm-wave-duration {
+  color: #1976d2;
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.pm-waves-more {
+  margin-top: 8px;
+  padding: 6px;
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pm-waves-more:hover {
+  background: #eeeeee;
+}
+
+/* Scrollbar styling for promo waves */
+.pm-promowaves-chart::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pm-promowaves-chart::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.pm-promowaves-chart::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.pm-promowaves-chart::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
       @keyframes spin {
