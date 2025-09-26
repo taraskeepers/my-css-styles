@@ -259,29 +259,9 @@ if (config.view === 'market-overview') {
     </div>
   </div>
   
-  <!-- Visual Range Spectrum -->
-  <div class="pm-range-spectrum">
-    <div class="pm-spectrum-bar market">
-      <span class="pm-spectrum-label left">MIN</span>
-      <div class="pm-spectrum-track">
-        <div class="pm-spectrum-fill" id="pmMarketSpectrumFill"></div>
-        <div class="pm-spectrum-median-marker" id="pmMarketMedianMarker"></div>
-      </div>
-      <span class="pm-spectrum-label right">MAX</span>
-    </div>
-    <div class="pm-spectrum-bar company">
-      <span class="pm-spectrum-label left">MIN</span>
-      <div class="pm-spectrum-track">
-        <div class="pm-spectrum-fill" id="pmCompanySpectrumFill"></div>
-        <div class="pm-spectrum-median-marker" id="pmCompanyMedianMarker"></div>
-      </div>
-      <span class="pm-spectrum-label right">MAX</span>
-    </div>
-  </div>
-  
   <!-- Company Prices -->
   <div class="pm-range-row company">
-    <span class="pm-range-label">Company</span>
+    <span class="pm-range-label" id="pmCompanyRangeLabel">Company</span>
     <div class="pm-range-values">
       <div class="pm-range-item">
         <span class="pm-range-value" id="pmCompanyMinPrice">$—</span>
@@ -571,39 +551,21 @@ document.getElementById('pmMarketMinPrice').textContent = `$${formatNumber(marke
 document.getElementById('pmMarketMedianPrice').textContent = `$${formatNumber(market.median_price, 0)}`;
 document.getElementById('pmMarketMaxPrice').textContent = `$${formatNumber(market.most_expensive_product, 0)}`;
 
+// Update company label with actual company name
+const companyRangeLabel = document.getElementById('pmCompanyRangeLabel');
+if (companyRangeLabel) {
+  companyRangeLabel.textContent = companyName || 'Company';
+}
+
 // Company prices
 if (companyData) {
   document.getElementById('pmCompanyMinPrice').textContent = `$${formatNumber(companyData.cheapest_product, 0)}`;
   document.getElementById('pmCompanyMedianPrice').textContent = `$${formatNumber(companyData.median_price, 0)}`;
   document.getElementById('pmCompanyMaxPrice').textContent = `$${formatNumber(companyData.most_expensive_product, 0)}`;
-  
-  // Calculate spectrum positions
-  const companyMin = parseFloat(companyData.cheapest_product) || 0;
-  const companyMedian = parseFloat(companyData.median_price) || 0;
-  const companyMax = parseFloat(companyData.most_expensive_product) || 1;
-  
-  // Position median marker for company
-  const companyMedianPosition = ((companyMedian - companyMin) / (companyMax - companyMin)) * 100;
-  const companyMedianMarker = document.getElementById('pmCompanyMedianMarker');
-  if (companyMedianMarker) {
-    companyMedianMarker.style.left = `${companyMedianPosition}%`;
-  }
 } else {
   document.getElementById('pmCompanyMinPrice').textContent = '$—';
   document.getElementById('pmCompanyMedianPrice').textContent = '$—';
   document.getElementById('pmCompanyMaxPrice').textContent = '$—';
-}
-
-// Calculate spectrum positions for market
-const marketMin = parseFloat(market.cheapest_product) || 0;
-const marketMedian = parseFloat(market.median_price) || 0;
-const marketMax = parseFloat(market.most_expensive_product) || 1;
-
-// Position median marker for market
-const marketMedianPosition = ((marketMedian - marketMin) / (marketMax - marketMin)) * 100;
-const marketMedianMarker = document.getElementById('pmMarketMedianMarker');
-if (marketMedianMarker) {
-  marketMedianMarker.style.left = `${marketMedianPosition}%`;
 }
   
 // 3. Price Buckets with Market and Company comparison
@@ -1200,7 +1162,7 @@ function addPriceMonitoringStyles() {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  gap: 15px;
+  gap: 20px;
 }
 
 .pm-price-range-card::before {
@@ -1217,16 +1179,21 @@ function addPriceMonitoringStyles() {
 .pm-range-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
+}
+
+.pm-range-row.company {
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .pm-range-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  color: #999;
+  color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  min-width: 60px;
+  min-width: 70px;
 }
 
 .pm-range-values {
@@ -1240,11 +1207,13 @@ function addPriceMonitoringStyles() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  flex: 1;
 }
 
 .pm-range-item.median {
-  transform: scale(1.1);
+  transform: scale(1.15);
+  padding: 0 10px;
 }
 
 .pm-range-value {
@@ -1254,7 +1223,7 @@ function addPriceMonitoringStyles() {
 }
 
 .pm-range-item.median .pm-range-value {
-  font-size: 16px;
+  font-size: 18px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1267,80 +1236,13 @@ function addPriceMonitoringStyles() {
   letter-spacing: 0.5px;
 }
 
-/* Visual Range Spectrum */
-.pm-range-spectrum {
-  padding: 8px 0;
-  border-top: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Different styling for market vs company */
+.pm-range-row.market .pm-range-label {
+  color: #667eea;
 }
 
-.pm-spectrum-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pm-spectrum-label {
-  font-size: 9px;
-  color: #999;
-  font-weight: 600;
-  min-width: 25px;
-  text-align: center;
-}
-
-.pm-spectrum-track {
-  flex: 1;
-  height: 20px;
-  background: linear-gradient(90deg, #e8f5e9 0%, #fff9c4 35%, #ffebee 70%, #f3e5f5 100%);
-  border-radius: 10px;
-  position: relative;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.pm-spectrum-bar.market .pm-spectrum-track {
-  border: 2px solid #667eea;
-}
-
-.pm-spectrum-bar.company .pm-spectrum-track {
-  border: 2px solid #764ba2;
-}
-
-.pm-spectrum-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 8px;
-  background: linear-gradient(90deg, 
-    rgba(102, 126, 234, 0.2) 0%, 
-    rgba(118, 75, 162, 0.2) 100%);
-}
-
-.pm-spectrum-median-marker {
-  position: absolute;
-  top: -3px;
-  width: 3px;
-  height: calc(100% + 6px);
-  background: #ff6b6b;
-  border-radius: 2px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: left 0.5s ease;
-}
-
-.pm-spectrum-median-marker::after {
-  content: 'MEDIAN';
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 7px;
-  color: #ff6b6b;
-  font-weight: 600;
-  white-space: nowrap;
+.pm-range-row.company .pm-range-label {
+  color: #764ba2;
 }
 
       /* Quick Stats - Enhanced */
