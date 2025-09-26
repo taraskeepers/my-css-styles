@@ -1241,7 +1241,6 @@ function addPriceMonitoringStyles() {
         display: grid;
         grid-template-columns: 420px 320px 1fr;
         gap: 10px;
-        height: 160px;
       }
 
       /* Temperature Card - Enhanced styling */
