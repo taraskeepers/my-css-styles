@@ -1008,7 +1008,7 @@ let html = `
             
             <!-- CPI Trend Chart -->
             <div class="pm-cpi-chart-container">
-              <h4>CPI Market Position</h4>
+              <h4>CPI (Company Price Index) Market Position</h4>
               <div class="pm-cpi-chart">
                 <div id="pmCpiTrendChart"></div>
               </div>
