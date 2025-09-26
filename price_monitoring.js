@@ -2356,7 +2356,7 @@ function addPriceMonitoringStyles() {
   border-top: 1px solid #f0f0f0;
   flex: 1;
   min-height: 200px;
-  max-height: 400px;
+  max-height: 550px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
