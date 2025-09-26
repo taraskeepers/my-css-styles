@@ -247,22 +247,19 @@ function addCompaniesViewStyles() {
 }
 
 .pmc-metric-trend {
-  font-size: 12px;
-  font-weight: 700;
-  margin-top: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 3px;
   display: inline-block;
+  line-height: 1;
 }
 
 .pmc-metric-trend.positive {
   color: #4CAF50;
-  background: rgba(76, 175, 80, 0.1);
 }
 
 .pmc-metric-trend.negative {
   color: #f44336;
-  background: rgba(244, 67, 54, 0.1);
 }
       
       /* Advanced Metrics Container */
