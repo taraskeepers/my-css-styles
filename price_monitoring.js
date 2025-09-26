@@ -281,7 +281,6 @@ if (config.view === 'market-overview') {
       <!-- Quick Stats -->
       <div class="pm-quick-stats">
         <div class="pm-stat-item">
-          <div class="pm-stat-icon">📊</div>
           <div class="pm-stat-info">
             <div class="pm-stat-grid">
               <div class="pm-stat-cell">
@@ -304,7 +303,6 @@ if (config.view === 'market-overview') {
           </div>
         </div>
         <div class="pm-stat-item">
-          <div class="pm-stat-icon">🌊</div>
           <div class="pm-stat-info">
             <div class="pm-stat-main">
               <span class="pm-stat-val" id="pmActiveWaves">—</span>
