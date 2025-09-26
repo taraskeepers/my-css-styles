@@ -1022,21 +1022,45 @@ async function createPromoWavesChart() {
     discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
   })).sort((a, b) => b.discountDepth - a.discountDepth);
   
-  // Limit to top 10 for initial display
-  const displayData = waveData.slice(0, 10);
-  
   // Calculate the maximum discount depth for scaling
   const maxDiscount = Math.max(...waveData.map(d => d.discountDepth));
   
-  // Create the compact bar visualization
-  let html = '<div class="pm-waves-list">';
+  // Store data for expand/collapse functionality
+  window.pmPromoWavesData = waveData;
+  window.pmPromoWavesExpanded = false;
   
-  displayData.forEach((wave, index) => {
-    const barWidth = (wave.discountDepth / maxDiscount) * 100;
+  // Initial render with limited data
+  renderPromoWavesList(waveData.slice(0, 10), maxDiscount, waveData.length > 10);
+}
+
+// New function to render the promo waves list
+function renderPromoWavesList(displayData, maxDiscount, hasMore) {
+  const container = document.getElementById('pmPromoWavesChart');
+  if (!container) return;
+  
+  // Create x-axis scale
+  const scaleSteps = [0, 25, 50, 75, 100];
+  let xAxisHtml = '<div class="pm-waves-xaxis">';
+  scaleSteps.forEach(step => {
+    const position = (step / 100) * 100;
+    xAxisHtml += `<span class="pm-xaxis-tick" style="left: ${position}%">${step}%</span>`;
+  });
+  xAxisHtml += '</div>';
+  
+  // Create the list with x-axis
+  let html = `
+    <div class="pm-waves-wrapper">
+      <div class="pm-waves-xaxis-label">Discount Depth</div>
+      ${xAxisHtml}
+      <div class="pm-waves-list">
+  `;
+  
+  displayData.forEach((wave) => {
+    const barWidth = Math.max((wave.discountDepth / maxDiscount) * 100, 1); // Ensure minimum visibility
     
     html += `
       <div class="pm-wave-item">
-        <div class="pm-wave-company">${wave.company}</div>
+        <div class="pm-wave-company" title="${wave.company}">${wave.company}</div>
         <div class="pm-wave-bar-container">
           <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
             <div class="pm-wave-metrics">
@@ -1052,14 +1076,50 @@ async function createPromoWavesChart() {
     `;
   });
   
-  // Add "show more" if there are more than 10
-  if (waveData.length > 10) {
-    html += `<div class="pm-waves-more">+${waveData.length - 10} more waves</div>`;
+  html += '</div>'; // Close pm-waves-list
+  
+  // Add expand/collapse button if there are more items
+  if (hasMore) {
+    const totalWaves = window.pmPromoWavesData ? window.pmPromoWavesData.length : 0;
+    const isExpanded = window.pmPromoWavesExpanded;
+    const buttonText = isExpanded ? 
+      `Show less ↑` : 
+      `+${totalWaves - 10} more waves ↓`;
+    
+    html += `
+      <div class="pm-waves-more" onclick="togglePromoWaves()">
+        ${buttonText}
+      </div>
+    `;
   }
   
-  html += '</div>';
+  html += '</div>'; // Close pm-waves-wrapper
   
   container.innerHTML = html;
+}
+
+// New function to toggle expand/collapse
+window.togglePromoWaves = function() {
+  if (!window.pmPromoWavesData) return;
+  
+  window.pmPromoWavesExpanded = !window.pmPromoWavesExpanded;
+  
+  const maxDiscount = Math.max(...window.pmPromoWavesData.map(d => d.discountDepth));
+  const displayData = window.pmPromoWavesExpanded ? 
+    window.pmPromoWavesData : 
+    window.pmPromoWavesData.slice(0, 10);
+  
+  renderPromoWavesList(displayData, maxDiscount, window.pmPromoWavesData.length > 10);
+  
+  // Adjust container height when expanded
+  const chartContainer = document.getElementById('pmPromoWavesChart');
+  if (chartContainer) {
+    if (window.pmPromoWavesExpanded) {
+      chartContainer.style.maxHeight = '300px';
+    } else {
+      chartContainer.style.maxHeight = '';
+    }
+  }
 }
 
 function addPriceMonitoringStyles() {
@@ -2211,6 +2271,7 @@ function addPriceMonitoringStyles() {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: max-height 0.3s ease;
 }
 
 .pm-no-promowaves {
@@ -2222,6 +2283,56 @@ function addPriceMonitoringStyles() {
   font-size: 12px;
   background: #fafafa;
   border-radius: 8px;
+}
+
+/* Waves Wrapper */
+.pm-waves-wrapper {
+  position: relative;
+  padding-top: 35px;
+}
+
+/* X-Axis Label */
+.pm-waves-xaxis-label {
+  position: absolute;
+  top: 0;
+  left: 100px;
+  right: 0;
+  font-size: 9px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+/* X-Axis Scale */
+.pm-waves-xaxis {
+  position: absolute;
+  top: 15px;
+  left: 100px;
+  right: 0;
+  height: 20px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.pm-xaxis-tick {
+  position: absolute;
+  font-size: 9px;
+  color: #999;
+  transform: translateX(-50%);
+  padding-top: 2px;
+}
+
+.pm-xaxis-tick::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 4px;
+  background: #d8d8d8;
 }
 
 /* Waves List - Compact Bar Design */
@@ -2237,6 +2348,24 @@ function addPriceMonitoringStyles() {
   align-items: center;
   height: 22px;
   font-size: 11px;
+  position: relative;
+}
+
+/* Add subtle grid lines */
+.pm-wave-item::before {
+  content: '';
+  position: absolute;
+  left: 100px;
+  right: 0;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 24.9%,
+    rgba(0, 0, 0, 0.03) 25%,
+    rgba(0, 0, 0, 0.03) 25.1%
+  );
+  pointer-events: none;
 }
 
 .pm-wave-company {
@@ -2308,18 +2437,25 @@ function addPriceMonitoringStyles() {
 
 .pm-waves-more {
   margin-top: 8px;
-  padding: 6px;
+  padding: 8px;
   text-align: center;
   font-size: 11px;
-  color: #666;
-  background: #f5f5f5;
+  color: #1976d2;
+  background: #e3f2fd;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  font-weight: 600;
+  border: 1px solid transparent;
 }
 
 .pm-waves-more:hover {
-  background: #eeeeee;
+  background: #bbdefb;
+  border-color: #90caf9;
+}
+
+.pm-waves-more:active {
+  transform: scale(0.98);
 }
 
 /* Scrollbar styling for promo waves */
