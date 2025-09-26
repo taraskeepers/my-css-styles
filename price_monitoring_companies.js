@@ -1368,7 +1368,7 @@ function updateCompanyBuckets(companyData) {
           <div class="pm-bucket-name">
             <span class="pm-bucket-indicator" style="background: ${bucket.color}"></span>
             <span>${bucket.name}</span>
-            ${isDominant ? '<span style="margin-left: 4px; font-size: 10px;">👑</span>' : ''}
+            ${isDominant ? '<span style="margin-left: 4px; font-size: 10px;">#1</span>' : ''}
           </div>
           <div class="pm-bucket-range">${range}</div>
         </div>
