@@ -1586,7 +1586,7 @@ function addPriceMonitoringStyles() {
 
       /* Buckets Card - Enhanced */
       .pm-buckets-card {
-        background: #f9f9f9;
+        background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
