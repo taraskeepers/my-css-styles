@@ -1209,7 +1209,7 @@ function updateTrendIndicator(elementId, current, previous, isPercentage = false
     `${Math.abs(percentDiff).toFixed(1)}%`;
   
   element.textContent = `${arrow} ${displayValue}`;
-  element.className = `pm-metric-trend ${className}`;
+  element.className = `pmc-metric-trend ${className}`;
 }
 
 function updateCompanyBuckets(companyData) {
