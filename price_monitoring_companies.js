@@ -36,22 +36,18 @@ function addCompaniesViewStyles() {
         max-height: 800px;
       }
       
-// In the addCompaniesViewStyles function, replace these style definitions:
-      /* Company overview card - matching temperature card dimensions */
+/* Company overview card - EXACTLY matching temperature card dimensions */
       .pm-company-overview-card {
         background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-around;
+        flex-direction: column;
         position: relative;
         overflow: hidden;
         width: 420px;
-        height: auto;
-        gap: 15px;
+        /* Same structure as temperature card */
       }
       
       .pm-company-overview-card::before {
@@ -64,39 +60,29 @@ function addCompaniesViewStyles() {
         background: linear-gradient(90deg, #667eea, #764ba2);
       }
       
-      /* Company name header - smaller and inline */
-      .company-name-header {
-        height: 60px;
-        width: 120px;
-        font-size: 14px;
-        font-weight: 800;
-        color: #ffffff;
-        text-align: center;
-        padding: 0 8px;
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
-        border-radius: 8px;
-        border: 1px solid #1a252f;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        box-shadow: 
-          0 2px 4px rgba(0,0,0,0.2),
-          0 1px 2px rgba(0,0,0,0.3),
-          inset 0 1px 0 rgba(255,255,255,0.1);
+      /* Company header matching temperature card header */
+      .pm-company-header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
+        margin-bottom: 15px;
       }
       
-      /* Rank and market share containers - horizontal layout */
+      .pm-company-header h4 {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      
+      /* Stats row */
       .pm-company-stats-row {
         display: flex;
-        gap: 15px;
-        flex: 1;
+        justify-content: space-around;
         align-items: center;
-        justify-content: center;
+        padding: 20px 0;
       }
       
       .pm-rank-container,
@@ -104,33 +90,39 @@ function addCompaniesViewStyles() {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 5px;
+        gap: 8px;
+      }
+      
+      .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
       
       .big-rank-box {
-        width: 80px;
-        height: 80px;
-        border-radius: 8px;
+        width: 100px;
+        height: 100px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 32px;
+        font-size: 42px;
         font-weight: 900;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
-        position: relative;
       }
       
       .big-market-circle {
-        width: 80px;
-        height: 80px;
+        width: 100px;
+        height: 100px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 900;
         color: #007aff;
         background: white;
@@ -247,22 +239,23 @@ function addCompaniesViewStyles() {
         height: 100%;
       }
 
-      /* Company data section with bar */
+/* Company buckets data section */
       .pm-company-data {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         padding: 0 10px;
       }
       
+      /* Copy exact styles from price_monitoring.js */
       .pm-tree-bar-container {
         flex: 1;
-        height: 24px;
+        height: 30px;
         position: relative;
         background: #f5f5f5;
-        border-radius: 4px;
+        border-radius: 6px;
         overflow: hidden;
-        max-width: 150px;
+        max-width: 200px;
       }
       
       .pm-tree-bar {
@@ -274,13 +267,45 @@ function addCompaniesViewStyles() {
         opacity: 0.85;
       }
       
-      .pm-bar-percent-inside {
+      /* Percentage text EXACTLY as in price_monitoring.js */
+      .pm-bar-percent-outside {
         position: absolute;
-        right: 8px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
         color: #444;
-        line-height: 24px;
+        line-height: 30px;
+        z-index: 2;
+        right: 8px;
+      }
+      
+      .pm-products-box {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid;
+        font-size: 11px;
+        font-weight: 600;
+        gap: 2px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: transform 0.2s;
+      }
+      
+      .pm-discount-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        background: #ff4444;
+        color: white;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      
+      .pm-discount-badge-empty {
+        display: inline-block;
+        padding: 2px 6px;
+        color: #ccc;
+        font-size: 10px;
       }
       
       .pm-tree-metrics {
@@ -359,16 +384,18 @@ async function renderCompaniesDashboard() {
         <div class="pm-top-section">
 <!-- Company Overview Card -->
           <div class="pm-company-overview-card">
-            <div class="company-name-header">${companyName}</div>
+            <div class="pm-company-header">
+              <h4>${companyName}</h4>
+            </div>
             <div class="pm-company-stats-row">
               <div class="pm-rank-container">
-                <div class="section-label">RANK</div>
+                <div class="section-label">COMPANY RANK</div>
                 <div class="big-rank-box">
                   <span id="pmCompanyRankValue">—</span>
                 </div>
               </div>
               <div class="pm-market-container">
-                <div class="section-label">SHARE</div>
+                <div class="section-label">MARKET SHARE</div>
                 <div class="big-market-circle">
                   <div class="market-water-fill" id="pmCompanyMarketFill"></div>
                   <span class="market-value-text" id="pmCompanyMarketValue">—</span>
@@ -762,21 +789,21 @@ bucketsHTML += `
           <div class="pm-bucket-range">${range}</div>
         </div>
         <div class="pm-company-data">
-          <div class="pm-tree-bar-container">
-            <div class="pm-tree-bar" style="width: ${sharePercent}%; background: ${bucket.color};"></div>
-            <span class="pm-bar-percent-inside">${sharePercent}%</span>
+          <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+            <span class="pm-products-count">${count}</span>
+            ${discounted > 0 ? `
+              <span class="pm-products-sep">/</span>
+              <span class="pm-discounted-count">${discounted}</span>
+            ` : ''}
           </div>
-          <div class="pm-tree-metrics">
-            <div class="pm-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
-              <span class="pm-products-count">${count}</span>
-              ${discounted > 0 ? `
-                <span class="pm-products-sep">/</span>
-                <span class="pm-discounted-count">${discounted}</span>
-              ` : ''}
-            </div>
-            ${discountDepth > 0 ? 
-              `<span class="pm-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+          ${discountDepth > 0 ? 
+            `<span class="pm-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+            '<span class="pm-discount-badge-empty">—</span>'}
+          <div class="pm-tree-bar-container">
+            ${sharePercent > 0 ? 
+              `<div class="pm-tree-bar" style="width: ${sharePercent}%; background: ${bucket.color};"></div>` : 
               ''}
+            <span class="pm-bar-percent-outside">${sharePercent}%</span>
           </div>
         </div>
       </div>
@@ -1077,12 +1104,30 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       window.pmCpiChartInstance.destroy();
       window.pmCpiChartInstance = null;
     }
+
+// After preparing all datasets, calculate the max CPI value
+    let maxCpiValue = 1.0; // Start with baseline
     
-const options = {
+    // Check all datasets for max value
+    datasets.forEach(dataset => {
+      if (dataset.data && Array.isArray(dataset.data)) {
+        dataset.data.forEach(value => {
+          if (value > maxCpiValue) {
+            maxCpiValue = value;
+          }
+        });
+      }
+    });
+    
+    // Add 10% padding to the max value
+    const yAxisMax = maxCpiValue * 1.1;
+    
+    // Update the chart options yaxis
+    const options = {
       series: datasets,
       chart: {
         type: 'line',
-        height: 260, // Increased from 200
+        height: 260,
         toolbar: { show: false },
         zoom: { enabled: false }
       },
@@ -1112,14 +1157,12 @@ const options = {
           },
           style: {
             fontSize: '10px'
-          },
-          rotate: -45,
-          rotateAlways: false
+          }
         }
       },
       yaxis: {
         min: 0.5,
-        max: 2.5, // Reduced from 3 to prevent lines going above visible area
+        max: yAxisMax, // Use calculated max instead of fixed value
         title: {
           text: 'CPI (Market Avg = 1.0)',
           style: { fontSize: '11px' }
