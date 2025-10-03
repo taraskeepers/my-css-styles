@@ -21,14 +21,15 @@ function addProductsViewStyles() {
   const styles = `
     <style id="pmProductsStyles">
       /* Products View - INDEPENDENT Styles */
-      .pm-products-wrapper-container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        gap: 15px;
-        padding: 0;
-        box-sizing: border-box;
-      }
+.pm-products-wrapper-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;  /* Add this to ensure horizontal layout */
+  gap: 15px;
+  padding: 0;
+  box-sizing: border-box;
+}
       
       /* Left column with overview and buckets */
       .pmp-left-column {
@@ -463,16 +464,16 @@ function addProductsViewStyles() {
       }
       
       /* Individual product card */
-      .pm-ad-details {
-        display: flex;
-        background: #fafafa;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        height: 130px;
-        overflow: hidden;
-        transition: all 0.2s ease;
-        cursor: pointer;
-      }
+.pm-ad-details {
+  display: flex;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  height: 100px;  /* Changed from 130px */
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
       
       .pm-ad-details:hover {
         background: #fff;
@@ -480,16 +481,16 @@ function addProductsViewStyles() {
         transform: translateY(-2px);
       }
       
-      .pm-ad-image {
-        width: 130px;
-        height: 130px;
-        flex-shrink: 0;
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        position: relative;
-        background-color: #f5f5f5;
-      }
+.pm-ad-image {
+  width: 100px;  /* Changed from 130px */
+  height: 100px;  /* Changed from 130px */
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  background-color: #f5f5f5;
+}
       
       .pm-ad-discount-badge {
         position: absolute;
@@ -1040,13 +1041,22 @@ async function loadMyCompanyProducts(companyName) {
         } else {
           // Render products
           let html = '';
-          products.forEach(product => {
-            const title = product.title || 'Untitled Product';
-            const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : '—';
-            const oldPrice = product.old_price ? `$${parseFloat(product.old_price).toFixed(2)}` : null;
-            const thumbnail = product.thumbnail || '';
-            const discountPercent = oldPrice ? 
-              Math.round((1 - parseFloat(product.price) / parseFloat(product.old_price)) * 100) : 0;
+products.forEach(product => {
+  const title = product.title || 'Untitled Product';
+  // Handle price that might be a string with currency symbol
+  const priceValue = typeof product.price === 'string' ? 
+    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+    parseFloat(product.price);
+  const oldPriceValue = product.old_price ? 
+    (typeof product.old_price === 'string' ? 
+      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.old_price)) : null;
+  
+  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+  const thumbnail = product.thumbnail || '';
+  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
             
             html += `
               <div class="pm-ad-details">
@@ -1166,13 +1176,22 @@ async function loadCompetitorProducts(companyName) {
         } else {
           // Render products
           let html = '';
-          products.forEach(product => {
-            const title = product.title || 'Untitled Product';
-            const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : '—';
-            const oldPrice = product.old_price ? `$${parseFloat(product.old_price).toFixed(2)}` : null;
-            const thumbnail = product.thumbnail || '';
-            const discountPercent = oldPrice ? 
-              Math.round((1 - parseFloat(product.price) / parseFloat(product.old_price)) * 100) : 0;
+products.forEach(product => {
+  const title = product.title || 'Untitled Product';
+  // Handle price that might be a string with currency symbol
+  const priceValue = typeof product.price === 'string' ? 
+    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+    parseFloat(product.price);
+  const oldPriceValue = product.old_price ? 
+    (typeof product.old_price === 'string' ? 
+      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.old_price)) : null;
+  
+  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+  const thumbnail = product.thumbnail || '';
+  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
             
             html += `
               <div class="pm-ad-details">
