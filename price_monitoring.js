@@ -406,17 +406,13 @@ if (config.view === 'market-overview') {
         </div>
         <div class="pm-placeholder-content">Companies content will be loaded here</div>
       `;
-    } else if (config.view === 'products') {
-      container.innerHTML = `
-        <div class="pm-header-section">
-          <div class="pm-title-row">
-            <h2 class="pm-main-title">Products Analysis</h2>
-            <div class="pm-last-updated">Last updated: <span>-</span></div>
-          </div>
-        </div>
-        <div class="pm-placeholder-content">Products content will be loaded here</div>
-      `;
-    } else if (config.view === 'compare-mode') {
+} else if (config.view === 'products') {
+  container.innerHTML = `
+    <div id="pmProductsWrapperContainer" class="pm-products-wrapper-container">
+      <!-- Products content will be loaded here -->
+    </div>
+  `;
+} else if (config.view === 'compare-mode') {
       container.innerHTML = `
         <div class="pm-header-section">
           <div class="pm-title-row">
@@ -2706,10 +2702,25 @@ function loadCompaniesData() {
   }
 }
 
-  function loadProductsData() {
-    console.log('[PriceMonitoring] Loading Products data...');
-    // TODO: Implement actual data loading
+function loadProductsData() {
+  console.log('[PM] Loading products data');
+  
+  // Check if the products module is loaded
+  if (window.pmProductsModule) {
+    window.pmProductsModule.initialize();
+  } else {
+    // Wait for the module to load (since it's loaded via embed element)
+    const checkInterval = setInterval(() => {
+      if (window.pmProductsModule) {
+        clearInterval(checkInterval);
+        window.pmProductsModule.initialize();
+      }
+    }, 100);
+    
+    // Clear interval after 5 seconds to prevent infinite checking
+    setTimeout(() => clearInterval(checkInterval), 5000);
   }
+}
 
   function loadCompareModeData() {
     console.log('[PriceMonitoring] Loading Compare Mode data...');
