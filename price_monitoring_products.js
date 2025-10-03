@@ -1052,23 +1052,24 @@ function updateProductsBuckets(companyData) {
 // Add click handlers for bucket filtering
 const bucketRows = bucketsBody.querySelectorAll('.pmp-products-bucket-row');
 bucketRows.forEach((row, index) => {
-  row.addEventListener('click', () => {
-    // Remove previous selection
-    bucketRows.forEach(r => r.classList.remove('selected'));
-    
-    // Add selection to clicked row
-    row.classList.add('selected');
-    
-    // Set selected bucket (6 - index because buckets are displayed in reverse order)
-    selectedBucket = 6 - index;
-    
-    // Show clear button
-    const clearBtn = document.getElementById('pmpClearFilter');
-    if (clearBtn) clearBtn.classList.add('active');
-    
-    // Filter products
-    filterProducts();
-  });
+row.addEventListener('click', () => {
+  // Remove previous selection
+  bucketRows.forEach(r => r.classList.remove('selected'));
+  
+  // Add selection to clicked row
+  row.classList.add('selected');
+  
+  // Set selected bucket (6 - index because buckets are displayed in reverse order)
+  selectedBucket = 6 - index;
+  console.log('[PM Products] Selected bucket:', selectedBucket, 'Index:', index);
+  
+  // Show clear button
+  const clearBtn = document.getElementById('pmpClearFilter');
+  if (clearBtn) clearBtn.classList.add('active');
+  
+  // Filter products
+  filterProducts();
+});
 });
 
 // Add clear filter handler
@@ -1110,10 +1111,14 @@ function renderFilteredProducts(type, container) {
   
   let products = allProductsData[type];
   
-  // Filter by selected bucket if any
-  if (selectedBucket !== null) {
-    products = products.filter(p => p.price_bucket === selectedBucket);
-  }
+// Filter by selected bucket if any
+if (selectedBucket !== null) {
+  products = products.filter(p => {
+    // Convert price_bucket to number for comparison
+    const bucketValue = parseInt(p.price_bucket) || 0;
+    return bucketValue === selectedBucket;
+  });
+}
   
   if (products.length === 0) {
     container.innerHTML = `<div class="pmp-no-products">No products in this bucket</div>`;
