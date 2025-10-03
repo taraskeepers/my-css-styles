@@ -1,6 +1,13 @@
 // price_monitoring_products.js
 // Price Monitoring - Products View Module
 
+// Global state for filtering
+let selectedBucket = null;
+let allProductsData = {
+  myCompany: [],
+  competitors: []
+};
+
 function initializePriceMonitoringProducts() {
   console.log('[PM Products] Initializing products view module');
   
@@ -491,6 +498,80 @@ function addProductsViewStyles() {
   position: relative;
   background-color: #f5f5f5;
 }
+
+/* Add after .pm-ad-info styles */
+.pm-ad-bucket-box {
+  width: 30px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Bucket colors for price_bucket_box */
+.pm-ad-bucket-ultra-cheap { background: #4CAF50; }
+.pm-ad-bucket-budget { background: #66BB6A; }
+.pm-ad-bucket-mid { background: #FF9800; }
+.pm-ad-bucket-upper-mid { background: #FFC107; }
+.pm-ad-bucket-premium { background: #7B1FA2; }
+.pm-ad-bucket-ultra-premium { background: #9C27B0; }
+
+/* Selected bucket styling */
+.pmp-products-bucket-row.selected {
+  background: rgba(102, 126, 234, 0.15);
+  border-left: 4px solid #667eea;
+}
+
+.pmp-products-bucket-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Clear filter button */
+.pmp-clear-filter {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #666;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.pmp-clear-filter:hover {
+  background: #e0e0e0;
+  transform: scale(1.1);
+}
+
+.pmp-clear-filter.active {
+  display: flex;
+}
+
+/* Animation for products list */
+.pmp-products-list {
+  transition: opacity 0.3s ease;
+}
+
+.pmp-products-list.filtering {
+  opacity: 0.3;
+}
       
       .pm-ad-discount-badge {
         position: absolute;
@@ -654,10 +735,11 @@ let html = `
       </div>
     </div>
     
-    <!-- Products Buckets Distribution -->
-    <div class="pmp-products-buckets-card">
-      <h4>Product Price Buckets</h4>
-      <div class="pmp-products-buckets-table">
+<!-- Products Buckets Distribution -->
+<div class="pmp-products-buckets-card">
+  <button class="pmp-clear-filter" id="pmpClearFilter" title="Clear filter">×</button>
+  <h4>Product Price Buckets</h4>
+  <div class="pmp-products-buckets-table">
         <div class="pmp-products-buckets-header">
           <span>Bucket</span>
           <span class="pmp-share-header">Share /<br/>Exp Weighted Share</span>
@@ -966,6 +1048,119 @@ function updateProductsBuckets(companyData) {
   });
   
   bucketsBody.innerHTML = bucketsHTML;
+
+// Add click handlers for bucket filtering
+const bucketRows = bucketsBody.querySelectorAll('.pmp-products-bucket-row');
+bucketRows.forEach((row, index) => {
+  row.addEventListener('click', () => {
+    // Remove previous selection
+    bucketRows.forEach(r => r.classList.remove('selected'));
+    
+    // Add selection to clicked row
+    row.classList.add('selected');
+    
+    // Set selected bucket (6 - index because buckets are displayed in reverse order)
+    selectedBucket = 6 - index;
+    
+    // Show clear button
+    const clearBtn = document.getElementById('pmpClearFilter');
+    if (clearBtn) clearBtn.classList.add('active');
+    
+    // Filter products
+    filterProducts();
+  });
+});
+
+// Add clear filter handler
+const clearBtn = document.getElementById('pmpClearFilter');
+if (clearBtn) {
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectedBucket = null;
+    bucketRows.forEach(r => r.classList.remove('selected'));
+    clearBtn.classList.remove('active');
+    filterProducts();
+  });
+}
+}
+
+function filterProducts() {
+  const myCompanyList = document.getElementById('pmpMyCompanyProductsList');
+  const competitorsList = document.getElementById('pmpCompetitorsProductsList');
+  
+  // Add filtering animation
+  if (myCompanyList) myCompanyList.classList.add('filtering');
+  if (competitorsList) competitorsList.classList.add('filtering');
+  
+  setTimeout(() => {
+    // Render filtered products
+    renderFilteredProducts('myCompany', myCompanyList);
+    renderFilteredProducts('competitors', competitorsList);
+    
+    // Remove filtering animation
+    setTimeout(() => {
+      if (myCompanyList) myCompanyList.classList.remove('filtering');
+      if (competitorsList) competitorsList.classList.remove('filtering');
+    }, 100);
+  }, 300);
+}
+
+function renderFilteredProducts(type, container) {
+  if (!container || !allProductsData[type]) return;
+  
+  let products = allProductsData[type];
+  
+  // Filter by selected bucket if any
+  if (selectedBucket !== null) {
+    products = products.filter(p => p.price_bucket === selectedBucket);
+  }
+  
+  if (products.length === 0) {
+    container.innerHTML = `<div class="pmp-no-products">No products in this bucket</div>`;
+  } else {
+    let html = '';
+    products.forEach(product => {
+      const title = product.title || 'Untitled Product';
+      const priceValue = typeof product.price === 'string' ? 
+        parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.price);
+      const oldPriceValue = product.old_price ? 
+        (typeof product.old_price === 'string' ? 
+          parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+          parseFloat(product.old_price)) : null;
+      
+      const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+      const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+      const thumbnail = product.thumbnail || '';
+      const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+        Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+      
+      // Get bucket info
+      const bucketNum = product.price_bucket || 1;
+      const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+      const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+      
+      html += `
+        <div class="pm-ad-details">
+          <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+            ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+          </div>
+          <div class="pm-ad-info">
+            <div class="pm-ad-title">${title}</div>
+            <div class="pm-ad-price-container">
+              <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+              ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+            </div>
+          </div>
+          <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+            ${bucketNames[bucketNum]}
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  }
 }
 
 async function loadMyCompanyProducts(companyName) {
@@ -1033,54 +1228,64 @@ async function loadMyCompanyProducts(companyName) {
           }
         });
         
-        // Convert map to array and sort by price
-        const products = Array.from(productMap.values()).sort((a, b) => {
-          const priceA = parseFloat(a.price) || 0;
-          const priceB = parseFloat(b.price) || 0;
-          return priceB - priceA; // Sort high to low
-        });
-        
-        if (products.length === 0) {
-          container.innerHTML = '<div class="pmp-no-products">No products found</div>';
-        } else {
-          // Render products
-          let html = '';
-products.forEach(product => {
-  const title = product.title || 'Untitled Product';
-  // Handle price that might be a string with currency symbol
-  const priceValue = typeof product.price === 'string' ? 
-    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
-    parseFloat(product.price);
-  const oldPriceValue = product.old_price ? 
-    (typeof product.old_price === 'string' ? 
-      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(product.old_price)) : null;
+// Convert map to array and sort by price
+const products = Array.from(productMap.values()).sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return priceB - priceA; // Sort high to low
+});
+
+// Store products data globally
+allProductsData.myCompany = products;
+
+if (products.length === 0) {
+  container.innerHTML = '<div class="pmp-no-products">No products found</div>';
+} else {
+  // Render products
+  let html = '';
+  products.forEach(product => {
+    const title = product.title || 'Untitled Product';
+    // Handle price that might be a string with currency symbol
+    const priceValue = typeof product.price === 'string' ? 
+      parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.price);
+    const oldPriceValue = product.old_price ? 
+      (typeof product.old_price === 'string' ? 
+        parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.old_price)) : null;
+    
+    const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+    const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+    const thumbnail = product.thumbnail || '';
+    const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+      Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+    
+    // Get bucket info
+    const bucketNum = product.price_bucket || 1;
+    const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+    const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+    
+    html += `
+      <div class="pm-ad-details">
+        <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+          ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+        </div>
+        <div class="pm-ad-info">
+          <div class="pm-ad-title">${title}</div>
+          <div class="pm-ad-price-container">
+            <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+            ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+          </div>
+        </div>
+        <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+          ${bucketNames[bucketNum]}
+        </div>
+      </div>
+    `;
+  });
   
-  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
-  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
-  const thumbnail = product.thumbnail || '';
-  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
-    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
-            
-            html += `
-              <div class="pm-ad-details">
-                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-                </div>
-                <div class="pm-ad-info">
-                  <div class="pm-ad-title">${title}</div>
-                  <div class="pm-ad-price-container">
-                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-          
-          container.innerHTML = html;
-        }
-        
+  container.innerHTML = html;
+}       
         db.close();
       };
       
@@ -1166,56 +1371,70 @@ async function loadCompetitorProducts(companyName) {
           }
         });
         
-        // Convert map to array and sort by price (high to low), then limit to top 20
-        const products = Array.from(productMap.values())
-          .sort((a, b) => {
-            const priceA = parseFloat(a.price) || 0;
-            const priceB = parseFloat(b.price) || 0;
-            return priceB - priceA;
-          })
-          .slice(0, 20); // Show top 20 competitor products
-        
-        if (products.length === 0) {
-          container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
-        } else {
-          // Render products
-          let html = '';
-products.forEach(product => {
-  const title = product.title || 'Untitled Product';
-  // Handle price that might be a string with currency symbol
-  const priceValue = typeof product.price === 'string' ? 
-    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
-    parseFloat(product.price);
-  const oldPriceValue = product.old_price ? 
-    (typeof product.old_price === 'string' ? 
-      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(product.old_price)) : null;
+// Convert map to array and sort by price (high to low), then limit to top 20
+const products = Array.from(productMap.values())
+  .sort((a, b) => {
+    const priceA = parseFloat(a.price) || 0;
+    const priceB = parseFloat(b.price) || 0;
+    return priceB - priceA;
+  })
+  .slice(0, 20); // Show top 20 competitor products
+
+// Store products data globally (keep all products, not just top 20, for filtering)
+allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return priceB - priceA;
+});
+
+if (products.length === 0) {
+  container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
+} else {
+  // Render products
+  let html = '';
+  products.forEach(product => {
+    const title = product.title || 'Untitled Product';
+    // Handle price that might be a string with currency symbol
+    const priceValue = typeof product.price === 'string' ? 
+      parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.price);
+    const oldPriceValue = product.old_price ? 
+      (typeof product.old_price === 'string' ? 
+        parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.old_price)) : null;
+    
+    const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+    const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+    const thumbnail = product.thumbnail || '';
+    const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+      Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+    
+    // Get bucket info
+    const bucketNum = product.price_bucket || 1;
+    const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+    const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+    
+    html += `
+      <div class="pm-ad-details">
+        <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+          ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+        </div>
+        <div class="pm-ad-info">
+          <div class="pm-ad-title">${title}</div>
+          <div class="pm-ad-price-container">
+            <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+            ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+          </div>
+        </div>
+        <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+          ${bucketNames[bucketNum]}
+        </div>
+      </div>
+    `;
+  });
   
-  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
-  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
-  const thumbnail = product.thumbnail || '';
-  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
-    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
-            
-            html += `
-              <div class="pm-ad-details">
-                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-                </div>
-                <div class="pm-ad-info">
-                  <div class="pm-ad-title">${title}</div>
-                  <div class="pm-ad-price-container">
-                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-          
-          container.innerHTML = html;
-        }
-        
+  container.innerHTML = html;
+}       
         db.close();
       };
       
