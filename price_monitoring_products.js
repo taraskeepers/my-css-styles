@@ -630,61 +630,65 @@ async function renderProductsDashboard() {
       return;
     }
     
-    let html = `
-      <div class="pmp-left-column">
-        <!-- Products Overview Card -->
-        <div class="pmp-products-overview-card">
-          <div class="products-name-header">${companyName}</div>
-          <div class="pmp-rank-container">
-            <div class="pmp-section-label">COMPANY RANK</div>
-            <div class="pmp-big-rank-box">
-              <span id="pmpProductsRankValue">—</span>
-            </div>
-          </div>
-          <div class="pmp-market-container">
-            <div class="pmp-section-label">MARKET SHARE</div>
-            <div class="pmp-big-market-circle">
-              <div class="pmp-market-water-fill" id="pmpProductsMarketFill"></div>
-              <span class="pmp-market-value-text" id="pmpProductsMarketValue">—</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Products Buckets Distribution -->
-        <div class="pmp-products-buckets-card">
-          <h4>Product Price Buckets</h4>
-          <div class="pmp-products-buckets-table">
-            <div class="pmp-products-buckets-header">
-              <span>Bucket</span>
-              <span class="pmp-share-header">Share /<br/>Exp Weighted Share</span>
-            </div>
-            <div id="pmpProductsBucketsBody" class="pmp-products-buckets-body">
-              <!-- Buckets will be populated here -->
-            </div>
-          </div>
+// Clear container and add the wrapper class
+container.innerHTML = '';
+container.className = 'pm-products-wrapper-container';
+
+let html = `
+  <div class="pmp-left-column">
+    <!-- Products Overview Card -->
+    <div class="pmp-products-overview-card">
+      <div class="products-name-header">${companyName}</div>
+      <div class="pmp-rank-container">
+        <div class="pmp-section-label">COMPANY RANK</div>
+        <div class="pmp-big-rank-box">
+          <span id="pmpProductsRankValue">—</span>
         </div>
       </div>
-      
-      <div class="pmp-right-column">
-        <!-- My Company Products -->
-        <div class="pmp-products-mycompany-card">
-          <div class="pmp-products-list-header">My Products</div>
-          <div id="pmpMyCompanyProductsList" class="pmp-products-list">
-            <div class="pmp-loading">Loading products...</div>
-          </div>
-        </div>
-        
-        <!-- Competitors Products -->
-        <div class="pmp-products-competitors-card">
-          <div class="pmp-products-list-header">Competitor Products</div>
-          <div id="pmpCompetitorsProductsList" class="pmp-products-list">
-            <div class="pmp-loading">Loading competitor products...</div>
-          </div>
+      <div class="pmp-market-container">
+        <div class="pmp-section-label">MARKET SHARE</div>
+        <div class="pmp-big-market-circle">
+          <div class="pmp-market-water-fill" id="pmpProductsMarketFill"></div>
+          <span class="pmp-market-value-text" id="pmpProductsMarketValue">—</span>
         </div>
       </div>
-    `;
+    </div>
     
-    container.innerHTML = html;
+    <!-- Products Buckets Distribution -->
+    <div class="pmp-products-buckets-card">
+      <h4>Product Price Buckets</h4>
+      <div class="pmp-products-buckets-table">
+        <div class="pmp-products-buckets-header">
+          <span>Bucket</span>
+          <span class="pmp-share-header">Share /<br/>Exp Weighted Share</span>
+        </div>
+        <div id="pmpProductsBucketsBody" class="pmp-products-buckets-body">
+          <!-- Buckets will be populated here -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="pmp-right-column">
+    <!-- My Company Products -->
+    <div class="pmp-products-mycompany-card">
+      <div class="pmp-products-list-header">My Products</div>
+      <div id="pmpMyCompanyProductsList" class="pmp-products-list">
+        <div class="pmp-loading">Loading products...</div>
+      </div>
+    </div>
+    
+    <!-- Competitors Products -->
+    <div class="pmp-products-competitors-card">
+      <div class="pmp-products-list-header">Competitor Products</div>
+      <div id="pmpCompetitorsProductsList" class="pmp-products-list">
+        <div class="pmp-loading">Loading competitor products...</div>
+      </div>
+    </div>
+  </div>
+`;
+
+container.innerHTML = html;
     
     // Populate the dashboard with data
     await populateProductsDashboard({
