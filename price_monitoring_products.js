@@ -5,7 +5,7 @@ function initializePriceMonitoringProducts() {
   console.log('[PM Products] Initializing products view module');
   
   // Only initialize if we're on the products view
-  const productsWrapper = document.getElementById('pmProductsWrapper');
+  const productsWrapper = document.getElementById('pmProductsWrapperContainer');
   if (!productsWrapper) return;
   
   // Add products-specific styles
@@ -21,11 +21,31 @@ function addProductsViewStyles() {
   const styles = `
     <style id="pmProductsStyles">
       /* Products View - INDEPENDENT Styles */
-      .pmp-dashboard {
+      .pm-products-wrapper-container {
         width: 100%;
         height: 100%;
         display: flex;
         gap: 15px;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      /* Left column with overview and buckets */
+      .pmp-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 420px;
+        flex-shrink: 0;
+      }
+      
+      /* Right column with product lists */
+      .pmp-right-column {
+        display: flex;
+        gap: 15px;
+        flex: 1;
+        min-width: 0;
+        height: 100%;
       }
       
       /* Products overview card - EXACT height of company overview card */
@@ -152,11 +172,12 @@ function addProductsViewStyles() {
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        flex: 1;
         position: relative;
         width: 420px;
         display: flex;
         flex-direction: column;
+        flex: 1;
+        min-height: 0;
       }
       
       .pmp-products-buckets-card::before {
@@ -386,22 +407,187 @@ function addProductsViewStyles() {
         letter-spacing: 1px;
       }
       
+      /* Product list cards */
+      .pmp-products-mycompany-card,
+      .pmp-products-competitors-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+      }
+      
+      .pmp-products-mycompany-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+      
+      .pmp-products-competitors-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+      }
+      
+      .pmp-products-list-header {
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      
+      .pmp-products-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-right: 4px;
+      }
+      
+      /* Individual product card */
+      .pm-ad-details {
+        display: flex;
+        background: #fafafa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        height: 130px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      
+      .pm-ad-details:hover {
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+      }
+      
+      .pm-ad-image {
+        width: 130px;
+        height: 130px;
+        flex-shrink: 0;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+        background-color: #f5f5f5;
+      }
+      
+      .pm-ad-discount-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: #ff4444;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      
+      .pm-ad-info {
+        flex: 1;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-width: 0;
+      }
+      
+      .pm-ad-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+        margin-bottom: 8px;
+      }
+      
+      .pm-ad-price-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .pm-ad-current-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
+      }
+      
+      .pm-ad-old-price {
+        font-size: 14px;
+        color: #999;
+        text-decoration: line-through;
+      }
+      
+      .pm-ad-price-discounted {
+        color: #ff4444;
+      }
+      
+      /* Loading states */
+      .pmp-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+        color: #999;
+        font-size: 14px;
+      }
+      
+      .pmp-no-products {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+        color: #999;
+        font-size: 14px;
+        text-align: center;
+      }
+      
       /* Scrollbar styling */
-      .pmp-products-buckets-body::-webkit-scrollbar {
+      .pmp-products-buckets-body::-webkit-scrollbar,
+      .pmp-products-list::-webkit-scrollbar {
         width: 6px;
       }
       
-      .pmp-products-buckets-body::-webkit-scrollbar-track {
+      .pmp-products-buckets-body::-webkit-scrollbar-track,
+      .pmp-products-list::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 3px;
       }
       
-      .pmp-products-buckets-body::-webkit-scrollbar-thumb {
+      .pmp-products-buckets-body::-webkit-scrollbar-thumb,
+      .pmp-products-list::-webkit-scrollbar-thumb {
         background: #c1c1c1;
         border-radius: 3px;
       }
       
-      .pmp-products-buckets-body::-webkit-scrollbar-thumb:hover {
+      .pmp-products-buckets-body::-webkit-scrollbar-thumb:hover,
+      .pmp-products-list::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
       }
     </style>
@@ -444,7 +630,7 @@ async function renderProductsDashboard() {
     }
     
     let html = `
-      <div class="pmp-dashboard">
+      <div class="pmp-left-column">
         <!-- Products Overview Card -->
         <div class="pmp-products-overview-card">
           <div class="products-name-header">${companyName}</div>
@@ -477,6 +663,24 @@ async function renderProductsDashboard() {
           </div>
         </div>
       </div>
+      
+      <div class="pmp-right-column">
+        <!-- My Company Products -->
+        <div class="pmp-products-mycompany-card">
+          <div class="pmp-products-list-header">My Products</div>
+          <div id="pmpMyCompanyProductsList" class="pmp-products-list">
+            <div class="pmp-loading">Loading products...</div>
+          </div>
+        </div>
+        
+        <!-- Competitors Products -->
+        <div class="pmp-products-competitors-card">
+          <div class="pmp-products-list-header">Competitor Products</div>
+          <div id="pmpCompetitorsProductsList" class="pmp-products-list">
+            <div class="pmp-loading">Loading competitor products...</div>
+          </div>
+        </div>
+      </div>
     `;
     
     container.innerHTML = html;
@@ -487,6 +691,10 @@ async function renderProductsDashboard() {
       market: marketData,
       allData: data.allData
     });
+    
+    // Load products for both containers
+    await loadMyCompanyProducts(companyName);
+    await loadCompetitorProducts(companyName);
     
   } catch (error) {
     console.error('[PM Products] Error rendering dashboard:', error);
@@ -755,6 +963,256 @@ function updateProductsBuckets(companyData) {
   bucketsBody.innerHTML = bucketsHTML;
 }
 
+async function loadMyCompanyProducts(companyName) {
+  const container = document.getElementById('pmpMyCompanyProductsList');
+  if (!container) return;
+  
+  try {
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}processed`;
+    console.log('[PM Products] Loading products from:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[PM Products] projectData object store not found');
+        container.innerHTML = '<div class="pmp-no-products">No products found</div>';
+        db.close();
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[PM Products] No processed data found');
+          container.innerHTML = '<div class="pmp-no-products">No products found</div>';
+          db.close();
+          return;
+        }
+        
+        // Get unique products for myCompany
+        const productMap = new Map();
+        
+        result.data.forEach(row => {
+          if (row.source && row.source.toLowerCase() === companyName.toLowerCase()) {
+            const key = `${row.title}_${row.source}`;
+            
+            // Check if we already have this product
+            if (!productMap.has(key)) {
+              productMap.set(key, row);
+            } else {
+              // Prioritize mobile over desktop
+              const existing = productMap.get(key);
+              if (row.device === 'mobile' && existing.device === 'desktop') {
+                productMap.set(key, row);
+              }
+            }
+          }
+        });
+        
+        // Convert map to array and sort by price
+        const products = Array.from(productMap.values()).sort((a, b) => {
+          const priceA = parseFloat(a.price) || 0;
+          const priceB = parseFloat(b.price) || 0;
+          return priceB - priceA; // Sort high to low
+        });
+        
+        if (products.length === 0) {
+          container.innerHTML = '<div class="pmp-no-products">No products found</div>';
+        } else {
+          // Render products
+          let html = '';
+          products.forEach(product => {
+            const title = product.title || 'Untitled Product';
+            const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : '—';
+            const oldPrice = product.old_price ? `$${parseFloat(product.old_price).toFixed(2)}` : null;
+            const thumbnail = product.thumbnail || '';
+            const discountPercent = oldPrice ? 
+              Math.round((1 - parseFloat(product.price) / parseFloat(product.old_price)) * 100) : 0;
+            
+            html += `
+              <div class="pm-ad-details">
+                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+                </div>
+                <div class="pm-ad-info">
+                  <div class="pm-ad-title">${title}</div>
+                  <div class="pm-ad-price-container">
+                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          container.innerHTML = html;
+        }
+        
+        db.close();
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[PM Products] Error getting processed data:', getRequest.error);
+        container.innerHTML = '<div class="pmp-no-products">Error loading products</div>';
+        db.close();
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[PM Products] Failed to open database:', request.error);
+      container.innerHTML = '<div class="pmp-no-products">Error loading products</div>';
+    };
+  } catch (error) {
+    console.error('[PM Products] Error loading products:', error);
+    container.innerHTML = '<div class="pmp-no-products">Error loading products</div>';
+  }
+}
+
+async function loadCompetitorProducts(companyName) {
+  const container = document.getElementById('pmpCompetitorsProductsList');
+  if (!container) return;
+  
+  try {
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}processed`;
+    console.log('[PM Products] Loading competitor products from:', tableName);
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[PM Products] projectData object store not found');
+        container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
+        db.close();
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[PM Products] No processed data found');
+          container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
+          db.close();
+          return;
+        }
+        
+        // Get unique products for competitors (excluding myCompany)
+        const productMap = new Map();
+        
+        result.data.forEach(row => {
+          if (row.source && row.source.toLowerCase() !== companyName.toLowerCase() && row.source !== 'all') {
+            const key = `${row.title}_${row.source}`;
+            
+            // Check if we already have this product
+            if (!productMap.has(key)) {
+              productMap.set(key, row);
+            } else {
+              // Prioritize mobile over desktop
+              const existing = productMap.get(key);
+              if (row.device === 'mobile' && existing.device === 'desktop') {
+                productMap.set(key, row);
+              }
+            }
+          }
+        });
+        
+        // Convert map to array and sort by price (high to low), then limit to top 20
+        const products = Array.from(productMap.values())
+          .sort((a, b) => {
+            const priceA = parseFloat(a.price) || 0;
+            const priceB = parseFloat(b.price) || 0;
+            return priceB - priceA;
+          })
+          .slice(0, 20); // Show top 20 competitor products
+        
+        if (products.length === 0) {
+          container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
+        } else {
+          // Render products
+          let html = '';
+          products.forEach(product => {
+            const title = product.title || 'Untitled Product';
+            const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : '—';
+            const oldPrice = product.old_price ? `$${parseFloat(product.old_price).toFixed(2)}` : null;
+            const thumbnail = product.thumbnail || '';
+            const discountPercent = oldPrice ? 
+              Math.round((1 - parseFloat(product.price) / parseFloat(product.old_price)) * 100) : 0;
+            
+            html += `
+              <div class="pm-ad-details">
+                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+                </div>
+                <div class="pm-ad-info">
+                  <div class="pm-ad-title">${title}</div>
+                  <div class="pm-ad-price-container">
+                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          container.innerHTML = html;
+        }
+        
+        db.close();
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[PM Products] Error getting processed data:', getRequest.error);
+        container.innerHTML = '<div class="pmp-no-products">Error loading competitor products</div>';
+        db.close();
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[PM Products] Failed to open database:', request.error);
+      container.innerHTML = '<div class="pmp-no-products">Error loading competitor products</div>';
+    };
+  } catch (error) {
+    console.error('[PM Products] Error loading competitor products:', error);
+    container.innerHTML = '<div class="pmp-no-products">Error loading competitor products</div>';
+  }
+}
+
 // Helper functions
 function formatProductsNumber(value, decimals = 0) {
   const num = parseFloat(value) || 0;
@@ -766,3 +1224,10 @@ window.pmProductsModule = {
   initialize: initializePriceMonitoringProducts,
   renderDashboard: renderProductsDashboard
 };
+
+// Auto-initialize when the script loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePriceMonitoringProducts);
+} else {
+  initializePriceMonitoringProducts();
+}
