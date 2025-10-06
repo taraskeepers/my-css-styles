@@ -214,7 +214,7 @@ function addProductsViewStyles() {
       /* Updated products buckets styles */
 .pmp-products-buckets-header {
   display: grid;
-  grid-template-columns: 90px 1fr 1fr;  /* Changed to match bucket row */
+  grid-template-columns: 90px 1fr 1fr auto;  /* 4 columns now */
   padding: 12px 16px;
   font-size: 10px;
   font-weight: 600;
@@ -303,7 +303,7 @@ function addProductsViewStyles() {
       /* Products buckets row */
 .pmp-products-bucket-row {
   display: grid;
-  grid-template-columns: 90px 1fr 1fr;  /* Changed from 150px to 90px and added third column */
+  grid-template-columns: 90px 1fr 1fr auto;  /* 4 columns now */
   min-height: 80px;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
@@ -1218,7 +1218,8 @@ async function updateProductsBuckets(companyData) {
 const headerHTML = `
   <span>Bucket</span>
   <span style="text-align: center;">Market</span>
-  <span style="text-align: center;">My Company</span>
+  <span style="text-align: center;">My Company Share</span>
+  <span style="text-align: center;">Products</span>
 `;
   const header = document.querySelector('.pmp-products-buckets-header');
   if (header) header.innerHTML = headerHTML;
@@ -1256,6 +1257,7 @@ if (bucket.range && bucket.range.price_range) {
     
 bucketsHTML += `
   <div class="pmp-products-bucket-row" data-bucket="${bucket.tier}">
+    <!-- Column 1: Bucket Label -->
     <div class="pmp-bucket-label">
       <div class="pmp-bucket-name">
         <span class="pmp-bucket-indicator" style="background: ${bucket.color}"></span>
@@ -1264,7 +1266,7 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-    <!-- Market column (NOW FIRST) -->
+    <!-- Column 2: Market bars -->
     <div class="pmp-butterfly-bars">
       <div class="pmp-butterfly-left">
         <div class="pmp-bar-row">
@@ -1282,22 +1284,8 @@ bucketsHTML += `
       </div>
     </div>
     
-    <!-- My Company column (NOW SECOND) -->
+    <!-- Column 3: My Company Share Bars -->
     <div class="pmp-butterfly-bars">
-      <div class="pmp-butterfly-left">
-        <div class="pmp-products-data-column">
-          <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
-            <span class="pmp-products-count">${count}</span>
-            ${discounted > 0 ? `
-              <span class="pmp-products-sep">/</span>
-              <span class="pmp-discounted-count">${discounted}</span>
-            ` : ''}
-          </div>
-          ${discountDepth > 0 ? 
-            `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
-            '<span class="pmp-discount-badge-empty">—</span>'}
-        </div>
-      </div>
       <div class="pmp-butterfly-right">
         <div class="pmp-bar-row">
           <div class="pmp-tree-bar-container small">
@@ -1312,6 +1300,20 @@ bucketsHTML += `
           </div>
         </div>
       </div>
+    </div>
+    
+    <!-- Column 4: Products Box (on the right) -->
+    <div class="pmp-products-data-column">
+      <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+        <span class="pmp-products-count">${count}</span>
+        ${discounted > 0 ? `
+          <span class="pmp-products-sep">/</span>
+          <span class="pmp-discounted-count">${discounted}</span>
+        ` : ''}
+      </div>
+      ${discountDepth > 0 ? 
+        `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+        '<span class="pmp-discount-badge-empty">—</span>'}
     </div>
   </div>
 `;
