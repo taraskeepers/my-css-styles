@@ -342,7 +342,6 @@ function addProductsViewStyles() {
         color: #888;
         font-family: 'Monaco', 'Menlo', monospace;
         padding-left: 20px;
-        display: block;
       }
       
       .pmp-products-data {
@@ -1221,52 +1220,55 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-<!-- My Company column -->
-<div class="pmp-butterfly-bars">
-  <div class="pmp-butterfly-left">
-    <div class="pmp-bar-row">
-      <div class="pmp-tree-bar-container small" style="direction: rtl;">
-        <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color}; float: right;"></div>
+    <!-- My Company column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-products-data-column">
+          <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+            <span class="pmp-products-count">${count}</span>
+            ${discounted > 0 ? `
+              <span class="pmp-products-sep">/</span>
+              <span class="pmp-discounted-count">${discounted}</span>
+            ` : ''}
+          </div>
+          ${discountDepth > 0 ? 
+            `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+            '<span class="pmp-discount-badge-empty">—</span>'}
+        </div>
+      </div>
+      <div class="pmp-butterfly-right">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
+            <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
+            <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="pmp-bar-row">
-      <div class="pmp-tree-bar-container small" style="direction: rtl;">
-        <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80); float: right;"></div>
+    
+    <!-- Market column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="pmp-butterfly-divider"></div>
-  <div class="pmp-butterfly-right">
-    <div class="pmp-products-data-column">
-      <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
-        <span class="pmp-products-count">${count}</span>
-        ${discounted > 0 ? `
-          <span class="pmp-products-sep">/</span>
-          <span class="pmp-discounted-count">${discounted}</span>
-        ` : ''}
-      </div>
-      ${discountDepth > 0 ? 
-        `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
-        '<span class="pmp-discount-badge-empty">—</span>'}
-    </div>
-  </div>
-</div>
-
-<!-- Market column -->
-<div class="pmp-butterfly-bars">
-  <div class="pmp-butterfly-left">
-    <div class="pmp-bar-row">
-      <div class="pmp-tree-bar-container small">
-        <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-      </div>
-    </div>
-    <div class="pmp-bar-row">
-      <div class="pmp-tree-bar-container small">
-        <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
-      </div>
-    </div>
-  </div>
-</div>
   </div>
 `;
   });
