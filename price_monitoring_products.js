@@ -1193,17 +1193,31 @@ async function updateProductsBuckets(companyData) {
     const discounted = parseInt(bucket.discounted) || 0;
     const discountDepth = parseFloat(bucket.discount_depth) || 0;
     
-    // Round range values
-    let range = '—';
-    if (bucket.range?.price_range) {
-      const rangeStr = bucket.range.price_range;
-      const matches = rangeStr.match(/([\d.]+)\s*-\s*([\d.]+)/);
-      if (matches) {
-        const min = Math.round(parseFloat(matches[1]));
-        const max = Math.round(parseFloat(matches[2]));
-        range = `${min} - ${max}`;
-      }
+// Round range values - fixed to work with actual data structure
+let range = '—';
+if (bucket.range) {
+  // The range is stored directly in bucket.range as an array like [0, 50]
+  if (Array.isArray(bucket.range)) {
+    const min = Math.round(bucket.range[0]);
+    const max = Math.round(bucket.range[1]);
+    range = `${min} - ${max}`;
+  } else if (typeof bucket.range === 'string') {
+    const matches = bucket.range.match(/([\d.]+)\s*-\s*([\d.]+)/);
+    if (matches) {
+      const min = Math.round(parseFloat(matches[1]));
+      const max = Math.round(parseFloat(matches[2]));
+      range = `${min} - ${max}`;
     }
+  } else if (bucket.range.price_range) {
+    const rangeStr = bucket.range.price_range;
+    const matches = rangeStr.match(/([\d.]+)\s*-\s*([\d.]+)/);
+    if (matches) {
+      const min = Math.round(parseFloat(matches[1]));
+      const max = Math.round(parseFloat(matches[2]));
+      range = `${min} - ${max}`;
+    }
+  }
+}
     
     const sharePercent = (share * 100).toFixed(1);
     const expwSharePercent = (expwShare * 100).toFixed(1);
@@ -1220,9 +1234,24 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-    <!-- My Company column -->
+<!-- My Company column -->
     <div class="pmp-butterfly-bars">
       <div class="pmp-butterfly-left">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${sharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${expwSharePercent}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="pmp-butterfly-divider"></div>
+      <div class="pmp-butterfly-right">
         <div class="pmp-products-data-column">
           <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
             <span class="pmp-products-count">${count}</span>
@@ -1236,20 +1265,6 @@ bucketsHTML += `
             '<span class="pmp-discount-badge-empty">—</span>'}
         </div>
       </div>
-      <div class="pmp-butterfly-right">
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
-            <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
-          </div>
-        </div>
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
-            <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
-          </div>
-        </div>
-      </div>
     </div>
     
     <!-- Market column -->
@@ -1258,13 +1273,13 @@ bucketsHTML += `
         <div class="pmp-bar-row">
           <div class="pmp-tree-bar-container small">
             <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
+            <span class="pmp-bar-percent-outside small">${marketSharePercent}%</span>
           </div>
         </div>
         <div class="pmp-bar-row">
           <div class="pmp-tree-bar-container small">
             <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
+            <span class="pmp-bar-percent-outside small">${marketExpwSharePercent}%</span>
           </div>
         </div>
       </div>
