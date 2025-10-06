@@ -1,6 +1,17 @@
 // price_monitoring_products.js
 // Price Monitoring - Products View Module
 
+// Global state for filtering
+let selectedBucket = null;
+let allProductsData = {
+  myCompany: [],
+  competitors: []
+};
+
+let currentSortMyCompany = 'high';
+let currentSortCompetitors = 'high';
+let showDiscountedOnly = false;
+
 function initializePriceMonitoringProducts() {
   console.log('[PM Products] Initializing products view module');
   
@@ -201,19 +212,19 @@ function addProductsViewStyles() {
       }
       
       /* Updated products buckets styles */
-      .pmp-products-buckets-header {
-        display: grid;
-        grid-template-columns: 150px 1fr;
-        padding: 12px 16px;
-        font-size: 10px;
-        font-weight: 600;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #f0f0f0;
-        background: #fafafa;
-        border-radius: 8px 8px 0 0;
-      }
+.pmp-products-buckets-header {
+  display: grid;
+  grid-template-columns: 90px 1fr 1fr;  /* Changed to match bucket row */
+  padding: 12px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
       
       .pmp-products-buckets-header .pmp-share-header {
         text-align: center;
@@ -290,15 +301,15 @@ function addProductsViewStyles() {
       }
       
       /* Products buckets row */
-      .pmp-products-bucket-row {
-        display: grid;
-        grid-template-columns: 150px 1fr;
-        min-height: 80px;
-        align-items: center;
-        border-bottom: 1px solid #f0f0f0;
-        position: relative;
-        transition: background 0.2s;
-      }
+.pmp-products-bucket-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 1fr;  /* Changed from 150px to 90px and added third column */
+  min-height: 80px;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+  transition: background 0.2s;
+}
       
       .pmp-products-bucket-row:hover {
         background: #fafafa;
@@ -491,6 +502,80 @@ function addProductsViewStyles() {
   position: relative;
   background-color: #f5f5f5;
 }
+
+/* Add after .pm-ad-info styles */
+.pm-ad-bucket-box {
+  width: 30px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Bucket colors for price_bucket_box */
+.pm-ad-bucket-ultra-cheap { background: #4CAF50; }
+.pm-ad-bucket-budget { background: #66BB6A; }
+.pm-ad-bucket-mid { background: #FF9800; }
+.pm-ad-bucket-upper-mid { background: #FFC107; }
+.pm-ad-bucket-premium { background: #7B1FA2; }
+.pm-ad-bucket-ultra-premium { background: #9C27B0; }
+
+/* Selected bucket styling */
+.pmp-products-bucket-row.selected {
+  background: rgba(102, 126, 234, 0.15);
+  border-left: 4px solid #667eea;
+}
+
+.pmp-products-bucket-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Clear filter button */
+.pmp-clear-filter {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #666;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.pmp-clear-filter:hover {
+  background: #e0e0e0;
+  transform: scale(1.1);
+}
+
+.pmp-clear-filter.active {
+  display: flex;
+}
+
+/* Animation for products list */
+.pmp-products-list {
+  transition: opacity 0.3s ease;
+}
+
+.pmp-products-list.filtering {
+  opacity: 0.3;
+}
       
       .pm-ad-discount-badge {
         position: absolute;
@@ -591,6 +676,168 @@ function addProductsViewStyles() {
       .pmp-products-list::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
       }
+
+      /* Butterfly bar containers */
+.pmp-butterfly-bars {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.pmp-butterfly-left,
+.pmp-butterfly-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pmp-butterfly-left .pmp-tree-bar-container {
+  direction: rtl;
+}
+
+.pmp-butterfly-left .pmp-tree-bar {
+  float: right;
+}
+
+.pmp-butterfly-right .pmp-tree-bar-container {
+  direction: ltr;
+}
+
+.pmp-butterfly-divider {
+  width: 1px;
+  height: 60px;
+  background: #e0e0e0;
+  margin: 0 4px;
+}
+
+/* Products data column adjustments */
+.pmp-products-data-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+}
+
+/* Header with buttons */
+.pmp-products-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pmp-sort-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.pmp-sort-btn,
+.pmp-filter-btn {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pmp-sort-btn:hover,
+.pmp-filter-btn:hover {
+  background: #f5f5f5;
+}
+
+.pmp-sort-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.pmp-filter-btn.active {
+  background: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Special badge boxes */
+.pm-ad-special-box {
+  width: 30px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.pm-ad-special-cheapest { background: #4CAF50; }
+.pm-ad-special-expensive { background: #E91E63; }
+.pm-ad-special-promo { background: #FF9800; }
+
+/* Source badge for competitors */
+.pm-ad-source {
+  font-size: 10px;
+  color: #888;
+  font-weight: 500;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+/* Tree/Butterfly styles from main file */
+.pm-tree-market {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  gap: 8px;
+}
+
+.pm-tree-company {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 8px;
+}
+
+.pm-tree-center {
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, #e8e8e8, #f5f5f5, #e8e8e8);
+  position: relative;
+}
+
+.pm-tree-bar-container.left {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pm-tree-bar-container.right {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.pm-bar-percent-outside.left {
+  left: 8px;
+}
+
+.pm-bar-percent-outside.right {
+  right: 8px;
+}
+      
     </style>
   `;
   
@@ -654,10 +901,11 @@ let html = `
       </div>
     </div>
     
-    <!-- Products Buckets Distribution -->
-    <div class="pmp-products-buckets-card">
-      <h4>Product Price Buckets</h4>
-      <div class="pmp-products-buckets-table">
+<!-- Products Buckets Distribution -->
+<div class="pmp-products-buckets-card">
+  <button class="pmp-clear-filter" id="pmpClearFilter" title="Clear filter">×</button>
+  <h4>Product Price Buckets</h4>
+  <div class="pmp-products-buckets-table">
         <div class="pmp-products-buckets-header">
           <span>Bucket</span>
           <span class="pmp-share-header">Share /<br/>Exp Weighted Share</span>
@@ -670,21 +918,35 @@ let html = `
   </div>
   
   <div class="pmp-right-column">
-    <!-- My Company Products -->
-    <div class="pmp-products-mycompany-card">
-      <div class="pmp-products-list-header">My Products</div>
-      <div id="pmpMyCompanyProductsList" class="pmp-products-list">
-        <div class="pmp-loading">Loading products...</div>
-      </div>
+<!-- My Company Products -->
+<div class="pmp-products-mycompany-card">
+  <div class="pmp-products-header-row">
+    <div class="pmp-products-list-header">My Products</div>
+    <div class="pmp-sort-buttons">
+      <button class="pmp-sort-btn active" data-sort="high" data-target="mycompany">$↓</button>
+      <button class="pmp-sort-btn" data-sort="low" data-target="mycompany">$↑</button>
+      <button class="pmp-filter-btn" data-target="mycompany">%</button>
     </div>
-    
-    <!-- Competitors Products -->
-    <div class="pmp-products-competitors-card">
-      <div class="pmp-products-list-header">Competitor Products</div>
-      <div id="pmpCompetitorsProductsList" class="pmp-products-list">
-        <div class="pmp-loading">Loading competitor products...</div>
-      </div>
+  </div>
+  <div id="pmpMyCompanyProductsList" class="pmp-products-list">
+    <div class="pmp-loading">Loading products...</div>
+  </div>
+</div>
+
+<!-- Competitors Products -->
+<div class="pmp-products-competitors-card">
+  <div class="pmp-products-header-row">
+    <div class="pmp-products-list-header">Competitor Products</div>
+    <div class="pmp-sort-buttons">
+      <button class="pmp-sort-btn active" data-sort="high" data-target="competitors">$↓</button>
+      <button class="pmp-sort-btn" data-sort="low" data-target="competitors">$↑</button>
+      <button class="pmp-filter-btn" data-target="competitors">%</button>
     </div>
+  </div>
+  <div id="pmpCompetitorsProductsList" class="pmp-products-list">
+    <div class="pmp-loading">Loading competitor products...</div>
+  </div>
+</div>
   </div>
 `;
 
@@ -696,6 +958,42 @@ container.innerHTML = html;
       market: marketData,
       allData: data.allData
     });
+
+// Add sort and filter handlers
+document.querySelectorAll('.pmp-sort-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const target = e.target.dataset.target;
+    const sort = e.target.dataset.sort;
+    
+    // Remove active from all buttons in this group
+    document.querySelectorAll(`.pmp-sort-btn[data-target="${target}"]`).forEach(b => b.classList.remove('active'));
+    
+    // Add active to clicked button
+    e.target.classList.add('active');
+    
+    // Update sort state
+    if (target === 'mycompany') {
+      currentSortMyCompany = sort;
+    } else {
+      currentSortCompetitors = sort;
+    }
+    
+    // Re-render products
+    filterProducts();
+  });
+});
+
+document.querySelectorAll('.pmp-filter-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const target = e.target.dataset.target;
+    e.target.classList.toggle('active');
+    
+    // Update filter state based on which button was clicked
+    showDiscountedOnly = e.target.classList.contains('active');
+    
+    filterProducts();
+  });
+});
     
     // Load products for both containers
     await loadMyCompanyProducts(companyName);
@@ -811,21 +1109,21 @@ async function updateProductsOverviewCard(companyData) {
   }
 }
 
-function updateProductsBuckets(companyData) {
+async function updateProductsBuckets(companyData) {
   const bucketsBody = document.getElementById('pmpProductsBucketsBody');
   if (!bucketsBody) return;
   
-  // Check market dominant tier for this company
-  let dominantTiers = [];
-  if (companyData.market_dominant_tier) {
-    let tiers = companyData.market_dominant_tier;
-    if (typeof tiers === 'string') {
-      dominantTiers = [parseInt(tiers)];
-    } else if (!Array.isArray(tiers)) {
-      dominantTiers = [tiers];
-    } else {
-      dominantTiers = tiers;
+  // Load market data for comparison
+  let marketData = null;
+  try {
+    const data = await window.pmUtils.loadCompanyPricingData();
+    if (data && data.allData) {
+      marketData = data.allData.find(row => 
+        row.source === 'all' && row.q === 'all'
+      );
     }
+  } catch (error) {
+    console.error('[PM Products] Error loading market data:', error);
   }
   
   // Define buckets based on company data
@@ -840,6 +1138,8 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_ultra_premium_bucket_share,
       discounted: companyData.disc_ultra_premium_bucket,
       discount_depth: companyData.disc_depth_ultra_premium_bucket,
+      market_share: marketData?.ultra_premium_bucket_share,
+      market_expw_share: marketData?.expw_ultra_premium_bucket_share,
       color: '#9C27B0'
     },
     {
@@ -852,6 +1152,8 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_premium_bucket_share,
       discounted: companyData.disc_premium_bucket,
       discount_depth: companyData.disc_depth_premium_bucket,
+      market_share: marketData?.premium_bucket_share,
+      market_expw_share: marketData?.expw_premium_bucket_share,
       color: '#7B1FA2'
     },
     {
@@ -864,6 +1166,8 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_upper_mid_bucket_share,
       discounted: companyData.disc_upper_mid_bucket,
       discount_depth: companyData.disc_depth_upper_mid_bucket,
+      market_share: marketData?.upper_mid_bucket_share,
+      market_expw_share: marketData?.expw_upper_mid_bucket_share,
       color: '#FFC107'
     },
     {
@@ -876,6 +1180,8 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_mid_bucket_share,
       discounted: companyData.disc_mid_bucket,
       discount_depth: companyData.disc_depth_mid_bucket,
+      market_share: marketData?.mid_bucket_share,
+      market_expw_share: marketData?.expw_mid_bucket_share,
       color: '#FF9800'
     },
     {
@@ -888,6 +1194,8 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_budget_bucket_share,
       discounted: companyData.disc_budget_bucket,
       discount_depth: companyData.disc_depth_budget_bucket,
+      market_share: marketData?.budget_bucket_share,
+      market_expw_share: marketData?.expw_budget_bucket_share,
       color: '#66BB6A'
     },
     {
@@ -900,36 +1208,66 @@ function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_ultra_cheap_bucket_share,
       discounted: companyData.disc_ultra_cheap_bucket,
       discount_depth: companyData.disc_depth_ultra_cheap_bucket,
+      market_share: marketData?.ultra_cheap_bucket_share,
+      market_expw_share: marketData?.expw_ultra_cheap_bucket_share,
       color: '#4CAF50'
     }
   ];
   
-  // Build buckets HTML
+  // Update header
+  const headerHTML = `
+    <span>Bucket</span>
+    <span style="text-align: center;">My Company</span>
+    <span style="text-align: center;">Market</span>
+  `;
+  const header = document.querySelector('.pmp-products-buckets-header');
+  if (header) header.innerHTML = headerHTML;
+  
+  // Build buckets HTML with butterfly effect
   let bucketsHTML = '';
   buckets.forEach(bucket => {
     const count = parseInt(bucket.count) || 0;
     const share = parseFloat(bucket.share) || 0;
     const expwShare = parseFloat(bucket.expw_share) || 0;
+    const marketShare = parseFloat(bucket.market_share) || 0;
+    const marketExpwShare = parseFloat(bucket.market_expw_share) || 0;
     const discounted = parseInt(bucket.discounted) || 0;
     const discountDepth = parseFloat(bucket.discount_depth) || 0;
-    const range = bucket.range?.price_range || '—';
+    
+// Get the price range string directly from the data
+let range = '—';
+if (bucket.range && bucket.range.price_range) {
+  const rangeStr = bucket.range.price_range;
+  // Just display it as-is, removing only decimal places
+  const matches = rangeStr.match(/([\d.]+)\s*-\s*([\d.]+)/);
+  if (matches) {
+    const min = Math.round(parseFloat(matches[1]));
+    const max = Math.round(parseFloat(matches[2]));
+    range = `$${min} - $${max}`;
+  } else {
+    range = rangeStr; // fallback to original string
+  }
+}
+    
     const sharePercent = (share * 100).toFixed(1);
     const expwSharePercent = (expwShare * 100).toFixed(1);
+    const marketSharePercent = (marketShare * 100).toFixed(1);
+    const marketExpwSharePercent = (marketExpwShare * 100).toFixed(1);
     
-    // Check if this company dominates this tier
-    const isDominant = dominantTiers.includes(bucket.tier);
+bucketsHTML += `
+  <div class="pmp-products-bucket-row" data-bucket="${bucket.tier}">
+    <div class="pmp-bucket-label">
+      <div class="pmp-bucket-name">
+        <span class="pmp-bucket-indicator" style="background: ${bucket.color}"></span>
+        <span>${bucket.name}</span>
+      </div>
+      <div class="pmp-bucket-range">${range}</div>
+    </div>
     
-    bucketsHTML += `
-      <div class="pmp-products-bucket-row ${isDominant ? 'is-dominant' : ''}">
-        <div class="pmp-bucket-label">
-          <div class="pmp-bucket-name">
-            <span class="pmp-bucket-indicator" style="background: ${bucket.color}"></span>
-            <span>${bucket.name}</span>
-            ${isDominant ? '<span style="margin-left: 4px; font-size: 10px;">#1</span>' : ''}
-          </div>
-          <div class="pmp-bucket-range">${range}</div>
-        </div>
-        <div class="pmp-products-data">
+    <!-- My Company column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-products-data-column">
           <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
             <span class="pmp-products-count">${count}</span>
             ${discounted > 0 ? `
@@ -940,32 +1278,210 @@ function updateProductsBuckets(companyData) {
           ${discountDepth > 0 ? 
             `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
             '<span class="pmp-discount-badge-empty">—</span>'}
-          
-          <div class="pmp-dual-bars-container">
-            <!-- Regular Share Bar -->
-            <div class="pmp-bar-row">
-              <span class="pmp-bar-label">Share</span>
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
-                <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
-              </div>
-            </div>
-            
-            <!-- Exposure Weighted Share Bar -->
-            <div class="pmp-bar-row">
-              <span class="pmp-bar-label">ExpW</span>
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
-                <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
-              </div>
-            </div>
+        </div>
+      </div>
+      <div class="pmp-butterfly-right">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
+            <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
+            <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
           </div>
         </div>
       </div>
-    `;
+    </div>
+    
+    <!-- Market column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
   });
   
   bucketsBody.innerHTML = bucketsHTML;
+
+  // Add click handlers for bucket filtering
+  const bucketRows = bucketsBody.querySelectorAll('.pmp-products-bucket-row');
+  bucketRows.forEach((row) => {
+    row.addEventListener('click', () => {
+      bucketRows.forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      selectedBucket = parseInt(row.dataset.bucket);
+      const clearBtn = document.getElementById('pmpClearFilter');
+      if (clearBtn) clearBtn.classList.add('active');
+      filterProducts();
+    });
+  });
+
+  // Add clear filter handler
+  const clearBtn = document.getElementById('pmpClearFilter');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedBucket = null;
+      bucketRows.forEach(r => r.classList.remove('selected'));
+      clearBtn.classList.remove('active');
+      filterProducts();
+    });
+  }
+}
+
+function filterProducts() {
+  const myCompanyList = document.getElementById('pmpMyCompanyProductsList');
+  const competitorsList = document.getElementById('pmpCompetitorsProductsList');
+  
+  // Add filtering animation
+  if (myCompanyList) myCompanyList.classList.add('filtering');
+  if (competitorsList) competitorsList.classList.add('filtering');
+  
+  setTimeout(() => {
+    // Render filtered products
+    renderFilteredProducts('myCompany', myCompanyList);
+    renderFilteredProducts('competitors', competitorsList);
+    
+    // Remove filtering animation
+    setTimeout(() => {
+      if (myCompanyList) myCompanyList.classList.remove('filtering');
+      if (competitorsList) competitorsList.classList.remove('filtering');
+    }, 100);
+  }, 300);
+}
+
+function renderFilteredProducts(type, container) {
+  if (!container || !allProductsData[type]) return;
+  
+  let products = [...allProductsData[type]];
+  
+  // Filter by selected bucket if any
+  if (selectedBucket !== null) {
+    products = products.filter(p => {
+      const bucketValue = parseInt(p.price_bucket) || 0;
+      return bucketValue === selectedBucket;
+    });
+  }
+  
+// Filter by discount if needed  
+if (showDiscountedOnly) {
+  products = products.filter(p => {
+    // Check both old_price field and if current price is less than old price
+    if (!p.old_price || p.old_price === '') return false;
+    
+    const oldPrice = parseFloat(String(p.old_price).replace(/[^0-9.-]/g, ''));
+    const currentPrice = parseFloat(String(p.price).replace(/[^0-9.-]/g, ''));
+    
+    return !isNaN(oldPrice) && !isNaN(currentPrice) && oldPrice > currentPrice;
+  });
+}
+  
+// Sort products
+const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
+products.sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return currentSort === 'high' ? priceB - priceA : priceA - priceB;
+});
+  
+// Find special products (after filtering)
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+
+if (products.length > 0) {
+  // Sort by price to find cheapest and most expensive
+  const sortedByPrice = [...products].sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return priceA - priceB;
+  });
+  
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+}
+  
+  if (products.length === 0) {
+    container.innerHTML = `<div class="pmp-no-products">No products ${showDiscountedOnly ? 'with discounts ' : ''}in this bucket</div>`;
+  } else {
+    let html = '';
+    products.forEach(product => {
+      const title = product.title || 'Untitled Product';
+      const priceValue = typeof product.price === 'string' ? 
+        parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.price);
+      const oldPriceValue = product.old_price ? 
+        (typeof product.old_price === 'string' ? 
+          parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+          parseFloat(product.old_price)) : null;
+      
+      const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+      const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+      const thumbnail = product.thumbnail || '';
+      const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+        Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+      
+      // Get bucket info
+      const bucketNum = product.price_bucket || 1;
+      const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+      const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+      
+// Check for special badges
+let specialBadge = '';
+
+// Check if it's cheapest or most expensive
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+}
+
+// Check if product has discount (add PROMO badge to ALL discounted products)
+const hasDiscount = oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue;
+if (hasDiscount && specialBadge === '') {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
+      
+      html += `
+        <div class="pm-ad-details">
+          <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+            ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+          </div>
+          <div class="pm-ad-info">
+            <div class="pm-ad-title">${title}</div>
+<div class="pm-ad-price-container">
+  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+  ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
+</div>
+          </div>
+          ${specialBadge}
+          <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+            ${bucketNames[bucketNum]}
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  }
 }
 
 async function loadMyCompanyProducts(companyName) {
@@ -1033,54 +1549,92 @@ async function loadMyCompanyProducts(companyName) {
           }
         });
         
-        // Convert map to array and sort by price
-        const products = Array.from(productMap.values()).sort((a, b) => {
-          const priceA = parseFloat(a.price) || 0;
-          const priceB = parseFloat(b.price) || 0;
-          return priceB - priceA; // Sort high to low
-        });
-        
-        if (products.length === 0) {
-          container.innerHTML = '<div class="pmp-no-products">No products found</div>';
-        } else {
-          // Render products
-          let html = '';
-products.forEach(product => {
-  const title = product.title || 'Untitled Product';
-  // Handle price that might be a string with currency symbol
-  const priceValue = typeof product.price === 'string' ? 
-    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
-    parseFloat(product.price);
-  const oldPriceValue = product.old_price ? 
-    (typeof product.old_price === 'string' ? 
-      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(product.old_price)) : null;
+// Convert map to array and sort by price
+const products = Array.from(productMap.values()).sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return priceB - priceA; // Sort high to low
+});
+
+// Store products data globally
+allProductsData.myCompany = products;
+
+// Find special products
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+
+if (products.length > 0) {
+  const sortedByPrice = [...products].sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return priceA - priceB;
+  });
   
-  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
-  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
-  const thumbnail = product.thumbnail || '';
-  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
-    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
-            
-            html += `
-              <div class="pm-ad-details">
-                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-                </div>
-                <div class="pm-ad-info">
-                  <div class="pm-ad-title">${title}</div>
-                  <div class="pm-ad-price-container">
-                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-          
-          container.innerHTML = html;
-        }
-        
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+}
+
+if (products.length === 0) {
+  container.innerHTML = '<div class="pmp-no-products">No products found</div>';
+} else {
+  // Render products
+  let html = '';
+  products.forEach(product => {
+    const title = product.title || 'Untitled Product';
+    // Handle price that might be a string with currency symbol
+    const priceValue = typeof product.price === 'string' ? 
+      parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.price);
+    const oldPriceValue = product.old_price ? 
+      (typeof product.old_price === 'string' ? 
+        parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.old_price)) : null;
+    
+    const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+    const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+    const thumbnail = product.thumbnail || '';
+    const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+      Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+    
+    // Get bucket info
+    const bucketNum = product.price_bucket || 1;
+    const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+    const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+
+// Check for special badges
+let specialBadge = '';
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+} else if (discountPercent > 0) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
+
+html += `
+  <div class="pm-ad-details">
+    <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+      ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+    </div>
+    <div class="pm-ad-info">
+      <div class="pm-ad-title">${title}</div>
+      <div class="pm-ad-price-container">
+        <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+        ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+      </div>
+    </div>
+    ${specialBadge}
+    <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+      ${bucketNames[bucketNum]}
+    </div>
+  </div>
+`;
+  });
+  
+  container.innerHTML = html;
+}       
         db.close();
       };
       
@@ -1166,56 +1720,98 @@ async function loadCompetitorProducts(companyName) {
           }
         });
         
-        // Convert map to array and sort by price (high to low), then limit to top 20
-        const products = Array.from(productMap.values())
-          .sort((a, b) => {
-            const priceA = parseFloat(a.price) || 0;
-            const priceB = parseFloat(b.price) || 0;
-            return priceB - priceA;
-          })
-          .slice(0, 20); // Show top 20 competitor products
-        
-        if (products.length === 0) {
-          container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
-        } else {
-          // Render products
-          let html = '';
-products.forEach(product => {
-  const title = product.title || 'Untitled Product';
-  // Handle price that might be a string with currency symbol
-  const priceValue = typeof product.price === 'string' ? 
-    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
-    parseFloat(product.price);
-  const oldPriceValue = product.old_price ? 
-    (typeof product.old_price === 'string' ? 
-      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(product.old_price)) : null;
+// Convert map to array and sort by price (high to low), then limit to top 20
+const products = Array.from(productMap.values())
+  .sort((a, b) => {
+    const priceA = parseFloat(a.price) || 0;
+    const priceB = parseFloat(b.price) || 0;
+    return priceB - priceA;
+  })
+
+// Store products data globally (keep all products, not just top 20, for filtering)
+allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return priceB - priceA;
+});
+
+// Find special products from the top 20 that will be displayed
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+
+if (products.length > 0) {
+  const sortedByPrice = [...products].sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return priceA - priceB;
+  });
   
-  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
-  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
-  const thumbnail = product.thumbnail || '';
-  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
-    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
-            
-            html += `
-              <div class="pm-ad-details">
-                <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-                  ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-                </div>
-                <div class="pm-ad-info">
-                  <div class="pm-ad-title">${title}</div>
-                  <div class="pm-ad-price-container">
-                    <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-                    ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-          
-          container.innerHTML = html;
-        }
-        
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+}
+
+if (products.length === 0) {
+  container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
+} else {
+  // Render products
+  let html = '';
+  products.forEach(product => {
+    const title = product.title || 'Untitled Product';
+    // Handle price that might be a string with currency symbol
+    const priceValue = typeof product.price === 'string' ? 
+      parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.price);
+    const oldPriceValue = product.old_price ? 
+      (typeof product.old_price === 'string' ? 
+        parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.old_price)) : null;
+    
+    const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+    const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+    const thumbnail = product.thumbnail || '';
+    const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+      Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+    
+    // Get bucket info
+    const bucketNum = product.price_bucket || 1;
+    const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+    const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+
+// Check for special badges
+let specialBadge = '';
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+} else if (discountPercent > 0) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
+
+html += `
+  <div class="pm-ad-details">
+    <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+      ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+    </div>
+    <div class="pm-ad-info">
+      <div class="pm-ad-title">${title}</div>
+      <div class="pm-ad-price-container">
+        <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+        ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+        <span class="pm-ad-source">${product.source}</span>
+      </div>
+    </div>
+    ${specialBadge}
+    <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+      ${bucketNames[bucketNum]}
+    </div>
+  </div>
+`;
+  });
+  
+  container.innerHTML = html;
+}       
         db.close();
       };
       
