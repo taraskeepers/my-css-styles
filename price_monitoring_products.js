@@ -701,6 +701,10 @@ function addProductsViewStyles() {
   float: right;
 }
 
+.pmp-butterfly-right .pmp-tree-bar-container {
+  direction: ltr;
+}
+
 .pmp-butterfly-divider {
   width: 1px;
   height: 60px;
@@ -914,21 +918,31 @@ container.innerHTML = html;
       allData: data.allData
     });
 
-    // Add sort and filter handlers
+// Add sort and filter handlers
 document.querySelectorAll('.pmp-sort-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     const target = e.target.dataset.target;
     const sort = e.target.dataset.sort;
     
-    // Update active state
+    // Remove active from all buttons in this group
     document.querySelectorAll(`.pmp-sort-btn[data-target="${target}"]`).forEach(b => b.classList.remove('active'));
+    
+    // Add active to clicked button
     e.target.classList.add('active');
     
-    // Update sort state
+    // Update sort state - toggle if clicking the same button
     if (target === 'mycompany') {
-      currentSortMyCompany = sort;
+      if (currentSortMyCompany === sort && e.target.classList.contains('active')) {
+        // Already active, don't change
+      } else {
+        currentSortMyCompany = sort;
+      }
     } else {
-      currentSortCompetitors = sort;
+      if (currentSortCompetitors === sort && e.target.classList.contains('active')) {
+        // Already active, don't change
+      } else {
+        currentSortCompetitors = sort;
+      }
     }
     
     // Re-render products
@@ -1328,9 +1342,18 @@ function renderFilteredProducts(type, container) {
 // Filter by discount if needed
 if (showDiscountedOnly) {
   products = products.filter(p => {
-    const oldPrice = parseFloat(p.old_price) || 0;
-    const currentPrice = parseFloat(p.price) || 0;
-    return oldPrice > 0 && oldPrice > currentPrice;
+    const oldPriceStr = p.old_price || '';
+    const priceStr = p.price || '';
+    
+    // Parse prices more carefully
+    const oldPrice = typeof oldPriceStr === 'string' ? 
+      parseFloat(oldPriceStr.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(oldPriceStr);
+    const currentPrice = typeof priceStr === 'string' ? 
+      parseFloat(priceStr.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(priceStr);
+    
+    return !isNaN(oldPrice) && !isNaN(currentPrice) && oldPrice > currentPrice;
   });
 }
   
@@ -1345,33 +1368,19 @@ products.sort((a, b) => {
 // Find special products (after filtering)
 let cheapestProduct = null;
 let mostExpensiveProduct = null;
-let bestPromoProduct = null;
 
 if (products.length > 0) {
   // Sort by price to find cheapest and most expensive
   const sortedByPrice = [...products].sort((a, b) => {
-    const priceA = parseFloat(a.price) || 0;
-    const priceB = parseFloat(b.price) || 0;
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
     return priceA - priceB;
   });
   
   cheapestProduct = sortedByPrice[0];
   mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
-  
-  // Find best promo (highest discount percentage)
-  const promoProducts = products.filter(p => {
-    const oldPrice = parseFloat(p.old_price) || 0;
-    const newPrice = parseFloat(p.price) || 0;
-    return oldPrice > 0 && oldPrice > newPrice;
-  });
-  
-  if (promoProducts.length > 0) {
-    bestPromoProduct = promoProducts.reduce((best, p) => {
-      const bestDiscount = ((parseFloat(best.old_price) - parseFloat(best.price)) / parseFloat(best.old_price)) * 100;
-      const currentDiscount = ((parseFloat(p.old_price) - parseFloat(p.price)) / parseFloat(p.old_price)) * 100;
-      return currentDiscount > bestDiscount ? p : best;
-    });
-  }
 }
   
   if (products.length === 0) {
@@ -1399,15 +1408,21 @@ if (products.length > 0) {
       const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
       const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
       
-      // Check for special badges
-      let specialBadge = '';
-      if (product === cheapestProduct) {
-        specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
-      } else if (product === mostExpensiveProduct) {
-        specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
-      } else if (product === bestPromoProduct) {
-        specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
-      }
+// Check for special badges
+let specialBadge = '';
+
+// Check if it's cheapest or most expensive
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+}
+
+// Check if product has discount (add PROMO badge to ALL discounted products)
+const hasDiscount = oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue;
+if (hasDiscount && specialBadge === '') {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
       
       html += `
         <div class="pm-ad-details">
@@ -1509,6 +1524,23 @@ const products = Array.from(productMap.values()).sort((a, b) => {
 // Store products data globally
 allProductsData.myCompany = products;
 
+// Find special products
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+
+if (products.length > 0) {
+  const sortedByPrice = [...products].sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return priceA - priceB;
+  });
+  
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+}
+
 if (products.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No products found</div>';
 } else {
@@ -1535,25 +1567,35 @@ if (products.length === 0) {
     const bucketNum = product.price_bucket || 1;
     const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
     const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
-    
-    html += `
-      <div class="pm-ad-details">
-        <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-          ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-        </div>
-        <div class="pm-ad-info">
-          <div class="pm-ad-title">${title}</div>
-<div class="pm-ad-price-container">
-  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-  <span class="pm-ad-source">${product.source}</span>
-</div>
-        </div>
-        <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
-          ${bucketNames[bucketNum]}
-        </div>
+
+// Check for special badges
+let specialBadge = '';
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+} else if (discountPercent > 0) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
+
+html += `
+  <div class="pm-ad-details">
+    <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+      ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+    </div>
+    <div class="pm-ad-info">
+      <div class="pm-ad-title">${title}</div>
+      <div class="pm-ad-price-container">
+        <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+        ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
       </div>
-    `;
+    </div>
+    ${specialBadge}
+    <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+      ${bucketNames[bucketNum]}
+    </div>
+  </div>
+`;
   });
   
   container.innerHTML = html;
@@ -1659,6 +1701,23 @@ allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
   return priceB - priceA;
 });
 
+// Find special products from the top 20 that will be displayed
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+
+if (products.length > 0) {
+  const sortedByPrice = [...products].sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return priceA - priceB;
+  });
+  
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+}
+
 if (products.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
 } else {
@@ -1685,24 +1744,36 @@ if (products.length === 0) {
     const bucketNum = product.price_bucket || 1;
     const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
     const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
-    
-    html += `
-      <div class="pm-ad-details">
-        <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-          ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-        </div>
-        <div class="pm-ad-info">
-          <div class="pm-ad-title">${title}</div>
-          <div class="pm-ad-price-container">
-            <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-            ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-          </div>
-        </div>
-        <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
-          ${bucketNames[bucketNum]}
-        </div>
+
+// Check for special badges
+let specialBadge = '';
+if (product === cheapestProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+} else if (product === mostExpensiveProduct) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+} else if (discountPercent > 0) {
+  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+}
+
+html += `
+  <div class="pm-ad-details">
+    <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+      ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+    </div>
+    <div class="pm-ad-info">
+      <div class="pm-ad-title">${title}</div>
+      <div class="pm-ad-price-container">
+        <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+        ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+        <span class="pm-ad-source">${product.source}</span>
       </div>
-    `;
+    </div>
+    ${specialBadge}
+    <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+      ${bucketNames[bucketNum]}
+    </div>
+  </div>
+`;
   });
   
   container.innerHTML = html;
