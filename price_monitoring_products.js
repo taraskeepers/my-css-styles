@@ -1200,67 +1200,67 @@ async function updateProductsBuckets(companyData) {
     const marketSharePercent = (marketShare * 100).toFixed(1);
     const marketExpwSharePercent = (marketExpwShare * 100).toFixed(1);
     
-    bucketsHTML += `
-      <div class="pmp-products-bucket-row" data-bucket="${bucket.tier}">
-        <div class="pmp-bucket-label">
-          <div class="pmp-bucket-name">
-            <span class="pmp-bucket-indicator" style="background: ${bucket.color}"></span>
-            <span>${bucket.name}</span>
+bucketsHTML += `
+  <div class="pmp-products-bucket-row" data-bucket="${bucket.tier}">
+    <div class="pmp-bucket-label">
+      <div class="pmp-bucket-name">
+        <span class="pmp-bucket-indicator" style="background: ${bucket.color}"></span>
+        <span>${bucket.name}</span>
+      </div>
+      <div class="pmp-bucket-range">${range}</div>
+    </div>
+    
+    <!-- My Company column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-products-data-column">
+          <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+            <span class="pmp-products-count">${count}</span>
+            ${discounted > 0 ? `
+              <span class="pmp-products-sep">/</span>
+              <span class="pmp-discounted-count">${discounted}</span>
+            ` : ''}
           </div>
-          <div class="pmp-bucket-range">${range}</div>
+          ${discountDepth > 0 ? 
+            `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+            '<span class="pmp-discount-badge-empty">—</span>'}
         </div>
-        
-        <!-- My Company column -->
-        <div class="pmp-butterfly-bars">
-          <div class="pmp-butterfly-left">
-            <div class="pmp-products-data-column">
-              <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
-                <span class="pmp-products-count">${count}</span>
-                ${discounted > 0 ? `
-                  <span class="pmp-products-sep">/</span>
-                  <span class="pmp-discounted-count">${discounted}</span>
-                ` : ''}
-              </div>
-              ${discountDepth > 0 ? 
-                `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
-                '<span class="pmp-discount-badge-empty">—</span>'}
-            </div>
-          </div>
-          <div class="pmp-butterfly-right">
-            <div class="pmp-bar-row">
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
-                <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
-              </div>
-            </div>
-            <div class="pmp-bar-row">
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
-                <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
-              </div>
-            </div>
+      </div>
+      <div class="pmp-butterfly-right">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
+            <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
           </div>
         </div>
-        
-        <!-- Market column -->
-        <div class="pmp-butterfly-bars">
-          <div class="pmp-butterfly-left">
-            <div class="pmp-bar-row">
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-                <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
-              </div>
-            </div>
-            <div class="pmp-bar-row">
-              <div class="pmp-tree-bar-container small">
-                <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
-                <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
-              </div>
-            </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
+            <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
           </div>
         </div>
       </div>
-    `;
+    </div>
+    
+    <!-- Market column -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
   });
   
   bucketsBody.innerHTML = bucketsHTML;
@@ -1325,47 +1325,54 @@ function renderFilteredProducts(type, container) {
     });
   }
   
-  // Filter by discount if needed
-  if (showDiscountedOnly) {
-    products = products.filter(p => p.old_price && parseFloat(p.old_price) > parseFloat(p.price));
-  }
+// Filter by discount if needed
+if (showDiscountedOnly) {
+  products = products.filter(p => {
+    const oldPrice = parseFloat(p.old_price) || 0;
+    const currentPrice = parseFloat(p.price) || 0;
+    return oldPrice > 0 && oldPrice > currentPrice;
+  });
+}
   
-  // Sort products
-  const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
-  products.sort((a, b) => {
+// Sort products
+const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
+products.sort((a, b) => {
+  const priceA = parseFloat(a.price) || 0;
+  const priceB = parseFloat(b.price) || 0;
+  return currentSort === 'high' ? priceB - priceA : priceA - priceB;
+});
+  
+// Find special products (after filtering)
+let cheapestProduct = null;
+let mostExpensiveProduct = null;
+let bestPromoProduct = null;
+
+if (products.length > 0) {
+  // Sort by price to find cheapest and most expensive
+  const sortedByPrice = [...products].sort((a, b) => {
     const priceA = parseFloat(a.price) || 0;
     const priceB = parseFloat(b.price) || 0;
-    return currentSort === 'high' ? priceB - priceA : priceA - priceB;
+    return priceA - priceB;
   });
   
-  // Find special products
-  let cheapestProduct = null;
-  let mostExpensiveProduct = null;
-  let bestPromoProduct = null;
+  cheapestProduct = sortedByPrice[0];
+  mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
   
-  if (products.length > 0) {
-    cheapestProduct = products.reduce((min, p) => 
-      (parseFloat(p.price) < parseFloat(min.price)) ? p : min
-    );
-    mostExpensiveProduct = products.reduce((max, p) => 
-      (parseFloat(p.price) > parseFloat(max.price)) ? p : max
-    );
-    
-    // Find best promo (highest discount percentage)
-    const promoProducts = products.filter(p => {
-      const oldPrice = parseFloat(p.old_price);
-      const newPrice = parseFloat(p.price);
-      return oldPrice && newPrice && oldPrice > newPrice;
+  // Find best promo (highest discount percentage)
+  const promoProducts = products.filter(p => {
+    const oldPrice = parseFloat(p.old_price) || 0;
+    const newPrice = parseFloat(p.price) || 0;
+    return oldPrice > 0 && oldPrice > newPrice;
+  });
+  
+  if (promoProducts.length > 0) {
+    bestPromoProduct = promoProducts.reduce((best, p) => {
+      const bestDiscount = ((parseFloat(best.old_price) - parseFloat(best.price)) / parseFloat(best.old_price)) * 100;
+      const currentDiscount = ((parseFloat(p.old_price) - parseFloat(p.price)) / parseFloat(p.old_price)) * 100;
+      return currentDiscount > bestDiscount ? p : best;
     });
-    
-    if (promoProducts.length > 0) {
-      bestPromoProduct = promoProducts.reduce((best, p) => {
-        const bestDiscount = (1 - parseFloat(best.price) / parseFloat(best.old_price)) * 100;
-        const currentDiscount = (1 - parseFloat(p.price) / parseFloat(p.old_price)) * 100;
-        return currentDiscount > bestDiscount ? p : best;
-      });
-    }
   }
+}
   
   if (products.length === 0) {
     container.innerHTML = `<div class="pmp-no-products">No products ${showDiscountedOnly ? 'with discounts ' : ''}in this bucket</div>`;
@@ -1409,11 +1416,11 @@ function renderFilteredProducts(type, container) {
           </div>
           <div class="pm-ad-info">
             <div class="pm-ad-title">${title}</div>
-            <div class="pm-ad-price-container">
-              <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-              ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-              ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
-            </div>
+<div class="pm-ad-price-container">
+  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+  ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
+</div>
           </div>
           ${specialBadge}
           <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
@@ -1536,10 +1543,11 @@ if (products.length === 0) {
         </div>
         <div class="pm-ad-info">
           <div class="pm-ad-title">${title}</div>
-          <div class="pm-ad-price-container">
-            <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-            ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-          </div>
+<div class="pm-ad-price-container">
+  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+  <span class="pm-ad-source">${product.source}</span>
+</div>
         </div>
         <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
           ${bucketNames[bucketNum]}
