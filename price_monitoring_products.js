@@ -1214,12 +1214,12 @@ async function updateProductsBuckets(companyData) {
     }
   ];
   
-  // Update header
-  const headerHTML = `
-    <span>Bucket</span>
-    <span style="text-align: center;">My Company</span>
-    <span style="text-align: center;">Market</span>
-  `;
+// Update header
+const headerHTML = `
+  <span>Bucket</span>
+  <span style="text-align: center;">Market</span>
+  <span style="text-align: center;">My Company</span>
+`;
   const header = document.querySelector('.pmp-products-buckets-header');
   if (header) header.innerHTML = headerHTML;
   
@@ -1264,7 +1264,25 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-    <!-- My Company column -->
+    <!-- Market column (NOW FIRST) -->
+    <div class="pmp-butterfly-bars">
+      <div class="pmp-butterfly-left">
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
+          </div>
+        </div>
+        <div class="pmp-bar-row">
+          <div class="pmp-tree-bar-container small">
+            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
+            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- My Company column (NOW SECOND) -->
     <div class="pmp-butterfly-bars">
       <div class="pmp-butterfly-left">
         <div class="pmp-products-data-column">
@@ -1291,24 +1309,6 @@ bucketsHTML += `
           <div class="pmp-tree-bar-container small">
             <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
             <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Market column -->
-    <div class="pmp-butterfly-bars">
-      <div class="pmp-butterfly-left">
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
-          </div>
-        </div>
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
           </div>
         </div>
       </div>
