@@ -1391,8 +1391,10 @@ if (showDiscountedOnly) {
 // Sort products
 const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
 products.sort((a, b) => {
-  const priceA = parseFloat(a.price) || 0;
-  const priceB = parseFloat(b.price) || 0;
+  const priceA = typeof a.price === 'string' ? 
+    parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+  const priceB = typeof b.price === 'string' ? 
+    parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
   return currentSort === 'high' ? priceB - priceA : priceA - priceB;
 });
   
