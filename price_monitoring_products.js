@@ -837,6 +837,99 @@ function addProductsViewStyles() {
 .pm-bar-percent-outside.right {
   right: 8px;
 }
+/* Expandable product details */
+.pm-ad-details {
+  position: relative;
+  transition: margin-bottom 0.3s ease;
+}
+
+.pm-ad-details.expanded {
+  margin-bottom: 210px;
+}
+
+.pm-ad-details-detailed {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  opacity: 0;
+  transition: height 0.3s ease, opacity 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.pm-ad-details.expanded .pm-ad-details-detailed {
+  height: 210px;
+  opacity: 1;
+}
+
+.pm-ad-details-detailed-content {
+  padding: 15px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-ad-price-trend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pm-ad-price-trend.positive {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.pm-ad-price-trend.negative {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.pm-ad-chart-container {
+  flex: 1;
+  position: relative;
+  margin-top: 35px;
+}
+
+.pm-ad-chart-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.pm-ad-chart-title {
+  position: absolute;
+  top: -25px;
+  left: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pm-ad-no-history {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  font-size: 13px;
+}
       
     </style>
   `;
@@ -1420,66 +1513,345 @@ if (products.length > 0) {
     container.innerHTML = `<div class="pmp-no-products">No products ${showDiscountedOnly ? 'with discounts ' : ''}in this bucket</div>`;
   } else {
     let html = '';
-    products.forEach(product => {
-      const title = product.title || 'Untitled Product';
-      const priceValue = typeof product.price === 'string' ? 
-        parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
-        parseFloat(product.price);
-      const oldPriceValue = product.old_price ? 
-        (typeof product.old_price === 'string' ? 
-          parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
-          parseFloat(product.old_price)) : null;
-      
-      const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
-      const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
-      const thumbnail = product.thumbnail || '';
-      const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
-        Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
-      
-      // Get bucket info
-      const bucketNum = product.price_bucket || 1;
-      const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
-      const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
-      
-// Check for special badges
-let specialBadge = '';
-
-// Check if it's cheapest or most expensive
-if (product === cheapestProduct) {
-  specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
-} else if (product === mostExpensiveProduct) {
-  specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
-}
-
-// Check if product has discount (add PROMO badge to ALL discounted products)
-const hasDiscount = oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue;
-if (hasDiscount && specialBadge === '') {
-  specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
-}
-      
-      html += `
-        <div class="pm-ad-details">
-          <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
-            ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
-          </div>
-          <div class="pm-ad-info">
-            <div class="pm-ad-title">${title}</div>
-<div class="pm-ad-price-container">
-  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-  ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
-</div>
-          </div>
-          ${specialBadge}
-          <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
-            ${bucketNames[bucketNum]}
-          </div>
-        </div>
-      `;
-    });
-    
-    container.innerHTML = html;
+products.forEach(product => {
+  const title = product.title || 'Untitled Product';
+  const priceValue = typeof product.price === 'string' ? 
+    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+    parseFloat(product.price);
+  const oldPriceValue = product.old_price ? 
+    (typeof product.old_price === 'string' ? 
+      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.old_price)) : null;
+  
+  const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+  const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+  const thumbnail = product.thumbnail || '';
+  const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+    Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+  
+  // Get bucket info
+  const bucketNum = product.price_bucket || 1;
+  const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+  const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+  
+  // Check for special badges
+  let specialBadge = '';
+  
+  if (product === cheapestProduct) {
+    specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+  } else if (product === mostExpensiveProduct) {
+    specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
   }
+  
+  const hasDiscount = oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue;
+  if (hasDiscount && specialBadge === '') {
+    specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+  }
+  
+  // Create unique ID for each product element
+  const productId = `product-${type}-${products.indexOf(product)}`;
+  
+  html += `
+    <div class="pm-ad-details" id="${productId}">
+      <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+        ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+      </div>
+      <div class="pm-ad-info">
+        <div class="pm-ad-title">${title}</div>
+        <div class="pm-ad-price-container">
+          <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+          ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+          ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
+        </div>
+      </div>
+      ${specialBadge}
+      <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+        ${bucketNames[bucketNum]}
+      </div>
+    </div>
+  `;
+});
+
+container.innerHTML = html;
+
+// Add click handlers to each product after rendering
+products.forEach((product, index) => {
+  const productId = `product-${type}-${index}`;
+  const productElement = document.getElementById(productId);
+  if (productElement) {
+    productElement.addEventListener('click', (e) => handleProductClick(e, product, productElement));
+  }
+});
+
+// Function to handle product click and expansion
+function handleProductClick(event, product, productElement) {
+  event.stopPropagation();
+  
+  // Check if already expanded
+  const isExpanded = productElement.classList.contains('expanded');
+  
+  // Close all other expanded products first
+  document.querySelectorAll('.pm-ad-details.expanded').forEach(el => {
+    if (el !== productElement) {
+      el.classList.remove('expanded');
+      const detailedEl = el.querySelector('.pm-ad-details-detailed');
+      if (detailedEl) {
+        setTimeout(() => detailedEl.remove(), 300);
+      }
+    }
+  });
+  
+  if (isExpanded) {
+    // Collapse
+    productElement.classList.remove('expanded');
+    const detailedEl = productElement.querySelector('.pm-ad-details-detailed');
+    if (detailedEl) {
+      setTimeout(() => detailedEl.remove(), 300);
+    }
+  } else {
+    // Expand and load detailed data
+    productElement.classList.add('expanded');
+    loadProductDetails(product, productElement);
+  }
+}
+
+// Function to load detailed product data from IDB
+async function loadProductDetails(product, productElement) {
+  // Check if detailed container already exists
+  let detailedContainer = productElement.querySelector('.pm-ad-details-detailed');
+  if (!detailedContainer) {
+    detailedContainer = document.createElement('div');
+    detailedContainer.className = 'pm-ad-details-detailed';
+    productElement.appendChild(detailedContainer);
+  }
+  
+  detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Loading price history...</div></div>';
+  
+  try {
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}processed`;
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading data</div></div>';
+        db.close();
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No data found</div></div>';
+          db.close();
+          return;
+        }
+        
+        // Find the exact product record
+        const productRecord = result.data.find(row => 
+          row.title === product.title && 
+          row.source === product.source
+        );
+        
+        if (productRecord && productRecord.historical_data && productRecord.historical_data.length > 0) {
+          renderPriceHistory(productRecord, detailedContainer);
+        } else {
+          detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No price history available</div></div>';
+        }
+        
+        db.close();
+      };
+    };
+  } catch (error) {
+    console.error('[PM Products] Error loading product details:', error);
+    detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
+  }
+}
+
+// Function to render price history chart
+function renderPriceHistory(productRecord, container) {
+  const historicalData = productRecord.historical_data;
+  
+  // Parse price data
+  const priceData = historicalData.map(item => {
+    const price = typeof item.price === 'string' ? 
+      parseFloat(item.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(item.price) || 0;
+    
+    // Parse date - handle different date formats
+    let date;
+    if (item.date && item.date.$date && item.date.$date.$numberLong) {
+      date = new Date(parseInt(item.date.$date.$numberLong));
+    } else if (item.date && item.date.$date) {
+      date = new Date(item.date.$date);
+    } else {
+      date = new Date(item.date);
+    }
+    
+    return { date, price };
+  }).filter(item => !isNaN(item.price) && item.date instanceof Date && !isNaN(item.date));
+  
+  if (priceData.length === 0) {
+    container.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Invalid price data</div></div>';
+    return;
+  }
+  
+  // Sort by date
+  priceData.sort((a, b) => a.date - b.date);
+  
+  // Get current price and max price for trend calculation
+  const currentPrice = priceData[priceData.length - 1]?.price || 0;
+  const maxPrice = Math.max(...priceData.map(d => d.price));
+  const minPrice = Math.min(...priceData.map(d => d.price));
+  
+  // Calculate price trend (% change from max to current)
+  const priceTrend = maxPrice > 0 ? ((currentPrice - maxPrice) / maxPrice * 100) : 0;
+  const trendClass = priceTrend >= 0 ? 'positive' : 'negative';
+  const trendSymbol = priceTrend >= 0 ? '↑' : '↓';
+  
+  // Create container content
+  const html = `
+    <div class="pm-ad-details-detailed-content">
+      <div class="pm-ad-price-trend ${trendClass}">
+        <span>${trendSymbol}</span>
+        <span>${Math.abs(priceTrend).toFixed(1)}%</span>
+      </div>
+      <div class="pm-ad-chart-container">
+        <div class="pm-ad-chart-title">Price History (Last 30 Days)</div>
+        <canvas class="pm-ad-chart-canvas" id="chart-${Date.now()}"></canvas>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+  
+  // Draw chart
+  setTimeout(() => {
+    const canvas = container.querySelector('.pm-ad-chart-canvas');
+    if (canvas) {
+      drawPriceChart(canvas, priceData, minPrice, maxPrice);
+    }
+  }, 50);
+}
+
+// Function to draw the price chart
+function drawPriceChart(canvas, priceData, minPrice, maxPrice) {
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  
+  // Set canvas size
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  
+  const padding = { top: 10, right: 10, bottom: 30, left: 40 };
+  const chartWidth = canvas.width - padding.left - padding.right;
+  const chartHeight = canvas.height - padding.top - padding.bottom;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Calculate scales
+  const priceRange = maxPrice - minPrice;
+  const pricePadding = priceRange * 0.1 || 1;
+  const yMin = minPrice - pricePadding;
+  const yMax = maxPrice + pricePadding;
+  
+  // Draw grid lines and labels
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 1;
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  
+  // Y-axis grid lines and labels
+  for (let i = 0; i <= 4; i++) {
+    const y = padding.top + (i * chartHeight / 4);
+    const price = yMax - (i * (yMax - yMin) / 4);
+    
+    // Grid line
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + chartWidth, y);
+    ctx.stroke();
+    
+    // Label
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${price.toFixed(0)}`, padding.left - 5, y + 3);
+  }
+  
+  // Draw the price line
+  ctx.strokeStyle = '#667eea';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  
+  priceData.forEach((item, index) => {
+    const x = padding.left + (index / (priceData.length - 1)) * chartWidth;
+    const y = padding.top + ((yMax - item.price) / (yMax - yMin)) * chartHeight;
+    
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.stroke();
+  
+  // Draw data points
+  ctx.fillStyle = '#667eea';
+  priceData.forEach((item, index) => {
+    const x = padding.left + (index / (priceData.length - 1)) * chartWidth;
+    const y = padding.top + ((yMax - item.price) / (yMax - yMin)) * chartHeight;
+    
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // Draw x-axis labels (dates)
+  ctx.fillStyle = '#999';
+  ctx.textAlign = 'center';
+  
+  if (priceData.length > 0) {
+    // First date
+    const firstDate = priceData[0].date;
+    ctx.fillText(formatChartDate(firstDate), padding.left, canvas.height - 5);
+    
+    // Last date
+    const lastDate = priceData[priceData.length - 1].date;
+    ctx.fillText(formatChartDate(lastDate), padding.left + chartWidth, canvas.height - 5);
+    
+    // Middle date if we have enough data points
+    if (priceData.length > 2) {
+      const midIndex = Math.floor(priceData.length / 2);
+      const midDate = priceData[midIndex].date;
+      ctx.fillText(formatChartDate(midDate), padding.left + chartWidth / 2, canvas.height - 5);
+    }
+  }
+}
+
+// Helper function to format dates for chart
+function formatChartDate(date) {
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${month}/${day}`;
 }
 
 async function loadMyCompanyProducts(companyName) {
