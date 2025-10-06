@@ -342,6 +342,7 @@ function addProductsViewStyles() {
         color: #888;
         font-family: 'Monaco', 'Menlo', monospace;
         padding-left: 20px;
+        display: block;
       }
       
       .pmp-products-data {
@@ -930,19 +931,11 @@ document.querySelectorAll('.pmp-sort-btn').forEach(btn => {
     // Add active to clicked button
     e.target.classList.add('active');
     
-    // Update sort state - toggle if clicking the same button
+    // Update sort state
     if (target === 'mycompany') {
-      if (currentSortMyCompany === sort && e.target.classList.contains('active')) {
-        // Already active, don't change
-      } else {
-        currentSortMyCompany = sort;
-      }
+      currentSortMyCompany = sort;
     } else {
-      if (currentSortCompetitors === sort && e.target.classList.contains('active')) {
-        // Already active, don't change
-      } else {
-        currentSortCompetitors = sort;
-      }
+      currentSortCompetitors = sort;
     }
     
     // Re-render products
@@ -952,8 +945,12 @@ document.querySelectorAll('.pmp-sort-btn').forEach(btn => {
 
 document.querySelectorAll('.pmp-filter-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
+    const target = e.target.dataset.target;
     e.target.classList.toggle('active');
+    
+    // Update filter state based on which button was clicked
     showDiscountedOnly = e.target.classList.contains('active');
+    
     filterProducts();
   });
 });
@@ -1224,55 +1221,52 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-    <!-- My Company column -->
-    <div class="pmp-butterfly-bars">
-      <div class="pmp-butterfly-left">
-        <div class="pmp-products-data-column">
-          <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
-            <span class="pmp-products-count">${count}</span>
-            ${discounted > 0 ? `
-              <span class="pmp-products-sep">/</span>
-              <span class="pmp-discounted-count">${discounted}</span>
-            ` : ''}
-          </div>
-          ${discountDepth > 0 ? 
-            `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
-            '<span class="pmp-discount-badge-empty">—</span>'}
-        </div>
-      </div>
-      <div class="pmp-butterfly-right">
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color};"></div>
-            <span class="pmp-bar-percent-outside small">${sharePercent}%</span>
-          </div>
-        </div>
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
-            <span class="pmp-bar-percent-outside small">${expwSharePercent}%</span>
-          </div>
-        </div>
+<!-- My Company column -->
+<div class="pmp-butterfly-bars">
+  <div class="pmp-butterfly-left">
+    <div class="pmp-bar-row">
+      <div class="pmp-tree-bar-container small" style="direction: rtl;">
+        <div class="pmp-tree-bar" style="width: ${Math.max(1, sharePercent)}%; background: ${bucket.color}; float: right;"></div>
       </div>
     </div>
-    
-    <!-- Market column -->
-    <div class="pmp-butterfly-bars">
-      <div class="pmp-butterfly-left">
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
-          </div>
-        </div>
-        <div class="pmp-bar-row">
-          <div class="pmp-tree-bar-container small">
-            <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
-            <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketExpwSharePercent}%</span>
-          </div>
-        </div>
+    <div class="pmp-bar-row">
+      <div class="pmp-tree-bar-container small" style="direction: rtl;">
+        <div class="pmp-tree-bar" style="width: ${Math.max(1, expwSharePercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80); float: right;"></div>
       </div>
     </div>
+  </div>
+  <div class="pmp-butterfly-divider"></div>
+  <div class="pmp-butterfly-right">
+    <div class="pmp-products-data-column">
+      <div class="pmp-products-box" style="border-color: ${bucket.color}; background: ${bucket.color}15;">
+        <span class="pmp-products-count">${count}</span>
+        ${discounted > 0 ? `
+          <span class="pmp-products-sep">/</span>
+          <span class="pmp-discounted-count">${discounted}</span>
+        ` : ''}
+      </div>
+      ${discountDepth > 0 ? 
+        `<span class="pmp-discount-badge">${discountDepth.toFixed(1)}%</span>` : 
+        '<span class="pmp-discount-badge-empty">—</span>'}
+    </div>
+  </div>
+</div>
+
+<!-- Market column -->
+<div class="pmp-butterfly-bars">
+  <div class="pmp-butterfly-left">
+    <div class="pmp-bar-row">
+      <div class="pmp-tree-bar-container small">
+        <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
+      </div>
+    </div>
+    <div class="pmp-bar-row">
+      <div class="pmp-tree-bar-container small">
+        <div class="pmp-tree-bar" style="width: ${Math.max(1, marketExpwSharePercent)}%; background: linear-gradient(90deg, #888, #aaa);"></div>
+      </div>
+    </div>
+  </div>
+</div>
   </div>
 `;
   });
@@ -1339,19 +1333,14 @@ function renderFilteredProducts(type, container) {
     });
   }
   
-// Filter by discount if needed
+// Filter by discount if needed  
 if (showDiscountedOnly) {
   products = products.filter(p => {
-    const oldPriceStr = p.old_price || '';
-    const priceStr = p.price || '';
+    // Check both old_price field and if current price is less than old price
+    if (!p.old_price || p.old_price === '') return false;
     
-    // Parse prices more carefully
-    const oldPrice = typeof oldPriceStr === 'string' ? 
-      parseFloat(oldPriceStr.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(oldPriceStr);
-    const currentPrice = typeof priceStr === 'string' ? 
-      parseFloat(priceStr.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(priceStr);
+    const oldPrice = parseFloat(String(p.old_price).replace(/[^0-9.-]/g, ''));
+    const currentPrice = parseFloat(String(p.price).replace(/[^0-9.-]/g, ''));
     
     return !isNaN(oldPrice) && !isNaN(currentPrice) && oldPrice > currentPrice;
   });
@@ -1692,7 +1681,6 @@ const products = Array.from(productMap.values())
     const priceB = parseFloat(b.price) || 0;
     return priceB - priceA;
   })
-  .slice(0, 20); // Show top 20 competitor products
 
 // Store products data globally (keep all products, not just top 20, for filtering)
 allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
