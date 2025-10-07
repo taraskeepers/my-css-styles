@@ -1578,7 +1578,7 @@ async function updateProductsOverviewCard(companyData) {
 }
 
 async function updateProductsBuckets(companyData) {
-  const bucketsBody = document.getElementById('pmCompanyBucketsBody');
+  const bucketsBody = document.getElementById('pmpProductsBucketsBody');
   if (!bucketsBody) return;
   
   // Load comparison data (market or selected company)
