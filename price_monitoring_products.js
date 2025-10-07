@@ -1735,28 +1735,76 @@ async function loadProductDetails(product, productElement) {
   }
 }
 
-// Function to render price history chart
 function renderPriceHistory(productRecord, container) {
   const historicalData = productRecord.historical_data;
   
-  // Parse price data
-  const priceData = historicalData.map(item => {
-    const price = typeof item.price === 'string' ? 
-      parseFloat(item.price.replace(/[^0-9.-]/g, '')) : 
-      parseFloat(item.price) || 0;
+  console.log('[PM Products] Raw historical data:', historicalData);
+  console.log('[PM Products] First item structure:', JSON.stringify(historicalData[0], null, 2));
+  
+  // If historical_data is not an array, try to handle it
+  if (!Array.isArray(historicalData)) {
+    console.error('[PM Products] Historical data is not an array:', typeof historicalData);
+    container.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No price history available</div></div>';
+    return;
+  }
+  
+  // Parse price data with better error handling
+  const priceData = historicalData.map((item, index) => {
+    console.log(`[PM Products] Processing item ${index}:`, item);
     
-    // Parse date - handle different date formats
-    let date;
-    if (item.date && item.date.$date && item.date.$date.$numberLong) {
-      date = new Date(parseInt(item.date.$date.$numberLong));
-    } else if (item.date && item.date.$date) {
-      date = new Date(item.date.$date);
-    } else {
-      date = new Date(item.date);
+    // Parse price - handle various formats
+    let price = 0;
+    if (item.price) {
+      if (typeof item.price === 'string') {
+        // Remove currency symbols, commas, and other non-numeric characters
+        const cleanPrice = item.price.replace(/[$,]/g, '');
+        price = parseFloat(cleanPrice);
+      } else if (typeof item.price === 'number') {
+        price = item.price;
+      }
     }
     
+    // Parse date - handle various formats
+    let date = null;
+    if (item.date) {
+      // Check for MongoDB date format
+      if (item.date.$date) {
+        if (item.date.$date.$numberLong) {
+          // MongoDB extended JSON format
+          date = new Date(parseInt(item.date.$date.$numberLong));
+        } else if (typeof item.date.$date === 'string') {
+          // ISO string format
+          date = new Date(item.date.$date);
+        } else if (typeof item.date.$date === 'number') {
+          // Timestamp format
+          date = new Date(item.date.$date);
+        }
+      } else if (typeof item.date === 'string') {
+        // Direct string date
+        date = new Date(item.date);
+      } else if (typeof item.date === 'number') {
+        // Direct timestamp
+        date = new Date(item.date);
+      } else if (item.date instanceof Date) {
+        // Already a Date object
+        date = item.date;
+      }
+    }
+    
+    console.log(`[PM Products] Parsed - Price: ${price}, Date: ${date}`);
+    
     return { date, price };
-  }).filter(item => !isNaN(item.price) && item.date instanceof Date && !isNaN(item.date));
+  }).filter(item => {
+    // Filter out invalid entries
+    const isValid = !isNaN(item.price) && item.price > 0 && 
+                   item.date instanceof Date && !isNaN(item.date.getTime());
+    if (!isValid) {
+      console.log('[PM Products] Filtered out invalid item:', item);
+    }
+    return isValid;
+  });
+  
+  console.log('[PM Products] Final parsed price data:', priceData);
   
   if (priceData.length === 0) {
     container.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Invalid price data</div></div>';
@@ -1766,10 +1814,18 @@ function renderPriceHistory(productRecord, container) {
   // Sort by date
   priceData.sort((a, b) => a.date - b.date);
   
+  // Limit to last 30 days if we have more data
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentData = priceData.filter(item => item.date >= thirtyDaysAgo);
+  const dataToUse = recentData.length > 0 ? recentData : priceData;
+  
+  console.log('[PM Products] Data to use for chart:', dataToUse);
+  
   // Get current price and max price for trend calculation
-  const currentPrice = priceData[priceData.length - 1]?.price || 0;
-  const maxPrice = Math.max(...priceData.map(d => d.price));
-  const minPrice = Math.min(...priceData.map(d => d.price));
+  const currentPrice = dataToUse[dataToUse.length - 1]?.price || 0;
+  const maxPrice = Math.max(...dataToUse.map(d => d.price));
+  const minPrice = Math.min(...dataToUse.map(d => d.price));
   
   // Calculate price trend (% change from max to current)
   const priceTrend = maxPrice > 0 ? ((currentPrice - maxPrice) / maxPrice * 100) : 0;
@@ -1784,7 +1840,7 @@ function renderPriceHistory(productRecord, container) {
         <span>${Math.abs(priceTrend).toFixed(1)}%</span>
       </div>
       <div class="pm-ad-chart-container">
-        <div class="pm-ad-chart-title">Price History (Last 30 Days)</div>
+        <div class="pm-ad-chart-title">Price History (${dataToUse.length} data points)</div>
         <canvas class="pm-ad-chart-canvas" id="chart-${Date.now()}"></canvas>
       </div>
     </div>
@@ -1796,7 +1852,7 @@ function renderPriceHistory(productRecord, container) {
   setTimeout(() => {
     const canvas = container.querySelector('.pm-ad-chart-canvas');
     if (canvas) {
-      drawPriceChart(canvas, priceData, minPrice, maxPrice);
+      drawPriceChart(canvas, dataToUse, minPrice, maxPrice);
     }
   }, 50);
 }
