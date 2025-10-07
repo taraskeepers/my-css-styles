@@ -11,6 +11,11 @@ let allProductsData = {
 let currentSortMyCompany = 'high';
 let currentSortCompetitors = 'high';
 let showDiscountedOnly = false;
+let competitorsPriceData = {
+  cheapest: null,
+  mostExpensive: null
+};
+let selectedCompany = null;
 
 function initializePriceMonitoringProducts() {
   console.log('[PM Products] Initializing products view module');
@@ -453,16 +458,19 @@ function addProductsViewStyles() {
         background: linear-gradient(90deg, #ff6b6b, #ffd93d);
       }
       
-      .pmp-products-list-header {
-        font-size: 11px;
-        font-weight: 600;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
-      }
+.pmp-products-list-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
       
 /* Products list - Update overflow settings */
 .pmp-products-list {
@@ -768,6 +776,62 @@ function addProductsViewStyles() {
   color: white;
   border-color: #ff6b6b;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Company filter dropdown */
+.pmp-company-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.pmp-company-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.pmp-company-select:hover {
+  border-color: #667eea;
+}
+
+.pmp-company-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.pmp-company-clear-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.pmp-company-clear-btn:hover {
+  background: #e0e0e0;
+  transform: scale(1.1);
+}
+
+.pmp-company-clear-btn.active {
+  display: flex;
 }
 
 /* Special badge boxes */
@@ -1098,6 +1162,36 @@ function addProductsViewStyles() {
   font-weight: 500;
 }
 
+.pmp-price-comparison {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pmp-price-comparison.better {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.pmp-price-comparison.worse {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.pmp-price-comparison .arrow {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.pmp-price-comparison .diff {
+  font-size: 10px;
+}
+
 .pmp-summary-charts {
   display: flex;
   gap: 15px;
@@ -1219,16 +1313,24 @@ let html = `
         <span class="pmp-summary-count-value" id="pmpMyCompanyCount">—</span>
         <span class="pmp-summary-count-label">Products</span>
       </div>
-      <div class="pmp-summary-prices">
-        <div class="pmp-summary-price-item">
-          <span class="pmp-summary-price-value" id="pmpMyCompanyCheapest">$—</span>
-          <span class="pmp-summary-price-label">Cheapest</span>
-        </div>
-        <div class="pmp-summary-price-item">
-          <span class="pmp-summary-price-value" id="pmpMyCompanyExpensive">$—</span>
-          <span class="pmp-summary-price-label">Most Exp.</span>
-        </div>
-      </div>
+      
+<div class="pmp-summary-prices">
+  <div class="pmp-summary-price-item">
+    <div style="display: flex; align-items: center;">
+      <span class="pmp-summary-price-value" id="pmpMyCompanyCheapest">$—</span>
+      <span class="pmp-price-comparison" id="pmpMyCompanyCheapestComparison" style="display: none;"></span>
+    </div>
+    <span class="pmp-summary-price-label">Cheapest</span>
+  </div>
+  <div class="pmp-summary-price-item">
+    <div style="display: flex; align-items: center;">
+      <span class="pmp-summary-price-value" id="pmpMyCompanyExpensive">$—</span>
+      <span class="pmp-price-comparison" id="pmpMyCompanyExpensiveComparison" style="display: none;"></span>
+    </div>
+    <span class="pmp-summary-price-label">Most Exp.</span>
+  </div>
+</div>
+      
     </div>
     <div class="pmp-summary-charts">
       <div class="pmp-summary-chart-wrapper">
@@ -1258,7 +1360,15 @@ let html = `
 
 <!-- Competitors Products -->
 <div class="pmp-products-competitors-card">
-  <div class="pmp-products-list-header">Competitor Products</div>
+  <div class="pmp-products-list-header">
+    <span>Competitor Products</span>
+    <div class="pmp-company-filter-container">
+      <select class="pmp-company-select" id="pmpCompanyFilter">
+        <option value="">All Companies</option>
+      </select>
+      <button class="pmp-company-clear-btn" id="pmpCompanyClearBtn" title="Clear filter">×</button>
+    </div>
+  </div>
   
   <!-- NEW: Summary Container -->
   <div class="pmp-products-summary" id="pmpCompetitorsSummary">
@@ -1733,6 +1843,11 @@ function getFilteredProducts(type) {
   
   let products = [...allProductsData[type]];
   
+  // Filter by selected company (only for competitors)
+  if (type === 'competitors' && selectedCompany) {
+    products = products.filter(p => p.source === selectedCompany);
+  }
+  
   // Filter by selected bucket if any
   if (selectedBucket !== null) {
     products = products.filter(p => {
@@ -1772,6 +1887,9 @@ function updateMyCompanySummaryWithFiltered(products) {
     document.getElementById('pmpMyCompanyCount').textContent = '0';
     document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
     document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+    // Hide comparison indicators
+    document.getElementById('pmpMyCompanyCheapestComparison').style.display = 'none';
+    document.getElementById('pmpMyCompanyExpensiveComparison').style.display = 'none';
     return;
   }
   
@@ -1791,9 +1909,70 @@ function updateMyCompanySummaryWithFiltered(products) {
     const expensive = Math.max(...prices);
     document.getElementById('pmpMyCompanyCheapest').textContent = `$${cheapest.toFixed(2)}`;
     document.getElementById('pmpMyCompanyExpensive').textContent = `$${expensive.toFixed(2)}`;
+    
+    // Update comparison indicators
+    updatePriceComparisons(cheapest, expensive);
   } else {
     document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
     document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+    // Hide comparison indicators
+    document.getElementById('pmpMyCompanyCheapestComparison').style.display = 'none';
+    document.getElementById('pmpMyCompanyExpensiveComparison').style.display = 'none';
+  }
+}
+
+// Function to update price comparison indicators
+function updatePriceComparisons(myCheapest, myExpensive) {
+  const compCheapest = competitorsPriceData.cheapest;
+  const compExpensive = competitorsPriceData.mostExpensive;
+  
+  const cheapestCompEl = document.getElementById('pmpMyCompanyCheapestComparison');
+  const expensiveCompEl = document.getElementById('pmpMyCompanyExpensiveComparison');
+  
+  // Compare cheapest
+  if (compCheapest !== null && !isNaN(compCheapest)) {
+    const diff = myCheapest - compCheapest;
+    const percentDiff = ((diff / compCheapest) * 100).toFixed(1);
+    
+    if (Math.abs(diff) > 0.01) {
+      const isBetter = diff < 0; // Lower is better
+      const arrow = isBetter ? '↓' : '↑';
+      const className = isBetter ? 'better' : 'worse';
+      
+      cheapestCompEl.className = `pmp-price-comparison ${className}`;
+      cheapestCompEl.innerHTML = `
+        <span class="arrow">${arrow}</span>
+        <span class="diff">$${Math.abs(diff).toFixed(2)} (${Math.abs(percentDiff)}%)</span>
+      `;
+      cheapestCompEl.style.display = 'inline-flex';
+    } else {
+      cheapestCompEl.style.display = 'none';
+    }
+  } else {
+    cheapestCompEl.style.display = 'none';
+  }
+  
+  // Compare most expensive
+  if (compExpensive !== null && !isNaN(compExpensive)) {
+    const diff = myExpensive - compExpensive;
+    const percentDiff = ((diff / compExpensive) * 100).toFixed(1);
+    
+    if (Math.abs(diff) > 0.01) {
+      const isBetter = diff < 0; // Lower is better
+      const arrow = isBetter ? '↓' : '↑';
+      const className = isBetter ? 'better' : 'worse';
+      
+      expensiveCompEl.className = `pmp-price-comparison ${className}`;
+      expensiveCompEl.innerHTML = `
+        <span class="arrow">${arrow}</span>
+        <span class="diff">$${Math.abs(diff).toFixed(2)} (${Math.abs(percentDiff)}%)</span>
+      `;
+      expensiveCompEl.style.display = 'inline-flex';
+    } else {
+      expensiveCompEl.style.display = 'none';
+    }
+  } else {
+    expensiveCompEl.style.display = 'none';
   }
 }
 
@@ -1803,6 +1982,9 @@ function updateCompetitorsSummaryWithFiltered(products) {
     document.getElementById('pmpCompetitorsCount').textContent = '0';
     document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
     document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+    // Reset stored prices
+    competitorsPriceData.cheapest = null;
+    competitorsPriceData.mostExpensive = null;
     return;
   }
   
@@ -1822,13 +2004,87 @@ function updateCompetitorsSummaryWithFiltered(products) {
     const expensive = Math.max(...prices);
     document.getElementById('pmpCompetitorsCheapest').textContent = `$${cheapest.toFixed(2)}`;
     document.getElementById('pmpCompetitorsExpensive').textContent = `$${expensive.toFixed(2)}`;
+    
+    // Store prices globally for comparison
+    competitorsPriceData.cheapest = cheapest;
+    competitorsPriceData.mostExpensive = expensive;
+    
+    // Trigger update of myCompany comparisons
+    const myCompanyProducts = getFilteredProducts('myCompany');
+    if (myCompanyProducts.length > 0) {
+      const myPrices = myCompanyProducts.map(p => {
+        const priceValue = typeof p.price === 'string' ? 
+          parseFloat(p.price.replace(/[^0-9.-]/g, '')) : 
+          parseFloat(p.price);
+        return isNaN(priceValue) ? 0 : priceValue;
+      }).filter(p => p > 0);
+      
+      if (myPrices.length > 0) {
+        const myCheapest = Math.min(...myPrices);
+        const myExpensive = Math.max(...myPrices);
+        updatePriceComparisons(myCheapest, myExpensive);
+      }
+    }
   } else {
     document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
     document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+    // Reset stored prices
+    competitorsPriceData.cheapest = null;
+    competitorsPriceData.mostExpensive = null;
   }
   
   // Re-render company distribution chart with filtered data
   renderCompetitorsCompanyChart(products);
+}
+
+// Function to populate company filter dropdown
+function populateCompanyFilter() {
+  const select = document.getElementById('pmpCompanyFilter');
+  if (!select || !allProductsData.competitors) return;
+  
+  // Get unique companies
+  const companies = [...new Set(allProductsData.competitors.map(p => p.source))].filter(Boolean).sort();
+  
+  // Clear existing options (except "All Companies")
+  select.innerHTML = '<option value="">All Companies</option>';
+  
+  // Add company options
+  companies.forEach(company => {
+    const option = document.createElement('option');
+    option.value = company;
+    option.textContent = company;
+    select.appendChild(option);
+  });
+  
+  // Add event listener
+  select.addEventListener('change', (e) => {
+    const selectedValue = e.target.value;
+    selectedCompany = selectedValue || null;
+    
+    // Show/hide clear button
+    const clearBtn = document.getElementById('pmpCompanyClearBtn');
+    if (clearBtn) {
+      if (selectedCompany) {
+        clearBtn.classList.add('active');
+      } else {
+        clearBtn.classList.remove('active');
+      }
+    }
+    
+    // Re-filter products
+    filterProducts();
+  });
+  
+  // Add clear button listener
+  const clearBtn = document.getElementById('pmpCompanyClearBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      selectedCompany = null;
+      select.value = '';
+      clearBtn.classList.remove('active');
+      filterProducts();
+    });
+  }
 }
 
 // Update just the company chart for competitors
@@ -3163,6 +3419,9 @@ allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
 if (allProductsData.competitors.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
 } else {
+  // Populate company filter dropdown
+  populateCompanyFilter();
+  
   // Update summary (wrap in async function since it needs async operations)
   (async () => {
     await updateCompetitorsSummary(allProductsData.competitors);
@@ -3170,7 +3429,7 @@ if (allProductsData.competitors.length === 0) {
     // Use filterProducts to render with proper sorting
     filterProducts();
   })();
-} 
+}
         db.close();
       };
       
