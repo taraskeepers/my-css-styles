@@ -2096,14 +2096,14 @@ function populateCompanyFilter() {
     const selectedValue = e.target.value;
     selectedCompany = selectedValue || null;
     
+    // Load data first (needed for both selected company and myCompany)
+    const data = await window.pmUtils.loadCompanyPricingData();
+    
     // Load selected company data if a company is selected
-    if (selectedCompany) {
-      const data = await window.pmUtils.loadCompanyPricingData();
-      if (data && data.allData) {
-        selectedCompanyData = data.allData.find(row => 
-          row.source === selectedCompany && row.q === 'all'
-        );
-      }
+    if (selectedCompany && data && data.allData) {
+      selectedCompanyData = data.allData.find(row => 
+        row.source === selectedCompany && row.q === 'all'
+      );
     } else {
       selectedCompanyData = null;
     }
@@ -2119,12 +2119,14 @@ function populateCompanyFilter() {
     }
     
     // Rebuild buckets card with new comparison data
-    const companyName = window.myCompany || 'East Perry';
-    const myCompanyData = data.allData.find(row => 
-      row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
-    );
-    if (myCompanyData) {
-      await updateProductsBuckets(myCompanyData);
+    if (data && data.allData) {
+      const companyName = window.myCompany || 'East Perry';
+      const myCompanyData = data.allData.find(row => 
+        row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+      );
+      if (myCompanyData) {
+        await updateProductsBuckets(myCompanyData);
+      }
     }
     
     // Re-filter products
