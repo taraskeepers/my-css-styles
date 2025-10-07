@@ -839,29 +839,29 @@ function addProductsViewStyles() {
 }
 /* Expandable product details */
 .pm-ad-details {
-  position: relative;
+  position: relative; /* IMPORTANT: Add this */
   transition: margin-bottom 0.3s ease;
+  cursor: pointer; /* Add this to show it's clickable */
 }
 
 .pm-ad-details.expanded {
-  margin-bottom: 210px;
+  margin-bottom: 220px; /* Slightly increased for better spacing */
 }
 
 .pm-ad-details-detailed {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px); /* Add small gap */
   left: 0;
-  right: 0;
+  width: 100%; /* Use width: 100% instead of right: 0 */
   height: 0;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  margin-top: 8px;
   overflow: hidden;
   opacity: 0;
   transition: height 0.3s ease, opacity 0.3s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 10;
+  z-index: 100; /* Increased z-index */
 }
 
 .pm-ad-details.expanded .pm-ad-details-detailed {
@@ -874,8 +874,22 @@ function addProductsViewStyles() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box; /* Add this */
 }
 
+/* Ensure the products list doesn't clip the detailed view */
+.pmp-products-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* Change from hidden to visible */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  position: relative; /* Add this */
+}
+
+/* Rest of your detailed container styles remain the same... */
 .pm-ad-price-trend {
   position: absolute;
   top: 12px;
@@ -1617,14 +1631,16 @@ function handleProductClick(event, product, productElement) {
   }
 }
 
-// Function to load detailed product data from IDB
 async function loadProductDetails(product, productElement) {
+  console.log('[PM Products] Loading details for:', product.title);
+  
   // Check if detailed container already exists
   let detailedContainer = productElement.querySelector('.pm-ad-details-detailed');
   if (!detailedContainer) {
     detailedContainer = document.createElement('div');
     detailedContainer.className = 'pm-ad-details-detailed';
     productElement.appendChild(detailedContainer);
+    console.log('[PM Products] Created detailed container');
   }
   
   detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Loading price history...</div></div>';
@@ -1642,6 +1658,7 @@ async function loadProductDetails(product, productElement) {
     }
     
     const tableName = `${tablePrefix}processed`;
+    console.log('[PM Products] Looking for table:', tableName);
     
     const request = indexedDB.open('myAppDB');
     
@@ -1649,6 +1666,7 @@ async function loadProductDetails(product, productElement) {
       const db = event.target.result;
       
       if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[PM Products] projectData object store not found');
         detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading data</div></div>';
         db.close();
         return;
@@ -1662,6 +1680,7 @@ async function loadProductDetails(product, productElement) {
         const result = getRequest.result;
         
         if (!result || !result.data) {
+          console.warn('[PM Products] No data found in table');
           detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No data found</div></div>';
           db.close();
           return;
@@ -1673,14 +1692,29 @@ async function loadProductDetails(product, productElement) {
           row.source === product.source
         );
         
+        console.log('[PM Products] Found product record:', productRecord);
+        
         if (productRecord && productRecord.historical_data && productRecord.historical_data.length > 0) {
+          console.log('[PM Products] Rendering price history with', productRecord.historical_data.length, 'data points');
           renderPriceHistory(productRecord, detailedContainer);
         } else {
+          console.warn('[PM Products] No historical data available');
           detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No price history available</div></div>';
         }
         
         db.close();
       };
+      
+      getRequest.onerror = function() {
+        console.error('[PM Products] Error getting data:', getRequest.error);
+        detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
+        db.close();
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[PM Products] Failed to open database:', request.error);
+      detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
     };
   } catch (error) {
     console.error('[PM Products] Error loading product details:', error);
