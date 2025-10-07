@@ -1029,6 +1029,103 @@ function addProductsViewStyles() {
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
+/* Summary containers */
+.pmp-products-summary {
+  width: 100%;
+  height: 170px;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.pmp-summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 140px;
+}
+
+.pmp-summary-count {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pmp-summary-count-value {
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+.pmp-summary-count-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.pmp-summary-prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pmp-summary-price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pmp-summary-price-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c2c2c;
+}
+
+.pmp-summary-price-label {
+  font-size: 9px;
+  color: #888;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.pmp-summary-charts {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.pmp-summary-chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pmp-summary-chart {
+  width: 130px;
+  height: 130px;
+}
+
+.pmp-summary-chart-label {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  text-align: center;
+}
       
     </style>
   `;
@@ -1110,16 +1207,50 @@ let html = `
   </div>
   
   <div class="pmp-right-column">
+  
 <!-- My Company Products -->
 <div class="pmp-products-mycompany-card">
+  <div class="pmp-products-list-header">My Products</div>
+  
+  <!-- NEW: Summary Container -->
+  <div class="pmp-products-summary" id="pmpMyCompanySummary">
+    <div class="pmp-summary-left">
+      <div class="pmp-summary-count">
+        <span class="pmp-summary-count-value" id="pmpMyCompanyCount">—</span>
+        <span class="pmp-summary-count-label">Products</span>
+      </div>
+      <div class="pmp-summary-prices">
+        <div class="pmp-summary-price-item">
+          <span class="pmp-summary-price-value" id="pmpMyCompanyCheapest">$—</span>
+          <span class="pmp-summary-price-label">Cheapest</span>
+        </div>
+        <div class="pmp-summary-price-item">
+          <span class="pmp-summary-price-value" id="pmpMyCompanyExpensive">$—</span>
+          <span class="pmp-summary-price-label">Most Exp.</span>
+        </div>
+      </div>
+    </div>
+    <div class="pmp-summary-charts">
+      <div class="pmp-summary-chart-wrapper">
+        <div class="pmp-summary-chart" id="pmpMyCompanyBucketChart"></div>
+        <span class="pmp-summary-chart-label">Bucket Share</span>
+      </div>
+      <div class="pmp-summary-chart-wrapper">
+        <div class="pmp-summary-chart" id="pmpMyCompanyExpwChart"></div>
+        <span class="pmp-summary-chart-label">Exp. Weighted Share</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- MOVED: Sort buttons now below summary -->
   <div class="pmp-products-header-row">
-    <div class="pmp-products-list-header">My Products</div>
     <div class="pmp-sort-buttons">
       <button class="pmp-sort-btn active" data-sort="high" data-target="mycompany">$↓</button>
       <button class="pmp-sort-btn" data-sort="low" data-target="mycompany">$↑</button>
       <button class="pmp-filter-btn" data-target="mycompany">%</button>
     </div>
   </div>
+  
   <div id="pmpMyCompanyProductsList" class="pmp-products-list">
     <div class="pmp-loading">Loading products...</div>
   </div>
@@ -1127,18 +1258,52 @@ let html = `
 
 <!-- Competitors Products -->
 <div class="pmp-products-competitors-card">
+  <div class="pmp-products-list-header">Competitor Products</div>
+  
+  <!-- NEW: Summary Container -->
+  <div class="pmp-products-summary" id="pmpCompetitorsSummary">
+    <div class="pmp-summary-left">
+      <div class="pmp-summary-count">
+        <span class="pmp-summary-count-value" id="pmpCompetitorsCount">—</span>
+        <span class="pmp-summary-count-label">Products</span>
+      </div>
+      <div class="pmp-summary-prices">
+        <div class="pmp-summary-price-item">
+          <span class="pmp-summary-price-value" id="pmpCompetitorsCheapest">$—</span>
+          <span class="pmp-summary-price-label">Cheapest</span>
+        </div>
+        <div class="pmp-summary-price-item">
+          <span class="pmp-summary-price-value" id="pmpCompetitorsExpensive">$—</span>
+          <span class="pmp-summary-price-label">Most Exp.</span>
+        </div>
+      </div>
+    </div>
+    <div class="pmp-summary-charts">
+      <div class="pmp-summary-chart-wrapper">
+        <div class="pmp-summary-chart" id="pmpCompetitorsMarketChart"></div>
+        <span class="pmp-summary-chart-label">Market Bucket Share</span>
+      </div>
+      <div class="pmp-summary-chart-wrapper">
+        <div class="pmp-summary-chart" id="pmpCompetitorsCompanyChart"></div>
+        <span class="pmp-summary-chart-label">Top 10 Companies</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- MOVED: Sort buttons now below summary -->
   <div class="pmp-products-header-row">
-    <div class="pmp-products-list-header">Competitor Products</div>
     <div class="pmp-sort-buttons">
       <button class="pmp-sort-btn active" data-sort="high" data-target="competitors">$↓</button>
       <button class="pmp-sort-btn" data-sort="low" data-target="competitors">$↑</button>
       <button class="pmp-filter-btn" data-target="competitors">%</button>
     </div>
   </div>
+  
   <div id="pmpCompetitorsProductsList" class="pmp-products-list">
     <div class="pmp-loading">Loading competitor products...</div>
   </div>
 </div>
+
   </div>
 `;
 
