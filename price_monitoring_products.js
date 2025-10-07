@@ -1316,14 +1316,14 @@ let html = `
       
 <div class="pmp-summary-prices">
   <div class="pmp-summary-price-item">
-    <div style="display: flex; align-items: center;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
       <span class="pmp-summary-price-value" id="pmpMyCompanyCheapest">$—</span>
       <span class="pmp-price-comparison" id="pmpMyCompanyCheapestComparison" style="display: none;"></span>
     </div>
     <span class="pmp-summary-price-label">Cheapest</span>
   </div>
   <div class="pmp-summary-price-item">
-    <div style="display: flex; align-items: center;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
       <span class="pmp-summary-price-value" id="pmpMyCompanyExpensive">$—</span>
       <span class="pmp-price-comparison" id="pmpMyCompanyExpensiveComparison" style="display: none;"></span>
     </div>
@@ -2187,38 +2187,8 @@ async function renderCompetitorsCompanyChart(products) {
 function renderFilteredProducts(type, container) {
   if (!container || !allProductsData[type]) return;
   
-  let products = [...allProductsData[type]];
-  
-  // Filter by selected bucket if any
-  if (selectedBucket !== null) {
-    products = products.filter(p => {
-      const bucketValue = parseInt(p.price_bucket) || 0;
-      return bucketValue === selectedBucket;
-    });
-  }
-  
-  // Filter by discount if needed  
-  if (showDiscountedOnly) {
-    products = products.filter(p => {
-      // Check both old_price field and if current price is less than old price
-      if (!p.old_price || p.old_price === '') return false;
-      
-      const oldPrice = parseFloat(String(p.old_price).replace(/[^0-9.-]/g, ''));
-      const currentPrice = parseFloat(String(p.price).replace(/[^0-9.-]/g, ''));
-      
-      return !isNaN(oldPrice) && !isNaN(currentPrice) && oldPrice > currentPrice;
-    });
-  }
-  
-  // Sort products
-  const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
-  products.sort((a, b) => {
-    const priceA = typeof a.price === 'string' ? 
-      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
-    const priceB = typeof b.price === 'string' ? 
-      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
-    return currentSort === 'high' ? priceB - priceA : priceA - priceB;
-  });
+  // Use the helper function to get properly filtered products
+  let products = getFilteredProducts(type);
   
   // Find special products (after filtering)
   let cheapestProduct = null;
