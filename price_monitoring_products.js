@@ -990,6 +990,45 @@ function addProductsViewStyles() {
   background: #f5f5f5;
   color: #666;
 }
+/* Price change badges */
+.pm-ad-price-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.pm-ad-price-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.pm-ad-price-change-up {
+  background: #f44336; /* Red for price increase */
+}
+
+.pm-ad-price-change-down {
+  background: #4CAF50; /* Green for price decrease */
+}
+
+.pm-ad-price-change-badge .arrow {
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.pm-ad-price-change-badge .label {
+  font-size: 8px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
       
     </style>
   `;
@@ -1618,11 +1657,12 @@ function renderFilteredProducts(type, container) {
           </div>
           <div class="pm-ad-info">
             <div class="pm-ad-title">${title}</div>
-            <div class="pm-ad-price-container">
-              <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
-              ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
-              ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
-            </div>
+<div class="pm-ad-price-container">
+  <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+  ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+  ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
+</div>
+${generatePriceChangeBadges(product)}
           </div>
           ${specialBadge}
           <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
@@ -1643,6 +1683,44 @@ function renderFilteredProducts(type, container) {
       }
     });
   }
+}
+
+function generatePriceChangeBadges(product) {
+  const priceDirection = parseFloat(product.price_direction);
+  const priceTrend = parseFloat(product.price_trend);
+  
+  let badges = '';
+  
+  // Only show badges if values exist and are not 0
+  if (!isNaN(priceDirection) && priceDirection !== 0) {
+    const isUp = priceDirection > 0;
+    const arrow = isUp ? '▲' : '▼';
+    const badgeClass = isUp ? 'pm-ad-price-change-up' : 'pm-ad-price-change-down';
+    
+    badges += `
+      <div class="pm-ad-price-change-badge ${badgeClass}">
+        <span class="arrow">${arrow}</span>
+        <span class="label">24h</span>
+        <span>${Math.abs(priceDirection).toFixed(1)}%</span>
+      </div>
+    `;
+  }
+  
+  if (!isNaN(priceTrend) && priceTrend !== 0) {
+    const isUp = priceTrend > 0;
+    const arrow = isUp ? '▲' : '▼';
+    const badgeClass = isUp ? 'pm-ad-price-change-up' : 'pm-ad-price-change-down';
+    
+    badges += `
+      <div class="pm-ad-price-change-badge ${badgeClass}">
+        <span class="arrow">${arrow}</span>
+        <span class="label">30d</span>
+        <span>${Math.abs(priceTrend).toFixed(1)}%</span>
+      </div>
+    `;
+  }
+  
+  return badges ? `<div class="pm-ad-price-badges">${badges}</div>` : '';
 }
 
 function handleProductClick(event, product, productElement) {
