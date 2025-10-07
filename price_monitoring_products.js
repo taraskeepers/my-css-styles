@@ -1707,9 +1707,17 @@ function filterProducts() {
   if (competitorsList) competitorsList.classList.add('filtering');
   
   setTimeout(() => {
+    // Get filtered products
+    let myCompanyFiltered = getFilteredProducts('myCompany');
+    let competitorsFiltered = getFilteredProducts('competitors');
+    
     // Render filtered products
     renderFilteredProducts('myCompany', myCompanyList);
     renderFilteredProducts('competitors', competitorsList);
+    
+    // Update summaries with filtered data
+    updateMyCompanySummaryWithFiltered(myCompanyFiltered);
+    updateCompetitorsSummaryWithFiltered(competitorsFiltered);
     
     // Remove filtering animation
     setTimeout(() => {
@@ -1717,6 +1725,207 @@ function filterProducts() {
       if (competitorsList) competitorsList.classList.remove('filtering');
     }, 100);
   }, 300);
+}
+
+// Helper function to get filtered products
+function getFilteredProducts(type) {
+  if (!allProductsData[type]) return [];
+  
+  let products = [...allProductsData[type]];
+  
+  // Filter by selected bucket if any
+  if (selectedBucket !== null) {
+    products = products.filter(p => {
+      const bucketValue = parseInt(p.price_bucket) || 0;
+      return bucketValue === selectedBucket;
+    });
+  }
+  
+  // Filter by discount if needed  
+  if (showDiscountedOnly) {
+    products = products.filter(p => {
+      if (!p.old_price || p.old_price === '') return false;
+      
+      const oldPrice = parseFloat(String(p.old_price).replace(/[^0-9.-]/g, ''));
+      const currentPrice = parseFloat(String(p.price).replace(/[^0-9.-]/g, ''));
+      
+      return !isNaN(oldPrice) && !isNaN(currentPrice) && oldPrice > currentPrice;
+    });
+  }
+  
+  // Sort products
+  const currentSort = type === 'myCompany' ? currentSortMyCompany : currentSortCompetitors;
+  products.sort((a, b) => {
+    const priceA = typeof a.price === 'string' ? 
+      parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+    const priceB = typeof b.price === 'string' ? 
+      parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+    return currentSort === 'high' ? priceB - priceA : priceA - priceB;
+  });
+  
+  return products;
+}
+
+// Update My Company summary with filtered data
+function updateMyCompanySummaryWithFiltered(products) {
+  if (!products || products.length === 0) {
+    document.getElementById('pmpMyCompanyCount').textContent = '0';
+    document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
+    document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+    return;
+  }
+  
+  // Update count
+  document.getElementById('pmpMyCompanyCount').textContent = products.length;
+  
+  // Find cheapest and most expensive
+  const prices = products.map(p => {
+    const priceValue = typeof p.price === 'string' ? 
+      parseFloat(p.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(p.price);
+    return isNaN(priceValue) ? 0 : priceValue;
+  }).filter(p => p > 0);
+  
+  if (prices.length > 0) {
+    const cheapest = Math.min(...prices);
+    const expensive = Math.max(...prices);
+    document.getElementById('pmpMyCompanyCheapest').textContent = `$${cheapest.toFixed(2)}`;
+    document.getElementById('pmpMyCompanyExpensive').textContent = `$${expensive.toFixed(2)}`;
+  } else {
+    document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
+    document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+  }
+}
+
+// Update Competitors summary with filtered data
+function updateCompetitorsSummaryWithFiltered(products) {
+  if (!products || products.length === 0) {
+    document.getElementById('pmpCompetitorsCount').textContent = '0';
+    document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
+    document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+    return;
+  }
+  
+  // Update count
+  document.getElementById('pmpCompetitorsCount').textContent = products.length;
+  
+  // Find cheapest and most expensive
+  const prices = products.map(p => {
+    const priceValue = typeof p.price === 'string' ? 
+      parseFloat(p.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(p.price);
+    return isNaN(priceValue) ? 0 : priceValue;
+  }).filter(p => p > 0);
+  
+  if (prices.length > 0) {
+    const cheapest = Math.min(...prices);
+    const expensive = Math.max(...prices);
+    document.getElementById('pmpCompetitorsCheapest').textContent = `$${cheapest.toFixed(2)}`;
+    document.getElementById('pmpCompetitorsExpensive').textContent = `$${expensive.toFixed(2)}`;
+  } else {
+    document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
+    document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+  }
+  
+  // Re-render company distribution chart with filtered data
+  renderCompetitorsCompanyChart(products);
+}
+
+// Update just the company chart for competitors
+async function renderCompetitorsCompanyChart(products) {
+  const top10Companies = await getTop10Companies();
+  
+  // Count products per company
+  const companyProductCounts = {};
+  products.forEach(product => {
+    const company = product.source;
+    if (company) {
+      companyProductCounts[company] = (companyProductCounts[company] || 0) + 1;
+    }
+  });
+  
+  // Separate top 10 and others
+  const top10Data = [];
+  const top10Colors = [
+    '#667eea', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24',
+    '#6c5ce7', '#fd79a8', '#fdcb6e', '#55efc4', '#a29bfe'
+  ];
+  
+  let otherCount = 0;
+  
+  Object.keys(companyProductCounts).forEach(company => {
+    if (top10Companies.includes(company)) {
+      const index = top10Companies.indexOf(company);
+      top10Data.push({
+        company: company,
+        count: companyProductCounts[company],
+        color: top10Colors[index] || '#95a5a6'
+      });
+    } else {
+      otherCount += companyProductCounts[company];
+    }
+  });
+  
+  // Sort top 10 by count
+  top10Data.sort((a, b) => b.count - a.count);
+  
+  // Add "Others" if there are products from companies outside top 10
+  if (otherCount > 0) {
+    top10Data.push({
+      company: 'Others',
+      count: otherCount,
+      color: '#95a5a6'
+    });
+  }
+  
+  const companyChartOptions = {
+    series: top10Data.map(d => d.count),
+    chart: {
+      type: 'donut',
+      height: 130,
+      width: 130
+    },
+    labels: top10Data.map(d => d.company),
+    colors: top10Data.map(d => d.color),
+    legend: {
+      show: false
+    },
+    dataLabels: {
+      enabled: false
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '65%',
+          labels: {
+            show: false
+          }
+        }
+      }
+    },
+    stroke: {
+      width: 2,
+      colors: ['#fff']
+    },
+    tooltip: {
+      y: {
+        formatter: function(val) {
+          return val + ' products';
+        }
+      }
+    }
+  };
+  
+  // Destroy existing chart if any
+  if (window.pmpCompetitorsCompanyChartInstance) {
+    window.pmpCompetitorsCompanyChartInstance.destroy();
+  }
+  
+  const companyChartEl = document.getElementById('pmpCompetitorsCompanyChart');
+  if (companyChartEl) {
+    window.pmpCompetitorsCompanyChartInstance = new ApexCharts(companyChartEl, companyChartOptions);
+    window.pmpCompetitorsCompanyChartInstance.render();
+  }
 }
 
 function renderFilteredProducts(type, container) {
@@ -1847,6 +2056,441 @@ ${generatePriceChangeBadges(product)}
         productElement.addEventListener('click', (e) => handleProductClick(e, product, productElement));
       }
     });
+  }
+}
+
+// Function to update My Company summary
+function updateMyCompanySummary(products, companyData) {
+  if (!products || products.length === 0) {
+    document.getElementById('pmpMyCompanyCount').textContent = '0';
+    document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
+    document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+    return;
+  }
+  
+  // Update count
+  document.getElementById('pmpMyCompanyCount').textContent = products.length;
+  
+  // Find cheapest and most expensive
+  const prices = products.map(p => {
+    const priceValue = typeof p.price === 'string' ? 
+      parseFloat(p.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(p.price);
+    return isNaN(priceValue) ? 0 : priceValue;
+  }).filter(p => p > 0);
+  
+  if (prices.length > 0) {
+    const cheapest = Math.min(...prices);
+    const expensive = Math.max(...prices);
+    document.getElementById('pmpMyCompanyCheapest').textContent = `$${cheapest.toFixed(2)}`;
+    document.getElementById('pmpMyCompanyExpensive').textContent = `$${expensive.toFixed(2)}`;
+  } else {
+    document.getElementById('pmpMyCompanyCheapest').textContent = '$—';
+    document.getElementById('pmpMyCompanyExpensive').textContent = '$—';
+  }
+  
+  // Render donut charts
+  renderMyCompanyBucketCharts(companyData);
+}
+
+// Function to update Competitors summary
+function updateCompetitorsSummary(products) {
+  if (!products || products.length === 0) {
+    document.getElementById('pmpCompetitorsCount').textContent = '0';
+    document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
+    document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+    return;
+  }
+  
+  // Update count
+  document.getElementById('pmpCompetitorsCount').textContent = products.length;
+  
+  // Find cheapest and most expensive
+  const prices = products.map(p => {
+    const priceValue = typeof p.price === 'string' ? 
+      parseFloat(p.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(p.price);
+    return isNaN(priceValue) ? 0 : priceValue;
+  }).filter(p => p > 0);
+  
+  if (prices.length > 0) {
+    const cheapest = Math.min(...prices);
+    const expensive = Math.max(...prices);
+    document.getElementById('pmpCompetitorsCheapest').textContent = `$${cheapest.toFixed(2)}`;
+    document.getElementById('pmpCompetitorsExpensive').textContent = `$${expensive.toFixed(2)}`;
+  } else {
+    document.getElementById('pmpCompetitorsCheapest').textContent = '$—';
+    document.getElementById('pmpCompetitorsExpensive').textContent = '$—';
+  }
+  
+  // Render donut charts
+  renderCompetitorsCharts(products);
+}
+
+// Function to render My Company bucket share charts
+async function renderMyCompanyBucketCharts(companyData) {
+  // Get bucket data from company pricing data
+  const buckets = [
+    { name: 'Ultra Premium', share: parseFloat(companyData.ultra_premium_bucket_share) || 0, expw: parseFloat(companyData.expw_ultra_premium_bucket_share) || 0, color: '#9C27B0' },
+    { name: 'Premium', share: parseFloat(companyData.premium_bucket_share) || 0, expw: parseFloat(companyData.expw_premium_bucket_share) || 0, color: '#7B1FA2' },
+    { name: 'Upper Mid', share: parseFloat(companyData.upper_mid_bucket_share) || 0, expw: parseFloat(companyData.expw_upper_mid_bucket_share) || 0, color: '#FFC107' },
+    { name: 'Mid Range', share: parseFloat(companyData.mid_bucket_share) || 0, expw: parseFloat(companyData.expw_mid_bucket_share) || 0, color: '#FF9800' },
+    { name: 'Budget', share: parseFloat(companyData.budget_bucket_share) || 0, expw: parseFloat(companyData.expw_budget_bucket_share) || 0, color: '#66BB6A' },
+    { name: 'Ultra Cheap', share: parseFloat(companyData.ultra_cheap_bucket_share) || 0, expw: parseFloat(companyData.expw_ultra_cheap_bucket_share) || 0, color: '#4CAF50' }
+  ];
+  
+  // Filter out buckets with 0 share
+  const activeBuckets = buckets.filter(b => b.share > 0);
+  
+  // First chart - Bucket Share
+  const bucketShareOptions = {
+    series: activeBuckets.map(b => (b.share * 100)),
+    chart: {
+      type: 'donut',
+      height: 130,
+      width: 130
+    },
+    labels: activeBuckets.map(b => b.name),
+    colors: activeBuckets.map(b => b.color),
+    legend: {
+      show: false
+    },
+    dataLabels: {
+      enabled: false
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '65%',
+          labels: {
+            show: false
+          }
+        }
+      }
+    },
+    stroke: {
+      width: 2,
+      colors: ['#fff']
+    },
+    tooltip: {
+      y: {
+        formatter: function(val) {
+          return val.toFixed(1) + '%';
+        }
+      }
+    }
+  };
+  
+  // Destroy existing chart if any
+  if (window.pmpMyCompanyBucketChartInstance) {
+    window.pmpMyCompanyBucketChartInstance.destroy();
+  }
+  
+  const bucketChartEl = document.getElementById('pmpMyCompanyBucketChart');
+  if (bucketChartEl) {
+    window.pmpMyCompanyBucketChartInstance = new ApexCharts(bucketChartEl, bucketShareOptions);
+    window.pmpMyCompanyBucketChartInstance.render();
+  }
+  
+  // Second chart - Exposure Weighted Share
+  const activeExpwBuckets = buckets.filter(b => b.expw > 0);
+  
+  const expwShareOptions = {
+    series: activeExpwBuckets.map(b => (b.expw * 100)),
+    chart: {
+      type: 'donut',
+      height: 130,
+      width: 130
+    },
+    labels: activeExpwBuckets.map(b => b.name),
+    colors: activeExpwBuckets.map(b => b.color),
+    legend: {
+      show: false
+    },
+    dataLabels: {
+      enabled: false
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '65%',
+          labels: {
+            show: false
+          }
+        }
+      }
+    },
+    stroke: {
+      width: 2,
+      colors: ['#fff']
+    },
+    tooltip: {
+      y: {
+        formatter: function(val) {
+          return val.toFixed(1) + '%';
+        }
+      }
+    }
+  };
+  
+  // Destroy existing chart if any
+  if (window.pmpMyCompanyExpwChartInstance) {
+    window.pmpMyCompanyExpwChartInstance.destroy();
+  }
+  
+  const expwChartEl = document.getElementById('pmpMyCompanyExpwChart');
+  if (expwChartEl) {
+    window.pmpMyCompanyExpwChartInstance = new ApexCharts(expwChartEl, expwShareOptions);
+    window.pmpMyCompanyExpwChartInstance.render();
+  }
+}
+
+// Function to get top 10 companies from stats (copied logic from companies.js)
+async function getTop10Companies() {
+  try {
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}company_serp_stats`;
+    
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      
+      request.onsuccess = function(event) {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('projectData')) {
+          console.error('[PM Products] projectData object store not found');
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(tableName);
+        
+        getRequest.onsuccess = function() {
+          const result = getRequest.result;
+          
+          if (!result || !result.data) {
+            console.warn('[PM Products] No stats data found');
+            db.close();
+            resolve([]);
+            return;
+          }
+          
+          // Find top 10 companies (q=all, location_requested=all, device=all, source != all)
+          const companyRecords = result.data
+            .filter(row => 
+              row.q === 'all' && 
+              row.location_requested === 'all' && 
+              row.device === 'all' && 
+              row.source !== 'all'
+            )
+            .sort((a, b) => {
+              const rankA = parseFloat(a['7d_rank']) || 999;
+              const rankB = parseFloat(b['7d_rank']) || 999;
+              return rankA - rankB;
+            })
+            .slice(0, 10);
+          
+          const top10 = companyRecords.map(r => r.source);
+          db.close();
+          resolve(top10);
+        };
+        
+        getRequest.onerror = function() {
+          console.error('[PM Products] Error getting stats data:', getRequest.error);
+          db.close();
+          resolve([]);
+        };
+      };
+      
+      request.onerror = function() {
+        console.error('[PM Products] Failed to open database:', request.error);
+        resolve([]);
+      };
+    });
+  } catch (error) {
+    console.error('[PM Products] Error getting top 10 companies:', error);
+    return [];
+  }
+}
+
+// Function to render Competitors charts
+async function renderCompetitorsCharts(products) {
+  // First chart - Market Bucket Share
+  const data = await window.pmUtils.loadCompanyPricingData();
+  if (data && data.allData) {
+    const marketData = data.allData.find(row => 
+      row.source === 'all' && row.q === 'all'
+    );
+    
+    if (marketData) {
+      const buckets = [
+        { name: 'Ultra Premium', share: parseFloat(marketData.ultra_premium_bucket_share) || 0, color: '#9C27B0' },
+        { name: 'Premium', share: parseFloat(marketData.premium_bucket_share) || 0, color: '#7B1FA2' },
+        { name: 'Upper Mid', share: parseFloat(marketData.upper_mid_bucket_share) || 0, color: '#FFC107' },
+        { name: 'Mid Range', share: parseFloat(marketData.mid_bucket_share) || 0, color: '#FF9800' },
+        { name: 'Budget', share: parseFloat(marketData.budget_bucket_share) || 0, color: '#66BB6A' },
+        { name: 'Ultra Cheap', share: parseFloat(marketData.ultra_cheap_bucket_share) || 0, color: '#4CAF50' }
+      ];
+      
+      const activeBuckets = buckets.filter(b => b.share > 0);
+      
+      const marketBucketOptions = {
+        series: activeBuckets.map(b => (b.share * 100)),
+        chart: {
+          type: 'donut',
+          height: 130,
+          width: 130
+        },
+        labels: activeBuckets.map(b => b.name),
+        colors: activeBuckets.map(b => b.color),
+        legend: {
+          show: false
+        },
+        dataLabels: {
+          enabled: false
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: false
+              }
+            }
+          }
+        },
+        stroke: {
+          width: 2,
+          colors: ['#fff']
+        },
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val.toFixed(1) + '%';
+            }
+          }
+        }
+      };
+      
+      // Destroy existing chart if any
+      if (window.pmpCompetitorsMarketChartInstance) {
+        window.pmpCompetitorsMarketChartInstance.destroy();
+      }
+      
+      const marketChartEl = document.getElementById('pmpCompetitorsMarketChart');
+      if (marketChartEl) {
+        window.pmpCompetitorsMarketChartInstance = new ApexCharts(marketChartEl, marketBucketOptions);
+        window.pmpCompetitorsMarketChartInstance.render();
+      }
+    }
+  }
+  
+  // Second chart - Top 10 Companies by product count
+  const top10Companies = await getTop10Companies();
+  
+  // Count products per company
+  const companyProductCounts = {};
+  products.forEach(product => {
+    const company = product.source;
+    if (company) {
+      companyProductCounts[company] = (companyProductCounts[company] || 0) + 1;
+    }
+  });
+  
+  // Separate top 10 and others
+  const top10Data = [];
+  const top10Colors = [
+    '#667eea', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24',
+    '#6c5ce7', '#fd79a8', '#fdcb6e', '#55efc4', '#a29bfe'
+  ];
+  
+  let otherCount = 0;
+  
+  Object.keys(companyProductCounts).forEach(company => {
+    if (top10Companies.includes(company)) {
+      const index = top10Companies.indexOf(company);
+      top10Data.push({
+        company: company,
+        count: companyProductCounts[company],
+        color: top10Colors[index] || '#95a5a6'
+      });
+    } else {
+      otherCount += companyProductCounts[company];
+    }
+  });
+  
+  // Sort top 10 by count
+  top10Data.sort((a, b) => b.count - a.count);
+  
+  // Add "Others" if there are products from companies outside top 10
+  if (otherCount > 0) {
+    top10Data.push({
+      company: 'Others',
+      count: otherCount,
+      color: '#95a5a6'
+    });
+  }
+  
+  const companyChartOptions = {
+    series: top10Data.map(d => d.count),
+    chart: {
+      type: 'donut',
+      height: 130,
+      width: 130
+    },
+    labels: top10Data.map(d => d.company),
+    colors: top10Data.map(d => d.color),
+    legend: {
+      show: false
+    },
+    dataLabels: {
+      enabled: false
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '65%',
+          labels: {
+            show: false
+          }
+        }
+      }
+    },
+    stroke: {
+      width: 2,
+      colors: ['#fff']
+    },
+    tooltip: {
+      y: {
+        formatter: function(val) {
+          return val + ' products';
+        }
+      }
+    }
+  };
+  
+  // Destroy existing chart if any
+  if (window.pmpCompetitorsCompanyChartInstance) {
+    window.pmpCompetitorsCompanyChartInstance.destroy();
+  }
+  
+  const companyChartEl = document.getElementById('pmpCompetitorsCompanyChart');
+  if (companyChartEl) {
+    window.pmpCompetitorsCompanyChartInstance = new ApexCharts(companyChartEl, companyChartOptions);
+    window.pmpCompetitorsCompanyChartInstance.render();
   }
 }
 
@@ -2401,9 +3045,19 @@ allProductsData.myCompany = products;
 if (products.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No products found</div>';
 } else {
+  // Get company data for charts
+  const data = await window.pmUtils.loadCompanyPricingData();
+  const companyName = window.myCompany || 'East Perry';
+  const myCompanyData = data.allData.find(row => 
+    row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+  );
+  
+  // Update summary
+  updateMyCompanySummary(products, myCompanyData);
+  
   // Use filterProducts to render with proper sorting
   filterProducts();
-}     
+}    
         db.close();
       };
       
@@ -2507,9 +3161,12 @@ allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
 if (allProductsData.competitors.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
 } else {
+  // Update summary
+  updateCompetitorsSummary(allProductsData.competitors);
+  
   // Use filterProducts to render with proper sorting
   filterProducts();
-}     
+}   
         db.close();
       };
       
