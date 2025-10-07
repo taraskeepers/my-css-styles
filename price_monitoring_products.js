@@ -1764,30 +1764,30 @@ function renderPriceHistory(productRecord, container) {
       }
     }
     
-    // Parse date - handle various formats
+    // Parse date - handle the specific format in your data
     let date = null;
     if (item.date) {
-      // Check for MongoDB date format
-      if (item.date.$date) {
+      // Check for the {value: "YYYY-MM-DD"} format
+      if (item.date.value) {
+        date = new Date(item.date.value);
+      }
+      // Also check for MongoDB date format (keeping for compatibility)
+      else if (item.date.$date) {
         if (item.date.$date.$numberLong) {
-          // MongoDB extended JSON format
           date = new Date(parseInt(item.date.$date.$numberLong));
         } else if (typeof item.date.$date === 'string') {
-          // ISO string format
           date = new Date(item.date.$date);
         } else if (typeof item.date.$date === 'number') {
-          // Timestamp format
           date = new Date(item.date.$date);
         }
-      } else if (typeof item.date === 'string') {
-        // Direct string date
+      } 
+      // Direct string date
+      else if (typeof item.date === 'string') {
         date = new Date(item.date);
-      } else if (typeof item.date === 'number') {
-        // Direct timestamp
+      } 
+      // Direct timestamp
+      else if (typeof item.date === 'number') {
         date = new Date(item.date);
-      } else if (item.date instanceof Date) {
-        // Already a Date object
-        date = item.date;
       }
     }
     
