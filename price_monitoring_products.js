@@ -845,35 +845,55 @@ function addProductsViewStyles() {
 /* Expandable product details */
 .pm-ad-details {
   position: relative; /* IMPORTANT: Add this */
-  transition: margin-bottom 0.3s ease;
+  transition: all 0.3s ease;
   cursor: pointer; /* Add this to show it's clickable */
 }
 
 .pm-ad-details.expanded {
-  margin-bottom: 220px;
-  z-index: 10; /* Higher z-index when expanded */
+  margin-bottom: 290px; /* Increased for 280px height + gap */
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #667eea;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
 }
 
-/* Update the detailed container positioning */
-.pm-ad-details-detailed {
+.pm-ad-details.expanded::before {
+  content: '';
   position: absolute;
-  top: 100%; /* Simplified positioning */
+  top: 0;
   left: 0;
   right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 8px 8px 0 0;
+}
+
+/* Add subtle animation to the image when expanded */
+.pm-ad-details.expanded .pm-ad-image {
+  filter: brightness(1.05);
+}
+
+/* Detailed container with smooth visibility transition */
+.pm-ad-details-detailed {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
   height: 0;
   background: white;
   border-radius: 8px;
-  margin-top: 8px;
   overflow: hidden;
   opacity: 0;
-  transition: height 0.3s ease, opacity 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 1000; /* Very high z-index */
+  visibility: hidden;
+  transition: height 0.3s ease, opacity 0.5s ease, visibility 0.5s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
 }
 
 .pm-ad-details.expanded .pm-ad-details-detailed {
-  height: 210px;
+  height: 280px; /* Increased height */
   opacity: 1;
+  visibility: visible;
 }
 
 .pm-ad-details-detailed-content {
@@ -881,22 +901,28 @@ function addProductsViewStyles() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box; /* Add this */
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.2s; /* Delayed fade-in for content */
+}
+
+.pm-ad-details.expanded .pm-ad-details-detailed-content {
+  opacity: 1;
 }
 
 /* Ensure the products list doesn't clip the detailed view */
 .pmp-products-list {
   flex: 1;
   overflow-y: auto;
-  overflow-x: visible; /* Change from hidden to visible */
+  overflow-x: visible;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-right: 4px;
-  position: relative; /* Add this */
+  position: relative;
 }
 
-/* Rest of your detailed container styles remain the same... */
+/* Price trend badge */
 .pm-ad-price-trend {
   position: absolute;
   top: 12px;
@@ -909,6 +935,7 @@ function addProductsViewStyles() {
   display: flex;
   align-items: center;
   gap: 4px;
+  z-index: 10;
 }
 
 .pm-ad-price-trend.positive {
@@ -921,10 +948,12 @@ function addProductsViewStyles() {
   color: #388e3c;
 }
 
+/* Chart container - adjusted for new height */
 .pm-ad-chart-container {
   flex: 1;
   position: relative;
   margin-top: 35px;
+  max-height: 220px; /* Limit chart height */
 }
 
 .pm-ad-chart-canvas {
@@ -950,6 +979,11 @@ function addProductsViewStyles() {
   height: 100%;
   color: #999;
   font-size: 13px;
+}
+
+/* Remove expanded style when collapsing */
+.pm-ad-details.collapsing {
+  transition: all 0.3s ease, margin-bottom 0.3s ease;
 }
       
     </style>
@@ -1614,33 +1648,64 @@ function handleProductClick(event, product, productElement) {
   // Check if already expanded
   const isExpanded = productElement.classList.contains('expanded');
   
-  // Close all other expanded products first
-  document.querySelectorAll('.pm-ad-details.expanded').forEach(el => {
-    if (el !== productElement) {
-      el.classList.remove('expanded');
-      const detailedEl = el.querySelector('.pm-ad-details-detailed');
-      if (detailedEl) {
-        setTimeout(() => detailedEl.remove(), 300);
-      }
+  // Get the parent container to determine which section we're in
+  const parentList = productElement.closest('.pmp-products-list');
+  const isMyCompany = parentList && parentList.id === 'pmpMyCompanyProductsList';
+  const isCompetitors = parentList && parentList.id === 'pmpCompetitorsProductsList';
+  
+  // Only close other expanded products in the SAME section
+  if (isMyCompany || isCompetitors) {
+    const sectionSelector = isMyCompany ? '#pmpMyCompanyProductsList' : '#pmpCompetitorsProductsList';
+    const sameSection = document.querySelector(sectionSelector);
+    
+    if (sameSection) {
+      sameSection.querySelectorAll('.pm-ad-details.expanded').forEach(el => {
+        if (el !== productElement) {
+          collapseProductDetail(el);
+        }
+      });
     }
-  });
+  }
   
   if (isExpanded) {
-    // Collapse
-    productElement.classList.remove('expanded');
-    const detailedEl = productElement.querySelector('.pm-ad-details-detailed');
-    if (detailedEl) {
-      setTimeout(() => detailedEl.remove(), 300);
-    }
+    // Collapse with animation
+    collapseProductDetail(productElement);
   } else {
     // Expand and load detailed data
-    productElement.classList.add('expanded');
-    
-    // Force a reflow to ensure the container is visible
-    productElement.offsetHeight;
-    
-    loadProductDetails(product, productElement);
+    expandProductDetail(productElement, product);
   }
+}
+
+// Helper function to collapse product detail
+function collapseProductDetail(productElement) {
+  productElement.classList.add('collapsing');
+  productElement.classList.remove('expanded');
+  
+  const detailedEl = productElement.querySelector('.pm-ad-details-detailed');
+  if (detailedEl) {
+    // Fade out the content first
+    const content = detailedEl.querySelector('.pm-ad-details-detailed-content');
+    if (content) {
+      content.style.opacity = '0';
+    }
+    
+    // Then collapse and remove
+    setTimeout(() => {
+      detailedEl.style.opacity = '0';
+      setTimeout(() => {
+        detailedEl.remove();
+        productElement.classList.remove('collapsing');
+      }, 500); // Match the CSS transition time
+    }, 200);
+  }
+}
+
+// Helper function to expand product detail
+function expandProductDetail(productElement, product) {
+  productElement.classList.add('expanded');
+  
+  // Load the product details
+  loadProductDetails(product, productElement);
 }
 
 async function loadProductDetails(product, productElement) {
@@ -1653,9 +1718,21 @@ async function loadProductDetails(product, productElement) {
     detailedContainer.className = 'pm-ad-details-detailed';
     productElement.appendChild(detailedContainer);
     console.log('[PM Products] Created detailed container');
+    
+    // Force reflow to ensure animation works
+    detailedContainer.offsetHeight;
   }
   
-  detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Loading price history...</div></div>';
+  // Start with loading message
+  detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content" style="opacity: 0;"><div class="pm-ad-no-history">Loading price history...</div></div>';
+  
+  // Fade in the loading message
+  setTimeout(() => {
+    const content = detailedContainer.querySelector('.pm-ad-details-detailed-content');
+    if (content) {
+      content.style.opacity = '1';
+    }
+  }, 100);
   
   try {
     // Get table prefix
@@ -1679,7 +1756,7 @@ async function loadProductDetails(product, productElement) {
       
       if (!db.objectStoreNames.contains('projectData')) {
         console.error('[PM Products] projectData object store not found');
-        detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading data</div></div>';
+        updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">Error loading data</div>');
         db.close();
         return;
       }
@@ -1693,7 +1770,7 @@ async function loadProductDetails(product, productElement) {
         
         if (!result || !result.data) {
           console.warn('[PM Products] No data found in table');
-          detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No data found</div></div>';
+          updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">No data found</div>');
           db.close();
           return;
         }
@@ -1711,7 +1788,7 @@ async function loadProductDetails(product, productElement) {
           renderPriceHistory(productRecord, detailedContainer);
         } else {
           console.warn('[PM Products] No historical data available');
-          detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">No price history available</div></div>';
+          updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">No price history available</div>');
         }
         
         db.close();
@@ -1719,18 +1796,37 @@ async function loadProductDetails(product, productElement) {
       
       getRequest.onerror = function() {
         console.error('[PM Products] Error getting data:', getRequest.error);
-        detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
+        updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">Error loading price history</div>');
         db.close();
       };
     };
     
     request.onerror = function() {
       console.error('[PM Products] Failed to open database:', request.error);
-      detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
+      updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">Error loading price history</div>');
     };
   } catch (error) {
     console.error('[PM Products] Error loading product details:', error);
-    detailedContainer.innerHTML = '<div class="pm-ad-details-detailed-content"><div class="pm-ad-no-history">Error loading price history</div></div>';
+    updateDetailedContent(detailedContainer, '<div class="pm-ad-no-history">Error loading price history</div>');
+  }
+}
+
+// Helper function to update detailed content with fade effect
+function updateDetailedContent(container, html) {
+  const currentContent = container.querySelector('.pm-ad-details-detailed-content');
+  if (currentContent) {
+    currentContent.style.opacity = '0';
+    setTimeout(() => {
+      container.innerHTML = `<div class="pm-ad-details-detailed-content" style="opacity: 0;">${html}</div>`;
+      setTimeout(() => {
+        const newContent = container.querySelector('.pm-ad-details-detailed-content');
+        if (newContent) {
+          newContent.style.opacity = '1';
+        }
+      }, 100);
+    }, 300);
+  } else {
+    container.innerHTML = `<div class="pm-ad-details-detailed-content">${html}</div>`;
   }
 }
 
