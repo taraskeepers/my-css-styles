@@ -3045,19 +3045,21 @@ allProductsData.myCompany = products;
 if (products.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No products found</div>';
 } else {
-  // Get company data for charts
-  const data = await window.pmUtils.loadCompanyPricingData();
-  const companyName = window.myCompany || 'East Perry';
-  const myCompanyData = data.allData.find(row => 
-    row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
-  );
-  
-  // Update summary
-  updateMyCompanySummary(products, myCompanyData);
-  
-  // Use filterProducts to render with proper sorting
-  filterProducts();
-}    
+  // Get company data for charts (wrap in async function)
+  (async () => {
+    const data = await window.pmUtils.loadCompanyPricingData();
+    const companyName = window.myCompany || 'East Perry';
+    const myCompanyData = data.allData.find(row => 
+      row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+    );
+    
+    // Update summary
+    updateMyCompanySummary(products, myCompanyData);
+    
+    // Use filterProducts to render with proper sorting
+    filterProducts();
+  })();
+}   
         db.close();
       };
       
@@ -3161,12 +3163,14 @@ allProductsData.competitors = Array.from(productMap.values()).sort((a, b) => {
 if (allProductsData.competitors.length === 0) {
   container.innerHTML = '<div class="pmp-no-products">No competitor products found</div>';
 } else {
-  // Update summary
-  updateCompetitorsSummary(allProductsData.competitors);
-  
-  // Use filterProducts to render with proper sorting
-  filterProducts();
-}   
+  // Update summary (wrap in async function since it needs async operations)
+  (async () => {
+    await updateCompetitorsSummary(allProductsData.competitors);
+    
+    // Use filterProducts to render with proper sorting
+    filterProducts();
+  })();
+} 
         db.close();
       };
       
