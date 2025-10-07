@@ -430,7 +430,6 @@ function addProductsViewStyles() {
         display: flex;
         flex-direction: column;
         position: relative;
-        overflow: hidden;
         min-width: 0;
       }
       
@@ -465,25 +464,31 @@ function addProductsViewStyles() {
         border-bottom: 1px solid #f0f0f0;
       }
       
-      .pmp-products-list {
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding-right: 4px;
-      }
-      
-      /* Individual product card */
+/* Products list - Update overflow settings */
+.pmp-products-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* Allow horizontal overflow */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  position: relative;
+  z-index: 1; /* Add z-index */
+}
+
+/* Individual product card - Ensure proper positioning */
 .pm-ad-details {
   display: flex;
   background: #fafafa;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
-  height: 100px;  /* Changed from 130px */
-  overflow: hidden;
+  height: 100px;
+  overflow: visible; /* Change from hidden to visible */
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative; /* Ensure this is set */
+  z-index: 1; /* Add base z-index */
 }
       
       .pm-ad-details:hover {
@@ -845,23 +850,26 @@ function addProductsViewStyles() {
 }
 
 .pm-ad-details.expanded {
-  margin-bottom: 220px; /* Slightly increased for better spacing */
+  margin-bottom: 220px;
+  z-index: 10; /* Higher z-index when expanded */
 }
 
+/* Update the detailed container positioning */
 .pm-ad-details-detailed {
   position: absolute;
-  top: calc(100% + 8px); /* Add small gap */
+  top: 100%; /* Simplified positioning */
   left: 0;
-  width: 100%; /* Use width: 100% instead of right: 0 */
+  right: 0;
   height: 0;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
+  margin-top: 8px;
   overflow: hidden;
   opacity: 0;
   transition: height 0.3s ease, opacity 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 100; /* Increased z-index */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000; /* Very high z-index */
 }
 
 .pm-ad-details.expanded .pm-ad-details-detailed {
@@ -1599,9 +1607,10 @@ function renderFilteredProducts(type, container) {
   }
 }
 
-// Function to handle product click and expansion
 function handleProductClick(event, product, productElement) {
   event.stopPropagation();
+  
+  console.log('[PM Products] Product clicked:', product.title);
   
   // Check if already expanded
   const isExpanded = productElement.classList.contains('expanded');
@@ -1627,6 +1636,10 @@ function handleProductClick(event, product, productElement) {
   } else {
     // Expand and load detailed data
     productElement.classList.add('expanded');
+    
+    // Force a reflow to ensure the container is visible
+    productElement.offsetHeight;
+    
     loadProductDetails(product, productElement);
   }
 }
