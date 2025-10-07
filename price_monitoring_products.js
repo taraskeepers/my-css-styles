@@ -16,6 +16,7 @@ let competitorsPriceData = {
   mostExpensive: null
 };
 let selectedCompany = null;
+let selectedCompanyData = null;
 
 function initializePriceMonitoringProducts() {
   console.log('[PM Products] Initializing products view module');
@@ -1577,23 +1578,31 @@ async function updateProductsOverviewCard(companyData) {
 }
 
 async function updateProductsBuckets(companyData) {
-  const bucketsBody = document.getElementById('pmpProductsBucketsBody');
+  const bucketsBody = document.getElementById('pmCompanyBucketsBody');
   if (!bucketsBody) return;
   
-  // Load market data for comparison
-  let marketData = null;
+  // Load comparison data (market or selected company)
+  let comparisonData = null;
   try {
     const data = await window.pmUtils.loadCompanyPricingData();
     if (data && data.allData) {
-      marketData = data.allData.find(row => 
-        row.source === 'all' && row.q === 'all'
-      );
+      if (selectedCompanyData) {
+        // Use selected company data
+        comparisonData = data.allData.find(row => 
+          row.source === selectedCompanyData.source && row.q === 'all'
+        );
+      } else {
+        // Use market data
+        comparisonData = data.allData.find(row => 
+          row.source === 'all' && row.q === 'all'
+        );
+      }
     }
   } catch (error) {
-    console.error('[PM Products] Error loading market data:', error);
+    console.error('[PM Products] Error loading comparison data:', error);
   }
   
-  // Define buckets based on company data
+// Define buckets based on company data
   const buckets = [
     {
       name: 'Ultra Premium',
@@ -1605,8 +1614,8 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_ultra_premium_bucket_share,
       discounted: companyData.disc_ultra_premium_bucket,
       discount_depth: companyData.disc_depth_ultra_premium_bucket,
-      market_share: marketData?.ultra_premium_bucket_share,
-      market_expw_share: marketData?.expw_ultra_premium_bucket_share,
+      comparison_share: comparisonData?.ultra_premium_bucket_share,
+      comparison_expw_share: comparisonData?.expw_ultra_premium_bucket_share,
       color: '#9C27B0'
     },
     {
@@ -1619,8 +1628,8 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_premium_bucket_share,
       discounted: companyData.disc_premium_bucket,
       discount_depth: companyData.disc_depth_premium_bucket,
-      market_share: marketData?.premium_bucket_share,
-      market_expw_share: marketData?.expw_premium_bucket_share,
+      comparison_share: comparisonData?.premium_bucket_share,
+      comparison_expw_share: comparisonData?.expw_premium_bucket_share,
       color: '#7B1FA2'
     },
     {
@@ -1633,8 +1642,8 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_upper_mid_bucket_share,
       discounted: companyData.disc_upper_mid_bucket,
       discount_depth: companyData.disc_depth_upper_mid_bucket,
-      market_share: marketData?.upper_mid_bucket_share,
-      market_expw_share: marketData?.expw_upper_mid_bucket_share,
+      comparison_share: comparisonData?.upper_mid_bucket_share,
+      comparison_expw_share: comparisonData?.expw_upper_mid_bucket_share,
       color: '#FFC107'
     },
     {
@@ -1647,8 +1656,8 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_mid_bucket_share,
       discounted: companyData.disc_mid_bucket,
       discount_depth: companyData.disc_depth_mid_bucket,
-      market_share: marketData?.mid_bucket_share,
-      market_expw_share: marketData?.expw_mid_bucket_share,
+      comparison_share: comparisonData?.mid_bucket_share,
+      comparison_expw_share: comparisonData?.expw_mid_bucket_share,
       color: '#FF9800'
     },
     {
@@ -1661,8 +1670,8 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_budget_bucket_share,
       discounted: companyData.disc_budget_bucket,
       discount_depth: companyData.disc_depth_budget_bucket,
-      market_share: marketData?.budget_bucket_share,
-      market_expw_share: marketData?.expw_budget_bucket_share,
+      comparison_share: comparisonData?.budget_bucket_share,
+      comparison_expw_share: comparisonData?.expw_budget_bucket_share,
       color: '#66BB6A'
     },
     {
@@ -1675,16 +1684,17 @@ async function updateProductsBuckets(companyData) {
       expw_share: companyData.expw_ultra_cheap_bucket_share,
       discounted: companyData.disc_ultra_cheap_bucket,
       discount_depth: companyData.disc_depth_ultra_cheap_bucket,
-      market_share: marketData?.ultra_cheap_bucket_share,
-      market_expw_share: marketData?.expw_ultra_cheap_bucket_share,
+      comparison_share: comparisonData?.ultra_cheap_bucket_share,
+      comparison_expw_share: comparisonData?.expw_ultra_cheap_bucket_share,
       color: '#4CAF50'
     }
   ];
   
-// Update header
+// Update header - dynamic based on selection
+const comparisonLabel = selectedCompanyData ? selectedCompanyData.source : 'Market';
 const headerHTML = `
   <span>Bucket</span>
-  <span style="text-align: center;">Market</span>
+  <span style="text-align: center;">${comparisonLabel}</span>
   <span style="text-align: center;">My Company Share</span>
   <span style="text-align: center;">Products</span>
 `;
@@ -1722,7 +1732,13 @@ if (bucket.range && bucket.range.price_range) {
     const marketSharePercent = (marketShare * 100).toFixed(1);
     const marketExpwSharePercent = (marketExpwShare * 100).toFixed(1);
     
-bucketsHTML += `
+const comparisonSharePercent = (parseFloat(bucket.comparison_share) * 100 || 0).toFixed(1);
+    const comparisonExpwSharePercent = (parseFloat(bucket.comparison_expw_share) * 100 || 0).toFixed(1);
+    
+    // Determine if we show single bar (market) or double bars (selected company)
+    const showDoubleBars = selectedCompanyData !== null;
+    
+    bucketsHTML += `
   <div class="pmp-products-bucket-row" data-bucket="${bucket.tier}">
     <!-- Column 1: Bucket Label -->
     <div class="pmp-bucket-label">
@@ -1733,17 +1749,36 @@ bucketsHTML += `
       <div class="pmp-bucket-range">${range}</div>
     </div>
     
-<!-- Column 2: Market bars -->
-<div class="pmp-butterfly-bars">
-  <div class="pmp-butterfly-left">
-    <div class="pmp-bar-row">
-      <div class="pmp-tree-bar-container small">
-        <div class="pmp-tree-bar" style="width: ${Math.max(1, marketSharePercent)}%; background: #888;"></div>
-        <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${marketSharePercent}%</span>
-      </div>
+    <!-- Column 2: Comparison bars (Market or Selected Company) -->
+    <div class="pmp-butterfly-bars">
+      ${showDoubleBars ? `
+        <!-- Two bars for selected company -->
+        <div class="pmp-butterfly-right">
+          <div class="pmp-bar-row">
+            <div class="pmp-tree-bar-container small">
+              <div class="pmp-tree-bar" style="width: ${Math.max(1, comparisonSharePercent)}%; background: #888;"></div>
+              <span class="pmp-bar-percent-outside small">${comparisonSharePercent}%</span>
+            </div>
+          </div>
+          <div class="pmp-bar-row">
+            <div class="pmp-tree-bar-container small">
+              <div class="pmp-tree-bar" style="width: ${Math.max(1, comparisonExpwSharePercent)}%; background: linear-gradient(90deg, #888, #88888080);"></div>
+              <span class="pmp-bar-percent-outside small">${comparisonExpwSharePercent}%</span>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <!-- Single bar for market -->
+        <div class="pmp-butterfly-left">
+          <div class="pmp-bar-row">
+            <div class="pmp-tree-bar-container small">
+              <div class="pmp-tree-bar" style="width: ${Math.max(1, comparisonSharePercent)}%; background: #888;"></div>
+              <span class="pmp-bar-percent-outside small" style="left: 8px; right: auto;">${comparisonSharePercent}%</span>
+            </div>
+          </div>
+        </div>
+      `}
     </div>
-  </div>
-</div>
     
     <!-- Column 3: My Company Share Bars -->
     <div class="pmp-butterfly-bars">
@@ -2056,10 +2091,22 @@ function populateCompanyFilter() {
     select.appendChild(option);
   });
   
-  // Add event listener
-  select.addEventListener('change', (e) => {
+// Add event listener
+  select.addEventListener('change', async (e) => {
     const selectedValue = e.target.value;
     selectedCompany = selectedValue || null;
+    
+    // Load selected company data if a company is selected
+    if (selectedCompany) {
+      const data = await window.pmUtils.loadCompanyPricingData();
+      if (data && data.allData) {
+        selectedCompanyData = data.allData.find(row => 
+          row.source === selectedCompany && row.q === 'all'
+        );
+      }
+    } else {
+      selectedCompanyData = null;
+    }
     
     // Show/hide clear button
     const clearBtn = document.getElementById('pmpCompanyClearBtn');
@@ -2071,17 +2118,38 @@ function populateCompanyFilter() {
       }
     }
     
+    // Rebuild buckets card with new comparison data
+    const companyName = window.myCompany || 'East Perry';
+    const myCompanyData = data.allData.find(row => 
+      row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+    );
+    if (myCompanyData) {
+      await updateProductsBuckets(myCompanyData);
+    }
+    
     // Re-filter products
     filterProducts();
   });
   
-  // Add clear button listener
+// Add clear button listener
   const clearBtn = document.getElementById('pmpCompanyClearBtn');
   if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
+    clearBtn.addEventListener('click', async () => {
       selectedCompany = null;
+      selectedCompanyData = null;
       select.value = '';
       clearBtn.classList.remove('active');
+      
+      // Rebuild buckets card back to market mode
+      const data = await window.pmUtils.loadCompanyPricingData();
+      const companyName = window.myCompany || 'East Perry';
+      const myCompanyData = data.allData.find(row => 
+        row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+      );
+      if (myCompanyData) {
+        await updateProductsBuckets(myCompanyData);
+      }
+      
       filterProducts();
     });
   }
