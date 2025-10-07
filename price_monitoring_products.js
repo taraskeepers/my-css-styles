@@ -849,28 +849,29 @@ function addProductsViewStyles() {
   cursor: pointer; /* Add this to show it's clickable */
 }
 
+/* Selected/Expanded product styling - Subtle and professional */
 .pm-ad-details.expanded {
-  margin-bottom: 290px; /* Increased for 280px height + gap */
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 1px solid #667eea;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+  margin-bottom: 290px;
+  background: #ffffff; /* Clean white background */
+  border: 1px solid #d0d0d0; /* Subtle gray border */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow */
 }
 
+/* Add a subtle left accent bar */
 .pm-ad-details.expanded::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  border-radius: 8px 8px 0 0;
+  bottom: 0;
+  width: 3px;
+  background: #667eea;
+  border-radius: 8px 0 0 8px;
 }
 
-/* Add subtle animation to the image when expanded */
+/* No image changes when expanded */
 .pm-ad-details.expanded .pm-ad-image {
-  filter: brightness(1.05);
+  /* Remove the filter */
 }
 
 /* Detailed container with smooth visibility transition */
@@ -984,6 +985,10 @@ function addProductsViewStyles() {
 /* Remove expanded style when collapsing */
 .pm-ad-details.collapsing {
   transition: all 0.3s ease, margin-bottom 0.3s ease;
+}
+.pm-ad-price-trend.neutral {
+  background: #f5f5f5;
+  color: #666;
 }
       
     </style>
@@ -1917,15 +1922,36 @@ function renderPriceHistory(productRecord, container) {
   
   console.log('[PM Products] Data to use for chart:', dataToUse);
   
-  // Get current price and max price for trend calculation
-  const currentPrice = dataToUse[dataToUse.length - 1]?.price || 0;
-  const maxPrice = Math.max(...dataToUse.map(d => d.price));
-  const minPrice = Math.min(...dataToUse.map(d => d.price));
-  
-  // Calculate price trend (% change from max to current)
-  const priceTrend = maxPrice > 0 ? ((currentPrice - maxPrice) / maxPrice * 100) : 0;
-  const trendClass = priceTrend >= 0 ? 'positive' : 'negative';
-  const trendSymbol = priceTrend >= 0 ? '↑' : '↓';
+// Get current price, max and min prices for trend calculation
+const currentPrice = dataToUse[dataToUse.length - 1]?.price || 0;
+const maxPrice = Math.max(...dataToUse.map(d => d.price));
+const minPrice = Math.min(...dataToUse.map(d => d.price));
+
+// Smart price trend calculation
+let priceTrend = 0;
+let trendClass = 'negative';
+let trendSymbol = '↓';
+
+// If current price is below the max (price went down), show % down from max
+if (currentPrice < maxPrice) {
+  priceTrend = ((currentPrice - maxPrice) / maxPrice * 100);
+  trendClass = 'negative';
+  trendSymbol = '↓';
+}
+// If current price is above the min (price went up), show % up from min
+else if (currentPrice > minPrice) {
+  priceTrend = ((currentPrice - minPrice) / minPrice * 100);
+  trendClass = 'positive';
+  trendSymbol = '↑';
+}
+// If price is stable (current = max = min), show 0%
+else {
+  priceTrend = 0;
+  trendClass = 'neutral';
+  trendSymbol = '—';
+}
+
+console.log(`[PM Products] Price trend: Current: $${currentPrice}, Min: $${minPrice}, Max: $${maxPrice}, Trend: ${priceTrend.toFixed(1)}%`);
   
   // Create container content
   const html = `
