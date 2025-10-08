@@ -815,9 +815,10 @@ function addCompaniesViewStyles() {
 }
 
 .pm-cpi-period-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 65px 1fr;
+  gap: 10px;
+  align-items: stretch;
 }
 
 .pm-cpi-period-header {
@@ -826,9 +827,15 @@ function addCompaniesViewStyles() {
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  text-align: center;
-  padding-bottom: 4px;
-  border-bottom: 2px solid #f0f0f0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f8f9fa, #e9ecef);
+  border-radius: 6px;
+  padding: 8px 0;
+  border-right: 3px solid #667eea;
 }
 
 .pm-cpi-lists {
@@ -1217,10 +1224,10 @@ updateCompanyKeyMetrics(myCompanyData);
   renderCompanyProductsChart(myCompanyData);
   
 // 7. Render CPI Trend Chart
-await renderCpiTrendChart(myCompanyData, data.allData);
+  const top5Companies = await renderCpiTrendChart(myCompanyData, data.allData);
 
-// 8. Render CPI Fluctuations (NEW)
-renderCpiFluctuations(data.allData);
+  // 8. Render CPI Fluctuations (NEW)
+  renderCpiFluctuations(data.allData, top5Companies);
 
 // 9. Update Advanced Metrics (update numbering)
 updateAdvancedMetrics(myCompanyData);
@@ -1998,13 +2005,17 @@ async function renderCpiTrendChart(myCompanyData, allData) {
     window.pmCpiChartInstance = new ApexCharts(ctx, options);
     await window.pmCpiChartInstance.render();
     
+    // Return top5Companies for use in fluctuations
+    return top5Companies;
+    
   } catch (error) {
     console.error('[PM Companies] Error rendering CPI chart:', error);
     ctx.innerHTML = '<div class="pm-no-data">Error loading CPI chart</div>';
+    return [];
   }
 }
 
-function calculateCpiFluctuations(allData) {
+function calculateCpiFluctuations(allData, top5Companies) {
   const periods = [
     { name: 'Last 3 Days', days: 3 },
     { name: 'Last 7 Days', days: 7 },
@@ -2014,9 +2025,13 @@ function calculateCpiFluctuations(allData) {
   const results = periods.map(period => {
     const changes = [];
     
-    // Process all companies (exclude market average)
+    // Process only top 5 companies
     allData.forEach(companyData => {
       if (companyData.source === 'all' || companyData.q !== 'all') return;
+      
+      // FILTER: Only include top 5 companies
+      if (!top5Companies.includes(companyData.source)) return;
+      
       if (!companyData.historical_data || companyData.historical_data.length < period.days + 1) return;
       
       const historical = companyData.historical_data;
@@ -2038,12 +2053,12 @@ function calculateCpiFluctuations(allData) {
     // Sort and split into decreases and increases
     const decreases = changes
       .filter(c => c.change < 0)
-      .sort((a, b) => a.change - b.change) // Most negative first
+      .sort((a, b) => a.change - b.change)
       .slice(0, 5);
     
     const increases = changes
       .filter(c => c.change > 0)
-      .sort((a, b) => b.change - a.change) // Most positive first
+      .sort((a, b) => b.change - a.change)
       .slice(0, 5);
     
     return {
@@ -2056,18 +2071,18 @@ function calculateCpiFluctuations(allData) {
   return results;
 }
 
-function renderCpiFluctuations(allData) {
+function renderCpiFluctuations(allData, top5Companies) {
   const container = document.getElementById('pmCpiFluctuationsGrid');
   if (!container) return;
   
-  const fluctuations = calculateCpiFluctuations(allData);
+  const fluctuations = calculateCpiFluctuations(allData, top5Companies);
   
   let html = '';
   
   fluctuations.forEach(periodData => {
-    html += `
+html += `
       <div class="pm-cpi-period-group">
-        <div class="pm-cpi-period-header">${periodData.period}</div>
+        <div class="pm-cpi-period-header">${periodData.period.replace(' ', '\n')}</div>
         <div class="pm-cpi-lists">
           <!-- Price Drops -->
           <div class="pm-cpi-list decrease">
