@@ -138,30 +138,30 @@ function createPriceMonitoringStructure() {
       gap: 20px;
     `;
     
-    switcherWrapper.innerHTML = `
-      <div id="pmViewSwitcher" class="pm-view-switcher">
-        <button id="pmMarketOverview" class="pm-switcher-btn active" data-view="market-overview">
-          <span class="pm-btn-icon">📊</span>
-          <span>Market Overview</span>
-        </button>
-        <button id="pmCompanies" class="pm-switcher-btn" data-view="companies">
-          <span class="pm-btn-icon">🏢</span>
-          <span>Companies</span>
-        </button>
-        <button id="pmProducts" class="pm-switcher-btn" data-view="products">
-          <span class="pm-btn-icon">📦</span>
-          <span>Products</span>
-        </button>
-        <button id="pmCompareMode" class="pm-switcher-btn" data-view="compare-mode">
-          <span class="pm-btn-icon">⚖️</span>
-          <span>Compare Mode</span>
-        </button>
-        <button id="pmPromos" class="pm-switcher-btn" data-view="promos">
-          <span class="pm-btn-icon">🏷️</span>
-          <span>PROMOs</span>
-        </button>
-      </div>
-    `;
+switcherWrapper.innerHTML = `
+  <div id="pmViewSwitcher" class="pm-view-switcher">
+    <button id="pmMarketOverview" class="pm-switcher-btn active" data-view="market-overview">
+      <span class="pm-btn-icon">📊</span>
+      <span>Market Overview</span>
+    </button>
+    <button id="pmCompanies" class="pm-switcher-btn" data-view="companies">
+      <span class="pm-btn-icon">🏢</span>
+      <span>Companies</span>
+    </button>
+    <button id="pmProducts" class="pm-switcher-btn" data-view="products">
+      <span class="pm-btn-icon">📦</span>
+      <span>Products</span>
+    </button>
+    <button id="pmPromos" class="pm-switcher-btn" data-view="promos">
+      <span class="pm-btn-icon">🏷️</span>
+      <span>PROMOs</span>
+    </button>
+    <button id="pmAlerts" class="pm-switcher-btn" data-view="alerts">
+      <span class="pm-btn-icon">🔔</span>
+      <span>Alerts & Notifications</span>
+    </button>
+  </div>
+`;
     
     // Insert the switcher at the beginning of priceMonitoringPage
     priceMonitoringPage.insertBefore(switcherWrapper, priceMonitoringPage.firstChild);
@@ -172,13 +172,13 @@ function createPriceMonitoringStructure() {
   existingWrappers.forEach(wrapper => wrapper.remove());
 
   // Create separate wrapper containers for each view
-  const wrapperConfigs = [
-    { id: 'pmMarketOverviewWrapper', view: 'market-overview', display: 'block' },
-    { id: 'pmCompaniesWrapper', view: 'companies', display: 'none' },
-    { id: 'pmProductsWrapper', view: 'products', display: 'none' },
-    { id: 'pmCompareModeWrapper', view: 'compare-mode', display: 'none' },
-    { id: 'pmPromosWrapper', view: 'promos', display: 'none' }
-  ];
+const wrapperConfigs = [
+  { id: 'pmMarketOverviewWrapper', view: 'market-overview', display: 'block' },
+  { id: 'pmCompaniesWrapper', view: 'companies', display: 'none' },
+  { id: 'pmProductsWrapper', view: 'products', display: 'none' },
+  { id: 'pmPromosWrapper', view: 'promos', display: 'none' },
+  { id: 'pmAlertsWrapper', view: 'alerts', display: 'none' }
+];
 
   wrapperConfigs.forEach(config => {
     const wrapper = document.createElement('div');
@@ -412,27 +412,23 @@ if (config.view === 'market-overview') {
       <!-- Products content will be loaded here -->
     </div>
   `;
-} else if (config.view === 'compare-mode') {
-      container.innerHTML = `
-        <div class="pm-header-section">
-          <div class="pm-title-row">
-            <h2 class="pm-main-title">Compare Companies</h2>
-            <div class="pm-last-updated">Last updated: <span>-</span></div>
-          </div>
-        </div>
-        <div class="pm-placeholder-content">Comparison content will be loaded here</div>
-      `;
-    } else if (config.view === 'promos') {
-      container.innerHTML = `
-        <div class="pm-header-section">
-          <div class="pm-title-row">
-            <h2 class="pm-main-title">Promotions Dashboard</h2>
-            <div class="pm-last-updated">Last updated: <span>-</span></div>
-          </div>
-        </div>
-        <div class="pm-placeholder-content">Promotions content will be loaded here</div>
-      `;
-    }
+} else if (config.view === 'alerts') {
+  container.innerHTML = `
+    <div class="pm-header-section">
+      <div class="pm-title-row">
+        <h2 class="pm-main-title">Alerts & Notifications</h2>
+        <div class="pm-last-updated">Last updated: <span>-</span></div>
+      </div>
+    </div>
+    <div class="pm-placeholder-content">Alerts content will be loaded here</div>
+  `;
+} else if (config.view === 'promos') {
+  container.innerHTML = `
+    <div id="pmPromosContainer" class="pm-promos-container">
+      <!-- Promos content will be loaded by external module -->
+    </div>
+  `;
+}
     
     wrapper.appendChild(container);
     priceMonitoringPage.appendChild(wrapper);
@@ -1096,13 +1092,9 @@ function renderPromoWavesList(displayData, maxDiscount, hasMore) {
   const container = document.getElementById('pmPromoWavesChart');
   if (!container) return;
   
-  // Create dynamic x-axis scale based on max discount
-  const roundedMax = Math.ceil(maxDiscount / 5) * 5; // Round up to nearest 5
-  const scaleSteps = [];
-  const stepSize = roundedMax / 4; // Create 4 intervals
-  for (let i = 0; i <= 4; i++) {
-    scaleSteps.push(i * stepSize);
-  }
+// Fixed x-axis scale at 100%
+const fixedMax = 100;
+const scaleSteps = [0, 25, 50, 75, 100];
   
   let xAxisHtml = '<div class="pm-waves-xaxis">';
   scaleSteps.forEach(step => {
@@ -1121,11 +1113,11 @@ function renderPromoWavesList(displayData, maxDiscount, hasMore) {
   
   displayData.forEach((wave) => {
     // Scale bars to the rounded max for better visual alignment
-    const barWidth = Math.max((wave.discountDepth / roundedMax) * 100, 1); // Ensure minimum visibility
+    const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1); // Ensure minimum visibility
     
-    html += `
-      <div class="pm-wave-item">
-        <div class="pm-wave-company" title="${wave.company}">${wave.company}</div>
+html += `
+  <div class="pm-wave-item">
+    <div class="pm-wave-company" title="${wave.company}">${wave.company.length > 15 ? wave.company.substring(0, 15) + '...' : wave.company}</div>
         <div class="pm-wave-bar-container">
           <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
             <div class="pm-wave-metrics">
@@ -2410,7 +2402,7 @@ function addPriceMonitoringStyles() {
 .pm-waves-xaxis-label {
   position: absolute;
   top: 0;
-  left: 100px;
+  left: 140px;
   right: 0;
   font-size: 9px;
   color: #888;
@@ -2425,7 +2417,7 @@ function addPriceMonitoringStyles() {
 .pm-waves-xaxis {
   position: absolute;
   top: 15px;
-  left: 100px;
+  left: 140px;
   right: 0;
   height: 20px;
   border-bottom: 1px solid #e8e8e8;
@@ -2459,7 +2451,7 @@ function addPriceMonitoringStyles() {
 
 .pm-wave-item {
   display: grid;
-  grid-template-columns: 100px 1fr;
+  grid-template-columns: 140px 1fr;
   align-items: center;
   height: 22px;
   font-size: 11px;
@@ -2470,7 +2462,7 @@ function addPriceMonitoringStyles() {
 .pm-wave-item::before {
   content: '';
   position: absolute;
-  left: 100px;
+  left: 140px;
   right: 0;
   height: 100%;
   background: repeating-linear-gradient(
@@ -2656,23 +2648,23 @@ function showPriceMonitoringView(view) {
   }
   
   // Load data based on view
-  switch(view) {
-    case 'market-overview':
-      populateMarketOverview(); // Call the new function
-      break;
-    case 'companies':
-      loadCompaniesData();
-      break;
-    case 'products':
-      loadProductsData();
-      break;
-    case 'compare-mode':
-      loadCompareModeData();
-      break;
-    case 'promos':
-      loadPromosData();
-      break;
-  }
+switch(view) {
+  case 'market-overview':
+    populateMarketOverview();
+    break;
+  case 'companies':
+    loadCompaniesData();
+    break;
+  case 'products':
+    loadProductsData();
+    break;
+  case 'promos':
+    loadPromosData();
+    break;
+  case 'alerts':
+    loadAlertsData();
+    break;
+}
 }
 
   // Data loading functions (placeholders - implement with your actual data)
@@ -2722,16 +2714,29 @@ function loadProductsData() {
   }
 }
 
-  function loadCompareModeData() {
-    console.log('[PriceMonitoring] Loading Compare Mode data...');
-    // TODO: Implement actual data loading
-    populateCompareSelectors();
+function loadPromosData() {
+  console.log('[PM] Loading promos data');
+  
+  // Check if the promos module is loaded
+  if (window.pmPromosModule) {
+    window.pmPromosModule.initialize();
+  } else {
+    // Wait for the module to load
+    const checkInterval = setInterval(() => {
+      if (window.pmPromosModule) {
+        clearInterval(checkInterval);
+        window.pmPromosModule.initialize();
+      }
+    }, 100);
+    
+    setTimeout(() => clearInterval(checkInterval), 5000);
   }
+}
 
-  function loadPromosData() {
-    console.log('[PriceMonitoring] Loading Promos data...');
-    // TODO: Implement actual data loading
-  }
+function loadAlertsData() {
+  console.log('[PriceMonitoring] Loading Alerts data...');
+  // TODO: Implement alerts data loading
+}
 
   // Helper functions
   function updateLastUpdated() {
@@ -2752,20 +2757,6 @@ function loadProductsData() {
         <option value="company2">Company 2</option>
       `;
     }
-  }
-
-  function populateCompareSelectors() {
-    const selectA = document.getElementById('pmCompareA');
-    const selectB = document.getElementById('pmCompareB');
-    
-    const options = `
-      <option value="">Select company...</option>
-      <option value="company1">Company 1</option>
-      <option value="company2">Company 2</option>
-    `;
-    
-    if (selectA) selectA.innerHTML = options;
-    if (selectB) selectB.innerHTML = options;
   }
 
   // Event listener setup functions
@@ -2814,24 +2805,6 @@ function loadProductsData() {
       promoFilter.addEventListener('change', function(e) {
         console.log('[PriceMonitoring] Promo filter:', e.target.value);
         // TODO: Filter by promo status
-      });
-    }
-  }
-
-  function setupCompareModeListeners() {
-    const compareBtn = document.getElementById('pmCompareBtn');
-    if (compareBtn) {
-      compareBtn.addEventListener('click', function() {
-        const companyA = document.getElementById('pmCompareA').value;
-        const companyB = document.getElementById('pmCompareB').value;
-        
-        if (!companyA || !companyB) {
-          alert('Please select both companies to compare');
-          return;
-        }
-        
-        console.log('[PriceMonitoring] Comparing:', companyA, 'vs', companyB);
-        // TODO: Perform comparison
       });
     }
   }
