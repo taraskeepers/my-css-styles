@@ -2759,6 +2759,44 @@ function loadAlertsData() {
     }
   }
 
+  function loadCompareModeData() {
+  console.log('[PriceMonitoring] Loading Compare Mode data...');
+  // TODO: Implement actual data loading
+  populateCompareSelectors();
+}
+
+  function populateCompareSelectors() {
+  const selectA = document.getElementById('pmCompareA');
+  const selectB = document.getElementById('pmCompareB');
+  
+  const options = `
+    <option value="">Select company...</option>
+    <option value="company1">Company 1</option>
+    <option value="company2">Company 2</option>
+  `;
+  
+  if (selectA) selectA.innerHTML = options;
+  if (selectB) selectB.innerHTML = options;
+}
+
+  function setupCompareModeListeners() {
+  const compareBtn = document.getElementById('pmCompareBtn');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', function() {
+      const companyA = document.getElementById('pmCompareA').value;
+      const companyB = document.getElementById('pmCompareB').value;
+      
+      if (!companyA || !companyB) {
+        alert('Please select both companies to compare');
+        return;
+      }
+      
+      console.log('[PriceMonitoring] Comparing:', companyA, 'vs', companyB);
+      // TODO: Perform comparison
+    });
+  }
+}
+
   // Event listener setup functions
   function setupCompaniesListeners() {
     const companySelect = document.getElementById('pmCompanySelect');
