@@ -1117,20 +1117,19 @@ function renderPromoWavesList(displayData, hasMore) {
     
 html += `
   <div class="pm-wave-item">
-    <div class="pm-wave-company" title="${wave.company}">${wave.company.length > 15 ? wave.company.substring(0, 15) + '...' : wave.company}</div>
-        <div class="pm-wave-bar-container">
-          <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
-            <div class="pm-wave-metrics">
-              <span class="pm-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
-              <span class="pm-wave-separator">|</span>
-              <span class="pm-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
-              <span class="pm-wave-separator">|</span>
-              <span class="pm-wave-duration">${wave.waveLength}d</span>
-            </div>
-          </div>
-        </div>
+    <div class="pm-wave-company" title="${wave.company}">${wave.company}</div>
+    <div class="pm-wave-bar-container">
+      <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
+        <span class="pm-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
       </div>
-    `;
+    </div>
+    <div class="pm-wave-metrics-outside">
+      <span class="pm-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
+      <span class="pm-wave-separator">|</span>
+      <span class="pm-wave-duration">${wave.waveLength}d</span>
+    </div>
+  </div>
+`;
   });
   
   html += '</div>'; // Close pm-waves-list
@@ -2400,8 +2399,8 @@ function addPriceMonitoringStyles() {
 .pm-waves-xaxis-label {
   position: absolute;
   top: 0;
-  left: 140px;
-  right: 0;
+  left: 210px;
+  width: 300px;
   font-size: 9px;
   color: #888;
   text-transform: uppercase;
@@ -2415,8 +2414,8 @@ function addPriceMonitoringStyles() {
 .pm-waves-xaxis {
   position: absolute;
   top: 15px;
-  left: 140px;
-  right: 0;
+  left: 210px;
+  width: 300px;
   height: 20px;
   border-bottom: 1px solid #e8e8e8;
 }
@@ -2449,19 +2448,20 @@ function addPriceMonitoringStyles() {
 
 .pm-wave-item {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 200px 300px 1fr;
   align-items: center;
   height: 22px;
   font-size: 11px;
   position: relative;
+  gap: 10px;
 }
 
 /* Add subtle grid lines - adjusted for dynamic scale */
 .pm-wave-item::before {
   content: '';
   position: absolute;
-  left: 140px;
-  right: 0;
+  left: 210px;
+  width: 300px;
   height: 100%;
   background: repeating-linear-gradient(
     90deg,
@@ -2476,12 +2476,12 @@ function addPriceMonitoringStyles() {
 .pm-wave-company {
   padding-right: 10px;
   color: #333;
-  font-weight: 500;
+  font-weight: 600;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
   text-align: right;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .pm-wave-bar-container {
@@ -2489,18 +2489,19 @@ function addPriceMonitoringStyles() {
   height: 18px;
   background: #f5f8fa;
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
+  width: 100%;
 }
 
 .pm-wave-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, rgba(33, 150, 243, 0.4), rgba(33, 150, 243, 0.6));
+  background: linear-gradient(90deg, rgba(33, 150, 243, 0.5), rgba(33, 150, 243, 0.7));
   border-radius: 4px;
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
-  min-width: fit-content;
 }
 
 .pm-wave-bar-fill:hover {
@@ -2518,9 +2519,21 @@ function addPriceMonitoringStyles() {
   font-weight: 500;
 }
 
+.pm-wave-metrics-outside {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #666;
+  font-weight: 500;
+  justify-self: end;
+}
+
 .pm-wave-discount {
   font-weight: 700;
-  color: #0d47a1;
+  color: white;
+  font-size: 10px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .pm-wave-separator {
