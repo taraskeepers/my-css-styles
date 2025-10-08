@@ -429,14 +429,259 @@ let html = `
 
   container.innerHTML = html;
 
-  // Add click listeners to bars
-  container.querySelectorAll('.pmp-wave-item').forEach(item => {
-    item.addEventListener('click', function() {
-      const company = this.getAttribute('data-company');
-      console.log('[PMPromos] Wave clicked:', company);
-      // TODO: Add functionality when clicked
-    });
+// Add click listeners to rows for expansion
+container.querySelectorAll('.pmp-wave-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    // Don't expand if clicking on the close button
+    if (e.target.closest('.pmp-wave-expanded-close')) {
+      return;
+    }
+    
+    const company = this.getAttribute('data-company');
+    console.log('[PMPromos] Wave clicked:', company);
+    toggleWaveExpansion(this, company);
   });
+});
+}
+
+// Global state for expanded rows
+let expandedWaveCompany = null;
+
+async function loadWaveCompanyProducts(companyName) {
+  try {
+    // Get table prefix
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}processed`;
+    
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('myAppDB');
+      
+      request.onsuccess = function(event) {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('projectData')) {
+          console.error('[PMPromos] projectData object store not found');
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(tableName);
+        
+        getRequest.onsuccess = function() {
+          const result = getRequest.result;
+          db.close();
+          
+          if (!result || !result.data) {
+            console.warn('[PMPromos] No processed data found');
+            resolve([]);
+            return;
+          }
+          
+          // Get unique products for this company with discounts only
+          const productMap = new Map();
+          
+          result.data.forEach(row => {
+            if (row.source && row.source === companyName) {
+              // Check if product has a discount
+              const oldPriceValue = row.old_price ? 
+                (typeof row.old_price === 'string' ? 
+                  parseFloat(row.old_price.replace(/[^0-9.-]/g, '')) : 
+                  parseFloat(row.old_price)) : null;
+              const priceValue = typeof row.price === 'string' ? 
+                parseFloat(row.price.replace(/[^0-9.-]/g, '')) : 
+                parseFloat(row.price);
+              
+              const hasDiscount = oldPriceValue && priceValue && 
+                                 !isNaN(priceValue) && !isNaN(oldPriceValue) && 
+                                 oldPriceValue > priceValue;
+              
+              if (hasDiscount) {
+                const key = `${row.title}_${row.source}`;
+                
+                if (!productMap.has(key)) {
+                  productMap.set(key, row);
+                } else {
+                  // Prioritize mobile over desktop
+                  const existing = productMap.get(key);
+                  if (row.device === 'mobile' && existing.device === 'desktop') {
+                    productMap.set(key, row);
+                  }
+                }
+              }
+            }
+          });
+          
+          // Convert to array and sort by discount depth
+          const products = Array.from(productMap.values()).sort((a, b) => {
+            const discountA = calculateProductDiscount(a);
+            const discountB = calculateProductDiscount(b);
+            return discountB - discountA;
+          });
+          
+          resolve(products);
+        };
+        
+        getRequest.onerror = function() {
+          console.error('[PMPromos] Error getting processed data:', getRequest.error);
+          db.close();
+          resolve([]);
+        };
+      };
+      
+      request.onerror = function() {
+        console.error('[PMPromos] Failed to open database:', request.error);
+        resolve([]);
+      };
+    });
+  } catch (error) {
+    console.error('[PMPromos] Error loading company products:', error);
+    return [];
+  }
+}
+
+function calculateProductDiscount(product) {
+  const oldPriceValue = product.old_price ? 
+    (typeof product.old_price === 'string' ? 
+      parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.old_price)) : null;
+  const priceValue = typeof product.price === 'string' ? 
+    parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+    parseFloat(product.price);
+  
+  if (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue) {
+    return Math.round((1 - priceValue / oldPriceValue) * 100);
+  }
+  return 0;
+}
+
+function getBucketClassName(bucketNum) {
+  const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+  return bucketClasses[bucketNum] || 'mid';
+}
+
+function getBucketName(bucketNum) {
+  const bucketNames = ['', 'ULTRA CHEAP', 'BUDGET', 'MID RANGE', 'UPPER MID', 'PREMIUM', 'ULTRA PREMIUM'];
+  return bucketNames[bucketNum] || 'MID RANGE';
+}
+
+function renderWaveProductsInExpanded(products, container) {
+  if (!products || products.length === 0) {
+    container.innerHTML = '<div class="pmp-wave-no-products">No discounted products found</div>';
+    return;
+  }
+  
+  let html = '';
+  
+  products.forEach(product => {
+    const title = product.title || 'Untitled Product';
+    const priceValue = typeof product.price === 'string' ? 
+      parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+      parseFloat(product.price);
+    const oldPriceValue = product.old_price ? 
+      (typeof product.old_price === 'string' ? 
+        parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.old_price)) : null;
+    
+    const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+    const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+    const thumbnail = product.thumbnail || '';
+    const discountPercent = calculateProductDiscount(product);
+    
+    // Get bucket info
+    const bucketNum = product.price_bucket || 3;
+    const bucketClass = getBucketClassName(bucketNum);
+    const bucketName = getBucketName(bucketNum);
+    
+    html += `
+      <div class="pmp-wave-product-card">
+        <div class="pmp-wave-product-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+          ${discountPercent > 0 ? `<div class="pmp-wave-product-discount-badge">-${discountPercent}%</div>` : ''}
+        </div>
+        <div class="pmp-wave-product-info">
+          <div class="pmp-wave-product-title">${title}</div>
+          <div class="pmp-wave-product-prices">
+            <span class="pmp-wave-product-current-price">${price}</span>
+            ${oldPrice ? `<span class="pmp-wave-product-old-price">${oldPrice}</span>` : ''}
+          </div>
+          <div class="pmp-wave-product-bucket ${bucketClass}">
+            ${bucketName}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+async function toggleWaveExpansion(waveItem, company) {
+  const isCurrentlyExpanded = waveItem.classList.contains('expanded');
+  
+  // Close any other expanded rows
+  document.querySelectorAll('.pmp-wave-item.expanded').forEach(item => {
+    if (item !== waveItem) {
+      item.classList.remove('expanded');
+      const expandedContainer = item.querySelector('.pmp-wave-expanded-products');
+      if (expandedContainer) {
+        expandedContainer.remove();
+      }
+    }
+  });
+  
+  if (isCurrentlyExpanded) {
+    // Collapse this row
+    waveItem.classList.remove('expanded');
+    const expandedContainer = waveItem.querySelector('.pmp-wave-expanded-products');
+    if (expandedContainer) {
+      setTimeout(() => {
+        expandedContainer.remove();
+      }, 300);
+    }
+    expandedWaveCompany = null;
+  } else {
+    // Expand this row
+    waveItem.classList.add('expanded');
+    expandedWaveCompany = company;
+    
+    // Create expanded container
+    const expandedContainer = document.createElement('div');
+    expandedContainer.className = 'pmp-wave-expanded-products';
+    expandedContainer.innerHTML = `
+      <div class="pmp-wave-expanded-header">
+        <div class="pmp-wave-expanded-title">Discounted Products - ${company}</div>
+        <button class="pmp-wave-expanded-close">×</button>
+      </div>
+      <div class="pmp-wave-expanded-content">
+        <div class="pmp-wave-loading">Loading products...</div>
+      </div>
+    `;
+    
+    waveItem.appendChild(expandedContainer);
+    
+    // Add close button handler
+    const closeBtn = expandedContainer.querySelector('.pmp-wave-expanded-close');
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWaveExpansion(waveItem, company);
+    });
+    
+    // Load and render products
+    const products = await loadWaveCompanyProducts(company);
+    const contentContainer = expandedContainer.querySelector('.pmp-wave-expanded-content');
+    renderWaveProductsInExpanded(products, contentContainer);
+  }
 }
 
   function addPromosStyles() {
@@ -1035,6 +1280,231 @@ let html = `
         font-weight: 700;
         font-size: 11px;
       }
+
+      /* Expanded Row Styles */
+.pmp-wave-item {
+  transition: margin-bottom 0.3s ease;
+}
+
+.pmp-wave-item.expanded {
+  margin-bottom: 320px;
+}
+
+.pmp-wave-item.expanded .pmp-wave-bar-fill {
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.7), rgba(102, 126, 234, 0.9));
+}
+
+/* Expanded Products Container */
+.pmp-wave-expanded-products {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 470px;
+  right: 0;
+  height: 0;
+  opacity: 0;
+  visibility: hidden;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: height 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 50;
+}
+
+.pmp-wave-item.expanded .pmp-wave-expanded-products {
+  height: 300px;
+  opacity: 1;
+  visibility: visible;
+}
+
+.pmp-wave-expanded-header {
+  padding: 12px 16px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pmp-wave-expanded-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pmp-wave-expanded-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.pmp-wave-expanded-close:hover {
+  background: #d0d0d0;
+  transform: scale(1.1);
+}
+
+.pmp-wave-expanded-content {
+  height: calc(100% - 48px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.pmp-wave-expanded-content::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pmp-wave-expanded-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.pmp-wave-expanded-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.pmp-wave-expanded-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Product Card Styles for Expanded View */
+.pmp-wave-product-card {
+  width: 200px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.pmp-wave-product-card:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.pmp-wave-product-image {
+  width: 200px;
+  height: 150px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #f5f5f5;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pmp-wave-product-discount-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pmp-wave-product-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.pmp-wave-product-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  min-height: 32px;
+}
+
+.pmp-wave-product-prices {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmp-wave-product-current-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff4444;
+}
+
+.pmp-wave-product-old-price {
+  font-size: 13px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.pmp-wave-product-bucket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  margin-top: auto;
+}
+
+.pmp-wave-product-bucket.ultra-cheap { background: #4CAF50; }
+.pmp-wave-product-bucket.budget { background: #66BB6A; }
+.pmp-wave-product-bucket.mid { background: #FF9800; }
+.pmp-wave-product-bucket.upper-mid { background: #FFC107; }
+.pmp-wave-product-bucket.premium { background: #7B1FA2; }
+.pmp-wave-product-bucket.ultra-premium { background: #9C27B0; }
+
+.pmp-wave-no-products {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #999;
+  font-size: 14px;
+}
+
+/* Loading state */
+.pmp-wave-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #999;
+  font-size: 14px;
+}
 
       /* Scrollbar styling */
       .pmp-waves-chart::-webkit-scrollbar {
