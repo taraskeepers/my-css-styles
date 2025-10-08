@@ -1,0 +1,597 @@
+// price_monitoring_promos.js - Promotions Dashboard Module
+(function() {
+  'use strict';
+  
+  console.log('[PMPromos] Module loading...');
+
+  // Initialize the Promos module
+  window.pmPromosModule = {
+    initialize: async function() {
+      console.log('[PMPromos] Initializing...');
+      await populatePromosView();
+    }
+  };
+
+  async function populatePromosView() {
+    const container = document.getElementById('pmPromosContainer');
+    if (!container) {
+      console.error('[PMPromos] Container not found');
+      return;
+    }
+
+    // Load data
+    const data = await window.pmUtils.loadCompanyPricingData();
+    if (!data || !data.allData) {
+      console.error('[PMPromos] No data available');
+      return;
+    }
+
+    // Get market data
+    const market = data.allData.find(row => row.source === 'all' && row.q === 'all');
+    if (!market) {
+      console.error('[PMPromos] No market data found');
+      return;
+    }
+
+    // Create the layout
+    createPromosLayout(container, market, data.allData);
+  }
+
+  function createPromosLayout(container, market, allData) {
+    container.innerHTML = `
+      <!-- Promo Stats Section -->
+      <div class="pmp-stats-section">
+        <div class="pmp-stat-item">
+          <div class="pmp-stat-info">
+            <div class="pmp-stat-grid">
+              <div class="pmp-stat-cell">
+                <span class="pmp-stat-val" id="pmpTotalProducts">—</span>
+                <span class="pmp-stat-lbl">Products</span>
+              </div>
+              <div class="pmp-stat-cell">
+                <span class="pmp-stat-val" id="pmpDiscountedProducts">—</span>
+                <span class="pmp-stat-lbl">Discounted</span>
+              </div>
+              <div class="pmp-stat-cell">
+                <span class="pmp-stat-val" id="pmpDiscountRate">—</span>
+                <span class="pmp-stat-lbl">Discount Rate</span>
+              </div>
+              <div class="pmp-stat-cell">
+                <span class="pmp-stat-val" id="pmpAvgDiscount">—</span>
+                <span class="pmp-stat-lbl">Avg Discount</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pmp-stat-item">
+          <div class="pmp-stat-info">
+            <div class="pmp-stat-main">
+              <span class="pmp-stat-val" id="pmpActiveWaves">—</span>
+              <span class="pmp-stat-lbl">Active Promo Waves</span>
+            </div>
+            <div class="pmp-stat-secondary">
+              <span class="pmp-stat-subtitle" id="pmpWaveDiscount">—</span>
+              <span class="pmp-stat-extra" id="pmpWaveCompanies">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Promo Waves Chart Section -->
+      <div class="pmp-waves-container">
+        <div class="pmp-waves-header">
+          <h4>Active Promotional Waves</h4>
+          <span class="pmp-waves-count" id="pmpWavesCount">0 Active</span>
+        </div>
+        <div class="pmp-waves-chart" id="pmpWavesChart">
+          <!-- Chart will be rendered here -->
+        </div>
+      </div>
+    `;
+
+    // Add styles
+    addPromosStyles();
+
+    // Populate data
+    populatePromosStats(market, allData);
+    createPromosWavesChart(allData);
+  }
+
+  function populatePromosStats(market, allData) {
+    // Products stats
+    document.getElementById('pmpTotalProducts').textContent = window.pmUtils.formatNumber(market.unique_total_products);
+    document.getElementById('pmpDiscountedProducts').textContent = window.pmUtils.formatNumber(market.unique_discounted_products);
+    document.getElementById('pmpDiscountRate').textContent = window.pmUtils.formatPercent(market.unique_pr_discounted_products);
+    document.getElementById('pmpAvgDiscount').textContent = window.pmUtils.formatPercent(market.unique_discount_depth);
+
+    // Promo waves stats
+    const activeWavesCount = parseInt(market.promo_wave_length) || 0;
+    const avgWaveDiscount = parseFloat(market.promo_wave_discount_depth) || 0;
+
+    document.getElementById('pmpActiveWaves').textContent = window.pmUtils.formatNumber(activeWavesCount);
+    document.getElementById('pmpWaveDiscount').textContent = 
+      avgWaveDiscount > 0 ? `Avg depth: ${avgWaveDiscount.toFixed(1)}%` : 'No active waves';
+
+    // Count companies with active waves
+    const companiesWithWaves = allData.filter(row => 
+      row.source !== 'all' && 
+      row.q === 'all' && 
+      (row.promo_wave === true || row.promo_wave === 'true')
+    ).length;
+
+    document.getElementById('pmpWaveCompanies').textContent = 
+      companiesWithWaves > 0 ? `${companiesWithWaves} companies active` : '';
+  }
+
+  async function createPromosWavesChart(allData) {
+    // Filter for active promo waves
+    const promoWaves = allData.filter(row => 
+      row.source !== 'all' && 
+      row.q === 'all' && 
+      (row.promo_wave === true || row.promo_wave === 'true')
+    );
+
+    console.log('[PMPromos] Active promo waves:', promoWaves.length);
+
+    // Update count
+    const countEl = document.getElementById('pmpWavesCount');
+    if (countEl) {
+      countEl.textContent = `${promoWaves.length} Active`;
+    }
+
+    const container = document.getElementById('pmpWavesChart');
+    if (!container || promoWaves.length === 0) {
+      if (container) {
+        container.innerHTML = '<div class="pmp-no-waves">No active promo waves</div>';
+      }
+      return;
+    }
+
+    // Prepare and sort data by discount depth (highest first)
+    const waveData = promoWaves.map(wave => ({
+      company: wave.source,
+      waveLength: parseInt(wave.promo_wave_length) || 0,
+      discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
+      discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
+    })).sort((a, b) => b.discountDepth - a.discountDepth);
+
+    renderPromosWavesList(waveData);
+  }
+
+  function renderPromosWavesList(displayData) {
+    const container = document.getElementById('pmpWavesChart');
+    if (!container) return;
+
+    // Fixed x-axis at 100%
+    const fixedMax = 100;
+    const scaleSteps = [0, 25, 50, 75, 100];
+
+    // X-axis
+    let xAxisHtml = '<div class="pmp-waves-xaxis">';
+    scaleSteps.forEach(step => {
+      const position = (step / fixedMax) * 100;
+      xAxisHtml += `<span class="pmp-xaxis-tick" style="left: ${position}%">${step}%</span>`;
+    });
+    xAxisHtml += '</div>';
+
+    // Create the list with x-axis
+    let html = `
+      <div class="pmp-waves-wrapper">
+        <div class="pmp-waves-xaxis-label">Discount Depth</div>
+        ${xAxisHtml}
+        <div class="pmp-waves-list">
+    `;
+
+    displayData.forEach((wave) => {
+      const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1);
+      const companyName = wave.company.length > 20 ? wave.company.substring(0, 20) + '...' : wave.company;
+
+      html += `
+        <div class="pmp-wave-item" data-company="${wave.company}">
+          <div class="pmp-wave-company" title="${wave.company}">${companyName}</div>
+          <div class="pmp-wave-bar-container">
+            <div class="pmp-wave-bar-fill" style="width: ${barWidth}%">
+              <div class="pmp-wave-metrics">
+                <span class="pmp-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
+                <span class="pmp-wave-separator">|</span>
+                <span class="pmp-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
+                <span class="pmp-wave-separator">|</span>
+                <span class="pmp-wave-duration">${wave.waveLength}d</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div></div>'; // Close pmp-waves-list and pmp-waves-wrapper
+
+    container.innerHTML = html;
+
+    // Add click listeners to bars
+    container.querySelectorAll('.pmp-wave-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const company = this.getAttribute('data-company');
+        console.log('[PMPromos] Wave clicked:', company);
+        // TODO: Add functionality when clicked
+      });
+    });
+  }
+
+  function addPromosStyles() {
+    if (document.getElementById('pmpStyles')) return;
+
+    const styles = `
+      <style id="pmpStyles">
+      /* Promos Container */
+      .pm-promos-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px 0;
+      }
+
+      /* Promo Stats Section */
+      .pmp-stats-section {
+        display: flex;
+        gap: 10px;
+      }
+
+      .pmp-stat-item {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s;
+        min-height: 120px;
+      }
+
+      .pmp-stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
+
+      .pmp-stat-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      .pmp-stat-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .pmp-stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 12px 20px;
+      }
+
+      .pmp-stat-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .pmp-stat-cell .pmp-stat-val {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2c2c2c;
+        line-height: 1;
+      }
+
+      .pmp-stat-cell .pmp-stat-lbl {
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 500;
+      }
+
+      .pmp-stat-main {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .pmp-stat-main .pmp-stat-val {
+        font-size: 32px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+      }
+
+      .pmp-stat-main .pmp-stat-lbl {
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+      }
+
+      .pmp-stat-secondary {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .pmp-stat-subtitle {
+        font-size: 13px;
+        color: #666;
+        font-weight: 600;
+      }
+
+      .pmp-stat-extra {
+        font-size: 11px;
+        color: #999;
+      }
+
+      /* Promo Waves Container */
+      .pmp-waves-container {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 500px;
+      }
+
+      .pmp-waves-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      .pmp-waves-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .pmp-waves-header h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c2c2c;
+      }
+
+      .pmp-waves-count {
+        font-size: 12px;
+        padding: 4px 12px;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+
+      .pmp-waves-chart {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .pmp-no-waves {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: #999;
+        font-size: 14px;
+        background: #fafafa;
+        border-radius: 8px;
+      }
+
+      /* Waves Wrapper */
+      .pmp-waves-wrapper {
+        position: relative;
+        padding-top: 45px;
+      }
+
+      /* X-Axis Label */
+      .pmp-waves-xaxis-label {
+        position: absolute;
+        top: 0;
+        left: 180px;
+        right: 0;
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        text-align: center;
+        padding-bottom: 4px;
+      }
+
+      /* X-Axis Scale */
+      .pmp-waves-xaxis {
+        position: absolute;
+        top: 20px;
+        left: 180px;
+        right: 0;
+        height: 25px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      .pmp-xaxis-tick {
+        position: absolute;
+        font-size: 11px;
+        color: #666;
+        font-weight: 500;
+        transform: translateX(-50%);
+        padding-top: 4px;
+      }
+
+      .pmp-xaxis-tick::before {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 6px;
+        background: #bdbdbd;
+      }
+
+      /* Waves List */
+      .pmp-waves-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .pmp-wave-item {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        align-items: center;
+        min-height: 40px;
+        font-size: 12px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-radius: 8px;
+        padding: 4px 0;
+      }
+
+      .pmp-wave-item:hover {
+        background: #f5f8fa;
+      }
+
+      /* Grid lines */
+      .pmp-wave-item::before {
+        content: '';
+        position: absolute;
+        left: 180px;
+        right: 0;
+        height: 100%;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent calc(25% - 0.5px),
+          rgba(0, 0, 0, 0.03) calc(25% - 0.5px),
+          rgba(0, 0, 0, 0.03) calc(25% + 0.5px)
+        );
+        pointer-events: none;
+      }
+
+      .pmp-wave-company {
+        padding-right: 15px;
+        color: #333;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        text-align: right;
+        font-size: 12px;
+      }
+
+      .pmp-wave-bar-container {
+        position: relative;
+        height: 32px;
+        background: #f5f8fa;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .pmp-wave-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.5), rgba(102, 126, 234, 0.7));
+        border-radius: 6px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        min-width: fit-content;
+      }
+
+      .pmp-wave-item:hover .pmp-wave-bar-fill {
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.6), rgba(102, 126, 234, 0.8));
+        transform: translateX(2px);
+      }
+
+      .pmp-wave-metrics {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        white-space: nowrap;
+        font-size: 11px;
+        color: #1565c0;
+        font-weight: 600;
+      }
+
+      .pmp-wave-discount {
+        font-weight: 700;
+        font-size: 13px;
+        color: #0d47a1;
+      }
+
+      .pmp-wave-separator {
+        color: rgba(13, 71, 161, 0.3);
+        font-weight: 300;
+      }
+
+      .pmp-wave-products {
+        color: #1565c0;
+      }
+
+      .pmp-wave-duration {
+        color: #1976d2;
+        padding: 2px 6px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 11px;
+      }
+
+      /* Scrollbar styling */
+      .pmp-waves-chart::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .pmp-waves-chart::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+
+      .pmp-waves-chart::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      .pmp-waves-chart::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+      </style>
+    `;
+
+    document.head.insertAdjacentHTML('beforeend', styles);
+  }
+
+  console.log('[PMPromos] Module loaded successfully');
+})();
