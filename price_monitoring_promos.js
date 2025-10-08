@@ -1452,7 +1452,7 @@ async function toggleWaveExpansion(waveItem, company) {
 .pmp-wave-expanded-products {
   position: absolute;
   top: calc(100% + 10px);
-  left: 50px;
+  left: 0px;
   right: 0;
   height: 0;
   opacity: 0;
@@ -1501,7 +1501,7 @@ async function toggleWaveExpansion(waveItem, company) {
 
 /* Buckets Distribution Container */
 .pmp-wave-buckets-container {
-  width: 380px;
+  width: 460px;
   flex-shrink: 0;
   background: white;
   border-radius: 8px;
