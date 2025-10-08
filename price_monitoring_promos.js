@@ -760,8 +760,8 @@ function renderPromosWavesList(displayData) {
       .pmp-waves-xaxis {
         position: absolute;
         top: 20px;
-        left: 180px;
-        right: 0;
+        left: 470px;
+        right: 15px;
         height: 25px;
         border-bottom: 2px solid #e0e0e0;
       }
