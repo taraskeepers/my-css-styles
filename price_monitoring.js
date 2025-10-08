@@ -1098,7 +1098,7 @@ function renderPromoWavesList(displayData, hasMore) {
   
   let xAxisHtml = '<div class="pm-waves-xaxis">';
   scaleSteps.forEach(step => {
-    const position = (step / roundedMax) * 100;
+    const position = (step / fixedMax) * 100;
     xAxisHtml += `<span class="pm-xaxis-tick" style="left: ${position}%">${step.toFixed(0)}%</span>`;
   });
   xAxisHtml += '</div>';
