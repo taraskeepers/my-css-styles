@@ -233,100 +233,202 @@ createPromosWavesChart(allData);
   }
 }
 
-  async function createPromosWavesChart(allData) {
-    // Filter for active promo waves
-    const promoWaves = allData.filter(row => 
-      row.source !== 'all' && 
-      row.q === 'all' && 
-      (row.promo_wave === true || row.promo_wave === 'true')
-    );
-
-    console.log('[PMPromos] Active promo waves:', promoWaves.length);
-
-    // Update count
-    const countEl = document.getElementById('pmpWavesCount');
-    if (countEl) {
-      countEl.textContent = `${promoWaves.length} Active`;
-    }
-
-    const container = document.getElementById('pmpWavesChart');
-    if (!container || promoWaves.length === 0) {
-      if (container) {
-        container.innerHTML = '<div class="pmp-no-waves">No active promo waves</div>';
+async function loadAllCompanyStats() {
+  return new Promise((resolve) => {
+    try {
+      let tablePrefix = '';
+      if (typeof window.getProjectTablePrefix === 'function') {
+        tablePrefix = window.getProjectTablePrefix();
+      } else {
+        const accountPrefix = window.currentAccount || 'acc1';
+        const currentProjectNum = window.dataPrefix ? 
+          parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+        tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
       }
-      return;
+      
+      const tableName = `${tablePrefix}company_serp_stats`;
+      const request = indexedDB.open('myAppDB');
+      
+      request.onsuccess = function(event) {
+        const db = event.target.result();
+        
+        if (!db.objectStoreNames.contains('projectData')) {
+          console.warn('[PMPromos] projectData object store not found');
+          db.close();
+          resolve({});
+          return;
+        }
+        
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(tableName);
+        
+        getRequest.onsuccess = function() {
+          const result = getRequest.result;
+          db.close();
+          
+          if (!result || !result.data) {
+            resolve({});
+            return;
+          }
+          
+          // Build a map of company -> stats
+          const statsMap = {};
+          result.data.forEach(row => {
+            if (row.q === 'all' && 
+                row.location_requested === 'all' && 
+                row.device === 'all' &&
+                row.source !== 'all') {
+              statsMap[row.source] = {
+                rank: row['7d_rank'] ? Math.round(parseFloat(row['7d_rank'])) : null,
+                marketShare: row['7d_market_share'] ? parseFloat(row['7d_market_share']) * 100 : null
+              };
+            }
+          });
+          
+          resolve(statsMap);
+        };
+        
+        getRequest.onerror = function() {
+          console.error('[PMPromos] Error getting stats data:', getRequest.error);
+          db.close();
+          resolve({});
+        };
+      };
+      
+      request.onerror = function() {
+        console.error('[PMPromos] Failed to open database:', request.error);
+        resolve({});
+      };
+    } catch (error) {
+      console.error('[PMPromos] Error loading company stats:', error);
+      resolve({});
     }
+  });
+}
 
-    // Prepare and sort data by discount depth (highest first)
-    const waveData = promoWaves.map(wave => ({
+async function createPromosWavesChart(allData) {
+  // Filter for active promo waves
+  const promoWaves = allData.filter(row => 
+    row.source !== 'all' && 
+    row.q === 'all' && 
+    (row.promo_wave === true || row.promo_wave === 'true')
+  );
+
+  console.log('[PMPromos] Active promo waves:', promoWaves.length);
+
+  // Update count
+  const countEl = document.getElementById('pmpWavesCount');
+  if (countEl) {
+    countEl.textContent = `${promoWaves.length} Active`;
+  }
+
+  const container = document.getElementById('pmpWavesChart');
+  if (!container || promoWaves.length === 0) {
+    if (container) {
+      container.innerHTML = '<div class="pmp-no-waves">No active promo waves</div>';
+    }
+    return;
+  }
+
+  // Load company stats data
+  const companyStats = await loadAllCompanyStats();
+
+  // Prepare and sort data by discount depth (highest first)
+  const waveData = promoWaves.map(wave => {
+    const stats = companyStats[wave.source] || {};
+    return {
       company: wave.source,
+      rank: stats.rank || null,
+      marketShare: stats.marketShare || null,
       waveLength: parseInt(wave.promo_wave_length) || 0,
       discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
       discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
-    })).sort((a, b) => b.discountDepth - a.discountDepth);
+    };
+  }).sort((a, b) => b.discountDepth - a.discountDepth);
 
-    renderPromosWavesList(waveData);
-  }
+  renderPromosWavesList(waveData);
+}
 
-  function renderPromosWavesList(displayData) {
-    const container = document.getElementById('pmpWavesChart');
-    if (!container) return;
+function renderPromosWavesList(displayData) {
+  const container = document.getElementById('pmpWavesChart');
+  if (!container) return;
 
-    // Fixed x-axis at 100%
-    const fixedMax = 100;
-    const scaleSteps = [0, 25, 50, 75, 100];
+  // Fixed x-axis at 100%
+  const fixedMax = 100;
+  const scaleSteps = [0, 25, 50, 75, 100];
 
-    // X-axis
-    let xAxisHtml = '<div class="pmp-waves-xaxis">';
-    scaleSteps.forEach(step => {
-      const position = (step / fixedMax) * 100;
-      xAxisHtml += `<span class="pmp-xaxis-tick" style="left: ${position}%">${step}%</span>`;
-    });
-    xAxisHtml += '</div>';
+  // X-axis
+  let xAxisHtml = '<div class="pmp-waves-xaxis">';
+  scaleSteps.forEach(step => {
+    const position = (step / fixedMax) * 100;
+    xAxisHtml += `<span class="pmp-xaxis-tick" style="left: ${position}%">${step}%</span>`;
+  });
+  xAxisHtml += '</div>';
 
-    // Create the list with x-axis
-    let html = `
-      <div class="pmp-waves-wrapper">
-        <div class="pmp-waves-xaxis-label">Discount Depth</div>
-        ${xAxisHtml}
-        <div class="pmp-waves-list">
-    `;
+  // Create the list with x-axis
+  let html = `
+    <div class="pmp-waves-wrapper">
+      <div class="pmp-waves-xaxis-label">Discount Depth</div>
+      ${xAxisHtml}
+      <div class="pmp-waves-list">
+  `;
 
-    displayData.forEach((wave) => {
-      const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1);
-      const companyName = wave.company.length > 20 ? wave.company.substring(0, 20) + '...' : wave.company;
+  displayData.forEach((wave) => {
+    const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1);
+    
+    // Calculate donut chart angle
+    const donutAngle = (wave.discountedPercent / 100) * 360;
 
-      html += `
-        <div class="pmp-wave-item" data-company="${wave.company}">
-          <div class="pmp-wave-company" title="${wave.company}">${companyName}</div>
-          <div class="pmp-wave-bar-container">
-            <div class="pmp-wave-bar-fill" style="width: ${barWidth}%">
-              <div class="pmp-wave-metrics">
-                <span class="pmp-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
-                <span class="pmp-wave-separator">|</span>
-                <span class="pmp-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
-                <span class="pmp-wave-separator">|</span>
-                <span class="pmp-wave-duration">${wave.waveLength}d</span>
-              </div>
+    html += `
+      <div class="pmp-wave-item" data-company="${wave.company}">
+        <div class="pmp-wave-company" title="${wave.company}">${wave.company}</div>
+        
+        <!-- Rank Column -->
+        <div class="pmp-wave-rank">
+          ${wave.rank !== null ? wave.rank : '—'}
+        </div>
+        
+        <!-- Market Share Column -->
+        <div class="pmp-wave-market">
+          <div class="pmp-wave-market-fill" style="height: ${wave.marketShare !== null ? Math.min(100, Math.max(0, wave.marketShare * 2)) : 0}%"></div>
+          <span class="pmp-wave-market-value">${wave.marketShare !== null ? wave.marketShare.toFixed(1) + '%' : '—'}</span>
+        </div>
+        
+        <!-- Discounted % Column (Donut Chart) -->
+        <div class="pmp-wave-donut-container">
+          <div class="pmp-wave-donut" style="--percentage: ${donutAngle}deg;">
+            <span class="pmp-wave-donut-value">${wave.discountedPercent.toFixed(1)}%</span>
+          </div>
+        </div>
+        
+        <!-- Discount Depth Bar -->
+        <div class="pmp-wave-bar-container">
+          <div class="pmp-wave-bar-fill" style="width: ${barWidth}%">
+            <div class="pmp-wave-metrics">
+              <span class="pmp-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
+              <span class="pmp-wave-separator">|</span>
+              <span class="pmp-wave-duration">${wave.waveLength}d</span>
             </div>
           </div>
         </div>
-      `;
+      </div>
+    `;
+  });
+
+  html += '</div></div>'; // Close pmp-waves-list and pmp-waves-wrapper
+
+  container.innerHTML = html;
+
+  // Add click listeners to bars
+  container.querySelectorAll('.pmp-wave-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const company = this.getAttribute('data-company');
+      console.log('[PMPromos] Wave clicked:', company);
+      // TODO: Add functionality when clicked
     });
-
-    html += '</div></div>'; // Close pmp-waves-list and pmp-waves-wrapper
-
-    container.innerHTML = html;
-
-    // Add click listeners to bars
-    container.querySelectorAll('.pmp-wave-item').forEach(item => {
-      item.addEventListener('click', function() {
-        const company = this.getAttribute('data-company');
-        console.log('[PMPromos] Wave clicked:', company);
-        // TODO: Add functionality when clicked
-      });
-    });
-  }
+  });
+}
 
   function addPromosStyles() {
     if (document.getElementById('pmpStyles')) return;
@@ -691,11 +793,12 @@ createPromosWavesChart(allData);
         gap: 6px;
       }
 
-      .pmp-wave-item {
-        display: grid;
-        grid-template-columns: 180px 1fr;
-        align-items: center;
-        min-height: 40px;
+.pmp-wave-item {
+  display: grid;
+  grid-template-columns: 180px 70px 90px 90px 1fr;
+  align-items: center;
+  min-height: 50px;
+  gap: 10px;
         font-size: 12px;
         position: relative;
         cursor: pointer;
@@ -709,11 +812,11 @@ createPromosWavesChart(allData);
       }
 
       /* Grid lines */
-      .pmp-wave-item::before {
-        content: '';
-        position: absolute;
-        left: 180px;
-        right: 0;
+.pmp-wave-item::before {
+  content: '';
+  position: absolute;
+  left: 430px;
+  right: 0;
         height: 100%;
         background: repeating-linear-gradient(
           90deg,
@@ -725,16 +828,113 @@ createPromosWavesChart(allData);
         pointer-events: none;
       }
 
-      .pmp-wave-company {
-        padding-right: 15px;
-        color: #333;
-        font-weight: 600;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-        text-align: right;
-        font-size: 12px;
-      }
+.pmp-wave-company {
+  padding-right: 15px;
+  color: #333;
+  font-weight: 600;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mini Rank Box */
+.pmp-wave-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+  margin: 0 auto;
+}
+
+/* Mini Market Share Circle */
+.pmp-wave-market {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+  color: #007aff;
+  background: white;
+  border: 2px solid #007aff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
+  margin: 0 auto;
+}
+
+.pmp-wave-market-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
+  transition: height 0.5s ease;
+  z-index: 0;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.pmp-wave-market-value {
+  position: relative;
+  z-index: 1;
+}
+
+/* Donut Chart for Discounted % */
+.pmp-wave-donut-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.pmp-wave-donut {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #667eea 0deg,
+    #667eea var(--percentage),
+    #e0e0e0 var(--percentage),
+    #e0e0e0 360deg
+  );
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pmp-wave-donut::before {
+  content: '';
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: white;
+  z-index: 1;
+}
+
+.pmp-wave-donut-value {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 700;
+  color: #667eea;
+}
 
       .pmp-wave-bar-container {
         position: relative;
@@ -780,10 +980,6 @@ createPromosWavesChart(allData);
       .pmp-wave-separator {
         color: rgba(13, 71, 161, 0.3);
         font-weight: 300;
-      }
-
-      .pmp-wave-products {
-        color: #1565c0;
       }
 
       .pmp-wave-duration {
