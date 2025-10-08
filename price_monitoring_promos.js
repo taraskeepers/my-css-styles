@@ -432,11 +432,6 @@ let html = `
 // Add click listeners to rows for expansion
 container.querySelectorAll('.pmp-wave-item').forEach(item => {
   item.addEventListener('click', function(e) {
-    // Don't expand if clicking on the close button
-    if (e.target.closest('.pmp-wave-expanded-close')) {
-      return;
-    }
-    
     const company = this.getAttribute('data-company');
     console.log('[PMPromos] Wave clicked:', company);
     toggleWaveExpansion(this, company);
@@ -626,6 +621,165 @@ function renderWaveProductsInExpanded(products, container) {
   container.innerHTML = html;
 }
 
+async function loadWaveCompanyBucketData(companyName, allData) {
+  // Get company's overall data
+  const companyData = allData.find(row => 
+    row.source === companyName && row.q === 'all'
+  );
+  
+  if (!companyData) {
+    return null;
+  }
+  
+  // Load discounted products to calculate discounted bucket distribution
+  const discountedProducts = await loadWaveCompanyProducts(companyName);
+  
+  // Count discounted products by bucket
+  const discountedBucketCounts = {
+    1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
+  };
+  
+  let totalDiscounted = 0;
+  
+  discountedProducts.forEach(product => {
+    const bucket = parseInt(product.price_bucket) || 3;
+    if (bucket >= 1 && bucket <= 6) {
+      discountedBucketCounts[bucket]++;
+      totalDiscounted++;
+    }
+  });
+  
+  // Calculate percentages for discounted products
+  const discountedBucketShares = {};
+  for (let i = 1; i <= 6; i++) {
+    discountedBucketShares[i] = totalDiscounted > 0 ? 
+      (discountedBucketCounts[i] / totalDiscounted) : 0;
+  }
+  
+  // Build buckets array with both discounted and overall data
+  const buckets = [
+    {
+      name: 'Ultra Premium',
+      tier: 6,
+      range: companyData.price_range?.[5],
+      totalCount: companyData.ultra_premium_bucket || 0,
+      totalShare: parseFloat(companyData.ultra_premium_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[6],
+      discountedShare: discountedBucketShares[6],
+      color: '#9C27B0'
+    },
+    {
+      name: 'Premium',
+      tier: 5,
+      range: companyData.price_range?.[4],
+      totalCount: companyData.premium_bucket || 0,
+      totalShare: parseFloat(companyData.premium_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[5],
+      discountedShare: discountedBucketShares[5],
+      color: '#7B1FA2'
+    },
+    {
+      name: 'Upper Mid',
+      tier: 4,
+      range: companyData.price_range?.[3],
+      totalCount: companyData.upper_mid_bucket || 0,
+      totalShare: parseFloat(companyData.upper_mid_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[4],
+      discountedShare: discountedBucketShares[4],
+      color: '#FFC107'
+    },
+    {
+      name: 'Mid Range',
+      tier: 3,
+      range: companyData.price_range?.[2],
+      totalCount: companyData.mid_bucket || 0,
+      totalShare: parseFloat(companyData.mid_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[3],
+      discountedShare: discountedBucketShares[3],
+      color: '#FF9800'
+    },
+    {
+      name: 'Budget',
+      tier: 2,
+      range: companyData.price_range?.[1],
+      totalCount: companyData.budget_bucket || 0,
+      totalShare: parseFloat(companyData.budget_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[2],
+      discountedShare: discountedBucketShares[2],
+      color: '#66BB6A'
+    },
+    {
+      name: 'Ultra Cheap',
+      tier: 1,
+      range: companyData.price_range?.[0],
+      totalCount: companyData.ultra_cheap_bucket || 0,
+      totalShare: parseFloat(companyData.ultra_cheap_bucket_share) || 0,
+      discountedCount: discountedBucketCounts[1],
+      discountedShare: discountedBucketShares[1],
+      color: '#4CAF50'
+    }
+  ];
+  
+  return buckets;
+}
+
+function renderWaveBucketsDistribution(buckets, container) {
+  if (!buckets) {
+    container.innerHTML = '<div class="pmp-wave-no-products">No bucket data available</div>';
+    return;
+  }
+  
+  let html = `
+    <div class="pmp-wave-buckets-title">Price Bucket Distribution</div>
+    <div class="pmp-wave-buckets-header">
+      <span>Bucket</span>
+      <span style="text-align: center;">Discounted / All Products</span>
+    </div>
+    <div class="pmp-wave-buckets-body">
+  `;
+  
+  buckets.forEach(bucket => {
+    const discountedPercent = (bucket.discountedShare * 100).toFixed(1);
+    const totalPercent = (bucket.totalShare * 100).toFixed(1);
+    
+    html += `
+      <div class="pmp-wave-bucket-row">
+        <div class="pmp-wave-bucket-label">
+          <div class="pmp-wave-bucket-name">
+            <span class="pmp-wave-bucket-indicator" style="background: ${bucket.color}"></span>
+            <span>${bucket.name}</span>
+          </div>
+          <div class="pmp-wave-bucket-count">
+            ${bucket.discountedCount} / ${bucket.totalCount}
+          </div>
+        </div>
+        
+        <div class="pmp-wave-bucket-bars">
+          <div class="pmp-wave-bar-row">
+            <span class="pmp-wave-bar-label">Disc.</span>
+            <div class="pmp-wave-bar-container">
+              <div class="pmp-wave-bar-fill" style="width: ${Math.max(1, discountedPercent)}%; background: ${bucket.color};"></div>
+              <span class="pmp-wave-bar-percent">${discountedPercent}%</span>
+            </div>
+          </div>
+          
+          <div class="pmp-wave-bar-row">
+            <span class="pmp-wave-bar-label">All</span>
+            <div class="pmp-wave-bar-container">
+              <div class="pmp-wave-bar-fill" style="width: ${Math.max(1, totalPercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
+              <span class="pmp-wave-bar-percent">${totalPercent}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
 async function toggleWaveExpansion(waveItem, company) {
   const isCurrentlyExpanded = waveItem.classList.contains('expanded');
   
@@ -655,13 +809,12 @@ async function toggleWaveExpansion(waveItem, company) {
     waveItem.classList.add('expanded');
     expandedWaveCompany = company;
     
-    // Create expanded container
+    // Create expanded container with two sections
     const expandedContainer = document.createElement('div');
     expandedContainer.className = 'pmp-wave-expanded-products';
     expandedContainer.innerHTML = `
-      <div class="pmp-wave-expanded-header">
-        <div class="pmp-wave-expanded-title">Discounted Products - ${company}</div>
-        <button class="pmp-wave-expanded-close">×</button>
+      <div class="pmp-wave-buckets-container">
+        <div class="pmp-wave-loading">Loading bucket distribution...</div>
       </div>
       <div class="pmp-wave-expanded-content">
         <div class="pmp-wave-loading">Loading products...</div>
@@ -670,12 +823,13 @@ async function toggleWaveExpansion(waveItem, company) {
     
     waveItem.appendChild(expandedContainer);
     
-    // Add close button handler
-    const closeBtn = expandedContainer.querySelector('.pmp-wave-expanded-close');
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleWaveExpansion(waveItem, company);
-    });
+    // Load and render bucket distribution
+    const data = await window.pmUtils.loadCompanyPricingData();
+    if (data && data.allData) {
+      const buckets = await loadWaveCompanyBucketData(company, data.allData);
+      const bucketsContainer = expandedContainer.querySelector('.pmp-wave-buckets-container');
+      renderWaveBucketsDistribution(buckets, bucketsContainer);
+    }
     
     // Load and render products
     const products = await loadWaveCompanyProducts(company);
@@ -1298,15 +1452,13 @@ async function toggleWaveExpansion(waveItem, company) {
 .pmp-wave-expanded-products {
   position: absolute;
   top: calc(100% + 10px);
-  left: 470px;
+  left: 50px;
   right: 0;
   height: 0;
   opacity: 0;
   visibility: hidden;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  overflow: hidden;
+  display: flex;
+  gap: 15px;
   transition: height 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
   z-index: 50;
 }
@@ -1317,45 +1469,11 @@ async function toggleWaveExpansion(waveItem, company) {
   visibility: visible;
 }
 
-.pmp-wave-expanded-header {
-  padding: 12px 16px;
-  border-bottom: 2px solid #f0f0f0;
-  background: #fafafa;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pmp-wave-expanded-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.pmp-wave-expanded-close {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.pmp-wave-expanded-close:hover {
-  background: #d0d0d0;
-  transform: scale(1.1);
-}
-
 .pmp-wave-expanded-content {
-  height: calc(100% - 48px);
+  flex: 1;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   overflow-x: auto;
   overflow-y: hidden;
   padding: 16px;
@@ -1379,6 +1497,156 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-wave-expanded-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Buckets Distribution Container */
+.pmp-wave-buckets-container {
+  width: 380px;
+  flex-shrink: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.pmp-wave-buckets-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pmp-wave-buckets-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.pmp-wave-buckets-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.pmp-wave-buckets-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pmp-wave-buckets-header {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 8px;
+}
+
+.pmp-wave-buckets-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pmp-wave-bucket-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  min-height: 50px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.pmp-wave-bucket-row:hover {
+  background: #fafafa;
+}
+
+.pmp-wave-bucket-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pmp-wave-bucket-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+}
+
+.pmp-wave-bucket-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.pmp-wave-bucket-count {
+  font-size: 9px;
+  color: #888;
+  padding-left: 16px;
+}
+
+.pmp-wave-bucket-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pmp-wave-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pmp-wave-bar-label {
+  font-size: 8px;
+  color: #888;
+  min-width: 45px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.pmp-wave-bar-container {
+  flex: 1;
+  height: 20px;
+  position: relative;
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pmp-wave-bar-fill {
+  height: 100%;
+  position: relative;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.85;
+}
+
+.pmp-wave-bar-percent {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-weight: 600;
+  color: #444;
+  z-index: 2;
 }
 
 /* Product Card Styles for Expanded View */
