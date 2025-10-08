@@ -785,6 +785,152 @@ function addCompaniesViewStyles() {
       .pm-company-buckets-body::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
       }
+
+      /* CPI Fluctuations Container */
+.pm-cpi-fluctuations-container {
+  background: white;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pm-cpi-fluctuations-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4CAF50, #FF5722);
+}
+
+.pm-cpi-fluctuations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  height: 100%;
+}
+
+.pm-cpi-period-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-cpi-period-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.pm-cpi-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+}
+
+.pm-cpi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pm-cpi-list-header {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.pm-cpi-list.decrease .pm-cpi-list-header {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.pm-cpi-list.increase .pm-cpi-list-header {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.pm-cpi-companies {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  max-height: 65px;
+}
+
+.pm-cpi-company-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 9px;
+  background: #fafafa;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.pm-cpi-company-item:hover {
+  background: #f0f0f0;
+}
+
+.pm-cpi-company-name {
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+.pm-cpi-change {
+  font-weight: 700;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pm-cpi-change.decrease {
+  color: #2e7d32;
+}
+
+.pm-cpi-change.increase {
+  color: #c62828;
+}
+
+.pm-cpi-no-data {
+  font-size: 9px;
+  color: #999;
+  text-align: center;
+  padding: 8px;
+  font-style: italic;
+}
+
+/* Scrollbar for company lists */
+.pm-cpi-companies::-webkit-scrollbar {
+  width: 3px;
+}
+
+.pm-cpi-companies::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pm-cpi-companies::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 2px;
+}
     </style>
   `;
   
@@ -1006,13 +1152,21 @@ let html = `
               </div>
             </div>
             
-            <!-- CPI Trend Chart -->
-            <div class="pm-cpi-chart-container">
-              <h4>CPI (Company Price Index) Market Position</h4>
-              <div class="pm-cpi-chart">
-                <div id="pmCpiTrendChart"></div>
-              </div>
-            </div>
+<!-- CPI Trend Chart -->
+<div class="pm-cpi-chart-container">
+  <h4>CPI (Company Price Index) Market Position</h4>
+  <div class="pm-cpi-chart">
+    <div id="pmCpiTrendChart"></div>
+  </div>
+</div>
+
+<!-- NEW: CPI Fluctuations Container -->
+<div class="pm-cpi-fluctuations-container">
+  <div class="pm-cpi-fluctuations-grid" id="pmCpiFluctuationsGrid">
+    <!-- Will be populated by JavaScript -->
+  </div>
+</div>
+            
           </div>
         </div>
       </div>
@@ -1062,10 +1216,13 @@ updateCompanyKeyMetrics(myCompanyData);
   // 6. Render Products & Discounts Chart
   renderCompanyProductsChart(myCompanyData);
   
-  // 7. Render CPI Trend Chart
-  await renderCpiTrendChart(myCompanyData, data.allData);
+// 7. Render CPI Trend Chart
+await renderCpiTrendChart(myCompanyData, data.allData);
 
-  // 8. Update Advanced Metrics
+// 8. Render CPI Fluctuations (NEW)
+renderCpiFluctuations(data.allData);
+
+// 9. Update Advanced Metrics (update numbering)
 updateAdvancedMetrics(myCompanyData);
 }
 
@@ -1560,7 +1717,32 @@ function renderCompanyProductsChart(companyData) {
 
 async function renderCpiTrendChart(myCompanyData, allData) {
   const ctx = document.getElementById('pmCpiTrendChart');
-  if (!ctx) return;
+  
+  // SAFETY CHECK: Ensure element exists
+  if (!ctx) {
+    console.warn('[PM Companies] CPI chart container not found');
+    return;
+  }
+  
+  // SAFETY CHECK: Ensure element is in DOM and visible
+  if (!ctx.offsetParent && ctx.style.display !== 'none') {
+    console.warn('[PM Companies] CPI chart container not visible yet');
+    setTimeout(() => renderCpiTrendChart(myCompanyData, allData), 100);
+    return;
+  }
+  
+  // Destroy existing chart instance FIRST
+  if (window.pmCpiChartInstance) {
+    try {
+      window.pmCpiChartInstance.destroy();
+    } catch (e) {
+      console.warn('[PM Companies] Error destroying previous chart:', e);
+    }
+    window.pmCpiChartInstance = null;
+  }
+  
+  // Clear the container
+  ctx.innerHTML = '';
   
   try {
     // Get table prefix
@@ -1807,13 +1989,137 @@ async function renderCpiTrendChart(myCompanyData, allData) {
       }
     };
     
+// SAFETY CHECK: Verify element still exists before rendering
+    if (!document.getElementById('pmCpiTrendChart')) {
+      console.warn('[PM Companies] Chart container removed before render');
+      return;
+    }
+    
     window.pmCpiChartInstance = new ApexCharts(ctx, options);
-    window.pmCpiChartInstance.render();
+    await window.pmCpiChartInstance.render();
     
   } catch (error) {
     console.error('[PM Companies] Error rendering CPI chart:', error);
     ctx.innerHTML = '<div class="pm-no-data">Error loading CPI chart</div>';
   }
+}
+
+function calculateCpiFluctuations(allData) {
+  const periods = [
+    { name: 'Last 3 Days', days: 3 },
+    { name: 'Last 7 Days', days: 7 },
+    { name: 'Last 30 Days', days: 30 }
+  ];
+  
+  const results = periods.map(period => {
+    const changes = [];
+    
+    // Process all companies (exclude market average)
+    allData.forEach(companyData => {
+      if (companyData.source === 'all' || companyData.q !== 'all') return;
+      if (!companyData.historical_data || companyData.historical_data.length < period.days + 1) return;
+      
+      const historical = companyData.historical_data;
+      const currentCpi = parseFloat(historical[historical.length - 1]?.cpi);
+      const oldCpi = parseFloat(historical[historical.length - 1 - period.days]?.cpi);
+      
+      if (currentCpi && oldCpi && oldCpi > 0) {
+        const percentChange = ((currentCpi - oldCpi) / oldCpi) * 100;
+        
+        changes.push({
+          company: companyData.source,
+          change: percentChange,
+          currentCpi: currentCpi,
+          oldCpi: oldCpi
+        });
+      }
+    });
+    
+    // Sort and split into decreases and increases
+    const decreases = changes
+      .filter(c => c.change < 0)
+      .sort((a, b) => a.change - b.change) // Most negative first
+      .slice(0, 5);
+    
+    const increases = changes
+      .filter(c => c.change > 0)
+      .sort((a, b) => b.change - a.change) // Most positive first
+      .slice(0, 5);
+    
+    return {
+      period: period.name,
+      decreases,
+      increases
+    };
+  });
+  
+  return results;
+}
+
+function renderCpiFluctuations(allData) {
+  const container = document.getElementById('pmCpiFluctuationsGrid');
+  if (!container) return;
+  
+  const fluctuations = calculateCpiFluctuations(allData);
+  
+  let html = '';
+  
+  fluctuations.forEach(periodData => {
+    html += `
+      <div class="pm-cpi-period-group">
+        <div class="pm-cpi-period-header">${periodData.period}</div>
+        <div class="pm-cpi-lists">
+          <!-- Price Drops -->
+          <div class="pm-cpi-list decrease">
+            <div class="pm-cpi-list-header">↓ Price Drops</div>
+            <div class="pm-cpi-companies">
+    `;
+    
+    if (periodData.decreases.length > 0) {
+      periodData.decreases.forEach(item => {
+        html += `
+          <div class="pm-cpi-company-item">
+            <span class="pm-cpi-company-name">${item.company}</span>
+            <span class="pm-cpi-change decrease">↓ ${Math.abs(item.change).toFixed(1)}%</span>
+          </div>
+        `;
+      });
+    } else {
+      html += '<div class="pm-cpi-no-data">No changes</div>';
+    }
+    
+    html += `
+            </div>
+          </div>
+          
+          <!-- Price Increases -->
+          <div class="pm-cpi-list increase">
+            <div class="pm-cpi-list-header">↑ Price Increases</div>
+            <div class="pm-cpi-companies">
+    `;
+    
+    if (periodData.increases.length > 0) {
+      periodData.increases.forEach(item => {
+        html += `
+          <div class="pm-cpi-company-item">
+            <span class="pm-cpi-company-name">${item.company}</span>
+            <span class="pm-cpi-change increase">↑ ${item.change.toFixed(1)}%</span>
+          </div>
+        `;
+      });
+    } else {
+      html += '<div class="pm-cpi-no-data">No changes</div>';
+    }
+    
+    html += `
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
 }
 
 function updateAdvancedMetrics(companyData) {
