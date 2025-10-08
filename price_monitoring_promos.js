@@ -38,10 +38,28 @@
   }
 
   function createPromosLayout(container, market, allData) {
-    container.innerHTML = `
-      <!-- Promo Stats Section -->
-      <div class="pmp-stats-section">
-        <div class="pmp-stat-item">
+container.innerHTML = `
+  <!-- Promo Stats Section -->
+  <div class="pmp-stats-section">
+    <!-- Company Overview Card -->
+    <div class="pmp-company-overview-card">
+      <div class="pmp-company-name-header" id="pmpCompanyName">—</div>
+      <div class="pmp-rank-container">
+        <div class="pmp-section-label">COMPANY RANK</div>
+        <div class="pmp-big-rank-box">
+          <span id="pmpCompanyRankValue">—</span>
+        </div>
+      </div>
+      <div class="pmp-market-container">
+        <div class="pmp-section-label">MARKET SHARE</div>
+        <div class="pmp-big-market-circle">
+          <div class="pmp-market-water-fill" id="pmpCompanyMarketFill"></div>
+          <span class="pmp-market-value-text" id="pmpCompanyMarketValue">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pmp-stat-item">
           <div class="pmp-stat-info">
             <div class="pmp-stat-grid">
               <div class="pmp-stat-cell">
@@ -92,9 +110,10 @@
     // Add styles
     addPromosStyles();
 
-    // Populate data
-    populatePromosStats(market, allData);
-    createPromosWavesChart(allData);
+// Populate data
+populateCompanyOverview(allData);
+populatePromosStats(market, allData);
+createPromosWavesChart(allData);
   }
 
   function populatePromosStats(market, allData) {
@@ -122,6 +141,97 @@
     document.getElementById('pmpWaveCompanies').textContent = 
       companiesWithWaves > 0 ? `${companiesWithWaves} companies active` : '';
   }
+
+  async function populateCompanyOverview(allData) {
+  // Get company name
+  const companyName = window.myCompany || 'East Perry';
+  document.getElementById('pmpCompanyName').textContent = companyName;
+
+  // Try to get rank and market share from company_serp_stats
+  try {
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}company_serp_stats`;
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.warn('[PMPromos] projectData object store not found');
+        db.close();
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (result && result.data) {
+          const myCompanyData = allData.find(row => 
+            row.source.toLowerCase() === companyName.toLowerCase() && row.q === 'all'
+          );
+          
+          if (myCompanyData) {
+            const companyStats = result.data.find(row => 
+              row.source === myCompanyData.source &&
+              row.q === 'all' &&
+              row.location_requested === 'all' &&
+              row.device === 'all'
+            );
+            
+            if (companyStats) {
+              // Update rank
+              const rankValue = companyStats['7d_rank'];
+              const rankElement = document.getElementById('pmpCompanyRankValue');
+              if (rankElement && rankValue) {
+                rankElement.textContent = Math.round(parseFloat(rankValue));
+              }
+              
+              // Update market share
+              const marketShare = parseFloat(companyStats['7d_market_share']) * 100;
+              const marketElement = document.getElementById('pmpCompanyMarketValue');
+              const marketFill = document.getElementById('pmpCompanyMarketFill');
+              
+              if (marketElement) {
+                marketElement.textContent = `${marketShare.toFixed(1)}%`;
+              }
+              
+              if (marketFill) {
+                marketFill.style.height = `${Math.min(100, Math.max(0, marketShare * 2))}%`;
+              }
+            }
+          }
+        }
+        
+        db.close();
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[PMPromos] Error getting stats data:', getRequest.error);
+        db.close();
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[PMPromos] Failed to open database:', request.error);
+    };
+  } catch (error) {
+    console.error('[PMPromos] Error fetching company overview data:', error);
+  }
+}
 
   async function createPromosWavesChart(allData) {
     // Filter for active promo waves
@@ -231,11 +341,127 @@
         padding: 20px 0;
       }
 
-      /* Promo Stats Section */
-      .pmp-stats-section {
-        display: flex;
-        gap: 10px;
-      }
+/* Promo Stats Section */
+.pmp-stats-section {
+  display: flex;
+  gap: 10px;
+}
+
+/* Company Overview Card */
+.pmp-company-overview-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  width: 420px;
+  height: 200px;
+  box-sizing: border-box;
+}
+
+.pmp-company-overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.pmp-company-name-header {
+  height: 80px;
+  width: 140px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 10px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+  border-radius: 12px;
+  border: 1px solid #1a252f;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.2),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pmp-rank-container,
+.pmp-market-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pmp-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pmp-big-rank-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.pmp-big-market-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #007aff;
+  background: white;
+  border: 3px solid #007aff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+}
+
+.pmp-market-water-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #003d82 0%, #0056b3 50%, #007aff 100%);
+  transition: height 0.5s ease;
+  z-index: 0;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.pmp-market-value-text {
+  position: relative;
+  z-index: 1;
+}
 
       .pmp-stat-item {
         background: white;
