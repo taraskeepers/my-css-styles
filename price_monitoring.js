@@ -1088,13 +1088,13 @@ async function createPromoWavesChart() {
 }
 
 // New function to render the promo waves list
-function renderPromoWavesList(displayData, maxDiscount, hasMore) {
+function renderPromoWavesList(displayData, hasMore) {
   const container = document.getElementById('pmPromoWavesChart');
   if (!container) return;
   
-// Fixed x-axis scale at 100%
-const fixedMax = 100;
-const scaleSteps = [0, 25, 50, 75, 100];
+  // Fixed x-axis scale at 100%
+  const fixedMax = 100;
+  const scaleSteps = [0, 25, 50, 75, 100];
   
   let xAxisHtml = '<div class="pm-waves-xaxis">';
   scaleSteps.forEach(step => {
@@ -1161,13 +1161,11 @@ window.togglePromoWaves = function() {
   
   window.pmPromoWavesExpanded = !window.pmPromoWavesExpanded;
   
-  const maxDiscount = Math.max(...window.pmPromoWavesData.map(d => d.discountDepth));
   const displayData = window.pmPromoWavesExpanded ? 
     window.pmPromoWavesData : 
     window.pmPromoWavesData.slice(0, 10);
   
-  renderPromoWavesList(displayData, maxDiscount, window.pmPromoWavesData.length > 10);
-  
+  renderPromoWavesList(displayData, window.pmPromoWavesData.length > 10);
 }
 
 function addPriceMonitoringStyles() {
