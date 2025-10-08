@@ -1191,9 +1191,9 @@ async function toggleWaveExpansion(waveItem, company) {
       /* X-Axis Scale */
 .pmp-waves-xaxis {
   position: absolute;
-  top: 50px;
+  top: 65px;
   left: 470px;
-  right: 0;
+  right: 15px;
   height: 25px;
   border-bottom: 2px solid #e0e0e0;
 }
@@ -1220,6 +1220,7 @@ async function toggleWaveExpansion(waveItem, company) {
 
       /* Waves List */
       .pmp-waves-list {
+        top: 20px;
         display: flex;
         flex-direction: column;
         gap: 6px;
