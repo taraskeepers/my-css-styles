@@ -250,7 +250,7 @@ async function loadAllCompanyStats() {
       const request = indexedDB.open('myAppDB');
       
       request.onsuccess = function(event) {
-        const db = event.target.result();
+        const db = event.target.result;  // <-- NO PARENTHESES HERE
         
         if (!db.objectStoreNames.contains('projectData')) {
           console.warn('[PMPromos] projectData object store not found');
