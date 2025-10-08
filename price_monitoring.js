@@ -91,7 +91,7 @@ function formatNumber(value, decimals = 0) {
   const num = parseFloat(value);
   if (isNaN(num)) return '—';
   
-  if (decimals === 0) return num.toLocaleString();
+  if (decimals === 0) return Math.round(num).toLocaleString();
   return num.toFixed(decimals);
 }
 
