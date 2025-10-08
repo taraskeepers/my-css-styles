@@ -2414,8 +2414,8 @@ function addPriceMonitoringStyles() {
 .pm-waves-xaxis {
   position: absolute;
   top: 15px;
-  left: 210px;
-  width: 300px;
+  left: 160px;
+  width: 400px;
   height: 20px;
   border-bottom: 1px solid #e8e8e8;
 }
@@ -2448,7 +2448,7 @@ function addPriceMonitoringStyles() {
 
 .pm-wave-item {
   display: grid;
-  grid-template-columns: 200px 300px 1fr;
+  grid-template-columns: 150px 400px 1fr;
   align-items: center;
   height: 22px;
   font-size: 11px;
