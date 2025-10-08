@@ -95,16 +95,25 @@ container.innerHTML = `
         </div>
       </div>
 
-      <!-- Promo Waves Chart Section -->
-      <div class="pmp-waves-container">
-        <div class="pmp-waves-header">
-          <h4>Active Promotional Waves</h4>
-          <span class="pmp-waves-count" id="pmpWavesCount">0 Active</span>
-        </div>
-        <div class="pmp-waves-chart" id="pmpWavesChart">
-          <!-- Chart will be rendered here -->
-        </div>
+<!-- Promo Waves Chart Section -->
+<div class="pmp-waves-container">
+  <div class="pmp-waves-header">
+    <h4>Active Promotional Waves</h4>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="pmp-waves-mode-switcher">
+        <button class="pmp-mode-btn active" data-mode="depth" id="pmpModeDepth">Discount Depth</button>
+        <button class="pmp-mode-btn" data-mode="calendar" id="pmpModeCalendar">Calendar</button>
       </div>
+      <span class="pmp-waves-count" id="pmpWavesCount">0 Active</span>
+    </div>
+  </div>
+  <div class="pmp-waves-chart active" id="pmpWavesChart">
+    <!-- Discount Depth chart will be rendered here -->
+  </div>
+  <div class="pmp-waves-calendar-chart" id="pmpWavesCalendarChart">
+    <!-- Calendar chart will be rendered here -->
+  </div>
+</div>
     `;
 
     // Add styles
@@ -348,6 +357,71 @@ async function createPromosWavesChart(allData) {
   }).sort((a, b) => b.discountDepth - a.discountDepth);
 
   renderPromosWavesList(waveData);
+  initializeWavesModeSwitch();
+}
+
+function initializeWavesModeSwitch() {
+  const depthBtn = document.getElementById('pmpModeDepth');
+  const calendarBtn = document.getElementById('pmpModeCalendar');
+  const depthChart = document.getElementById('pmpWavesChart');
+  const calendarChart = document.getElementById('pmpWavesCalendarChart');
+  
+  if (!depthBtn || !calendarBtn || !depthChart || !calendarChart) {
+    console.warn('[PMPromos] Mode switcher elements not found');
+    return;
+  }
+  
+  // Depth mode button click
+  depthBtn.addEventListener('click', function() {
+    if (this.classList.contains('active')) return;
+    
+    // Switch active states
+    depthBtn.classList.add('active');
+    calendarBtn.classList.remove('active');
+    
+    // Show depth chart, hide calendar
+    depthChart.classList.add('active');
+    depthChart.classList.remove('hidden');
+    calendarChart.classList.remove('active');
+    
+    console.log('[PMPromos] Switched to Discount Depth mode');
+  });
+  
+  // Calendar mode button click
+  calendarBtn.addEventListener('click', function() {
+    if (this.classList.contains('active')) return;
+    
+    // Switch active states
+    calendarBtn.classList.add('active');
+    depthBtn.classList.remove('active');
+    
+    // Show calendar, hide depth chart
+    calendarChart.classList.add('active');
+    depthChart.classList.remove('active');
+    depthChart.classList.add('hidden');
+    
+    console.log('[PMPromos] Switched to Calendar mode');
+    
+    // Render calendar chart if not already rendered
+    renderCalendarChart();
+  });
+}
+
+function renderCalendarChart() {
+  const container = document.getElementById('pmpWavesCalendarChart');
+  if (!container) return;
+  
+  // Check if already rendered
+  if (container.innerHTML.trim() !== '') return;
+  
+  // Placeholder for now - will be implemented later
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #999; font-size: 14px;">
+      Calendar view will be implemented here
+    </div>
+  `;
+  
+  console.log('[PMPromos] Calendar chart rendered');
 }
 
 function renderPromosWavesList(displayData) {
@@ -1113,6 +1187,59 @@ async function toggleWaveExpansion(waveItem, company) {
         border-radius: 12px;
         font-weight: 600;
       }
+
+      /* Mode Switcher */
+.pmp-waves-mode-switcher {
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.pmp-mode-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pmp-mode-btn:hover {
+  color: #333;
+}
+
+.pmp-mode-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Calendar Chart Container */
+.pmp-waves-calendar-chart {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: none;
+}
+
+.pmp-waves-calendar-chart.active {
+  display: block;
+}
+
+.pmp-waves-chart.active {
+  display: block;
+}
+
+.pmp-waves-chart.hidden {
+  display: none;
+}
 
       .pmp-waves-chart {
         flex: 1;
