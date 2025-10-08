@@ -631,6 +631,9 @@ async function loadWaveCompanyBucketData(companyName, allData) {
     return null;
   }
   
+  // Get total company products count
+  const totalCompanyProducts = parseInt(companyData.unique_total_products) || 0;
+  
   // Load discounted products to calculate discounted bucket distribution
   const discountedProducts = await loadWaveCompanyProducts(companyName);
   
@@ -639,22 +642,12 @@ async function loadWaveCompanyBucketData(companyName, allData) {
     1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
   };
   
-  let totalDiscounted = 0;
-  
   discountedProducts.forEach(product => {
     const bucket = parseInt(product.price_bucket) || 3;
     if (bucket >= 1 && bucket <= 6) {
       discountedBucketCounts[bucket]++;
-      totalDiscounted++;
     }
   });
-  
-  // Calculate percentages for discounted products
-  const discountedBucketShares = {};
-  for (let i = 1; i <= 6; i++) {
-    discountedBucketShares[i] = totalDiscounted > 0 ? 
-      (discountedBucketCounts[i] / totalDiscounted) : 0;
-  }
   
   // Build buckets array with both discounted and overall data
   const buckets = [
@@ -662,63 +655,63 @@ async function loadWaveCompanyBucketData(companyName, allData) {
       name: 'Ultra Premium',
       tier: 6,
       range: companyData.price_range?.[5],
-      totalCount: companyData.ultra_premium_bucket || 0,
+      totalCount: parseInt(companyData.ultra_premium_bucket) || 0,
       totalShare: parseFloat(companyData.ultra_premium_bucket_share) || 0,
       discountedCount: discountedBucketCounts[6],
-      discountedShare: discountedBucketShares[6],
       color: '#9C27B0'
     },
     {
       name: 'Premium',
       tier: 5,
       range: companyData.price_range?.[4],
-      totalCount: companyData.premium_bucket || 0,
+      totalCount: parseInt(companyData.premium_bucket) || 0,
       totalShare: parseFloat(companyData.premium_bucket_share) || 0,
       discountedCount: discountedBucketCounts[5],
-      discountedShare: discountedBucketShares[5],
       color: '#7B1FA2'
     },
     {
       name: 'Upper Mid',
       tier: 4,
       range: companyData.price_range?.[3],
-      totalCount: companyData.upper_mid_bucket || 0,
+      totalCount: parseInt(companyData.upper_mid_bucket) || 0,
       totalShare: parseFloat(companyData.upper_mid_bucket_share) || 0,
       discountedCount: discountedBucketCounts[4],
-      discountedShare: discountedBucketShares[4],
       color: '#FFC107'
     },
     {
       name: 'Mid Range',
       tier: 3,
       range: companyData.price_range?.[2],
-      totalCount: companyData.mid_bucket || 0,
+      totalCount: parseInt(companyData.mid_bucket) || 0,
       totalShare: parseFloat(companyData.mid_bucket_share) || 0,
       discountedCount: discountedBucketCounts[3],
-      discountedShare: discountedBucketShares[3],
       color: '#FF9800'
     },
     {
       name: 'Budget',
       tier: 2,
       range: companyData.price_range?.[1],
-      totalCount: companyData.budget_bucket || 0,
+      totalCount: parseInt(companyData.budget_bucket) || 0,
       totalShare: parseFloat(companyData.budget_bucket_share) || 0,
       discountedCount: discountedBucketCounts[2],
-      discountedShare: discountedBucketShares[2],
       color: '#66BB6A'
     },
     {
       name: 'Ultra Cheap',
       tier: 1,
       range: companyData.price_range?.[0],
-      totalCount: companyData.ultra_cheap_bucket || 0,
+      totalCount: parseInt(companyData.ultra_cheap_bucket) || 0,
       totalShare: parseFloat(companyData.ultra_cheap_bucket_share) || 0,
       discountedCount: discountedBucketCounts[1],
-      discountedShare: discountedBucketShares[1],
       color: '#4CAF50'
     }
   ];
+  
+  // Calculate discounted percentage as: (discounted in bucket / ALL company products) × 100
+  buckets.forEach(bucket => {
+    bucket.discountedShare = totalCompanyProducts > 0 ? 
+      (bucket.discountedCount / totalCompanyProducts) : 0;
+  });
   
   return buckets;
 }
@@ -729,14 +722,7 @@ function renderWaveBucketsDistribution(buckets, container) {
     return;
   }
   
-  let html = `
-    <div class="pmp-wave-buckets-title">Price Bucket Distribution</div>
-    <div class="pmp-wave-buckets-header">
-      <span>Bucket</span>
-      <span style="text-align: center;">Discounted / All Products</span>
-    </div>
-    <div class="pmp-wave-buckets-body">
-  `;
+  let html = '<div class="pmp-wave-buckets-body">';
   
   buckets.forEach(bucket => {
     const discountedPercent = (bucket.discountedShare * 100).toFixed(1);
@@ -754,17 +740,19 @@ function renderWaveBucketsDistribution(buckets, container) {
           </div>
         </div>
         
-        <div class="pmp-wave-bucket-bars">
+        <!-- Left Column: Discounted (Right to Left) -->
+        <div class="pmp-wave-butterfly-left">
           <div class="pmp-wave-bar-row">
-            <span class="pmp-wave-bar-label">Disc.</span>
             <div class="pmp-wave-bar-container">
               <div class="pmp-wave-bar-fill" style="width: ${Math.max(1, discountedPercent)}%; background: ${bucket.color};"></div>
               <span class="pmp-wave-bar-percent">${discountedPercent}%</span>
             </div>
           </div>
-          
+        </div>
+        
+        <!-- Right Column: All Products (Left to Right) -->
+        <div class="pmp-wave-butterfly-right">
           <div class="pmp-wave-bar-row">
-            <span class="pmp-wave-bar-label">All</span>
             <div class="pmp-wave-bar-container">
               <div class="pmp-wave-bar-fill" style="width: ${Math.max(1, totalPercent)}%; background: linear-gradient(90deg, ${bucket.color}, ${bucket.color}80);"></div>
               <span class="pmp-wave-bar-percent">${totalPercent}%</span>
@@ -1526,33 +1514,6 @@ async function toggleWaveExpansion(waveItem, company) {
   border-radius: 3px;
 }
 
-.pmp-wave-buckets-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.pmp-wave-buckets-header {
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
-  padding: 8px 12px;
-  font-size: 9px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid #f0f0f0;
-  background: #fafafa;
-  border-radius: 6px 6px 0 0;
-  margin-bottom: 8px;
-}
-
 .pmp-wave-buckets-body {
   display: flex;
   flex-direction: column;
@@ -1561,7 +1522,7 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-wave-bucket-row {
   display: grid;
-  grid-template-columns: 90px 1fr;
+  grid-template-columns: 90px 1fr 1fr;
   gap: 10px;
   min-height: 50px;
   align-items: center;
@@ -1602,24 +1563,45 @@ async function toggleWaveExpansion(waveItem, company) {
   padding-left: 16px;
 }
 
-.pmp-wave-bucket-bars {
+/* Butterfly bar columns */
+.pmp-wave-butterfly-bars {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.pmp-wave-butterfly-left,
+.pmp-wave-butterfly-right {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.pmp-wave-butterfly-left .pmp-wave-bar-container {
+  direction: rtl;
+}
+
+.pmp-wave-butterfly-left .pmp-wave-bar-fill {
+  float: right;
+}
+
+.pmp-wave-butterfly-right .pmp-wave-bar-container {
+  direction: ltr;
+}
+
+.pmp-wave-butterfly-divider {
+  width: 1px;
+  height: 40px;
+  background: #e0e0e0;
+  margin: 0 4px;
 }
 
 .pmp-wave-bar-row {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.pmp-wave-bar-label {
-  font-size: 8px;
-  color: #888;
-  min-width: 45px;
-  text-transform: uppercase;
-  font-weight: 500;
 }
 
 .pmp-wave-bar-container {
@@ -1640,13 +1622,22 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-wave-bar-percent {
   position: absolute;
-  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 9px;
   font-weight: 600;
   color: #444;
   z-index: 2;
+}
+
+.pmp-wave-butterfly-left .pmp-wave-bar-percent {
+  left: 6px;
+  right: auto;
+}
+
+.pmp-wave-butterfly-right .pmp-wave-bar-percent {
+  right: 6px;
+  left: auto;
 }
 
 /* Product Card Styles for Expanded View */
