@@ -1347,10 +1347,10 @@ async function toggleWaveExpansion(waveItem, company) {
 
       /* Waves List */
       .pmp-waves-list {
-        top: 20px;
         display: flex;
         flex-direction: column;
         gap: 6px;
+        padding-top: 20px;
       }
 
 .pmp-wave-item {
