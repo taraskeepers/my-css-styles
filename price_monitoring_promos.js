@@ -754,7 +754,7 @@ let html = `
 .pmp-waves-xaxis-label {
   position: absolute;
   top: 30px;
-  left: 430px;
+  left: 470px;
   right: 0;
   font-size: 11px;
   color: #888;
@@ -805,7 +805,7 @@ let html = `
 .pmp-waves-xaxis {
   position: absolute;
   top: 50px;
-  left: 430px;
+  left: 470px;
   right: 0;
   height: 25px;
   border-bottom: 2px solid #e0e0e0;
@@ -860,7 +860,7 @@ let html = `
 .pmp-wave-item::before {
   content: '';
   position: absolute;
-  left: 430px;
+  left: 470px;
   right: 0;
         height: 100%;
         background: repeating-linear-gradient(
