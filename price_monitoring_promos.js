@@ -366,13 +366,22 @@ function renderPromosWavesList(displayData) {
   });
   xAxisHtml += '</div>';
 
-  // Create the list with x-axis
-  let html = `
-    <div class="pmp-waves-wrapper">
-      <div class="pmp-waves-xaxis-label">Discount Depth</div>
-      ${xAxisHtml}
-      <div class="pmp-waves-list">
-  `;
+// Create the list with column headers and x-axis
+let html = `
+  <div class="pmp-waves-wrapper">
+    <!-- Column Headers -->
+    <div class="pmp-waves-column-headers">
+      <div class="pmp-column-header company">Company</div>
+      <div class="pmp-column-header">Rank</div>
+      <div class="pmp-column-header">Market<br/>Share</div>
+      <div class="pmp-column-header">% of disc.<br/>products</div>
+      <div class="pmp-column-header discount-bar">Discount Depth</div>
+    </div>
+    
+    <div class="pmp-waves-xaxis-label">Discount Depth</div>
+    ${xAxisHtml}
+    <div class="pmp-waves-list">
+`;
 
   displayData.forEach((wave) => {
     const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1);
@@ -736,25 +745,61 @@ function renderPromosWavesList(displayData) {
       }
 
       /* Waves Wrapper */
-      .pmp-waves-wrapper {
-        position: relative;
-        padding-top: 45px;
-      }
+.pmp-waves-wrapper {
+  position: relative;
+  padding-top: 75px;
+}
 
       /* X-Axis Label */
-      .pmp-waves-xaxis-label {
-        position: absolute;
-        top: 0;
-        left: 180px;
-        right: 0;
-        font-size: 11px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-        text-align: center;
-        padding-bottom: 4px;
-      }
+.pmp-waves-xaxis-label {
+  position: absolute;
+  top: 30px;
+  left: 430px;
+  right: 0;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+      /* Column Headers */
+.pmp-waves-column-headers {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 180px 70px 90px 90px 1fr;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
+  background: white;
+  z-index: 10;
+}
+
+.pmp-column-header {
+  text-align: center;
+  padding: 0 5px;
+  line-height: 1.2;
+}
+
+.pmp-column-header.company {
+  text-align: right;
+  padding-right: 15px;
+}
+
+.pmp-column-header.discount-bar {
+  padding-left: 430px;
+  text-align: center;
+}
 
       /* X-Axis Scale */
       .pmp-waves-xaxis {
