@@ -1517,14 +1517,12 @@ async function toggleWaveExpansion(waveItem, company) {
 .pmp-wave-buckets-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .pmp-wave-bucket-row {
   display: grid;
   grid-template-columns: 90px 1fr 1fr;
   gap: 10px;
-  min-height: 50px;
   align-items: center;
   padding: 6px 8px;
   border-radius: 6px;
