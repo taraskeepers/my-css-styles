@@ -2999,6 +2999,18 @@ function getRatingBadgeColor(rating) {
 
 // Main function definition
 function renderProductExplorerTable() {
+// Add this at the top of renderProductExplorerTable function
+if (window._renderingProductExplorer) {
+  console.log('[renderProductExplorerTable] Already rendering, skipping duplicate call');
+  return;
+}
+window._renderingProductExplorer = true;
+
+// At the end of the function, after the setTimeout:
+setTimeout(() => {
+  window._renderingProductExplorer = false;
+}, 200);
+  
   // Ensure body class matches current mode
 const currentMode = getCurrentMode();
 document.body.classList.remove('mode-products', 'mode-companies');
