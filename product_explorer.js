@@ -3679,6 +3679,45 @@ viewMapExplorerBtn.addEventListener("click", function() {
     });
   }
 });
+
+// Listen for mode changes from modeSelector
+document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
+  option.addEventListener('click', function() {
+    const selectedMode = this.getAttribute('data-mode');
+
+        // Clean up selectedCompanyStats when switching modes
+    const existingStats = document.getElementById('selectedCompanyStats');
+    if (existingStats) {
+      existingStats.remove();
+    }
+    
+    // Update body class
+    document.body.classList.remove('mode-products', 'mode-companies');
+    document.body.classList.add(`mode-${selectedMode}`);
+    
+    console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
+    
+    // Hide/show appropriate tables
+    if (selectedMode === 'companies') {
+      // Hide product table, show company table
+      const productTable = document.querySelector('.product-explorer-table');
+      if (productTable) productTable.style.display = 'none';
+      
+      const companyTable = document.querySelector('.company-explorer-table');
+      if (companyTable) companyTable.style.display = '';
+    } else {
+      // Hide company table, show product table
+      const companyTable = document.querySelector('.company-explorer-table');
+      if (companyTable) companyTable.style.display = 'none';
+      
+      const productTable = document.querySelector('.product-explorer-table');
+      if (productTable) productTable.style.display = '';
+    }
+    
+    // Re-render the entire explorer
+    renderProductExplorerTable();
+  });
+});
   
 console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
 
@@ -6590,57 +6629,4 @@ if (typeof window !== 'undefined') {
   window.renderAvgPositionChartExplorer = renderAvgPositionChartExplorer;
   window.updateChartLineVisibilityExplorer = updateChartLineVisibilityExplorer;
   window.renderProductPositionChart = renderProductPositionChart;
-};
-
-// Initialize mode selector listeners ONCE on page load
-(function initializeModeSelector() {
-  let initialized = false;
-  
-  function setupModeListeners() {
-    if (initialized) return;
-    initialized = true;
-    
-    document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
-      option.addEventListener('click', function() {
-        const selectedMode = this.getAttribute('data-mode');
-
-        // Clean up selectedCompanyStats when switching modes
-        const existingStats = document.getElementById('selectedCompanyStats');
-        if (existingStats) {
-          existingStats.remove();
-        }
-        
-        // Update body class
-        document.body.classList.remove('mode-products', 'mode-companies');
-        document.body.classList.add(`mode-${selectedMode}`);
-        
-        console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
-        
-        // Hide/show appropriate tables
-        if (selectedMode === 'companies') {
-          const productTable = document.querySelector('.product-explorer-table');
-          if (productTable) productTable.style.display = 'none';
-          
-          const companyTable = document.querySelector('.company-explorer-table');
-          if (companyTable) companyTable.style.display = '';
-        } else {
-          const companyTable = document.querySelector('.company-explorer-table');
-          if (companyTable) companyTable.style.display = 'none';
-          
-          const productTable = document.querySelector('.product-explorer-table');
-          if (productTable) productTable.style.display = '';
-        }
-        
-        // Re-render the entire explorer
-        renderProductExplorerTable();
-      });
-    });
-  }
-  
-  // Wait for DOM to be ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupModeListeners);
-  } else {
-    setupModeListeners();
-  }
-})();
+}
