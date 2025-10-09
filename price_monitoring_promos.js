@@ -1063,29 +1063,33 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
     />
   `;
   
-  // Draw individual day segments for hover interaction (invisible but interactive)
-  wave.dailyData.forEach((day, index) => {
-    const x = dateToX[day.date];
-    const heightPercent = getLogarithmicHeight(day.prDiscounted);
-    const height = maxHeight * heightPercent / 100;
-    
-    svg += `
-      <rect 
-        x="${x - dayWidth/2}" 
-        y="${yOffset + maxHeight - height}" 
-        width="${dayWidth}" 
-        height="${height}" 
-        fill="transparent"
-        class="pmp-wave-day-segment"
-        data-date="${day.date}"
-        data-pr-discounted="${day.prDiscounted}"
-        data-discount-depth="${day.discountDepth}"
-        data-total-products="${day.totalProducts}"
-        data-discounted-products="${day.discountedProducts}"
-        style="cursor: pointer;"
-      />
-    `;
-  });
+// Draw individual day segments for hover interaction (invisible but interactive)
+wave.dailyData.forEach((day, index) => {
+  const x = dateToX[day.date];
+  
+  // Skip if date is outside the current date range
+  if (x === undefined) return;
+  
+  const heightPercent = getLogarithmicHeight(day.prDiscounted);
+  const height = maxHeight * heightPercent / 100;
+  
+  svg += `
+    <rect 
+      x="${x - dayWidth/2}" 
+      y="${yOffset + maxHeight - height}" 
+      width="${dayWidth}" 
+      height="${height}" 
+      fill="transparent"
+      class="pmp-wave-day-segment"
+      data-date="${day.date}"
+      data-pr-discounted="${day.prDiscounted}"
+      data-discount-depth="${day.discountDepth}"
+      data-total-products="${day.totalProducts}"
+      data-discounted-products="${day.discountedProducts}"
+      style="cursor: pointer;"
+    />
+  `;
+});
   
   // Draw smooth curve outline on top for polish
   svg += `
@@ -1101,10 +1105,13 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
     />
   `;
   
-  // Ongoing wave indicator with animation
-  if (wave.isOngoing) {
-    const lastDay = wave.dailyData[wave.dailyData.length - 1];
-    const lastX = dateToX[lastDay.date];
+// Ongoing wave indicator with animation
+if (wave.isOngoing) {
+  const lastDay = wave.dailyData[wave.dailyData.length - 1];
+  const lastX = dateToX[lastDay.date];
+  
+  // Only render if the last day is within the current date range
+  if (lastX !== undefined) {
     const lastHeight = maxHeight * getLogarithmicHeight(lastDay.prDiscounted) / 100;
     
     svg += `
@@ -1132,6 +1139,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
       </g>
     `;
   }
+}
   
   return svg;
 }
