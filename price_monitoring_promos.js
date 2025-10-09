@@ -694,32 +694,13 @@ function assignCompanyColors(companyWaves) {
 }
 
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
-  // Calculate responsive dimensions
-  const labelWidth = 180;
-  const rowHeight = 70;
-  const rowPadding = 10;
+  const dayWidth = 30; // Width per day in pixels
+  const rowHeight = 70; // Height per company row (increased for padding)
+  const rowPadding = 10; // Padding between rows
   const headerHeight = 80;
-  
-  // Get container width to calculate responsive day width
-  const container = document.querySelector('.pmp-calendar-chart-container');
-  const containerWidth = container ? container.clientWidth : 1200;
-  
-  // Calculate available width for chart (minus label width and padding)
-  const availableWidth = containerWidth - labelWidth - 40; // 40px for margins
-  
-  // Calculate day width based on available space and date range
-  const dayWidth = Math.max(20, Math.floor(availableWidth / dateRange)); // Minimum 20px per day
-  
+  const labelWidth = 180;
   const chartWidth = dayWidth * dateRange;
   const chartHeight = (companyWaves.length * rowHeight);
-  
-  console.log('[PMPromos] Calendar dimensions:', {
-    containerWidth,
-    availableWidth,
-    dateRange,
-    dayWidth,
-    chartWidth
-  });
   
   // Assign unique colors to companies
   const companyColors = assignCompanyColors(companyWaves);
@@ -743,15 +724,15 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
       <div class="pmp-calendar-controls">
         <label>Date Range:</label>
         <select id="pmpCalendarRange" class="pmp-calendar-range-select">
-          <option value="7" ${dateRange === 7 ? 'selected' : ''}>Last 7 days</option>
-          <option value="14" ${dateRange === 14 ? 'selected' : ''}>Last 14 days</option>
-          <option value="30" ${dateRange === 30 ? 'selected' : ''}>Last 30 days</option>
-          <option value="60" ${dateRange === 60 ? 'selected' : ''}>Last 60 days</option>
-          <option value="90" ${dateRange === 90 ? 'selected' : ''}>Last 90 days</option>
+          <option value="7">Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="60">Last 60 days</option>
+          <option value="90">Last 90 days</option>
         </select>
       </div>
       
-      <div class="pmp-calendar-chart-container-inner">
+      <div class="pmp-calendar-chart-container">
         <svg width="${chartWidth + labelWidth}" height="${chartHeight + headerHeight}" class="pmp-calendar-svg">
           <defs>
             <!-- Weekend pattern -->
@@ -822,17 +803,15 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   
   html += `</g>`;
   
-  // Draw X-axis labels - adjust frequency based on date range
+  // Draw X-axis labels
   html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 35})">`;
-  const labelFrequency = dateRange <= 14 ? 1 : (dateRange <= 30 ? 3 : 7);
   dateArray.forEach((dateObj, index) => {
     const isMonthStart = dateObj.date.getDate() === 1;
-    const showLabel = index === 0 || isMonthStart || index % labelFrequency === 0;
+    const showLabel = index === 0 || isMonthStart || index % 7 === 0;
     
     if (showLabel) {
       const label = dateObj.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const fontSize = dateRange > 60 ? 9 : 10;
-      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="${fontSize}" font-weight="500" fill="#666">${label}</text>`;
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="500" fill="#666">${label}</text>`;
     }
   });
   html += `</g>`;
@@ -915,7 +894,18 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
     />
   `;
   
-  // Draw individual day segments with solid company color
+  // Draw main gradient-filled wave with rounded appearance
+  svg += `
+    <path 
+      d="${path}" 
+      fill="url(#gradient_${companyIndex})"
+      filter="url(#shadow_${companyIndex})"
+      class="pmp-wave-main-path"
+      data-company-index="${companyIndex}"
+    />
+  `;
+  
+  // Draw individual day segments for hover interaction (invisible but interactive)
   wave.dailyData.forEach((day, index) => {
     const x = dateToX[day.date];
     const heightPercent = getLogarithmicHeight(day.prDiscounted);
@@ -927,7 +917,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         y="${yOffset + maxHeight - height}" 
         width="${dayWidth}" 
         height="${height}" 
-        fill="${color.main}"
+        fill="transparent"
         class="pmp-wave-day-segment"
         data-date="${day.date}"
         data-pr-discounted="${day.prDiscounted}"
@@ -935,7 +925,6 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         data-total-products="${day.totalProducts}"
         data-discounted-products="${day.discountedProducts}"
         style="cursor: pointer;"
-        opacity="0.85"
       />
     `;
   });
@@ -1165,28 +1154,24 @@ function initializeWavesModeSwitch() {
     console.log('[PMPromos] Switched to Discount Depth mode');
   });
   
-// Calendar mode button click
-calendarBtn.addEventListener('click', async function() {
-  if (this.classList.contains('active')) return;
-  
-  // Switch active states
-  calendarBtn.classList.add('active');
-  depthBtn.classList.remove('active');
-  
-  // Show calendar, hide depth chart
-  calendarChart.classList.add('active');
-  depthChart.classList.remove('active');
-  depthChart.classList.add('hidden');
-  
-  console.log('[PMPromos] Switched to Calendar mode');
-  
-  // Check if already rendered
-  if (!calendarChart.querySelector('.pmp-calendar-wrapper')) {
-    // Render calendar chart for the first time
-    await renderCalendarChart(30);
-    initializeDateRangeSelector();
-  }
-});
+  // Calendar mode button click
+  calendarBtn.addEventListener('click', function() {
+    if (this.classList.contains('active')) return;
+    
+    // Switch active states
+    calendarBtn.classList.add('active');
+    depthBtn.classList.remove('active');
+    
+    // Show calendar, hide depth chart
+    calendarChart.classList.add('active');
+    depthChart.classList.remove('active');
+    depthChart.classList.add('hidden');
+    
+    console.log('[PMPromos] Switched to Calendar mode');
+    
+    // Render calendar chart if not already rendered
+    renderCalendarChart();
+  });
 }
 
 function renderPromosWavesList(displayData) {
@@ -2727,19 +2712,14 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-calendar-chart-container {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
   background: white;
   padding: 20px;
 }
 
-.pmp-calendar-chart-container-inner {
-  width: 100%;
-  overflow: visible;
-}
-
 .pmp-calendar-chart-container::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 
 .pmp-calendar-chart-container::-webkit-scrollbar-track {
