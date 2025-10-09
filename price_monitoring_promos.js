@@ -647,20 +647,36 @@ async function renderCalendarChart(dateRange = 30) {
     return bWave.discountDepth - aWave.discountDepth;
   });
   
-  // Calculate date range - FIX: Include today properly
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset time to midnight
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (dateRange - 1)); // Changed from dateRange + 1
+// Find the most recent date in the data
+let mostRecentDate = new Date();
+mostRecentDate.setHours(0, 0, 0, 0);
+
+for (const companyData of companiesData) {
+  if (companyData.historical_data && companyData.historical_data.length > 0) {
+    const companyDates = companyData.historical_data.map(d => new Date(d.date.value));
+    const companyMaxDate = new Date(Math.max(...companyDates));
+    if (companyMaxDate > mostRecentDate || mostRecentDate.toISOString().split('T')[0] === new Date().toISOString().split('T')[0]) {
+      mostRecentDate = companyMaxDate;
+    }
+  }
+}
+
+// Calculate start date based on the most recent date in the data
+const endDate = new Date(mostRecentDate);
+endDate.setHours(0, 0, 0, 0);
+const startDate = new Date(endDate);
+startDate.setDate(startDate.getDate() - (dateRange - 1));
+
+console.log('[PMPromos] Date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
   
-  console.log('[PMPromos] Date range:', startDate.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
-  
-  // Create calendar HTML
-  const html = createCalendarChartHTML(companyWaves, startDate, today, dateRange);
+// Create calendar HTML
+const html = createCalendarChartHTML(companyWaves, startDate, endDate, dateRange);
   container.innerHTML = html;
   
   // Initialize tooltips
   initializeCalendarTooltips();
+  // Initialize date range selector
+initializeDateRangeSelector();
   
   console.log('[PMPromos] Calendar chart rendered successfully');
 }
@@ -694,23 +710,24 @@ function assignCompanyColors(companyWaves) {
 }
 
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
-  // Calculate responsive dimensions
-  const labelWidth = 180;
-  const rowHeight = 70;
-  const rowPadding = 10;
-  const headerHeight = 80;
-  
-  // Get container width to calculate responsive day width
-  const container = document.querySelector('.pmp-calendar-chart-container');
-  const containerWidth = container ? container.clientWidth : 1200;
-  
-  // Calculate available width for chart (minus label width and padding)
-  const availableWidth = containerWidth - labelWidth - 40; // 40px for margins
-  
-  // Calculate day width based on available space and date range
-  const dayWidth = Math.max(20, Math.floor(availableWidth / dateRange)); // Minimum 20px per day
-  
-  const chartWidth = dayWidth * dateRange;
+// Calculate responsive dimensions
+const labelWidth = 180;
+const rowHeight = 70;
+const rowPadding = 10;
+const headerHeight = 80;
+
+// Get container width - use parent width for accurate measurement
+const calendarContainer = document.getElementById('pmpWavesCalendarChart');
+const containerWidth = calendarContainer ? calendarContainer.offsetWidth : 1200;
+
+// Calculate available width for chart (minus label width and padding)
+const padding = 40; // Total horizontal padding
+const availableWidth = Math.max(600, containerWidth - labelWidth - padding);
+
+// Calculate day width to fill available space exactly
+const dayWidth = availableWidth / dateRange;
+
+const chartWidth = availableWidth; // Use all available width
   const chartHeight = (companyWaves.length * rowHeight);
   
   console.log('[PMPromos] Calendar dimensions:', {
@@ -2742,6 +2759,7 @@ async function toggleWaveExpansion(waveItem, company) {
 .pmp-calendar-chart-container-inner {
   width: 100%;
   overflow: visible;
+  min-width: 100%;
 }
 
 .pmp-calendar-chart-container::-webkit-scrollbar {
@@ -2764,6 +2782,8 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-calendar-svg {
   display: block;
+  width: 100%; /* Make SVG responsive */
+  height: auto;
 }
 
 .pmp-wave-day-segment {
