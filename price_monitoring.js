@@ -1587,7 +1587,6 @@ function addPriceMonitoringStyles() {
   grid-template-columns: 700px 1fr;
   gap: 10px;
   width: 100%;
-  height: calc(100vh - 400px);
   max-height: 800px;
 }
 
