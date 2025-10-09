@@ -6577,6 +6577,21 @@ window.debugProductExplorer = function() {
   console.log('5. selectedExplorerProduct:', window.selectedExplorerProduct);
 }
 
+// AUTO-RUN AFTER 2 SECONDS WHEN ON PRODUCT EXPLORER
+setTimeout(() => {
+  if (document.getElementById('productExplorerPage')?.style.display === 'block') {
+    window.debugProductExplorer();
+  }
+}, 2000);
+
+// Export the function
+if (typeof window !== 'undefined') {
+  window.renderProductExplorerTable = renderProductExplorerTable;
+  window.renderAvgPositionChartExplorer = renderAvgPositionChartExplorer;
+  window.updateChartLineVisibilityExplorer = updateChartLineVisibilityExplorer;
+  window.renderProductPositionChart = renderProductPositionChart;
+};
+
 // Initialize mode selector listeners ONCE on page load
 (function initializeModeSelector() {
   let initialized = false;
@@ -6629,18 +6644,3 @@ window.debugProductExplorer = function() {
     setupModeListeners();
   }
 })();
-
-// AUTO-RUN AFTER 2 SECONDS WHEN ON PRODUCT EXPLORER
-setTimeout(() => {
-  if (document.getElementById('productExplorerPage')?.style.display === 'block') {
-    window.debugProductExplorer();
-  }
-}, 2000);
-
-// Export the function
-if (typeof window !== 'undefined') {
-  window.renderProductExplorerTable = renderProductExplorerTable;
-  window.renderAvgPositionChartExplorer = renderAvgPositionChartExplorer;
-  window.updateChartLineVisibilityExplorer = updateChartLineVisibilityExplorer;
-  window.renderProductPositionChart = renderProductPositionChart;
-}
