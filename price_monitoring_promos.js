@@ -1565,18 +1565,19 @@ function renderPromosWavesList(displayData, activeCount) {
 
   container.innerHTML = html;
 
-  // Add click listeners to rows for expansion
-  container.querySelectorAll('.pmp-wave-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-      const company = this.getAttribute('data-company');
-      console.log('[PMPromos] Wave clicked:', company);
-      toggleWaveExpansion(this, company);
-    });
-    
-    // Add hover effect for ended waves
-    const isActive = this.getAttribute('data-is-active') === 'true';
-    if (!isActive) {
-      const barFill = item.querySelector('.pmp-wave-bar-fill');
+// Add click listeners to rows for expansion
+container.querySelectorAll('.pmp-wave-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    const company = this.getAttribute('data-company');
+    console.log('[PMPromos] Wave clicked:', company);
+    toggleWaveExpansion(this, company);
+  });
+  
+  // Add hover effect for ended waves
+  const isActive = item.getAttribute('data-is-active') === 'true';
+  if (!isActive) {
+    const barFill = item.querySelector('.pmp-wave-bar-fill');
+    if (barFill) {
       const hoverGradient = barFill.getAttribute('data-hover-gradient');
       
       item.addEventListener('mouseenter', function() {
@@ -1588,7 +1589,8 @@ function renderPromosWavesList(displayData, activeCount) {
         barFill.style.background = originalGradient;
       });
     }
-  });
+  }
+});
 }
 
 // Global state for expanded rows
