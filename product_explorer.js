@@ -6628,6 +6628,12 @@ if (!window._modeSelectorsInitialized) {
     option.addEventListener('click', function() {
       const selectedMode = this.getAttribute('data-mode');
       
+      // ADD THESE LINES - Update the active class on mode buttons
+      document.querySelectorAll('#modeSelector .mode-option').forEach(opt => {
+        opt.classList.remove('active');
+      });
+      this.classList.add('active');
+      
       // Clean up selectedCompanyStats when switching modes
       const existingStats = document.getElementById('selectedCompanyStats');
       if (existingStats) {
