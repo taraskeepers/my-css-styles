@@ -1857,8 +1857,8 @@ function filterProducts() {
     let competitorsFiltered = getFilteredProducts('competitors');
     
     // Render filtered products
-    renderFilteredProducts('myCompany', myCompanyList);
-    renderFilteredProducts('competitors', competitorsList);
+    renderPMProductsFiltered('myCompany', myCompanyList);
+    renderPMProductsFiltered('competitors', competitorsList);
     
     // Update summaries with filtered data
     updateMyCompanySummaryWithFiltered(myCompanyFiltered);
@@ -2254,7 +2254,7 @@ async function renderCompetitorsCompanyChart(products) {
   }
 }
 
-function renderFilteredProducts(type, container) {
+function renderPMProductsFiltered(type, container) {
   if (!container || !allProductsData[type]) return;
   
   // Use the helper function to get properly filtered products
