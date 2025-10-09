@@ -513,36 +513,90 @@ function getDiscountDepthColor(discountDepth) {
   return `hsl(230, 70%, ${lightness}%)`;
 }
 
-function createSmoothWavePath(dailyData, dateToX, maxHeight) {
+function createSmoothWavePath(dailyData, dateToX, maxHeight, yOffset) {
   if (!dailyData || dailyData.length === 0) return '';
   
   const points = dailyData.map(day => {
     const x = dateToX[day.date];
+    if (x === undefined) return null;
     const heightPercent = getLogarithmicHeight(day.prDiscounted);
-    const y = maxHeight - (maxHeight * heightPercent / 100);
-    return { x, y, date: day.date };
-  });
+    const y = yOffset + maxHeight - (maxHeight * heightPercent / 100);
+    return { x, y, heightPercent };
+  }).filter(p => p !== null);
   
   if (points.length === 0) return '';
   
-  // Start path from bottom-left
-  let path = `M ${points[0].x} ${maxHeight}`;
+  // Start path from bottom-left corner
+  let path = `M ${points[0].x} ${yOffset + maxHeight}`;
+  
+  // Draw vertical line to first point
   path += ` L ${points[0].x} ${points[0].y}`;
   
-  // Create smooth curve through points using quadratic bezier
-  for (let i = 0; i < points.length - 1; i++) {
-    const current = points[i];
-    const next = points[i + 1];
-    const midX = (current.x + next.x) / 2;
-    
-    path += ` Q ${current.x} ${current.y}, ${midX} ${(current.y + next.y) / 2}`;
-    path += ` Q ${next.x} ${next.y}, ${next.x} ${next.y}`;
+  // Create smooth Catmull-Rom spline through points
+  if (points.length === 1) {
+    // Single point - just draw a small curve
+    path += ` L ${points[0].x} ${points[0].y}`;
+  } else if (points.length === 2) {
+    // Two points - simple curve
+    path += ` Q ${points[0].x} ${points[0].y}, ${(points[0].x + points[1].x) / 2} ${(points[0].y + points[1].y) / 2}`;
+    path += ` T ${points[1].x} ${points[1].y}`;
+  } else {
+    // Multiple points - smooth spline
+    for (let i = 0; i < points.length - 1; i++) {
+      const current = points[i];
+      const next = points[i + 1];
+      
+      // Calculate control points for smooth curve
+      const cp1x = current.x + (next.x - current.x) / 3;
+      const cp1y = current.y;
+      const cp2x = current.x + 2 * (next.x - current.x) / 3;
+      const cp2y = next.y;
+      
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+    }
   }
   
-  // Close path at bottom-right
+  // Close path at bottom-right corner
   const lastPoint = points[points.length - 1];
-  path += ` L ${lastPoint.x} ${maxHeight}`;
+  path += ` L ${lastPoint.x} ${yOffset + maxHeight}`;
   path += ' Z';
+  
+  return path;
+}
+
+function createWaveOutlinePath(dailyData, dateToX, maxHeight, yOffset) {
+  if (!dailyData || dailyData.length === 0) return '';
+  
+  const points = dailyData.map(day => {
+    const x = dateToX[day.date];
+    if (x === undefined) return null;
+    const heightPercent = getLogarithmicHeight(day.prDiscounted);
+    const y = yOffset + maxHeight - (maxHeight * heightPercent / 100);
+    return { x, y };
+  }).filter(p => p !== null);
+  
+  if (points.length === 0) return '';
+  
+  let path = `M ${points[0].x} ${points[0].y}`;
+  
+  if (points.length === 1) {
+    return path;
+  } else if (points.length === 2) {
+    path += ` Q ${points[0].x} ${points[0].y}, ${(points[0].x + points[1].x) / 2} ${(points[0].y + points[1].y) / 2}`;
+    path += ` T ${points[1].x} ${points[1].y}`;
+  } else {
+    for (let i = 0; i < points.length - 1; i++) {
+      const current = points[i];
+      const next = points[i + 1];
+      
+      const cp1x = current.x + (next.x - current.x) / 3;
+      const cp1y = current.y;
+      const cp2x = current.x + 2 * (next.x - current.x) / 3;
+      const cp2y = next.y;
+      
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+    }
+  }
   
   return path;
 }
@@ -608,13 +662,45 @@ async function renderCalendarChart(dateRange = 30) {
   console.log('[PMPromos] Calendar chart rendered successfully');
 }
 
+function assignCompanyColors(companyWaves) {
+  // Beautiful color palette - each company gets a unique vibrant color
+  const colorPalette = [
+    { main: '#FF6B6B', light: '#FF8E8E', dark: '#E85555' }, // Red
+    { main: '#4ECDC4', light: '#6FD9D1', dark: '#3DB8AF' }, // Teal
+    { main: '#FFD93D', light: '#FFE066', dark: '#E6C334' }, // Yellow
+    { main: '#6C5CE7', light: '#8B7BED', dark: '#5849C9' }, // Purple
+    { main: '#00D2FF', light: '#33DBFF', dark: '#00B8E6' }, // Cyan
+    { main: '#FF85A2', light: '#FFA3B8', dark: '#E6738B' }, // Pink
+    { main: '#A8E6CF', light: '#BFEDDA', dark: '#8FD4B8' }, // Mint
+    { main: '#FFA07A', light: '#FFB599', dark: '#E68E6E' }, // Coral
+    { main: '#98D8C8', light: '#AEDFD2', dark: '#82C2B3' }, // Seafoam
+    { main: '#F7DC6F', light: '#F9E389', dark: '#DEC65D' }, // Gold
+    { main: '#BB8FCE', light: '#CBA5DB', dark: '#A87BBD' }, // Lavender
+    { main: '#85C1E2', light: '#9DCFE9', dark: '#6FADC9' }, // Sky Blue
+    { main: '#F8B739', light: '#F9C55C', dark: '#DFA333' }, // Orange
+    { main: '#52B788', light: '#6DC898', dark: '#48A379' }, // Green
+    { main: '#E07A5F', light: '#E6957F', dark: '#C96D52' }  // Terracotta
+  ];
+  
+  const companyColorMap = {};
+  companyWaves.forEach((companyData, index) => {
+    companyColorMap[companyData.company] = colorPalette[index % colorPalette.length];
+  });
+  
+  return companyColorMap;
+}
+
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   const dayWidth = 30; // Width per day in pixels
-  const rowHeight = 60; // Height per company row
+  const rowHeight = 70; // Height per company row (increased for padding)
+  const rowPadding = 10; // Padding between rows
   const headerHeight = 80;
   const labelWidth = 180;
   const chartWidth = dayWidth * dateRange;
-  const chartHeight = companyWaves.length * rowHeight;
+  const chartHeight = (companyWaves.length * rowHeight);
+  
+  // Assign unique colors to companies
+  const companyColors = assignCompanyColors(companyWaves);
   
   // Build date to X position mapping
   const dateToX = {};
@@ -650,6 +736,28 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
             <pattern id="weekendPattern" patternUnits="userSpaceOnUse" width="${dayWidth}" height="${rowHeight}">
               <rect width="${dayWidth}" height="${rowHeight}" fill="rgba(0,0,0,0.02)"/>
             </pattern>
+            
+            <!-- Gradient definitions for each company -->
+            ${companyWaves.map((companyData, index) => {
+              const color = companyColors[companyData.company];
+              return `
+                <linearGradient id="gradient_${index}" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:${color.light};stop-opacity:0.9" />
+                  <stop offset="100%" style="stop-color:${color.main};stop-opacity:0.95" />
+                </linearGradient>
+                <filter id="shadow_${index}" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                  <feOffset dx="0" dy="2" result="offsetblur"/>
+                  <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.3"/>
+                  </feComponentTransfer>
+                  <feMerge>
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              `;
+            }).join('')}
           </defs>
           
           <!-- Calendar Grid Background -->
@@ -669,35 +777,38 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
     }
     
     // Day divider
-    html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>`;
+    html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>`;
     
     // Week separator (stronger)
     if (isWeekStart && index > 0) {
-      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>`;
+      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.1)" stroke-width="1.5"/>`;
     }
     
     // Month boundary (strongest)
     if (isMonthStart) {
-      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(102,126,234,0.4)" stroke-width="2"/>`;
+      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(102,126,234,0.3)" stroke-width="2.5"/>`;
     }
     
     // Today marker
     if (isToday) {
-      html += `<line x1="${dateObj.x + dayWidth/2}" y1="0" x2="${dateObj.x + dayWidth/2}" y2="${chartHeight}" stroke="rgba(255,68,68,0.6)" stroke-width="2" stroke-dasharray="4,4"/>`;
+      html += `
+        <line x1="${dateObj.x + dayWidth/2}" y1="-10" x2="${dateObj.x + dayWidth/2}" y2="${chartHeight}" stroke="#FF4444" stroke-width="2" stroke-dasharray="5,5" opacity="0.7"/>
+        <circle cx="${dateObj.x + dayWidth/2}" cy="-5" r="4" fill="#FF4444"/>
+      `;
     }
   });
   
   html += `</g>`;
   
   // Draw X-axis labels
-  html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 30})">`;
+  html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 35})">`;
   dateArray.forEach((dateObj, index) => {
     const isMonthStart = dateObj.date.getDate() === 1;
     const showLabel = index === 0 || isMonthStart || index % 7 === 0;
     
     if (showLabel) {
       const label = dateObj.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" fill="#666">${label}</text>`;
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="500" fill="#666">${label}</text>`;
     }
   });
   html += `</g>`;
@@ -705,28 +816,46 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   // Month labels at top
   html += `<g class="pmp-calendar-months" transform="translate(${labelWidth}, 20)">`;
   let lastMonth = null;
-  dateArray.forEach((dateObj) => {
+  let monthStartX = 0;
+  dateArray.forEach((dateObj, index) => {
     const monthYear = dateObj.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     if (monthYear !== lastMonth) {
-      html += `<text x="${dateObj.x + dayWidth/2}" y="0" font-size="12" font-weight="600" fill="#333">${monthYear}</text>`;
+      if (lastMonth !== null) {
+        // Draw month label at the center of the month span
+        const monthCenterX = monthStartX + (dateObj.x - monthStartX) / 2;
+        html += `<text x="${monthCenterX}" y="0" font-size="13" font-weight="700" fill="#333" text-anchor="middle">${lastMonth}</text>`;
+      }
+      monthStartX = dateObj.x;
       lastMonth = monthYear;
     }
   });
+  // Draw last month label
+  if (lastMonth !== null) {
+    const monthCenterX = monthStartX + (chartWidth - monthStartX) / 2;
+    html += `<text x="${monthCenterX}" y="0" font-size="13" font-weight="700" fill="#333" text-anchor="middle">${lastMonth}</text>`;
+  }
   html += `</g>`;
   
   // Draw company rows and waves
   companyWaves.forEach((companyData, rowIndex) => {
-    const y = rowIndex * rowHeight;
+    const y = rowIndex * rowHeight + rowPadding;
+    const effectiveRowHeight = rowHeight - (rowPadding * 2);
     
-    // Company label
-    html += `<text x="${labelWidth - 10}" y="${headerHeight + y + rowHeight/2}" text-anchor="end" alignment-baseline="middle" font-size="12" font-weight="600" fill="#333">${companyData.company}</text>`;
+    // Company label with color indicator
+    const color = companyColors[companyData.company];
+    html += `
+      <g transform="translate(0, ${headerHeight + y + effectiveRowHeight/2})">
+        <rect x="${labelWidth - 170}" y="-8" width="4" height="16" fill="${color.main}" rx="2"/>
+        <text x="${labelWidth - 10}" y="0" text-anchor="end" alignment-baseline="middle" font-size="13" font-weight="600" fill="#333">${companyData.company}</text>
+      </g>
+    `;
     
-    // Row separator
-    html += `<line x1="${labelWidth}" y1="${headerHeight + y}" x2="${chartWidth + labelWidth}" y2="${headerHeight + y}" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>`;
+    // Row separator line
+    html += `<line x1="${labelWidth}" y1="${headerHeight + rowIndex * rowHeight}" x2="${chartWidth + labelWidth}" y2="${headerHeight + rowIndex * rowHeight}" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>`;
     
     // Draw waves for this company
     companyData.waves.forEach((wave, waveIndex) => {
-      const waveGroup = createWaveSVGGroup(wave, dateToX, y, rowHeight, dayWidth);
+      const waveGroup = createWaveSVGGroup(wave, dateToX, y, effectiveRowHeight, dayWidth, rowIndex, color);
       html += `<g class="pmp-wave-group" data-company="${companyData.company}" data-wave-index="${waveIndex}" transform="translate(${labelWidth}, ${headerHeight})">${waveGroup}</g>`;
     });
   });
@@ -743,22 +872,41 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   return html;
 }
 
-function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth) {
+function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, companyIndex, color) {
   let svg = '';
   
-  // Create gradient stops based on discount depth for each day
-  const gradientId = `waveGradient_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const avgDiscountDepth = wave.dailyData.reduce((sum, day) => sum + day.discountDepth, 0) / wave.dailyData.length;
+  // Create smooth path with rounded corners
+  const path = createSmoothWavePath(wave.dailyData, dateToX, maxHeight, yOffset);
   
-  // Create smooth path
-  const path = createSmoothWavePath(wave.dailyData, dateToX, maxHeight);
+  if (!path) return svg;
   
-  // Draw individual day segments with gradient
+  // Draw shadow layer first
+  svg += `
+    <path 
+      d="${path}" 
+      fill="${color.main}"
+      opacity="0.15"
+      transform="translate(0, 4)"
+      class="pmp-wave-shadow"
+    />
+  `;
+  
+  // Draw main gradient-filled wave with rounded appearance
+  svg += `
+    <path 
+      d="${path}" 
+      fill="url(#gradient_${companyIndex})"
+      filter="url(#shadow_${companyIndex})"
+      class="pmp-wave-main-path"
+      data-company-index="${companyIndex}"
+    />
+  `;
+  
+  // Draw individual day segments for hover interaction (invisible but interactive)
   wave.dailyData.forEach((day, index) => {
     const x = dateToX[day.date];
     const heightPercent = getLogarithmicHeight(day.prDiscounted);
     const height = maxHeight * heightPercent / 100;
-    const color = getDiscountDepthColor(day.discountDepth);
     
     svg += `
       <rect 
@@ -766,46 +914,61 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth) {
         y="${yOffset + maxHeight - height}" 
         width="${dayWidth}" 
         height="${height}" 
-        fill="${color}" 
+        fill="transparent"
         class="pmp-wave-day-segment"
         data-date="${day.date}"
         data-pr-discounted="${day.prDiscounted}"
         data-discount-depth="${day.discountDepth}"
         data-total-products="${day.totalProducts}"
         data-discounted-products="${day.discountedProducts}"
-        opacity="0.7"
+        style="cursor: pointer;"
       />
     `;
   });
   
-  // Draw smooth curve outline
+  // Draw smooth curve outline on top for polish
   svg += `
     <path 
-      d="${path}" 
+      d="${createWaveOutlinePath(wave.dailyData, dateToX, maxHeight, yOffset)}" 
       fill="none" 
-      stroke="rgba(102,126,234,0.8)" 
-      stroke-width="2"
+      stroke="${color.dark}" 
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.6"
       class="pmp-wave-outline"
     />
   `;
   
-  // Ongoing wave indicator (dashed border on right edge)
+  // Ongoing wave indicator with animation
   if (wave.isOngoing) {
     const lastDay = wave.dailyData[wave.dailyData.length - 1];
     const lastX = dateToX[lastDay.date];
     const lastHeight = maxHeight * getLogarithmicHeight(lastDay.prDiscounted) / 100;
     
     svg += `
-      <line 
-        x1="${lastX + dayWidth/2}" 
-        y1="${yOffset + maxHeight - lastHeight}" 
-        x2="${lastX + dayWidth/2}" 
-        y2="${yOffset + maxHeight}"
-        stroke="rgba(255,68,68,0.8)" 
-        stroke-width="3"
-        stroke-dasharray="4,4"
-        class="pmp-wave-ongoing"
-      />
+      <g class="pmp-wave-ongoing-indicator">
+        <line 
+          x1="${lastX + dayWidth/2}" 
+          y1="${yOffset + maxHeight - lastHeight}" 
+          x2="${lastX + dayWidth/2}" 
+          y2="${yOffset + maxHeight}"
+          stroke="#FF4444" 
+          stroke-width="3"
+          stroke-dasharray="6,4"
+          opacity="0.8"
+        />
+        <circle 
+          cx="${lastX + dayWidth/2}" 
+          cy="${yOffset + maxHeight - lastHeight}" 
+          r="5" 
+          fill="#FF4444"
+          opacity="0.9"
+        >
+          <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.9;0.5;0.9" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+      </g>
     `;
   }
   
@@ -2572,41 +2735,70 @@ async function toggleWaveExpansion(waveItem, company) {
   pointer-events: none;
 }
 
-/* Calendar Tooltip */
+/* Enhanced Wave Styling */
+.pmp-wave-main-path {
+  cursor: pointer;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.pmp-wave-main-path:hover {
+  opacity: 0.85;
+  filter: brightness(1.1) url(#shadow_0);
+}
+
+.pmp-wave-shadow {
+  pointer-events: none;
+}
+
+.pmp-wave-outline {
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pmp-wave-group:hover .pmp-wave-outline {
+  opacity: 0.9;
+}
+
+.pmp-wave-ongoing-indicator {
+  pointer-events: none;
+}
+
+/* Enhanced tooltip */
 .pmp-calendar-tooltip {
   position: fixed;
   display: none;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1);
+  padding: 14px 18px;
   z-index: 10000;
-  min-width: 220px;
+  min-width: 240px;
   pointer-events: none;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 
 .pmp-tooltip-header {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #667eea;
+  color: #222;
+  margin-bottom: 6px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #E0E0E0;
 }
 
 .pmp-tooltip-date {
-  font-size: 11px;
-  color: #888;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+  font-weight: 600;
 }
 
 .pmp-tooltip-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
-  font-size: 12px;
+  padding: 6px 0;
+  font-size: 13px;
 }
 
 .pmp-tooltip-label {
@@ -2615,10 +2807,12 @@ async function toggleWaveExpansion(waveItem, company) {
 }
 
 .pmp-tooltip-value {
-  color: #333;
+  color: #222;
   font-weight: 700;
+  background: #F5F5F5;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
-
       </style>
     `;
 
