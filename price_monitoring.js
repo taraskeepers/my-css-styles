@@ -192,7 +192,7 @@ const wrapperConfigs = [
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       border-radius: 12px;
       padding: 20px;
-      max-height: 80vh;
+      height: 1050px;
       overflow-y: auto;
       display: ${config.display};
     `;
