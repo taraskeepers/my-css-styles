@@ -694,13 +694,32 @@ function assignCompanyColors(companyWaves) {
 }
 
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
-  const dayWidth = 30; // Width per day in pixels
-  const rowHeight = 70; // Height per company row (increased for padding)
-  const rowPadding = 10; // Padding between rows
-  const headerHeight = 80;
+  // Calculate responsive dimensions
   const labelWidth = 180;
+  const rowHeight = 70;
+  const rowPadding = 10;
+  const headerHeight = 80;
+  
+  // Get container width to calculate responsive day width
+  const container = document.querySelector('.pmp-calendar-chart-container');
+  const containerWidth = container ? container.clientWidth : 1200;
+  
+  // Calculate available width for chart (minus label width and padding)
+  const availableWidth = containerWidth - labelWidth - 40; // 40px for margins
+  
+  // Calculate day width based on available space and date range
+  const dayWidth = Math.max(20, Math.floor(availableWidth / dateRange)); // Minimum 20px per day
+  
   const chartWidth = dayWidth * dateRange;
   const chartHeight = (companyWaves.length * rowHeight);
+  
+  console.log('[PMPromos] Calendar dimensions:', {
+    containerWidth,
+    availableWidth,
+    dateRange,
+    dayWidth,
+    chartWidth
+  });
   
   // Assign unique colors to companies
   const companyColors = assignCompanyColors(companyWaves);
@@ -724,15 +743,15 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
       <div class="pmp-calendar-controls">
         <label>Date Range:</label>
         <select id="pmpCalendarRange" class="pmp-calendar-range-select">
-          <option value="7">Last 7 days</option>
-          <option value="14">Last 14 days</option>
-          <option value="30" selected>Last 30 days</option>
-          <option value="60">Last 60 days</option>
-          <option value="90">Last 90 days</option>
+          <option value="7" ${dateRange === 7 ? 'selected' : ''}>Last 7 days</option>
+          <option value="14" ${dateRange === 14 ? 'selected' : ''}>Last 14 days</option>
+          <option value="30" ${dateRange === 30 ? 'selected' : ''}>Last 30 days</option>
+          <option value="60" ${dateRange === 60 ? 'selected' : ''}>Last 60 days</option>
+          <option value="90" ${dateRange === 90 ? 'selected' : ''}>Last 90 days</option>
         </select>
       </div>
       
-      <div class="pmp-calendar-chart-container">
+      <div class="pmp-calendar-chart-container-inner">
         <svg width="${chartWidth + labelWidth}" height="${chartHeight + headerHeight}" class="pmp-calendar-svg">
           <defs>
             <!-- Weekend pattern -->
@@ -803,15 +822,17 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   
   html += `</g>`;
   
-  // Draw X-axis labels
+  // Draw X-axis labels - adjust frequency based on date range
   html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 35})">`;
+  const labelFrequency = dateRange <= 14 ? 1 : (dateRange <= 30 ? 3 : 7);
   dateArray.forEach((dateObj, index) => {
     const isMonthStart = dateObj.date.getDate() === 1;
-    const showLabel = index === 0 || isMonthStart || index % 7 === 0;
+    const showLabel = index === 0 || isMonthStart || index % labelFrequency === 0;
     
     if (showLabel) {
       const label = dateObj.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="500" fill="#666">${label}</text>`;
+      const fontSize = dateRange > 60 ? 9 : 10;
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="${fontSize}" font-weight="500" fill="#666">${label}</text>`;
     }
   });
   html += `</g>`;
@@ -894,14 +915,11 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
     />
   `;
   
-  // Draw individual day segments with discount-depth-based gradient
+  // Draw individual day segments with solid company color
   wave.dailyData.forEach((day, index) => {
     const x = dateToX[day.date];
     const heightPercent = getLogarithmicHeight(day.prDiscounted);
     const height = maxHeight * heightPercent / 100;
-    
-    // Get color based on discount depth - DARKER for HIGHER discounts
-    const segmentColor = getDiscountDepthColorForCompany(day.discountDepth, color);
     
     svg += `
       <rect 
@@ -909,7 +927,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         y="${yOffset + maxHeight - height}" 
         width="${dayWidth}" 
         height="${height}" 
-        fill="${segmentColor}"
+        fill="${color.main}"
         class="pmp-wave-day-segment"
         data-date="${day.date}"
         data-pr-discounted="${day.prDiscounted}"
@@ -917,7 +935,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         data-total-products="${day.totalProducts}"
         data-discounted-products="${day.discountedProducts}"
         style="cursor: pointer;"
-        opacity="0.9"
+        opacity="0.85"
       />
     `;
   });
@@ -969,80 +987,6 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
   }
   
   return svg;
-}
-
-function getDiscountDepthColorForCompany(discountDepth, companyColor) {
-  // Convert discount depth (0-100) to color intensity
-  // Higher discount = darker color
-  
-  if (discountDepth <= 0) {
-    // Very light version of company color for no discount
-    return adjustColorBrightness(companyColor.light, 20);
-  }
-  
-  if (discountDepth >= 80) {
-    // Very dark version for high discounts
-    return adjustColorBrightness(companyColor.dark, -30);
-  }
-  
-  // Interpolate between light and dark based on discount depth
-  // 0% = lightest, 100% = darkest
-  const intensity = discountDepth / 100;
-  
-  // Linear interpolation between light and dark
-  if (intensity < 0.5) {
-    // Interpolate between light and main
-    const factor = intensity * 2; // 0 to 1
-    return interpolateColors(companyColor.light, companyColor.main, factor);
-  } else {
-    // Interpolate between main and dark
-    const factor = (intensity - 0.5) * 2; // 0 to 1
-    return interpolateColors(companyColor.main, companyColor.dark, factor);
-  }
-}
-
-function adjustColorBrightness(hexColor, percent) {
-  // Convert hex to RGB
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  
-  // Adjust brightness
-  const newR = Math.max(0, Math.min(255, r + (r * percent / 100)));
-  const newG = Math.max(0, Math.min(255, g + (g * percent / 100)));
-  const newB = Math.max(0, Math.min(255, b + (b * percent / 100)));
-  
-  // Convert back to hex
-  return '#' + 
-    Math.round(newR).toString(16).padStart(2, '0') +
-    Math.round(newG).toString(16).padStart(2, '0') +
-    Math.round(newB).toString(16).padStart(2, '0');
-}
-
-function interpolateColors(color1, color2, factor) {
-  // Convert hex to RGB
-  const hex1 = color1.replace('#', '');
-  const hex2 = color2.replace('#', '');
-  
-  const r1 = parseInt(hex1.substring(0, 2), 16);
-  const g1 = parseInt(hex1.substring(2, 4), 16);
-  const b1 = parseInt(hex1.substring(4, 6), 16);
-  
-  const r2 = parseInt(hex2.substring(0, 2), 16);
-  const g2 = parseInt(hex2.substring(2, 4), 16);
-  const b2 = parseInt(hex2.substring(4, 6), 16);
-  
-  // Interpolate
-  const r = Math.round(r1 + (r2 - r1) * factor);
-  const g = Math.round(g1 + (g2 - g1) * factor);
-  const b = Math.round(b1 + (b2 - b1) * factor);
-  
-  // Convert back to hex
-  return '#' + 
-    r.toString(16).padStart(2, '0') +
-    g.toString(16).padStart(2, '0') +
-    b.toString(16).padStart(2, '0');
 }
 
 function initializeCalendarTooltips() {
@@ -2783,14 +2727,19 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-calendar-chart-container {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: white;
   padding: 20px;
 }
 
+.pmp-calendar-chart-container-inner {
+  width: 100%;
+  overflow: visible;
+}
+
 .pmp-calendar-chart-container::-webkit-scrollbar {
   width: 10px;
-  height: 10px;
 }
 
 .pmp-calendar-chart-container::-webkit-scrollbar-track {
