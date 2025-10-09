@@ -646,27 +646,17 @@ async function renderCalendarChart(dateRange = 30) {
 // Load company stats for rank and market share
 const companyStats = await loadAllCompanyStats();
 
-// Process waves for each company and enrich with stats
-const companyWaves = [];
+// Process waves for each company and enrich with stats (initial pass)
+const companyWavesTemp = [];
 for (const companyData of companiesData) {
   const waves = detectPromoWaves(companyData.historical_data);
   const isActive = companyData.promo_wave === true || companyData.promo_wave === 'true';
   
-  // Filter waves by date range overlap for ended waves
-  let filteredWaves = waves;
-  if (!isActive && showEndedWaves) {
-    // Only include waves that overlap with the selected date range
-    filteredWaves = waves.filter(wave => {
-      const waveEndDate = new Date(wave.endDate);
-      return waveEndDate >= startDate && waveEndDate <= endDate;
-    });
-  }
-  
-  if (filteredWaves.length > 0) {
+  if (waves.length > 0) {
     const stats = companyStats[companyData.source] || {};
-    companyWaves.push({
+    companyWavesTemp.push({
       company: companyData.source,
-      waves: filteredWaves,
+      waves: waves,
       rank: stats.rank || null,
       marketShare: stats.marketShare || null,
       isActive: isActive
@@ -711,6 +701,26 @@ const startDate = new Date(endDate);
 startDate.setDate(startDate.getDate() - (dateRange - 1));
 
 console.log('[PMPromos] Date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+  
+// NOW filter waves by date range for ended waves
+const companyWaves = companyWavesTemp.map(companyData => {
+  let filteredWaves = companyData.waves;
+  
+  // For ended waves, only include waves that overlap with the selected date range
+  if (!companyData.isActive && showEndedWaves) {
+    filteredWaves = companyData.waves.filter(wave => {
+      if (!wave.endDate) return false;
+      const waveEndDate = new Date(wave.endDate);
+      waveEndDate.setHours(0, 0, 0, 0);
+      return waveEndDate >= startDate && waveEndDate <= endDate;
+    });
+  }
+  
+  return {
+    ...companyData,
+    waves: filteredWaves
+  };
+}).filter(companyData => companyData.waves.length > 0); // Remove companies with no waves in range
   
 // Create calendar HTML
 const html = createCalendarChartHTML(companyWaves, startDate, endDate, dateRange);
