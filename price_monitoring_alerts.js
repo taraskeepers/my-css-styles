@@ -202,26 +202,34 @@
         </div>
       </div>
 
-      <!-- Main Alerts Grid -->
-      <div class="pma-main-grid">
-        <!-- Left Column - Alert Feed -->
-        <div class="pma-left-column">
-          <div class="pma-alerts-feed">
-            <div class="pma-feed-header">
-              <h4>Active Alerts</h4>
-              <div class="pma-feed-controls">
-                <button class="pma-filter-btn active" data-filter="all">All</button>
-                <button class="pma-filter-btn" data-filter="critical">Critical</button>
-                <button class="pma-filter-btn" data-filter="high">High</button>
-                <button class="pma-filter-btn" data-filter="market">Market</button>
-                <button class="pma-filter-btn" data-filter="company">Company</button>
-              </div>
-            </div>
-            <div class="pma-feed-body" id="pmaAlertsFeed">
-              <!-- Alerts will be populated here -->
-            </div>
-          </div>
+<!-- Main Alerts Grid -->
+<div class="pma-main-grid">
+  <!-- Left Column - Alert Feeds (Two columns) -->
+  <div class="pma-left-column">
+    <div class="pma-alerts-feeds-container">
+      <!-- Market Alerts Feed -->
+      <div class="pma-alerts-feed market-feed">
+        <div class="pma-feed-header">
+          <h4>🌍 Market Alerts</h4>
+          <div class="pma-feed-badge" id="pmaMarketCount">0</div>
         </div>
+        <div class="pma-feed-body" id="pmaMarketAlertsFeed">
+          <!-- Market alerts will be populated here -->
+        </div>
+      </div>
+      
+      <!-- Company Alerts Feed -->
+      <div class="pma-alerts-feed company-feed">
+        <div class="pma-feed-header">
+          <h4>🏢 Company Alerts</h4>
+          <div class="pma-feed-badge" id="pmaCompanyCount">0</div>
+        </div>
+        <div class="pma-feed-body" id="pmaCompanyAlertsFeed">
+          <!-- Company alerts will be populated here -->
+        </div>
+      </div>
+    </div>
+  </div>
 
         <!-- Right Column - Category Summary -->
         <div class="pma-right-column">
@@ -383,113 +391,135 @@
     }
   }
 
-  // Populate alerts feed
-  function populateAlertsFeed(alerts) {
-    const feedContainer = document.getElementById('pmaAlertsFeed');
-    if (!feedContainer) return;
-    
-    // Sort alerts by severity priority
-    const severityOrder = { 'Critical': 1, 'High': 2, 'Watch': 3, 'Info': 4 };
-    alerts.sort((a, b) => {
-      return (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5);
-    });
-    
-    // Generate alert cards
-    const alertsHtml = alerts.map(alert => {
-      const severityClass = alert.severity.toLowerCase();
-      const typeIcon = alert.type === 'market' ? '🌍' : '🏢';
-      const categoryParts = alert.category.split(':');
-      const mainCategory = categoryParts[0];
-      const subCategory = categoryParts[1] || '';
-      
-      return `
-        <div class="pma-alert-card ${severityClass}" data-severity="${severityClass}" data-type="${alert.type}">
-          <div class="pma-alert-header">
-            <span class="pma-alert-type">${typeIcon}</span>
-            <span class="pma-alert-severity ${severityClass}">${alert.severity}</span>
-            <span class="pma-alert-category">${mainCategory}</span>
-            ${subCategory ? `<span class="pma-alert-subcategory">${subCategory}</span>` : ''}
-          </div>
-          <div class="pma-alert-message">${alert.message}</div>
-        </div>
-      `;
-    }).join('');
-    
-    feedContainer.innerHTML = alertsHtml || '<div class="pma-no-alerts">No active alerts</div>';
-  }
+// Populate alerts feed - now split into market and company
+function populateAlertsFeed(alerts) {
+  const marketFeedContainer = document.getElementById('pmaMarketAlertsFeed');
+  const companyFeedContainer = document.getElementById('pmaCompanyAlertsFeed');
+  
+  if (!marketFeedContainer || !companyFeedContainer) return;
+  
+  // Split alerts by type
+  const marketAlerts = alerts.filter(a => a.type === 'market');
+  const companyAlerts = alerts.filter(a => a.type === 'company');
+  
+  // Sort by severity
+  const severityOrder = { 'Critical': 1, 'High': 2, 'Watch': 3, 'Info': 4 };
+  marketAlerts.sort((a, b) => (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5));
+  companyAlerts.sort((a, b) => (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5));
+  
+  // Update counts
+  document.getElementById('pmaMarketCount').textContent = marketAlerts.length;
+  document.getElementById('pmaCompanyCount').textContent = companyAlerts.length;
+  
+  // Generate market alert cards
+  marketFeedContainer.innerHTML = marketAlerts.map(alert => 
+    createAlertCard(alert)
+  ).join('') || '<div class="pma-no-alerts">No market alerts</div>';
+  
+  // Generate company alert cards
+  companyFeedContainer.innerHTML = companyAlerts.map(alert => 
+    createAlertCard(alert)
+  ).join('') || '<div class="pma-no-alerts">No company alerts</div>';
+  
+  // Store alerts globally for filtering
+  window.pmaMarketAlerts = marketAlerts;
+  window.pmaCompanyAlerts = companyAlerts;
+}
 
-  // Populate category summary
-  function populateAlertsSummary(alerts) {
-    // Group alerts by category
-    const marketCategories = {};
-    const companyCategories = {};
+// Helper function to create alert card
+function createAlertCard(alert) {
+  const severityClass = alert.severity.toLowerCase();
+  const typeIcon = alert.type === 'market' ? '🌍' : '🏢';
+  const categoryParts = alert.category.split(':');
+  const mainCategory = categoryParts[0];
+  const subCategory = categoryParts[1] || '';
+  
+  return `
+    <div class="pma-alert-card ${severityClass}" 
+         data-severity="${severityClass}" 
+         data-type="${alert.type}"
+         data-category="${subCategory || mainCategory}">
+      <div class="pma-alert-header">
+        <span class="pma-alert-severity ${severityClass}">${alert.severity}</span>
+        <span class="pma-alert-category">${subCategory || mainCategory}</span>
+      </div>
+      <div class="pma-alert-message">${alert.message}</div>
+    </div>
+  `;
+}
+
+// Populate category summary - now with clickable filters
+function populateAlertsSummary(alerts) {
+  // Group alerts by category
+  const marketCategories = {};
+  const companyCategories = {};
+  
+  alerts.forEach(alert => {
+    const [mainCat, subCat] = alert.category.split(':');
+    const categoryKey = subCat || mainCat;
     
-    alerts.forEach(alert => {
-      const [mainCat, subCat] = alert.category.split(':');
-      const categoryKey = subCat || mainCat;
-      
-      if (alert.type === 'market') {
-        if (!marketCategories[categoryKey]) {
-          marketCategories[categoryKey] = { 
-            critical: 0, high: 0, watch: 0, info: 0, total: 0 
-          };
-        }
-        marketCategories[categoryKey][alert.severity.toLowerCase()]++;
-        marketCategories[categoryKey].total++;
-      } else {
-        if (!companyCategories[categoryKey]) {
-          companyCategories[categoryKey] = { 
-            critical: 0, high: 0, watch: 0, info: 0, total: 0 
-          };
-        }
-        companyCategories[categoryKey][alert.severity.toLowerCase()]++;
-        companyCategories[categoryKey].total++;
+    if (alert.type === 'market') {
+      if (!marketCategories[categoryKey]) {
+        marketCategories[categoryKey] = { 
+          critical: 0, high: 0, watch: 0, info: 0, total: 0 
+        };
       }
-    });
-    
-    // Render market categories
-    const marketContainer = document.getElementById('pmaMarketCategories');
-    if (marketContainer) {
-      marketContainer.innerHTML = Object.entries(marketCategories).map(([cat, counts]) => `
-        <div class="pma-category-item">
-          <div class="pma-category-name">${cat}</div>
-          <div class="pma-category-counts">
-            ${counts.critical > 0 ? `<span class="pma-count critical">${counts.critical}</span>` : ''}
-            ${counts.high > 0 ? `<span class="pma-count high">${counts.high}</span>` : ''}
-            ${counts.watch > 0 ? `<span class="pma-count watch">${counts.watch}</span>` : ''}
-            ${counts.info > 0 ? `<span class="pma-count info">${counts.info}</span>` : ''}
-            <span class="pma-count-total">${counts.total}</span>
-          </div>
+      marketCategories[categoryKey][alert.severity.toLowerCase()]++;
+      marketCategories[categoryKey].total++;
+    } else {
+      if (!companyCategories[categoryKey]) {
+        companyCategories[categoryKey] = { 
+          critical: 0, high: 0, watch: 0, info: 0, total: 0 
+        };
+      }
+      companyCategories[categoryKey][alert.severity.toLowerCase()]++;
+      companyCategories[categoryKey].total++;
+    }
+  });
+  
+  // Render market categories
+  const marketContainer = document.getElementById('pmaMarketCategories');
+  if (marketContainer) {
+    marketContainer.innerHTML = Object.entries(marketCategories).map(([cat, counts]) => `
+      <div class="pma-category-item" data-category="${cat}" data-type="market">
+        <div class="pma-category-name">${cat}</div>
+        <div class="pma-category-counts">
+          ${counts.critical > 0 ? `<span class="pma-count critical">${counts.critical}</span>` : ''}
+          ${counts.high > 0 ? `<span class="pma-count high">${counts.high}</span>` : ''}
+          ${counts.watch > 0 ? `<span class="pma-count watch">${counts.watch}</span>` : ''}
+          ${counts.info > 0 ? `<span class="pma-count info">${counts.info}</span>` : ''}
+          <span class="pma-count-total">${counts.total}</span>
         </div>
-      `).join('');
-    }
-    
-    // Render company categories
-    const companyContainer = document.getElementById('pmaCompanyCategories');
-    if (companyContainer) {
-      companyContainer.innerHTML = Object.entries(companyCategories).map(([cat, counts]) => `
-        <div class="pma-category-item">
-          <div class="pma-category-name">${cat}</div>
-          <div class="pma-category-counts">
-            ${counts.critical > 0 ? `<span class="pma-count critical">${counts.critical}</span>` : ''}
-            ${counts.high > 0 ? `<span class="pma-count high">${counts.high}</span>` : ''}
-            ${counts.watch > 0 ? `<span class="pma-count watch">${counts.watch}</span>` : ''}
-            ${counts.info > 0 ? `<span class="pma-count info">${counts.info}</span>` : ''}
-            <span class="pma-count-total">${counts.total}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-    
-    // Update timestamp
-    const timestamp = document.getElementById('pmaSummaryTime');
-    if (timestamp) {
-      timestamp.textContent = new Date().toLocaleTimeString();
-    }
-    
-    // Generate action items based on critical and high alerts
-    generateActionItems(alerts);
+      </div>
+    `).join('') || '<div class="pma-no-categories">No categories</div>';
   }
+  
+  // Render company categories
+  const companyContainer = document.getElementById('pmaCompanyCategories');
+  if (companyContainer) {
+    companyContainer.innerHTML = Object.entries(companyCategories).map(([cat, counts]) => `
+      <div class="pma-category-item" data-category="${cat}" data-type="company">
+        <div class="pma-category-name">${cat}</div>
+        <div class="pma-category-counts">
+          ${counts.critical > 0 ? `<span class="pma-count critical">${counts.critical}</span>` : ''}
+          ${counts.high > 0 ? `<span class="pma-count high">${counts.high}</span>` : ''}
+          ${counts.watch > 0 ? `<span class="pma-count watch">${counts.watch}</span>` : ''}
+          ${counts.info > 0 ? `<span class="pma-count info">${counts.info}</span>` : ''}
+          <span class="pma-count-total">${counts.total}</span>
+        </div>
+      </div>
+    `).join('') || '<div class="pma-no-categories">No categories</div>';
+  }
+  
+  // Update timestamp
+  const timestamp = document.getElementById('pmaSummaryTime');
+  if (timestamp) {
+    timestamp.textContent = new Date().toLocaleTimeString();
+  }
+  
+  // Generate action items based on critical and high alerts
+  generateActionItems(alerts);
+}
 
   // Update alert metrics
   function updateAlertMetrics(alerts) {
@@ -578,23 +608,87 @@
     return actionMap[alert.category] || null;
   }
 
-  // Setup event listeners
-  function setupAlertsEventListeners() {
-    // Filter buttons
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('pma-filter-btn')) {
-        // Update active state
-        document.querySelectorAll('.pma-filter-btn').forEach(btn => {
-          btn.classList.remove('active');
+// Setup event listeners
+function setupAlertsEventListeners() {
+  // Category filter clicks
+  document.addEventListener('click', function(e) {
+    // Handle category item clicks
+    if (e.target.closest('.pma-category-item')) {
+      const categoryItem = e.target.closest('.pma-category-item');
+      const category = categoryItem.getAttribute('data-category');
+      const type = categoryItem.getAttribute('data-type');
+      
+      // Toggle selected state
+      if (categoryItem.classList.contains('selected')) {
+        // Deselect and show all
+        categoryItem.classList.remove('selected');
+        resetFilters(type);
+      } else {
+        // Remove other selections in the same group
+        const parent = categoryItem.parentElement;
+        parent.querySelectorAll('.pma-category-item').forEach(item => {
+          item.classList.remove('selected');
         });
-        e.target.classList.add('active');
         
-        // Filter alerts
-        const filter = e.target.getAttribute('data-filter');
-        filterAlerts(filter);
+        // Select this one
+        categoryItem.classList.add('selected');
+        
+        // Apply filter
+        filterAlertsByCategory(category, type);
       }
-    });
+    }
+  });
+}
+
+// Filter alerts by category
+function filterAlertsByCategory(category, type) {
+  const feedId = type === 'market' ? 'pmaMarketAlertsFeed' : 'pmaCompanyAlertsFeed';
+  const feedContainer = document.getElementById(feedId);
+  
+  if (!feedContainer) return;
+  
+  const alertCards = feedContainer.querySelectorAll('.pma-alert-card');
+  
+  alertCards.forEach(card => {
+    const cardCategory = card.getAttribute('data-category');
+    card.style.display = cardCategory === category ? 'block' : 'none';
+  });
+  
+  // Update visible count
+  const visibleCards = feedContainer.querySelectorAll('.pma-alert-card[style*="block"]').length || 
+                       feedContainer.querySelectorAll('.pma-alert-card:not([style*="none"])').length;
+  
+  if (visibleCards === 0 && alertCards.length > 0) {
+    // Show "no matching alerts" message if filtered to zero
+    const existingNoMatch = feedContainer.querySelector('.pma-no-match');
+    if (!existingNoMatch) {
+      feedContainer.insertAdjacentHTML('beforeend', 
+        '<div class="pma-no-match">No alerts in this category</div>'
+      );
+    }
+  } else {
+    // Remove "no match" message if there are visible cards
+    const noMatchMsg = feedContainer.querySelector('.pma-no-match');
+    if (noMatchMsg) noMatchMsg.remove();
   }
+}
+
+// Reset filters for a specific type
+function resetFilters(type) {
+  const feedId = type === 'market' ? 'pmaMarketAlertsFeed' : 'pmaCompanyAlertsFeed';
+  const feedContainer = document.getElementById(feedId);
+  
+  if (!feedContainer) return;
+  
+  // Show all cards
+  feedContainer.querySelectorAll('.pma-alert-card').forEach(card => {
+    card.style.display = 'block';
+  });
+  
+  // Remove any "no match" messages
+  const noMatchMsg = feedContainer.querySelector('.pma-no-match');
+  if (noMatchMsg) noMatchMsg.remove();
+}
 
   // Filter alerts in feed
   function filterAlerts(filter) {
@@ -921,14 +1015,14 @@
           margin-top: 4px;
         }
         
-        /* Main Grid */
-        .pma-main-grid {
-          display: grid;
-          grid-template-columns: 1fr 500px;
-          gap: 10px;
-          height: calc(100vh - 400px);
-          max-height: 600px;
-        }
+/* Main Grid */
+.pma-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 10px;
+  height: calc(1050px - 300px);
+  max-height: 750px;
+}
         
         /* Left Column - Alert Feed */
         .pma-left-column {
@@ -1312,6 +1406,110 @@
         .pma-summary-body::-webkit-scrollbar-thumb:hover {
           background: #a8a8a8;
         }
+
+        /* Two Column Alerts Layout */
+.pma-alerts-feeds-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  height: 100%;
+}
+
+.pma-alerts-feed {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pma-alerts-feed.market-feed {
+  border-top: 3px solid #2196f3;
+}
+
+.pma-alerts-feed.company-feed {
+  border-top: 3px solid #9c27b0;
+}
+
+.pma-feed-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.pma-feed-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pma-feed-badge {
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Category item selected state */
+.pma-category-item {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pma-category-item.selected {
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  border: 1px solid #667eea;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.pma-category-item.selected .pma-category-name {
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* No match message */
+.pma-no-match {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Adjust alert card for narrower columns */
+.pma-alert-card {
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 10px;
+  transition: all 0.2s;
+  position: relative;
+  border-left-width: 3px;
+}
+
+.pma-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.pma-alert-message {
+  font-size: 11px;
+  color: #333;
+  line-height: 1.4;
+}
       </style>
     `;
     
