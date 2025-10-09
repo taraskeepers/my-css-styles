@@ -414,13 +414,9 @@ if (config.view === 'market-overview') {
   `;
 } else if (config.view === 'alerts') {
   container.innerHTML = `
-    <div class="pm-header-section">
-      <div class="pm-title-row">
-        <h2 class="pm-main-title">Alerts & Notifications</h2>
-        <div class="pm-last-updated">Last updated: <span>-</span></div>
-      </div>
+    <div id="pmAlertsWrapperContainer" class="pm-alerts-wrapper-container">
+      <!-- Alerts content will be loaded by external module -->
     </div>
-    <div class="pm-placeholder-content">Alerts content will be loaded here</div>
   `;
 } else if (config.view === 'promos') {
   container.innerHTML = `
@@ -2827,8 +2823,22 @@ function loadPromosData() {
 }
 
 function loadAlertsData() {
-  console.log('[PriceMonitoring] Loading Alerts data...');
-  // TODO: Implement alerts data loading
+  console.log('[PM] Loading alerts data');
+  
+  // Check if the alerts module is loaded
+  if (window.pmAlertsModule) {
+    window.pmAlertsModule.initialize();
+  } else {
+    // Wait for the module to load
+    const checkInterval = setInterval(() => {
+      if (window.pmAlertsModule) {
+        clearInterval(checkInterval);
+        window.pmAlertsModule.initialize();
+      }
+    }, 100);
+    
+    setTimeout(() => clearInterval(checkInterval), 5000);
+  }
 }
 
   // Helper functions
