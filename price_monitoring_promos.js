@@ -637,7 +637,7 @@ async function renderCalendarChart(dateRange = 30) {
   
   // Load company stats for ordering
   const companyStats = await loadAllCompanyStats();
-  const waveData = await createPromosWavesChart.__getWaveData?.() || [];
+  const waveData = createPromosWavesChart.__getWaveData?.() || [];
   
   // Sort companies by same order as discount depth chart
   companyWaves.sort((a, b) => {
@@ -647,10 +647,13 @@ async function renderCalendarChart(dateRange = 30) {
     return bWave.discountDepth - aWave.discountDepth;
   });
   
-  // Calculate date range
+  // Calculate date range - FIX: Include today properly
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset time to midnight
   const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - dateRange + 1);
+  startDate.setDate(startDate.getDate() - (dateRange - 1)); // Changed from dateRange + 1
+  
+  console.log('[PMPromos] Date range:', startDate.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
   
   // Create calendar HTML
   const html = createCalendarChartHTML(companyWaves, startDate, today, dateRange);
@@ -891,22 +894,14 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
     />
   `;
   
-  // Draw main gradient-filled wave with rounded appearance
-  svg += `
-    <path 
-      d="${path}" 
-      fill="url(#gradient_${companyIndex})"
-      filter="url(#shadow_${companyIndex})"
-      class="pmp-wave-main-path"
-      data-company-index="${companyIndex}"
-    />
-  `;
-  
-  // Draw individual day segments for hover interaction (invisible but interactive)
+  // Draw individual day segments with discount-depth-based gradient
   wave.dailyData.forEach((day, index) => {
     const x = dateToX[day.date];
     const heightPercent = getLogarithmicHeight(day.prDiscounted);
     const height = maxHeight * heightPercent / 100;
+    
+    // Get color based on discount depth - DARKER for HIGHER discounts
+    const segmentColor = getDiscountDepthColorForCompany(day.discountDepth, color);
     
     svg += `
       <rect 
@@ -914,7 +909,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         y="${yOffset + maxHeight - height}" 
         width="${dayWidth}" 
         height="${height}" 
-        fill="transparent"
+        fill="${segmentColor}"
         class="pmp-wave-day-segment"
         data-date="${day.date}"
         data-pr-discounted="${day.prDiscounted}"
@@ -922,6 +917,7 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
         data-total-products="${day.totalProducts}"
         data-discounted-products="${day.discountedProducts}"
         style="cursor: pointer;"
+        opacity="0.9"
       />
     `;
   });
@@ -973,6 +969,80 @@ function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth, company
   }
   
   return svg;
+}
+
+function getDiscountDepthColorForCompany(discountDepth, companyColor) {
+  // Convert discount depth (0-100) to color intensity
+  // Higher discount = darker color
+  
+  if (discountDepth <= 0) {
+    // Very light version of company color for no discount
+    return adjustColorBrightness(companyColor.light, 20);
+  }
+  
+  if (discountDepth >= 80) {
+    // Very dark version for high discounts
+    return adjustColorBrightness(companyColor.dark, -30);
+  }
+  
+  // Interpolate between light and dark based on discount depth
+  // 0% = lightest, 100% = darkest
+  const intensity = discountDepth / 100;
+  
+  // Linear interpolation between light and dark
+  if (intensity < 0.5) {
+    // Interpolate between light and main
+    const factor = intensity * 2; // 0 to 1
+    return interpolateColors(companyColor.light, companyColor.main, factor);
+  } else {
+    // Interpolate between main and dark
+    const factor = (intensity - 0.5) * 2; // 0 to 1
+    return interpolateColors(companyColor.main, companyColor.dark, factor);
+  }
+}
+
+function adjustColorBrightness(hexColor, percent) {
+  // Convert hex to RGB
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Adjust brightness
+  const newR = Math.max(0, Math.min(255, r + (r * percent / 100)));
+  const newG = Math.max(0, Math.min(255, g + (g * percent / 100)));
+  const newB = Math.max(0, Math.min(255, b + (b * percent / 100)));
+  
+  // Convert back to hex
+  return '#' + 
+    Math.round(newR).toString(16).padStart(2, '0') +
+    Math.round(newG).toString(16).padStart(2, '0') +
+    Math.round(newB).toString(16).padStart(2, '0');
+}
+
+function interpolateColors(color1, color2, factor) {
+  // Convert hex to RGB
+  const hex1 = color1.replace('#', '');
+  const hex2 = color2.replace('#', '');
+  
+  const r1 = parseInt(hex1.substring(0, 2), 16);
+  const g1 = parseInt(hex1.substring(2, 4), 16);
+  const b1 = parseInt(hex1.substring(4, 6), 16);
+  
+  const r2 = parseInt(hex2.substring(0, 2), 16);
+  const g2 = parseInt(hex2.substring(2, 4), 16);
+  const b2 = parseInt(hex2.substring(4, 6), 16);
+  
+  // Interpolate
+  const r = Math.round(r1 + (r2 - r1) * factor);
+  const g = Math.round(g1 + (g2 - g1) * factor);
+  const b = Math.round(b1 + (b2 - b1) * factor);
+  
+  // Convert back to hex
+  return '#' + 
+    r.toString(16).padStart(2, '0') +
+    g.toString(16).padStart(2, '0') +
+    b.toString(16).padStart(2, '0');
 }
 
 function initializeCalendarTooltips() {
@@ -1048,12 +1118,33 @@ function positionTooltip(event, tooltip) {
 
 function initializeDateRangeSelector() {
   const selector = document.getElementById('pmpCalendarRange');
-  if (!selector) return;
+  if (!selector) {
+    console.warn('[PMPromos] Date range selector not found');
+    return;
+  }
   
-  selector.addEventListener('change', function() {
+  // Remove any existing listeners
+  const newSelector = selector.cloneNode(true);
+  selector.parentNode.replaceChild(newSelector, selector);
+  
+  newSelector.addEventListener('change', async function() {
     const days = parseInt(this.value);
-    renderCalendarChart(days);
+    console.log('[PMPromos] Date range changed to:', days, 'days');
+    
+    // Clear the container first
+    const container = document.getElementById('pmpWavesCalendarChart');
+    if (container) {
+      container.innerHTML = '<div class="pmp-wave-loading">Loading calendar data...</div>';
+    }
+    
+    // Re-render with new date range
+    await renderCalendarChart(days);
+    
+    // Re-initialize the selector after render
+    initializeDateRangeSelector();
   });
+  
+  console.log('[PMPromos] Date range selector initialized');
 }
 
 async function createPromosWavesChart(allData) {
@@ -1130,24 +1221,28 @@ function initializeWavesModeSwitch() {
     console.log('[PMPromos] Switched to Discount Depth mode');
   });
   
-  // Calendar mode button click
-  calendarBtn.addEventListener('click', function() {
-    if (this.classList.contains('active')) return;
-    
-    // Switch active states
-    calendarBtn.classList.add('active');
-    depthBtn.classList.remove('active');
-    
-    // Show calendar, hide depth chart
-    calendarChart.classList.add('active');
-    depthChart.classList.remove('active');
-    depthChart.classList.add('hidden');
-    
-    console.log('[PMPromos] Switched to Calendar mode');
-    
-    // Render calendar chart if not already rendered
-    renderCalendarChart();
-  });
+// Calendar mode button click
+calendarBtn.addEventListener('click', async function() {
+  if (this.classList.contains('active')) return;
+  
+  // Switch active states
+  calendarBtn.classList.add('active');
+  depthBtn.classList.remove('active');
+  
+  // Show calendar, hide depth chart
+  calendarChart.classList.add('active');
+  depthChart.classList.remove('active');
+  depthChart.classList.add('hidden');
+  
+  console.log('[PMPromos] Switched to Calendar mode');
+  
+  // Check if already rendered
+  if (!calendarChart.querySelector('.pmp-calendar-wrapper')) {
+    // Render calendar chart for the first time
+    await renderCalendarChart(30);
+    initializeDateRangeSelector();
+  }
+});
 }
 
 function renderPromosWavesList(displayData) {
