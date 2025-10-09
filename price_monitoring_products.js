@@ -3314,15 +3314,16 @@ async function loadMyCompanyProducts(companyName) {
 // Determine which 'q' value to filter by
 const searchTermFilter = (window.filterState?.searchTerm && window.filterState.searchTerm.trim() !== '') 
   ? window.filterState.searchTerm 
-  : 'all';
+  : null; // null means show all products
 
-console.log('[PM Products] Filtering myCompany products by q =', searchTermFilter);
+console.log('[PM Products] Filtering myCompany products by q =', searchTermFilter || 'all (no filter)');
 
 result.data.forEach(row => {
-  // Filter by company AND by q field
-  if (row.source && 
-      row.source.toLowerCase() === companyName.toLowerCase() &&
-      row.q === searchTermFilter) {
+  // Filter by company AND optionally by q field
+  const matchesCompany = row.source && row.source.toLowerCase() === companyName.toLowerCase();
+  const matchesSearch = !searchTermFilter || row.q === searchTermFilter;
+  
+  if (matchesCompany && matchesSearch) {
             const key = `${row.title}_${row.source}`;
             
             // Check if we already have this product
@@ -3437,16 +3438,18 @@ async function loadCompetitorProducts(companyName) {
 // Determine which 'q' value to filter by
 const searchTermFilter = (window.filterState?.searchTerm && window.filterState.searchTerm.trim() !== '') 
   ? window.filterState.searchTerm 
-  : 'all';
+  : null; // null means show all products
 
-console.log('[PM Products] Filtering competitor products by q =', searchTermFilter);
+console.log('[PM Products] Filtering competitor products by q =', searchTermFilter || 'all (no filter)');
 
 result.data.forEach(row => {
-  // Filter by company AND by q field
-  if (row.source && 
-      row.source.toLowerCase() !== companyName.toLowerCase() && 
-      row.source !== 'all' &&
-      row.q === searchTermFilter) {
+  // Filter by company AND optionally by q field
+  const matchesCompany = row.source && 
+                        row.source.toLowerCase() !== companyName.toLowerCase() && 
+                        row.source !== 'all';
+  const matchesSearch = !searchTermFilter || row.q === searchTermFilter;
+  
+  if (matchesCompany && matchesSearch) {
             const key = `${row.title}_${row.source}`;
             
             // Check if we already have this product
