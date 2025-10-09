@@ -2885,6 +2885,13 @@ if (totalPrevVisibilityCount > 0) {
 }
 
 function renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
+    console.log('[DEBUG renderFilteredProducts] Called with:', {
+    containerExists: !!productsNavContainer,
+    activeCount: activeProducts.length,
+    inactiveCount: inactiveProducts.length,
+    filter: filter
+  });
+  
   // Clear container
   productsNavContainer.innerHTML = '';
 
@@ -5362,16 +5369,23 @@ const productsWithMetrics = allCompanyProducts.map((product, index) => ({
   metrics: calculateProductMetrics(product)
 }));
 
+console.log('[DEBUG] productsWithMetrics:', productsWithMetrics.length, productsWithMetrics);
+
 // Separate active and inactive products
 const activeProducts = productsWithMetrics.filter(item => !item.metrics.isFullyInactive);
 const inactiveProducts = productsWithMetrics.filter(item => item.metrics.isFullyInactive);
+
+console.log('[DEBUG] Active products:', activeProducts.length);
+console.log('[DEBUG] Inactive products:', inactiveProducts.length);
 
 // Sort both groups by rank (lower rank = better = higher in list)
 activeProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 inactiveProducts.sort((a, b) => a.metrics.avgRating - b.metrics.avgRating);
 
 // Initial render with all products
+console.log('[DEBUG] About to call renderFilteredProducts');
 renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, 'all');
+console.log('[DEBUG] After renderFilteredProducts, container children:', productsNavContainer.children.length);
 
 // Update the counter display
 const allCountBadge = document.querySelector('.all-badge');
