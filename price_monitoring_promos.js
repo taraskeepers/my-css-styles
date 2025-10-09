@@ -316,6 +316,583 @@ async function loadAllCompanyStats() {
   });
 }
 
+// ==================== CALENDAR CHART FUNCTIONS ====================
+
+async function loadHistoricalPricingData() {
+  return new Promise((resolve) => {
+    try {
+      let tablePrefix = '';
+      if (typeof window.getProjectTablePrefix === 'function') {
+        tablePrefix = window.getProjectTablePrefix();
+      } else {
+        const accountPrefix = window.currentAccount || 'acc1';
+        const currentProjectNum = window.dataPrefix ? 
+          parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+        tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+      }
+      
+      const tableName = `${tablePrefix}company_pricing`;
+      const request = indexedDB.open('myAppDB');
+      
+      request.onsuccess = function(event) {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('projectData')) {
+          console.warn('[PMPromos] projectData object store not found');
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        const transaction = db.transaction(['projectData'], 'readonly');
+        const objectStore = transaction.objectStore('projectData');
+        const getRequest = objectStore.get(tableName);
+        
+        getRequest.onsuccess = function() {
+          const result = getRequest.result;
+          db.close();
+          
+          if (!result || !result.data) {
+            resolve([]);
+            return;
+          }
+          
+          // Filter for companies with active promo waves and q='all'
+          const companiesData = result.data.filter(row => 
+            row.q === 'all' && 
+            row.source !== 'all' &&
+            (row.promo_wave === true || row.promo_wave === 'true') &&
+            row.historical_data && 
+            Array.isArray(row.historical_data)
+          );
+          
+          resolve(companiesData);
+        };
+        
+        getRequest.onerror = function() {
+          console.error('[PMPromos] Error loading historical data:', getRequest.error);
+          db.close();
+          resolve([]);
+        };
+      };
+      
+      request.onerror = function() {
+        console.error('[PMPromos] Failed to open database:', request.error);
+        resolve([]);
+      };
+    } catch (error) {
+      console.error('[PMPromos] Error in loadHistoricalPricingData:', error);
+      resolve([]);
+    }
+  });
+}
+
+function detectPromoWaves(historicalData) {
+  if (!historicalData || historicalData.length === 0) {
+    return [];
+  }
+  
+  // Sort by date ascending
+  const sortedData = [...historicalData].sort((a, b) => {
+    const dateA = new Date(a.date.value);
+    const dateB = new Date(b.date.value);
+    return dateA - dateB;
+  });
+  
+  const waves = [];
+  let currentWave = null;
+  let consecutiveAboveThreshold = 0;
+  let consecutiveBelowThreshold = 0;
+  
+  for (let i = 0; i < sortedData.length; i++) {
+    const dayData = sortedData[i];
+    const prDiscounted = parseFloat(dayData.pr_discounted_products) || 0;
+    const isAboveThreshold = prDiscounted >= 0.1;
+    
+    if (isAboveThreshold) {
+      consecutiveAboveThreshold++;
+      consecutiveBelowThreshold = 0;
+      
+      // Start new wave if we hit 3 consecutive days
+      if (consecutiveAboveThreshold >= 3 && !currentWave) {
+        currentWave = {
+          startDate: sortedData[i - 2].date.value,
+          dailyData: []
+        };
+        // Add the 3 days that triggered the wave
+        for (let j = i - 2; j <= i; j++) {
+          currentWave.dailyData.push({
+            date: sortedData[j].date.value,
+            prDiscounted: parseFloat(sortedData[j].pr_discounted_products) || 0,
+            discountDepth: parseFloat(sortedData[j].discount_depth) || 0,
+            totalProducts: parseInt(sortedData[j].total_products) || 0,
+            discountedProducts: parseInt(sortedData[j].discounted_products) || 0
+          });
+        }
+      } else if (currentWave) {
+        // Continue existing wave
+        currentWave.dailyData.push({
+          date: dayData.date.value,
+          prDiscounted: prDiscounted,
+          discountDepth: parseFloat(dayData.discount_depth) || 0,
+          totalProducts: parseInt(dayData.total_products) || 0,
+          discountedProducts: parseInt(dayData.discounted_products) || 0
+        });
+      }
+    } else {
+      consecutiveAboveThreshold = 0;
+      consecutiveBelowThreshold++;
+      
+      if (currentWave) {
+        // Add this day to current wave (it's part of potential gap)
+        currentWave.dailyData.push({
+          date: dayData.date.value,
+          prDiscounted: prDiscounted,
+          discountDepth: parseFloat(dayData.discount_depth) || 0,
+          totalProducts: parseInt(dayData.total_products) || 0,
+          discountedProducts: parseInt(dayData.discounted_products) || 0
+        });
+        
+        // End wave if gap exceeds 3 days
+        if (consecutiveBelowThreshold > 3) {
+          // Remove the gap days from the wave
+          currentWave.dailyData = currentWave.dailyData.slice(0, -(consecutiveBelowThreshold));
+          currentWave.endDate = currentWave.dailyData[currentWave.dailyData.length - 1].date;
+          currentWave.isOngoing = false;
+          waves.push(currentWave);
+          currentWave = null;
+        }
+      }
+    }
+  }
+  
+  // Close any ongoing wave
+  if (currentWave) {
+    // Remove trailing days below threshold (up to 3)
+    while (currentWave.dailyData.length > 0 && 
+           currentWave.dailyData[currentWave.dailyData.length - 1].prDiscounted < 0.1) {
+      currentWave.dailyData.pop();
+    }
+    
+    if (currentWave.dailyData.length > 0) {
+      currentWave.endDate = currentWave.dailyData[currentWave.dailyData.length - 1].date;
+      currentWave.isOngoing = true; // Ongoing if it extends to the last data point
+      waves.push(currentWave);
+    }
+  }
+  
+  return waves;
+}
+
+function getLogarithmicHeight(prDiscounted) {
+  // Logarithmic scaling: 0.1 = ~30%, 1.0 = 100%
+  if (prDiscounted < 0.1) return 0;
+  if (prDiscounted >= 1.0) return 100;
+  
+  // Use log scale: log(x + offset) to prevent negative values
+  const minVal = 0.1;
+  const maxVal = 1.0;
+  const minHeight = 30;
+  const maxHeight = 100;
+  
+  const logMin = Math.log(minVal + 1);
+  const logMax = Math.log(maxVal + 1);
+  const logVal = Math.log(prDiscounted + 1);
+  
+  const height = minHeight + ((logVal - logMin) / (logMax - logMin)) * (maxHeight - minHeight);
+  return Math.max(minHeight, Math.min(maxHeight, height));
+}
+
+function getDiscountDepthColor(discountDepth) {
+  // Gradient from light to dark based on discount depth
+  // 0% = light blue, 100% = dark blue
+  if (discountDepth <= 0) return 'rgba(102, 126, 234, 0.3)';
+  if (discountDepth >= 100) return 'rgba(25, 40, 120, 1)';
+  
+  const lightness = 70 - (discountDepth * 0.5); // 70 to 20
+  return `hsl(230, 70%, ${lightness}%)`;
+}
+
+function createSmoothWavePath(dailyData, dateToX, maxHeight) {
+  if (!dailyData || dailyData.length === 0) return '';
+  
+  const points = dailyData.map(day => {
+    const x = dateToX[day.date];
+    const heightPercent = getLogarithmicHeight(day.prDiscounted);
+    const y = maxHeight - (maxHeight * heightPercent / 100);
+    return { x, y, date: day.date };
+  });
+  
+  if (points.length === 0) return '';
+  
+  // Start path from bottom-left
+  let path = `M ${points[0].x} ${maxHeight}`;
+  path += ` L ${points[0].x} ${points[0].y}`;
+  
+  // Create smooth curve through points using quadratic bezier
+  for (let i = 0; i < points.length - 1; i++) {
+    const current = points[i];
+    const next = points[i + 1];
+    const midX = (current.x + next.x) / 2;
+    
+    path += ` Q ${current.x} ${current.y}, ${midX} ${(current.y + next.y) / 2}`;
+    path += ` Q ${next.x} ${next.y}, ${next.x} ${next.y}`;
+  }
+  
+  // Close path at bottom-right
+  const lastPoint = points[points.length - 1];
+  path += ` L ${lastPoint.x} ${maxHeight}`;
+  path += ' Z';
+  
+  return path;
+}
+
+async function renderCalendarChart(dateRange = 30) {
+  const container = document.getElementById('pmpWavesCalendarChart');
+  if (!container) return;
+  
+  console.log('[PMPromos] Rendering calendar chart...');
+  
+  // Show loading state
+  container.innerHTML = '<div class="pmp-wave-loading">Loading calendar data...</div>';
+  
+  // Load historical data
+  const companiesData = await loadHistoricalPricingData();
+  
+  if (companiesData.length === 0) {
+    container.innerHTML = '<div class="pmp-no-waves">No historical data available</div>';
+    return;
+  }
+  
+  // Process waves for each company
+  const companyWaves = [];
+  for (const companyData of companiesData) {
+    const waves = detectPromoWaves(companyData.historical_data);
+    if (waves.length > 0) {
+      companyWaves.push({
+        company: companyData.source,
+        waves: waves
+      });
+    }
+  }
+  
+  if (companyWaves.length === 0) {
+    container.innerHTML = '<div class="pmp-no-waves">No promo waves detected in historical data</div>';
+    return;
+  }
+  
+  // Load company stats for ordering
+  const companyStats = await loadAllCompanyStats();
+  const waveData = await createPromosWavesChart.__getWaveData?.() || [];
+  
+  // Sort companies by same order as discount depth chart
+  companyWaves.sort((a, b) => {
+    const aWave = waveData.find(w => w.company === a.company);
+    const bWave = waveData.find(w => w.company === b.company);
+    if (!aWave || !bWave) return 0;
+    return bWave.discountDepth - aWave.discountDepth;
+  });
+  
+  // Calculate date range
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - dateRange + 1);
+  
+  // Create calendar HTML
+  const html = createCalendarChartHTML(companyWaves, startDate, today, dateRange);
+  container.innerHTML = html;
+  
+  // Initialize tooltips
+  initializeCalendarTooltips();
+  
+  console.log('[PMPromos] Calendar chart rendered successfully');
+}
+
+function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
+  const dayWidth = 30; // Width per day in pixels
+  const rowHeight = 60; // Height per company row
+  const headerHeight = 80;
+  const labelWidth = 180;
+  const chartWidth = dayWidth * dateRange;
+  const chartHeight = companyWaves.length * rowHeight;
+  
+  // Build date to X position mapping
+  const dateToX = {};
+  const dateArray = [];
+  for (let i = 0; i < dateRange; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    dateToX[dateStr] = i * dayWidth + dayWidth / 2;
+    dateArray.push({ date: date, dateStr: dateStr, x: i * dayWidth });
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  let html = `
+    <div class="pmp-calendar-wrapper">
+      <!-- Date Range Selector -->
+      <div class="pmp-calendar-controls">
+        <label>Date Range:</label>
+        <select id="pmpCalendarRange" class="pmp-calendar-range-select">
+          <option value="7">Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="60">Last 60 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+      
+      <div class="pmp-calendar-chart-container">
+        <svg width="${chartWidth + labelWidth}" height="${chartHeight + headerHeight}" class="pmp-calendar-svg">
+          <defs>
+            <!-- Weekend pattern -->
+            <pattern id="weekendPattern" patternUnits="userSpaceOnUse" width="${dayWidth}" height="${rowHeight}">
+              <rect width="${dayWidth}" height="${rowHeight}" fill="rgba(0,0,0,0.02)"/>
+            </pattern>
+          </defs>
+          
+          <!-- Calendar Grid Background -->
+          <g class="pmp-calendar-grid" transform="translate(${labelWidth}, ${headerHeight})">
+  `;
+  
+  // Draw calendar grid
+  dateArray.forEach((dateObj, index) => {
+    const isWeekend = dateObj.date.getDay() === 0 || dateObj.date.getDay() === 6;
+    const isToday = dateObj.dateStr === today;
+    const isMonthStart = dateObj.date.getDate() === 1;
+    const isWeekStart = dateObj.date.getDay() === 1;
+    
+    // Weekend shading
+    if (isWeekend) {
+      html += `<rect x="${dateObj.x}" y="0" width="${dayWidth}" height="${chartHeight}" fill="url(#weekendPattern)"/>`;
+    }
+    
+    // Day divider
+    html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>`;
+    
+    // Week separator (stronger)
+    if (isWeekStart && index > 0) {
+      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>`;
+    }
+    
+    // Month boundary (strongest)
+    if (isMonthStart) {
+      html += `<line x1="${dateObj.x}" y1="0" x2="${dateObj.x}" y2="${chartHeight}" stroke="rgba(102,126,234,0.4)" stroke-width="2"/>`;
+    }
+    
+    // Today marker
+    if (isToday) {
+      html += `<line x1="${dateObj.x + dayWidth/2}" y1="0" x2="${dateObj.x + dayWidth/2}" y2="${chartHeight}" stroke="rgba(255,68,68,0.6)" stroke-width="2" stroke-dasharray="4,4"/>`;
+    }
+  });
+  
+  html += `</g>`;
+  
+  // Draw X-axis labels
+  html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 30})">`;
+  dateArray.forEach((dateObj, index) => {
+    const isMonthStart = dateObj.date.getDate() === 1;
+    const showLabel = index === 0 || isMonthStart || index % 7 === 0;
+    
+    if (showLabel) {
+      const label = dateObj.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" fill="#666">${label}</text>`;
+    }
+  });
+  html += `</g>`;
+  
+  // Month labels at top
+  html += `<g class="pmp-calendar-months" transform="translate(${labelWidth}, 20)">`;
+  let lastMonth = null;
+  dateArray.forEach((dateObj) => {
+    const monthYear = dateObj.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (monthYear !== lastMonth) {
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" font-size="12" font-weight="600" fill="#333">${monthYear}</text>`;
+      lastMonth = monthYear;
+    }
+  });
+  html += `</g>`;
+  
+  // Draw company rows and waves
+  companyWaves.forEach((companyData, rowIndex) => {
+    const y = rowIndex * rowHeight;
+    
+    // Company label
+    html += `<text x="${labelWidth - 10}" y="${headerHeight + y + rowHeight/2}" text-anchor="end" alignment-baseline="middle" font-size="12" font-weight="600" fill="#333">${companyData.company}</text>`;
+    
+    // Row separator
+    html += `<line x1="${labelWidth}" y1="${headerHeight + y}" x2="${chartWidth + labelWidth}" y2="${headerHeight + y}" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>`;
+    
+    // Draw waves for this company
+    companyData.waves.forEach((wave, waveIndex) => {
+      const waveGroup = createWaveSVGGroup(wave, dateToX, y, rowHeight, dayWidth);
+      html += `<g class="pmp-wave-group" data-company="${companyData.company}" data-wave-index="${waveIndex}" transform="translate(${labelWidth}, ${headerHeight})">${waveGroup}</g>`;
+    });
+  });
+  
+  html += `
+        </svg>
+      </div>
+      
+      <!-- Tooltip -->
+      <div id="pmpCalendarTooltip" class="pmp-calendar-tooltip"></div>
+    </div>
+  `;
+  
+  return html;
+}
+
+function createWaveSVGGroup(wave, dateToX, yOffset, maxHeight, dayWidth) {
+  let svg = '';
+  
+  // Create gradient stops based on discount depth for each day
+  const gradientId = `waveGradient_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const avgDiscountDepth = wave.dailyData.reduce((sum, day) => sum + day.discountDepth, 0) / wave.dailyData.length;
+  
+  // Create smooth path
+  const path = createSmoothWavePath(wave.dailyData, dateToX, maxHeight);
+  
+  // Draw individual day segments with gradient
+  wave.dailyData.forEach((day, index) => {
+    const x = dateToX[day.date];
+    const heightPercent = getLogarithmicHeight(day.prDiscounted);
+    const height = maxHeight * heightPercent / 100;
+    const color = getDiscountDepthColor(day.discountDepth);
+    
+    svg += `
+      <rect 
+        x="${x - dayWidth/2}" 
+        y="${yOffset + maxHeight - height}" 
+        width="${dayWidth}" 
+        height="${height}" 
+        fill="${color}" 
+        class="pmp-wave-day-segment"
+        data-date="${day.date}"
+        data-pr-discounted="${day.prDiscounted}"
+        data-discount-depth="${day.discountDepth}"
+        data-total-products="${day.totalProducts}"
+        data-discounted-products="${day.discountedProducts}"
+        opacity="0.7"
+      />
+    `;
+  });
+  
+  // Draw smooth curve outline
+  svg += `
+    <path 
+      d="${path}" 
+      fill="none" 
+      stroke="rgba(102,126,234,0.8)" 
+      stroke-width="2"
+      class="pmp-wave-outline"
+    />
+  `;
+  
+  // Ongoing wave indicator (dashed border on right edge)
+  if (wave.isOngoing) {
+    const lastDay = wave.dailyData[wave.dailyData.length - 1];
+    const lastX = dateToX[lastDay.date];
+    const lastHeight = maxHeight * getLogarithmicHeight(lastDay.prDiscounted) / 100;
+    
+    svg += `
+      <line 
+        x1="${lastX + dayWidth/2}" 
+        y1="${yOffset + maxHeight - lastHeight}" 
+        x2="${lastX + dayWidth/2}" 
+        y2="${yOffset + maxHeight}"
+        stroke="rgba(255,68,68,0.8)" 
+        stroke-width="3"
+        stroke-dasharray="4,4"
+        class="pmp-wave-ongoing"
+      />
+    `;
+  }
+  
+  return svg;
+}
+
+function initializeCalendarTooltips() {
+  const tooltip = document.getElementById('pmpCalendarTooltip');
+  if (!tooltip) return;
+  
+  const daySegments = document.querySelectorAll('.pmp-wave-day-segment');
+  
+  daySegments.forEach(segment => {
+    segment.addEventListener('mouseenter', function(e) {
+      const date = this.getAttribute('data-date');
+      const prDiscounted = parseFloat(this.getAttribute('data-pr-discounted'));
+      const discountDepth = parseFloat(this.getAttribute('data-discount-depth'));
+      const totalProducts = parseInt(this.getAttribute('data-total-products'));
+      const discountedProducts = parseInt(this.getAttribute('data-discounted-products'));
+      
+      const waveGroup = this.closest('.pmp-wave-group');
+      const company = waveGroup.getAttribute('data-company');
+      
+      const dateObj = new Date(date);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
+      tooltip.innerHTML = `
+        <div class="pmp-tooltip-header">${company}</div>
+        <div class="pmp-tooltip-date">${formattedDate}</div>
+        <div class="pmp-tooltip-row">
+          <span class="pmp-tooltip-label">Discount Depth:</span>
+          <span class="pmp-tooltip-value">${discountDepth.toFixed(1)}%</span>
+        </div>
+        <div class="pmp-tooltip-row">
+          <span class="pmp-tooltip-label">Products Discounted:</span>
+          <span class="pmp-tooltip-value">${(prDiscounted * 100).toFixed(1)}%</span>
+        </div>
+        <div class="pmp-tooltip-row">
+          <span class="pmp-tooltip-label">Discounted Products:</span>
+          <span class="pmp-tooltip-value">${discountedProducts} / ${totalProducts}</span>
+        </div>
+      `;
+      
+      tooltip.style.display = 'block';
+      positionTooltip(e, tooltip);
+    });
+    
+    segment.addEventListener('mousemove', function(e) {
+      positionTooltip(e, tooltip);
+    });
+    
+    segment.addEventListener('mouseleave', function() {
+      tooltip.style.display = 'none';
+    });
+  });
+}
+
+function positionTooltip(event, tooltip) {
+  const tooltipWidth = tooltip.offsetWidth;
+  const tooltipHeight = tooltip.offsetHeight;
+  
+  let left = event.pageX + 15;
+  let top = event.pageY + 15;
+  
+  // Prevent tooltip from going off-screen
+  if (left + tooltipWidth > window.innerWidth) {
+    left = event.pageX - tooltipWidth - 15;
+  }
+  
+  if (top + tooltipHeight > window.innerHeight) {
+    top = event.pageY - tooltipHeight - 15;
+  }
+  
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+
+function initializeDateRangeSelector() {
+  const selector = document.getElementById('pmpCalendarRange');
+  if (!selector) return;
+  
+  selector.addEventListener('change', function() {
+    const days = parseInt(this.value);
+    renderCalendarChart(days);
+  });
+}
+
 async function createPromosWavesChart(allData) {
   // Filter for active promo waves
   const promoWaves = allData.filter(row => 
@@ -355,6 +932,9 @@ async function createPromosWavesChart(allData) {
       discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
     };
   }).sort((a, b) => b.discountDepth - a.discountDepth);
+
+    // Store for calendar chart access
+  createPromosWavesChart.__getWaveData = () => waveData;
 
   renderPromosWavesList(waveData);
   initializeWavesModeSwitch();
@@ -407,21 +987,38 @@ function initializeWavesModeSwitch() {
   });
 }
 
-function renderCalendarChart() {
+async function renderCalendarChart() {
   const container = document.getElementById('pmpWavesCalendarChart');
   if (!container) return;
   
   // Check if already rendered
-  if (container.innerHTML.trim() !== '') return;
+  if (container.querySelector('.pmp-calendar-wrapper')) {
+    console.log('[PMPromos] Calendar chart already rendered');
+    return;
+  }
   
-  // Placeholder for now - will be implemented later
-  container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #999; font-size: 14px;">
-      Calendar view will be implemented here
-    </div>
-  `;
+  console.log('[PMPromos] Initializing calendar chart...');
   
-  console.log('[PMPromos] Calendar chart rendered');
+  // Render with default 30 days
+  await renderCalendarChartWithRange(30);
+  initializeDateRangeSelector();
+}
+
+async function renderCalendarChartWithRange(dateRange) {
+  const container = document.getElementById('pmpWavesCalendarChart');
+  if (!container) return;
+  
+  // Check if already rendered
+  if (container.querySelector('.pmp-calendar-wrapper')) {
+    console.log('[PMPromos] Calendar chart already rendered');
+    return;
+  }
+  
+  console.log('[PMPromos] Initializing calendar chart...');
+  
+  // Render with default 30 days
+  await renderCalendarChartWithRange(30);
+  initializeDateRangeSelector();
 }
 
 function renderPromosWavesList(displayData) {
@@ -1909,6 +2506,153 @@ async function toggleWaveExpansion(waveItem, company) {
       .pmp-waves-chart::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
       }
+
+/* ==================== CALENDAR CHART STYLES ==================== */
+
+.pmp-calendar-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pmp-calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pmp-calendar-controls label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pmp-calendar-range-select {
+  padding: 6px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pmp-calendar-range-select:hover {
+  border-color: #667eea;
+}
+
+.pmp-calendar-range-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.pmp-calendar-chart-container {
+  flex: 1;
+  overflow: auto;
+  background: white;
+  padding: 20px;
+}
+
+.pmp-calendar-chart-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.pmp-calendar-chart-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+.pmp-calendar-chart-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 5px;
+}
+
+.pmp-calendar-chart-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.pmp-calendar-svg {
+  display: block;
+}
+
+.pmp-wave-day-segment {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.pmp-wave-day-segment:hover {
+  opacity: 1 !important;
+  stroke: rgba(102, 126, 234, 1);
+  stroke-width: 1;
+}
+
+.pmp-wave-outline {
+  pointer-events: none;
+}
+
+.pmp-wave-ongoing {
+  pointer-events: none;
+}
+
+/* Calendar Tooltip */
+.pmp-calendar-tooltip {
+  position: fixed;
+  display: none;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  padding: 12px 16px;
+  z-index: 10000;
+  min-width: 220px;
+  pointer-events: none;
+}
+
+.pmp-tooltip-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #667eea;
+}
+
+.pmp-tooltip-date {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.pmp-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.pmp-tooltip-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.pmp-tooltip-value {
+  color: #333;
+  font-weight: 700;
+}
+
       </style>
     `;
 
