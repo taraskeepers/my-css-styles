@@ -694,13 +694,32 @@ function assignCompanyColors(companyWaves) {
 }
 
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
-  const dayWidth = 30; // Width per day in pixels
-  const rowHeight = 70; // Height per company row (increased for padding)
-  const rowPadding = 10; // Padding between rows
-  const headerHeight = 80;
+  // Calculate responsive dimensions
   const labelWidth = 180;
+  const rowHeight = 70;
+  const rowPadding = 10;
+  const headerHeight = 80;
+  
+  // Get container width to calculate responsive day width
+  const container = document.querySelector('.pmp-calendar-chart-container');
+  const containerWidth = container ? container.clientWidth : 1200;
+  
+  // Calculate available width for chart (minus label width and padding)
+  const availableWidth = containerWidth - labelWidth - 40; // 40px for margins
+  
+  // Calculate day width based on available space and date range
+  const dayWidth = Math.max(20, Math.floor(availableWidth / dateRange)); // Minimum 20px per day
+  
   const chartWidth = dayWidth * dateRange;
   const chartHeight = (companyWaves.length * rowHeight);
+  
+  console.log('[PMPromos] Calendar dimensions:', {
+    containerWidth,
+    availableWidth,
+    dateRange,
+    dayWidth,
+    chartWidth
+  });
   
   // Assign unique colors to companies
   const companyColors = assignCompanyColors(companyWaves);
@@ -724,15 +743,15 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
       <div class="pmp-calendar-controls">
         <label>Date Range:</label>
         <select id="pmpCalendarRange" class="pmp-calendar-range-select">
-          <option value="7">Last 7 days</option>
-          <option value="14">Last 14 days</option>
-          <option value="30" selected>Last 30 days</option>
-          <option value="60">Last 60 days</option>
-          <option value="90">Last 90 days</option>
+          <option value="7" ${dateRange === 7 ? 'selected' : ''}>Last 7 days</option>
+          <option value="14" ${dateRange === 14 ? 'selected' : ''}>Last 14 days</option>
+          <option value="30" ${dateRange === 30 ? 'selected' : ''}>Last 30 days</option>
+          <option value="60" ${dateRange === 60 ? 'selected' : ''}>Last 60 days</option>
+          <option value="90" ${dateRange === 90 ? 'selected' : ''}>Last 90 days</option>
         </select>
       </div>
       
-      <div class="pmp-calendar-chart-container">
+      <div class="pmp-calendar-chart-container-inner">
         <svg width="${chartWidth + labelWidth}" height="${chartHeight + headerHeight}" class="pmp-calendar-svg">
           <defs>
             <!-- Weekend pattern -->
@@ -803,15 +822,17 @@ function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
   
   html += `</g>`;
   
-  // Draw X-axis labels
+  // Draw X-axis labels - adjust frequency based on date range
   html += `<g class="pmp-calendar-xaxis" transform="translate(${labelWidth}, ${headerHeight - 35})">`;
+  const labelFrequency = dateRange <= 14 ? 1 : (dateRange <= 30 ? 3 : 7);
   dateArray.forEach((dateObj, index) => {
     const isMonthStart = dateObj.date.getDate() === 1;
-    const showLabel = index === 0 || isMonthStart || index % 7 === 0;
+    const showLabel = index === 0 || isMonthStart || index % labelFrequency === 0;
     
     if (showLabel) {
       const label = dateObj.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="500" fill="#666">${label}</text>`;
+      const fontSize = dateRange > 60 ? 9 : 10;
+      html += `<text x="${dateObj.x + dayWidth/2}" y="0" text-anchor="middle" font-size="${fontSize}" font-weight="500" fill="#666">${label}</text>`;
     }
   });
   html += `</g>`;
@@ -2712,14 +2733,19 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-calendar-chart-container {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: white;
   padding: 20px;
 }
 
+.pmp-calendar-chart-container-inner {
+  width: 100%;
+  overflow: visible;
+}
+
 .pmp-calendar-chart-container::-webkit-scrollbar {
   width: 10px;
-  height: 10px;
 }
 
 .pmp-calendar-chart-container::-webkit-scrollbar-track {
