@@ -987,40 +987,6 @@ function initializeWavesModeSwitch() {
   });
 }
 
-async function renderCalendarChart() {
-  const container = document.getElementById('pmpWavesCalendarChart');
-  if (!container) return;
-  
-  // Check if already rendered
-  if (container.querySelector('.pmp-calendar-wrapper')) {
-    console.log('[PMPromos] Calendar chart already rendered');
-    return;
-  }
-  
-  console.log('[PMPromos] Initializing calendar chart...');
-  
-  // Render with default 30 days
-  await renderCalendarChartWithRange(30);
-  initializeDateRangeSelector();
-}
-
-async function renderCalendarChartWithRange(dateRange) {
-  const container = document.getElementById('pmpWavesCalendarChart');
-  if (!container) return;
-  
-  // Check if already rendered
-  if (container.querySelector('.pmp-calendar-wrapper')) {
-    console.log('[PMPromos] Calendar chart already rendered');
-    return;
-  }
-  
-  console.log('[PMPromos] Initializing calendar chart...');
-  
-  // Render with default 30 days
-  await renderCalendarChartWithRange(30);
-  initializeDateRangeSelector();
-}
-
 function renderPromosWavesList(displayData) {
   const container = document.getElementById('pmpWavesChart');
   if (!container) return;
