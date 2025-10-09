@@ -692,56 +692,83 @@ const selectedSearchTerm = card.getAttribute("dsearch-term");
     const projectPageEl = document.getElementById("projectPage");
     const isOnProjectPage = projectPageEl && projectPageEl.style.display !== "none";
 
-    if (newPrefix === oldPrefix) {
-      // Same project => just reapply filters
-      updateFilterContainer(search);
-      
-      if (isOnProjectPage) {
-        console.log("[Search Card] Same project, on projectPage - refreshing with filter");
-        // Stay on project page and refresh with new filter
-        populateProjectPage();
-      } else {
-        // Not on project page, use existing logic
-        if (typeof renderData === "function") {
-          console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
-          console.trace();
-          renderData();
-        } else {
-          console.warn("renderData() not yet defined — skipping this trace");
-        }
-        console.log("[Search Card] Updating filters, staying on current page");
+if (newPrefix === oldPrefix) {
+  // Same project => just reapply filters
+  updateFilterContainer(search);
+  
+  if (isOnProjectPage) {
+    console.log("[Search Card] Same project, on projectPage - refreshing with filter");
+    // Stay on project page and refresh with new filter
+    populateProjectPage();
+  } else {
+    // Check if we're on the Price Monitoring Products page
+    const pmProductsContainer = document.getElementById('pmProductsWrapperContainer');
+    const isPMProductsPage = pmProductsContainer && 
+                             pmProductsContainer.offsetParent !== null && 
+                             window.pmProductsModule;
+
+    if (isPMProductsPage) {
+      console.log("[Search Card] On Price Monitoring Products page - refreshing with filter");
+      // Refresh the products view with the new search term filter
+      if (typeof window.pmProductsModule.refresh === 'function') {
+        window.pmProductsModule.refresh();
       }
     } else {
+      // Not on project page or PM products page, use existing logic
+      if (typeof renderData === "function") {
+        console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
+        console.trace();
+        renderData();
+      } else {
+        console.warn("renderData() not yet defined — skipping this trace");
+      }
+      console.log("[Search Card] Updating filters, staying on current page");
+    }
+  }
+} else {
       // New project => reload from IDB or server
       console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
       
-      switchAccountAndReload(newPrefix, parentProject.project_number)
-        .then(() => {
-          updateFilterContainer(search);
-          
-          // If we're on projectPage, stay there and refresh
-          if (isOnProjectPage) {
-            console.log("[Search Card] Different project, staying on projectPage");
-            
-            // Set active project number globally
-            const projNum = parseInt(card.getAttribute("project-number"), 10);
-            window.filterState.activeProjectNumber = projNum;
-            
-            // Highlight the correct project menu item
-            document.querySelectorAll(".project-menu-item.selected").forEach(el => {
-              el.classList.remove("selected");
-            });
-            
-            const matchingItem = document.querySelector(`.project-menu-item[project-number="${projNum}"]`);
-            if (matchingItem) {
-              matchingItem.classList.add("selected");
-            }
-            
-            // Refresh project page with new data and filter
-            populateProjectPage();
-          } else {
-            // Original logic for when not on project page
-            if (typeof renderData === "function") {
+switchAccountAndReload(newPrefix, parentProject.project_number)
+  .then(() => {
+    updateFilterContainer(search);
+    
+    // If we're on projectPage, stay there and refresh
+    if (isOnProjectPage) {
+      console.log("[Search Card] Different project, staying on projectPage");
+      
+      // Set active project number globally
+      const projNum = parseInt(card.getAttribute("project-number"), 10);
+      window.filterState.activeProjectNumber = projNum;
+      
+      // Highlight the correct project menu item
+      document.querySelectorAll(".project-menu-item.selected").forEach(el => {
+        el.classList.remove("selected");
+      });
+      
+      const matchingItem = document.querySelector(`.project-menu-item[project-number="${projNum}"]`);
+      if (matchingItem) {
+        matchingItem.classList.add("selected");
+      }
+      
+      // Refresh project page with new data and filter
+      populateProjectPage();
+    } else {
+      // Check if we're on the Price Monitoring Products page
+      const pmProductsContainer = document.getElementById('pmProductsWrapperContainer');
+      const isPMProductsPage = pmProductsContainer && 
+                               pmProductsContainer.offsetParent !== null && 
+                               window.pmProductsModule;
+
+      if (isPMProductsPage) {
+        console.log("[Search Card] On Price Monitoring Products page - refreshing with filter");
+        // Refresh the products view with the new search term filter
+        if (typeof window.pmProductsModule.refresh === 'function') {
+          window.pmProductsModule.refresh();
+        }
+      } else {
+        // Original logic for when not on project page or PM products page
+        if (typeof renderData === "function") {
               console.log("[TRACE] renderData() called from switchAccountAndReload");
               console.trace();
               renderData();
