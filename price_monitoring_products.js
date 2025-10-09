@@ -3311,8 +3311,18 @@ async function loadMyCompanyProducts(companyName) {
         // Get unique products for myCompany
         const productMap = new Map();
         
-        result.data.forEach(row => {
-          if (row.source && row.source.toLowerCase() === companyName.toLowerCase()) {
+// Determine which 'q' value to filter by
+const searchTermFilter = (window.filterState?.searchTerm && window.filterState.searchTerm.trim() !== '') 
+  ? window.filterState.searchTerm 
+  : 'all';
+
+console.log('[PM Products] Filtering myCompany products by q =', searchTermFilter);
+
+result.data.forEach(row => {
+  // Filter by company AND by q field
+  if (row.source && 
+      row.source.toLowerCase() === companyName.toLowerCase() &&
+      row.q === searchTermFilter) {
             const key = `${row.title}_${row.source}`;
             
             // Check if we already have this product
@@ -3424,8 +3434,19 @@ async function loadCompetitorProducts(companyName) {
         // Get unique products for competitors (excluding myCompany)
         const productMap = new Map();
         
-        result.data.forEach(row => {
-          if (row.source && row.source.toLowerCase() !== companyName.toLowerCase() && row.source !== 'all') {
+// Determine which 'q' value to filter by
+const searchTermFilter = (window.filterState?.searchTerm && window.filterState.searchTerm.trim() !== '') 
+  ? window.filterState.searchTerm 
+  : 'all';
+
+console.log('[PM Products] Filtering competitor products by q =', searchTermFilter);
+
+result.data.forEach(row => {
+  // Filter by company AND by q field
+  if (row.source && 
+      row.source.toLowerCase() !== companyName.toLowerCase() && 
+      row.source !== 'all' &&
+      row.q === searchTermFilter) {
             const key = `${row.title}_${row.source}`;
             
             // Check if we already have this product
@@ -3499,7 +3520,13 @@ function formatProductsNumber(value, decimals = 0) {
 // Export functions for use in main price_monitoring.js
 window.pmProductsModule = {
   initialize: initializePriceMonitoringProducts,
-  renderDashboard: renderProductsDashboard
+  renderDashboard: renderProductsDashboard,
+  refresh: async function() {
+    console.log('[PM Products] Refreshing with search term:', window.filterState?.searchTerm);
+    const companyName = window.myCompany || 'East Perry';
+    await loadMyCompanyProducts(companyName);
+    await loadCompetitorProducts(companyName);
+  }
 };
 
 // Auto-initialize when the script loads
