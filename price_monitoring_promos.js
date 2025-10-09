@@ -5,6 +5,8 @@
   console.log('[PMPromos] Module loading...');
 
   let showEndedWaves = false; // Global state for toggle
+  let currentSortColumn = null; // Track which column is being sorted
+let currentSortDirection = 'asc'; // Track sort direction: 'asc' or 'desc'
 
   // Initialize the Promos module
   window.pmPromosModule = {
@@ -132,6 +134,7 @@ container.innerHTML = `
 populateCompanyOverview(allData);
 populatePromosStats(market, allData);
 createPromosWavesChart(allData);
+initializeSortingHandlers(allData);
   }
 
   function populatePromosStats(market, allData) {
@@ -714,13 +717,28 @@ if (companyWaves.length === 0) {
 // Get wave data for sorting
 const waveData = createPromosWavesChart.__getWaveData?.() || [];
 
-// Sort companies by same order as discount depth chart
-companyWaves.sort((a, b) => {
-  const aWave = waveData.find(w => w.company === a.company);
-  const bWave = waveData.find(w => w.company === b.company);
-  if (!aWave || !bWave) return 0;
-  return bWave.discountDepth - aWave.discountDepth;
-});
+// Sort companies by selected column or default order
+if (currentSortColumn && (currentSortColumn === 'rank' || currentSortColumn === 'marketShare')) {
+  companyWaves.sort((a, b) => {
+    let aVal = a[currentSortColumn];
+    let bVal = b[currentSortColumn];
+    
+    // Handle null values
+    if (aVal === null) return 1;
+    if (bVal === null) return -1;
+    
+    return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+} else {
+  // Default: sort by same order as discount depth chart
+  const waveData = createPromosWavesChart.__getWaveData?.() || [];
+  companyWaves.sort((a, b) => {
+    const aWave = waveData.find(w => w.company === a.company);
+    const bWave = waveData.find(w => w.company === b.company);
+    if (!aWave || !bWave) return 0;
+    return bWave.discountDepth - aWave.discountDepth;
+  });
+}
   
 // Create calendar HTML
 const html = createCalendarChartHTML(companyWaves, startDate, endDate, dateRange);
@@ -1350,7 +1368,7 @@ async function createPromosWavesChart(allData) {
   // Load company stats data
   const companyStats = await loadAllCompanyStats();
 
-  // Prepare active waves data
+// Prepare active waves data
   const activeWaveData = activePromoWaves.map(wave => {
     const stats = companyStats[wave.source] || {};
     return {
@@ -1362,7 +1380,7 @@ async function createPromosWavesChart(allData) {
       discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0,
       isActive: true
     };
-  }).sort((a, b) => b.discountDepth - a.discountDepth);
+  });
 
   // Prepare ended waves data
   const endedWaveData = endedPromoWaves.map(wave => {
@@ -1381,7 +1399,30 @@ async function createPromosWavesChart(allData) {
       endDate: endDate,
       daysAgo: daysAgo
     };
-  }).sort((a, b) => b.discountDepth - a.discountDepth);
+  });
+
+  // Apply sorting if a column is selected
+  if (currentSortColumn) {
+    const sortFn = (a, b) => {
+      let aVal = a[currentSortColumn];
+      let bVal = b[currentSortColumn];
+      
+      // Handle null values - push to end
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      
+      // Sort numbers
+      const diff = currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      return diff;
+    };
+    
+    activeWaveData.sort(sortFn);
+    endedWaveData.sort(sortFn);
+  } else {
+    // Default sort by discount depth (descending)
+    activeWaveData.sort((a, b) => b.discountDepth - a.discountDepth);
+    endedWaveData.sort((a, b) => b.discountDepth - a.discountDepth);
+  }
 
   // Combine data: active first, then ended
   const allWaveData = [...activeWaveData, ...endedWaveData];
@@ -1392,6 +1433,52 @@ async function createPromosWavesChart(allData) {
   renderPromosWavesList(allWaveData, activeWaveData.length);
   initializeWavesModeSwitch();
   initializeEndedWavesToggle(allData); // Initialize toggle listener
+}
+
+function initializeSortingHandlers(allData) {
+  const sortableHeaders = document.querySelectorAll('.pmp-column-header.sortable');
+  
+  sortableHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const sortColumn = this.getAttribute('data-sort');
+      
+      // Toggle direction if clicking the same column, otherwise default to desc
+      if (currentSortColumn === sortColumn) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = sortColumn;
+        currentSortDirection = 'desc'; // Default to descending (best first)
+      }
+      
+      // Update visual indicators
+      sortableHeaders.forEach(h => h.classList.remove('active-sort'));
+      this.classList.add('active-sort');
+      
+      // Update sort indicator
+      const indicator = this.querySelector('.pmp-sort-indicator');
+      sortableHeaders.forEach(h => {
+        const ind = h.querySelector('.pmp-sort-indicator');
+        ind.textContent = '';
+      });
+      indicator.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
+      
+      // Re-render with sorted data
+      const depthChart = document.getElementById('pmpWavesChart');
+      const calendarChart = document.getElementById('pmpWavesCalendarChart');
+      
+      if (depthChart && depthChart.classList.contains('active')) {
+        // Re-render discount depth view with sorting
+        createPromosWavesChart(allData);
+      }
+      
+      if (calendarChart && calendarChart.classList.contains('active')) {
+        // Re-render calendar view with sorting
+        const rangeSelect = document.getElementById('pmpCalendarRange');
+        const dateRange = rangeSelect ? parseInt(rangeSelect.value) : 30;
+        renderCalendarChart(dateRange);
+      }
+    });
+  });
 }
 
 function initializeWavesModeSwitch() {
@@ -1498,12 +1585,21 @@ function renderPromosWavesList(displayData, activeCount) {
   // Create the list with column headers and x-axis
   let html = `
     <div class="pmp-waves-wrapper">
-      <!-- Column Headers -->
+<!-- Column Headers -->
       <div class="pmp-waves-column-headers">
         <div class="pmp-column-header company">Company</div>
-        <div class="pmp-column-header">Rank</div>
-        <div class="pmp-column-header">Market<br/>Share</div>
-        <div class="pmp-column-header">% of disc.<br/>products</div>
+        <div class="pmp-column-header sortable" data-sort="rank" id="pmpSortRank">
+          Rank
+          <span class="pmp-sort-indicator"></span>
+        </div>
+        <div class="pmp-column-header sortable" data-sort="marketShare" id="pmpSortMarketShare">
+          Market<br/>Share
+          <span class="pmp-sort-indicator"></span>
+        </div>
+        <div class="pmp-column-header sortable" data-sort="discountedPercent" id="pmpSortDiscountedPercent">
+          % of disc.<br/>products
+          <span class="pmp-sort-indicator"></span>
+        </div>
         <div class="pmp-column-header discount-bar">Discount Depth</div>
       </div>
       
@@ -3319,6 +3415,40 @@ async function toggleWaveExpansion(waveItem, company) {
 
 .pmp-wave-item.pmp-wave-ended:hover {
   background: #fff5f5;
+}
+
+/* Sortable column headers */
+.pmp-column-header.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  position: relative;
+  padding-right: 18px;
+}
+
+.pmp-column-header.sortable:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 4px;
+}
+
+.pmp-column-header.sortable.active-sort {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.pmp-sort-indicator {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #667eea;
+  opacity: 0.7;
+}
+
+.pmp-column-header.sortable:hover .pmp-sort-indicator {
+  opacity: 1;
 }
       </style>
     `;
