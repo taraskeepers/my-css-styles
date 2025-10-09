@@ -4,6 +4,8 @@
   
   console.log('[PMPromos] Module loading...');
 
+  let showEndedWaves = false; // Global state for toggle
+
   // Initialize the Promos module
   window.pmPromosModule = {
     initialize: async function() {
@@ -97,16 +99,23 @@ container.innerHTML = `
 
 <!-- Promo Waves Chart Section -->
 <div class="pmp-waves-container">
-  <div class="pmp-waves-header">
-    <h4>Active Promotional Waves</h4>
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <div class="pmp-waves-mode-switcher">
-        <button class="pmp-mode-btn active" data-mode="depth" id="pmpModeDepth">Discount Depth</button>
-        <button class="pmp-mode-btn" data-mode="calendar" id="pmpModeCalendar">Calendar</button>
-      </div>
-      <span class="pmp-waves-count" id="pmpWavesCount">0 Active</span>
+<div class="pmp-waves-header">
+  <h4>Active Promotional Waves</h4>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="pmp-waves-mode-switcher">
+      <button class="pmp-mode-btn active" data-mode="depth" id="pmpModeDepth">Discount Depth</button>
+      <button class="pmp-mode-btn" data-mode="calendar" id="pmpModeCalendar">Calendar</button>
     </div>
+    <div class="pmp-ended-waves-toggle">
+      <span class="pmp-toggle-label">Display Ended Promo Waves</span>
+      <label class="pmp-toggle-switch">
+        <input type="checkbox" id="pmpEndedWavesToggle">
+        <span class="pmp-toggle-slider"></span>
+      </label>
+    </div>
+    <span class="pmp-waves-count" id="pmpWavesCount">0 Active</span>
   </div>
+</div>
   <div class="pmp-waves-chart active" id="pmpWavesChart">
     <!-- Discount Depth chart will be rendered here -->
   </div>
@@ -357,14 +366,30 @@ async function loadHistoricalPricingData() {
             return;
           }
           
-          // Filter for companies with active promo waves and q='all'
-          const companiesData = result.data.filter(row => 
-            row.q === 'all' && 
-            row.source !== 'all' &&
-            (row.promo_wave === true || row.promo_wave === 'true') &&
-            row.historical_data && 
-            Array.isArray(row.historical_data)
-          );
+// Filter for companies with promo waves and q='all'
+let companiesData;
+if (showEndedWaves) {
+  // Include both active and ended waves
+  companiesData = result.data.filter(row => 
+    row.q === 'all' && 
+    row.source !== 'all' &&
+    row.historical_data && 
+    Array.isArray(row.historical_data) &&
+    (
+      (row.promo_wave === true || row.promo_wave === 'true') || // Active waves
+      ((row.promo_wave === false || row.promo_wave === 'false') && parseFloat(row.promo_wave_length) > 0) // Ended waves
+    )
+  );
+} else {
+  // Only active waves
+  companiesData = result.data.filter(row => 
+    row.q === 'all' && 
+    row.source !== 'all' &&
+    (row.promo_wave === true || row.promo_wave === 'true') &&
+    row.historical_data && 
+    Array.isArray(row.historical_data)
+  );
+}
           
           resolve(companiesData);
         };
@@ -625,13 +650,26 @@ const companyStats = await loadAllCompanyStats();
 const companyWaves = [];
 for (const companyData of companiesData) {
   const waves = detectPromoWaves(companyData.historical_data);
-  if (waves.length > 0) {
+  const isActive = companyData.promo_wave === true || companyData.promo_wave === 'true';
+  
+  // Filter waves by date range overlap for ended waves
+  let filteredWaves = waves;
+  if (!isActive && showEndedWaves) {
+    // Only include waves that overlap with the selected date range
+    filteredWaves = waves.filter(wave => {
+      const waveEndDate = new Date(wave.endDate);
+      return waveEndDate >= startDate && waveEndDate <= endDate;
+    });
+  }
+  
+  if (filteredWaves.length > 0) {
     const stats = companyStats[companyData.source] || {};
     companyWaves.push({
       company: companyData.source,
-      waves: waves,
+      waves: filteredWaves,
       rank: stats.rank || null,
-      marketShare: stats.marketShare || null
+      marketShare: stats.marketShare || null,
+      isActive: isActive
     });
   }
 }
@@ -689,6 +727,7 @@ initializeDateRangeSelector();
 function assignCompanyColors(companyWaves) {
   // Beautiful color palette - each company gets a unique vibrant color
   const colorPalette = [
+    { main: '#FF6B6B', light: '#FF8E8E', dark: '#E85555' },
     { main: '#FF6B6B', light: '#FF8E8E', dark: '#E85555' }, // Red
     { main: '#4ECDC4', light: '#6FD9D1', dark: '#3DB8AF' }, // Teal
     { main: '#FFD93D', light: '#FFE066', dark: '#E6C334' }, // Yellow
@@ -705,10 +744,24 @@ function assignCompanyColors(companyWaves) {
     { main: '#52B788', light: '#6DC898', dark: '#48A379' }, // Green
     { main: '#E07A5F', light: '#E6957F', dark: '#C96D52' }  // Terracotta
   ];
+
+    // Grey palette for ended waves
+  const greyPalette = [
+    { main: '#B0B0B0', light: '#C8C8C8', dark: '#909090' },
+    { main: '#A0A0A0', light: '#B8B8B8', dark: '#808080' },
+    { main: '#989898', light: '#B0B0B0', dark: '#787878' },
+    { main: '#888888', light: '#A0A0A0', dark: '#686868' },
+    { main: '#909090', light: '#A8A8A8', dark: '#707070' }
+  ];
   
   const companyColorMap = {};
   companyWaves.forEach((companyData, index) => {
-    companyColorMap[companyData.company] = colorPalette[index % colorPalette.length];
+    // Use grey for ended waves, vibrant colors for active waves
+    if (companyData.isActive === false) {
+      companyColorMap[companyData.company] = greyPalette[index % greyPalette.length];
+    } else {
+      companyColorMap[companyData.company] = colorPalette[index % colorPalette.length];
+    }
   });
   
   return companyColorMap;
@@ -1185,24 +1238,92 @@ function initializeDateRangeSelector() {
   console.log('[PMPromos] Date range selector initialized');
 }
 
+function calculatePromoWaveEndDate(historicalData) {
+  if (!historicalData || historicalData.length === 0) {
+    return null;
+  }
+  
+  // Sort by date descending (most recent first)
+  const sortedData = [...historicalData].sort((a, b) => {
+    const dateA = new Date(a.date.value);
+    const dateB = new Date(b.date.value);
+    return dateB - dateA;
+  });
+  
+  // Find the last period where pr_discounted_products >= 0.1 for at least 3 consecutive days
+  let consecutiveDays = 0;
+  let endDate = null;
+  
+  for (let i = sortedData.length - 1; i >= 0; i--) {
+    const prDiscounted = parseFloat(sortedData[i].pr_discounted_products) || 0;
+    
+    if (prDiscounted >= 0.1) {
+      consecutiveDays++;
+      if (consecutiveDays >= 3) {
+        // Update end date to the most recent date in this qualifying period
+        endDate = sortedData[i].date.value;
+      }
+    } else {
+      // Reset if we hit a day below threshold
+      if (consecutiveDays >= 3) {
+        // We found a valid period, keep the endDate
+        break;
+      }
+      consecutiveDays = 0;
+      endDate = null;
+    }
+  }
+  
+  return endDate;
+}
+
+function calculateDaysAgo(dateStr) {
+  if (!dateStr) return null;
+  
+  const endDate = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = today - endDate;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
+}
+
 async function createPromosWavesChart(allData) {
   // Filter for active promo waves
-  const promoWaves = allData.filter(row => 
+  const activePromoWaves = allData.filter(row => 
     row.source !== 'all' && 
     row.q === 'all' && 
     (row.promo_wave === true || row.promo_wave === 'true')
   );
 
-  console.log('[PMPromos] Active promo waves:', promoWaves.length);
+  // Filter for ended promo waves (only if toggle is ON)
+  let endedPromoWaves = [];
+  if (showEndedWaves) {
+    endedPromoWaves = allData.filter(row => 
+      row.source !== 'all' && 
+      row.q === 'all' && 
+      (row.promo_wave === false || row.promo_wave === 'false') &&
+      parseFloat(row.promo_wave_length) > 0 // Has had a promo wave in the past
+    );
+  }
+
+  console.log('[PMPromos] Active promo waves:', activePromoWaves.length);
+  console.log('[PMPromos] Ended promo waves:', endedPromoWaves.length);
 
   // Update count
   const countEl = document.getElementById('pmpWavesCount');
   if (countEl) {
-    countEl.textContent = `${promoWaves.length} Active`;
+    const totalCount = activePromoWaves.length + endedPromoWaves.length;
+    countEl.textContent = showEndedWaves ? 
+      `${activePromoWaves.length} Active, ${endedPromoWaves.length} Ended` : 
+      `${activePromoWaves.length} Active`;
   }
 
   const container = document.getElementById('pmpWavesChart');
-  if (!container || promoWaves.length === 0) {
+  if (!container || (activePromoWaves.length === 0 && endedPromoWaves.length === 0)) {
     if (container) {
       container.innerHTML = '<div class="pmp-no-waves">No active promo waves</div>';
     }
@@ -1212,8 +1333,8 @@ async function createPromosWavesChart(allData) {
   // Load company stats data
   const companyStats = await loadAllCompanyStats();
 
-  // Prepare and sort data by discount depth (highest first)
-  const waveData = promoWaves.map(wave => {
+  // Prepare active waves data
+  const activeWaveData = activePromoWaves.map(wave => {
     const stats = companyStats[wave.source] || {};
     return {
       company: wave.source,
@@ -1221,15 +1342,39 @@ async function createPromosWavesChart(allData) {
       marketShare: stats.marketShare || null,
       waveLength: parseInt(wave.promo_wave_length) || 0,
       discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
-      discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
+      discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0,
+      isActive: true
     };
   }).sort((a, b) => b.discountDepth - a.discountDepth);
 
-    // Store for calendar chart access
-  createPromosWavesChart.__getWaveData = () => waveData;
+  // Prepare ended waves data
+  const endedWaveData = endedPromoWaves.map(wave => {
+    const stats = companyStats[wave.source] || {};
+    const endDate = calculatePromoWaveEndDate(wave.historical_data);
+    const daysAgo = calculateDaysAgo(endDate);
+    
+    return {
+      company: wave.source,
+      rank: stats.rank || null,
+      marketShare: stats.marketShare || null,
+      waveLength: parseInt(wave.promo_wave_length) || 0,
+      discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
+      discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0,
+      isActive: false,
+      endDate: endDate,
+      daysAgo: daysAgo
+    };
+  }).sort((a, b) => b.discountDepth - a.discountDepth);
 
-  renderPromosWavesList(waveData);
+  // Combine data: active first, then ended
+  const allWaveData = [...activeWaveData, ...endedWaveData];
+
+  // Store for calendar chart access
+  createPromosWavesChart.__getWaveData = () => allWaveData;
+
+  renderPromosWavesList(allWaveData, activeWaveData.length);
   initializeWavesModeSwitch();
+  initializeEndedWavesToggle(allData); // Initialize toggle listener
 }
 
 function initializeWavesModeSwitch() {
@@ -1279,7 +1424,45 @@ function initializeWavesModeSwitch() {
   });
 }
 
-function renderPromosWavesList(displayData) {
+function initializeEndedWavesToggle(allData) {
+  const toggle = document.getElementById('pmpEndedWavesToggle');
+  if (!toggle) {
+    console.warn('[PMPromos] Ended waves toggle not found');
+    return;
+  }
+
+  // Set initial state
+  toggle.checked = showEndedWaves;
+
+  // Remove existing listeners
+  const newToggle = toggle.cloneNode(true);
+  toggle.parentNode.replaceChild(newToggle, toggle);
+
+  newToggle.addEventListener('change', async function() {
+    showEndedWaves = this.checked;
+    console.log('[PMPromos] Ended waves toggle changed:', showEndedWaves);
+
+    // Refresh the current view
+    const depthChart = document.getElementById('pmpWavesChart');
+    const calendarChart = document.getElementById('pmpWavesCalendarChart');
+    
+    if (depthChart && depthChart.classList.contains('active')) {
+      // Refresh discount depth view
+      await createPromosWavesChart(allData);
+    }
+    
+    if (calendarChart && calendarChart.classList.contains('active')) {
+      // Refresh calendar view
+      const rangeSelect = document.getElementById('pmpCalendarRange');
+      const dateRange = rangeSelect ? parseInt(rangeSelect.value) : 30;
+      await renderCalendarChart(dateRange);
+    }
+  });
+
+  console.log('[PMPromos] Ended waves toggle initialized');
+}
+
+function renderPromosWavesList(displayData, activeCount) {
   const container = document.getElementById('pmpWavesChart');
   if (!container) return;
 
@@ -1295,31 +1478,51 @@ function renderPromosWavesList(displayData) {
   });
   xAxisHtml += '</div>';
 
-// Create the list with column headers and x-axis
-let html = `
-  <div class="pmp-waves-wrapper">
-    <!-- Column Headers -->
-    <div class="pmp-waves-column-headers">
-      <div class="pmp-column-header company">Company</div>
-      <div class="pmp-column-header">Rank</div>
-      <div class="pmp-column-header">Market<br/>Share</div>
-      <div class="pmp-column-header">% of disc.<br/>products</div>
-      <div class="pmp-column-header discount-bar">Discount Depth</div>
-    </div>
-    
-    <div class="pmp-waves-xaxis-label">Discount Depth</div>
-    ${xAxisHtml}
-    <div class="pmp-waves-list">
-`;
+  // Create the list with column headers and x-axis
+  let html = `
+    <div class="pmp-waves-wrapper">
+      <!-- Column Headers -->
+      <div class="pmp-waves-column-headers">
+        <div class="pmp-column-header company">Company</div>
+        <div class="pmp-column-header">Rank</div>
+        <div class="pmp-column-header">Market<br/>Share</div>
+        <div class="pmp-column-header">% of disc.<br/>products</div>
+        <div class="pmp-column-header discount-bar">Discount Depth</div>
+      </div>
+      
+      <div class="pmp-waves-xaxis-label">Discount Depth</div>
+      ${xAxisHtml}
+      <div class="pmp-waves-list">
+  `;
 
-  displayData.forEach((wave) => {
+  displayData.forEach((wave, index) => {
+    // Add separator between active and ended waves
+    if (index === activeCount && activeCount > 0 && index < displayData.length) {
+      html += `
+        <div class="pmp-waves-separator">
+          <span class="pmp-separator-line"></span>
+          <span class="pmp-separator-text">Ended Promo Waves</span>
+          <span class="pmp-separator-line"></span>
+        </div>
+      `;
+    }
+
     const barWidth = Math.max((wave.discountDepth / fixedMax) * 100, 1);
     
     // Calculate donut chart angle
     const donutAngle = (wave.discountedPercent / 100) * 360;
 
+    // Determine bar color based on active/ended status
+    const barGradient = wave.isActive ? 
+      'linear-gradient(90deg, rgba(102, 126, 234, 0.5), rgba(102, 126, 234, 0.7))' :
+      'linear-gradient(90deg, rgba(255, 107, 107, 0.4), rgba(255, 107, 107, 0.6))';
+    
+    const barHoverGradient = wave.isActive ?
+      'linear-gradient(90deg, rgba(102, 126, 234, 0.6), rgba(102, 126, 234, 0.8))' :
+      'linear-gradient(90deg, rgba(255, 107, 107, 0.5), rgba(255, 107, 107, 0.7))';
+
     html += `
-      <div class="pmp-wave-item" data-company="${wave.company}">
+      <div class="pmp-wave-item ${wave.isActive ? '' : 'pmp-wave-ended'}" data-company="${wave.company}" data-is-active="${wave.isActive}">
         <div class="pmp-wave-company" title="${wave.company}">${wave.company}</div>
         
         <!-- Rank Column -->
@@ -1342,11 +1545,15 @@ let html = `
         
         <!-- Discount Depth Bar -->
         <div class="pmp-wave-bar-container">
-          <div class="pmp-wave-bar-fill" style="width: ${barWidth}%">
+          <div class="pmp-wave-bar-fill" style="width: ${barWidth}%; background: ${barGradient};" data-hover-gradient="${barHoverGradient}">
             <div class="pmp-wave-metrics">
               <span class="pmp-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
               <span class="pmp-wave-separator">|</span>
               <span class="pmp-wave-duration">${wave.waveLength}d</span>
+              ${!wave.isActive && wave.daysAgo !== null ? `
+                <span class="pmp-wave-separator">|</span>
+                <span class="pmp-wave-ended-label">Ended ${wave.daysAgo}d ago</span>
+              ` : ''}
             </div>
           </div>
         </div>
@@ -1358,14 +1565,30 @@ let html = `
 
   container.innerHTML = html;
 
-// Add click listeners to rows for expansion
-container.querySelectorAll('.pmp-wave-item').forEach(item => {
-  item.addEventListener('click', function(e) {
-    const company = this.getAttribute('data-company');
-    console.log('[PMPromos] Wave clicked:', company);
-    toggleWaveExpansion(this, company);
+  // Add click listeners to rows for expansion
+  container.querySelectorAll('.pmp-wave-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      const company = this.getAttribute('data-company');
+      console.log('[PMPromos] Wave clicked:', company);
+      toggleWaveExpansion(this, company);
+    });
+    
+    // Add hover effect for ended waves
+    const isActive = this.getAttribute('data-is-active') === 'true';
+    if (!isActive) {
+      const barFill = item.querySelector('.pmp-wave-bar-fill');
+      const hoverGradient = barFill.getAttribute('data-hover-gradient');
+      
+      item.addEventListener('mouseenter', function() {
+        barFill.style.background = hoverGradient;
+      });
+      
+      item.addEventListener('mouseleave', function() {
+        const originalGradient = 'linear-gradient(90deg, rgba(255, 107, 107, 0.4), rgba(255, 107, 107, 0.6))';
+        barFill.style.background = originalGradient;
+      });
+    }
   });
-});
 }
 
 // Global state for expanded rows
@@ -2949,6 +3172,134 @@ async function toggleWaveExpansion(waveItem, company) {
   background: #F5F5F5;
   padding: 2px 8px;
   border-radius: 4px;
+}
+
+/* Toggle Switch Styles */
+.pmp-ended-waves-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.pmp-toggle-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pmp-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.pmp-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pmp-toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+.pmp-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pmp-toggle-switch input:checked + .pmp-toggle-slider {
+  background-color: #667eea;
+}
+
+.pmp-toggle-switch input:checked + .pmp-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.pmp-toggle-switch input:focus + .pmp-toggle-slider {
+  box-shadow: 0 0 1px #667eea;
+}
+
+/* Separator Styles */
+.pmp-waves-separator {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0;
+  padding: 0 20px;
+}
+
+.pmp-separator-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+}
+
+.pmp-separator-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  background: #f5f5f5;
+  border-radius: 16px;
+  white-space: nowrap;
+}
+
+/* Ended Wave Styles */
+.pmp-wave-item.pmp-wave-ended .pmp-wave-company {
+  color: #888;
+}
+
+.pmp-wave-item.pmp-wave-ended .pmp-wave-metrics {
+  color: #c43a3a;
+}
+
+.pmp-wave-item.pmp-wave-ended .pmp-wave-discount {
+  color: #c43a3a;
+}
+
+.pmp-wave-item.pmp-wave-ended .pmp-wave-duration {
+  color: #c43a3a;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.pmp-wave-ended-label {
+  color: #c43a3a;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.pmp-wave-item.pmp-wave-ended:hover {
+  background: #fff5f5;
 }
       </style>
     `;
