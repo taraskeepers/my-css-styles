@@ -134,7 +134,6 @@ container.innerHTML = `
 populateCompanyOverview(allData);
 populatePromosStats(market, allData);
 createPromosWavesChart(allData);
-initializeSortingHandlers(allData);
   }
 
   function populatePromosStats(market, allData) {
@@ -1430,9 +1429,13 @@ async function createPromosWavesChart(allData) {
   // Store for calendar chart access
   createPromosWavesChart.__getWaveData = () => allWaveData;
 
-  renderPromosWavesList(allWaveData, activeWaveData.length);
+renderPromosWavesList(allWaveData, activeWaveData.length);
+  
+  // Initialize sorting handlers AFTER the list is rendered
+  initializeSortingHandlers(allData);
+  
   initializeWavesModeSwitch();
-  initializeEndedWavesToggle(allData); // Initialize toggle listener
+  initializeEndedWavesToggle(allData);
 }
 
 function initializeSortingHandlers(allData) {
@@ -1462,13 +1465,14 @@ function initializeSortingHandlers(allData) {
       });
       indicator.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
       
-      // Re-render with sorted data
+// Re-render with sorted data
       const depthChart = document.getElementById('pmpWavesChart');
       const calendarChart = document.getElementById('pmpWavesCalendarChart');
       
       if (depthChart && depthChart.classList.contains('active')) {
         // Re-render discount depth view with sorting
         createPromosWavesChart(allData);
+        // Note: initializeSortingHandlers will be called again inside createPromosWavesChart
       }
       
       if (calendarChart && calendarChart.classList.contains('active')) {
