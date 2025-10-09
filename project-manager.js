@@ -662,12 +662,15 @@ locItem.addEventListener("click", (e) => {
       console.warn(`[⚠️ UI/Data Mismatch] UI shows "${accountDisplayText}" but dataPrefix="${oldPrefix}" indicates "${expectedDisplayText}"`);
     }
 
-    locationsSubmenu.classList.toggle("show");
-    console.log("[DEBUG] Submenu classes:", locationsSubmenu.className);
-    console.log("[DEBUG] Submenu display:", window.getComputedStyle(locationsSubmenu).display);
+// TEMPORARILY DISABLED: Don't expand location submenu on search-card click
+// locationsSubmenu.classList.toggle("show");
+console.log("[DEBUG] Location submenu toggle temporarily disabled");
+// console.log("[DEBUG] Submenu classes:", locationsSubmenu.className);
+// console.log("[DEBUG] Submenu display:", window.getComputedStyle(locationsSubmenu).display);
 
-    // Update filter state with the selected search term
-    const selectedSearchTerm = card.getAttribute("dsearch-term");
+// Update filter state with the selected search term
+const selectedSearchTerm = card.getAttribute("dsearch-term");
+    
     window.filterState.searchTerm = selectedSearchTerm;
     window.filterState.selectedSearchCard = {
       searchTerm: selectedSearchTerm,
