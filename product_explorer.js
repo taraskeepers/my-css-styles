@@ -2887,6 +2887,13 @@ if (totalPrevVisibilityCount > 0) {
 function renderFilteredProducts(productsNavContainer, activeProducts, inactiveProducts, filter = 'all') {
   // Clear container
   productsNavContainer.innerHTML = '';
+
+    console.log('[DEBUG renderFilteredProducts] Starting with:', {
+    filter,
+    activeCount: activeProducts.length,
+    inactiveCount: inactiveProducts.length,
+    container: productsNavContainer
+  });
   
   // Function to create product item
   function createProductItem({ product, index, metrics }, isInactive = false) {
@@ -2944,7 +2951,8 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
       console.log('[ProductExplorer] Product clicked:', product.title);
       selectProduct(product, navItem);
     });
-    
+
+    console.log('[DEBUG] Created product item:', navItem, product.title);
     return navItem;
   }
   
@@ -2954,6 +2962,8 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
     activeProducts.forEach(item => {
       productsNavContainer.appendChild(createProductItem(item, false));
     });
+
+  console.log('[DEBUG] After rendering active products, container has:', productsNavContainer.children.length, 'children');
     
     // Add separator if there are inactive products
     if (inactiveProducts.length > 0) {
@@ -2988,6 +2998,9 @@ function renderFilteredProducts(productsNavContainer, activeProducts, inactivePr
       container.style.setProperty('--fill-height', fillPercent + '%');
     });
   }, 100);
+  
+console.log('[DEBUG renderFilteredProducts] Final container children:', productsNavContainer.children.length);
+  console.log('[DEBUG renderFilteredProducts] Container in DOM?', document.body.contains(productsNavContainer));
 }
 
 function getRatingBadgeColor(rating) {
@@ -3690,45 +3703,6 @@ viewMapExplorerBtn.addEventListener("click", function() {
       }
     });
   }
-});
-
-// Listen for mode changes from modeSelector
-document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
-  option.addEventListener('click', function() {
-    const selectedMode = this.getAttribute('data-mode');
-
-        // Clean up selectedCompanyStats when switching modes
-    const existingStats = document.getElementById('selectedCompanyStats');
-    if (existingStats) {
-      existingStats.remove();
-    }
-    
-    // Update body class
-    document.body.classList.remove('mode-products', 'mode-companies');
-    document.body.classList.add(`mode-${selectedMode}`);
-    
-    console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
-    
-    // Hide/show appropriate tables
-    if (selectedMode === 'companies') {
-      // Hide product table, show company table
-      const productTable = document.querySelector('.product-explorer-table');
-      if (productTable) productTable.style.display = 'none';
-      
-      const companyTable = document.querySelector('.company-explorer-table');
-      if (companyTable) companyTable.style.display = '';
-    } else {
-      // Hide company table, show product table
-      const companyTable = document.querySelector('.company-explorer-table');
-      if (companyTable) companyTable.style.display = 'none';
-      
-      const productTable = document.querySelector('.product-explorer-table');
-      if (productTable) productTable.style.display = '';
-    }
-    
-    // Re-render the entire explorer
-    renderProductExplorerTable();
-  });
 });
   
 console.log("[renderProductExplorerTable] Using myCompany:", window.myCompany);
@@ -5442,6 +5416,17 @@ if (allCountBadge && activeCountBadge && inactiveCountBadge) {
 
   setTimeout(() => {
     console.log('[renderProductExplorerTable] Auto-selecting first product...');
+      // Debug checks
+  const productsNavPanel = document.getElementById('productsNavPanel');
+  console.log('[DEBUG] productsNavPanel exists?', !!productsNavPanel);
+  console.log('[DEBUG] productsNavPanel visible?', productsNavPanel?.style.display);
+  
+  const navContainer = document.querySelector('.products-nav-container');
+  console.log('[DEBUG] nav container exists?', !!navContainer);
+  console.log('[DEBUG] nav container children:', navContainer?.children.length);
+  
+  const allNavItems = document.querySelectorAll('.nav-product-item');
+  console.log('[DEBUG] Found nav items in entire document:', allNavItems.length);
     
     const firstNavItem = document.querySelector('.nav-product-item');
     
@@ -6634,6 +6619,32 @@ setTimeout(() => {
     window.debugProductExplorer();
   }
 }, 2000);
+
+// Initialize mode selectors once, outside of renderProductExplorerTable
+if (!window._modeSelectorsInitialized) {
+  window._modeSelectorsInitialized = true;
+  
+  document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
+    option.addEventListener('click', function() {
+      const selectedMode = this.getAttribute('data-mode');
+      
+      // Clean up selectedCompanyStats when switching modes
+      const existingStats = document.getElementById('selectedCompanyStats');
+      if (existingStats) {
+        existingStats.remove();
+      }
+      
+      // Update body class
+      document.body.classList.remove('mode-products', 'mode-companies');
+      document.body.classList.add(`mode-${selectedMode}`);
+      
+      console.log(`[ProductExplorer] Mode changed to: ${selectedMode}`);
+      
+      // Re-render the entire explorer
+      renderProductExplorerTable();
+    });
+  });
+}
 
 // Export the function
 if (typeof window !== 'undefined') {
