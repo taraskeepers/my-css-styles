@@ -618,34 +618,39 @@ async function renderCalendarChart(dateRange = 30) {
     return;
   }
   
-  // Process waves for each company
-  const companyWaves = [];
-  for (const companyData of companiesData) {
-    const waves = detectPromoWaves(companyData.historical_data);
-    if (waves.length > 0) {
-      companyWaves.push({
-        company: companyData.source,
-        waves: waves
-      });
-    }
+// Load company stats for rank and market share
+const companyStats = await loadAllCompanyStats();
+
+// Process waves for each company and enrich with stats
+const companyWaves = [];
+for (const companyData of companiesData) {
+  const waves = detectPromoWaves(companyData.historical_data);
+  if (waves.length > 0) {
+    const stats = companyStats[companyData.source] || {};
+    companyWaves.push({
+      company: companyData.source,
+      waves: waves,
+      rank: stats.rank || null,
+      marketShare: stats.marketShare || null
+    });
   }
+}
   
   if (companyWaves.length === 0) {
     container.innerHTML = '<div class="pmp-no-waves">No promo waves detected in historical data</div>';
     return;
   }
   
-  // Load company stats for ordering
-  const companyStats = await loadAllCompanyStats();
-  const waveData = createPromosWavesChart.__getWaveData?.() || [];
-  
-  // Sort companies by same order as discount depth chart
-  companyWaves.sort((a, b) => {
-    const aWave = waveData.find(w => w.company === a.company);
-    const bWave = waveData.find(w => w.company === b.company);
-    if (!aWave || !bWave) return 0;
-    return bWave.discountDepth - aWave.discountDepth;
-  });
+// Get wave data for sorting
+const waveData = createPromosWavesChart.__getWaveData?.() || [];
+
+// Sort companies by same order as discount depth chart
+companyWaves.sort((a, b) => {
+  const aWave = waveData.find(w => w.company === a.company);
+  const bWave = waveData.find(w => w.company === b.company);
+  if (!aWave || !bWave) return 0;
+  return bWave.discountDepth - aWave.discountDepth;
+});
   
 // Find the most recent date in the data
 let mostRecentDate = new Date();
@@ -711,7 +716,10 @@ function assignCompanyColors(companyWaves) {
 
 function createCalendarChartHTML(companyWaves, startDate, endDate, dateRange) {
 // Calculate responsive dimensions
-const labelWidth = 180;
+const companyNameWidth = 180;
+const rankWidth = 70;
+const marketShareWidth = 90;
+const labelWidth = companyNameWidth + rankWidth + marketShareWidth; // Total: 340px
 const rowHeight = 70;
 const rowPadding = 10;
 const headerHeight = 80;
@@ -752,7 +760,7 @@ const chartWidth = availableWidth; // Use all available width
     dateArray.push({ date: date, dateStr: dateStr, x: i * dayWidth });
   }
   
-  const today = new Date().toISOString().split('T')[0];
+  const today = endDate.toISOString().split('T')[0];
   
   let html = `
     <div class="pmp-calendar-wrapper">
@@ -853,9 +861,16 @@ const chartWidth = availableWidth; // Use all available width
     }
   });
   html += `</g>`;
-  
-  // Month labels at top
-  html += `<g class="pmp-calendar-months" transform="translate(${labelWidth}, 20)">`;
+
+// Column headers for company info
+html += `<g class="pmp-calendar-column-headers" transform="translate(0, 20)">`;
+html += `<text x="${companyNameWidth - 10}" y="0" text-anchor="end" font-size="10" font-weight="600" fill="#888" text-transform="uppercase">COMPANY</text>`;
+html += `<text x="${companyNameWidth + rankWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="600" fill="#888" text-transform="uppercase">RANK</text>`;
+html += `<text x="${companyNameWidth + rankWidth + marketShareWidth/2}" y="0" text-anchor="middle" font-size="10" font-weight="600" fill="#888" text-transform="uppercase">MARKET<tspan x="${companyNameWidth + rankWidth + marketShareWidth/2}" dy="12">SHARE</tspan></text>`;
+html += `</g>`;
+
+// Month labels at top
+html += `<g class="pmp-calendar-months" transform="translate(${labelWidth}, 20)">`;
   let lastMonth = null;
   let monthStartX = 0;
   dateArray.forEach((dateObj, index) => {
@@ -877,19 +892,71 @@ const chartWidth = availableWidth; // Use all available width
   }
   html += `</g>`;
   
-  // Draw company rows and waves
-  companyWaves.forEach((companyData, rowIndex) => {
-    const y = rowIndex * rowHeight + rowPadding;
-    const effectiveRowHeight = rowHeight - (rowPadding * 2);
-    
-    // Company label with color indicator
-    const color = companyColors[companyData.company];
-    html += `
-      <g transform="translate(0, ${headerHeight + y + effectiveRowHeight/2})">
-        <rect x="${labelWidth - 170}" y="-8" width="4" height="16" fill="${color.main}" rx="2"/>
-        <text x="${labelWidth - 10}" y="0" text-anchor="end" alignment-baseline="middle" font-size="13" font-weight="600" fill="#333">${companyData.company}</text>
-      </g>
-    `;
+// Draw company rows and waves
+companyWaves.forEach((companyData, rowIndex) => {
+  const y = rowIndex * rowHeight + rowPadding;
+  const effectiveRowHeight = rowHeight - (rowPadding * 2);
+  const centerY = headerHeight + y + effectiveRowHeight/2;
+  
+  // Company label with color indicator
+  const color = companyColors[companyData.company];
+  html += `
+    <g transform="translate(0, ${centerY})">
+      <rect x="${companyNameWidth - 170}" y="-8" width="4" height="16" fill="${color.main}" rx="2"/>
+      <text x="${companyNameWidth - 10}" y="0" text-anchor="end" alignment-baseline="middle" font-size="13" font-weight="600" fill="#333">${companyData.company}</text>
+    </g>
+  `;
+  
+  // Rank box
+  const rankBoxSize = 50;
+  const rankX = companyNameWidth + (rankWidth - rankBoxSize) / 2;
+  const rankY = centerY - rankBoxSize / 2;
+  
+  html += `
+    <defs>
+      <linearGradient id="rankGradient_${rowIndex}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <g transform="translate(${rankX}, ${rankY})">
+      <rect width="${rankBoxSize}" height="${rankBoxSize}" rx="8" fill="url(#rankGradient_${rowIndex})" filter="drop-shadow(0 2px 6px rgba(102, 126, 234, 0.3))"/>
+      <text x="${rankBoxSize/2}" y="${rankBoxSize/2}" text-anchor="middle" alignment-baseline="central" font-size="20" font-weight="900" fill="white">${companyData.rank !== null ? companyData.rank : '—'}</text>
+    </g>
+  `;
+  
+  // Market share circle with water fill
+  const circleSize = 55;
+  const circleX = companyNameWidth + rankWidth + (marketShareWidth - circleSize) / 2;
+  const circleY = centerY;
+  const circleRadius = circleSize / 2;
+  const marketSharePercent = companyData.marketShare !== null ? companyData.marketShare : 0;
+  const fillHeight = circleRadius * 2 * Math.min(1, marketSharePercent / 50); // Scale for visibility
+  
+  html += `
+    <g transform="translate(${circleX + circleRadius}, ${circleY})">
+      <defs>
+        <clipPath id="circleClip_${rowIndex}">
+          <circle r="${circleRadius}" cx="0" cy="0"/>
+        </clipPath>
+        <linearGradient id="waterGradient_${rowIndex}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#007aff;stop-opacity:0.5" />
+          <stop offset="50%" style="stop-color:#0056b3;stop-opacity:0.5" />
+          <stop offset="100%" style="stop-color:#003d82;stop-opacity:0.5" />
+        </linearGradient>
+      </defs>
+      
+      <!-- Water fill -->
+      <rect x="${-circleRadius}" y="${circleRadius - fillHeight}" width="${circleRadius * 2}" height="${fillHeight}" 
+            fill="url(#waterGradient_${rowIndex})" clip-path="url(#circleClip_${rowIndex})"/>
+      
+      <!-- Circle border -->
+      <circle r="${circleRadius}" cx="0" cy="0" fill="none" stroke="#007aff" stroke-width="2" filter="drop-shadow(0 2px 6px rgba(0, 122, 255, 0.2))"/>
+      
+      <!-- Market share text -->
+      <text x="0" y="0" text-anchor="middle" alignment-baseline="central" font-size="13" font-weight="800" fill="#007aff">${companyData.marketShare !== null ? companyData.marketShare.toFixed(1) + '%' : '—'}</text>
+    </g>
+  `;
     
     // Row separator line
     html += `<line x1="${labelWidth}" y1="${headerHeight + rowIndex * rowHeight}" x2="${chartWidth + labelWidth}" y2="${headerHeight + rowIndex * rowHeight}" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>`;
