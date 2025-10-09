@@ -3445,9 +3445,18 @@ last3Images.forEach((imgData, idx) => {
     tbody.appendChild(row);
   });
   
-  table.appendChild(tbody);
+table.appendChild(tbody);
   wrapper.appendChild(table);
   container.appendChild(wrapper);
+  
+  // Add click handlers for row expansion
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', function(e) {
+      // Don't trigger on image hover
+      if (e.target.closest('.product-studio-img-container')) return;
+      toggleImagesRowExpansion(this);
+    });
+  });
   
   // Add hover positioning for image zoom
   wrapper.querySelectorAll('.product-studio-img-container').forEach(container => {
@@ -3762,6 +3771,442 @@ async function loadProductPerformanceForImages() {
       resolve(new Map());
     };
   });
+}
+
+// Load product performance data with dates for image analysis
+async function loadProductPerformanceByDate() {
+  return new Promise((resolve, reject) => {
+    console.log('[loadProductPerformanceByDate] Loading performance data with dates...');
+    
+    let tablePrefix = '';
+    if (typeof window.getProjectTablePrefix === 'function') {
+      tablePrefix = window.getProjectTablePrefix();
+    } else {
+      const accountPrefix = window.currentAccount || 'acc1';
+      const currentProjectNum = window.dataPrefix ? 
+        parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+      tablePrefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    }
+    
+    const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
+    
+    const request = indexedDB.open('myAppDB');
+    
+    request.onsuccess = function(event) {
+      const db = event.target.result;
+      
+      if (!db.objectStoreNames.contains('projectData')) {
+        console.error('[loadProductPerformanceByDate] projectData object store not found');
+        db.close();
+        resolve(new Map());
+        return;
+      }
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      getRequest.onsuccess = function() {
+        const result = getRequest.result;
+        
+        if (!result || !result.data) {
+          console.warn('[loadProductPerformanceByDate] No data found');
+          db.close();
+          resolve(new Map());
+          return;
+        }
+        
+        const allRecords = Array.isArray(result.data) ? result.data : [];
+        const productDateMap = new Map();
+        
+        allRecords.forEach(record => {
+          // Skip records without "all" as campaign name
+          if (record['Campaign Name'] !== 'all') {
+            return;
+          }
+          
+          const productTitle = record['Product Title'] || 'Unknown Product';
+          const dateStr = record['Date'] || record['Day']; // Try both field names
+          
+          if (!dateStr) return;
+          
+          // Parse date - handle various formats
+          let date;
+          try {
+            date = new Date(dateStr);
+            if (isNaN(date.getTime())) return; // Invalid date
+          } catch (e) {
+            return;
+          }
+          
+          if (!productDateMap.has(productTitle)) {
+            productDateMap.set(productTitle, []);
+          }
+          
+          const metrics = {
+            date: date,
+            impressions: parseFloat(record['Impressions'] || 0),
+            clicks: parseFloat(record['Clicks'] || 0),
+            cost: parseFloat(record['Cost'] || 0),
+            conversions: parseFloat(record['Conversions'] || 0),
+            convValue: parseFloat(record['Conversion Value'] || 0)
+          };
+          
+          productDateMap.get(productTitle).push(metrics);
+        });
+        
+        console.log('[loadProductPerformanceByDate] Loaded date-specific data for products:', productDateMap.size);
+        db.close();
+        resolve(productDateMap);
+      };
+      
+      getRequest.onerror = function() {
+        console.error('[loadProductPerformanceByDate] Error getting data:', getRequest.error);
+        db.close();
+        resolve(new Map());
+      };
+    };
+    
+    request.onerror = function() {
+      console.error('[loadProductPerformanceByDate] Failed to open database:', request.error);
+      resolve(new Map());
+    };
+  });
+}
+
+// Calculate date ranges for each image in thumbnail history
+function calculateImageDateRanges(thumbnailHistory) {
+  if (!thumbnailHistory || thumbnailHistory.length === 0) return [];
+  
+  const ranges = [];
+  
+  for (let i = 0; i < thumbnailHistory.length; i++) {
+    const currentImage = thumbnailHistory[i];
+    const startDateStr = currentImage.first_seen_date?.value;
+    
+    if (!startDateStr) continue;
+    
+    const startDate = new Date(startDateStr);
+    
+    // End date is either the next image's start date, or today
+    let endDate;
+    if (i < thumbnailHistory.length - 1) {
+      const nextImage = thumbnailHistory[i + 1];
+      const nextDateStr = nextImage.first_seen_date?.value;
+      if (nextDateStr) {
+        endDate = new Date(nextDateStr);
+        // Subtract one day to get the last day this image was active
+        endDate.setDate(endDate.getDate() - 1);
+      } else {
+        endDate = new Date(); // Today
+      }
+    } else {
+      endDate = new Date(); // Last image, active until today
+    }
+    
+    ranges.push({
+      index: i,
+      thumbnail: currentImage.thumbnail,
+      startDate: startDate,
+      endDate: endDate,
+      startDateStr: startDate.toISOString().split('T')[0],
+      endDateStr: endDate.toISOString().split('T')[0]
+    });
+  }
+  
+  return ranges;
+}
+
+// Aggregate metrics by date range
+function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
+  if (!productDateMetrics || productDateMetrics.length === 0) {
+    return {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0,
+      ctr: 0,
+      roas: 0,
+      daysActive: 0
+    };
+  }
+  
+  // Filter metrics within date range
+  const relevantMetrics = productDateMetrics.filter(m => {
+    return m.date >= startDate && m.date <= endDate;
+  });
+  
+  if (relevantMetrics.length === 0) {
+    return {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      convValue: 0,
+      ctr: 0,
+      roas: 0,
+      daysActive: 0
+    };
+  }
+  
+  // Aggregate
+  const totals = relevantMetrics.reduce((acc, m) => {
+    acc.impressions += m.impressions;
+    acc.clicks += m.clicks;
+    acc.cost += m.cost;
+    acc.conversions += m.conversions;
+    acc.convValue += m.convValue;
+    return acc;
+  }, {
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    convValue: 0
+  });
+  
+  // Calculate derived metrics
+  const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
+  const roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
+  
+  // Calculate days active
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  
+  return {
+    impressions: totals.impressions,
+    clicks: totals.clicks,
+    cost: totals.cost,
+    conversions: totals.conversions,
+    convValue: totals.convValue,
+    ctr: ctr,
+    roas: roas,
+    daysActive: daysDiff
+  };
+}
+
+// Toggle expanded row for images - show image history with metrics
+async function toggleImagesRowExpansion(row) {
+  const nextRow = row.nextElementSibling;
+  const isExpanded = row.classList.contains('expanded');
+  
+  if (isExpanded && nextRow && nextRow.classList.contains('product-studio-expanded-row')) {
+    row.classList.remove('expanded');
+    nextRow.remove();
+    return;
+  }
+  
+  const tbody = row.parentElement;
+  tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
+  tbody.querySelectorAll('.product-studio-expanded-row').forEach(r => r.remove());
+  
+  row.classList.add('expanded');
+  
+  const imageData = JSON.parse(row.dataset.imageData);
+  const productTitle = row.dataset.productTitle;
+  
+  if (!imageData || !imageData.thumbnailHistory || imageData.thumbnailHistory.length === 0) {
+    console.warn('No thumbnail history found');
+    return;
+  }
+  
+  // Show loading state
+  const expandedRow = document.createElement('tr');
+  expandedRow.className = 'product-studio-expanded-row';
+  const expandedCell = document.createElement('td');
+  expandedCell.colSpan = row.cells.length;
+  expandedCell.innerHTML = `
+    <div class="product-studio-expanded-content" style="text-align: center; padding: 40px;">
+      <div style="font-size: 24px; margin-bottom: 10px;">🔄</div>
+      <div style="color: #666;">Loading image performance data...</div>
+    </div>
+  `;
+  expandedRow.appendChild(expandedCell);
+  row.parentNode.insertBefore(expandedRow, row.nextSibling);
+  
+  // Load date-specific performance data
+  const productDateMetrics = window.globalImagesDateData || await loadProductPerformanceByDate();
+  if (!window.globalImagesDateData) {
+    window.globalImagesDateData = productDateMetrics;
+  }
+  
+  const productMetrics = productDateMetrics.get(productTitle) || [];
+  
+  // Calculate date ranges for each image
+  const imageRanges = calculateImageDateRanges(imageData.thumbnailHistory);
+  
+  // Calculate metrics for each image period
+  const imageMetrics = imageRanges.map(range => {
+    const metrics = aggregateMetricsByDateRange(productMetrics, range.startDate, range.endDate);
+    return {
+      ...range,
+      metrics: metrics
+    };
+  });
+  
+  // Build expanded content
+  let expandedHTML = '<div class="product-studio-expanded-content" style="padding: 20px 30px;">';
+  expandedHTML += `<h3 style="margin: 0 0 20px 0; color: #333; font-size: 16px;">Image Performance History for ${productTitle}</h3>`;
+  
+  // Create comparison table
+  expandedHTML += '<table class="product-studio-table" style="width: 100%; background: white;">';
+  expandedHTML += `
+    <thead>
+      <tr>
+        <th style="width: 100px; text-align: center;">Image</th>
+        <th style="width: 150px; text-align: center;">Period</th>
+        <th style="width: 80px; text-align: center;">Days</th>
+        <th style="width: 100px; text-align: center;">Impressions</th>
+        <th style="width: 80px; text-align: center;">Clicks</th>
+        <th style="width: 80px; text-align: center;">CTR %</th>
+        <th style="width: 100px; text-align: center;">Cost</th>
+        <th style="width: 100px; text-align: center;">Revenue</th>
+        <th style="width: 80px; text-align: center;">ROAS</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+  
+  // Find max values for bars
+  const maxImpressions = Math.max(...imageMetrics.map(im => im.metrics.impressions), 1);
+  const maxClicks = Math.max(...imageMetrics.map(im => im.metrics.clicks), 1);
+  const maxCost = Math.max(...imageMetrics.map(im => im.metrics.cost), 1);
+  const maxRevenue = Math.max(...imageMetrics.map(im => im.metrics.convValue), 1);
+  
+  // Calculate average CTR for comparison
+  const totalCtr = imageMetrics.reduce((sum, im) => sum + im.metrics.ctr, 0);
+  const avgCtr = imageMetrics.length > 0 ? totalCtr / imageMetrics.length : 0;
+  
+  imageMetrics.forEach((imageMetric, idx) => {
+    const m = imageMetric.metrics;
+    const isCurrentImage = idx === imageMetrics.length - 1;
+    
+    // ROAS color
+    let roasClass = 'titles-roas-low';
+    let roasColor = '#ef4444';
+    if (m.roas >= 3) {
+      roasClass = 'titles-roas-high';
+      roasColor = '#22c55e';
+    } else if (m.roas >= 1.5) {
+      roasClass = 'titles-roas-medium';
+      roasColor = '#f59e0b';
+    }
+    
+    // CTR comparison color
+    const ctrColor = m.ctr > avgCtr ? '#22c55e' : '#ef4444';
+    
+    expandedHTML += `
+      <tr style="background: ${isCurrentImage ? 'rgba(102, 126, 234, 0.05)' : 'white'}; border-bottom: 1px solid #f0f2f5;">
+        <td style="text-align: center; padding: 12px;">
+          <div style="position: relative; display: inline-block;">
+            <img src="${imageMetric.thumbnail}" 
+                 style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; 
+                        border: ${isCurrentImage ? '3px solid #667eea' : '2px solid #e9ecef'}; background: #f8f9fa;"
+                 onerror="this.style.display='none'">
+            ${isCurrentImage ? '<div style="position: absolute; top: -8px; right: -8px; background: #667eea; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 600;">CURRENT</div>' : ''}
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">
+            ${imageMetric.startDateStr}
+          </div>
+          <div style="font-size: 11px; color: #666;">to</div>
+          <div style="font-size: 12px; font-weight: 600; color: #333; margin-top: 4px;">
+            ${imageMetric.endDateStr}
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <span style="font-weight: 700; color: #667eea; font-size: 16px;">${m.daysActive}</span>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <div style="position: relative;">
+            ${maxImpressions > 0 && m.impressions > 0 ? 
+              `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                    height: 24px; width: ${(m.impressions / maxImpressions * 100)}%; 
+                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                    border-radius: 4px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+              ${m.impressions > 0 ? m.impressions.toLocaleString() : '-'}
+            </span>
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <div style="position: relative;">
+            ${maxClicks > 0 && m.clicks > 0 ? 
+              `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                    height: 24px; width: ${(m.clicks / maxClicks * 100)}%; 
+                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                    border-radius: 4px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+              ${m.clicks > 0 ? m.clicks.toLocaleString() : '-'}
+            </span>
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <span style="font-size: 16px; font-weight: 700; color: ${ctrColor};">
+            ${m.ctr > 0 ? m.ctr.toFixed(2) + '%' : '-'}
+          </span>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <div style="position: relative;">
+            ${maxCost > 0 && m.cost > 0 ? 
+              `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                    height: 24px; width: ${(m.cost / maxCost * 100)}%; 
+                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                    border-radius: 4px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+              ${m.cost > 0 ? '$' + m.cost.toFixed(2) : '-'}
+            </span>
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <div style="position: relative;">
+            ${maxRevenue > 0 && m.convValue > 0 ? 
+              `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
+                    height: 24px; width: ${(m.convValue / maxRevenue * 100)}%; 
+                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
+                    border-radius: 4px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+              ${m.convValue > 0 ? '$' + m.convValue.toFixed(2) : '-'}
+            </span>
+          </div>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <span class="titles-roas-indicator ${roasClass}" style="font-size: 13px; padding: 4px 8px;">
+            ${m.roas > 0 ? m.roas.toFixed(2) + 'x' : '-'}
+          </span>
+        </td>
+      </tr>
+    `;
+  });
+  
+  expandedHTML += '</tbody></table>';
+  
+  // Add summary insights
+  if (imageMetrics.length > 1) {
+    const bestCtrImage = imageMetrics.reduce((best, current) => 
+      current.metrics.ctr > best.metrics.ctr ? current : best
+    );
+    const bestRoasImage = imageMetrics.reduce((best, current) => 
+      current.metrics.roas > best.metrics.roas ? current : best
+    );
+    
+    expandedHTML += `
+      <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 8px; border-left: 4px solid #667eea;">
+        <div style="font-weight: 600; color: #333; margin-bottom: 8px; font-size: 13px;">📊 Performance Insights:</div>
+        <div style="font-size: 12px; color: #666; line-height: 1.6;">
+          • Best CTR: Image from ${bestCtrImage.startDateStr} (${bestCtrImage.metrics.ctr.toFixed(2)}%)<br>
+          • Best ROAS: Image from ${bestRoasImage.startDateStr} (${bestRoasImage.metrics.roas.toFixed(2)}x)<br>
+          • Total Images Tested: ${imageMetrics.length}
+        </div>
+      </div>
+    `;
+  }
+  
+  expandedHTML += '</div>';
+  
+  // Update the expanded cell content
+  expandedCell.innerHTML = expandedHTML;
 }
 
 // Replace the entire renderGlobalProductsTable function:
