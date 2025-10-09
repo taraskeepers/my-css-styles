@@ -1068,13 +1068,42 @@ async function createPromoWavesChart() {
     return;
   }
   
-  // Prepare and sort data by discount depth (highest first)
-  const waveData = promoWaves.map(wave => ({
+// Prepare and sort data by discount depth (highest first)
+const waveData = promoWaves.map(wave => {
+  const currentDiscount = parseFloat(wave.promo_wave_discount_depth) || 0;
+  
+  // Calculate 7-day average discount depth from historical data
+  let trend = null;
+  let trendValue = 0;
+  
+  if (wave.historical_data && wave.historical_data.length > 0) {
+    // Get last 7 days of data
+    const last7Days = wave.historical_data.slice(-7);
+    
+    // Calculate average, excluding null values
+    const validDiscounts = last7Days
+      .map(d => parseFloat(d.discount_depth))
+      .filter(d => !isNaN(d) && d !== null && d !== 0);
+    
+    if (validDiscounts.length > 0) {
+      const avg7Days = validDiscounts.reduce((sum, val) => sum + val, 0) / validDiscounts.length;
+      trendValue = currentDiscount - avg7Days;
+      
+      if (Math.abs(trendValue) > 0.1) { // Only show trend if difference > 0.1%
+        trend = trendValue > 0 ? 'up' : 'down';
+      }
+    }
+  }
+  
+  return {
     company: wave.source,
     waveLength: parseInt(wave.promo_wave_length) || 0,
-    discountDepth: parseFloat(wave.promo_wave_discount_depth) || 0,
-    discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0
-  })).sort((a, b) => b.discountDepth - a.discountDepth);
+    discountDepth: currentDiscount,
+    discountedPercent: parseFloat(wave.promo_wave_pr_discounted_products) * 100 || 0,
+    trend: trend,
+    trendValue: Math.abs(trendValue)
+  };
+}).sort((a, b) => b.discountDepth - a.discountDepth);
   
   // Calculate the maximum discount depth for scaling
   const maxDiscount = Math.max(...waveData.map(d => d.discountDepth));
@@ -1122,6 +1151,12 @@ html += `
       <div class="pm-wave-bar-fill" style="width: ${barWidth}%">
         <span class="pm-wave-discount">${wave.discountDepth.toFixed(1)}%</span>
       </div>
+      ${wave.trend ? `
+        <div class="pm-wave-trend ${wave.trend}">
+          <span class="pm-trend-arrow">${wave.trend === 'up' ? '↑' : '↓'}</span>
+          <span class="pm-trend-value">${wave.trendValue.toFixed(1)}%</span>
+        </div>
+      ` : ''}
     </div>
     <div class="pm-wave-metrics-outside">
       <span class="pm-wave-products">${wave.discountedPercent.toFixed(1)}% products</span>
@@ -2551,6 +2586,53 @@ function addPriceMonitoringStyles() {
   background: rgba(255, 255, 255, 0.6);
   border-radius: 3px;
   font-weight: 600;
+}
+
+/* Trend Indicator Styles */
+.pm-wave-trend {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.pm-wave-trend.up {
+  color: #2e7d32;
+  border: 1px solid #4caf50;
+}
+
+.pm-wave-trend.down {
+  color: #c62828;
+  border: 1px solid #f44336;
+}
+
+.pm-trend-arrow {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.pm-trend-value {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.pm-wave-bar-container {
+  position: relative;
+  height: 18px;
+  background: #f5f8fa;
+  border-radius: 4px;
+  overflow: visible; /* Changed from overflow: visible to allow trend to show */
+  width: 100%;
 }
 
 .pm-waves-more {
