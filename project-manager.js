@@ -712,7 +712,6 @@ if (newPrefix === oldPrefix) {
     const isPMProductsPage = pmProductsContainer && 
                              pmProductsContainer.offsetParent !== null && 
                              window.pmProductsModule;
-
     if (isPMProductsPage) {
       console.log("[Search Card] On Price Monitoring Products page - refreshing with filter");
       // Refresh the products view with the new search term filter
@@ -720,20 +719,31 @@ if (newPrefix === oldPrefix) {
         window.pmProductsModule.refresh();
       }
     } else {
-      // Not on project page or PM products page, use existing logic
-      if (typeof renderData === "function") {
-        console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
-        console.trace();
-        renderData();
+      // Check if we're on Product Map page
+      const productMapPage = document.getElementById("productMapPage");
+      const isOnProductMapPage = productMapPage && productMapPage.style.display !== "none";
+      
+      if (isOnProductMapPage) {
+        console.log("[Search Card] On Product Map page - refreshing table with search term filter");
+        if (typeof window.renderProductMapTable === 'function') {
+          window.renderProductMapTable();
+        }
       } else {
-        console.warn("renderData() not yet defined — skipping this trace");
+        // Not on project page, PM products page, or Product Map page, use existing logic
+        if (typeof renderData === "function") {
+          console.log("[TRACE] renderData() called from if (newPrefix === oldPrefix)");
+          console.trace();
+          renderData();
+        } else {
+          console.warn("renderData() not yet defined — skipping this trace");
+        }
+        console.log("[Search Card] Updating filters, staying on current page");
       }
-      console.log("[Search Card] Updating filters, staying on current page");
     }
   }
 } else {
-      // New project => reload from IDB or server
-      console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
+  // New project => reload from IDB or server
+  console.log(`[🔁 Switching project] ${oldPrefix} ➜ ${newPrefix}`);
       
       switchAccountAndReload(newPrefix, parentProject.project_number)
         .then(() => {
