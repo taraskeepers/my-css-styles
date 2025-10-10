@@ -132,10 +132,19 @@ function renderProjects() {
     return;
   }
 
-  // 2) Remove old containers from the left column
-  const leftCol = document.getElementById("leftColumn");
-  const projectList = document.getElementById("project-list_container");
-  const navContainer = document.getElementById("navigation-container");
+// 2) Remove old containers from the left column
+const leftCol = document.getElementById("leftColumn");
+
+// Configure leftColumn flex layout
+if (leftCol) {
+  leftCol.style.display = "flex";
+  leftCol.style.flexDirection = "column";
+  leftCol.style.height = "100vh";
+  leftCol.style.overflow = "hidden";
+}
+
+const projectList = document.getElementById("project-list_container");
+const navContainer = document.getElementById("navigation-container");
 
   console.log("[renderProjects] Checking for existing containers to remove:", {
     projectListFound: !!projectList,
