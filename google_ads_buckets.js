@@ -3640,11 +3640,11 @@ togglePanel.innerHTML = `
   
 // Store active metrics
   window.activeChartMetrics = {
-    roas: true,
-    aov: true,
-    cpa: true,
+    roas: false,
+    aov: false,
+    cpa: false,
     ctr: true,
-    cvr: true,
+    cvr: false,
     impressions: true,
     cost: true,
     revenue: true
