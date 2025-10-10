@@ -1,3 +1,10 @@
+(function() {
+  // Check if ROAS module is loaded
+  if (!window.GoogleAdsModules || !window.GoogleAdsModules.ROAS) {
+    console.warn('google_ads_additional.js ROAS module not loaded');
+  }
+})();
+
 window.pendingGoogleAdsCharts = [];
 window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
