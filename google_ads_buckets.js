@@ -3434,18 +3434,18 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
     prev.cpa = prev.conversions > 0 ? prev.cost / prev.conversions : 0;
   });
   
-  // Helper function to create metric item
+// Helper function to create metric item
   const createMetricItem = (label, current, previous, format) => {
     const change = current - previous;
     const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
     const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
     
-let formattedCurrent, formattedChange;
-switch (format) {
-  case 'currency':
-    formattedCurrent = '$' + Math.round(current).toLocaleString();
-    formattedChange = '$' + Math.abs(Math.round(change)).toLocaleString();
-    break;
+    let formattedCurrent, formattedChange;
+    switch (format) {
+      case 'currency':
+        formattedCurrent = '$' + Math.round(current).toLocaleString();
+        formattedChange = '$' + Math.round(Math.abs(change)).toLocaleString();
+        break;
       case 'number':
         formattedCurrent = current.toLocaleString();
         formattedChange = Math.abs(change).toLocaleString();
@@ -3522,17 +3522,17 @@ switch (format) {
     const current = deviceMetrics[device];
     const prev = devicePrevMetrics[device];
     
-    // Create smaller metric items
+// Create smaller metric items
     const createSmallMetricItem = (value, prevValue, format) => {
       const change = value - prevValue;
       const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
       const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
       
-let formattedValue;
-switch (format) {
-  case 'currency':
-    formattedValue = '$' + Math.round(value).toLocaleString();
-    break;
+      let formattedValue;
+      switch (format) {
+        case 'currency':
+          formattedValue = '$' + Math.round(value).toLocaleString();
+          break;
         case 'number':
           formattedValue = value.toLocaleString();
           break;
