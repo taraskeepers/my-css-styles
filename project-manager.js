@@ -27,15 +27,6 @@ function renderProjects() {
   console.log("[renderProjects] START - projectData:", window.projectData);
   console.log("[renderProjects] START - dataPrefix:", window.dataPrefix);
   synchronizeProjectData();
-
-  const leftCol = document.getElementById("leftColumn");
-  if (leftCol) {
-    leftCol.style.display = "flex";
-    leftCol.style.flexDirection = "column";
-    leftCol.style.height = "100vh"; // or "100%" if leftColumn is inside another container
-    leftCol.style.overflow = "hidden"; // Prevent leftColumn itself from scrolling
-  }
-  
   console.log("[renderProjects] After sync - projectData source:", 
               window.projectData === window.demoProjectData ? "DEMO" : 
               (window.projectData === window.realProjectData ? "Account 1" : "UNKNOWN"));
@@ -132,19 +123,10 @@ function renderProjects() {
     return;
   }
 
-// 2) Remove old containers from the left column
-const leftCol = document.getElementById("leftColumn");
-
-// Configure leftColumn flex layout
-if (leftCol) {
-  leftCol.style.display = "flex";
-  leftCol.style.flexDirection = "column";
-  leftCol.style.height = "100vh";
-  leftCol.style.overflow = "hidden";
-}
-
-const projectList = document.getElementById("project-list_container");
-const navContainer = document.getElementById("navigation-container");
+  // 2) Remove old containers from the left column
+  const leftCol = document.getElementById("leftColumn");
+  const projectList = document.getElementById("project-list_container");
+  const navContainer = document.getElementById("navigation-container");
 
   console.log("[renderProjects] Checking for existing containers to remove:", {
     projectListFound: !!projectList,
@@ -167,13 +149,14 @@ const navContainer = document.getElementById("navigation-container");
     navContainer.remove();
   }
 
-  // 3) Create a new project-list_container
+// 3) Create a new project-list_container
 const projectListContainer = document.createElement("div");
 projectListContainer.id = "project-list_container";
-projectListContainer.style.flex = "1 1 auto";
-projectListContainer.style.overflowY = "auto";
-projectListContainer.style.overflowX = "hidden";
-projectListContainer.style.minHeight = "0"; // Critical for flex scrolling
+projectListContainer.style.cssText = `
+  overflow-y: auto;
+  max-height: calc(100vh - 80px); /* Adjust 80px based on navigation-container actual height + margins */
+  padding-bottom: 60px; /* Space for navigation-container - adjust based on its actual height */
+`;
 leftCol.appendChild(projectListContainer);
   console.log("[renderProjects] ➕ Created and appended new #project-list_container.");
 
@@ -184,16 +167,21 @@ leftCol.appendChild(projectListContainer);
   projectListContainer.appendChild(projectsHeader);
   console.log("[renderProjects] ➕ Appended .projects-header inside #project-list_container.");
 
-  // 5) Build a new navigation-container for settings, etc.
+// 5) Build a new navigation-container for settings, etc.
 const navigationContainer = document.createElement("div");
 navigationContainer.id = "navigation-container";
-navigationContainer.style.flex = "0 0 auto"; // Don't grow, don't shrink, auto height
-navigationContainer.style.marginTop = "auto"; // Push to bottom
-navigationContainer.style.position = "sticky";
-navigationContainer.style.bottom = "0";
-navigationContainer.style.backgroundColor = "inherit"; // Match parent background
-navigationContainer.style.padding = "12px 0"; // Adjust as needed
-navigationContainer.style.borderTop = "1px solid rgba(0,0,0,0.1)"; // Optional separator
+navigationContainer.style.cssText = `
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 250px; /* Match your leftColumn width */
+  background-color: #ffffff; /* Or match your theme */
+  border-top: 1px solid #e0e0e0;
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  height: auto; /* Dynamic height based on content */
+`;
 navigationContainer.innerHTML = `
   <div class="menu-item" id="openSettingsPopup">
     <img
@@ -466,7 +454,13 @@ window.filterState.activeProjectNumber = project.project_number;
 const toggleButton = document.createElement("div");
 toggleButton.id = "toggleCollapseButton";
 toggleButton.textContent = "←→";
-projectListContainer.appendChild(toggleButton); // Changed from leftCol to projectListContainer
+toggleButton.style.cssText = `
+  position: fixed;
+  bottom: 60px; /* Position above navigation-container */
+  left: 10px;
+  z-index: 101;
+`;
+leftCol.appendChild(toggleButton); // Append to leftCol, not projectListContainer
   console.log("[renderProjects] ➕ Appended #toggleCollapseButton to leftColumn.");
 
 let isCollapsed = false;
