@@ -3825,12 +3825,12 @@ async function loadProductPerformanceByDate() {
           console.log('[loadProductPerformanceByDate] Sample record:', allRecords[0]);
         }
         
-        const productDateMap = new Map();
+        // First, group by product + date to aggregate across devices
+        const productDateDeviceMap = new Map();
         let recordsProcessed = 0;
-        let recordsWithValidDate = 0;
         
         allRecords.forEach(record => {
-          // Skip records without "all" as campaign name
+          // Only use records with Campaign Name = "all"
           if (record['Campaign Name'] !== 'all') {
             return;
           }
@@ -3849,49 +3849,82 @@ async function loadProductPerformanceByDate() {
             return;
           }
           
-          // Parse date - handle various formats
+          // Parse date
           let date;
           try {
             date = new Date(dateStr);
             if (isNaN(date.getTime())) {
-              console.warn('[loadProductPerformanceByDate] Invalid date:', dateStr);
               return;
             }
-            // Reset time to midnight for consistent comparison
             date.setHours(0, 0, 0, 0);
-            recordsWithValidDate++;
           } catch (e) {
-            console.warn('[loadProductPerformanceByDate] Date parse error:', e);
             return;
           }
+          
+          const dateKey = date.toISOString().split('T')[0];
+          const compositeKey = `${productTitle}|${dateKey}`;
+          
+          // Initialize aggregation object for this product+date combination
+          if (!productDateDeviceMap.has(compositeKey)) {
+            productDateDeviceMap.set(compositeKey, {
+              productTitle: productTitle,
+              date: date,
+              dateStr: dateKey,
+              impressions: 0,
+              clicks: 0,
+              cost: 0,
+              conversions: 0,
+              convValue: 0,
+              deviceCount: 0
+            });
+          }
+          
+          const aggregated = productDateDeviceMap.get(compositeKey);
+          
+          // Aggregate metrics across devices for this date
+          aggregated.impressions += parseFloat(record['Impressions'] || 0);
+          aggregated.clicks += parseFloat(record['Clicks'] || 0);
+          aggregated.cost += parseFloat(record['Cost'] || 0);
+          aggregated.conversions += parseFloat(record['Conversions'] || 0);
+          aggregated.convValue += parseFloat(record['Conversion Value'] || 0);
+          aggregated.deviceCount++;
+        });
+        
+        console.log('[loadProductPerformanceByDate] Records processed:', recordsProcessed);
+        console.log('[loadProductPerformanceByDate] Unique product+date combinations:', productDateDeviceMap.size);
+        
+        // Now organize by product for easy lookup
+        const productDateMap = new Map();
+        
+        for (const [compositeKey, aggregated] of productDateDeviceMap) {
+          const productTitle = aggregated.productTitle;
           
           if (!productDateMap.has(productTitle)) {
             productDateMap.set(productTitle, []);
           }
           
-          const metrics = {
-            date: date,
-            dateStr: date.toISOString().split('T')[0],
-            impressions: parseFloat(record['Impressions'] || 0),
-            clicks: parseFloat(record['Clicks'] || 0),
-            cost: parseFloat(record['Cost'] || 0),
-            conversions: parseFloat(record['Conversions'] || 0),
-            convValue: parseFloat(record['Conversion Value'] || 0)
-          };
-          
-          productDateMap.get(productTitle).push(metrics);
-        });
+          // Store the aggregated daily metrics
+          productDateMap.get(productTitle).push({
+            date: aggregated.date,
+            dateStr: aggregated.dateStr,
+            impressions: aggregated.impressions,
+            clicks: aggregated.clicks,
+            cost: aggregated.cost,
+            conversions: aggregated.conversions,
+            convValue: aggregated.convValue,
+            deviceCount: aggregated.deviceCount
+          });
+        }
         
-        console.log('[loadProductPerformanceByDate] Records processed:', recordsProcessed);
-        console.log('[loadProductPerformanceByDate] Records with valid dates:', recordsWithValidDate);
-        console.log('[loadProductPerformanceByDate] Loaded date-specific data for products:', productDateMap.size);
+        console.log('[loadProductPerformanceByDate] Products with data:', productDateMap.size);
         
         // Log sample product data
         if (productDateMap.size > 0) {
           const [firstProduct, firstData] = productDateMap.entries().next().value;
-          console.log('[loadProductPerformanceByDate] Sample product:', firstProduct, 'Records:', firstData.length);
+          console.log('[loadProductPerformanceByDate] Sample product:', firstProduct);
+          console.log('[loadProductPerformanceByDate] Date records for this product:', firstData.length);
           if (firstData.length > 0) {
-            console.log('[loadProductPerformanceByDate] Sample date record:', firstData[0]);
+            console.log('[loadProductPerformanceByDate] Sample aggregated date record:', firstData[0]);
           }
         }
         
@@ -3915,7 +3948,12 @@ async function loadProductPerformanceByDate() {
 
 // Calculate date ranges for each image in thumbnail history
 function calculateImageDateRanges(thumbnailHistory) {
-  if (!thumbnailHistory || thumbnailHistory.length === 0) return [];
+  if (!thumbnailHistory || thumbnailHistory.length === 0) {
+    console.log('[calculateImageDateRanges] No thumbnail history');
+    return [];
+  }
+  
+  console.log('[calculateImageDateRanges] Processing', thumbnailHistory.length, 'images');
   
   const ranges = [];
   
@@ -3923,34 +3961,46 @@ function calculateImageDateRanges(thumbnailHistory) {
     const currentImage = thumbnailHistory[i];
     const startDateStr = currentImage.first_seen_date?.value;
     
-    if (!startDateStr) continue;
+    if (!startDateStr) {
+      console.warn('[calculateImageDateRanges] Image', i, 'missing first_seen_date');
+      continue;
+    }
     
     const startDate = new Date(startDateStr);
+    startDate.setHours(0, 0, 0, 0);
     
-    // End date is either the next image's start date, or today
+    // End date is either the day before the next image's start date, or today
     let endDate;
     if (i < thumbnailHistory.length - 1) {
       const nextImage = thumbnailHistory[i + 1];
       const nextDateStr = nextImage.first_seen_date?.value;
       if (nextDateStr) {
         endDate = new Date(nextDateStr);
+        endDate.setHours(0, 0, 0, 0);
         // Subtract one day to get the last day this image was active
         endDate.setDate(endDate.getDate() - 1);
       } else {
         endDate = new Date(); // Today
+        endDate.setHours(23, 59, 59, 999);
       }
     } else {
-      endDate = new Date(); // Last image, active until today
+      // Last image, active until today
+      endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
     }
     
-    ranges.push({
+    const range = {
       index: i,
       thumbnail: currentImage.thumbnail,
       startDate: startDate,
       endDate: endDate,
       startDateStr: startDate.toISOString().split('T')[0],
       endDateStr: endDate.toISOString().split('T')[0]
-    });
+    };
+    
+    console.log('[calculateImageDateRanges] Image', i, 'range:', range.startDateStr, 'to', range.endDateStr);
+    
+    ranges.push(range);
   }
   
   return ranges;
@@ -3959,6 +4009,7 @@ function calculateImageDateRanges(thumbnailHistory) {
 // Aggregate metrics by date range
 function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
   if (!productDateMetrics || productDateMetrics.length === 0) {
+    console.log('[aggregateMetricsByDateRange] No metrics available');
     return {
       impressions: 0,
       clicks: 0,
@@ -3977,20 +4028,26 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
   const normalizedEnd = new Date(endDate);
   normalizedEnd.setHours(23, 59, 59, 999);
   
-  console.log('[aggregateMetricsByDateRange] Date range:', 
+  console.log('[aggregateMetricsByDateRange] Filtering range:', 
     normalizedStart.toISOString().split('T')[0], 
     'to', 
     normalizedEnd.toISOString().split('T')[0]
   );
+  console.log('[aggregateMetricsByDateRange] Total available date records:', productDateMetrics.length);
   
   // Filter metrics within date range (inclusive)
   const relevantMetrics = productDateMetrics.filter(m => {
-    return m.date >= normalizedStart && m.date <= normalizedEnd;
+    const inRange = m.date >= normalizedStart && m.date <= normalizedEnd;
+    if (inRange) {
+      console.log('[aggregateMetricsByDateRange] Including date:', m.dateStr, 'Impressions:', m.impressions, 'Clicks:', m.clicks);
+    }
+    return inRange;
   });
   
-  console.log('[aggregateMetricsByDateRange] Found', relevantMetrics.length, 'relevant records out of', productDateMetrics.length);
+  console.log('[aggregateMetricsByDateRange] Found', relevantMetrics.length, 'relevant date records');
   
   if (relevantMetrics.length === 0) {
+    console.log('[aggregateMetricsByDateRange] No metrics in date range');
     return {
       impressions: 0,
       clicks: 0,
@@ -4003,13 +4060,13 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
     };
   }
   
-  // Aggregate
+  // Aggregate all metrics for this date range
   const totals = relevantMetrics.reduce((acc, m) => {
-    acc.impressions += m.impressions;
-    acc.clicks += m.clicks;
-    acc.cost += m.cost;
-    acc.conversions += m.conversions;
-    acc.convValue += m.convValue;
+    acc.impressions += m.impressions || 0;
+    acc.clicks += m.clicks || 0;
+    acc.cost += m.cost || 0;
+    acc.conversions += m.conversions || 0;
+    acc.convValue += m.convValue || 0;
     return acc;
   }, {
     impressions: 0,
@@ -4021,23 +4078,27 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
   
   console.log('[aggregateMetricsByDateRange] Aggregated totals:', totals);
   
-  // Calculate derived metrics
+  // Calculate derived metrics from totals (not averages)
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
   const roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
   
-  // Calculate days active based on actual date range
-  const daysDiff = Math.ceil((normalizedEnd - normalizedStart) / (1000 * 60 * 60 * 24)) + 1;
+  // Days active = number of dates with data
+  const daysActive = relevantMetrics.length;
   
-  return {
-    impressions: totals.impressions,
-    clicks: totals.clicks,
+  const result = {
+    impressions: Math.round(totals.impressions),
+    clicks: Math.round(totals.clicks),
     cost: totals.cost,
     conversions: totals.conversions,
     convValue: totals.convValue,
     ctr: ctr,
     roas: roas,
-    daysActive: Math.max(relevantMetrics.length, daysDiff) // Use actual records or date range, whichever is larger
+    daysActive: daysActive
   };
+  
+  console.log('[aggregateMetricsByDateRange] Final calculated metrics:', result);
+  
+  return result;
 }
 
 // Toggle expanded row for images - show image history with metrics
