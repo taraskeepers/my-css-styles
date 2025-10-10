@@ -2201,12 +2201,12 @@ function renderProductInfoCharts(productData, mode = 'channel') {
     { 
       key: 'cost', 
       label: 'Cost', 
-      formatter: (val) => '$' + val.toFixed(2)
+      formatter: (val) => '$' + val.toFixed(0)
     },
     { 
       key: 'conversionValue', 
       label: 'Conv. Value', 
-      formatter: (val) => '$' + val.toFixed(2)
+      formatter: (val) => '$' + val.toFixed(0)
     },
     { 
       key: 'roas', 
