@@ -172,7 +172,7 @@ if (!document.getElementById("project-page-stats-style")) {
     style.id = "project-page-stats-style";
     style.textContent = `
         #projectPage {
-          height: calc(100vh - 120px);
+          height: calc(100vh - 50px);
           overflow-y: auto;
           overflow-x: hidden;
           padding-right: 10px;
