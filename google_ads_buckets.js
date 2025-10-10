@@ -1988,6 +1988,51 @@ if (bucketType === 'SUGGESTIONS_BUCKET') {
   renderROASCampaignsTable(campaignsTableContainer, filteredData, bucketFilter);
 }
 
+// Helper function to create styled ROAS box
+function createStyledROASBox(roasValue, avgROAS) {
+  let boxColor, textColor, borderStyle = '';
+  
+  if (roasValue < 1) {
+    // ROAS < 1: red box, white text
+    boxColor = '#F44336';
+    textColor = '#FFFFFF';
+  } else if (roasValue >= 1 && roasValue < 2) {
+    // 1 ≤ ROAS < 2: orange box, dark grey text
+    boxColor = '#FF9800';
+    textColor = '#424242';
+  } else if (roasValue >= 2 && roasValue < avgROAS) {
+    // 2 ≤ ROAS < avgROAS: yellow box, black text
+    boxColor = '#FFC107';
+    textColor = '#000000';
+  } else if (roasValue >= avgROAS && roasValue <= (avgROAS * 1.5)) {
+    // avgROAS ≤ ROAS ≤ (avgROAS + 50%): light green box, black text
+    boxColor = '#8BC34A';
+    textColor = '#000000';
+  } else {
+    // ROAS > (avgROAS + 50%): green box, black text, special contour
+    boxColor = '#4CAF50';
+    textColor = '#000000';
+    borderStyle = 'border: 2px solid #2E7D32; box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);';
+  }
+  
+  return `
+    <div style="
+      display: inline-block;
+      background: ${boxColor};
+      color: ${textColor};
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      ${borderStyle}
+      min-width: 50px;
+      text-align: center;
+    ">
+      ${roasValue.toFixed(2)}x
+    </div>
+  `;
+}
+
 function renderROASChannelsTableWithDevices(container, data, bucketFilter = null) {
   container.innerHTML = '';
   
@@ -2679,6 +2724,9 @@ if (bucketFilter) {
     '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', 
     '#00BCD4', '#8BC34A', '#FFC107', '#795548', '#607D8B'
   ];
+
+  // Calculate average ROAS for styling
+  const avgROAS = grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0;
   
   campaignMetrics.forEach((campaign, index) => {
     const row = document.createElement('tr');
@@ -2686,9 +2734,9 @@ if (bucketFilter) {
     
     const campaignColor = campaignColors[index % campaignColors.length];
     
-    row.innerHTML = `
+row.innerHTML = `
       <td style="padding: 8px; font-weight: 600; color: ${campaignColor}; vertical-align: middle; background: #ffffff; font-size: 11px;">${campaign.campaign}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(campaign.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createStyledROASBox(campaign.roas, avgROAS)}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + campaign.aov.toFixed(2))}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + campaign.cpa.toFixed(2))}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(campaign.ctr.toFixed(2) + '%')}</td>
@@ -2728,7 +2776,22 @@ if (bucketFilter) {
   
   summaryRow.innerHTML = `
     <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="
+        display: inline-block;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        color: #333;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 2px solid #dee2e6;
+        min-width: 50px;
+        text-align: center;
+      ">
+        ${summary.avgROAS.toFixed(2)}x
+      </div>
+    </td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(0))}</td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(0))}</td>
     <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
@@ -2953,14 +3016,20 @@ if (bucketFilter) {
     'PERFORMANCE_MAX': '#4CAF50',
     'SHOPPING': '#2196F3'
   };
+
+  // Calculate average ROAS for styling
+  const avgROAS = grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0;
   
   channelMetrics.forEach(channel => {
     const row = document.createElement('tr');
     row.style.cssText = 'border-bottom: 1px solid #f0f0f0; height: 60px;';
     
+// Calculate average ROAS from the summary (before the loop)
+    const avgROAS = grandTotals.cost > 0 ? grandTotals.convValue / grandTotals.cost : 0;
+    
     row.innerHTML = `
       <td style="padding: 8px; font-weight: 600; color: ${channelColors[channel.channel]}; vertical-align: middle; background: #ffffff;">${channel.channel}</td>
-      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(channel.roas.toFixed(2) + 'x')}</td>
+      <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createStyledROASBox(channel.roas, avgROAS)}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + channel.aov.toFixed(2))}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + channel.cpa.toFixed(2))}</td>
       <td style="padding: 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(channel.ctr.toFixed(2) + '%')}</td>
@@ -3000,7 +3069,22 @@ if (bucketFilter) {
   
   summaryRow.innerHTML = `
     <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="
+        display: inline-block;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        color: #333;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 2px solid #dee2e6;
+        min-width: 50px;
+        text-align: center;
+      ">
+        ${summary.avgROAS.toFixed(2)}x
+      </div>
+    </td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(0))}</td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(0))}</td>
     <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
@@ -4303,7 +4387,22 @@ bucketMetrics.forEach(bucket => {
   
   summaryRow.innerHTML = `
     <td style="padding: 12px 8px; font-weight: 700; color: #333; vertical-align: middle; background: #ffffff;">TOTAL / AVERAGE</td>
-    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell(summary.avgROAS.toFixed(2) + 'x')}</td>
+    <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">
+      <div style="
+        display: inline-block;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        color: #333;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 2px solid #dee2e6;
+        min-width: 50px;
+        text-align: center;
+      ">
+        ${summary.avgROAS.toFixed(2)}x
+      </div>
+    </td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell('$' + summary.avgAOV.toFixed(0))}</td>
 <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #f9f9f9;">${createRegularCell('$' + summary.avgCPA.toFixed(0))}</td>
     <td style="padding: 12px 8px; text-align: center; vertical-align: middle; background: #ffffff;">${createRegularCell(summary.avgCTR.toFixed(2) + '%')}</td>
