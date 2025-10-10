@@ -3790,6 +3790,8 @@ async function loadProductPerformanceByDate() {
     
     const tableName = `${tablePrefix}googleSheets_productPerformance_all`;
     
+    console.log('[loadProductPerformanceByDate] Looking for table:', tableName);
+    
     const request = indexedDB.open('myAppDB');
     
     request.onsuccess = function(event) {
@@ -3817,7 +3819,16 @@ async function loadProductPerformanceByDate() {
         }
         
         const allRecords = Array.isArray(result.data) ? result.data : [];
+        console.log('[loadProductPerformanceByDate] Total records found:', allRecords.length);
+        
+        // Log first record to see structure
+        if (allRecords.length > 0) {
+          console.log('[loadProductPerformanceByDate] Sample record:', allRecords[0]);
+        }
+        
         const productDateMap = new Map();
+        let recordsProcessed = 0;
+        let recordsWithValidDate = 0;
         
         allRecords.forEach(record => {
           // Skip records without "all" as campaign name
@@ -3825,17 +3836,33 @@ async function loadProductPerformanceByDate() {
             return;
           }
           
-          const productTitle = record['Product Title'] || 'Unknown Product';
-          const dateStr = record['Date'] || record['Day']; // Try both field names
+          recordsProcessed++;
           
-          if (!dateStr) return;
+          const productTitle = record['Product Title'] || 'Unknown Product';
+          
+          // Try multiple possible date field names
+          const dateStr = record['Date'] || record['Day'] || record['date'] || record['day'];
+          
+          if (!dateStr) {
+            if (recordsProcessed === 1) {
+              console.warn('[loadProductPerformanceByDate] No date field found. Available fields:', Object.keys(record));
+            }
+            return;
+          }
           
           // Parse date - handle various formats
           let date;
           try {
             date = new Date(dateStr);
-            if (isNaN(date.getTime())) return; // Invalid date
+            if (isNaN(date.getTime())) {
+              console.warn('[loadProductPerformanceByDate] Invalid date:', dateStr);
+              return;
+            }
+            // Reset time to midnight for consistent comparison
+            date.setHours(0, 0, 0, 0);
+            recordsWithValidDate++;
           } catch (e) {
+            console.warn('[loadProductPerformanceByDate] Date parse error:', e);
             return;
           }
           
@@ -3845,6 +3872,7 @@ async function loadProductPerformanceByDate() {
           
           const metrics = {
             date: date,
+            dateStr: date.toISOString().split('T')[0],
             impressions: parseFloat(record['Impressions'] || 0),
             clicks: parseFloat(record['Clicks'] || 0),
             cost: parseFloat(record['Cost'] || 0),
@@ -3855,7 +3883,19 @@ async function loadProductPerformanceByDate() {
           productDateMap.get(productTitle).push(metrics);
         });
         
+        console.log('[loadProductPerformanceByDate] Records processed:', recordsProcessed);
+        console.log('[loadProductPerformanceByDate] Records with valid dates:', recordsWithValidDate);
         console.log('[loadProductPerformanceByDate] Loaded date-specific data for products:', productDateMap.size);
+        
+        // Log sample product data
+        if (productDateMap.size > 0) {
+          const [firstProduct, firstData] = productDateMap.entries().next().value;
+          console.log('[loadProductPerformanceByDate] Sample product:', firstProduct, 'Records:', firstData.length);
+          if (firstData.length > 0) {
+            console.log('[loadProductPerformanceByDate] Sample date record:', firstData[0]);
+          }
+        }
+        
         db.close();
         resolve(productDateMap);
       };
@@ -3932,10 +3972,24 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
     };
   }
   
-  // Filter metrics within date range
+  // Normalize dates to midnight for comparison
+  const normalizedStart = new Date(startDate);
+  normalizedStart.setHours(0, 0, 0, 0);
+  const normalizedEnd = new Date(endDate);
+  normalizedEnd.setHours(23, 59, 59, 999);
+  
+  console.log('[aggregateMetricsByDateRange] Date range:', 
+    normalizedStart.toISOString().split('T')[0], 
+    'to', 
+    normalizedEnd.toISOString().split('T')[0]
+  );
+  
+  // Filter metrics within date range (inclusive)
   const relevantMetrics = productDateMetrics.filter(m => {
-    return m.date >= startDate && m.date <= endDate;
+    return m.date >= normalizedStart && m.date <= normalizedEnd;
   });
+  
+  console.log('[aggregateMetricsByDateRange] Found', relevantMetrics.length, 'relevant records out of', productDateMetrics.length);
   
   if (relevantMetrics.length === 0) {
     return {
@@ -3966,12 +4020,14 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
     convValue: 0
   });
   
+  console.log('[aggregateMetricsByDateRange] Aggregated totals:', totals);
+  
   // Calculate derived metrics
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
   const roas = totals.cost > 0 ? (totals.convValue / totals.cost) : 0;
   
-  // Calculate days active
-  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  // Calculate days active based on actual date range
+  const daysDiff = Math.ceil((normalizedEnd - normalizedStart) / (1000 * 60 * 60 * 24)) + 1;
   
   return {
     impressions: totals.impressions,
@@ -3981,7 +4037,7 @@ function aggregateMetricsByDateRange(productDateMetrics, startDate, endDate) {
     convValue: totals.convValue,
     ctr: ctr,
     roas: roas,
-    daysActive: daysDiff
+    daysActive: Math.max(relevantMetrics.length, daysDiff) // Use actual records or date range, whichever is larger
   };
 }
 
@@ -4016,52 +4072,60 @@ async function toggleImagesRowExpansion(row) {
   const expandedCell = document.createElement('td');
   expandedCell.colSpan = row.cells.length;
   expandedCell.innerHTML = `
-    <div class="product-studio-expanded-content" style="text-align: center; padding: 40px;">
-      <div style="font-size: 24px; margin-bottom: 10px;">🔄</div>
-      <div style="color: #666;">Loading image performance data...</div>
+    <div class="product-studio-expanded-content" style="text-align: center; padding: 20px;">
+      <div style="font-size: 18px; margin-bottom: 8px;">🔄</div>
+      <div style="color: #666; font-size: 13px;">Loading image performance data...</div>
     </div>
   `;
   expandedRow.appendChild(expandedCell);
   row.parentNode.insertBefore(expandedRow, row.nextSibling);
   
   // Load date-specific performance data
+  console.log('[toggleImagesRowExpansion] Loading performance data for:', productTitle);
+  
   const productDateMetrics = window.globalImagesDateData || await loadProductPerformanceByDate();
   if (!window.globalImagesDateData) {
     window.globalImagesDateData = productDateMetrics;
   }
   
   const productMetrics = productDateMetrics.get(productTitle) || [];
+  console.log('[toggleImagesRowExpansion] Found metrics records:', productMetrics.length);
+  
+  if (productMetrics.length > 0) {
+    console.log('[toggleImagesRowExpansion] Sample metric:', productMetrics[0]);
+  }
   
   // Calculate date ranges for each image
   const imageRanges = calculateImageDateRanges(imageData.thumbnailHistory);
+  console.log('[toggleImagesRowExpansion] Image ranges:', imageRanges);
   
   // Calculate metrics for each image period
   const imageMetrics = imageRanges.map(range => {
     const metrics = aggregateMetricsByDateRange(productMetrics, range.startDate, range.endDate);
+    console.log(`[toggleImagesRowExpansion] Metrics for ${range.startDateStr} to ${range.endDateStr}:`, metrics);
     return {
       ...range,
       metrics: metrics
     };
   });
   
-  // Build expanded content
-  let expandedHTML = '<div class="product-studio-expanded-content" style="padding: 20px 30px;">';
-  expandedHTML += `<h3 style="margin: 0 0 20px 0; color: #333; font-size: 16px;">Image Performance History for ${productTitle}</h3>`;
+  // Build expanded content with tight design
+  let expandedHTML = '<div class="product-studio-expanded-content" style="padding: 8px 12px;">';
   
-  // Create comparison table
-  expandedHTML += '<table class="product-studio-table" style="width: 100%; background: white;">';
+  // Create comparison table with minimal spacing
+  expandedHTML += '<table class="product-studio-table" style="width: 100%; background: white; margin: 0;">';
   expandedHTML += `
     <thead>
-      <tr>
-        <th style="width: 100px; text-align: center;">Image</th>
-        <th style="width: 150px; text-align: center;">Period</th>
-        <th style="width: 80px; text-align: center;">Days</th>
-        <th style="width: 100px; text-align: center;">Impressions</th>
-        <th style="width: 80px; text-align: center;">Clicks</th>
-        <th style="width: 80px; text-align: center;">CTR %</th>
-        <th style="width: 100px; text-align: center;">Cost</th>
-        <th style="width: 100px; text-align: center;">Revenue</th>
-        <th style="width: 80px; text-align: center;">ROAS</th>
+      <tr style="height: 32px;">
+        <th style="width: 90px; text-align: center; font-size: 10px; padding: 4px;">IMAGE</th>
+        <th style="width: 120px; text-align: center; font-size: 10px; padding: 4px;">PERIOD</th>
+        <th style="width: 60px; text-align: center; font-size: 10px; padding: 4px;">DAYS</th>
+        <th style="width: 90px; text-align: center; font-size: 10px; padding: 4px;">IMPR</th>
+        <th style="width: 70px; text-align: center; font-size: 10px; padding: 4px;">CLICKS</th>
+        <th style="width: 70px; text-align: center; font-size: 10px; padding: 4px;">CTR %</th>
+        <th style="width: 85px; text-align: center; font-size: 10px; padding: 4px;">COST</th>
+        <th style="width: 85px; text-align: center; font-size: 10px; padding: 4px;">REVENUE</th>
+        <th style="width: 70px; text-align: center; font-size: 10px; padding: 4px;">ROAS</th>
       </tr>
     </thead>
     <tbody>
@@ -4096,83 +4160,83 @@ async function toggleImagesRowExpansion(row) {
     const ctrColor = m.ctr > avgCtr ? '#22c55e' : '#ef4444';
     
     expandedHTML += `
-      <tr style="background: ${isCurrentImage ? 'rgba(102, 126, 234, 0.05)' : 'white'}; border-bottom: 1px solid #f0f2f5;">
-        <td style="text-align: center; padding: 12px;">
+      <tr style="height: 70px; background: ${isCurrentImage ? 'rgba(102, 126, 234, 0.05)' : 'white'}; border-bottom: 1px solid #f0f2f5;">
+        <td style="text-align: center; padding: 6px;">
           <div style="position: relative; display: inline-block;">
             <img src="${imageMetric.thumbnail}" 
-                 style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; 
-                        border: ${isCurrentImage ? '3px solid #667eea' : '2px solid #e9ecef'}; background: #f8f9fa;"
+                 style="width: 60px; height: 60px; object-fit: contain; border-radius: 6px; 
+                        border: ${isCurrentImage ? '2px solid #667eea' : '1px solid #e9ecef'}; background: #f8f9fa;"
                  onerror="this.style.display='none'">
-            ${isCurrentImage ? '<div style="position: absolute; top: -8px; right: -8px; background: #667eea; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 600;">CURRENT</div>' : ''}
+            ${isCurrentImage ? '<div style="position: absolute; top: -6px; right: -6px; background: #667eea; color: white; font-size: 8px; padding: 1px 4px; border-radius: 6px; font-weight: 600;">NOW</div>' : ''}
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
-          <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">
+        <td style="text-align: center; padding: 4px;">
+          <div style="font-size: 11px; font-weight: 600; color: #333;">
             ${imageMetric.startDateStr}
           </div>
-          <div style="font-size: 11px; color: #666;">to</div>
-          <div style="font-size: 12px; font-weight: 600; color: #333; margin-top: 4px;">
+          <div style="font-size: 9px; color: #999; margin: 2px 0;">to</div>
+          <div style="font-size: 11px; font-weight: 600; color: #333;">
             ${imageMetric.endDateStr}
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
-          <span style="font-weight: 700; color: #667eea; font-size: 16px;">${m.daysActive}</span>
+        <td style="text-align: center; padding: 4px;">
+          <span style="font-weight: 700; color: #667eea; font-size: 14px;">${m.daysActive}</span>
         </td>
-        <td style="text-align: center; padding: 8px;">
+        <td style="text-align: center; padding: 4px;">
           <div style="position: relative;">
             ${maxImpressions > 0 && m.impressions > 0 ? 
               `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
-                    height: 24px; width: ${(m.impressions / maxImpressions * 100)}%; 
+                    height: 20px; width: ${(m.impressions / maxImpressions * 100)}%; 
                     background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
-                    border-radius: 4px; z-index: 0;"></div>` : ''}
-            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+                    border-radius: 3px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
               ${m.impressions > 0 ? m.impressions.toLocaleString() : '-'}
             </span>
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
+        <td style="text-align: center; padding: 4px;">
           <div style="position: relative;">
             ${maxClicks > 0 && m.clicks > 0 ? 
               `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
-                    height: 24px; width: ${(m.clicks / maxClicks * 100)}%; 
+                    height: 20px; width: ${(m.clicks / maxClicks * 100)}%; 
                     background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
-                    border-radius: 4px; z-index: 0;"></div>` : ''}
-            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+                    border-radius: 3px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
               ${m.clicks > 0 ? m.clicks.toLocaleString() : '-'}
             </span>
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
-          <span style="font-size: 16px; font-weight: 700; color: ${ctrColor};">
+        <td style="text-align: center; padding: 4px;">
+          <span style="font-size: 14px; font-weight: 700; color: ${m.ctr > 0 ? ctrColor : '#adb5bd'};">
             ${m.ctr > 0 ? m.ctr.toFixed(2) + '%' : '-'}
           </span>
         </td>
-        <td style="text-align: center; padding: 8px;">
+        <td style="text-align: center; padding: 4px;">
           <div style="position: relative;">
             ${maxCost > 0 && m.cost > 0 ? 
               `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
-                    height: 24px; width: ${(m.cost / maxCost * 100)}%; 
+                    height: 20px; width: ${(m.cost / maxCost * 100)}%; 
                     background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
-                    border-radius: 4px; z-index: 0;"></div>` : ''}
-            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+                    border-radius: 3px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
               ${m.cost > 0 ? '$' + m.cost.toFixed(2) : '-'}
             </span>
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
+        <td style="text-align: center; padding: 4px;">
           <div style="position: relative;">
             ${maxRevenue > 0 && m.convValue > 0 ? 
               `<div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
-                    height: 24px; width: ${(m.convValue / maxRevenue * 100)}%; 
+                    height: 20px; width: ${(m.convValue / maxRevenue * 100)}%; 
                     background: linear-gradient(90deg, rgba(102, 126, 234, 0.15), rgba(102, 126, 234, 0.05)); 
-                    border-radius: 4px; z-index: 0;"></div>` : ''}
-            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 13px;">
+                    border-radius: 3px; z-index: 0;"></div>` : ''}
+            <span style="position: relative; z-index: 1; font-weight: 600; font-size: 12px;">
               ${m.convValue > 0 ? '$' + m.convValue.toFixed(2) : '-'}
             </span>
           </div>
         </td>
-        <td style="text-align: center; padding: 8px;">
-          <span class="titles-roas-indicator ${roasClass}" style="font-size: 13px; padding: 4px 8px;">
+        <td style="text-align: center; padding: 4px;">
+          <span class="titles-roas-indicator ${roasClass}" style="font-size: 11px; padding: 3px 6px;">
             ${m.roas > 0 ? m.roas.toFixed(2) + 'x' : '-'}
           </span>
         </td>
@@ -4182,7 +4246,7 @@ async function toggleImagesRowExpansion(row) {
   
   expandedHTML += '</tbody></table>';
   
-  // Add summary insights
+  // Add compact summary insights if there are multiple images
   if (imageMetrics.length > 1) {
     const bestCtrImage = imageMetrics.reduce((best, current) => 
       current.metrics.ctr > best.metrics.ctr ? current : best
@@ -4191,16 +4255,16 @@ async function toggleImagesRowExpansion(row) {
       current.metrics.roas > best.metrics.roas ? current : best
     );
     
-    expandedHTML += `
-      <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 8px; border-left: 4px solid #667eea;">
-        <div style="font-weight: 600; color: #333; margin-bottom: 8px; font-size: 13px;">📊 Performance Insights:</div>
-        <div style="font-size: 12px; color: #666; line-height: 1.6;">
-          • Best CTR: Image from ${bestCtrImage.startDateStr} (${bestCtrImage.metrics.ctr.toFixed(2)}%)<br>
-          • Best ROAS: Image from ${bestRoasImage.startDateStr} (${bestRoasImage.metrics.roas.toFixed(2)}x)<br>
-          • Total Images Tested: ${imageMetrics.length}
+    if (bestCtrImage.metrics.ctr > 0 || bestRoasImage.metrics.roas > 0) {
+      expandedHTML += `
+        <div style="margin-top: 8px; padding: 8px 10px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 6px; border-left: 3px solid #667eea;">
+          <div style="font-size: 11px; color: #666; line-height: 1.5;">
+            ${bestCtrImage.metrics.ctr > 0 ? `<span style="color: #22c55e; font-weight: 600;">↑</span> Best CTR: ${bestCtrImage.startDateStr} (${bestCtrImage.metrics.ctr.toFixed(2)}%) &nbsp;&nbsp;` : ''}
+            ${bestRoasImage.metrics.roas > 0 ? `<span style="color: #22c55e; font-weight: 600;">↑</span> Best ROAS: ${bestRoasImage.startDateStr} (${bestRoasImage.metrics.roas.toFixed(2)}x)` : ''}
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
   }
   
   expandedHTML += '</div>';
