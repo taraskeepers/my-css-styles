@@ -499,15 +499,21 @@ console.log(`[🆕 NEW CODE] Data check passed - continuing with normal flow`);
   // 9) Wrap up
   console.log("[renderProjects] ✅ Finished rendering projects successfully.");
 
-  // 🌟 Optionally auto-highlight a default project (e.g. project_number=1)
-  const defaultProjectNum = 1;
-  const defaultProjectItem = document.querySelector(`.project-menu-item[project-number="${defaultProjectNum}"]`);
+// 🌟 Auto-highlight the first available project (not hardcoded to pr1)
+const sortedProjects = [...window.projectData].sort((a, b) => a.project_number - b.project_number);
+const firstAvailableProjectNum = sortedProjects.length > 0 ? sortedProjects[0].project_number : null;
+
+if (firstAvailableProjectNum) {
+  const defaultProjectItem = document.querySelector(`.project-menu-item[project-number="${firstAvailableProjectNum}"]`);
   if (defaultProjectItem) {
     defaultProjectItem.classList.add("selected");
-    console.log("[renderProjects] 🌟 Highlighted default project-menu-item => project_number =", defaultProjectNum);
+    console.log("[renderProjects] 🌟 Highlighted first available project => project_number =", firstAvailableProjectNum);
   } else {
-    console.warn("[renderProjects] ⚠️ No matching project-menu-item found for default project_number =", defaultProjectNum);
+    console.warn("[renderProjects] ⚠️ No matching project-menu-item found for project_number =", firstAvailableProjectNum);
   }
+} else {
+  console.warn("[renderProjects] ⚠️ No projects available to auto-select");
+}
     // Update company selector after rendering projects
   if (typeof updateCompanySelector === 'function') {
     updateCompanySelector();
