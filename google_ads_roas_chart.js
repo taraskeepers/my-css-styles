@@ -102,6 +102,25 @@ function setupBucketDateRangeSelector() {
   }
 }
 
+function createROASChartsContainer(parentElement) {
+  const roasChartsContainer = document.createElement('div');
+  roasChartsContainer.id = 'roas_charts';
+  roasChartsContainer.className = 'google-ads-charts-container';
+  roasChartsContainer.style.cssText = `
+    width: 1195px;
+    height: 400px;
+    margin: 60px 0 20px 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 20px;
+    display: none;
+  `;
+  parentElement.appendChild(roasChartsContainer);
+}
+
+window.createROASChartsContainer = createROASChartsContainer;
+
 // Main function to render ROAS historic charts
 async function renderROASHistoricCharts(container, data) {
   container.innerHTML = '';
