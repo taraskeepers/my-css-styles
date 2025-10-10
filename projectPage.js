@@ -2240,12 +2240,15 @@ function renderProjectMarketShareChart(projectData) {
     window.projectMarketShareChartInstance = null;
   }
 
-  // 1) Build daily data => .deskAvg, .mobAvg, .totalAvg
+// 1) Build daily data => .deskAvg, .mobAvg, .totalAvg
   const dailyArr = buildProjectDailyAveragesFromCompanyStats();
   if (!Array.isArray(dailyArr) || !dailyArr.length) {
     chartEl.innerHTML = "<p>No valid daily data for projectMarketShareChart</p>";
     return;
   }
+
+  // Calculate actual days shown
+  const daysShown = dailyArr.length;
 
   // 2) Create 3 stacked series:
   //    (index 0) => All Devices, (index 1) => Desktop Only, (index 2) => Mobile Only
@@ -2405,8 +2408,39 @@ yaxis: {
     }
   };
 
+// Clear and add date range label
   chartEl.innerHTML = "";
-  window.projectMarketShareChartInstance = new ApexCharts(chartEl, options);
+  
+  // Create wrapper for chart and label
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "relative";
+  wrapper.style.width = "100%";
+  wrapper.style.height = "100%";
+  
+  // Create label
+  const dateLabel = document.createElement("div");
+  dateLabel.textContent = `Last ${daysShown} days`;
+  dateLabel.style.position = "absolute";
+  dateLabel.style.top = "0";
+  dateLabel.style.right = "10px";
+  dateLabel.style.fontSize = "11px";
+  dateLabel.style.color = "#666";
+  dateLabel.style.fontWeight = "600";
+  dateLabel.style.zIndex = "10";
+  dateLabel.style.background = "white";
+  dateLabel.style.padding = "2px 6px";
+  dateLabel.style.borderRadius = "4px";
+  
+  // Create chart container
+  const chartContainer = document.createElement("div");
+  chartContainer.style.width = "100%";
+  chartContainer.style.height = "100%";
+  
+  wrapper.appendChild(dateLabel);
+  wrapper.appendChild(chartContainer);
+  chartEl.appendChild(wrapper);
+  
+  window.projectMarketShareChartInstance = new ApexCharts(chartContainer, options);
   window.projectMarketShareChartInstance.render();
 }
 
@@ -3205,9 +3239,15 @@ const mobileRecord = window.companyStatsData.find(row => {
     dailyData.push(dayObj);
   });
 
-  console.log(`[buildProjectDailyAveragesFromCompanyStats] Built ${dailyData.length} daily data points`);
+console.log(`[buildProjectDailyAveragesFromCompanyStats] Built ${dailyData.length} daily data points`);
   if (dailyData.length > 0) {
     console.log("[buildProjectDailyAveragesFromCompanyStats] Sample data:", dailyData[0]);
+  }
+
+  // Limit to last 30 days
+  if (dailyData.length > 30) {
+    dailyData.splice(0, dailyData.length - 30);
+    console.log(`[buildProjectDailyAveragesFromCompanyStats] Limited to last 30 days`);
   }
 
   return dailyData;
