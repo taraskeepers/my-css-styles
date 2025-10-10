@@ -2154,6 +2154,9 @@ function syncPMPFilters(fromType) {
 
 // Apply PM Products title filters - now works independently per type
 function applyPMPFilters(type) {
+  // Map type to data key (handle case difference)
+  const dataKey = type === 'mycompany' ? 'myCompany' : 'competitors';
+  
   const tagsContainerId = type === 'mycompany' ? 'pmpMyCompanyFilterTags' : 'pmpCompetitorsFilterTags';
   const listId = type === 'mycompany' ? 'pmpMyCompanyProductsList' : 'pmpCompetitorsProductsList';
   
@@ -2165,8 +2168,8 @@ function applyPMPFilters(type) {
     return;
   }
   
-  // Check if data is loaded for this type
-  if (!allProductsData[type] || allProductsData[type].length === 0) {
+  // Check if data is loaded for this type (use dataKey)
+  if (!allProductsData[dataKey] || allProductsData[dataKey].length === 0) {
     console.log('[PM Products] No data loaded yet for type:', type);
     return;
   }
@@ -2178,8 +2181,8 @@ function applyPMPFilters(type) {
   container.classList.add('filtering');
   
   setTimeout(() => {
-    // Get filtered products (with existing bucket/discount filters)
-    let filteredProducts = getFilteredProducts(type);
+    // Get filtered products (with existing bucket/discount filters) - use dataKey
+    let filteredProducts = getFilteredProducts(dataKey);
     
     // Apply title filters
     if (filterTexts.length > 0) {
