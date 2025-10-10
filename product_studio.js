@@ -4110,7 +4110,7 @@ async function toggleImagesRowExpansion(row) {
   });
   
   // Build expanded content with tight design
-  let expandedHTML = '<div class="product-studio-expanded-content" style="padding: 8px 12px;">';
+  let expandedHTML = '<div class="product-studio-expanded-content">';
   
   // Create comparison table with minimal spacing
   expandedHTML += '<table class="product-studio-table" style="width: 100%; background: white; margin: 0;">';
