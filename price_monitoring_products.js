@@ -2157,13 +2157,25 @@ function applyPMPFilters(type) {
   const tagsContainerId = type === 'mycompany' ? 'pmpMyCompanyFilterTags' : 'pmpCompetitorsFilterTags';
   const listId = type === 'mycompany' ? 'pmpMyCompanyProductsList' : 'pmpCompetitorsProductsList';
   
+  const container = document.getElementById(listId);
+  
+  // Check if container exists
+  if (!container) {
+    console.log('[PM Products] Container not found for type:', type);
+    return;
+  }
+  
+  // Check if data is loaded for this type
+  if (!allProductsData[type] || allProductsData[type].length === 0) {
+    console.log('[PM Products] No data loaded yet for type:', type);
+    return;
+  }
+  
   const tags = document.querySelectorAll(`#${tagsContainerId} .pmp-filter-tag`);
   const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
   
-  const container = document.getElementById(listId);
-  
   // Add filtering animation
-  if (container) container.classList.add('filtering');
+  container.classList.add('filtering');
   
   setTimeout(() => {
     // Get filtered products (with existing bucket/discount filters)
@@ -3785,8 +3797,8 @@ if (products.length === 0) {
     // Update summary
     updateMyCompanySummary(products, myCompanyData);
     
-    // Use filterProducts to render with proper sorting
-    filterProducts();
+// Filter only myCompany list
+applyPMPFilters('mycompany');
   })();
 }   
         db.close();
@@ -3912,8 +3924,8 @@ if (allProductsData.competitors.length === 0) {
   (async () => {
     await updateCompetitorsSummary(allProductsData.competitors);
     
-    // Use filterProducts to render with proper sorting
-    filterProducts();
+// Filter only competitors list
+applyPMPFilters('competitors');
   })();
 }
         db.close();
