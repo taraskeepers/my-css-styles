@@ -2212,7 +2212,17 @@ function renderProductInfoCharts(productData, mode = 'channel') {
       key: 'roas', 
       label: 'ROAS', 
       formatter: (val) => val.toFixed(2) + 'x'
-    }
+    },
+    { 
+  key: 'aov', 
+  label: 'AOV', 
+  formatter: (val) => '$' + val.toFixed(0)  // Changed from toFixed(2) to toFixed(0)
+},
+{ 
+  key: 'cpa', 
+  label: 'CPA', 
+  formatter: (val) => '$' + val.toFixed(0)  // Changed from toFixed(2) to toFixed(0)
+}
   ];
   
   // Create charts for each metric
