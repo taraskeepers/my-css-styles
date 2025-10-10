@@ -1,26 +1,3 @@
-// At the very top of google_ads.js, add dependency check:
-(function() {
-  // Check if additional modules are loaded
-  if (!window.GoogleAdsModules || !window.GoogleAdsModules.Charts) {
-    console.error('CRITICAL: google_ads_additional.js must be loaded before google_ads.js');
-    console.error('Please ensure script loading order is correct:');
-    console.error('1. google_ads_additional.js');
-    console.error('2. google_ads.js');
-    return;
-  }
-  
-  // Check external dependencies
-  const requiredLibs = [
-    { name: 'Chart.js', check: typeof Chart !== 'undefined' },
-    { name: 'moment.js', check: typeof moment !== 'undefined' }
-  ];
-  
-  const missingLibs = requiredLibs.filter(lib => !lib.check);
-  if (missingLibs.length > 0) {
-    console.warn('Missing required libraries:', missingLibs.map(l => l.name).join(', '));
-  }
-})();
-
 window.pendingGoogleAdsCharts = [];
 window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
@@ -5348,6 +5325,236 @@ while (currentDate.isSameOrBefore(maxDate)) {
           },
           grid: {
             drawOnChartArea: false // Don't draw grid lines for right axis
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderAvgPositionChartGoogleAds(container, products) {
+  if (!Chart.defaults.plugins.annotation) {
+    console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+  }
+  
+  container.innerHTML = '';
+  container.style.padding = '20px';
+  
+  container.selectedProductIndex = null;
+  container.chartInstance = null;
+  
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+  
+// Use today's date as the latest date, always show last 30 days
+const maxDate = moment().startOf('day');
+const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including today
+
+// Create array of exactly 30 dates
+const dateArray = [];
+let currentDate = minDate.clone();
+while (currentDate.isSameOrBefore(maxDate)) {
+  dateArray.push(currentDate.format('YYYY-MM-DD'));
+  currentDate.add(1, 'day');
+}
+  
+  const datasets = [];
+
+  products.forEach((product, index) => {
+    const positionData = dateArray.map(dateStr => {
+      const histItem = product.historical_data?.find(item => 
+        item.date?.value === dateStr
+      );
+      return histItem?.avg_position ? parseFloat(histItem.avg_position) : null;
+    });
+    
+    const visibilityData = dateArray.map(dateStr => {
+      const histItem = product.historical_data?.find(item => 
+        item.date?.value === dateStr
+      );
+      if (histItem?.visibility) {
+        const visValue = parseFloat(histItem.visibility) * 100;
+        return Math.round(visValue * 10) / 10;
+      }
+      return 0;
+    });
+      
+    let color;
+    if (product.product_status === 'inactive') {
+      color = '#999999';
+    } else {
+      const colors = [
+        '#007aff', '#ff3b30', '#4cd964', '#ff9500', '#5856d6',
+        '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482', '#af52de'
+      ];
+      color = colors[index % colors.length];
+    }
+    
+    datasets.push({
+      label: product.title?.substring(0, 30) + (product.title?.length > 30 ? '...' : ''),
+      data: positionData,
+      borderColor: color,
+      backgroundColor: color + '20',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: true,
+      yAxisID: 'y',
+      type: 'line',
+      productIndex: index,
+      dataType: 'position',
+      segment: {
+        borderDash: (ctx) => {
+          const p0 = ctx.p0;
+          const p1 = ctx.p1;
+          if (p0.skip || p1.skip) {
+            return [5, 5];
+          }
+          return undefined;
+        }
+      }
+    });
+    
+    datasets.push({
+      label: product.title?.substring(0, 30) + ' (Visibility)',
+      data: visibilityData,
+      borderColor: color,
+      backgroundColor: color + '30',
+      borderWidth: 2,
+      fill: true,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: false,
+      yAxisID: 'y1',
+      type: 'line',
+      hidden: true,
+      productIndex: index,
+      dataType: 'visibility'
+    });
+  });
+  
+  container.chartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: dateArray,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        annotation: {
+          annotations: {
+            top8Area: {
+              type: 'box',
+              yScaleID: 'y',
+              yMin: 1,
+              yMax: 8,
+              backgroundColor: 'rgba(144, 238, 144, 0.2)',
+              borderColor: 'rgba(144, 238, 144, 0.4)',
+              borderWidth: 1,
+              borderDash: [5, 5],
+              label: {
+                content: 'TOP 8',
+                enabled: true,
+                position: 'start',
+                color: '#4CAF50',
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              if (context.parsed.y !== null) {
+                if (context.dataset.dataType === 'visibility') {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                } else {
+                  return context.dataset.label + ': ' + context.parsed.y.toFixed(1);
+                }
+              }
+              return context.dataset.label + ': No data';
+            },
+            filter: function(tooltipItem) {
+              return !tooltipItem.dataset.hidden;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          title: {
+            display: true,
+            text: 'Date',
+            font: { size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            font: { size: 10 },
+            autoSkip: true,
+            maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
+          },
+          grid: {
+            display: true,
+            drawBorder: true,
+            drawOnChartArea: true,
+            drawTicks: true
+          }
+        },
+        y: {
+          type: 'linear',
+          position: 'left',
+          reverse: true,
+          min: 1,
+          max: 40,
+          title: {
+            display: true,
+            text: 'Average Position',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 5
+          }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Visibility (%)',
+            font: { size: 12 }
+          },
+          ticks: {
+            font: { size: 10 },
+            stepSize: 20,
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            drawOnChartArea: false
           }
         }
       }
@@ -11507,13 +11714,7 @@ if (typeof window !== 'undefined') {
 // Export the function
 if (typeof window !== 'undefined') {
 window.renderGoogleAdsTable = renderGoogleAdsTable;
-  window.renderAvgPositionChartGoogleAds = function(container, products) {
-    if (!window.GoogleAdsModules || !window.GoogleAdsModules.Charts) {
-      console.error('google_ads_additional.js must be loaded first');
-      return;
-    }
-    return window.GoogleAdsModules.Charts.renderAvgPositionChart(container, products);
-  };
+window.renderAvgPositionChartGoogleAds = renderAvgPositionChartGoogleAds;
 window.updateChartLineVisibilityGoogleAds = updateChartLineVisibilityGoogleAds;
 window.renderGoogleAdsPositionChart = renderGoogleAdsPositionChart;
 window.calculateGoogleAdsProductMetricsByDevice = calculateGoogleAdsProductMetricsByDevice;
