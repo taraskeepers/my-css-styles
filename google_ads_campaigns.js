@@ -494,7 +494,7 @@ function addCampaignsStyles() {
 .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
 
 .camp-table-modern th:nth-child(5),
-.camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
+.camp-table-modern td:nth-child(5) { width: 220px; } /* Product Title */
       
       /* All metric columns - max 90px */
       .camp-table-modern th.metric-col,
@@ -519,11 +519,11 @@ function addCampaignsStyles() {
       }
       
       /* Table body */
-      .camp-table-modern tbody tr {
-        border-bottom: 1px solid #f0f2f5;
-        transition: background 0.15s ease;
-        height: 70px;
-      }
+.camp-table-modern tbody tr {
+  border-bottom: 1px solid #f0f2f5;
+  transition: background 0.15s ease;
+  height: 90px;
+}
       
       .camp-table-modern tbody tr:hover {
         background: rgba(0, 122, 255, 0.02);
@@ -543,13 +543,13 @@ function addCampaignsStyles() {
         background: #f5f7fa;
       }
       
-      .camp-table-modern td {
-        padding: 8px;
-        font-size: 13px;
-        color: #495057;
-        vertical-align: middle;
-        height: 70px;
-      }
+.camp-table-modern td {
+  padding: 8px;
+  font-size: 13px;
+  color: #495057;
+  vertical-align: middle;
+  height: 90px;
+}
       
       .camp-table-modern tr.device-row td {
         height: 40px;
@@ -659,19 +659,33 @@ function addCampaignsStyles() {
       }
       
       /* Product title */
-      .camp-product-title {
-        font-size: 13px;
-        font-weight: 500;
-        color: #212529;
-        line-height: 1.4;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        max-height: 56px;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-      }
+.camp-product-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #212529;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-height: 52px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  margin-bottom: 4px;
+}
+
+/* Product status badge - smaller size */
+.product-status-badge {
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+}
       
       /* Device tag */
       .camp-device-tag {
@@ -7256,12 +7270,9 @@ mainRow.className = rowClasses.join(' ');
   ${product.roas !== null && product.roas !== undefined ? 
     (product.convValue > 0 ? 
       `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` :
-      `<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #9e9e9e;">
-        <span style="display: flex; align-items: center; gap: 3px;">
-          <span style="font-size: 14px;">💤</span>
-          <span>No Sales</span>
-        </span>
-      </div>`)
+`<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: #9e9e9e;">
+  <span>No Sales</span>
+</div>`)
     : '<span style="color: #adb5bd;">-</span>'}
 </td>
       <td style="text-align: center; width: 80px;">
