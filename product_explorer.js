@@ -6629,7 +6629,9 @@ window.debugProductExplorer = function() {
 
 // AUTO-RUN AFTER 2 SECONDS WHEN ON PRODUCT EXPLORER
 setTimeout(() => {
-  if (document.getElementById('productExplorerPage')?.style.display === 'block') {
+  const productExplorerPage = document.getElementById('productExplorerPage');
+  if (productExplorerPage?.style.display === 'block') {
+    productExplorerPage.style.marginTop = '15px';
     window.debugProductExplorer();
   }
 }, 2000);
