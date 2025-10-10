@@ -2275,7 +2275,6 @@ function addPriceMonitoringStyles() {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 20px;
-  max-height: 80vh;
   overflow-y: auto;
   display: block;
 }
