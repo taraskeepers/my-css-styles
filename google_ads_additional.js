@@ -1,286 +1,485 @@
 /**
- * Google Ads Additional Functions
- * This file contains modularized chart and utility functions
- * Dependencies: Chart.js, moment.js
+ * Google Ads Additional Functions - ROAS Module
+ * Version: 1.0.0
+ * Dependencies: ApexCharts, moment.js
+ * 
+ * This module handles all ROAS (Return on Ad Spend) charts and visualizations
+ * for the Performance Overview in Google Ads
  */
 
 (function(window) {
   'use strict';
   
-  // Create namespace if it doesn't exist
+  // =================================================================
+  // NAMESPACE SETUP
+  // =================================================================
   window.GoogleAdsModules = window.GoogleAdsModules || {};
+  window.GoogleAdsModules.ROAS = window.GoogleAdsModules.ROAS || {};
   
-  // Create Charts module
-  window.GoogleAdsModules.Charts = window.GoogleAdsModules.Charts || {};
+  // Store chart instances for cleanup
+  window.roasApexCharts = window.roasApexCharts || [];
+  
+  // =================================================================
+  // MAIN ROAS LOADING FUNCTION
+  // =================================================================
   
   /**
-   * Renders average position chart for Google Ads products
-   * @param {HTMLElement} container - The container element for the chart
-   * @param {Array} products - Array of product objects with historical data
+   * Load and render ROAS buckets data
+   * This is the main entry point for ROAS visualization
    */
-  window.GoogleAdsModules.Charts.renderAvgPositionChart = function(container, products) {
-    // Check dependencies
-    if (typeof Chart === 'undefined') {
-      console.error('[GoogleAdsModules.Charts] Chart.js is required but not loaded');
-      return;
-    }
+  window.GoogleAdsModules.ROAS.loadAndRenderBuckets = async function() {
+    console.log('[ROAS.loadAndRenderBuckets] Starting...');
     
-    if (typeof moment === 'undefined') {
-      console.error('[GoogleAdsModules.Charts] moment.js is required but not loaded');
-      return;
+    try {
+      // Clean up any existing charts first
+      this.cleanupCharts();
+      
+      // Get the containers
+      const roasChartsContainer = document.getElementById('roas_charts');
+      const roasChannelsContainer = document.getElementById('roas_channels');
+      
+      if (!roasChartsContainer) {
+        console.error('[ROAS.loadAndRenderBuckets] roas_charts container not found');
+        return;
+      }
+      
+      // Load bucket data from IndexedDB
+      const bucketData = await this.loadBucketData();
+      if (!bucketData) {
+        this.showNoDataMessage(roasChartsContainer);
+        return;
+      }
+      
+      // Render main ROAS chart
+      await this.renderMainROASChart(roasChartsContainer, bucketData);
+      
+      // Render channels breakdown if container exists
+      if (roasChannelsContainer) {
+        await this.renderChannelsBreakdown(roasChannelsContainer, bucketData);
+      }
+      
+    } catch (error) {
+      console.error('[ROAS.loadAndRenderBuckets] Error:', error);
+      this.showErrorMessage(document.getElementById('roas_charts'));
     }
+  };
+  
+  // =================================================================
+  // DATA LOADING FUNCTIONS
+  // =================================================================
+  
+  /**
+   * Load bucket data from IndexedDB
+   */
+  window.GoogleAdsModules.ROAS.loadBucketData = async function() {
+    const tablePrefix = this.getProjectTablePrefix();
+    const days = window.selectedBucketDateRangeDays || 30;
+    const suffix = days === 60 ? '60d' : days === 90 ? '90d' : '30d';
+    const tableName = `${tablePrefix}googleSheets_productBuckets_${suffix}`;
     
-    if (!Chart.defaults.plugins.annotation) {
-      console.warn('Chart.js annotation plugin not loaded. Top8 area will not be displayed.');
+    console.log(`[ROAS.loadBucketData] Loading from table: ${tableName}`);
+    
+    try {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('myAppDB');
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = () => reject(new Error('Failed to open database'));
+      });
+      
+      const transaction = db.transaction(['projectData'], 'readonly');
+      const objectStore = transaction.objectStore('projectData');
+      const getRequest = objectStore.get(tableName);
+      
+      const result = await new Promise((resolve, reject) => {
+        getRequest.onsuccess = () => resolve(getRequest.result);
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+      
+      db.close();
+      
+      if (!result || !result.data) {
+        console.warn('[ROAS.loadBucketData] No data found');
+        return null;
+      }
+      
+      return result.data;
+      
+    } catch (error) {
+      console.error('[ROAS.loadBucketData] Error:', error);
+      return null;
     }
-    
+  };
+  
+  // =================================================================
+  // CHART RENDERING FUNCTIONS
+  // =================================================================
+  
+  /**
+   * Render the main ROAS chart
+   */
+  window.GoogleAdsModules.ROAS.renderMainROASChart = function(container, data) {
     // Clear container
     container.innerHTML = '';
-    container.style.padding = '20px';
     
-    container.selectedProductIndex = null;
-    container.chartInstance = null;
+    // Create chart wrapper
+    const chartWrapper = document.createElement('div');
+    chartWrapper.id = 'roasMainChart';
+    chartWrapper.style.cssText = 'width: 100%; height: 360px;';
+    container.appendChild(chartWrapper);
     
-    // Create canvas element
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    container.appendChild(canvas);
+    // Process data for the chart
+    const chartData = this.processROASData(data);
     
-    // Use today's date as the latest date, always show last 30 days
-    const maxDate = moment().startOf('day');
-    const minDate = maxDate.clone().subtract(29, 'days'); // 30 days total including today
-    
-    // Create array of exactly 30 dates
-    const dateArray = [];
-    let currentDate = minDate.clone();
-    while (currentDate.isSameOrBefore(maxDate)) {
-      dateArray.push(currentDate.format('YYYY-MM-DD'));
-      currentDate.add(1, 'day');
-    }
-    
-    const datasets = [];
-    
-    // Process each product
-    products.forEach((product, index) => {
-      const positionData = dateArray.map(dateStr => {
-        const histItem = product.historical_data?.find(item => 
-          item.date?.value === dateStr
-        );
-        return histItem?.avg_position ? 
-          parseFloat(histItem.avg_position) : null;
-      });
-      
-      const visibilityData = dateArray.map(dateStr => {
-        const histItem = product.historical_data?.find(item => 
-          item.date?.value === dateStr
-        );
-        return histItem?.top8_visibility ? 
-          parseFloat(histItem.top8_visibility) * 100 : null;
-      });
-      
-      const color = this.getProductColor ? 
-        this.getProductColor(index) : 
-        `hsl(${index * 30}, 70%, 50%)`;
-      
-      // Add position line dataset
-      datasets.push({
-        label: (product.title?.substring(0, 30) || 'Product') + 
-               (product.title?.length > 30 ? '...' : ''),
-        data: positionData,
-        borderColor: color,
-        backgroundColor: color + '20',
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.3,
-        spanGaps: true,
-        yAxisID: 'y',
-        type: 'line',
-        productIndex: index,
-        dataType: 'position',
-        segment: {
-          borderDash: (ctx) => {
-            const p0 = ctx.p0;
-            const p1 = ctx.p1;
-            if (p0.skip || p1.skip) {
-              return [5, 5];
-            }
-            return undefined;
+    // Chart configuration
+    const options = {
+      series: chartData.series,
+      chart: {
+        type: 'bar',
+        height: 350,
+        stacked: true,
+        toolbar: {
+          show: true,
+          tools: {
+            download: true,
+            selection: true,
+            zoom: true,
+            zoomin: true,
+            zoomout: true,
+            pan: true,
+            reset: true
+          }
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '55%',
+          borderRadius: 4,
+          dataLabels: {
+            position: 'center'
           }
         }
-      });
-      
-      // Add visibility area dataset (initially hidden)
-      datasets.push({
-        label: product.title?.substring(0, 30) + ' (Visibility)',
-        data: visibilityData,
-        borderColor: color,
-        backgroundColor: color + '30',
-        borderWidth: 2,
-        fill: true,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.3,
-        spanGaps: false,
-        yAxisID: 'y1',
-        type: 'line',
-        hidden: true,
-        productIndex: index,
-        dataType: 'visibility'
-      });
-    });
-    
-    // Create the chart
-    container.chartInstance = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: dateArray,
-        datasets: datasets
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
+      dataLabels: {
+        enabled: true,
+        formatter: function(val) {
+          return val > 0 ? val.toFixed(1) : '';
         },
-        plugins: {
-          legend: {
-            display: false
-          },
-          annotation: {
-            annotations: {
-              top8Area: {
-                type: 'box',
-                yScaleID: 'y',
-                yMin: 1,
-                yMax: 8,
-                backgroundColor: 'rgba(0, 255, 0, 0.05)',
-                borderColor: 'rgba(0, 255, 0, 0.2)',
-                borderWidth: 1,
-                borderDash: [5, 5],
-                label: {
-                  content: 'Top 8',
-                  enabled: true,
-                  position: 'end',
-                  font: {
-                    size: 10,
-                    style: 'italic'
-                  },
-                  color: 'rgba(0, 200, 0, 0.8)'
-                }
-              }
-            }
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                const value = context.parsed.y;
-                
-                if (context.dataset.dataType === 'position') {
-                  if (value === null) {
-                    return label + 'No data';
-                  }
-                  return label + 'Position ' + value.toFixed(1);
-                } else if (context.dataset.dataType === 'visibility') {
-                  if (value === null) {
-                    return label + 'No data';
-                  }
-                  return label + value.toFixed(1) + '% visibility';
-                }
-                
-                return label + value;
-              }
-            }
+        style: {
+          fontSize: '12px',
+          colors: ['#fff']
+        }
+      },
+      xaxis: {
+        categories: chartData.categories,
+        labels: {
+          style: {
+            fontSize: '12px'
+          }
+        }
+      },
+      yaxis: {
+        title: {
+          text: 'ROAS Value',
+          style: {
+            fontSize: '13px'
           }
         },
-        scales: {
-          x: {
-            type: 'category',
-            title: {
-              display: true,
-              text: 'Date',
-              font: { size: 12 }
-            },
-            ticks: {
-              maxRotation: 45,
-              minRotation: 45,
-              font: { size: 10 },
-              autoSkip: true,
-              maxTicksLimit: Math.max(5, Math.floor(container.offsetWidth / 50))
-            },
-            grid: {
-              display: true,
-              drawBorder: true,
-              drawOnChartArea: true,
-              drawTicks: true
-            }
-          },
-          y: {
-            type: 'linear',
-            position: 'left',
-            reverse: true,
-            min: 1,
-            max: 40,
-            title: {
-              display: true,
-              text: 'Average Position',
-              font: { size: 12 }
-            },
-            ticks: {
-              font: { size: 10 },
-              stepSize: 5
-            }
-          },
-          y1: {
-            type: 'linear',
-            position: 'right',
-            min: 0,
-            max: 100,
-            title: {
-              display: true,
-              text: 'Visibility (%)',
-              font: { size: 12 }
-            },
-            ticks: {
-              font: { size: 10 },
-              stepSize: 20,
-              callback: function(value) {
-                return value + '%';
-              }
-            },
-            grid: {
-              drawOnChartArea: false
-            }
+        labels: {
+          formatter: function(val) {
+            return val.toFixed(1);
+          }
+        }
+      },
+      colors: ['#4CAF50', '#FFC107', '#F44336', '#2196F3', '#9C27B0'],
+      legend: {
+        position: 'top',
+        horizontalAlign: 'left',
+        fontSize: '13px'
+      },
+      tooltip: {
+        y: {
+          formatter: function(val) {
+            return 'ROAS: ' + val.toFixed(2);
           }
         }
       }
-    });
+    };
     
-    // Return the chart instance for external manipulation if needed
-    return container.chartInstance;
+    // Create and render chart
+    const chart = new ApexCharts(chartWrapper, options);
+    chart.render();
+    
+    // Store chart instance for cleanup
+    window.roasApexCharts.push(chart);
   };
   
   /**
-   * Helper function to get product color
-   * @param {number} index - Product index
-   * @returns {string} Color string
+   * Render channels breakdown
    */
-  window.GoogleAdsModules.Charts.getProductColor = function(index) {
-    const colors = [
-      '#007aff', '#34c759', '#ff9500', '#ff3b30', '#5856d6',
-      '#af52de', '#ff2d55', '#5ac8fa', '#ffcc00', '#ff6482'
-    ];
-    return colors[index % colors.length];
+  window.GoogleAdsModules.ROAS.renderChannelsBreakdown = function(container, data) {
+    // Clear container
+    container.innerHTML = '';
+    
+    // Create header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      padding: 15px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    `;
+    
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Channel Performance</h3>
+      <div class="channel-filters">
+        <select id="channelTypeFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+          <option value="all">All Channels</option>
+          <option value="search">Search</option>
+          <option value="shopping">Shopping</option>
+          <option value="display">Display</option>
+          <option value="video">Video</option>
+        </select>
+      </div>
+    `;
+    
+    container.appendChild(header);
+    
+    // Create metrics grid
+    const metricsGrid = document.createElement('div');
+    metricsGrid.id = 'channelMetricsGrid';
+    metricsGrid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    `;
+    
+    container.appendChild(metricsGrid);
+    
+    // Process and display channel metrics
+    this.displayChannelMetrics(metricsGrid, data);
+    
+    // Add event listener for filter
+    document.getElementById('channelTypeFilter')?.addEventListener('change', (e) => {
+      this.filterChannelMetrics(metricsGrid, data, e.target.value);
+    });
   };
   
-  // Add any other chart-related functions here...
+  // =================================================================
+  // DATA PROCESSING FUNCTIONS
+  // =================================================================
+  
+  /**
+   * Process ROAS data for charts
+   */
+  window.GoogleAdsModules.ROAS.processROASData = function(data) {
+    // Filter for current device filter
+    const deviceFilter = window.selectedDeviceFilter || 'all';
+    const filteredData = data.filter(row => 
+      row['Campaign Name'] === 'All' && 
+      (deviceFilter === 'all' ? 
+        row['Device'] === 'All' : 
+        row['Device'] === deviceFilter)
+    );
+    
+    // Group by bucket types
+    const bucketTypes = ['PROFITABILITY_BUCKET', 'FUNNEL_STAGE_BUCKET', 'INVESTMENT_BUCKET'];
+    const categories = [];
+    const seriesData = {};
+    
+    filteredData.forEach(row => {
+      const productTitle = row['Product Title'];
+      if (!categories.includes(productTitle)) {
+        categories.push(productTitle);
+      }
+      
+      bucketTypes.forEach(bucketType => {
+        if (!seriesData[bucketType]) {
+          seriesData[bucketType] = [];
+        }
+        
+        const roasValue = parseFloat(row['ROAS']) || 0;
+        const index = categories.indexOf(productTitle);
+        seriesData[bucketType][index] = roasValue;
+      });
+    });
+    
+    // Convert to ApexCharts series format
+    const series = Object.keys(seriesData).map(bucketType => ({
+      name: bucketType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+      data: seriesData[bucketType]
+    }));
+    
+    return {
+      categories: categories.slice(0, 10), // Limit to top 10 products
+      series: series
+    };
+  };
+  
+  /**
+   * Display channel metrics
+   */
+  window.GoogleAdsModules.ROAS.displayChannelMetrics = function(container, data, filter = 'all') {
+    // Clear container
+    container.innerHTML = '';
+    
+    // Filter and aggregate data by channel
+    const channelData = this.aggregateByChannel(data, filter);
+    
+    // Create metric cards
+    Object.entries(channelData).forEach(([channel, metrics]) => {
+      const card = this.createChannelMetricCard(channel, metrics);
+      container.appendChild(card);
+    });
+  };
+  
+  /**
+   * Create channel metric card
+   */
+  window.GoogleAdsModules.ROAS.createChannelMetricCard = function(channel, metrics) {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    `;
+    
+    const roasColor = metrics.roas >= 3 ? '#4CAF50' : 
+                      metrics.roas >= 1.5 ? '#FFC107' : '#F44336';
+    
+    card.innerHTML = `
+      <div style="font-size: 13px; color: #666; margin-bottom: 8px;">${channel}</div>
+      <div style="font-size: 24px; font-weight: 700; color: ${roasColor}; margin-bottom: 10px;">
+        ${metrics.roas.toFixed(2)}
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888;">
+        <span>Cost: $${metrics.cost.toLocaleString()}</span>
+        <span>Revenue: $${metrics.revenue.toLocaleString()}</span>
+      </div>
+    `;
+    
+    return card;
+  };
+  
+  // =================================================================
+  // UTILITY FUNCTIONS
+  // =================================================================
+  
+  /**
+   * Get project table prefix
+   */
+  window.GoogleAdsModules.ROAS.getProjectTablePrefix = function() {
+    const accountPrefix = window.currentAccount || 'acc1';
+    const currentProjectNum = window.dataPrefix ? 
+      parseInt(window.dataPrefix.match(/pr(\d+)_/)?.[1]) || 1 : 1;
+    const prefix = `${accountPrefix}_pr${currentProjectNum}_`;
+    return prefix;
+  };
+  
+  /**
+   * Clean up existing charts
+   */
+  window.GoogleAdsModules.ROAS.cleanupCharts = function() {
+    if (window.roasApexCharts) {
+      window.roasApexCharts.forEach(chart => {
+        try {
+          chart.destroy();
+        } catch (e) {
+          console.warn('Error destroying chart:', e);
+        }
+      });
+      window.roasApexCharts = [];
+    }
+  };
+  
+  /**
+   * Show no data message
+   */
+  window.GoogleAdsModules.ROAS.showNoDataMessage = function(container) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+        <h3 style="margin: 0 0 10px 0; font-size: 18px;">No ROAS Data Available</h3>
+        <p style="margin: 0; font-size: 14px;">Please check your Google Sheets integration or select a different date range.</p>
+      </div>
+    `;
+  };
+  
+  /**
+   * Show error message
+   */
+  window.GoogleAdsModules.ROAS.showErrorMessage = function(container) {
+    if (!container) return;
+    
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; color: #f44336;">
+        <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+        <h3 style="margin: 0 0 10px 0; font-size: 18px;">Error Loading ROAS Data</h3>
+        <p style="margin: 0; font-size: 14px;">Please try refreshing the page or contact support if the issue persists.</p>
+      </div>
+    `;
+  };
+  
+  /**
+   * Aggregate data by channel
+   */
+  window.GoogleAdsModules.ROAS.aggregateByChannel = function(data, filter = 'all') {
+    const aggregated = {};
+    
+    data.forEach(row => {
+      const channel = row['Channel Type'] || 'Unknown';
+      
+      if (filter !== 'all' && channel.toLowerCase() !== filter.toLowerCase()) {
+        return;
+      }
+      
+      if (!aggregated[channel]) {
+        aggregated[channel] = {
+          cost: 0,
+          revenue: 0,
+          conversions: 0,
+          roas: 0
+        };
+      }
+      
+      aggregated[channel].cost += parseFloat(row['Cost']) || 0;
+      aggregated[channel].revenue += parseFloat(row['ConvValue']) || 0;
+      aggregated[channel].conversions += parseFloat(row['Conversions']) || 0;
+    });
+    
+    // Calculate ROAS for each channel
+    Object.values(aggregated).forEach(metrics => {
+      metrics.roas = metrics.cost > 0 ? metrics.revenue / metrics.cost : 0;
+    });
+    
+    return aggregated;
+  };
+  
+  /**
+   * Filter channel metrics
+   */
+  window.GoogleAdsModules.ROAS.filterChannelMetrics = function(container, data, filter) {
+    this.displayChannelMetrics(container, data, filter);
+  };
+  
+  // =================================================================
+  // EXPORT BACKWARD COMPATIBILITY WRAPPER
+  // =================================================================
+  
+  /**
+   * Backward compatibility wrapper for existing code
+   */
+  window.loadAndRenderROASBuckets = function() {
+    return window.GoogleAdsModules.ROAS.loadAndRenderBuckets();
+  };
   
 })(window);
