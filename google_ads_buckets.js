@@ -3440,12 +3440,12 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
     const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
     const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
     
-    let formattedCurrent, formattedChange;
-    switch (format) {
-      case 'currency':
-        formattedCurrent = '$' + current.toLocaleString();
-        formattedChange = '$' + Math.abs(change).toLocaleString();
-        break;
+let formattedCurrent, formattedChange;
+switch (format) {
+  case 'currency':
+    formattedCurrent = '$' + Math.round(current).toLocaleString();
+    formattedChange = '$' + Math.abs(Math.round(change)).toLocaleString();
+    break;
       case 'number':
         formattedCurrent = current.toLocaleString();
         formattedChange = Math.abs(change).toLocaleString();
@@ -3528,11 +3528,11 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       const trendClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-neutral';
       const trendArrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
       
-      let formattedValue;
-      switch (format) {
-        case 'currency':
-          formattedValue = '$' + value.toLocaleString();
-          break;
+let formattedValue;
+switch (format) {
+  case 'currency':
+    formattedValue = '$' + Math.round(value).toLocaleString();
+    break;
         case 'number':
           formattedValue = value.toLocaleString();
           break;
