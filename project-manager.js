@@ -27,6 +27,15 @@ function renderProjects() {
   console.log("[renderProjects] START - projectData:", window.projectData);
   console.log("[renderProjects] START - dataPrefix:", window.dataPrefix);
   synchronizeProjectData();
+
+  const leftCol = document.getElementById("leftColumn");
+  if (leftCol) {
+    leftCol.style.display = "flex";
+    leftCol.style.flexDirection = "column";
+    leftCol.style.height = "100vh"; // or "100%" if leftColumn is inside another container
+    leftCol.style.overflow = "hidden"; // Prevent leftColumn itself from scrolling
+  }
+  
   console.log("[renderProjects] After sync - projectData source:", 
               window.projectData === window.demoProjectData ? "DEMO" : 
               (window.projectData === window.realProjectData ? "Account 1" : "UNKNOWN"));
@@ -150,9 +159,13 @@ function renderProjects() {
   }
 
   // 3) Create a new project-list_container
-  const projectListContainer = document.createElement("div");
-  projectListContainer.id = "project-list_container";
-  leftCol.appendChild(projectListContainer);
+const projectListContainer = document.createElement("div");
+projectListContainer.id = "project-list_container";
+projectListContainer.style.flex = "1 1 auto";
+projectListContainer.style.overflowY = "auto";
+projectListContainer.style.overflowX = "hidden";
+projectListContainer.style.minHeight = "0"; // Critical for flex scrolling
+leftCol.appendChild(projectListContainer);
   console.log("[renderProjects] ➕ Created and appended new #project-list_container.");
 
   // 4) Insert a header
@@ -163,19 +176,26 @@ function renderProjects() {
   console.log("[renderProjects] ➕ Appended .projects-header inside #project-list_container.");
 
   // 5) Build a new navigation-container for settings, etc.
-  const navigationContainer = document.createElement("div");
-  navigationContainer.id = "navigation-container";
-  navigationContainer.innerHTML = `
-    <div class="menu-item" id="openSettingsPopup">
-      <img
-        src="https://static.wixstatic.com/media/0eae2a_d18b425180f6464f879f2a58fe295df6~mv2.png"
-        alt="Settings Icon"
-        class="settings-icon"
-      />
-      <span>Settings</span>
-    </div>
-  `;
-  leftCol.appendChild(navigationContainer);
+const navigationContainer = document.createElement("div");
+navigationContainer.id = "navigation-container";
+navigationContainer.style.flex = "0 0 auto"; // Don't grow, don't shrink, auto height
+navigationContainer.style.marginTop = "auto"; // Push to bottom
+navigationContainer.style.position = "sticky";
+navigationContainer.style.bottom = "0";
+navigationContainer.style.backgroundColor = "inherit"; // Match parent background
+navigationContainer.style.padding = "12px 0"; // Adjust as needed
+navigationContainer.style.borderTop = "1px solid rgba(0,0,0,0.1)"; // Optional separator
+navigationContainer.innerHTML = `
+  <div class="menu-item" id="openSettingsPopup">
+    <img
+      src="https://static.wixstatic.com/media/0eae2a_d18b425180f6464f879f2a58fe295df6~mv2.png"
+      alt="Settings Icon"
+      class="settings-icon"
+    />
+    <span>Settings</span>
+  </div>
+`;
+leftCol.appendChild(navigationContainer);
 
   const openSettingsBtn = document.getElementById("openSettingsPopup");
   const overlay = document.getElementById("settingsOverlay");
