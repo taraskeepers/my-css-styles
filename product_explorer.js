@@ -3069,7 +3069,7 @@ if (container.style.display === "none") {
   window.explorerApexCharts = [];
   
 container.innerHTML = `
-  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+  <div id="productExplorerContainer" style="width: 100%; height: calc(100vh); position: relative; display: flex;">
     <div id="productsNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'products' ? 'block' : 'none'};">
     </div>
     <div id="compNavPanel" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0; display: ${currentMode === 'companies' ? 'block' : 'none'};">
