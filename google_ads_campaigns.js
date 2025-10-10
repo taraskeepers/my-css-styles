@@ -4949,12 +4949,12 @@ function getProfitabilityBucketBadge(bucketData) {
   }
   
   const bucketConfig = {
-    'Profit Stars': { color: '#FFD700', bg: '#FFFACD', icon: '⭐' },
-    'Strong Performers': { color: '#4CAF50', bg: '#E8F5E9', icon: '💪' },
-    'Steady Contributors': { color: '#2196F3', bg: '#E3F2FD', icon: '📊' },
-    'Break-Even Products': { color: '#FF9800', bg: '#FFF3E0', icon: '⚖️' },
-    'True Losses': { color: '#F44336', bg: '#FFEBEE', icon: '📉' },
-    'Insufficient Data': { color: '#9E9E9E', bg: '#F5F5F5', icon: '❓' }
+    'Profit Stars': { color: '#FFD700', bg: '#FFFACD', icon: '' },
+    'Strong Performers': { color: '#4CAF50', bg: '#E8F5E9', icon: '' },
+    'Steady Contributors': { color: '#2196F3', bg: '#E3F2FD', icon: '' },
+    'Break-Even Products': { color: '#FF9800', bg: '#FFF3E0', icon: '' },
+    'True Losses': { color: '#F44336', bg: '#FFEBEE', icon: '' },
+    'Insufficient Data': { color: '#9E9E9E', bg: '#F5F5F5', icon: '' }
   };
   
   const config = bucketConfig[bucketValue];
@@ -4974,7 +4974,7 @@ function getProfitabilityBucketBadge(bucketData) {
       border: 1px solid ${config.color}40;
       margin-left: 6px;
     ">
-      ${config.icon} ${bucketValue}
+      ${bucketValue}
     </span>
   `;
 }
@@ -7283,13 +7283,15 @@ mainRow.className = rowClasses.join(' ');
           </div>` : 
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
-<td style="width: 300px;">
-  <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
-    <div class="camp-product-title" style="flex: 1 1 auto; min-width: 0;">${product.title}</div>
-    ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
-      `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus === 'Revenue Stars' ? '⭐' : product.sellerStatus === 'Best Sellers' ? '🏆' : '📈'} ${product.sellerStatus}</span>` : 
-      ''}
-    ${getProfitabilityBucketBadge(product.profitabilityBucket)}
+<td style="width: 220px;">
+  <div style="display: flex; flex-direction: column;">
+    <div class="camp-product-title">${product.title}</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+      ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
+        `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus}</span>` : 
+        ''}
+      ${getProfitabilityBucketBadge(product.profitabilityBucket)}
+    </div>
   </div>
 </td>
     `;
