@@ -1221,6 +1221,95 @@ function addProductsViewStyles() {
   font-weight: 600;
   text-align: center;
 }
+
+/* Title filter styles for PM Products */
+.pmp-filter-section {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: auto;
+  position: relative;
+}
+
+.pmp-title-filter {
+  position: relative;
+  width: 280px;
+}
+
+.pmp-filter-input {
+  width: 100%;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #333;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.pmp-filter-input::placeholder {
+  color: #999;
+}
+
+.pmp-filter-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* Filter tags container */
+.pmp-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 28px;
+}
+
+.pmp-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 16px;
+  font-size: 11px;
+  color: #667eea;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.pmp-filter-tag-text {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmp-filter-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 10px;
+  color: #667eea;
+}
+
+.pmp-filter-tag-remove:hover {
+  background: #667eea;
+  color: white;
+}
       
     </style>
   `;
@@ -1346,13 +1435,23 @@ let html = `
   </div>
   
   <!-- MOVED: Sort buttons now below summary -->
-  <div class="pmp-products-header-row">
-    <div class="pmp-sort-buttons">
-      <button class="pmp-sort-btn active" data-sort="high" data-target="mycompany">$↓</button>
-      <button class="pmp-sort-btn" data-sort="low" data-target="mycompany">$↑</button>
-      <button class="pmp-filter-btn" data-target="mycompany">%</button>
+<div class="pmp-products-header-row">
+  <div class="pmp-sort-buttons">
+    <button class="pmp-sort-btn active" data-sort="high" data-target="mycompany">$↓</button>
+    <button class="pmp-sort-btn" data-sort="low" data-target="mycompany">$↑</button>
+    <button class="pmp-filter-btn" data-target="mycompany">%</button>
+  </div>
+  <div class="pmp-filter-section">
+    <div class="pmp-title-filter">
+      <input type="text" 
+             class="pmp-filter-input" 
+             id="pmpFilterInput" 
+             placeholder="🔍 Filter by title... (Press Enter)" 
+             autocomplete="off">
+      <div class="pmp-filter-tags" id="pmpFilterTags"></div>
     </div>
   </div>
+</div>
   
   <div id="pmpMyCompanyProductsList" class="pmp-products-list">
     <div class="pmp-loading">Loading products...</div>
@@ -1402,13 +1501,14 @@ let html = `
   </div>
   
   <!-- MOVED: Sort buttons now below summary -->
-  <div class="pmp-products-header-row">
-    <div class="pmp-sort-buttons">
-      <button class="pmp-sort-btn active" data-sort="high" data-target="competitors">$↓</button>
-      <button class="pmp-sort-btn" data-sort="low" data-target="competitors">$↑</button>
-      <button class="pmp-filter-btn" data-target="competitors">%</button>
-    </div>
+<div class="pmp-products-header-row">
+  <div class="pmp-sort-buttons">
+    <button class="pmp-sort-btn active" data-sort="high" data-target="competitors">$↓</button>
+    <button class="pmp-sort-btn" data-sort="low" data-target="competitors">$↑</button>
+    <button class="pmp-filter-btn" data-target="competitors">%</button>
   </div>
+  <!-- Filter shared with My Products, so only show once -->
+</div>
   
   <div id="pmpCompetitorsProductsList" class="pmp-products-list">
     <div class="pmp-loading">Loading competitor products...</div>
@@ -1462,6 +1562,11 @@ document.querySelectorAll('.pmp-filter-btn').forEach(btn => {
     filterProducts();
   });
 });
+
+// Initialize title filter
+setTimeout(() => {
+  initializePMPFilter();
+}, 100);
     
     // Load products for both containers
     await loadMyCompanyProducts(companyName);
@@ -1870,6 +1975,210 @@ function filterProducts() {
       if (competitorsList) competitorsList.classList.remove('filtering');
     }, 100);
   }, 300);
+}
+
+// Initialize title filter functionality for PM Products
+function initializePMPFilter() {
+  const filterInput = document.getElementById('pmpFilterInput');
+  if (filterInput) {
+    filterInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const filterText = e.target.value.trim();
+        if (filterText.length > 0) {
+          addPMPFilterTag(filterText);
+          e.target.value = '';
+        }
+      }
+    });
+  }
+}
+
+// Add filter tag for PM Products
+function addPMPFilterTag(filterText) {
+  const tagsContainer = document.getElementById('pmpFilterTags');
+  if (!tagsContainer) return;
+  
+  // Check if filter already exists
+  const existingTags = Array.from(tagsContainer.querySelectorAll('.pmp-filter-tag'));
+  if (existingTags.some(tag => tag.dataset.filterText.toLowerCase() === filterText.toLowerCase())) {
+    return;
+  }
+  
+  const tag = document.createElement('div');
+  tag.className = 'pmp-filter-tag';
+  tag.dataset.filterText = filterText;
+  tag.innerHTML = `
+    <span class="pmp-filter-tag-text" title="${filterText}">${filterText}</span>
+    <span class="pmp-filter-tag-remove">✕</span>
+  `;
+  
+  // Add remove handler
+  tag.querySelector('.pmp-filter-tag-remove').addEventListener('click', function(e) {
+    e.stopPropagation();
+    tag.remove();
+    applyPMPFilters();
+  });
+  
+  tagsContainer.appendChild(tag);
+  
+  // Apply filters immediately after adding the tag
+  applyPMPFilters();
+}
+
+// Apply PM Products title filters to both lists
+function applyPMPFilters() {
+  const tags = document.querySelectorAll('#pmpFilterTags .pmp-filter-tag');
+  const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+  
+  // If no text filters, just use the existing filterProducts function
+  if (filterTexts.length === 0) {
+    filterProducts();
+    return;
+  }
+  
+  // Apply text filters ON TOP of existing filters
+  const myCompanyList = document.getElementById('pmpMyCompanyProductsList');
+  const competitorsList = document.getElementById('pmpCompetitorsProductsList');
+  
+  // Add filtering animation
+  if (myCompanyList) myCompanyList.classList.add('filtering');
+  if (competitorsList) competitorsList.classList.add('filtering');
+  
+  setTimeout(() => {
+    // Get filtered products (with existing bucket/discount filters)
+    let myCompanyFiltered = getFilteredProducts('myCompany');
+    let competitorsFiltered = getFilteredProducts('competitors');
+    
+    // Apply title filters
+    if (filterTexts.length > 0) {
+      myCompanyFiltered = myCompanyFiltered.filter(p => {
+        const title = p.title.toLowerCase();
+        return filterTexts.every(filterText => 
+          title.includes(filterText.toLowerCase())
+        );
+      });
+      
+      competitorsFiltered = competitorsFiltered.filter(p => {
+        const title = p.title.toLowerCase();
+        return filterTexts.every(filterText => 
+          title.includes(filterText.toLowerCase())
+        );
+      });
+    }
+    
+    // Render filtered products
+    renderPMProductsFilteredDirect(myCompanyFiltered, myCompanyList, 'myCompany');
+    renderPMProductsFilteredDirect(competitorsFiltered, competitorsList, 'competitors');
+    
+    // Update summaries with filtered data
+    updateMyCompanySummaryWithFiltered(myCompanyFiltered);
+    updateCompetitorsSummaryWithFiltered(competitorsFiltered);
+    
+    // Remove filtering animation
+    setTimeout(() => {
+      if (myCompanyList) myCompanyList.classList.remove('filtering');
+      if (competitorsList) competitorsList.classList.remove('filtering');
+    }, 100);
+  }, 300);
+}
+
+// Helper function to render products directly from array
+function renderPMProductsFilteredDirect(products, container, type) {
+  if (!container) return;
+  
+  // Find special products
+  let cheapestProduct = null;
+  let mostExpensiveProduct = null;
+
+  if (products.length > 0) {
+    const sortedByPrice = [...products].sort((a, b) => {
+      const priceA = typeof a.price === 'string' ? 
+        parseFloat(a.price.replace(/[^0-9.-]/g, '')) : parseFloat(a.price) || 0;
+      const priceB = typeof b.price === 'string' ? 
+        parseFloat(b.price.replace(/[^0-9.-]/g, '')) : parseFloat(b.price) || 0;
+      return priceA - priceB;
+    });
+    
+    cheapestProduct = sortedByPrice[0];
+    mostExpensiveProduct = sortedByPrice[sortedByPrice.length - 1];
+  }
+  
+  if (products.length === 0) {
+    container.innerHTML = `<div class="pmp-no-products">No products match the filters</div>`;
+  } else {
+    let html = '';
+    products.forEach(product => {
+      const title = product.title || 'Untitled Product';
+      const priceValue = typeof product.price === 'string' ? 
+        parseFloat(product.price.replace(/[^0-9.-]/g, '')) : 
+        parseFloat(product.price);
+      const oldPriceValue = product.old_price ? 
+        (typeof product.old_price === 'string' ? 
+          parseFloat(product.old_price.replace(/[^0-9.-]/g, '')) : 
+          parseFloat(product.old_price)) : null;
+      
+      const price = !isNaN(priceValue) ? `$${priceValue.toFixed(2)}` : '—';
+      const oldPrice = oldPriceValue && !isNaN(oldPriceValue) ? `$${oldPriceValue.toFixed(2)}` : null;
+      const thumbnail = product.thumbnail || '';
+      const discountPercent = (oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue)) ? 
+        Math.round((1 - priceValue / oldPriceValue) * 100) : 0;
+      
+      // Get bucket info
+      const bucketNum = product.price_bucket || 1;
+      const bucketNames = ['', 'CHEAP', 'BUDGET', 'MID', 'UPPER', 'PREMIUM', 'ULTRA'];
+      const bucketClasses = ['', 'ultra-cheap', 'budget', 'mid', 'upper-mid', 'premium', 'ultra-premium'];
+      
+      // Check for special badges
+      let specialBadge = '';
+      
+      if (product === cheapestProduct) {
+        specialBadge = '<div class="pm-ad-special-box pm-ad-special-cheapest">CHEAPEST</div>';
+      } else if (product === mostExpensiveProduct) {
+        specialBadge = '<div class="pm-ad-special-box pm-ad-special-expensive">MOST-EXP</div>';
+      }
+      
+      const hasDiscount = oldPriceValue && priceValue && !isNaN(priceValue) && !isNaN(oldPriceValue) && oldPriceValue > priceValue;
+      if (hasDiscount && specialBadge === '') {
+        specialBadge = '<div class="pm-ad-special-box pm-ad-special-promo">PROMO</div>';
+      }
+      
+      // Create unique ID for each product element
+      const productId = `product-${type}-${products.indexOf(product)}`;
+      
+      html += `
+        <div class="pm-ad-details" id="${productId}">
+          <div class="pm-ad-image" style="${thumbnail ? `background-image: url('${thumbnail}');` : ''}">
+            ${discountPercent > 0 ? `<div class="pm-ad-discount-badge">-${discountPercent}%</div>` : ''}
+          </div>
+          <div class="pm-ad-info">
+            <div class="pm-ad-title">${title}</div>
+            <div class="pm-ad-price-container">
+              <span class="pm-ad-current-price ${oldPrice ? 'pm-ad-price-discounted' : ''}">${price}</span>
+              ${oldPrice ? `<span class="pm-ad-old-price">${oldPrice}</span>` : ''}
+              ${type === 'competitors' && product.source ? `<span class="pm-ad-source">${product.source}</span>` : ''}
+            </div>
+            ${generatePriceChangeBadges(product)}
+          </div>
+          ${specialBadge}
+          <div class="pm-ad-bucket-box pm-ad-bucket-${bucketClasses[bucketNum]}">
+            ${bucketNames[bucketNum]}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+    // Add click handlers to each product after rendering
+    products.forEach((product, index) => {
+      const productId = `product-${type}-${index}`;
+      const productElement = document.getElementById(productId);
+      if (productElement) {
+        productElement.addEventListener('click', (e) => handleProductClick(e, product, productElement));
+      }
+    });
+  }
 }
 
 // Helper function to get filtered products
