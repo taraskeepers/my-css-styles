@@ -2408,39 +2408,37 @@ yaxis: {
     }
   };
 
-// Clear and add date range label
+// Find the section-label and modify it to be a flex container
+  const chartContainer = chartEl.closest('.stats-chart-container');
+  if (chartContainer) {
+    const sectionLabel = chartContainer.querySelector('.section-label');
+    if (sectionLabel) {
+      // Convert section-label to flex container
+      sectionLabel.style.display = "flex";
+      sectionLabel.style.justifyContent = "space-between";
+      sectionLabel.style.alignItems = "center";
+      
+      // Remove any existing date label
+      const existingDateLabel = sectionLabel.querySelector('.date-range-label');
+      if (existingDateLabel) {
+        existingDateLabel.remove();
+      }
+      
+      // Create and add the date range label
+      const dateLabel = document.createElement("span");
+      dateLabel.className = "date-range-label";
+      dateLabel.textContent = `Last ${daysShown} days`;
+      dateLabel.style.fontSize = "11px";
+      dateLabel.style.color = "#888";
+      dateLabel.style.fontWeight = "600";
+      dateLabel.style.textTransform = "none";
+      
+      sectionLabel.appendChild(dateLabel);
+    }
+  }
+  
   chartEl.innerHTML = "";
-  
-  // Create wrapper for chart and label
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "relative";
-  wrapper.style.width = "100%";
-  wrapper.style.height = "100%";
-  
-  // Create label
-  const dateLabel = document.createElement("div");
-  dateLabel.textContent = `Last ${daysShown} days`;
-  dateLabel.style.position = "absolute";
-  dateLabel.style.top = "0";
-  dateLabel.style.right = "10px";
-  dateLabel.style.fontSize = "11px";
-  dateLabel.style.color = "#666";
-  dateLabel.style.fontWeight = "600";
-  dateLabel.style.zIndex = "10";
-  dateLabel.style.background = "white";
-  dateLabel.style.padding = "2px 6px";
-  dateLabel.style.borderRadius = "4px";
-  
-  // Create chart container
-  const chartContainer = document.createElement("div");
-  chartContainer.style.width = "100%";
-  chartContainer.style.height = "100%";
-  
-  wrapper.appendChild(dateLabel);
-  wrapper.appendChild(chartContainer);
-  chartEl.appendChild(wrapper);
-  
-  window.projectMarketShareChartInstance = new ApexCharts(chartContainer, options);
+  window.projectMarketShareChartInstance = new ApexCharts(chartEl, options);
   window.projectMarketShareChartInstance.render();
 }
 
