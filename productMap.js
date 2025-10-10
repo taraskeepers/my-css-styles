@@ -7599,21 +7599,8 @@ function createSegmentationChart(containerId, chartData, termParam, locParam, de
 }
   
 // Process the data into a hierarchical structure
-let projectData = buildProjectData(); // This will use the same filtering
-
-// 🔍 NEW: Filter by searchTerm if one is selected
-if (window.filterState && window.filterState.searchTerm && window.filterState.searchTerm.trim() !== "") {
-  const selectedSearchTerm = window.filterState.searchTerm.trim();
-  console.log(`[renderProductMapTable] Filtering by searchTerm: "${selectedSearchTerm}"`);
-  
-  projectData = projectData.filter(item => {
-    return item.searchTerm && item.searchTerm.toLowerCase() === selectedSearchTerm.toLowerCase();
-  });
-  
-  console.log(`[renderProductMapTable] Filtered projectData from ${buildProjectData().length} to ${projectData.length} rows`);
-}
-
-const nestedMap = {};
+const projectData = buildProjectData(); // This will use the same filtering
+let nestedMap = {};
 projectData.forEach(item => {
   const term = item.searchTerm || "(no term)";
   const loc  = item.location   || "(no loc)";
@@ -7621,6 +7608,23 @@ projectData.forEach(item => {
   if (!nestedMap[term][loc]) nestedMap[term][loc] = [];
   nestedMap[term][loc].push(item);
 });
+
+// Filter nestedMap based on window.filterState.searchTerm
+if (window.filterState && window.filterState.searchTerm && window.filterState.searchTerm.trim() !== "") {
+  const searchTermFilter = window.filterState.searchTerm.trim().toLowerCase();
+  const filteredMap = {};
+  
+  Object.keys(nestedMap).forEach(term => {
+    if (term.toLowerCase() === searchTermFilter) {
+      filteredMap[term] = nestedMap[term];
+    }
+  });
+  
+  nestedMap = filteredMap;
+  
+  console.log(`[ProductMap] Filtering table by search term: "${window.filterState.searchTerm}"`);
+  console.log(`[ProductMap] Showing ${Object.keys(nestedMap).length} search term(s)`);
+}
 
   // Create the table element (ADD THESE LINES)
 const table = document.createElement("table");
