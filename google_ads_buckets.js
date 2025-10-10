@@ -3592,7 +3592,7 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   `;
   
-  togglePanel.innerHTML = `
+togglePanel.innerHTML = `
     <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #333;">Chart Metrics</h4>
     <div style="display: flex; flex-direction: column; gap: 10px;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
@@ -3615,6 +3615,18 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
         <input type="checkbox" data-metric="cvr" checked style="cursor: pointer;">
         <span style="font-size: 12px; color: #00BCD4;">CVR %</span>
       </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="impressions" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #673AB7;">Impr</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="cost" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #E91E63;">Cost</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" data-metric="revenue" checked style="cursor: pointer;">
+        <span style="font-size: 12px; color: #009688;">Revenue</span>
+      </label>
     </div>
   `;
   
@@ -3626,13 +3638,16 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
   chartAndToggleWrapper.appendChild(wrapper);
   chartAndToggleWrapper.appendChild(togglePanel);
   
-  // Store active metrics
+// Store active metrics
   window.activeChartMetrics = {
     roas: true,
     aov: true,
     cpa: true,
     ctr: true,
-    cvr: true
+    cvr: true,
+    impressions: true,
+    cost: true,
+    revenue: true
   };
   
   // Process daily metrics data from performance data
@@ -3682,7 +3697,7 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
   // Convert to arrays for Chart.js
   const dates = Object.keys(dailyMetrics).sort();
   
-  // Create datasets for each metric
+// Create datasets for each metric
   const allDatasets = {
     roas: {
       label: 'ROAS',
@@ -3690,7 +3705,8 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       borderColor: '#4CAF50',
       backgroundColor: 'rgba(76, 175, 80, 0.1)',
       yAxisID: 'y-roas',
-      tension: 0.4
+      stepped: 'before',
+      type: 'line'
     },
     aov: {
       label: 'AOV',
@@ -3698,7 +3714,8 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       borderColor: '#2196F3',
       backgroundColor: 'rgba(33, 150, 243, 0.1)',
       yAxisID: 'y-currency',
-      tension: 0.4
+      tension: 0.4,
+      type: 'line'
     },
     cpa: {
       label: 'CPA',
@@ -3706,7 +3723,8 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       borderColor: '#FF9800',
       backgroundColor: 'rgba(255, 152, 0, 0.1)',
       yAxisID: 'y-currency',
-      tension: 0.4
+      stepped: 'before',
+      type: 'line'
     },
     ctr: {
       label: 'CTR %',
@@ -3714,7 +3732,8 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       borderColor: '#9C27B0',
       backgroundColor: 'rgba(156, 39, 176, 0.1)',
       yAxisID: 'y-percentage',
-      tension: 0.4
+      tension: 0.4,
+      type: 'line'
     },
     cvr: {
       label: 'CVR %',
@@ -3722,7 +3741,33 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       borderColor: '#00BCD4',
       backgroundColor: 'rgba(0, 188, 212, 0.1)',
       yAxisID: 'y-percentage',
-      tension: 0.4
+      tension: 0.4,
+      type: 'line'
+    },
+    impressions: {
+      label: 'Impr',
+      data: dates.map(date => dailyMetrics[date].impressions),
+      borderColor: '#673AB7',
+      backgroundColor: 'rgba(103, 58, 183, 0.1)',
+      yAxisID: 'y-volume',
+      tension: 0.4,
+      type: 'line'
+    },
+    cost: {
+      label: 'Cost',
+      data: dates.map(date => dailyMetrics[date].cost),
+      borderColor: '#E91E63',
+      backgroundColor: 'rgba(233, 30, 99, 0.6)',
+      yAxisID: 'y-currency',
+      type: 'bar'
+    },
+    revenue: {
+      label: 'Revenue',
+      data: dates.map(date => dailyMetrics[date].convValue),
+      borderColor: '#009688',
+      backgroundColor: 'rgba(0, 150, 136, 0.6)',
+      yAxisID: 'y-currency',
+      type: 'bar'
     }
   };
 
@@ -3753,7 +3798,7 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
         mode: 'index',
         intersect: false,
       },
-      scales: {
+scales: {
         x: {
           display: true,
           grid: {
@@ -3792,6 +3837,15 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
             display: true,
             text: 'Percentage (%)'
           }
+        },
+        'y-volume': {
+          type: 'linear',
+          display: false,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Volume'
+          }
         }
       },
       plugins: {
@@ -3823,9 +3877,9 @@ console.log(`[renderROASHistoricCharts] Using ${daysBack} days for charts`);
       window.activeChartMetrics[metric] = this.checked;
       
       // Update chart with new dataset visibility
-      const chartInstance = Chart.getChart(canvas);
+const chartInstance = Chart.getChart(canvas);
       if (chartInstance) {
-        const datasetIndex = ['roas', 'aov', 'cpa', 'ctr', 'cvr'].indexOf(metric);
+        const datasetIndex = ['roas', 'aov', 'cpa', 'ctr', 'cvr', 'impressions', 'cost', 'revenue'].indexOf(metric);
         if (datasetIndex !== -1 && chartInstance.data.datasets[datasetIndex]) {
           chartInstance.data.datasets[datasetIndex].hidden = !this.checked;
           chartInstance.update();
