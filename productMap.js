@@ -7609,8 +7609,18 @@ projectData.forEach(item => {
   nestedMap[term][loc].push(item);
 });
 
-// Filter nestedMap based on window.filterState.searchTerm
-if (window.filterState && window.filterState.searchTerm && window.filterState.searchTerm.trim() !== "") {
+// Check if we should filter by search term
+// Only filter if:
+// 1. filterState exists and has a searchTerm
+// 2. The searchTermRow is visible (indicating active filter)
+const searchTermRow = document.getElementById("searchTermRow");
+const isSearchTermFilterActive = searchTermRow && searchTermRow.style.display !== "none";
+
+if (window.filterState && 
+    window.filterState.searchTerm && 
+    window.filterState.searchTerm.trim() !== "" && 
+    isSearchTermFilterActive) {
+  
   const searchTermFilter = window.filterState.searchTerm.trim().toLowerCase();
   const filteredMap = {};
   
@@ -7624,6 +7634,8 @@ if (window.filterState && window.filterState.searchTerm && window.filterState.se
   
   console.log(`[ProductMap] Filtering table by search term: "${window.filterState.searchTerm}"`);
   console.log(`[ProductMap] Showing ${Object.keys(nestedMap).length} search term(s)`);
+} else {
+  console.log(`[ProductMap] No active search term filter - showing all ${Object.keys(nestedMap).length} search terms`);
 }
 
   // Create the table element (ADD THESE LINES)
