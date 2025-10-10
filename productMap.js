@@ -3997,6 +3997,7 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
         .product-map-table {
           width: calc(100% - 40px);
           min-width: 1400px;
+          margin-top: 15px;
           margin-left: 20px;
           border-collapse: collapse;
           background-color: #fff;
