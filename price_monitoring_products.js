@@ -1310,6 +1310,35 @@ function addProductsViewStyles() {
   background: #667eea;
   color: white;
 }
+
+/* Sync button for filters */
+.pmp-filter-sync-btn {
+  width: 28px;
+  height: 28px;
+  margin-left: 6px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #667eea;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pmp-filter-sync-btn:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  transform: scale(1.05);
+}
+
+.pmp-filter-sync-btn:active {
+  transform: scale(0.95);
+}
       
     </style>
   `;
@@ -1445,11 +1474,14 @@ let html = `
     <div class="pmp-title-filter">
       <input type="text" 
              class="pmp-filter-input" 
-             id="pmpFilterInput" 
+             id="pmpMyCompanyFilterInput" 
              placeholder="🔍 Filter by title... (Press Enter)" 
              autocomplete="off">
-      <div class="pmp-filter-tags" id="pmpFilterTags"></div>
+      <div class="pmp-filter-tags" id="pmpMyCompanyFilterTags"></div>
     </div>
+    <button class="pmp-filter-sync-btn" 
+            id="pmpMyCompanySyncBtn" 
+            title="Sync filters to Competitors">⇄</button>
   </div>
 </div>
   
@@ -1507,7 +1539,19 @@ let html = `
     <button class="pmp-sort-btn" data-sort="low" data-target="competitors">$↑</button>
     <button class="pmp-filter-btn" data-target="competitors">%</button>
   </div>
-  <!-- Filter shared with My Products, so only show once -->
+  <div class="pmp-filter-section">
+    <div class="pmp-title-filter">
+      <input type="text" 
+             class="pmp-filter-input" 
+             id="pmpCompetitorsFilterInput" 
+             placeholder="🔍 Filter by title... (Press Enter)" 
+             autocomplete="off">
+      <div class="pmp-filter-tags" id="pmpCompetitorsFilterTags"></div>
+    </div>
+    <button class="pmp-filter-sync-btn" 
+            id="pmpCompetitorsSyncBtn" 
+            title="Sync filters to My Products">⇄</button>
+  </div>
 </div>
   
   <div id="pmpCompetitorsProductsList" class="pmp-products-list">
@@ -1957,17 +2001,9 @@ function filterProducts() {
   if (competitorsList) competitorsList.classList.add('filtering');
   
   setTimeout(() => {
-    // Get filtered products
-    let myCompanyFiltered = getFilteredProducts('myCompany');
-    let competitorsFiltered = getFilteredProducts('competitors');
-    
-    // Render filtered products
-    renderPMProductsFiltered('myCompany', myCompanyList);
-    renderPMProductsFiltered('competitors', competitorsList);
-    
-    // Update summaries with filtered data
-    updateMyCompanySummaryWithFiltered(myCompanyFiltered);
-    updateCompetitorsSummaryWithFiltered(competitorsFiltered);
+    // Apply filters for both lists independently
+    applyPMPFilters('mycompany');
+    applyPMPFilters('competitors');
     
     // Remove filtering animation
     setTimeout(() => {
@@ -1977,26 +2013,58 @@ function filterProducts() {
   }, 300);
 }
 
-// Initialize title filter functionality for PM Products
+// Initialize title filter functionality for PM Products (both filters)
 function initializePMPFilter() {
-  const filterInput = document.getElementById('pmpFilterInput');
-  if (filterInput) {
-    filterInput.addEventListener('keypress', function(e) {
+  // Initialize My Company filter
+  const myCompanyFilterInput = document.getElementById('pmpMyCompanyFilterInput');
+  if (myCompanyFilterInput) {
+    myCompanyFilterInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         const filterText = e.target.value.trim();
         if (filterText.length > 0) {
-          addPMPFilterTag(filterText);
+          addPMPFilterTag(filterText, 'mycompany');
           e.target.value = '';
         }
       }
     });
   }
+  
+  // Initialize Competitors filter
+  const competitorsFilterInput = document.getElementById('pmpCompetitorsFilterInput');
+  if (competitorsFilterInput) {
+    competitorsFilterInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const filterText = e.target.value.trim();
+        if (filterText.length > 0) {
+          addPMPFilterTag(filterText, 'competitors');
+          e.target.value = '';
+        }
+      }
+    });
+  }
+  
+  // Initialize sync buttons
+  const myCompanySyncBtn = document.getElementById('pmpMyCompanySyncBtn');
+  if (myCompanySyncBtn) {
+    myCompanySyncBtn.addEventListener('click', function() {
+      syncPMPFilters('mycompany');
+    });
+  }
+  
+  const competitorsSyncBtn = document.getElementById('pmpCompetitorsSyncBtn');
+  if (competitorsSyncBtn) {
+    competitorsSyncBtn.addEventListener('click', function() {
+      syncPMPFilters('competitors');
+    });
+  }
 }
 
-// Add filter tag for PM Products
-function addPMPFilterTag(filterText) {
-  const tagsContainer = document.getElementById('pmpFilterTags');
+// Add filter tag for PM Products - now accepts type parameter
+function addPMPFilterTag(filterText, type) {
+  const tagsContainerId = type === 'mycompany' ? 'pmpMyCompanyFilterTags' : 'pmpCompetitorsFilterTags';
+  const tagsContainer = document.getElementById(tagsContainerId);
   if (!tagsContainer) return;
   
   // Check if filter already exists
@@ -2017,49 +2085,93 @@ function addPMPFilterTag(filterText) {
   tag.querySelector('.pmp-filter-tag-remove').addEventListener('click', function(e) {
     e.stopPropagation();
     tag.remove();
-    applyPMPFilters();
+    applyPMPFilters(type);
   });
   
   tagsContainer.appendChild(tag);
   
   // Apply filters immediately after adding the tag
-  applyPMPFilters();
+  applyPMPFilters(type);
 }
 
-// Apply PM Products title filters to both lists
-function applyPMPFilters() {
-  const tags = document.querySelectorAll('#pmpFilterTags .pmp-filter-tag');
-  const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+// Sync filters from one list to another
+function syncPMPFilters(fromType) {
+  const fromContainerId = fromType === 'mycompany' ? 'pmpMyCompanyFilterTags' : 'pmpCompetitorsFilterTags';
+  const toContainerId = fromType === 'mycompany' ? 'pmpCompetitorsFilterTags' : 'pmpMyCompanyFilterTags';
+  const toType = fromType === 'mycompany' ? 'competitors' : 'mycompany';
   
-  // If no text filters, just use the existing filterProducts function
+  const fromContainer = document.getElementById(fromContainerId);
+  const toContainer = document.getElementById(toContainerId);
+  
+  if (!fromContainer || !toContainer) return;
+  
+  // Get all filter texts from source
+  const fromTags = Array.from(fromContainer.querySelectorAll('.pmp-filter-tag'));
+  const filterTexts = fromTags.map(tag => tag.dataset.filterText);
+  
   if (filterTexts.length === 0) {
-    filterProducts();
+    // If source has no filters, clear destination
+    toContainer.innerHTML = '';
+    applyPMPFilters(toType);
     return;
   }
   
-  // Apply text filters ON TOP of existing filters
-  const myCompanyList = document.getElementById('pmpMyCompanyProductsList');
-  const competitorsList = document.getElementById('pmpCompetitorsProductsList');
+  // Clear destination container
+  toContainer.innerHTML = '';
+  
+  // Add all filters to destination
+  filterTexts.forEach(filterText => {
+    const tag = document.createElement('div');
+    tag.className = 'pmp-filter-tag';
+    tag.dataset.filterText = filterText;
+    tag.innerHTML = `
+      <span class="pmp-filter-tag-text" title="${filterText}">${filterText}</span>
+      <span class="pmp-filter-tag-remove">✕</span>
+    `;
+    
+    // Add remove handler
+    tag.querySelector('.pmp-filter-tag-remove').addEventListener('click', function(e) {
+      e.stopPropagation();
+      tag.remove();
+      applyPMPFilters(toType);
+    });
+    
+    toContainer.appendChild(tag);
+  });
+  
+  // Apply filters to destination
+  applyPMPFilters(toType);
+  
+  // Visual feedback
+  const syncBtn = document.getElementById(fromType === 'mycompany' ? 'pmpMyCompanySyncBtn' : 'pmpCompetitorsSyncBtn');
+  if (syncBtn) {
+    syncBtn.style.transform = 'rotate(180deg)';
+    setTimeout(() => {
+      syncBtn.style.transform = '';
+    }, 300);
+  }
+}
+
+// Apply PM Products title filters - now works independently per type
+function applyPMPFilters(type) {
+  const tagsContainerId = type === 'mycompany' ? 'pmpMyCompanyFilterTags' : 'pmpCompetitorsFilterTags';
+  const listId = type === 'mycompany' ? 'pmpMyCompanyProductsList' : 'pmpCompetitorsProductsList';
+  
+  const tags = document.querySelectorAll(`#${tagsContainerId} .pmp-filter-tag`);
+  const filterTexts = Array.from(tags).map(tag => tag.dataset.filterText);
+  
+  const container = document.getElementById(listId);
   
   // Add filtering animation
-  if (myCompanyList) myCompanyList.classList.add('filtering');
-  if (competitorsList) competitorsList.classList.add('filtering');
+  if (container) container.classList.add('filtering');
   
   setTimeout(() => {
     // Get filtered products (with existing bucket/discount filters)
-    let myCompanyFiltered = getFilteredProducts('myCompany');
-    let competitorsFiltered = getFilteredProducts('competitors');
+    let filteredProducts = getFilteredProducts(type);
     
     // Apply title filters
     if (filterTexts.length > 0) {
-      myCompanyFiltered = myCompanyFiltered.filter(p => {
-        const title = p.title.toLowerCase();
-        return filterTexts.every(filterText => 
-          title.includes(filterText.toLowerCase())
-        );
-      });
-      
-      competitorsFiltered = competitorsFiltered.filter(p => {
+      filteredProducts = filteredProducts.filter(p => {
         const title = p.title.toLowerCase();
         return filterTexts.every(filterText => 
           title.includes(filterText.toLowerCase())
@@ -2068,17 +2180,18 @@ function applyPMPFilters() {
     }
     
     // Render filtered products
-    renderPMProductsFilteredDirect(myCompanyFiltered, myCompanyList, 'myCompany');
-    renderPMProductsFilteredDirect(competitorsFiltered, competitorsList, 'competitors');
+    renderPMProductsFilteredDirect(filteredProducts, container, type);
     
-    // Update summaries with filtered data
-    updateMyCompanySummaryWithFiltered(myCompanyFiltered);
-    updateCompetitorsSummaryWithFiltered(competitorsFiltered);
+    // Update summary with filtered data
+    if (type === 'mycompany') {
+      updateMyCompanySummaryWithFiltered(filteredProducts);
+    } else {
+      updateCompetitorsSummaryWithFiltered(filteredProducts);
+    }
     
     // Remove filtering animation
     setTimeout(() => {
-      if (myCompanyList) myCompanyList.classList.remove('filtering');
-      if (competitorsList) competitorsList.classList.remove('filtering');
+      if (container) container.classList.remove('filtering');
     }, 100);
   }, 300);
 }
