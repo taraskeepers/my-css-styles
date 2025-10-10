@@ -1551,7 +1551,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">⭐ Profit</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Profit</div>
                 <div style="font-size: 13px; color: #333;">Stars</div>
               </div>
             </div>
@@ -1574,7 +1574,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">💪 Strong</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Strong</div>
                 <div style="font-size: 13px; color: #333;">Performers</div>
               </div>
             </div>
@@ -1597,7 +1597,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">📊 Steady</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Steady</div>
                 <div style="font-size: 13px; color: #333;">Contributors</div>
               </div>
             </div>
@@ -1620,7 +1620,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">⚖️ Break-Even</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Break-Even</div>
                 <div style="font-size: 13px; color: #333;">Products</div>
               </div>
             </div>
@@ -1643,7 +1643,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">📉 True</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">True</div>
                 <div style="font-size: 13px; color: #333;">Losses</div>
               </div>
             </div>
@@ -1666,7 +1666,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">❓ Insufficient</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Insufficient</div>
                 <div style="font-size: 13px; color: #333;">Data</div>
               </div>
             </div>
