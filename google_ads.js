@@ -1,3 +1,9 @@
+// At the top of google_ads.js
+if (!window.GoogleAdsCharts || !window.GoogleAdsMetrics) {
+  console.error('google_ads_additional.js must be loaded first');
+  return;
+}
+
 window.pendingGoogleAdsCharts = [];
 window.googleAdsApexCharts = [];
 window.selectedGoogleAdsProduct = null;
