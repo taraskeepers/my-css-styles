@@ -171,6 +171,32 @@ if (!document.getElementById("project-page-stats-style")) {
     const style = document.createElement("style");
     style.id = "project-page-stats-style";
     style.textContent = `
+        #projectPage {
+          height: calc(100vh - 120px);
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-right: 10px;
+        }
+
+        /* Custom scrollbar styling (optional) */
+        #projectPage::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        #projectPage::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+
+        #projectPage::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+
+        #projectPage::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
         .project-stats-left-column {
           width: 220px;
           height: 100%;
