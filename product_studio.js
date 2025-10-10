@@ -521,7 +521,6 @@ function addProductStudioStyles() {
       }
       
       .product-studio-expanded-content {
-        padding: 12px 16px;
         max-height: 480px;
         overflow: hidden;
         animation: slideDown 0.2s ease-out;
