@@ -3025,7 +3025,7 @@ console.log(`[ProductMap] Company stats loaded: ${companyStats.length} entries`)
   
     // Setup container with fixed height and scrolling
 container.innerHTML = `
-  <div id="productMapContainer" style="width: 100%; height: calc(100vh); overflow-y: auto; position: relative;">
+  <div id="productMapContainer" style="width: 100%; height: calc(100vh - 50px); overflow-y: auto; position: relative;">
     <div class="view-switcher" id="productViewSwitcher">
       <button id="viewProducts" class="active">Products</button>
       <button id="viewCharts">Charts</button>
