@@ -2527,11 +2527,11 @@ function populateProductTables(productData, mode = 'channel') {
     let formattedCurrent = '';
     let trendHtml = '';
     
-    // Format current value
-    switch (format) {
-      case 'currency':
-        formattedCurrent = '$' + current.toFixed(2);
-        break;
+// Format current value
+switch (format) {
+  case 'currency':
+    formattedCurrent = '$' + current.toFixed(0);
+    break;
       case 'percentage':
         formattedCurrent = current.toFixed(2) + '%';
         break;
@@ -2571,11 +2571,11 @@ function populateProductTables(productData, mode = 'channel') {
         }
       }
       
-      let formattedChange = '';
-      switch (format) {
-        case 'currency':
-          formattedChange = '$' + Math.abs(change).toFixed(2);
-          break;
+let formattedChange = '';
+switch (format) {
+  case 'currency':
+    formattedChange = '$' + Math.abs(change).toFixed(0);
+    break;
         case 'percentage':
           formattedChange = Math.abs(change).toFixed(2) + '%';
           break;
@@ -3285,12 +3285,12 @@ function updateTrendsData() {
     let trendClass = 'trend-neutral';
     let arrow = '—';
     
-    // Format current value
-    switch (metric.format) {
-      case 'currency':
-        formattedValue = '$' + metric.value.toFixed(2);
-        formattedChange = '$' + Math.abs(change).toFixed(2);
-        break;
+// Format current value
+switch (metric.format) {
+  case 'currency':
+    formattedValue = '$' + metric.value.toFixed(0);
+    formattedChange = '$' + Math.abs(change).toFixed(0);
+    break;
       case 'percentage':
         formattedValue = metric.value.toFixed(2) + '%';
         formattedChange = Math.abs(change).toFixed(2) + '%';
