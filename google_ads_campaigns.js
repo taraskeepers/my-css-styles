@@ -496,12 +496,12 @@ function addCampaignsStyles() {
 .camp-table-modern th:nth-child(5),
 .camp-table-modern td:nth-child(5) { width: 220px; } /* Product Title */
       
-      /* All metric columns - max 90px */
-      .camp-table-modern th.metric-col,
-      .camp-table-modern td.metric-col { 
-        width: 90px;
-        max-width: 90px;
-      }
+/* All metric columns - max 70px */
+.camp-table-modern th.metric-col,
+.camp-table-modern td.metric-col { 
+  width: 70px;
+  max-width: 70px;
+}
       
       /* Sort icon */
       .camp-sort-icon {
@@ -3023,22 +3023,22 @@ function createColumnSelectorDropdown() {
   dropdown.className = 'column-selector-dropdown';
   
   // Define all available columns (excluding ROAS which is fixed)
-  const columns = [
-    { id: 'impressions', label: 'Impressions', visible: true },
-    { id: 'clicks', label: 'Clicks', visible: true },
-    { id: 'ctr', label: 'CTR %', visible: true },
-    { id: 'avgCpc', label: 'Avg CPC', visible: true },
-    { id: 'cost', label: 'Cost', visible: true },
-    { id: 'conversions', label: 'Conv', visible: true },
-    { id: 'cpa', label: 'CPA', visible: true },
-    { id: 'convValue', label: 'Revenue', visible: true },
-    { id: 'cvr', label: 'CVR %', visible: true },
-    { id: 'aov', label: 'AOV', visible: false },
-    { id: 'cpm', label: 'CPM', visible: false },
-    { id: 'cartRate', label: 'Cart Rate', visible: false },
-    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
-    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
-  ];
+const columns = [
+  { id: 'impressions', label: 'Impressions', visible: false },
+  { id: 'clicks', label: 'Clicks', visible: true },
+  { id: 'ctr', label: 'CTR %', visible: false },
+  { id: 'avgCpc', label: 'Avg CPC', visible: false },
+  { id: 'cost', label: 'Cost', visible: true },
+  { id: 'conversions', label: 'Conv', visible: false },
+  { id: 'cpa', label: 'CPA', visible: false },
+  { id: 'convValue', label: 'Revenue', visible: true },
+  { id: 'cvr', label: 'CVR %', visible: false },
+  { id: 'aov', label: 'AOV', visible: false },
+  { id: 'cpm', label: 'CPM', visible: false },
+  { id: 'cartRate', label: 'Cart Rate', visible: false },
+  { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
+  { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
+];
   
   // Store columns config globally
   window.campaignTableColumns = columns;
@@ -4593,25 +4593,11 @@ thead.innerHTML = `
     const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
     const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
     
-// Determine row background based on Top_Bucket or performance
-// Determine row background based on Performance_Bucket only
-    let rowBg = 'white'; // Start with white
-    
-    // Apply Performance_Bucket styling
-    if (term.Performance_Bucket) {
-      const bucketStyles = {
-        'High Revenue Terms': '#e8f5e9',      // Light green
-        'Low Performance': '#f5f5f5',         // Light grey
-        'Mid-Performance': '#fff9c4',         // Light yellow
-        'Hidden Gems': '#e3f2fd',             // Light blue
-        'Zero Converting Terms': '#ffebee',    // Light red
-        'Top Search Terms': '#fff3e0'         // Light orange
-      };
-      rowBg = bucketStyles[term.Performance_Bucket] || 'white';
-    }
-    
-    const row = document.createElement('tr');
-    row.style.backgroundColor = rowBg;
+const row = document.createElement('tr');
+// Alternating row background
+if (index % 2 === 1) {
+  row.style.backgroundColor = '#fafafa';
+}
     
     row.innerHTML = `
       <td style="text-align: center;">
