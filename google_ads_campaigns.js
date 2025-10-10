@@ -494,14 +494,14 @@ function addCampaignsStyles() {
 .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
 
 .camp-table-modern th:nth-child(5),
-.camp-table-modern td:nth-child(5) { width: 220px; } /* Product Title */
+.camp-table-modern td:nth-child(5) { width: 300px; } /* Product Title */
       
-/* All metric columns - max 70px */
-.camp-table-modern th.metric-col,
-.camp-table-modern td.metric-col { 
-  width: 70px;
-  max-width: 70px;
-}
+      /* All metric columns - max 90px */
+      .camp-table-modern th.metric-col,
+      .camp-table-modern td.metric-col { 
+        width: 90px;
+        max-width: 90px;
+      }
       
       /* Sort icon */
       .camp-sort-icon {
@@ -519,11 +519,11 @@ function addCampaignsStyles() {
       }
       
       /* Table body */
-.camp-table-modern tbody tr {
-  border-bottom: 1px solid #f0f2f5;
-  transition: background 0.15s ease;
-  height: 90px;
-}
+      .camp-table-modern tbody tr {
+        border-bottom: 1px solid #f0f2f5;
+        transition: background 0.15s ease;
+        height: 70px;
+      }
       
       .camp-table-modern tbody tr:hover {
         background: rgba(0, 122, 255, 0.02);
@@ -543,13 +543,13 @@ function addCampaignsStyles() {
         background: #f5f7fa;
       }
       
-.camp-table-modern td {
-  padding: 8px;
-  font-size: 13px;
-  color: #495057;
-  vertical-align: middle;
-  height: 90px;
-}
+      .camp-table-modern td {
+        padding: 8px;
+        font-size: 13px;
+        color: #495057;
+        vertical-align: middle;
+        height: 70px;
+      }
       
       .camp-table-modern tr.device-row td {
         height: 40px;
@@ -659,33 +659,19 @@ function addCampaignsStyles() {
       }
       
       /* Product title */
-.camp-product-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #212529;
-  line-height: 1.4;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-height: 52px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  margin-bottom: 4px;
-}
-
-/* Product status badge - smaller size */
-.product-status-badge {
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-flex;
-  align-items: center;
-  margin-top: 4px;
-}
+      .camp-product-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #212529;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        max-height: 56px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+      }
       
       /* Device tag */
       .camp-device-tag {
@@ -1509,15 +1495,22 @@ productsPanel.innerHTML = `
     </div>
   </div>
   
-<div class="campaigns-products-header" style="padding: 8px 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
-  <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-    <span>📅</span>
-    <span>${dateRangeText}</span>
-  </div>
-  <button class="column-selector-btn" onclick="toggleColumnSelector()">
-    <span>⚙️</span> Columns
-  </button>
-</div>
+  <div class="campaigns-products-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div>
+        <h3 class="campaigns-products-title">Campaign Products</h3>
+        <div class="selected-campaign-info">Select a campaign to view its products</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+          <span>📅</span>
+          <span>${dateRangeText}</span>
+        </div>
+        <button class="column-selector-btn" onclick="toggleColumnSelector()">
+          <span>⚙️</span> Columns
+        </button>
+      </div>
+    </div>
     
 <div id="campaignProductBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
@@ -1558,7 +1551,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Profit</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">⭐ Profit</div>
                 <div style="font-size: 13px; color: #333;">Stars</div>
               </div>
             </div>
@@ -1581,7 +1574,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Strong</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">💪 Strong</div>
                 <div style="font-size: 13px; color: #333;">Performers</div>
               </div>
             </div>
@@ -1604,7 +1597,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Steady</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">📊 Steady</div>
                 <div style="font-size: 13px; color: #333;">Contributors</div>
               </div>
             </div>
@@ -1627,7 +1620,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Break-Even</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">⚖️ Break-Even</div>
                 <div style="font-size: 13px; color: #333;">Products</div>
               </div>
             </div>
@@ -1650,7 +1643,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">True</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">📉 True</div>
                 <div style="font-size: 13px; color: #333;">Losses</div>
               </div>
             </div>
@@ -1673,7 +1666,7 @@ productsPanel.innerHTML = `
             </div>
             <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
               <div>
-                <div style="font-size: 13px; font-weight: 600; color: #333;">Insufficient</div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">❓ Insufficient</div>
                 <div style="font-size: 13px; color: #333;">Data</div>
               </div>
             </div>
@@ -1810,7 +1803,7 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
     <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
         <!-- All Terms -->
         <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
@@ -3016,22 +3009,22 @@ function createColumnSelectorDropdown() {
   dropdown.className = 'column-selector-dropdown';
   
   // Define all available columns (excluding ROAS which is fixed)
-const columns = [
-  { id: 'impressions', label: 'Impressions', visible: false },
-  { id: 'clicks', label: 'Clicks', visible: true },
-  { id: 'ctr', label: 'CTR %', visible: false },
-  { id: 'avgCpc', label: 'Avg CPC', visible: false },
-  { id: 'cost', label: 'Cost', visible: true },
-  { id: 'conversions', label: 'Conv', visible: false },
-  { id: 'cpa', label: 'CPA', visible: false },
-  { id: 'convValue', label: 'Revenue', visible: true },
-  { id: 'cvr', label: 'CVR %', visible: false },
-  { id: 'aov', label: 'AOV', visible: false },
-  { id: 'cpm', label: 'CPM', visible: false },
-  { id: 'cartRate', label: 'Cart Rate', visible: false },
-  { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
-  { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
-];
+  const columns = [
+    { id: 'impressions', label: 'Impressions', visible: true },
+    { id: 'clicks', label: 'Clicks', visible: true },
+    { id: 'ctr', label: 'CTR %', visible: true },
+    { id: 'avgCpc', label: 'Avg CPC', visible: true },
+    { id: 'cost', label: 'Cost', visible: true },
+    { id: 'conversions', label: 'Conv', visible: true },
+    { id: 'cpa', label: 'CPA', visible: true },
+    { id: 'convValue', label: 'Revenue', visible: true },
+    { id: 'cvr', label: 'CVR %', visible: true },
+    { id: 'aov', label: 'AOV', visible: false },
+    { id: 'cpm', label: 'CPM', visible: false },
+    { id: 'cartRate', label: 'Cart Rate', visible: false },
+    { id: 'checkoutRate', label: 'Checkout Rate', visible: false },
+    { id: 'purchaseRate', label: 'Purchase Rate', visible: false }
+  ];
   
   // Store columns config globally
   window.campaignTableColumns = columns;
@@ -4586,11 +4579,25 @@ thead.innerHTML = `
     const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
     const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
     
-const row = document.createElement('tr');
-// Alternating row background
-if (index % 2 === 1) {
-  row.style.backgroundColor = '#fafafa';
-}
+// Determine row background based on Top_Bucket or performance
+// Determine row background based on Performance_Bucket only
+    let rowBg = 'white'; // Start with white
+    
+    // Apply Performance_Bucket styling
+    if (term.Performance_Bucket) {
+      const bucketStyles = {
+        'High Revenue Terms': '#e8f5e9',      // Light green
+        'Low Performance': '#f5f5f5',         // Light grey
+        'Mid-Performance': '#fff9c4',         // Light yellow
+        'Hidden Gems': '#e3f2fd',             // Light blue
+        'Zero Converting Terms': '#ffebee',    // Light red
+        'Top Search Terms': '#fff3e0'         // Light orange
+      };
+      rowBg = bucketStyles[term.Performance_Bucket] || 'white';
+    }
+    
+    const row = document.createElement('tr');
+    row.style.backgroundColor = rowBg;
     
     row.innerHTML = `
       <td style="text-align: center;">
@@ -4928,12 +4935,12 @@ function getProfitabilityBucketBadge(bucketData) {
   }
   
   const bucketConfig = {
-    'Profit Stars': { color: '#FFD700', bg: '#FFFACD', icon: '' },
-    'Strong Performers': { color: '#4CAF50', bg: '#E8F5E9', icon: '' },
-    'Steady Contributors': { color: '#2196F3', bg: '#E3F2FD', icon: '' },
-    'Break-Even Products': { color: '#FF9800', bg: '#FFF3E0', icon: '' },
-    'True Losses': { color: '#F44336', bg: '#FFEBEE', icon: '' },
-    'Insufficient Data': { color: '#9E9E9E', bg: '#F5F5F5', icon: '' }
+    'Profit Stars': { color: '#FFD700', bg: '#FFFACD', icon: '⭐' },
+    'Strong Performers': { color: '#4CAF50', bg: '#E8F5E9', icon: '💪' },
+    'Steady Contributors': { color: '#2196F3', bg: '#E3F2FD', icon: '📊' },
+    'Break-Even Products': { color: '#FF9800', bg: '#FFF3E0', icon: '⚖️' },
+    'True Losses': { color: '#F44336', bg: '#FFEBEE', icon: '📉' },
+    'Insufficient Data': { color: '#9E9E9E', bg: '#F5F5F5', icon: '❓' }
   };
   
   const config = bucketConfig[bucketValue];
@@ -4953,7 +4960,7 @@ function getProfitabilityBucketBadge(bucketData) {
       border: 1px solid ${config.color}40;
       margin-left: 6px;
     ">
-      ${bucketValue}
+      ${config.icon} ${bucketValue}
     </span>
   `;
 }
@@ -7249,9 +7256,12 @@ mainRow.className = rowClasses.join(' ');
   ${product.roas !== null && product.roas !== undefined ? 
     (product.convValue > 0 ? 
       `<div class="camp-roas-badge ${roasClass}">${product.roas.toFixed(1)}x</div>` :
-`<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: #9e9e9e;">
-  <span>No Sales</span>
-</div>`
+      `<div style="width: 60px; height: 36px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 1px solid #d0d0d0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #9e9e9e;">
+        <span style="display: flex; align-items: center; gap: 3px;">
+          <span style="font-size: 14px;">💤</span>
+          <span>No Sales</span>
+        </span>
+      </div>`)
     : '<span style="color: #adb5bd;">-</span>'}
 </td>
       <td style="text-align: center; width: 80px;">
@@ -7262,15 +7272,13 @@ mainRow.className = rowClasses.join(' ');
           </div>` : 
           '<div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; margin: 0 auto;"></div>'}
       </td>
-<td style="width: 220px;">
-  <div style="display: flex; flex-direction: column;">
-    <div class="camp-product-title">${product.title}</div>
-    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-      ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
-        `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus}</span>` : 
-        ''}
-      ${getProfitabilityBucketBadge(product.profitabilityBucket)}
-    </div>
+<td style="width: 300px;">
+  <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+    <div class="camp-product-title" style="flex: 1 1 auto; min-width: 0;">${product.title}</div>
+    ${product.sellerStatus && product.sellerStatus !== 'Standard' ? 
+      `<span class="product-status-badge ${product.sellerStatus.toLowerCase().replace(/\s+/g, '-')}">${product.sellerStatus === 'Revenue Stars' ? '⭐' : product.sellerStatus === 'Best Sellers' ? '🏆' : '📈'} ${product.sellerStatus}</span>` : 
+      ''}
+    ${getProfitabilityBucketBadge(product.profitabilityBucket)}
   </div>
 </td>
     `;
