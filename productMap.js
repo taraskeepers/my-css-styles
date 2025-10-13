@@ -8786,32 +8786,25 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Create star elements if they don't exist
+// Just put the actual damn stars in there
 if (enhancedProduct.rating && enhancedProduct.stars) {
   const ratingContainer = adCard.querySelector('.ad-rating');
   if (ratingContainer) {
-    const existingStars = ratingContainer.querySelectorAll('.star');
-    
-    // Only create stars if they don't exist
-    if (existingStars.length === 0) {
-      // Find where to insert stars (before any text/number)
-      const firstTextNode = Array.from(ratingContainer.childNodes).find(node => 
-        node.nodeType === Node.TEXT_NODE || node.classList?.contains('rating-number')
-      );
-      
-      // Create and insert star elements
-      enhancedProduct.stars.forEach(star => {
-        const starElement = document.createElement('span');
-        starElement.className = 'star';
-        starElement.style.setProperty('--fill-width', `${star.fill}%`);
-        
-        if (firstTextNode) {
-          ratingContainer.insertBefore(starElement, firstTextNode);
-        } else {
-          ratingContainer.appendChild(starElement);
-        }
-      });
+    // Create the star HTML with actual star characters
+    let starsHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const fillPercent = enhancedProduct.stars[i]?.fill || 0;
+      if (fillPercent >= 100) {
+        starsHTML += '<span style="color: #fbbc04;">★</span>';
+      } else if (fillPercent > 0) {
+        starsHTML += '<span style="color: #fbbc04;">★</span>'; // Simplified - just show filled
+      } else {
+        starsHTML += '<span style="color: #dadce0;">★</span>';
+      }
     }
+    
+    // Insert stars at the beginning
+    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
   }
 }
                 } catch (error) {
@@ -9150,32 +9143,25 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Create star elements if they don't exist
+// Just put the actual damn stars in there
 if (enhancedProduct.rating && enhancedProduct.stars) {
   const ratingContainer = adCard.querySelector('.ad-rating');
   if (ratingContainer) {
-    const existingStars = ratingContainer.querySelectorAll('.star');
-    
-    // Only create stars if they don't exist
-    if (existingStars.length === 0) {
-      // Find where to insert stars (before any text/number)
-      const firstTextNode = Array.from(ratingContainer.childNodes).find(node => 
-        node.nodeType === Node.TEXT_NODE || node.classList?.contains('rating-number')
-      );
-      
-      // Create and insert star elements
-      enhancedProduct.stars.forEach(star => {
-        const starElement = document.createElement('span');
-        starElement.className = 'star';
-        starElement.style.setProperty('--fill-width', `${star.fill}%`);
-        
-        if (firstTextNode) {
-          ratingContainer.insertBefore(starElement, firstTextNode);
-        } else {
-          ratingContainer.appendChild(starElement);
-        }
-      });
+    // Create the star HTML with actual star characters
+    let starsHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const fillPercent = enhancedProduct.stars[i]?.fill || 0;
+      if (fillPercent >= 100) {
+        starsHTML += '<span style="color: #fbbc04;">★</span>';
+      } else if (fillPercent > 0) {
+        starsHTML += '<span style="color: #fbbc04;">★</span>'; // Simplified - just show filled
+      } else {
+        starsHTML += '<span style="color: #dadce0;">★</span>';
+      }
     }
+    
+    // Insert stars at the beginning
+    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
   }
 }
                 } catch (error) {
