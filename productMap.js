@@ -3039,53 +3039,54 @@ container.innerHTML = `
       document.body.appendChild(fullscreenOverlay);
     }
     
-    // Add fullscreen toggle functionality
-    document.getElementById("fullscreenToggle").addEventListener("click", function() {
-      // Get the current table
-      const table = document.querySelector("#productMapContainer .product-map-table");
-      if (!table) {
-        console.warn("No product map table found to display in fullscreen");
-        return;
-      }
-      
-      // Clone the table
-      const tableClone = table.cloneNode(true);
-      
-      // Add close button to the overlay
-      fullscreenOverlay.innerHTML = '';
-      const closeBtn = document.createElement("button");
-      closeBtn.className = "fullscreen-close";
-      closeBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-        Exit Full Screen
-      `;
-      fullscreenOverlay.appendChild(closeBtn);
-      
-      // Add the cloned table to the overlay
-      fullscreenOverlay.appendChild(tableClone);
-      
-      // Show the overlay
-      fullscreenOverlay.style.display = 'block';
-      document.body.style.overflow = 'hidden'; // Prevent scrolling on the main page
-      
-      // Add close button event listener
-      closeBtn.addEventListener("click", function() {
-        fullscreenOverlay.style.display = 'none';
-        document.body.style.overflow = 'auto'; // Restore scrolling
-        
-        // Reposition any open details panel
-        const detailsPanel = document.getElementById('product-map-details-panel');
-        if (detailsPanel && detailsPanel.style.display !== 'none') {
-          detailsPanel.style.position = 'fixed';
-          detailsPanel.style.top = '40%';
-          detailsPanel.style.left = 'auto';
-          detailsPanel.style.right = '10px';
-          detailsPanel.style.transform = 'translateY(-50%)';
+// Add fullscreen toggle functionality
+    document.querySelectorAll("#fullscreenToggle").forEach(fullscreenBtn => {
+      fullscreenBtn.addEventListener("click", function() {
+        // Get the current table
+        const table = document.querySelector("#productMapContainer .product-map-table");
+        if (!table) {
+          console.warn("No product map table found to display in fullscreen");
+          return;
         }
-      });
+        
+        // Clone the table
+        const tableClone = table.cloneNode(true);
+        
+        // Add close button to the overlay
+        fullscreenOverlay.innerHTML = '';
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "fullscreen-close";
+        closeBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Exit Full Screen
+        `;
+        fullscreenOverlay.appendChild(closeBtn);
+        
+        // Add the cloned table to the overlay
+        fullscreenOverlay.appendChild(tableClone);
+        
+        // Show the overlay
+        fullscreenOverlay.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent scrolling on the main page
+        
+        // Add close button event listener
+        closeBtn.addEventListener("click", function() {
+          fullscreenOverlay.style.display = 'none';
+          document.body.style.overflow = 'auto'; // Restore scrolling
+          
+          // Reposition any open details panel
+          const detailsPanel = document.getElementById('product-map-details-panel');
+          if (detailsPanel && detailsPanel.style.display !== 'none') {
+            detailsPanel.style.position = 'fixed';
+            detailsPanel.style.top = '40%';
+            detailsPanel.style.left = 'auto';
+            detailsPanel.style.right = '10px';
+            detailsPanel.style.transform = 'translateY(-50%)';
+          }
+        });
 
       // Clone the view switcher and add it to the overlay
 const originalSwitcher = document.querySelector('.view-switcher');
@@ -3528,103 +3529,109 @@ setTimeout(() => {
     });
 
 // Add view switcher functionality for Products mode
-const viewProductsBtn = document.getElementById("viewProducts");
-const viewChartsBtn = document.getElementById("viewCharts");
+const viewProductsBtns = document.querySelectorAll("#viewProducts");
+const viewChartsBtns = document.querySelectorAll("#viewCharts");
 
-if (viewProductsBtn && viewChartsBtn) {
-  viewProductsBtn.addEventListener("click", function() {
-    // Add body class management
-    document.body.classList.remove('charts-mode');
-    document.body.classList.add('products-mode');
-    
-    // Switch to Products view
-    viewProductsBtn.classList.add("active");
-    viewChartsBtn.classList.remove("active");
-    
-    // EXPLICITLY show all product-cell-containers and hide chart containers
-    document.querySelectorAll('.product-cell-container').forEach(container => {
-      container.style.display = 'block';
-      container.style.visibility = 'visible';
-    });
-    document.querySelectorAll('.products-chart-container').forEach(container => {
-      container.style.display = 'none';
-      container.style.visibility = 'hidden';
-    });
-    
-    // Reset table rows to original height in Products mode
-    document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
-      row.style.height = '380px';
-      row.style.maxHeight = '380px';
-    });
-    
-    // Reset table cells to original height
-    document.querySelectorAll('.product-map-table td').forEach(cell => {
-      cell.style.height = '380px';
-      cell.style.maxHeight = '380px';
-    });
-  });
-
-  viewChartsBtn.addEventListener("click", function() {
-    // Add body class management
-    document.body.classList.remove('products-mode');
-    document.body.classList.add('charts-mode');
-    
-    // Switch to Charts view
-    viewChartsBtn.classList.add("active");
-    viewProductsBtn.classList.remove("active");
-    
-    // EXPLICITLY hide all product-cell-containers and show chart containers
-    document.querySelectorAll('.product-cell-container').forEach(container => {
-      container.style.display = 'none';
-      container.style.visibility = 'hidden';
-    });
-    document.querySelectorAll('.products-chart-container').forEach(container => {
-      container.style.display = 'flex';
-      container.style.visibility = 'visible';
-      // Reset any dynamic height issues
-      container.style.height = '580px'; // Increased for 600px row
-      container.style.maxHeight = '580px';
-      container.style.overflow = 'hidden';
-    });
-    
-    // Set table rows to 600px max height in Charts mode
-    document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
-      row.style.height = '600px';
-      row.style.maxHeight = '600px';
-    });
-    
-    // Update table cells for Charts mode
-    document.querySelectorAll('.product-map-table td').forEach(cell => {
-      cell.style.height = '600px';
-      cell.style.maxHeight = '600px';
-    });
-    
-    // Add a small delay to ensure DOM is updated before rendering charts
-    setTimeout(() => {
-      // Render charts for each row
+viewProductsBtns.forEach((viewProductsBtn, index) => {
+  const viewChartsBtn = viewChartsBtns[index];
+  
+  if (viewProductsBtn && viewChartsBtn) {
+    viewProductsBtn.addEventListener("click", function() {
+      // Add body class management
+      document.body.classList.remove('charts-mode');
+      document.body.classList.add('products-mode');
+      
+      // Switch to Products view - update ALL switchers
+      viewProductsBtns.forEach(btn => btn.classList.add("active"));
+      viewChartsBtns.forEach(btn => btn.classList.remove("active"));
+      
+      // EXPLICITLY show all product-cell-containers and hide chart containers
+      document.querySelectorAll('.product-cell-container').forEach(container => {
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+      });
       document.querySelectorAll('.products-chart-container').forEach(container => {
-        const chartAvgPosDiv = container.querySelector('.chart-avg-position');
-        const chartProductsDiv = container.querySelector('.chart-products');
-        
-        // Reset chart container dimensions for new row height
-        if (chartAvgPosDiv) {
-          chartAvgPosDiv.style.height = '580px';
-          chartAvgPosDiv.style.maxHeight = '580px';
-        }
-        if (chartProductsDiv) {
-          chartProductsDiv.style.height = '580px';
-          chartProductsDiv.style.maxHeight = '580px';
-        }
-        
-        // Get all products for this chart - always filter by myCompany in Charts mode
-        const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
-        let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
-
-        // In Charts mode, always show only myCompany products
-        products = products.filter(p => p._isMyCompany);
-        
-        if (products.length > 0 && chartAvgPosDiv) {
-          renderAvgPositionChart(chartAvgPosDiv, products);
+        container.style.display = 'none';
+        container.style.visibility = 'hidden';
+      });
+      
+      // Reset table rows to original height in Products mode
+      document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
+        row.style.height = '380px';
+        row.style.maxHeight = '380px';
+      });
+      
+      // Reset table cells to original height
+      document.querySelectorAll('.product-map-table td').forEach(cell => {
+        cell.style.height = '380px';
+        cell.style.maxHeight = '380px';
+      });
+      
+      console.log('[ProductMap] Switched to Products view');
+    });
+    
+    viewChartsBtn.addEventListener("click", function() {
+      // Add body class management
+      document.body.classList.remove('products-mode');
+      document.body.classList.add('charts-mode');
+      
+      // Switch to Charts view - update ALL switchers
+      viewChartsBtns.forEach(btn => btn.classList.add("active"));
+      viewProductsBtns.forEach(btn => btn.classList.remove("active"));
+      
+      // EXPLICITLY hide all product-cell-containers and show chart containers
+      document.querySelectorAll('.product-cell-container').forEach(container => {
+        container.style.display = 'none';
+        container.style.visibility = 'hidden';
+      });
+      document.querySelectorAll('.products-chart-container').forEach(container => {
+        container.style.display = 'flex';
+        container.style.visibility = 'visible';
+        // Reset any dynamic height issues
+        container.style.height = '580px'; // Increased for 600px row
+        container.style.maxHeight = '580px';
+        container.style.overflow = 'hidden';
+      });
+      
+      // Set table rows to 600px max height in Charts mode
+      document.querySelectorAll('.product-map-table tbody tr').forEach(row => {
+        row.style.height = '600px';
+        row.style.maxHeight = '600px';
+      });
+      
+      // Update table cells for Charts mode
+      document.querySelectorAll('.product-map-table td').forEach(cell => {
+        cell.style.height = '600px';
+        cell.style.maxHeight = '600px';
+      });
+      
+      // Add a small delay to ensure DOM is updated before rendering charts
+      setTimeout(() => {
+        // Render charts for each row
+        document.querySelectorAll('.products-chart-container').forEach(container => {
+          const chartAvgPosDiv = container.querySelector('.chart-avg-position');
+          const chartProductsDiv = container.querySelector('.chart-products');
+          
+          // Reset chart container dimensions for new row height
+          if (chartAvgPosDiv) {
+            chartAvgPosDiv.style.height = '580px';
+            chartAvgPosDiv.style.maxHeight = '580px';
+          }
+          if (chartProductsDiv) {
+            chartProductsDiv.style.height = '580px';
+            chartProductsDiv.style.maxHeight = '580px';
+          }
+          
+          // Get all products for this chart - always filter by myCompany in Charts mode
+          const smallCards = chartProductsDiv.querySelectorAll('.small-ad-details');
+          let products = Array.from(smallCards).map(card => card.productData).filter(p => p);
+          
+          // In Charts mode, always show only myCompany products
+          products = products.filter(p => p._isMyCompany);
+          
+          if (products.length > 0 && chartAvgPosDiv) {
+            renderAvgPositionChart(chartAvgPosDiv, products);
+          }
           
           // Add click handlers to small cards for chart interaction
           smallCards.forEach((card, index) => {
@@ -3658,118 +3665,106 @@ if (viewProductsBtn && viewChartsBtn) {
             card._chartClickHandler = clickHandler;
             card.addEventListener('click', clickHandler);
           });
-        }
-      });
-    }, 200); // Increased delay to ensure proper DOM updates
-  });
-}
+        });
+      }, 200);
+      
+      console.log('[ProductMap] Switched to Charts view');
+    });
+  }
+});
 
 // Add company view switcher functionality for Companies mode
-const viewCompaniesBtn = document.getElementById("viewCompanies");
-const viewMarketTrendBtn = document.getElementById("viewMarketTrend");
+const viewCompaniesBtns = document.querySelectorAll("#viewCompanies");
+const viewMarketTrendBtns = document.querySelectorAll("#viewMarketTrend");
 
-if (viewCompaniesBtn && viewMarketTrendBtn) {
-viewMarketTrendBtn.addEventListener("click", function() {
-  console.log('[Debug] Market Trend button clicked');
-    // Add body class for CSS targeting
-  document.body.classList.add('market-trend-mode');
-  document.body.classList.remove('companies-mode');
+viewMarketTrendBtns.forEach((viewMarketTrendBtn, index) => {
+  const viewCompaniesBtn = viewCompaniesBtns[index];
   
-  // Switch to Market Trend view
-  viewMarketTrendBtn.classList.add("active");
-  viewCompaniesBtn.classList.remove("active");
-  
-  // Debug: Check what elements we're finding
-  const companyCellContainers = document.querySelectorAll('.company-cell-container');
-  const marketTrendContainers = document.querySelectorAll('.market-trend-container');
-  
-  console.log(`[Debug] Found ${companyCellContainers.length} company-cell-containers`);
-  console.log(`[Debug] Found ${marketTrendContainers.length} market-trend-containers`);
-  
-  // Hide company cell containers with force
-  companyCellContainers.forEach((container, index) => {
-    console.log(`[Debug] Hiding company container ${index}:`, container);
-    container.style.display = 'none !important';
-    container.style.visibility = 'hidden';
-    container.style.opacity = '0';
-  });
-  
-  // Show market trend containers with force
-  marketTrendContainers.forEach((container, index) => {
-    console.log(`[Debug] Showing market trend container ${index}:`, container);
-    container.style.display = 'block !important';
-    container.style.visibility = 'visible';
-    container.style.opacity = '1';
-  });
-  
-  // Toggle header text
-  document.querySelectorAll('.companies-header-text').forEach(text => {
-    text.style.display = 'none';
-  });
-  document.querySelectorAll('.market-trend-header-text').forEach(text => {
-    text.style.display = 'inline';
-  });
-  
-  // Check if ApexCharts is available
-  if (typeof ApexCharts === 'undefined') {
-    console.error('[ProductMap] ApexCharts library not loaded!');
-    alert('Chart library not loaded. Please refresh the page.');
-    return;
+  if (viewMarketTrendBtn && viewCompaniesBtn) {
+    viewMarketTrendBtn.addEventListener("click", function() {
+      console.log('[Debug] Market Trend button clicked');
+      // Add body class for CSS targeting
+      document.body.classList.add('market-trend-mode');
+      document.body.classList.remove('companies-mode');
+      
+      // Switch to Market Trend view - update ALL switchers
+      viewMarketTrendBtns.forEach(btn => btn.classList.add("active"));
+      viewCompaniesBtns.forEach(btn => btn.classList.remove("active"));
+      
+      // Debug: Check what elements we're finding
+      const companyCellContainers = document.querySelectorAll('.company-cell-container');
+      const marketTrendContainers = document.querySelectorAll('.market-trend-container');
+      
+      console.log(`[Debug] Found ${companyCellContainers.length} company-cell-containers`);
+      console.log(`[Debug] Found ${marketTrendContainers.length} market-trend-containers`);
+      
+      // Hide company cell containers with force
+      companyCellContainers.forEach((container, index) => {
+        console.log(`[Debug] Hiding company container ${index}:`, container);
+        container.style.display = 'none !important';
+        container.style.visibility = 'hidden';
+        container.style.opacity = '0';
+      });
+      
+      // Show market trend containers with force
+      marketTrendContainers.forEach((container, index) => {
+        console.log(`[Debug] Showing market trend container ${index}:`, container);
+        container.style.display = 'block !important';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+      });
+      
+      // Check if ApexCharts is available
+      if (typeof ApexCharts === 'undefined') {
+        console.error('[ProductMap] ApexCharts library not loaded!');
+        alert('Chart library not loaded. Please refresh the page.');
+        return;
+      }
+      
+      // Wait for DOM update, then render charts
+      setTimeout(() => {
+        renderAllMarketTrendCharts();
+      }, 100);
+      
+      console.log('[ProductMap] Switched to Market Trend view');
+    });
+    
+    viewCompaniesBtn.addEventListener("click", function() {
+      // Add body class for CSS targeting
+      document.body.classList.add('companies-mode');
+      document.body.classList.remove('market-trend-mode');
+      
+      // Switch to Companies view - update ALL switchers
+      viewCompaniesBtns.forEach(btn => btn.classList.add("active"));
+      viewMarketTrendBtns.forEach(btn => btn.classList.remove("active"));
+      
+      // Show company cell containers and hide market trend containers
+      document.querySelectorAll('.company-cell-container').forEach(container => {
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+        container.style.cssText = container.style.cssText.replace(/display\s*:\s*none\s*!important\s*;?/g, 'display: block;');
+      });
+      
+      document.querySelectorAll('.market-trend-container').forEach(container => {
+        container.style.display = 'none';
+        container.style.visibility = 'hidden';
+        container.style.opacity = '0';
+      });
+      
+      // Destroy any existing market trend charts to free memory
+      if (window.marketTrendChartInstances) {
+        window.marketTrendChartInstances.forEach(instance => {
+          if (instance.chart) instance.chart.destroy();
+          if (instance.tooltip) instance.tooltip.remove();
+        });
+        window.marketTrendChartInstances = [];
+      }
+      
+      console.log('[ProductMap] Switched to Companies view');
+    });
   }
-  
-  // Wait for DOM update, then render charts
-  setTimeout(() => {
-    renderAllMarketTrendCharts();
-  }, 100);
-  
-  console.log('[ProductMap] Switched to Market Trend view');
 });
-
-// Update the Companies button to hide market trend charts
-viewCompaniesBtn.addEventListener("click", function() {
-    // Add body class for CSS targeting
-  document.body.classList.add('companies-mode');
-  document.body.classList.remove('market-trend-mode');
-  // Switch to Companies view
-  viewCompaniesBtn.classList.add("active");
-  viewMarketTrendBtn.classList.remove("active");
-  
-  // Show company cell containers and hide market trend containers
-  document.querySelectorAll('.company-cell-container').forEach(container => {
-    // Reset ALL styles that might have been set by Market Trend view
-    container.style.display = 'block';
-    container.style.visibility = 'visible';
-    container.style.opacity = '1';
-    // Remove any !important styles by resetting the entire style property if needed
-    container.style.cssText = container.style.cssText.replace(/display\s*:\s*none\s*!important\s*;?/g, 'display: block;');
-  });
-  
-  document.querySelectorAll('.market-trend-container').forEach(container => {
-    container.style.display = 'none';
-    container.style.visibility = 'hidden';
-    container.style.opacity = '0';
-  });
-  
-  // Toggle header text
-  document.querySelectorAll('.companies-header-text').forEach(text => {
-    text.style.display = 'inline';
-  });
-  document.querySelectorAll('.market-trend-header-text').forEach(text => {
-    text.style.display = 'none';
-  });
-  
-  // Destroy any existing market trend charts to free memory
-if (window.marketTrendChartInstances) {
-  window.marketTrendChartInstances.forEach(instance => {
-    if (instance.chart) instance.chart.destroy();
-    if (instance.tooltip) instance.tooltip.remove();
-  });
-  window.marketTrendChartInstances = [];
-}
-  
-  console.log('[ProductMap] Switched to Companies view');
-});
-}
 
 // Listen for mode changes to control switcher visibility
 document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
@@ -3809,126 +3804,141 @@ document.querySelectorAll('#modeSelector .mode-option').forEach(option => {
 });
 
 // Add bucket type selector functionality
-const bucketSelector = document.getElementById("bucketTypeSelector");
-if (bucketSelector) {
-  bucketSelector.addEventListener("change", function() {
-    const selectedBucketType = this.value;
-    console.log(`[ProductMap] Switching to bucket type: ${selectedBucketType}`);
-    
-    // Update all bucket badges
-    document.querySelectorAll('.bucket-badge').forEach(badge => {
-      const adCard = badge.parentElement;
-      const plaIndex = adCard.getAttribute('data-pla-index');
-      const product = window.globalRows[plaIndex];
+const bucketSelectors = document.querySelectorAll("#bucketTypeSelector");
+bucketSelectors.forEach(bucketSelector => {
+  if (bucketSelector) {
+    bucketSelector.addEventListener("change", function() {
+      const selectedBucketType = this.value;
+      console.log(`[ProductMap] Switching to bucket type: ${selectedBucketType}`);
       
-      if (product && googleAdsEnabled && bucketDataMap.size > 0) {
-        // Get device from the row, not from the product
-        const row = adCard.closest('tr');
-        const deviceCell = row.querySelector('.device-icon');
-        const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
-        
+      // Sync all selectors
+      bucketSelectors.forEach(selector => selector.value = selectedBucketType);
+      
+      // Update all bucket badges
+      document.querySelectorAll('.bucket-badge').forEach(badge => {
+        const adCard = badge.parentElement;
         const plaIndex = adCard.getAttribute('data-pla-index');
-const productData = window.globalRows[plaIndex];
-if (!productData) return;
-const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
+        const product = window.globalRows[plaIndex];
         
-        const productBucketData = bucketDataMap.get(lookupKey);
-        
-if (productBucketData) {
-  const bucketResult = getBucketBadgeHTML(productBucketData, selectedBucketType);
-  
-  // Remove existing bucket badge
-  const existingBadge = adCard.querySelector('.bucket-badge');
-  if (existingBadge) {
-    existingBadge.remove();
-  }
-  
-  // Remove existing sellers container classes
-  adCard.classList.remove('sellers-revenue-stars', 'sellers-best-sellers', 'sellers-volume-leaders', 'sellers-standard');
-  
-  // Add new badge if exists
-  if (bucketResult.badgeHTML) {
-    adCard.insertAdjacentHTML('afterbegin', bucketResult.badgeHTML);
-    if (!adCard.classList.contains('has-bucket')) {
-      adCard.classList.add('has-bucket');
-    }
-  } else {
-    adCard.classList.remove('has-bucket');
-  }
-  
-  // Add new container class for sellers bucket
-  if (bucketResult.containerClass) {
-    adCard.classList.add(bucketResult.containerClass);
-  }
-}
-      }
+        if (product && googleAdsEnabled && bucketDataMap.size > 0) {
+          // Get device from the row, not from the product
+          const row = adCard.closest('tr');
+          const deviceCell = row.querySelector('.device-icon');
+          const deviceValue = deviceCell ? (deviceCell.alt || '').toUpperCase() : 'DESKTOP';
+          
+          const plaIndex = adCard.getAttribute('data-pla-index');
+          const productData = window.globalRows[plaIndex];
+          if (!productData) return;
+          const lookupKey = `${productData.title.toLowerCase()}|${deviceValue}`;
+          
+          const productBucketData = bucketDataMap.get(lookupKey);
+          
+          if (productBucketData) {
+            const bucketResult = getBucketBadgeHTML(productBucketData, selectedBucketType);
+            
+            // Remove existing bucket badge
+            const existingBadge = adCard.querySelector('.bucket-badge');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
+            
+            // Remove existing sellers container classes
+            adCard.classList.remove('sellers-revenue-stars', 'sellers-best-sellers', 'sellers-volume-leaders', 'sellers-standard');
+            
+            // Add new badge if exists
+            if (bucketResult.badgeHTML) {
+              adCard.insertAdjacentHTML('afterbegin', bucketResult.badgeHTML);
+              if (!adCard.classList.contains('has-bucket')) {
+                adCard.classList.add('has-bucket');
+              }
+            } else {
+              adCard.classList.remove('has-bucket');
+            }
+            
+            // Add new container class for sellers bucket
+            if (bucketResult.containerClass) {
+              adCard.classList.add(bucketResult.containerClass);
+            }
+          }
+        }
+      });
     });
-  });
-}
-
-// Add metrics toggle functionality
-const metricsToggle = document.getElementById("metricsToggle");
-if (metricsToggle) {
-  // Restore toggle state
-  metricsToggle.checked = window.metricsToggleState || false;
-  
-  metricsToggle.addEventListener("change", function() {
-    const isChecked = this.checked;
-    
-    // Store the toggle state
-    window.metricsToggleState = isChecked;
-    console.log(`[ProductMap] Metrics toggle: ${isChecked ? 'ON' : 'OFF'}`);
-    
-    // Find all card wrappers and metrics panels
-    const cardWrappers = document.querySelectorAll('.card-wrapper');
-    const metricsPanels = document.querySelectorAll('.product-metrics-panel');
-    
-    cardWrappers.forEach(wrapper => {
-      if (isChecked) {
-        wrapper.classList.add('with-metrics');
-      } else {
-        wrapper.classList.remove('with-metrics');
-      }
-    });
-    
-metricsPanels.forEach(panel => {
-  const wrapper = panel.closest('.card-wrapper');
-  if (wrapper && wrapper.getAttribute('data-has-metrics') === 'true') {
-    if (isChecked) {
-      wrapper.classList.add('with-metrics');
-      panel.classList.add('visible');
-    } else {
-      wrapper.classList.remove('with-metrics');
-      panel.classList.remove('visible');
-    }
   }
 });
-  });
-}
+
+// Add metrics toggle functionality
+const metricsToggles = document.querySelectorAll("#metricsToggle");
+metricsToggles.forEach(metricsToggle => {
+  if (metricsToggle) {
+    // Restore toggle state
+    metricsToggle.checked = window.metricsToggleState || false;
+    
+    metricsToggle.addEventListener("change", function() {
+      const isChecked = this.checked;
+      
+      // Store the toggle state
+      window.metricsToggleState = isChecked;
+      console.log(`[ProductMap] Metrics toggle: ${isChecked ? 'ON' : 'OFF'}`);
+      
+      // Sync all toggles
+      metricsToggles.forEach(toggle => toggle.checked = isChecked);
+      
+      // Find all card wrappers and metrics panels
+      const cardWrappers = document.querySelectorAll('.card-wrapper');
+      const metricsPanels = document.querySelectorAll('.product-metrics-panel');
+      
+      cardWrappers.forEach(wrapper => {
+        if (isChecked) {
+          wrapper.classList.add('with-metrics');
+        } else {
+          wrapper.classList.remove('with-metrics');
+        }
+      });
+      
+      metricsPanels.forEach(panel => {
+        const wrapper = panel.closest('.card-wrapper');
+        if (wrapper && wrapper.getAttribute('data-has-metrics') === 'true') {
+          if (isChecked) {
+            wrapper.classList.add('with-metrics');
+            panel.classList.add('visible');
+          } else {
+            wrapper.classList.remove('with-metrics');
+            panel.classList.remove('visible');
+          }
+        }
+      });
+    });
+  }
+});
 
 // Add all products toggle functionality
-const allProductsToggle = document.getElementById("allProductsToggle");
-if (allProductsToggle) {
-  // Restore toggle state
-  allProductsToggle.checked = window.showAllProductsInMap || false;
-  
-  allProductsToggle.addEventListener("change", function() {
-    const isChecked = this.checked;
-    console.log(`[ProductMap] All Products toggle: ${isChecked ? 'ON' : 'OFF'}`);
+const allProductsToggles = document.querySelectorAll("#allProductsToggle");
+allProductsToggles.forEach(allProductsToggle => {
+  if (allProductsToggle) {
+    // Restore toggle state
+    allProductsToggle.checked = window.showAllProductsInMap || false;
     
-    // Store the toggle state
-    window.showAllProductsInMap = isChecked;
-    
-    // Get the current mode
-    const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
-    if (currentMode === 'companies') {
-      prepareCompanySerpsStatsData();
-    }
-    
-    // Re-render the entire table
-    renderProductMapTable();
-  });
-}
+    allProductsToggle.addEventListener("change", function() {
+      const isChecked = this.checked;
+      console.log(`[ProductMap] All Products toggle: ${isChecked ? 'ON' : 'OFF'}`);
+      
+      // Store the toggle state
+      window.showAllProductsInMap = isChecked;
+      
+      // Sync all toggles
+      allProductsToggles.forEach(toggle => toggle.checked = isChecked);
+      
+      // Get the current mode
+      const currentMode = document.querySelector('#modeSelector .mode-option.active')?.getAttribute('data-mode') || 'products';
+      if (currentMode === 'companies') {
+        prepareCompanySerpsStatsData();
+      }
+      
+      // Re-render the entire table
+      renderProductMapTable();
+    });
+  }
+});
   
     console.log("[renderProductMapTable] Using myCompany:", window.myCompany);
   // Get the correct company for the current project
