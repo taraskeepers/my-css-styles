@@ -6423,7 +6423,7 @@ function renderSelectedCompanyMarketShareChart(companyData) {
     series: series,
 chart: {
   type: "area",
-  stacked: true,
+  stacked: false,
   width: 700,    // Fixed width
   height: 120,   // Fixed height
   toolbar: { show: false },
@@ -6462,14 +6462,15 @@ chart: {
         }
       }
     },
-yaxis: {
+    yaxis: {
       labels: {
         formatter: val => val.toFixed(1) + '%',
         style: {
-          fontSize: '10px'  // Slightly smaller labels
+          fontSize: '10px'
         }
       },
-      max: Math.max(...chartData.map(d => d.y)) * 1.1  // Reduced from 1.2 to 1.1 and removed ceiling
+      min: 0,
+      max: Math.ceil(Math.max(...chartData.map(d => d.y)) * 1.15)
     },
     grid: { show: false },
     legend: { show: false },
