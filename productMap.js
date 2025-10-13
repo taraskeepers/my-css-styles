@@ -8440,13 +8440,22 @@ matchingProducts.sort((a, b) => {
                   // 1. Make sure it has the _plaIndex property
                   enhancedProduct._plaIndex = pmIndexKey;
                   
-                  // 2. Make sure the stars array is properly formatted
-                  enhancedProduct.stars = [];
-                  const rating = parseFloat(enhancedProduct.rating) || 0;
-                  for (let i = 0; i < 5; i++) {
-                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
-                    enhancedProduct.stars.push({ fill });
-                  }
+// 2. Make sure the stars array is properly formatted
+enhancedProduct.stars = [];
+const rating = parseFloat(enhancedProduct.rating) || 0;
+
+// CRITICAL: Set the rating value on the product so template can use it
+if (rating > 0) {
+  enhancedProduct.rating = rating;  // ← ADD THIS LINE!
+  for (let i = 0; i < 5; i++) {
+    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+    enhancedProduct.stars.push({ fill });
+  }
+} else {
+  // No rating data - don't display rating section
+  enhancedProduct.rating = null;
+  enhancedProduct.stars = [];
+}
                   
                   // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
                   if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
@@ -8769,13 +8778,22 @@ if (hasMetricsData && metricsPanelHTML) {
                   // 1. Make sure it has the _plaIndex property
                   enhancedProduct._plaIndex = pmIndexKey;
                   
-                  // 2. Make sure the stars array is properly formatted
-                  enhancedProduct.stars = [];
-                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
-                  for (let i = 0; i < 5; i++) {
-                    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
-                    enhancedProduct.stars.push({ fill });
-                  }
+// 2. Make sure the stars array is properly formatted
+enhancedProduct.stars = [];
+const rating = parseFloat(enhancedProduct.rating) || 0;
+
+// CRITICAL: Set the rating value on the product so template can use it
+if (rating > 0) {
+  enhancedProduct.rating = rating;  // ← ADD THIS LINE!
+  for (let i = 0; i < 5; i++) {
+    let fill = Math.min(100, Math.max(0, (rating - i) * 100));
+    enhancedProduct.stars.push({ fill });
+  }
+} else {
+  // No rating data - don't display rating section
+  enhancedProduct.rating = null;
+  enhancedProduct.stars = [];
+}
                   
                   // 3. PRESERVE ONLY REAL HISTORICAL DATA - NO SYNTHETIC DATA
                   if (!enhancedProduct.historical_data || !Array.isArray(enhancedProduct.historical_data)) {
