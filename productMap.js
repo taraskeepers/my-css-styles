@@ -3527,6 +3527,7 @@ setTimeout(() => {
         });
       }, 100);
     });
+  });
 
 // Add view switcher functionality for Products mode
 const viewProductsBtns = document.querySelectorAll("#viewProducts");
