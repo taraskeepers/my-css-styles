@@ -4216,22 +4216,62 @@ console.log(`[renderProductMapTable] Using company for project ${currentProjectN
           margin-bottom: 4px;
         }
         
-        .product-cell .ad-rating {
-          display: flex;
-          align-items: center;
-          font-size: 12px;
-          color: #666;
-        }
-        
-        .product-cell .star-container {
-          display: inline-flex;
-          margin: 0 4px;
-        }
-        
-        .product-cell .review-count {
-          color: #777;
-          font-size: 11px;
-        }
+.product-cell .ad-rating {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.product-cell .star-container {
+  display: inline-flex;
+  margin: 0 4px;
+  gap: 1px;
+}
+
+.product-cell .star {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-cell .star::before {
+  content: "★";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  font-size: 14px;
+  line-height: 14px;
+  color: #dadce0;
+  z-index: 1;
+}
+
+.product-cell .star::after {
+  content: "★";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  font-size: 14px;
+  line-height: 14px;
+  color: #fbbc04;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.product-cell .numeric-rating {
+  font-weight: 600;
+  margin-right: 2px;
+  color: #333;
+}
+
+.product-cell .review-count {
+  color: #777;
+  font-size: 11px;
+  margin-left: 2px;
+}
         
         .product-cell .ad-extensions {
           margin-top: 4px;
