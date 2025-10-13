@@ -8786,15 +8786,28 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Fix star rendering with proper fill
-const stars = adCard.querySelectorAll('.star');
-stars.forEach((star, index) => {
-  const fillPercent = enhancedProduct.stars[index]?.fill || 0;
-  star.style.setProperty('--fill-width', `${fillPercent}%`);
-  
-  // Clear the inline background gradient (not needed with star characters)
-  star.style.background = 'none';
-});
+// Create stars if rating exists
+if (enhancedProduct.rating) {
+  const ratingContainer = adCard.querySelector('.ad-rating');
+  if (ratingContainer && enhancedProduct.stars) {
+    // Clear existing content
+    ratingContainer.innerHTML = '';
+    
+    // Add star elements
+    enhancedProduct.stars.forEach(star => {
+      const starElement = document.createElement('span');
+      starElement.className = 'star';
+      starElement.style.setProperty('--fill-width', `${star.fill}%`);
+      ratingContainer.appendChild(starElement);
+    });
+    
+    // Add rating number
+    const ratingNumber = document.createElement('span');
+    ratingNumber.className = 'rating-number';
+    ratingNumber.textContent = ` (${enhancedProduct.rating})`;
+    ratingContainer.appendChild(ratingNumber);
+  }
+}
                 } catch (error) {
                   console.error("[renderProductMapTable] Error rendering product:", error);
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
@@ -9131,15 +9144,28 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-                  // Fix star rendering with proper fill
-const stars = adCard.querySelectorAll('.star');
-stars.forEach((star, index) => {
-  const fillPercent = enhancedProduct.stars[index]?.fill || 0;
-  star.style.setProperty('--fill-width', `${fillPercent}%`);
-  
-  // Clear the inline background gradient (not needed with star characters)
-  star.style.background = 'none';
-});
+// Create stars if rating exists
+if (enhancedProduct.rating) {
+  const ratingContainer = adCard.querySelector('.ad-rating');
+  if (ratingContainer && enhancedProduct.stars) {
+    // Clear existing content
+    ratingContainer.innerHTML = '';
+    
+    // Add star elements
+    enhancedProduct.stars.forEach(star => {
+      const starElement = document.createElement('span');
+      starElement.className = 'star';
+      starElement.style.setProperty('--fill-width', `${star.fill}%`);
+      ratingContainer.appendChild(starElement);
+    });
+    
+    // Add rating number
+    const ratingNumber = document.createElement('span');
+    ratingNumber.className = 'rating-number';
+    ratingNumber.textContent = ` (${enhancedProduct.rating})`;
+    ratingContainer.appendChild(ratingNumber);
+  }
+}
                 } catch (error) {
                   console.error("[renderProductMapTable] Error rendering inactive product:", error);
                   console.error("[renderProductMapTable] Problem product:", JSON.stringify(product));
