@@ -8786,26 +8786,44 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Create stars if rating exists
+// Fix star rendering - create stars if they don't exist
 if (enhancedProduct.rating) {
   const ratingContainer = adCard.querySelector('.ad-rating');
   if (ratingContainer && enhancedProduct.stars) {
-    // Clear existing content
-    ratingContainer.innerHTML = '';
+    // Check if stars already exist
+    let stars = ratingContainer.querySelectorAll('.star');
     
-    // Add star elements
-    enhancedProduct.stars.forEach(star => {
-      const starElement = document.createElement('span');
-      starElement.className = 'star';
-      starElement.style.setProperty('--fill-width', `${star.fill}%`);
-      ratingContainer.appendChild(starElement);
-    });
-    
-    // Add rating number
-    const ratingNumber = document.createElement('span');
-    ratingNumber.className = 'rating-number';
-    ratingNumber.textContent = ` (${enhancedProduct.rating})`;
-    ratingContainer.appendChild(ratingNumber);
+    // If no stars exist, create them
+    if (stars.length === 0) {
+      // Save any existing content (like review count)
+      const existingText = ratingContainer.textContent || '';
+      const reviewMatch = existingText.match(/\([\d.]+\)/);
+      
+      // Clear and rebuild with stars
+      ratingContainer.innerHTML = '';
+      
+      // Add star elements
+      enhancedProduct.stars.forEach(star => {
+        const starElement = document.createElement('span');
+        starElement.className = 'star';
+        starElement.style.setProperty('--fill-width', `${star.fill}%`);
+        ratingContainer.appendChild(starElement);
+      });
+      
+      // Add review count
+      if (reviewMatch || enhancedProduct.reviews) {
+        const reviewSpan = document.createElement('span');
+        reviewSpan.className = 'rating-number';
+        reviewSpan.textContent = reviewMatch ? ` ${reviewMatch[0]}` : ` (${enhancedProduct.reviews})`;
+        ratingContainer.appendChild(reviewSpan);
+      }
+    } else {
+      // Stars exist, just update their fill
+      stars.forEach((star, index) => {
+        const fillPercent = enhancedProduct.stars[index]?.fill || 0;
+        star.style.setProperty('--fill-width', `${fillPercent}%`);
+      });
+    }
   }
 }
                 } catch (error) {
@@ -9144,26 +9162,44 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Create stars if rating exists
+// Fix star rendering - create stars if they don't exist
 if (enhancedProduct.rating) {
   const ratingContainer = adCard.querySelector('.ad-rating');
   if (ratingContainer && enhancedProduct.stars) {
-    // Clear existing content
-    ratingContainer.innerHTML = '';
+    // Check if stars already exist
+    let stars = ratingContainer.querySelectorAll('.star');
     
-    // Add star elements
-    enhancedProduct.stars.forEach(star => {
-      const starElement = document.createElement('span');
-      starElement.className = 'star';
-      starElement.style.setProperty('--fill-width', `${star.fill}%`);
-      ratingContainer.appendChild(starElement);
-    });
-    
-    // Add rating number
-    const ratingNumber = document.createElement('span');
-    ratingNumber.className = 'rating-number';
-    ratingNumber.textContent = ` (${enhancedProduct.rating})`;
-    ratingContainer.appendChild(ratingNumber);
+    // If no stars exist, create them
+    if (stars.length === 0) {
+      // Save any existing content (like review count)
+      const existingText = ratingContainer.textContent || '';
+      const reviewMatch = existingText.match(/\([\d.]+\)/);
+      
+      // Clear and rebuild with stars
+      ratingContainer.innerHTML = '';
+      
+      // Add star elements
+      enhancedProduct.stars.forEach(star => {
+        const starElement = document.createElement('span');
+        starElement.className = 'star';
+        starElement.style.setProperty('--fill-width', `${star.fill}%`);
+        ratingContainer.appendChild(starElement);
+      });
+      
+      // Add review count
+      if (reviewMatch || enhancedProduct.reviews) {
+        const reviewSpan = document.createElement('span');
+        reviewSpan.className = 'rating-number';
+        reviewSpan.textContent = reviewMatch ? ` ${reviewMatch[0]}` : ` (${enhancedProduct.reviews})`;
+        ratingContainer.appendChild(reviewSpan);
+      }
+    } else {
+      // Stars exist, just update their fill
+      stars.forEach((star, index) => {
+        const fillPercent = enhancedProduct.stars[index]?.fill || 0;
+        star.style.setProperty('--fill-width', `${fillPercent}%`);
+      });
+    }
   }
 }
                 } catch (error) {
