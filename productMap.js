@@ -3026,41 +3026,7 @@ console.log(`[ProductMap] Company stats loaded: ${companyStats.length} entries`)
     // Setup container with fixed height and scrolling
 container.innerHTML = `
   <div id="productMapContainer" style="width: 100%; height: calc(100vh - 50px); overflow-y: auto; position: relative;">
-    <div class="view-switcher" id="productViewSwitcher">
-      <button id="viewProducts" class="active">Products</button>
-      <button id="viewCharts">Charts</button>
-    </div>
-    <div class="comp-view-switcher" id="compViewSwitcher" style="display: none;">
-      <button id="viewCompanies" class="active">Companies</button>
-      <button id="viewMarketTrend">Market Trend</button>
-    </div>
-    <div class="all-products-toggle-container">
-      <label class="all-products-toggle-label">All Products</label>
-      <label class="all-products-toggle">
-        <input type="checkbox" id="allProductsToggle">
-        <span class="all-products-slider"></span>
-      </label>
-    </div>
-    <div class="metrics-toggle-container">
-      <label class="metrics-toggle-label">Google Ads Metrics</label>
-      <label class="metrics-toggle">
-        <input type="checkbox" id="metricsToggle">
-        <span class="metrics-slider"></span>
-      </label>
-    </div>
-   <select id="bucketTypeSelector" class="bucket-type-selector">
-      <option value="PROFITABILITY_BUCKET">Profitability</option>
-      <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
-      <option value="INVESTMENT_BUCKET">Investment</option>
-      <option value="CUSTOM_TIER_BUCKET">Custom Tier</option>
-      <option value="SELLERS" selected>Sellers</option>
-    </select>
-    <button id="fullscreenToggle" class="fullscreen-toggle">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-      </svg>
-      Full Screen
-    </button>
+    <div id="product-map-table-placeholder"></div>
   </div>
 `;
     
@@ -6180,6 +6146,85 @@ body.charts-mode .products-chart-container {
 .apexcharts-canvas {
   overflow: hidden !important;
 }
+
+/* Header controls container */
+.header-controls-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 15px;
+  padding: 5px 0;
+  flex-wrap: nowrap;
+}
+
+/* Adjust toggle containers for header */
+.products-header .all-products-toggle-container,
+.companies-header .all-products-toggle-container,
+.products-header .metrics-toggle-container,
+.companies-header .metrics-toggle-container {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Adjust bucket selector for header */
+.products-header .bucket-type-selector,
+.companies-header .bucket-type-selector {
+  position: static;
+  padding: 6px 12px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+/* Adjust view switchers for header */
+.products-header .view-switcher,
+.products-header .comp-view-switcher,
+.companies-header .view-switcher,
+.companies-header .comp-view-switcher {
+  position: static;
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  margin: 0;
+}
+
+/* Adjust fullscreen button for header */
+.products-header .fullscreen-toggle,
+.companies-header .fullscreen-toggle {
+  position: static;
+  padding: 6px 12px;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.products-header .fullscreen-toggle:hover,
+.companies-header .fullscreen-toggle:hover {
+  background-color: #0056b3;
+}
+
+/* Ensure labels are readable */
+.header-controls-container .all-products-toggle-label,
+.header-controls-container .metrics-toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+}
       `;
       document.head.appendChild(style);
     }
@@ -7651,10 +7696,65 @@ thead.innerHTML = `
     <th>Location</th>
     <th>Device</th>
     <th>Top 40 Segmentation</th>
-    <th class="products-header">Products</th>
+    <th class="products-header">
+      <div class="header-controls-container">
+        <div class="all-products-toggle-container">
+          <label class="all-products-toggle-label">All Products</label>
+          <label class="all-products-toggle">
+            <input type="checkbox" id="allProductsToggle">
+            <span class="all-products-slider"></span>
+          </label>
+        </div>
+        <div class="metrics-toggle-container">
+          <label class="metrics-toggle-label">Google Ads Metrics</label>
+          <label class="metrics-toggle">
+            <input type="checkbox" id="metricsToggle">
+            <span class="metrics-slider"></span>
+          </label>
+        </div>
+        <select id="bucketTypeSelector" class="bucket-type-selector">
+          <option value="PROFITABILITY_BUCKET">Profitability</option>
+          <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
+          <option value="INVESTMENT_BUCKET">Investment</option>
+          <option value="CUSTOM_TIER_BUCKET">Custom Tier</option>
+          <option value="SELLERS" selected>Sellers</option>
+        </select>
+        <div class="view-switcher" id="productViewSwitcher">
+          <button id="viewProducts" class="active">Products</button>
+          <button id="viewCharts">Charts</button>
+        </div>
+        <button id="fullscreenToggle" class="fullscreen-toggle">⛶ Fullscreen</button>
+      </div>
+    </th>
     <th class="companies-header">
-      <span class="companies-header-text">Companies</span>
-      <span class="market-trend-header-text" style="display: none;">Market Trend</span>
+      <div class="header-controls-container">
+        <div class="all-products-toggle-container">
+          <label class="all-products-toggle-label">All Products</label>
+          <label class="all-products-toggle">
+            <input type="checkbox" id="allProductsToggle">
+            <span class="all-products-slider"></span>
+          </label>
+        </div>
+        <div class="metrics-toggle-container">
+          <label class="metrics-toggle-label">Google Ads Metrics</label>
+          <label class="metrics-toggle">
+            <input type="checkbox" id="metricsToggle">
+            <span class="metrics-slider"></span>
+          </label>
+        </div>
+        <select id="bucketTypeSelector" class="bucket-type-selector">
+          <option value="PROFITABILITY_BUCKET">Profitability</option>
+          <option value="FUNNEL_STAGE_BUCKET">Funnel Stage</option>
+          <option value="INVESTMENT_BUCKET">Investment</option>
+          <option value="CUSTOM_TIER_BUCKET">Custom Tier</option>
+          <option value="SELLERS" selected>Sellers</option>
+        </select>
+        <div class="comp-view-switcher" id="compViewSwitcher">
+          <button id="viewCompanies" class="active">Companies</button>
+          <button id="viewMarketTrend">Market Trend</button>
+        </div>
+        <button id="fullscreenToggle" class="fullscreen-toggle">⛶ Fullscreen</button>
+      </div>
     </th>
   </tr>
 `;
