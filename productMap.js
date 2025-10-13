@@ -8786,45 +8786,49 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Add stars for ALL products - even those without ratings
+// Add stars for ALL products
 const ratingContainer = adCard.querySelector('.ad-rating');
 if (ratingContainer) {
   // Check if stars already exist
-  const existingStars = ratingContainer.querySelectorAll('.star-icon');
-  
-  if (existingStars.length === 0) {
+  if (!ratingContainer.querySelector('.star-icon')) {
     let starsHTML = '';
-    const rating = parseFloat(enhancedProduct.rating) || 0; // Default to 0 if null
+    const rating = parseFloat(enhancedProduct.rating) || 0;
     
+    // Generate 5 stars
     for (let i = 0; i < 5; i++) {
-      if (rating === 0) {
-        // No rating - all grey stars
-        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
-      } else if (rating >= i + 1) {
-        // Full yellow star
-        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px;">★</span>';
-      } else if (rating > i && rating < i + 1) {
-        // Partial star
+      if (rating >= i + 1) {
+        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px; display: inline;">★</span>';
+      } else if (rating > i) {
         const percent = (rating - i) * 100;
-        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
+        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px; width: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
       } else {
-        // Empty grey star
-        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px; display: inline;">★</span>';
       }
     }
     
-    // Find where to insert stars (before any existing text/numbers)
-    const textNodes = Array.from(ratingContainer.childNodes);
-    const reviewCountNode = textNodes.find(node => 
-      node.nodeType === Node.TEXT_NODE || node.className === 'rating-number'
-    );
+    // Insert stars inline at the beginning
+    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML + ' ');
+  }
+} else if (enhancedProduct.rating !== undefined || enhancedProduct.rating === null) {
+  // No rating container exists, but we should still show stars
+  const infoDiv = adCard.querySelector('.ad-info');
+  if (infoDiv) {
+    const ratingDiv = document.createElement('div');
+    ratingDiv.className = 'ad-rating';
+    ratingDiv.style.whiteSpace = 'nowrap';
     
-    if (reviewCountNode) {
-      const wrapper = document.createElement('span');
-      wrapper.innerHTML = starsHTML;
-      ratingContainer.insertBefore(wrapper, reviewCountNode);
+    let starsHTML = '';
+    for (let i = 0; i < 5; i++) {
+      starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px; display: inline;">★</span>';
+    }
+    ratingDiv.innerHTML = starsHTML;
+    
+    // Insert after merchant or price
+    const merchant = infoDiv.querySelector('.ad-merchant');
+    if (merchant) {
+      merchant.parentNode.insertBefore(ratingDiv, merchant.nextSibling);
     } else {
-      ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+      infoDiv.appendChild(ratingDiv);
     }
   }
 }
@@ -9164,45 +9168,49 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Add stars for ALL products - even those without ratings
+// Add stars for ALL products
 const ratingContainer = adCard.querySelector('.ad-rating');
 if (ratingContainer) {
   // Check if stars already exist
-  const existingStars = ratingContainer.querySelectorAll('.star-icon');
-  
-  if (existingStars.length === 0) {
+  if (!ratingContainer.querySelector('.star-icon')) {
     let starsHTML = '';
-    const rating = parseFloat(enhancedProduct.rating) || 0; // Default to 0 if null
+    const rating = parseFloat(enhancedProduct.rating) || 0;
     
+    // Generate 5 stars
     for (let i = 0; i < 5; i++) {
-      if (rating === 0) {
-        // No rating - all grey stars
-        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
-      } else if (rating >= i + 1) {
-        // Full yellow star
-        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px;">★</span>';
-      } else if (rating > i && rating < i + 1) {
-        // Partial star
+      if (rating >= i + 1) {
+        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px; display: inline;">★</span>';
+      } else if (rating > i) {
         const percent = (rating - i) * 100;
-        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
+        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px; width: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
       } else {
-        // Empty grey star
-        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px; display: inline;">★</span>';
       }
     }
     
-    // Find where to insert stars (before any existing text/numbers)
-    const textNodes = Array.from(ratingContainer.childNodes);
-    const reviewCountNode = textNodes.find(node => 
-      node.nodeType === Node.TEXT_NODE || node.className === 'rating-number'
-    );
+    // Insert stars inline at the beginning
+    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML + ' ');
+  }
+} else if (enhancedProduct.rating !== undefined || enhancedProduct.rating === null) {
+  // No rating container exists, but we should still show stars
+  const infoDiv = adCard.querySelector('.ad-info');
+  if (infoDiv) {
+    const ratingDiv = document.createElement('div');
+    ratingDiv.className = 'ad-rating';
+    ratingDiv.style.whiteSpace = 'nowrap';
     
-    if (reviewCountNode) {
-      const wrapper = document.createElement('span');
-      wrapper.innerHTML = starsHTML;
-      ratingContainer.insertBefore(wrapper, reviewCountNode);
+    let starsHTML = '';
+    for (let i = 0; i < 5; i++) {
+      starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px; display: inline;">★</span>';
+    }
+    ratingDiv.innerHTML = starsHTML;
+    
+    // Insert after merchant or price
+    const merchant = infoDiv.querySelector('.ad-merchant');
+    if (merchant) {
+      merchant.parentNode.insertBefore(ratingDiv, merchant.nextSibling);
     } else {
-      ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+      infoDiv.appendChild(ratingDiv);
     }
   }
 }
