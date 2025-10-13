@@ -3046,8 +3046,11 @@ document.body.classList.add(`mode-${currentMode}`);
 
   window.selectedExplorerProduct = null;
   
-  const container = document.getElementById("productExplorerPage");
+const container = document.getElementById("productExplorerPage");
   if (!container) return;
+  
+  // Add margin-top to the page
+  container.style.marginTop = "15px";
   
 // Check if Product Explorer page is actually visible before proceeding
 if (container.style.display === "none") {
@@ -5933,7 +5936,7 @@ function createSelectedCompanyStats(companyData) {
       <div class="stats-chart-container" style="flex: 1; height: 100%; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
         <div class="section-label">Market Share</div>
         <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
-          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 150px; margin: 0 auto;"></div>
+          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 120px; margin: 0 auto;"></div>
           <div id="selectedCompanyDailyRankContainer" style="
             display: flex;
             gap: 1px;
@@ -6422,7 +6425,7 @@ chart: {
   type: "area",
   stacked: true,
   width: 700,    // Fixed width
-  height: 150,   // Fixed height
+  height: 120,   // Fixed height
   toolbar: { show: false },
   zoom: { enabled: false }
     },
@@ -6430,9 +6433,9 @@ chart: {
       enabled: true,
       enabledOnSeries: [0], // only on All Devices
       formatter: (val) => val.toFixed(1) + "%",
-      offsetY: -5,
+      offsetY: 0,
       style: {
-        fontSize: "10px",
+        fontSize: "9px",
         colors: ["#000"]
       }
     },
@@ -6459,11 +6462,14 @@ chart: {
         }
       }
     },
-    yaxis: {
+yaxis: {
       labels: {
-        formatter: val => val.toFixed(1) + '%'
+        formatter: val => val.toFixed(1) + '%',
+        style: {
+          fontSize: '10px'  // Slightly smaller labels
+        }
       },
-      max: Math.ceil(Math.max(...chartData.map(d => d.y)) * 1.2)
+      max: Math.max(...chartData.map(d => d.y)) * 1.1  // Reduced from 1.2 to 1.1 and removed ceiling
     },
     grid: { show: false },
     legend: { show: false },
