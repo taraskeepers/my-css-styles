@@ -7751,6 +7751,9 @@ table.appendChild(thead);
     // Get the shopping ad template
     const adTemplate = document.getElementById("shopping-ad-template").innerHTML;
     const compiledTemplate = Handlebars.compile(adTemplate);
+
+  console.log("[RATING BAR] Template includes rating:", adTemplate.includes('ad-rating'));
+console.log("[RATING BAR] Template preview:", adTemplate.substring(0, 200));
   
     console.log("[renderProductMapTable] Processing search terms");
     
