@@ -8430,6 +8430,9 @@ matchingProducts.sort((a, b) => {
               
               // Process active products first
               activeProducts.forEach((product, productIndex) => {
+                if (productIndex < 3) {
+  console.log('[RATING BAR]', product.title, 'rating:', product.rating);
+}
                 try {
                   // Generate a unique ID with the pm_ prefix
                   const pmIndexKey = 'pm_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
@@ -8768,6 +8771,9 @@ if (hasMetricsData && metricsPanelHTML) {
               
               // Then process inactive products with the same detailed logic
               inactiveProducts.forEach((product, productIndex) => {
+                if (productIndex < 3) {
+  console.log('[RATING BAR]', product.title, 'rating:', product.rating);
+}
                 try {
                   // Generate a unique ID with the pm_ prefix
                   const pmIndexKey = 'pm_inactive_' + productIndex + '_' + Math.random().toString(36).substr(2, 5);
