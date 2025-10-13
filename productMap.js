@@ -8786,25 +8786,46 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Just put the actual damn stars in there
-if (enhancedProduct.rating && enhancedProduct.stars) {
-  const ratingContainer = adCard.querySelector('.ad-rating');
-  if (ratingContainer) {
-    // Create the star HTML with actual star characters
+// Add stars for ALL products - even those without ratings
+const ratingContainer = adCard.querySelector('.ad-rating');
+if (ratingContainer) {
+  // Check if stars already exist
+  const existingStars = ratingContainer.querySelectorAll('.star-icon');
+  
+  if (existingStars.length === 0) {
     let starsHTML = '';
+    const rating = parseFloat(enhancedProduct.rating) || 0; // Default to 0 if null
+    
     for (let i = 0; i < 5; i++) {
-      const fillPercent = enhancedProduct.stars[i]?.fill || 0;
-      if (fillPercent >= 100) {
-        starsHTML += '<span style="color: #fbbc04;">★</span>';
-      } else if (fillPercent > 0) {
-        starsHTML += '<span style="color: #fbbc04;">★</span>'; // Simplified - just show filled
+      if (rating === 0) {
+        // No rating - all grey stars
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
+      } else if (rating >= i + 1) {
+        // Full yellow star
+        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px;">★</span>';
+      } else if (rating > i && rating < i + 1) {
+        // Partial star
+        const percent = (rating - i) * 100;
+        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
       } else {
-        starsHTML += '<span style="color: #dadce0;">★</span>';
+        // Empty grey star
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
       }
     }
     
-    // Insert stars at the beginning
-    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+    // Find where to insert stars (before any existing text/numbers)
+    const textNodes = Array.from(ratingContainer.childNodes);
+    const reviewCountNode = textNodes.find(node => 
+      node.nodeType === Node.TEXT_NODE || node.className === 'rating-number'
+    );
+    
+    if (reviewCountNode) {
+      const wrapper = document.createElement('span');
+      wrapper.innerHTML = starsHTML;
+      ratingContainer.insertBefore(wrapper, reviewCountNode);
+    } else {
+      ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+    }
   }
 }
                 } catch (error) {
@@ -9143,25 +9164,46 @@ if (hasMetricsData && metricsPanelHTML) {
   adCard.style.flexShrink = "0";
   productCellDiv.appendChild(adCard);
 }
-// Just put the actual damn stars in there
-if (enhancedProduct.rating && enhancedProduct.stars) {
-  const ratingContainer = adCard.querySelector('.ad-rating');
-  if (ratingContainer) {
-    // Create the star HTML with actual star characters
+// Add stars for ALL products - even those without ratings
+const ratingContainer = adCard.querySelector('.ad-rating');
+if (ratingContainer) {
+  // Check if stars already exist
+  const existingStars = ratingContainer.querySelectorAll('.star-icon');
+  
+  if (existingStars.length === 0) {
     let starsHTML = '';
+    const rating = parseFloat(enhancedProduct.rating) || 0; // Default to 0 if null
+    
     for (let i = 0; i < 5; i++) {
-      const fillPercent = enhancedProduct.stars[i]?.fill || 0;
-      if (fillPercent >= 100) {
-        starsHTML += '<span style="color: #fbbc04;">★</span>';
-      } else if (fillPercent > 0) {
-        starsHTML += '<span style="color: #fbbc04;">★</span>'; // Simplified - just show filled
+      if (rating === 0) {
+        // No rating - all grey stars
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
+      } else if (rating >= i + 1) {
+        // Full yellow star
+        starsHTML += '<span class="star-icon" style="color: #fbbc04; font-size: 14px;">★</span>';
+      } else if (rating > i && rating < i + 1) {
+        // Partial star
+        const percent = (rating - i) * 100;
+        starsHTML += `<span class="star-icon" style="display: inline-block; position: relative; color: #dadce0; font-size: 14px;">★<span style="position: absolute; left: 0; top: 0; width: ${percent}%; overflow: hidden; color: #fbbc04;">★</span></span>`;
       } else {
-        starsHTML += '<span style="color: #dadce0;">★</span>';
+        // Empty grey star
+        starsHTML += '<span class="star-icon" style="color: #dadce0; font-size: 14px;">★</span>';
       }
     }
     
-    // Insert stars at the beginning
-    ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+    // Find where to insert stars (before any existing text/numbers)
+    const textNodes = Array.from(ratingContainer.childNodes);
+    const reviewCountNode = textNodes.find(node => 
+      node.nodeType === Node.TEXT_NODE || node.className === 'rating-number'
+    );
+    
+    if (reviewCountNode) {
+      const wrapper = document.createElement('span');
+      wrapper.innerHTML = starsHTML;
+      ratingContainer.insertBefore(wrapper, reviewCountNode);
+    } else {
+      ratingContainer.insertAdjacentHTML('afterbegin', starsHTML);
+    }
   }
 }
                 } catch (error) {
