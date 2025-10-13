@@ -8439,7 +8439,7 @@ matchingProducts.sort((a, b) => {
                   
                   // 2. Make sure the stars array is properly formatted
                   enhancedProduct.stars = [];
-                  const rating = parseFloat(enhancedProduct.rating) || 4.5;
+                  const rating = parseFloat(enhancedProduct.rating) || 0;
                   for (let i = 0; i < 5; i++) {
                     let fill = Math.min(100, Math.max(0, (rating - i) * 100));
                     enhancedProduct.stars.push({ fill });
