@@ -6423,7 +6423,7 @@ function renderSelectedCompanyMarketShareChart(companyData) {
     series: series,
 chart: {
   type: "area",
-  stacked: false,
+  stacked: true,
   width: 700,    // Fixed width
   height: 120,   // Fixed height
   toolbar: { show: false },
