@@ -5933,7 +5933,7 @@ function createSelectedCompanyStats(companyData) {
     <!-- Right side with Market Share Chart (reduced width) and Daily Rank -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
       <!-- Market Share Chart -->
-      <div class="stats-chart-container" style="flex: 1; min-height: 250px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+      <div class="stats-chart-container" style="flex: 1; min-height: 265px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
         <div class="section-label">Market Share</div>
         <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
           <div id="selectedCompanyMarketShareChart" style="width: 100%; max-width: 700px; height: 180px; max-height: 180px; margin: 0 auto; overflow: hidden; position: relative;"></div>
@@ -6469,20 +6469,23 @@ function renderSelectedCompanyMarketShareChart(companyData) {
       labels: {
         formatter: val => val.toFixed(1) + '%'
       },
-      max: (() => {
-        // Calculate max across all series
-        let maxValue = 0;
-        series.forEach(s => {
-          if (s.data && s.data.length > 0) {
-            const seriesMax = Math.max(...s.data.map(d => d.y));
-            maxValue = Math.max(maxValue, seriesMax);
-          }
-        });
-        // Add 10% padding to the maximum value
-        // If max value is very small, ensure minimum of 1%
-        const calculatedMax = maxValue * 1.1;
-        return Math.max(1, Math.ceil(calculatedMax));
-      })(),
+max: (() => {
+  // Get all dates and calculate the sum at each point
+  const allDates = new Set();
+  series.forEach(s => s.data.forEach(p => allDates.add(p.x)));
+  
+  let maxSum = 0;
+  allDates.forEach(date => {
+    let sum = 0;
+    series.forEach(s => {
+      const point = s.data.find(p => p.x === date);
+      if (point) sum += point.y;
+    });
+    maxSum = Math.max(maxSum, sum);
+  });
+  
+  return Math.ceil(maxSum * 1.1); // Add 10% padding
+})(),
       min: 0  // Ensure y-axis starts at 0
     },
     grid: { show: false },
