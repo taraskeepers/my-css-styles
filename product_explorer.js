@@ -6323,6 +6323,9 @@ function updateSelectedCompanyDeviceStats(companyName) {
   }
 }
 
+// Fixed renderSelectedCompanyMarketShareChart function with proper y-axis scaling
+// Replace the existing function in your product_explorer.js file with this version
+
 function renderSelectedCompanyMarketShareChart(companyData) {
   const chartEl = document.getElementById("selectedCompanyMarketShareChart");
   if (!chartEl) return;
@@ -6418,31 +6421,24 @@ function renderSelectedCompanyMarketShareChart(companyData) {
       data: mobileData
     });
   }
-
-chartEl.innerHTML = '';
-chartEl.style.width = '100%';
-chartEl.style.height = '180px';
-chartEl.style.maxHeight = '180px';
-chartEl.style.overflow = 'hidden';
   
   const options = {
     series: series,
-chart: {
-  type: "area",
-  stacked: true,
-  width: '100%',
-  height: 180,
-  toolbar: { show: false },
-  zoom: { enabled: false },
-  parentHeightOffset: 0
+    chart: {
+      type: "area",
+      stacked: true,
+      width: 700,    // Fixed width
+      height: 150,   // Fixed height
+      toolbar: { show: false },
+      zoom: { enabled: false }
     },
     dataLabels: {
       enabled: true,
       enabledOnSeries: [0], // only on All Devices
       formatter: (val) => val.toFixed(1) + "%",
-      offsetY: 0,
+      offsetY: -5,
       style: {
-        fontSize: "9px",
+        fontSize: "10px",
         colors: ["#000"]
       }
     },
@@ -6471,13 +6467,23 @@ chart: {
     },
     yaxis: {
       labels: {
-        formatter: val => val.toFixed(1) + '%',
-        style: {
-          fontSize: '10px'
-        }
+        formatter: val => val.toFixed(1) + '%'
       },
-      min: 0,
-      max: Math.ceil(Math.max(...chartData.map(d => d.y)) * 1.15)
+      max: (() => {
+        // Calculate max across all series
+        let maxValue = 0;
+        series.forEach(s => {
+          if (s.data && s.data.length > 0) {
+            const seriesMax = Math.max(...s.data.map(d => d.y));
+            maxValue = Math.max(maxValue, seriesMax);
+          }
+        });
+        // Add 10% padding to the maximum value
+        // If max value is very small, ensure minimum of 1%
+        const calculatedMax = maxValue * 1.1;
+        return Math.max(1, Math.ceil(calculatedMax));
+      })(),
+      min: 0  // Ensure y-axis starts at 0
     },
     grid: { show: false },
     legend: { show: false },
