@@ -5936,7 +5936,7 @@ function createSelectedCompanyStats(companyData) {
       <div class="stats-chart-container" style="flex: 1; min-height: 250px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
         <div class="section-label">Market Share</div>
         <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
-          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 200px; margin: 0 auto;"></div>
+          <div id="selectedCompanyMarketShareChart" style="width: 100%; max-width: 700px; height: 180px; max-height: 180px; margin: 0 auto; overflow: hidden; position: relative;"></div>
           <div id="selectedCompanyDailyRankContainer" style="
             display: flex;
             gap: 1px;
@@ -6418,16 +6418,23 @@ function renderSelectedCompanyMarketShareChart(companyData) {
       data: mobileData
     });
   }
+
+chartEl.innerHTML = '';
+chartEl.style.width = '100%';
+chartEl.style.height = '180px';
+chartEl.style.maxHeight = '180px';
+chartEl.style.overflow = 'hidden';
   
   const options = {
     series: series,
 chart: {
   type: "area",
   stacked: true,
-  width: 700,    // Fixed width
-  height: 200,   // Fixed height
+  width: '100%',
+  height: 180,
   toolbar: { show: false },
-  zoom: { enabled: false }
+  zoom: { enabled: false },
+  parentHeightOffset: 0
     },
     dataLabels: {
       enabled: true,
