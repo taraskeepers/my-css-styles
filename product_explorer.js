@@ -5933,10 +5933,10 @@ function createSelectedCompanyStats(companyData) {
     <!-- Right side with Market Share Chart (reduced width) and Daily Rank -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
       <!-- Market Share Chart -->
-      <div class="stats-chart-container" style="flex: 1; height: 100%; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+      <div class="stats-chart-container" style="flex: 1; min-height: 250px; background: white; border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
         <div class="section-label">Market Share</div>
         <div class="chart-content" style="display: flex; flex-direction: column; gap: 10px;">
-          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 120px; margin: 0 auto;"></div>
+          <div id="selectedCompanyMarketShareChart" style="width: 700px; height: 200px; margin: 0 auto;"></div>
           <div id="selectedCompanyDailyRankContainer" style="
             display: flex;
             gap: 1px;
@@ -6425,7 +6425,7 @@ chart: {
   type: "area",
   stacked: true,
   width: 700,    // Fixed width
-  height: 120,   // Fixed height
+  height: 200,   // Fixed height
   toolbar: { show: false },
   zoom: { enabled: false }
     },
