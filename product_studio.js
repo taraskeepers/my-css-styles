@@ -1459,43 +1459,82 @@ async function loadProductTitlesEvaluated(companyFilter = null) {
         // Aggregate by unique title
         const titleMap = new Map();
         
-        filteredData.forEach(item => {
-          const title = item.title || '';
-          
-          if (!titleMap.has(title)) {
-            titleMap.set(title, {
-              title: title,
-              finalScores: [],
-              kosValues: [],
-              gosValues: [],
-              queries: [],
-              suggestions: item.improvement_suggestions || [],
-              scoreBreakdown: item.score_breakdown ? JSON.parse(item.score_breakdown) : {},
-              matchedTerms: item.matched_terms ? JSON.parse(item.matched_terms) : {},
-              titleLength: parseInt(item.title_length || 0),
-              wordCount: parseInt(item.word_count || 0),
-              detectedBrand: item.detected_brand || '',
-              detectedCategory: item.detected_category || ''
-            });
-          }
-          
-          const aggregated = titleMap.get(title);
-          
-          aggregated.finalScores.push(parseFloat(item.final_score || 0));
-          aggregated.kosValues.push(parseFloat(item.kos || 0));
-          aggregated.gosValues.push(parseFloat(item.gos || 0));
-          
-          if (item.q) {
-            aggregated.queries.push({
-              query: item.q,
-              kos: parseFloat(item.kos || 0)
-            });
-          }
-          
-          if (item.improvement_suggestions && item.improvement_suggestions.length > aggregated.suggestions.length) {
-            aggregated.suggestions = item.improvement_suggestions;
-          }
-        });
+filteredData.forEach(item => {
+  const title = item.title || '';
+  const currentFinalScore = parseFloat(item.final_score || 0);
+  
+  if (!titleMap.has(title)) {
+    titleMap.set(title, {
+      title: title,
+      finalScores: [],
+      kosValues: [],
+      gosValues: [],
+      queries: [],
+      suggestions: [], // Initialize as empty array
+      bestScore: 0,
+      scoreBreakdown: {},
+      matchedTerms: {},
+      titleLength: parseInt(item.title_length || 0),
+      wordCount: parseInt(item.word_count || 0),
+      detectedBrand: item.detected_brand || '',
+      detectedCategory: item.detected_category || ''
+    });
+  }
+  
+  const aggregated = titleMap.get(title);
+  
+  aggregated.finalScores.push(currentFinalScore);
+  aggregated.kosValues.push(parseFloat(item.kos || 0));
+  aggregated.gosValues.push(parseFloat(item.gos || 0));
+  
+  if (item.q) {
+    aggregated.queries.push({
+      query: item.q,
+      kos: parseFloat(item.kos || 0)
+    });
+  }
+  
+  // Take suggestions, scoreBreakdown, and matchedTerms from the row with the best final_score
+  if (currentFinalScore > aggregated.bestScore) {
+    aggregated.bestScore = currentFinalScore;
+    
+    // Properly handle improvement_suggestions - ensure it's an array
+    if (item.improvement_suggestions) {
+      if (Array.isArray(item.improvement_suggestions)) {
+        aggregated.suggestions = [...item.improvement_suggestions];
+      } else {
+        console.warn('[loadProductTitlesEvaluated] improvement_suggestions is not an array:', item.improvement_suggestions);
+        aggregated.suggestions = [];
+      }
+    } else {
+      aggregated.suggestions = [];
+    }
+    
+    // Parse scoreBreakdown
+    if (item.score_breakdown) {
+      try {
+        aggregated.scoreBreakdown = typeof item.score_breakdown === 'string' 
+          ? JSON.parse(item.score_breakdown) 
+          : item.score_breakdown;
+      } catch (e) {
+        console.warn('[loadProductTitlesEvaluated] Error parsing score_breakdown:', e);
+        aggregated.scoreBreakdown = {};
+      }
+    }
+    
+    // Parse matchedTerms
+    if (item.matched_terms) {
+      try {
+        aggregated.matchedTerms = typeof item.matched_terms === 'string' 
+          ? JSON.parse(item.matched_terms) 
+          : item.matched_terms;
+      } catch (e) {
+        console.warn('[loadProductTitlesEvaluated] Error parsing matched_terms:', e);
+        aggregated.matchedTerms = {};
+      }
+    }
+  }
+});
         
         const processedData = Array.from(titleMap.values()).map(item => ({
           title: item.title,
