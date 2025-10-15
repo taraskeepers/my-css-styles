@@ -82,6 +82,7 @@ function addProductStudioStyles() {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: relative;
       }
       
       .product-studio-header-left {
@@ -2509,7 +2510,7 @@ header.innerHTML = `
         Analyzing product performance across all search terms
       </div>
     </div>
-<div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
+    <div class="product-studio-filter-section" style="display: flex; align-items: flex-start; gap: 15px; margin-left: 30px;">
       <div class="product-studio-title-filter" style="position: relative;">
         <input type="text" 
                class="product-studio-filter-input" 
@@ -2529,31 +2530,30 @@ header.innerHTML = `
       </div>
     </div>
     <div class="product-studio-avg-scores">
-        <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
-              <span class="product-studio-avg-max">/100</span>
-            </div>
+      <div class="product-studio-avg-item" id="globalAvgTScoreContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG T-SCORE</span>
+          <div class="product-studio-avg-score-display">
+            <span class="product-studio-avg-value" id="globalAvgTScore">-</span>
+            <span class="product-studio-avg-max">/100</span>
           </div>
         </div>
-        <div class="product-studio-avg-item" id="globalAvgKOSContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
-              <span class="product-studio-avg-max">/20</span>
-            </div>
+      </div>
+      <div class="product-studio-avg-item" id="globalAvgKOSContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG KOS</span>
+          <div class="product-studio-avg-score-display">
+            <span class="product-studio-avg-value" id="globalAvgKOS">-</span>
+            <span class="product-studio-avg-max">/20</span>
           </div>
         </div>
-        <div class="product-studio-avg-item" id="globalAvgGOSContainer">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
-            <div class="product-studio-avg-score-display">
-              <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
-              <span class="product-studio-avg-max">/80</span>
-            </div>
+      </div>
+      <div class="product-studio-avg-item" id="globalAvgGOSContainer">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <span style="font-size: 10px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">AVG GOS</span>
+          <div class="product-studio-avg-score-display">
+            <span class="product-studio-avg-value" id="globalAvgGOS">-</span>
+            <span class="product-studio-avg-max">/80</span>
           </div>
         </div>
       </div>
