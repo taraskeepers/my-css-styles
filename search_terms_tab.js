@@ -253,24 +253,24 @@ await calculateAndCacheSearchTermBuckets();
     
     db.close();
     
-if (!result || !result.data || result.data.length === 0) {
-  container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No search terms data available</div>';
-  return;
+// Handle case where Google Sheets data is not available
+let filteredData = [];
+if (result && result.data && result.data.length > 0) {
+  // Filter for only "all/all" records and exclude "blank" search terms
+  filteredData = result.data.filter(item => 
+    item.Query && 
+    item.Query.toLowerCase() !== 'blank' &&
+    item.Campaign_Name === 'all' &&
+    item.Channel_Type === 'all'
+  );
+  console.log(`[Search Terms] Filtered to ${filteredData.length} all/all records from ${result.data.length} total records`);
+} else {
+  console.log('[Search Terms] No Google Sheets data available - continuing with empty dataset');
 }
-
-// Filter for only "all/all" records and exclude "blank" search terms
-const filteredData = result.data.filter(item => 
-  item.Query && 
-  item.Query.toLowerCase() !== 'blank' &&
-  item.Campaign_Name === 'all' &&
-  item.Channel_Type === 'all'
-);
-
-console.log(`[Search Terms] Filtered to ${filteredData.length} all/all records from ${result.data.length} total records`);
     
 // Create a map of Top_Bucket values from 365d data (only from all/all records)
 const topBucketMap = {};
-if (result365d && result365d.data) {
+if (result365d && result365d.data && result365d.data.length > 0) {
   result365d.data
     .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
     .forEach(item => {
@@ -282,7 +282,7 @@ if (result365d && result365d.data) {
 
 // Create a map of 90d data for trends (only from all/all records)
 const trend90dMap = {};
-if (result90d && result90d.data) {
+if (result90d && result90d.data && result90d.data.length > 0) {
   result90d.data
     .filter(item => item.Campaign_Name === 'all' && item.Channel_Type === 'all')
     .forEach(item => {
@@ -323,25 +323,27 @@ filteredData.forEach(item => {
 // Process the data
 window.searchTermsData = filteredData;
 // Store filtered 365d and 90d data (only all/all records)
-window.searchTermsData365d = result365d?.data?.filter(item => 
+window.searchTermsData365d = (result365d && result365d.data) ? result365d.data.filter(item => 
   item.Campaign_Name === 'all' && item.Channel_Type === 'all'
-) || [];
-window.searchTermsData90d = result90d?.data?.filter(item => 
+) : [];
+window.searchTermsData90d = (result90d && result90d.data) ? result90d.data.filter(item => 
   item.Campaign_Name === 'all' && item.Channel_Type === 'all'
-) || [];
-    
-    // Initialize pagination and sorting
-    window.searchTermsCurrentPage = 1;
-    window.searchTermsPerPage = 50;
-    window.searchTermsSortColumn = 'Clicks';
-    window.searchTermsSortAscending = false;
-    window.searchTermsFilter = 'all';
-    
-    // Apply initial sort
-    sortSearchTermsData();
-    
-    // Render the search terms table
-    renderSearchTermsTableInternal(container);
+) : [];
+
+// Initialize pagination and sorting
+window.searchTermsCurrentPage = 1;
+window.searchTermsPerPage = 50;
+window.searchTermsSortColumn = 'Clicks';
+window.searchTermsSortAscending = false;
+window.searchTermsFilter = 'all';
+
+// Apply initial sort (only if we have data)
+if (window.searchTermsData.length > 0) {
+  sortSearchTermsData();
+}
+
+// Render the search terms table (will show appropriate message if no data)
+renderSearchTermsTableInternal(container);
     
   } catch (error) {
     console.error('[loadAndRenderSearchTerms] Error:', error);
