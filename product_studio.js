@@ -520,11 +520,12 @@ function addProductStudioStyles() {
         padding: 0 !important;
       }
       
-      .product-studio-expanded-content {
-        max-height: 480px;
-        overflow: hidden;
-        animation: slideDown 0.2s ease-out;
-      }
+.product-studio-expanded-content {
+  padding: 20px 30px;
+  max-height: 480px;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
       
       @keyframes slideDown {
         from { opacity: 0; transform: translateY(-5px); }
@@ -1030,10 +1031,56 @@ function addProductStudioStyles() {
         padding: 0 !important;
       }
       
-      .companies-expanded-content {
-        padding: 20px 30px;
-        animation: slideDown 0.2s ease-out;
-      }
+.companies-expanded-content {
+  padding: 0;
+  animation: slideDown 0.2s ease-out;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+/* Modern expanded row header */
+.companies-expanded-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 30px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.companies-expanded-header-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.companies-expanded-header-content {
+  flex: 1;
+}
+
+.companies-expanded-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 5px 0;
+  letter-spacing: -0.3px;
+}
+
+.companies-expanded-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  font-weight: 500;
+}
+
+.companies-expanded-body {
+  padding: 30px;
+}
       
       .companies-gos-breakdown {
         display: grid;
@@ -2298,11 +2345,18 @@ function toggleCompanyRowExpansion(row) {
   expandedCell.colSpan = row.cells.length;
   
   // Build expanded content with GOS breakdown
-  expandedCell.innerHTML = `
-    <div class="product-studio-expanded-content">
-      <h3 style="margin: 0 0 20px 0; color: #333; font-size: 16px;">
-        T-Score Distribution for ${companyData.source}
-      </h3>
+expandedCell.innerHTML = `
+  <div class="product-studio-expanded-content">
+    <div class="companies-expanded-header">
+      <div class="companies-expanded-header-icon">
+        📊
+      </div>
+      <div class="companies-expanded-header-content">
+        <h3 class="companies-expanded-title">${companyData.source}</h3>
+        <p class="companies-expanded-subtitle">T-Score Distribution Analysis • ${companyData.totalProducts} Products</p>
+      </div>
+    </div>
+    <div class="companies-expanded-body">
       <div class="companies-gos-breakdown">
         <div class="gos-breakdown-item excellent">
           <div class="gos-breakdown-label">Excellent (60-80)</div>
@@ -2326,7 +2380,8 @@ function toggleCompanyRowExpansion(row) {
         </div>
       </div>
     </div>
-  `;
+  </div>
+`;
   
   expandedRow.appendChild(expandedCell);
   row.parentNode.insertBefore(expandedRow, row.nextSibling);
