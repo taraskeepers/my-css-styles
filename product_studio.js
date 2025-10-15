@@ -1396,6 +1396,65 @@ function addProductStudioStyles() {
   max-width: 300px; /* Set max width for wrapping */
   display: block;
 }
+
+/* Products Mode Expanded Row Styles */
+.products-expanded-row {
+  background: #f8f9fa;
+}
+
+.products-expanded-row td {
+  padding: 0 !important;
+}
+
+.products-expanded-content {
+  padding: 0;
+  animation: slideDown 0.2s ease-out;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.products-expanded-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px 24px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.products-expanded-header-icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  backdrop-filter: blur(10px);
+}
+
+.products-expanded-header-content {
+  flex: 1;
+}
+
+.products-expanded-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.2px;
+}
+
+.products-expanded-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  font-weight: 500;
+}
+
+.products-expanded-body {
+  padding: 24px;
+}
     `;
     document.head.appendChild(style);
   }
@@ -4658,12 +4717,11 @@ async function renderGlobalProductsTable(container, products, processedMetrics, 
   addGlobalSortingFunctionality(table, products, processedMetrics, roasData, companyFilter);
 }
 
-// Toggle expanded row for global products - MAKE IT GLOBAL
 window.toggleGlobalRowExpansion = function(row) {
   const nextRow = row.nextElementSibling;
   const isExpanded = row.classList.contains('expanded');
   
-  if (isExpanded && nextRow && nextRow.classList.contains('product-studio-expanded-row')) {
+  if (isExpanded && nextRow && nextRow.classList.contains('products-expanded-row')) {
     row.classList.remove('expanded');
     nextRow.remove();
     return;
@@ -4671,7 +4729,7 @@ window.toggleGlobalRowExpansion = function(row) {
   
   const tbody = row.parentElement;
   tbody.querySelectorAll('.expanded').forEach(r => r.classList.remove('expanded'));
-  tbody.querySelectorAll('.product-studio-expanded-row').forEach(r => r.remove());
+  tbody.querySelectorAll('.products-expanded-row').forEach(r => r.remove());
   
   row.classList.add('expanded');
   
@@ -4683,13 +4741,32 @@ window.toggleGlobalRowExpansion = function(row) {
   }
   
   const expandedRow = document.createElement('tr');
-  expandedRow.className = 'product-studio-expanded-row';
+  expandedRow.className = 'products-expanded-row';
   
   const expandedCell = document.createElement('td');
   expandedCell.colSpan = row.cells.length;
   
   // Build expanded content
-  let expandedHTML = '<div class="product-studio-expanded-content">';
+  let expandedHTML = '<div class="products-expanded-content">';
+  
+  // Add header
+  expandedHTML += `
+    <div class="products-expanded-header">
+      <div class="products-expanded-header-icon">📦</div>
+      <div class="products-expanded-header-content">
+        <h3 class="products-expanded-title">${productData.title}</h3>
+        <p class="products-expanded-subtitle">
+          T-Score: ${Math.round(productData.finalScore)}/100 • 
+          KOS: ${productData.kos.toFixed(1)}/20 • 
+          GOS: ${Math.round(productData.gos)}/80 • 
+          ${productData.wordCount} words
+        </p>
+      </div>
+    </div>
+  `;
+  
+  // Add body with compact grid
+  expandedHTML += '<div class="products-expanded-body">';
   expandedHTML += '<div class="product-studio-compact-grid">';
   
   // COLUMN 1: Keywords from all queries
@@ -4737,7 +4814,6 @@ window.toggleGlobalRowExpansion = function(row) {
       </div>
     </div>`;
   
-  // Rest of the columns remain the same, but use product-studio classes
   // COLUMN 2: Score Breakdown
   expandedHTML += `
     <div class="product-studio-compact-section" style="width: 320px; flex-shrink: 0;">
@@ -4868,7 +4944,7 @@ window.toggleGlobalRowExpansion = function(row) {
       </div>
     </div>`;
   
-  expandedHTML += '</div></div>';
+  expandedHTML += '</div></div></div>';
   
   expandedCell.innerHTML = expandedHTML;
   expandedRow.appendChild(expandedCell);
