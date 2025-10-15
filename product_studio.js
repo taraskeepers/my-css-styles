@@ -521,7 +521,6 @@ function addProductStudioStyles() {
       }
       
 .product-studio-expanded-content {
-  padding: 20px 30px;
   max-height: 480px;
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
@@ -1039,8 +1038,8 @@ function addProductStudioStyles() {
 
 /* Modern expanded row header */
 .companies-expanded-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px 30px;
+  background: linear-gradient(135deg, #545559 0%, #aaa9aa 100%);
+  padding: 10px 20px;
   border-bottom: 3px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
