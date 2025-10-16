@@ -5706,6 +5706,15 @@ function renderEfficiencyContainer() {
     window.searchesEfficiencyMetrics = searchesMetrics;
     window.currentEfficiencyScore = efficiencyScore;
   });
+  // Ensure advanced mode elements are hidden if toggle is off
+  setTimeout(() => {
+    const advancedModeToggle = document.getElementById('advancedModeToggle');
+    if (!advancedModeToggle || !advancedModeToggle.checked) {
+      document.querySelectorAll('.testing-mix-indicator, .action-recommendations').forEach(element => {
+        element.style.display = 'none';
+      });
+    }
+  }, 10);
 }
 
 // Render Testing Mix indicator
@@ -5737,6 +5746,7 @@ function renderTestingMixIndicator(testingMix) {
       border-radius: 6px;
       padding: 8px;
       margin-top: 8px;
+      display: none;
     ">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
@@ -6054,6 +6064,7 @@ function renderActionRecommendations(productsMetrics, searchesMetrics, efficienc
       border-radius: 6px;
       padding: 8px;
       margin-top: 8px;
+      display: none;
     ">
       <div style="font-size: 10px; font-weight: 700; color: #92400e; margin-bottom: 6px;">
         💡 ACTIONS NEEDED
