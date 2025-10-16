@@ -96,7 +96,8 @@ function addCampaignsStyles() {
 
 /* Search terms panel - same style as products panel */
 #campaignsSearchTermsPanel {
-  flex: 1;
+  width: 1250px;
+  max-width: 1250px;
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1358,6 +1359,37 @@ async function loadAndRenderCampaigns() {
   }
 }
 
+// Create shared advanced mode toggle
+function createSharedAdvancedToggle() {
+  const toggleHTML = `
+    <div class="advanced-mode-toggle" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;">
+      <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
+      <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+        <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
+        <span class="toggle-slider" style="
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: .3s;
+          border-radius: 24px;
+        "></span>
+      </label>
+    </div>
+  `;
+  
+  // Insert the toggle into both panels
+  const containers = document.querySelectorAll('.advanced-mode-toggle-container');
+  containers.forEach(container => {
+    if (container) {
+      container.innerHTML = toggleHTML;
+    }
+  });
+}
+
 // Render campaigns navigation panel
 async function renderCampaignsNavPanel() {
   const container = document.getElementById('campaigns_overview_container');
@@ -1465,9 +1497,21 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
     
     const view = this.getAttribute('data-view');
     
+    // Get the toggle element
+    const toggle = document.querySelector('.advanced-mode-toggle');
+    
     if (view === 'products') {
       productsPanel.style.display = 'flex';
       searchTermsPanel.style.display = 'none';
+      
+      // Move toggle to products panel if it exists
+      if (toggle) {
+        const productsToggleContainer = productsPanel.querySelector('.advanced-mode-toggle-container');
+        if (productsToggleContainer && !productsToggleContainer.contains(toggle)) {
+          productsToggleContainer.appendChild(toggle);
+        }
+      }
+      
       const prodAnalysis = document.getElementById('campaignAnalysisContainer');
       if (prodAnalysis) prodAnalysis.style.display = 'flex';
       const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
@@ -1481,6 +1525,15 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
     } else if (view === 'search-terms') {
       productsPanel.style.display = 'none';
       searchTermsPanel.style.display = 'flex';
+      
+      // Move toggle to search terms panel if it exists
+      if (toggle) {
+        const searchTermsToggleContainer = searchTermsPanel.querySelector('.advanced-mode-toggle-container');
+        if (searchTermsToggleContainer && !searchTermsToggleContainer.contains(toggle)) {
+          searchTermsToggleContainer.appendChild(toggle);
+        }
+      }
+      
       const prodAnalysis = document.getElementById('campaignAnalysisContainer');
       if (prodAnalysis) prodAnalysis.style.display = 'none';
       const searchAnalysis = document.getElementById('campaignAnalysisContainerSearchTerms');
@@ -1492,12 +1545,6 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
           window.selectedCampaign.channelType,
           window.selectedCampaign.campaignName
         );
-      }
-      
-      // Keep products analysis populated consistently
-      if (window.campaignProductsOriginalData) {
-        const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
-        populateProductsAnalysis(productBucketStats);
       }
     }
   });
@@ -1557,24 +1604,8 @@ productsPanel.innerHTML = `
           <h3 class="campaigns-products-title">Campaign Products</h3>
           <div class="selected-campaign-info">Select a campaign to view its products</div>
         </div>
-        <!-- Advanced Mode Toggle -->
-        <div class="advanced-mode-toggle" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;">
-          <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
-          <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-            <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
-            <span class="toggle-slider" style="
-              position: absolute;
-              cursor: pointer;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background-color: #ccc;
-              transition: .3s;
-              border-radius: 24px;
-            "></span>
-          </label>
-        </div>
+<!-- Advanced Mode Toggle Container -->
+<div class="advanced-mode-toggle-container"></div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
@@ -1866,15 +1897,21 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
   </div>
-  <div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div>
-        <h3 class="campaigns-products-title">Campaign Search Terms</h3>
-        <div class="selected-campaign-info">Select a campaign to view its search terms</div>
+<div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div class="campaigns-header-top-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div class="campaigns-header-title-section" style="display: flex; align-items: center; gap: 20px;">
+        <div>
+          <h3 class="campaigns-products-title">Campaign Search Terms</h3>
+          <div class="selected-campaign-info">Select a campaign to view its search terms</div>
+        </div>
+        <!-- Advanced Mode Toggle (shared with products panel) -->
+        <div class="advanced-mode-toggle-container"></div>
       </div>
-      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-        <span>📅</span>
-        <span>${dateRangeText}</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+          <span>📅</span>
+          <span>${dateRangeText}</span>
+        </div>
       </div>
     </div>
     <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
@@ -3011,7 +3048,7 @@ searchTermsPanel.innerHTML = `
   </div>
 `;
 
-// Add both panels to container <--- ALSO ADD THIS
+// Append panels to container
 panelsContainer.appendChild(productsPanel);
 panelsContainer.appendChild(searchTermsPanel);
   
@@ -3019,11 +3056,16 @@ panelsContainer.appendChild(searchTermsPanel);
 mainContainer.appendChild(navPanel);
 mainContainer.appendChild(panelsContainer);
   
-  // Add main container to page
-  container.appendChild(mainContainer);
+// Add main container to page
+container.appendChild(mainContainer);
+
+// Create the shared toggle after panels are in DOM
+setTimeout(() => {
+  createSharedAdvancedToggle();
+}, 100);
   
-  // Add click handlers for campaign items
-  addCampaignClickHandlers();
+// Add click handlers for campaign items
+addCampaignClickHandlers();
 }
 
 // Render a campaign group
