@@ -6219,13 +6219,9 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
     table.style.display = 'none';
   }
 
-    // Hide campaigns overview container
-  const campaignsContainer = document.getElementById('campaigns_overview_container');
-  if (campaignsContainer) campaignsContainer.style.display = 'none';
-
-  // Hide titles analyzer container
-  const titlesContainer = document.getElementById('titles_analyzer_container');
-  if (titlesContainer) titlesContainer.style.display = 'none';
+// Hide campaigns overview and titles analyzer containers
+  document.getElementById('campaigns_overview_container')?.style.setProperty('display', 'none');
+  document.getElementById('titles_analyzer_container')?.style.setProperty('display', 'none');
 
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
@@ -6689,13 +6685,11 @@ const campaignsContainer = document.getElementById('campaigns_overview_container
   const table = document.querySelector('.google-ads-table');
   if (table) table.style.display = 'none';
 
-  // Hide titles analyzer container
-  const titlesContainer = document.getElementById('titles_analyzer_container');
-  if (titlesContainer) titlesContainer.style.display = 'none';
-
+// Hide titles analyzer container
+  document.getElementById('titles_analyzer_container')?.style.setProperty('display', 'none');
+  
   // Hide campaigns overview container
-  const campaignsContainer = document.getElementById('campaigns_overview_container');
-  if (campaignsContainer) campaignsContainer.style.display = 'none';
+  document.getElementById('campaigns_overview_container')?.style.setProperty('display', 'none');
 
   // Hide other containers
   const productInfo = document.getElementById('product_info');
@@ -6711,14 +6705,6 @@ const campaignsContainer = document.getElementById('campaigns_overview_container
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
-
-  // Hide titles analyzer container
-  const titlesContainer = document.getElementById('titles_analyzer_container');
-  if (titlesContainer) titlesContainer.style.display = 'none';
-
-  // Hide campaigns overview container
-  const campaignsContainer = document.getElementById('campaigns_overview_container');
-  if (campaignsContainer) campaignsContainer.style.display = 'none';
 
 // Show ONLY ROAS Charts container
   const roasCharts = document.getElementById('roas_charts');
@@ -7014,15 +7000,11 @@ setTimeout(() => {
     roasMetricsTable.style.marginTop = '100px';  // Add margin-top
   }
   if (roasChannels) roasChannels.style.display = 'none';  // CHANGED from 'block' to 'none'
-  if (buckets_products) buckets_products.style.display = 'block';
+if (buckets_products) buckets_products.style.display = 'block';
 
-  // Hide titles analyzer container
-  const titlesContainer = document.getElementById('titles_analyzer_container');
-  if (titlesContainer) titlesContainer.style.display = 'none';
-
-  // Hide campaigns overview container
-  const campaignsContainer = document.getElementById('campaigns_overview_container');
-  if (campaignsContainer) campaignsContainer.style.display = 'none';
+  // Hide titles analyzer and campaigns containers
+  document.getElementById('titles_analyzer_container')?.style.setProperty('display', 'none');
+  document.getElementById('campaigns_overview_container')?.style.setProperty('display', 'none');
   
   // Show bucket date range for Buckets & Funnels
   if (bucketDateRange) bucketDateRange.style.display = 'block';
