@@ -1069,7 +1069,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 350px;
+  height: 250px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1077,6 +1077,11 @@ function addCampaignsStyles() {
   padding: 15px;
   display: flex;
   gap: 12px;
+  transition: height 0.3s ease;
+}
+
+.campaign-analysis-container.advanced-mode-active {
+  height: 350px;
 }
 
 .campaign-analysis-section {
@@ -1259,6 +1264,15 @@ function addCampaignsStyles() {
   max-height: 1000px;
   opacity: 1;
   transition: max-height 0.3s ease-in, opacity 0.3s ease-in;
+}
+
+.campaign-analysis-container {
+  height: 250px;
+  transition: height 0.3s ease;
+}
+
+.campaign-analysis-container.advanced-mode-active {
+  height: 350px;
 }
     `;
     document.head.appendChild(style);
@@ -4163,12 +4177,26 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     }
     headerInfo.textContent = `${campaignName} - Error loading products`;
   }
-  // Check if advanced mode is on and show advanced elements
+// Check if advanced mode is on and show advanced elements
   const advancedModeToggle = document.getElementById('advancedModeToggle');
   if (advancedModeToggle && advancedModeToggle.checked) {
     document.querySelectorAll('.advanced-mode-element').forEach(element => {
       element.style.display = '';
       element.style.opacity = '1';
+    });
+    // Add class for container height
+    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
+      container.classList.add('advanced-mode-active');
+    });
+  } else {
+    // Ensure elements are hidden if toggle is off
+    document.querySelectorAll('.advanced-mode-element').forEach(element => {
+      element.style.display = 'none';
+      element.style.opacity = '0';
+    });
+    // Remove class for container height
+    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
+      container.classList.remove('advanced-mode-active');
     });
   }
 }
@@ -7840,6 +7868,16 @@ function initializeAdvancedMode() {
     // Get all advanced mode elements
     const advancedElements = document.querySelectorAll('.advanced-mode-element');
     
+    // Adjust campaign analysis container height
+    const analysisContainers = document.querySelectorAll('.campaign-analysis-container');
+    analysisContainers.forEach(container => {
+      if (isAdvanced) {
+        container.classList.add('advanced-mode-active');
+      } else {
+        container.classList.remove('advanced-mode-active');
+      }
+    });
+    
     advancedElements.forEach(element => {
       if (isAdvanced) {
         // Show elements with animation
@@ -7869,6 +7907,12 @@ function initializeAdvancedMode() {
   if (savedMode === 'true') {
     toggle.checked = true;
     toggle.dispatchEvent(new Event('change'));
+  } else {
+    // Ensure advanced mode elements are hidden on initial load
+    document.querySelectorAll('.advanced-mode-element').forEach(element => {
+      element.style.display = 'none';
+      element.style.opacity = '0';
+    });
   }
 }
 
