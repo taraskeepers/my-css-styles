@@ -7015,6 +7015,14 @@ setTimeout(() => {
   }
   if (roasChannels) roasChannels.style.display = 'none';  // CHANGED from 'block' to 'none'
   if (buckets_products) buckets_products.style.display = 'block';
+
+  // Hide titles analyzer container
+  const titlesContainer = document.getElementById('titles_analyzer_container');
+  if (titlesContainer) titlesContainer.style.display = 'none';
+
+  // Hide campaigns overview container
+  const campaignsContainer = document.getElementById('campaigns_overview_container');
+  if (campaignsContainer) campaignsContainer.style.display = 'none';
   
   // Show bucket date range for Buckets & Funnels
   if (bucketDateRange) bucketDateRange.style.display = 'block';
