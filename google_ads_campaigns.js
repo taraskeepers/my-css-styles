@@ -1069,7 +1069,7 @@ function addCampaignsStyles() {
 }
 /* Campaign Analysis Container Styles */
 .campaign-analysis-container {
-  height: 250px;
+  height: 200px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1267,7 +1267,7 @@ function addCampaignsStyles() {
 }
 
 .campaign-analysis-container {
-  height: 250px;
+  height: 200px;
   transition: height 0.3s ease;
 }
 
