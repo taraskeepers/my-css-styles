@@ -6076,7 +6076,7 @@ if (window.googleAdsApexCharts) {
   window.googleAdsApexCharts = [];
   
 container.innerHTML = `
-    <div id="googleAdsContainer" class="nav-collapsed" style="width: 100%; height: calc(100vh - 150px); position: relative; display: flex;">
+    <div id="googleAdsContainer" class="nav-collapsed" style="width: 100%; height: calc(100vh - 50px); position: relative; display: flex;">
       <div id="googleAdsNavPanel" class="collapsed" style="width: 400px; height: 100%; overflow-y: auto; background-color: #f9f9f9; border-right: 2px solid #dee2e6; flex-shrink: 0;">
       </div>
       <div id="googleAdsTableContainer" style="flex: 1; height: 100%; overflow-y: auto; position: relative;">
