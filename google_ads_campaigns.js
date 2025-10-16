@@ -5569,7 +5569,7 @@ function renderEfficiencyContainer() {
     
     // Build the new UI - ONLY Overall Score and Actions
     container.innerHTML = `
-      <div style="display: flex; flex-direction: column; height: 100%; gap: 10px; padding: 4px;">
+      <div style="display: flex; flex-direction: column; height: 100%; gap: 1px; padding: 4px;">
         
 <!-- Overall Score -->
 <div style="
