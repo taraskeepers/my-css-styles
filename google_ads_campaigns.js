@@ -1219,6 +1219,42 @@ function addCampaignsStyles() {
   height: 100%;
   overflow-y: auto;
 }
+
+/* Toggle Switch Styles */
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #007aff;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Advanced mode transition animations */
+.advanced-mode-hidden {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.advanced-mode-visible {
+  max-height: 1000px;
+  opacity: 1;
+  transition: max-height 0.3s ease-in, opacity 0.3s ease-in;
+}
     `;
     document.head.appendChild(style);
   }
@@ -1509,11 +1545,31 @@ productsPanel.innerHTML = `
     </div>
   </div>
   
-  <div class="campaigns-products-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div>
-        <h3 class="campaigns-products-title">Campaign Products</h3>
-        <div class="selected-campaign-info">Select a campaign to view its products</div>
+<div class="campaigns-products-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div class="campaigns-header-top-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div class="campaigns-header-title-section" style="display: flex; align-items: center; gap: 20px;">
+        <div>
+          <h3 class="campaigns-products-title">Campaign Products</h3>
+          <div class="selected-campaign-info">Select a campaign to view its products</div>
+        </div>
+        <!-- Advanced Mode Toggle -->
+        <div class="advanced-mode-toggle" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;">
+          <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
+          <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+            <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
+            <span class="toggle-slider" style="
+              position: absolute;
+              cursor: pointer;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background-color: #ccc;
+              transition: .3s;
+              border-radius: 24px;
+            "></span>
+          </label>
+        </div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
@@ -1547,7 +1603,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1570,7 +1626,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1593,7 +1649,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1616,7 +1672,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1639,7 +1695,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1662,7 +1718,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -1685,7 +1741,7 @@ productsPanel.innerHTML = `
               </div>
             </div>
           </div>
-          <div class="bucket-metrics" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+          <div class="bucket-metrics advanced-mode-element" style="margin-top: 8px; display: none; flex-direction: column; gap: 4px; padding: 0 8px;">
             <!-- Metrics bars will be populated dynamically -->
           </div>
         </div>
@@ -5654,7 +5710,7 @@ function renderTestingMixIndicator(testingMix) {
   }
   
   return `
-    <div style="
+    <div class="testing-mix-indicator advanced-mode-element" style="
       background: ${color}15;
       border: 1px solid ${color}40;
       border-radius: 6px;
@@ -5971,7 +6027,7 @@ function renderActionRecommendations(productsMetrics, searchesMetrics, efficienc
   if (recommendations.length === 0) return '';
   
   return `
-    <div style="
+    <div class="action-recommendations advanced-mode-element" style="
       background: #fef3c7;
       border: 1px solid #fcd34d;
       border-radius: 6px;
