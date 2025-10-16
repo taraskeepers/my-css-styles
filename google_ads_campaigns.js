@@ -1917,52 +1917,6 @@ searchTermsPanel.innerHTML = `
 </div>
     </div>
     
-<!-- LEGEND SECTION moved here -->
-    <div style="
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 24px;
-      margin-top: 4px;
-      padding: 4px 12px;
-      background: #f9fafb;
-      border-radius: 6px;
-    ">
-      <div style="
-        font-size: 12px;
-        font-weight: 600;
-        color: #374151;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      ">
-        <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
-        % of Clicks
-      </div>
-      <div style="
-        font-size: 12px;
-        font-weight: 600;
-        color: #374151;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      ">
-        <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
-        % of Revenue
-      </div>
-      <div style="
-        font-size: 12px;
-        font-weight: 600;
-        color: #374151;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      ">
-        <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
-        Value
-      </div>
-    </div>
-    
     <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
       
