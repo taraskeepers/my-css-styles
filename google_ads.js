@@ -3952,7 +3952,7 @@ const container = document.querySelector("#googleAdsTableContainer");
 // Create wrapper for table and additional containers
 const contentWrapper = document.createElement('div');
 contentWrapper.id = 'googleAdsContentWrapper';
-contentWrapper.style.width = '100%';
+contentWrapper.style.cssText = 'width: 100%; margin-top: 20px;';
 
 // Add the table to wrapper
 contentWrapper.appendChild(table);
@@ -6223,6 +6223,10 @@ viewOverviewGoogleAdsBtn.addEventListener("click", function() {
   const campaignsContainer = document.getElementById('campaigns_overview_container');
   if (campaignsContainer) campaignsContainer.style.display = 'none';
 
+  // Hide titles analyzer container
+  const titlesContainer = document.getElementById('titles_analyzer_container');
+  if (titlesContainer) titlesContainer.style.display = 'none';
+
 // Hide buckets switcher AND wrapper
   const switcherWrapper = document.getElementById('bucketsSwitcherWrapper');
   if (switcherWrapper) switcherWrapper.style.display = 'none';
@@ -6685,6 +6689,14 @@ const campaignsContainer = document.getElementById('campaigns_overview_container
   const table = document.querySelector('.google-ads-table');
   if (table) table.style.display = 'none';
 
+  // Hide titles analyzer container
+  const titlesContainer = document.getElementById('titles_analyzer_container');
+  if (titlesContainer) titlesContainer.style.display = 'none';
+
+  // Hide campaigns overview container
+  const campaignsContainer = document.getElementById('campaigns_overview_container');
+  if (campaignsContainer) campaignsContainer.style.display = 'none';
+
   // Hide other containers
   const productInfo = document.getElementById('product_info');
   const productMetrics = document.getElementById('product_metrics');
@@ -6699,6 +6711,14 @@ const campaignsContainer = document.getElementById('campaigns_overview_container
   if (productTables) productTables.style.display = 'none';
   if (mapContainer) mapContainer.style.display = 'none';
   if (bucketedProductsContainer) bucketedProductsContainer.style.display = 'none';
+
+  // Hide titles analyzer container
+  const titlesContainer = document.getElementById('titles_analyzer_container');
+  if (titlesContainer) titlesContainer.style.display = 'none';
+
+  // Hide campaigns overview container
+  const campaignsContainer = document.getElementById('campaigns_overview_container');
+  if (campaignsContainer) campaignsContainer.style.display = 'none';
 
 // Show ONLY ROAS Charts container
   const roasCharts = document.getElementById('roas_charts');
@@ -6744,10 +6764,10 @@ if (viewCampaignsOverviewGoogleAdsBtn) {
     if (viewTitleAnalyzerBtn) viewTitleAnalyzerBtn.classList.remove("active");
     
     // Hide all containers
-    const containersToHide = [
+const containersToHide = [
       'product_info', 'product_metrics', 'google_ads_ranking_map', 'product_tables',
       'googleAdsMapContainer', 'roas_charts', 'roas_metrics_table', 'roas_channels',
-      'buckets_products', 'bucketed_products_container'
+      'buckets_products', 'bucketed_products_container', 'titles_analyzer_container'
     ];
     
     containersToHide.forEach(id => {
