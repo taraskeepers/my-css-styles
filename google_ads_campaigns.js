@@ -967,10 +967,6 @@ function addCampaignsStyles() {
   border-radius: 50%;
 }
 
-.toggle-switch input:checked + .toggle-slider {
-  background-color: #007aff;
-}
-
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
@@ -1381,17 +1377,7 @@ function createSharedAdvancedToggle() {
     <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
     <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
       <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
-      <span class="toggle-slider" style="
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .3s;
-        border-radius: 24px;
-      "></span>
+      <span class="toggle-slider"></span>
     </label>
   `;
   
@@ -1931,14 +1917,14 @@ searchTermsPanel.innerHTML = `
 </div>
     </div>
     
-    <!-- LEGEND SECTION moved here -->
+<!-- LEGEND SECTION moved here -->
     <div style="
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 24px;
-      margin-top: 8px;
-      padding: 8px 15px;
+      margin-top: 4px;
+      padding: 4px 12px;
       background: #f9fafb;
       border-radius: 6px;
     ">
