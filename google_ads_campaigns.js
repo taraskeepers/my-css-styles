@@ -490,22 +490,22 @@ function addCampaignsStyles() {
 .camp-table-modern td:nth-child(1) { width: 60px; } /* Pos */
 
 .camp-table-modern th:nth-child(2),
-.camp-table-modern td:nth-child(2) { width: 90px; } /* Share */
+.camp-table-modern td:nth-child(2) { width: 75px; } /* Share - reduced from 90px */
 
 .camp-table-modern th:nth-child(3),
-.camp-table-modern td:nth-child(3) { width: 70px; } /* ROAS */
+.camp-table-modern td:nth-child(3) { width: 60px; } /* ROAS - reduced from 70px */
 
 .camp-table-modern th:nth-child(4),
 .camp-table-modern td:nth-child(4) { width: 80px; } /* Image */
 
 .camp-table-modern th:nth-child(5),
-.camp-table-modern td:nth-child(5) { width: 220px; } /* Product Title */
+.camp-table-modern td:nth-child(5) { width: 200px; } /* Product Title - reduced from 220px */
       
-/* All metric columns - max 70px */
+/* All metric columns - increased from 70px */
 .camp-table-modern th.metric-col,
 .camp-table-modern td.metric-col { 
-  width: 70px;
-  max-width: 70px;
+  width: 80px;
+  max-width: 80px;
 }
       
       /* Sort icon */
@@ -1012,32 +1012,18 @@ function addCampaignsStyles() {
 .camp-table-modern tbody tr.main-row:hover {
   background: rgba(0, 122, 255, 0.04);
 }
-/* Special product status styling */
+
+/* Special product status styling - removed backgrounds, keeping only border */
 .camp-table-modern tbody tr.revenue-stars {
-  background: linear-gradient(to right, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
   border-left: 4px solid #FFD700;
 }
 
-.camp-table-modern tbody tr.revenue-stars:hover {
-  background: linear-gradient(to right, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
-}
-
 .camp-table-modern tbody tr.best-sellers {
-  background: linear-gradient(to right, rgba(147, 51, 234, 0.06), rgba(147, 51, 234, 0.02));
   border-left: 4px solid #9333ea;
 }
 
-.camp-table-modern tbody tr.best-sellers:hover {
-  background: linear-gradient(to right, rgba(147, 51, 234, 0.12), rgba(147, 51, 234, 0.04));
-}
-
 .camp-table-modern tbody tr.volume-leaders {
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.06), rgba(34, 197, 94, 0.02));
   border-left: 4px solid #22c55e;
-}
-
-.camp-table-modern tbody tr.volume-leaders:hover {
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04));
 }
 
 /* Product status badge */
@@ -7665,7 +7651,7 @@ function formatMetricValue(value, format) {
     case 'number':
       return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
     case 'currency':
-      return '$' + value.toFixed(2);
+      return '$' + value.toFixed(0);  // Changed from .toFixed(2) to .toFixed(0)
     case 'percent':
       return value.toFixed(1) + '%';
     case 'roas':
