@@ -3229,15 +3229,7 @@ populateSearchesAnalysis(bucketStats);
     `;
     headerInfo.textContent = `${campaignName} - Error loading search terms`;
   }
-  // Check if advanced mode is on and show advanced elements
-  const advancedModeToggle = document.getElementById('advancedModeToggle');
-  if (advancedModeToggle && advancedModeToggle.checked) {
-    document.querySelectorAll('.advanced-mode-element').forEach(element => {
-      element.style.display = '';
-      element.style.opacity = '1';
-    });
-  }
-  // Populate analysis containers for search terms panel
+// Populate analysis containers for search terms panel
   if (window.selectedCampaign) {
     // Show the analysis container
     const analysisContainer = document.getElementById('campaignAnalysisContainerSearchTerms');
@@ -3266,6 +3258,20 @@ populateSearchesAnalysis(bucketStats);
       }
     }
   }
+  
+  // Check if advanced mode is on and show advanced elements
+  const toggleElement = document.getElementById('advancedModeToggle') || 
+                        document.getElementById('advancedModeToggleSearchTerms');
+  if (toggleElement && toggleElement.checked) {
+    document.querySelectorAll('.advanced-mode-element').forEach(element => {
+      element.style.display = '';
+      element.style.opacity = '1';
+    });
+    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
+      container.classList.add('advanced-mode-active');
+    });
+  }
+}
   
   // Check if advanced mode is on and show advanced elements
   const advancedModeToggle = document.getElementById('advancedModeToggle') || 
