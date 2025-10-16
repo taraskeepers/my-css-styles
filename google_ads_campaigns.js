@@ -1928,10 +1928,58 @@ searchTermsPanel.innerHTML = `
           <span>📅</span>
           <span>${dateRangeText}</span>
         </div>
+</div>
+    </div>
+    
+    <!-- LEGEND SECTION moved here -->
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 8px;
+      padding: 8px 15px;
+      background: #f9fafb;
+      border-radius: 6px;
+    ">
+      <div style="
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
+        % of Clicks
+      </div>
+      <div style="
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
+        % of Revenue
+      </div>
+      <div style="
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
+        Value
       </div>
     </div>
+    
     <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+      
         <!-- All Terms -->
         <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
           <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
@@ -3006,53 +3054,6 @@ searchTermsPanel.innerHTML = `
       </div>
     </div>
   </div>
-
-<!-- REPLACE THE LEGEND SECTION WITH THIS -->
-<div style="
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 16px;
-  padding: 8px 15px;
-  background: #f9fafb;
-  border-radius: 6px;
-">
-  <div style="
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  ">
-    <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
-    % of Clicks
-  </div>
-  <div style="
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  ">
-    <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
-    % of Revenue
-  </div>
-  <div style="
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  ">
-    <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
-    Value
-  </div>
-</div>
-<!-- END OF LEGEND SECTION -->
 </div>
   
   <div class="campaigns-search-terms-table-container">
@@ -4580,7 +4581,7 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   const maxConversions = Math.max(...searchTerms.map(d => d.Conversions || 0));
   const maxValue = Math.max(...searchTerms.map(d => d.Value || 0));
   
-// Calculate totals
+  // Calculate totals
   const totals = {
     impressions: searchTerms.reduce((sum, d) => sum + (d.Impressions || 0), 0),
     clicks: searchTerms.reduce((sum, d) => sum + (d.Clicks || 0), 0),
@@ -4594,151 +4595,123 @@ function renderCampaignSearchTermsTable(container, searchTerms, campaignName) {
   
   // Calculate trend totals
   const trendTotals = {
-    impressions: 0,
-    clicks: 0,
-    conversions: 0,
-    value: 0
+    impressions: searchTerms.reduce((sum, d) => sum + (d.Trend_Data?.Impressions || 0), 0),
+    clicks: searchTerms.reduce((sum, d) => sum + (d.Trend_Data?.Clicks || 0), 0),
+    conversions: searchTerms.reduce((sum, d) => sum + (d.Trend_Data?.Conversions || 0), 0),
+    value: searchTerms.reduce((sum, d) => sum + (d.Trend_Data?.Value || 0), 0)
   };
   
-  searchTerms.forEach(term => {
-    if (term.Trend_Data) {
-      trendTotals.impressions += term.Trend_Data.Impressions || 0;
-      trendTotals.clicks += term.Trend_Data.Clicks || 0;
-      trendTotals.conversions += term.Trend_Data.Conversions || 0;
-      trendTotals.value += term.Trend_Data.Value || 0;
-    }
-  });
-  
-// Removed top 10 by value highlighting - only using Top_Bucket
-  
-  const wrapper = document.createElement('div');
-  wrapper.className = 'camp-products-wrapper';
-  
-  const table = document.createElement('table');
-  table.className = 'camp-table-modern';
-  
-  // Create header
-  const thead = document.createElement('thead');
-thead.innerHTML = `
-    <tr>
-      <th style="width: 50px; text-align: center;">#</th>
-      <th class="sortable" style="width: 300px;" data-sort="query">
-        Search Term
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="impressions">
-        Impressions
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="clicks">
-        Clicks
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="ctr">
-        CTR %
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="conversions">
-        Conv
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="cvr">
-        CVR %
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="value">
-        Revenue
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-      <th class="right sortable metric-col" data-sort="revenuePercent">
-        % of Revenue
-        <span class="camp-sort-icon">⇅</span>
-      </th>
-    </tr>
+  // Create table HTML
+  const tableHtml = `
+    <div class="camp-products-wrapper" style="height: 100%; overflow: auto;">
+      <table class="camp-table-modern" style="width: 100%; border-collapse: collapse;">
+        <thead style="position: sticky; top: 0; z-index: 10;">
+          <tr style="background: linear-gradient(to bottom, #f8f9fa, #e9ecef);">
+            <th style="width: 40px; padding: 12px 8px; text-align: center;">#</th>
+            <th style="width: 25%; padding: 12px 16px; text-align: left;">SEARCH TERM</th>
+            <th class="metric-col" style="width: 10%; padding: 12px 16px;">IMPRESSIONS</th>
+            <th class="metric-col" style="width: 10%; padding: 12px 16px;">CLICKS</th>
+            <th class="metric-col" style="width: 8%; padding: 12px 16px;">CTR</th>
+            <th class="metric-col" style="width: 10%; padding: 12px 16px;">CONV.</th>
+            <th class="metric-col" style="width: 8%; padding: 12px 16px;">CVR</th>
+            <th class="metric-col" style="width: 15%; padding: 12px 16px;">REVENUE</th>
+            <th class="metric-col" style="width: 10%; padding: 12px 16px;">% of REVENUE</th>
+          </tr>
+        </thead>
+        <tbody id="searchTermsTableBody">
+        </tbody>
+      </table>
+    </div>
   `;
-  table.appendChild(thead);
   
-  // Create body
-  const tbody = document.createElement('tbody');
+  container.innerHTML = tableHtml;
+  const tbody = container.querySelector('#searchTermsTableBody');
   
-  // Add summary row
-  tbody.innerHTML = `
-    <tr class="camp-summary-row">
-      <td style="text-align: center; font-weight: 600;">#</td>
-      <td style="font-weight: 600;">Total (${searchTerms.length} terms)</td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.impressions.toLocaleString()}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.impressions, totals.impressions, 'impressions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
+  // Add summary row first
+  const summaryRow = document.createElement('tr');
+  summaryRow.className = 'camp-summary-row';
+  summaryRow.style.cssText = 'background: linear-gradient(to bottom, #f0f2f5, #e9ecef); font-weight: 600;';
+  
+  summaryRow.innerHTML = `
+    <td style="text-align: center; font-weight: 700; color: #007aff;">Σ</td>
+    <td style="font-weight: 700; color: #007aff;">
+      TOTAL (${searchTerms.length} terms)
+    </td>
+    <td class="metric-col">
+      <div class="camp-metric-cell">
+        <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+          ${totals.impressions.toLocaleString()}
         </div>
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.clicks.toLocaleString()}
+        ${getCampaignMetricTrend(trendTotals.impressions, totals.impressions, 'impressions')}
+        <div class="camp-metric-bar-container">
+          <div class="camp-metric-bar">
+            <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
           </div>
-          ${getCampaignMetricTrend(trendTotals.clicks, totals.clicks, 'clicks')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
+          <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
         </div>
-      </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.ctr.toFixed(2)}%
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            ${totals.conversions.toFixed(1)}
-          </div>
-          ${getCampaignMetricTrend(trendTotals.conversions, totals.conversions, 'conversions')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
+      </div>
+    </td>
+    <td class="metric-col">
+      <div class="camp-metric-cell">
+        <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+          ${totals.clicks.toLocaleString()}
         </div>
-      </td>
-      <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${totals.cvr.toFixed(2)}%
-      </td>
-      <td class="metric-col">
-        <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
-            $${totals.value.toFixed(2)}
+        ${getCampaignMetricTrend(trendTotals.clicks, totals.clicks, 'clicks')}
+        <div class="camp-metric-bar-container">
+          <div class="camp-metric-bar">
+            <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
           </div>
-          ${getCampaignMetricTrend(trendTotals.value, totals.value, 'value')}
-          <div class="camp-metric-bar-container">
-            <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
-            </div>
-            <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
-          </div>
+          <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
         </div>
-      </td>
-<td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
-        ${(totals.revenuePercent * 100).toFixed(2)}%
-      </td>
-    </tr>
+      </div>
+    </td>
+    <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+      ${totals.ctr.toFixed(2)}%
+    </td>
+    <td class="metric-col">
+      <div class="camp-metric-cell">
+        <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+          ${totals.conversions.toFixed(1)}
+        </div>
+        ${getCampaignMetricTrend(trendTotals.conversions, totals.conversions, 'conversions')}
+        <div class="camp-metric-bar-container">
+          <div class="camp-metric-bar">
+            <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+          </div>
+          <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+        </div>
+      </div>
+    </td>
+    <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+      ${totals.cvr.toFixed(2)}%
+    </td>
+    <td class="metric-col">
+      <div class="camp-metric-cell">
+        <div class="camp-metric-value" style="color: #007aff; font-weight: 700;">
+          $${totals.value.toFixed(0)}
+        </div>
+        ${getCampaignMetricTrend(trendTotals.value, totals.value, 'value')}
+        <div class="camp-metric-bar-container">
+          <div class="camp-metric-bar">
+            <div class="camp-metric-bar-fill" style="width: 100%; background: linear-gradient(90deg, #007aff 0%, #0056b3 100%);"></div>
+          </div>
+          <span class="camp-metric-percent" style="color: #007aff; font-weight: 600;">100%</span>
+        </div>
+      </div>
+    </td>
+    <td class="metric-col" style="text-align: right; font-weight: 700; color: #007aff;">
+      ${(totals.revenuePercent).toFixed(2)}%
+    </td>
+  </tr>
   `;
+  
+  tbody.appendChild(summaryRow);
   
   // Add search term rows
   searchTerms.forEach((term, index) => {
     const ctr = term.Impressions > 0 ? (term.Clicks / term.Impressions * 100) : 0;
     const cvr = term.Clicks > 0 ? (term.Conversions / term.Clicks * 100) : 0;
-    const revenuePercent = (term['% of all revenue'] || 0) * 100;
+    const revenuePercent = (term['% of all revenue'] || 0); // Don't multiply by 100
     
     // Calculate percentages for bars
     const impressionsPercent = totals.impressions > 0 ? (term.Impressions / totals.impressions * 100) : 0;
@@ -4746,21 +4719,23 @@ thead.innerHTML = `
     const conversionsPercent = totals.conversions > 0 ? (term.Conversions / totals.conversions * 100) : 0;
     const valuePercent = totals.value > 0 ? (term.Value / totals.value * 100) : 0;
     
-const row = document.createElement('tr');
-// Alternating row background
-if (index % 2 === 1) {
-  row.style.backgroundColor = '#fafafa';
-}
+    const row = document.createElement('tr');
+    // Alternating row background
+    if (index % 2 === 1) {
+      row.style.backgroundColor = '#fafafa';
+    }
     
     row.innerHTML = `
       <td style="text-align: center;">
-        ${getIndexWithTopBucket(index + 1, term.Top_Bucket)}
+        ${index + 1}
       </td>
-<td style="font-weight: 500;">
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <td style="font-weight: 500;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
           <span>${term.Query || '-'}</span>
-          ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
-          ${term.Performance_Bucket ? getPerformanceBucketBadge(term.Performance_Bucket) : ''}
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            ${term.Top_Bucket ? getTopBucketBadge(term.Top_Bucket) : ''}
+            ${term.Performance_Bucket ? getPerformanceBucketBadge(term.Performance_Bucket) : ''}
+          </div>
         </div>
       </td>
       <td class="metric-col">
@@ -4811,37 +4786,26 @@ if (index % 2 === 1) {
       </td>
       <td class="metric-col">
         <div class="camp-metric-cell">
-          <div class="camp-metric-value" style="font-weight: 600;">
-            $${(term.Value || 0).toFixed(2)}
-          </div>
+          <div class="camp-metric-value">$${(term.Value || 0).toFixed(0)}</div>
           ${getCampaignMetricTrend(term.Trend_Data?.Value, term.Value, 'value')}
           <div class="camp-metric-bar-container">
             <div class="camp-metric-bar">
-              <div class="camp-metric-bar-fill" style="width: ${valuePercent}%; background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);"></div>
+              <div class="camp-metric-bar-fill" style="width: ${valuePercent}%; background: linear-gradient(90deg, #ea4335 0%, #d33b27 100%);"></div>
             </div>
             <span class="camp-metric-percent">${valuePercent.toFixed(1)}%</span>
           </div>
         </div>
       </td>
       <td class="metric-col" style="text-align: right;">
-        <div style="font-weight: 600; color: ${revenuePercent > 5 ? '#4CAF50' : '#666'};">
+        <div style="font-weight: 600; color: #333;">
           ${revenuePercent.toFixed(2)}%
         </div>
       </td>
     </tr>
     `;
+    
     tbody.appendChild(row);
   });
-  
-  table.appendChild(tbody);
-  wrapper.appendChild(table);
-  
-// Clear and add table
-  container.innerHTML = '';
-  container.appendChild(wrapper);
-  
-  // Add sorting event listeners
-  addSearchTermsTableEventListeners(wrapper, searchTerms, campaignName);
 }
 
 // Add event listeners for search terms table
