@@ -1361,33 +1361,45 @@ async function loadAndRenderCampaigns() {
 
 // Create shared advanced mode toggle
 function createSharedAdvancedToggle() {
-  const toggleHTML = `
-    <div class="advanced-mode-toggle" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;">
-      <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
-      <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-        <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
-        <span class="toggle-slider" style="
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          transition: .3s;
-          border-radius: 24px;
-        "></span>
-      </label>
-    </div>
+  // Check if toggle already exists
+  const existingToggle = document.querySelector('.advanced-mode-toggle');
+  if (existingToggle) {
+    // Just move it to the first container
+    const containers = document.querySelectorAll('.advanced-mode-toggle-container');
+    if (containers.length > 0 && !containers[0].contains(existingToggle)) {
+      containers[0].appendChild(existingToggle);
+    }
+    return;
+  }
+  
+  // Create new toggle only if it doesn't exist
+  const toggleDiv = document.createElement('div');
+  toggleDiv.className = 'advanced-mode-toggle';
+  toggleDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;';
+  
+  toggleDiv.innerHTML = `
+    <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
+    <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+      <input type="checkbox" id="advancedModeToggle" style="opacity: 0; width: 0; height: 0;">
+      <span class="toggle-slider" style="
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .3s;
+        border-radius: 24px;
+      "></span>
+    </label>
   `;
   
-  // Insert the toggle into both panels
+  // Insert the toggle into the first container found
   const containers = document.querySelectorAll('.advanced-mode-toggle-container');
-  containers.forEach(container => {
-    if (container) {
-      container.innerHTML = toggleHTML;
-    }
-  });
+  if (containers.length > 0) {
+    containers[0].appendChild(toggleDiv);
+  }
 }
 
 // Render campaigns navigation panel
