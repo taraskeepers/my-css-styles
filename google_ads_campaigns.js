@@ -1509,7 +1509,7 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
     
     const view = this.getAttribute('data-view');
     
-    // Get the toggle element
+    // Get the toggle element (not the container)
     const toggle = document.querySelector('.advanced-mode-toggle');
     
     if (view === 'products') {
@@ -1519,7 +1519,9 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
       // Move toggle to products panel if it exists
       if (toggle) {
         const productsToggleContainer = productsPanel.querySelector('.advanced-mode-toggle-container');
-        if (productsToggleContainer && !productsToggleContainer.contains(toggle)) {
+        if (productsToggleContainer) {
+          // Clear the container first to avoid duplicates
+          productsToggleContainer.innerHTML = '';
           productsToggleContainer.appendChild(toggle);
         }
       }
@@ -1541,7 +1543,9 @@ viewSwitcher.querySelectorAll('.campaigns-view-tab').forEach(tab => {
       // Move toggle to search terms panel if it exists
       if (toggle) {
         const searchTermsToggleContainer = searchTermsPanel.querySelector('.advanced-mode-toggle-container');
-        if (searchTermsToggleContainer && !searchTermsToggleContainer.contains(toggle)) {
+        if (searchTermsToggleContainer) {
+          // Clear the container first to avoid duplicates
+          searchTermsToggleContainer.innerHTML = '';
           searchTermsToggleContainer.appendChild(toggle);
         }
       }
@@ -1974,7 +1978,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2127,7 +2131,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2280,7 +2284,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2433,7 +2437,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2586,7 +2590,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2739,7 +2743,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -2892,7 +2896,7 @@ searchTermsPanel.innerHTML = `
               </div>
             </div>
           </div>
-<div class="bucket-metrics" style="
+<div class="bucket-metrics advanced-mode-element" style="
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -3074,6 +3078,10 @@ container.appendChild(mainContainer);
 // Create the shared toggle after panels are in DOM
 setTimeout(() => {
   createSharedAdvancedToggle();
+  // Re-initialize advanced mode for the new toggle
+  setTimeout(() => {
+    initializeAdvancedMode();
+  }, 100);
 }, 100);
   
 // Add click handlers for campaign items
