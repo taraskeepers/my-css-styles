@@ -14,6 +14,11 @@ async function initializeCampaignsSection() {
   
   // Load and render campaigns
   await loadAndRenderCampaigns();
+  
+  // Initialize advanced mode after campaigns are loaded
+  setTimeout(() => {
+    initializeAdvancedMode();
+  }, 500);
 }
 
 // Add campaigns-specific styles (REPLACE the entire addCampaignsStyles function)
@@ -4158,6 +4163,14 @@ trend: productProcessedMetrics?.allDevices?.trend || null,
     }
     headerInfo.textContent = `${campaignName} - Error loading products`;
   }
+  // Check if advanced mode is on and show advanced elements
+  const advancedModeToggle = document.getElementById('advancedModeToggle');
+  if (advancedModeToggle && advancedModeToggle.checked) {
+    document.querySelectorAll('.advanced-mode-element').forEach(element => {
+      element.style.display = '';
+      element.style.opacity = '1';
+    });
+  }
 }
 
 // Load search terms for selected campaign
@@ -4371,6 +4384,14 @@ populateSearchesAnalysis(bucketStats);
       </div>
     `;
     headerInfo.textContent = `${campaignName} - Error loading search terms`;
+  }
+  // Check if advanced mode is on and show advanced elements
+  const advancedModeToggle = document.getElementById('advancedModeToggle');
+  if (advancedModeToggle && advancedModeToggle.checked) {
+    document.querySelectorAll('.advanced-mode-element').forEach(element => {
+      element.style.display = '';
+      element.style.opacity = '1';
+    });
   }
 }
 
@@ -6505,9 +6526,9 @@ function populateSearchesAnalysis(bucketStats) {
     
     let html = '';
     
-    // High Performing Group Summary
+// High Performing Group Summary
     html += `
-      <div class="campaign-search-bucket-row" style="
+      <div class="campaign-search-bucket-row campaign-search-summary-row" style="
         background: linear-gradient(to right, #dcfce7, #f0fdf4);
         border-left: 3px solid #22c55e;
         padding: 6px 8px;
@@ -6551,7 +6572,7 @@ function populateSearchesAnalysis(bucketStats) {
       </div>
     `;
     
-    // High performing bucket rows
+// High performing bucket rows (DETAIL ROWS)
     highPerformingGroup.buckets.forEach(bucket => {
       const stats = bucketStats[bucket.key];
       if (!stats) return;
@@ -6560,7 +6581,7 @@ function populateSearchesAnalysis(bucketStats) {
       const revenuePercent = stats.revenuePercent || 0;
       
       html += `
-        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
+        <div class="campaign-search-bucket-row campaign-search-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
           <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
             ${stats.count}
           </div>
@@ -6586,9 +6607,9 @@ function populateSearchesAnalysis(bucketStats) {
     // Add spacing between groups
     html += '<div style="height: 8px;"></div>';
     
-    // Low Performing Group Summary
+// Low Performing Group Summary
     html += `
-      <div class="campaign-search-bucket-row" style="
+      <div class="campaign-search-bucket-row campaign-search-summary-row" style="
         background: linear-gradient(to right, #fee2e2, #fef2f2);
         border-left: 3px solid #ef4444;
         padding: 6px 8px;
@@ -6632,7 +6653,7 @@ function populateSearchesAnalysis(bucketStats) {
       </div>
     `;
     
-    // Low performing bucket rows
+// Low performing bucket rows (DETAIL ROWS)
     lowPerformingGroup.buckets.forEach(bucket => {
       const stats = bucketStats[bucket.key];
       if (!stats) return;
@@ -6641,7 +6662,7 @@ function populateSearchesAnalysis(bucketStats) {
       const revenuePercent = stats.revenuePercent || 0;
       
       html += `
-        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
+        <div class="campaign-search-bucket-row campaign-search-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
           <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
             ${stats.count}
           </div>
@@ -6766,8 +6787,8 @@ function populateProductsAnalysis(bucketStats) {
     
     // Positive Group
     html += `
-      <!-- Positive Group Summary -->
-      <div class="campaign-search-bucket-row" style="
+<!-- Positive Group Summary -->
+      <div class="campaign-search-bucket-row campaign-product-summary-row" style="
         background: linear-gradient(to right, #dcfce7, #f0fdf4);
         border-left: 3px solid #22c55e;
         padding: 6px 8px;
@@ -6873,7 +6894,7 @@ function populateProductsAnalysis(bucketStats) {
       </div>
     `;
     
-    // Positive bucket rows
+// Positive bucket rows (DETAIL ROWS)
     positiveGroup.buckets.forEach(bucket => {
       const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
       
@@ -6884,7 +6905,7 @@ function populateProductsAnalysis(bucketStats) {
       else if (stats.roas >= 1) roasColor = '#FF9800';
       
       html += `
-        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
+        <div class="campaign-search-bucket-row campaign-product-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
           <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
             ${stats.count}
           </div>
@@ -6926,8 +6947,8 @@ function populateProductsAnalysis(bucketStats) {
     
     // Negative Group Summary
     html += `
-      <!-- Negative Group Summary -->
-      <div class="campaign-search-bucket-row" style="
+<!-- Negative Group Summary -->
+      <div class="campaign-search-bucket-row campaign-product-summary-row" style="
         background: linear-gradient(to right, #fee2e2, #fef2f2);
         border-left: 3px solid #ef4444;
         padding: 6px 8px;
@@ -7033,7 +7054,7 @@ function populateProductsAnalysis(bucketStats) {
       </div>
     `;
     
-    // Negative bucket rows
+// Negative bucket rows (DETAIL ROWS)
     negativeGroup.buckets.forEach(bucket => {
       const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
       
@@ -7044,7 +7065,7 @@ function populateProductsAnalysis(bucketStats) {
       else if (stats.roas >= 1) roasColor = '#FF9800';
       
       html += `
-        <div class="campaign-search-bucket-row" style="padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
+        <div class="campaign-search-bucket-row campaign-product-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
           <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
             ${stats.count}
           </div>
@@ -7795,6 +7816,49 @@ function renderEmptyCampaignsState() {
       </div>
     </div>
   `;
+}
+
+// Advanced Mode Toggle Functionality
+function initializeAdvancedMode() {
+  const toggle = document.getElementById('advancedModeToggle');
+  if (!toggle) return;
+  
+  toggle.addEventListener('change', function() {
+    const isAdvanced = this.checked;
+    
+    // Get all advanced mode elements
+    const advancedElements = document.querySelectorAll('.advanced-mode-element');
+    
+    advancedElements.forEach(element => {
+      if (isAdvanced) {
+        // Show elements with animation
+        element.style.display = '';
+        setTimeout(() => {
+          element.style.opacity = '0';
+          element.style.transition = 'opacity 0.3s ease-in';
+          element.offsetHeight; // Force reflow
+          element.style.opacity = '1';
+        }, 10);
+      } else {
+        // Hide elements with animation
+        element.style.transition = 'opacity 0.3s ease-out';
+        element.style.opacity = '0';
+        setTimeout(() => {
+          element.style.display = 'none';
+        }, 300);
+      }
+    });
+    
+    // Store preference in localStorage
+    localStorage.setItem('campaignsAdvancedMode', isAdvanced ? 'true' : 'false');
+  });
+  
+  // Restore saved preference
+  const savedMode = localStorage.getItem('campaignsAdvancedMode');
+  if (savedMode === 'true') {
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+  }
 }
 
 // Export initialization function
